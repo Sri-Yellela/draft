@@ -21,8 +21,45 @@ export const SPAM_FLAG_RE = /flagged as (possible |potential )?spam|submission (
 
 /** Families whose server-side submit is paused whatever the counts say (the owner, 11-12: Ashby). */
 export const ALWAYS_PAUSED = Object.freeze(new Set(["ashby"]));
-export const FLAG_THRESHOLD = 2;
+// ⭐ A207 (b) (46l, owner 11-13: "if A185's server submit gets a spam flag on Ashby, that ATS is marked 'extension submit'"):
+// the FIRST flag marks the family, and the mark is DURABLE — an app_settings row `submit_family:<ats>` set by the flag and
+// cleared only by the owner in Admin (A187's 2-in-24-h window lapsed by itself and sent the next submit into the same refusal).
+export const FLAG_THRESHOLD = 1;
 export const FLAG_WINDOW_S = 24 * 3600;
+export const FAMILY_MARK_PREFIX = "submit_family:";
+export const familyMarkKey = (ats) => FAMILY_MARK_PREFIX + String(ats || "").toLowerCase();
+
+/** The family's durable mark → { mode: "extension", at, runJobId, jobId } or null. Never throws. */
+export function familyMark(db, ats) {
+  const a = String(ats || "").toLowerCase();
+  if (!a) return null;
+  try {
+    const row = db.prepare("SELECT value, updated_at FROM app_settings WHERE key = ?").get(familyMarkKey(a));
+    if (!row) return null;
+    const v = parse(row.value);
+    return { mode: "extension", at: Number(v.at) || Number(row.updated_at) || null, runJobId: v.runJobId ?? null, jobId: v.jobId ?? null };
+  } catch { return null; }
+}
+
+/** Mark a family "extension submit" (the first flag). Keeps the FIRST mark's time and run — a later flag never moves it. */
+export function markFamilyExtension(db, ats, { runJobId = null, jobId = null, now = nowS() } = {}) {
+  const a = String(ats || "").toLowerCase();
+  if (!a || a === "unknown") return null;
+  const existing = familyMark(db, a);
+  if (existing) return existing;
+  try {
+    db.prepare(`INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO NOTHING`)
+      .run(familyMarkKey(a), JSON.stringify({ mode: "extension", at: now, runJobId, jobId: jobId == null ? null : String(jobId) }), now);
+  } catch { return null; }
+  return familyMark(db, a);
+}
+
+/** The owner's clear (Admin). Returns the mark it removed, or null. */
+export function clearFamilyMark(db, ats) {
+  const before = familyMark(db, ats);
+  if (before) db.prepare("DELETE FROM app_settings WHERE key = ?").run(familyMarkKey(ats));
+  return before;
+}
 
 export const SUBMIT_OUTCOMES = Object.freeze(["sent", "flagged_spam", "challenge", "failed", "paused"]);
 
@@ -59,7 +96,9 @@ export function familyPause(db, ats, opts = {}) {
   const a = String(ats || "").toLowerCase();
   if (!a) return null;
   if (ALWAYS_PAUSED.has(a)) return "always";
-  try { return familyFlagCount(db, a, opts) >= FLAG_THRESHOLD ? "flags" : null; } catch { return null; }
+  if (familyMark(db, a)) return "marked";       // A207 (b): durable, until the owner clears it
+  void opts;
+  return null;
 }
 
 /** Was this person's submit of this job ever flagged as spam? (S2) */
@@ -85,18 +124,19 @@ const told = new Set();
  * Count one outcome (S3) and, when this flag pauses its family, say so once. `log(event, message, details)` is the run's
  * logEvent bound to the run job.
  */
-export function recordSubmitOutcome(db, { ats, result, log }) {
+export function recordSubmitOutcome(db, { ats, result, log, runJobId = null, jobId = null }) {
   const outcome = submitOutcomeOf(result);
   if (!outcome || typeof log !== "function") return null;
   const a = String(ats || "unknown").toLowerCase();
   log("submit_outcome", `Submit on ${a}: ${outcome.replace("_", " ")}`, { ats: a, outcome });
-  if (outcome === "flagged_spam" && !ALWAYS_PAUSED.has(a) && !told.has(a)) {
-    let n = 0;
-    try { n = familyFlagCount(db, a); } catch {}
-    if (n >= FLAG_THRESHOLD) {
+  // ⭐ A207 (b): the first flag marks the family "extension submit" — durable, said once.
+  if (outcome === "flagged_spam" && !ALWAYS_PAUSED.has(a) && !familyMark(db, a)) {
+    const mark = markFamilyExtension(db, a, { runJobId, jobId });
+    if (mark && !told.has(a)) {
       told.add(a);
-      console.warn(`[submit-family] PAUSED ${a}: ${n} submits flagged as spam in 24 h — server-side submit to ${a} stops; ` +
-        "every run there is handed to the person's own browser (Admin → System → Switches → Submits by ATS).");
+      console.warn(`[submit-family] MARKED ${a} extension submit: a server submit was flagged as spam (run job ${runJobId ?? "?"}) — ` +
+        `draft's server no longer presses Submit on ${a}; every run there is sent from the person's own browser with one press ` +
+        "in the extension (Admin → System → Switches → Submits by ATS clears it).");
     }
   }
   return outcome;
@@ -114,7 +154,37 @@ export function submitOutcomeCounts(db, { days = 30, now = nowS() } = {}) {
     if (SUBMIT_OUTCOMES.includes(x.outcome)) by.get(a)[x.outcome]++;
   }
   for (const a of ALWAYS_PAUSED) if (!by.has(a)) by.set(a, { ats: a, sent: 0, flagged_spam: 0, challenge: 0, failed: 0, paused: 0 });
-  const families = [...by.values()].map(f => ({ ...f, pausedBy: familyPause(db, f.ats, { now }) }))
-    .sort((x, y) => (y.sent + y.flagged_spam + y.challenge + y.failed + y.paused) - (x.sent + x.flagged_spam + x.challenge + x.failed + x.paused));
-  return { days: d, threshold: FLAG_THRESHOLD, families, paused: families.filter(f => f.pausedBy).map(f => f.ats) };
+  // marked families with no rows in the window are still listed (the mark outlives the window)
+  try {
+    for (const r of db.prepare("SELECT key FROM app_settings WHERE key LIKE ?").all(FAMILY_MARK_PREFIX + "%")) {
+      const a = r.key.slice(FAMILY_MARK_PREFIX.length);
+      if (a && !by.has(a)) by.set(a, { ats: a, sent: 0, flagged_spam: 0, challenge: 0, failed: 0, paused: 0 });
+    }
+  } catch {}
+  const families = [...by.values()].map(f => ({ ...f, ...shareOf(f), pausedBy: familyPause(db, f.ats, { now }), mark: familyMark(db, f.ats) }))
+    .sort((x, y) => y.all - x.all);
+  const total = families.reduce((t, f) => {
+    for (const k of SUBMIT_OUTCOMES) t[k] += f[k];
+    return t;
+  }, { sent: 0, flagged_spam: 0, challenge: 0, failed: 0, paused: 0 });
+  return { days: d, threshold: FLAG_THRESHOLD, families, overall: { ...total, ...shareOf(total) },
+    paused: families.filter(f => f.pausedBy).map(f => f.ats) };
+}
+
+/**
+ * ⭐ A207 (d) (owner: "count which ATS boards reject server submissions, so the data shows whether this is 5% of applications
+ * or 50%"). Counts, never a bare percent (D111):
+ *   rejected / tried       server submits flagged as spam, of server submits that reached the click (sent · flagged · check ·
+ *                          failed — a paused one never clicked)
+ *   extension / all        applications that reached the submit step on an extension-submit family (paused, or flagged),
+ *                          of every application that reached it
+ */
+export function shareOf(f) {
+  const tried = f.sent + f.flagged_spam + f.challenge + f.failed;
+  return { tried, rejected: f.flagged_spam, all: tried + f.paused, extension: f.paused + f.flagged_spam };
+}
+
+/** Admin's two windows at once — 7 and 30 days. */
+export function submitShare(db, { now = nowS() } = {}) {
+  return { d7: submitOutcomeCounts(db, { days: 7, now }), d30: submitOutcomeCounts(db, { days: 30, now }) };
 }

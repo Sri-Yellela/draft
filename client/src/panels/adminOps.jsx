@@ -663,26 +663,44 @@ export function QuickChecksSection({ theme }) {
   );
 }
 
-// ── ⭐ A187 S3 · submits by ATS × outcome — GET /api/admin/submit-outcomes ──────────────────────────────────────────
-// Where server-side submits land per ATS family, and which families are paused (Ashby always; any other after its spam
-// flags) — a paused family's runs are filled and handed to the person's own browser. services/submitFamilies.js.
-const PAUSED_WORDS = { always: "Paused — flags server submits", flags: "Paused — spam flags in 24 h" };
+// ── ⭐ A187 S3 + A207 (b)(d) · submits by ATS — GET /api/admin/submit-share ──────────────────────────────────────────
+// Where server-side submits land per ATS family, which families are marked "extension submit" (Ashby always; any other from
+// its FIRST spam flag, until the owner clears it here), and the share the owner asked for: server submits rejected of tried,
+// and applications on extension-submit families of all — counts, never a bare percent (D111). services/submitFamilies.js.
+const PAUSED_WORDS = { always: "Extension submit — always", marked: "Extension submit" };
+const stampOf = (sec) => (sec ? new Date(sec * 1000).toISOString().slice(0, 16).replace("T", " ") + "Z" : "");
 export function SubmitOutcomesSection({ theme }) {
   const [s, setS] = useState(null);
   const [err, setErr] = useState(null);
-  useEffect(() => { api("/api/admin/submit-outcomes").then(setS).catch(e => setErr(e.message)); }, []);
-  const flagged = s ? s.families.reduce((n, f) => n + f.flagged_spam, 0) : 0;
-  const rows = s ? s.families.map(f => ({ ...f, state: f.pausedBy ? PAUSED_WORDS[f.pausedBy] : "Server submits on" })) : [];
+  const [days, setDays] = useState(30);
+  const load = useCallback(() => { api("/api/admin/submit-share").then(setS).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { load(); }, [load]);
+  const w = s ? (days === 7 ? s.d7 : s.d30) : null;
+  const clear = async (ats) => {
+    try { await api(`/api/admin/submit-families/${encodeURIComponent(ats)}/clear`, { method: "POST", body: "{}" }); load(); }
+    catch (e) { setErr(e.message); }
+  };
+  const rows = w ? w.families.map(f => ({ ...f,
+    rejectedOf: `${f.rejected} of ${f.tried}`, extensionOf: `${f.extension} of ${f.all}`,
+    state: f.pausedBy ? PAUSED_WORDS[f.pausedBy] || "Extension submit" : "Server submits on",
+    markedAt: f.mark ? `${stampOf(f.mark.at)}${f.mark.runJobId != null ? ` · run job ${f.mark.runJobId}` : ""}` : "",
+    action: f.pausedBy === "marked" ? <Btn theme={theme} onClick={() => clear(f.ats)}>Clear mark</Btn> : null })) : [];
   return (
     <Panel title="Submits by ATS" data-admin-submit-outcomes=""
-      code={`A187 S3: apply_job_logs' submit_outcome events by ATS. A family with ${s?.threshold ?? 2} spam flags in 24 h stops server-side submits on its own; Ashby is always paused. Paused runs are filled and sent from the person's own browser (the extension fills, the person presses Submit). No proxies, no evasion.`}
-      purpose="Which application sites accept draft's submits and which flag them. A new 'flagged as spam' count means that site is now handed to people's own browsers."
-      numbers={s ? [[flagged, `flagged as spam in the last ${s.days} days`, flagged > 0], [s.paused.length, `paused: ${s.paused.join(", ") || "none"}`]] : []}>
+      code="A187 S3 + A207: apply_job_logs' submit_outcome events by ATS. The FIRST spam flag on a family marks it 'extension submit' (app_settings submit_family:<ats>) until cleared here; Ashby always. On a marked family draft's server never presses Submit — the extension fills the form in the person's own browser and their one press sends it. No proxies, no evasion."
+      purpose="Is this 5 % of applications or 50 %? Server submits rejected of those tried, and applications on extension-submit sites of all that reached Submit. Counts start at the A207 deploy — earlier refusals were never logged as refusals."
+      numbers={w ? [[`${w.overall.rejected} of ${w.overall.tried}`, `server submits rejected as spam, last ${w.days} days`, w.overall.rejected > 0],
+        [`${w.overall.extension} of ${w.overall.all}`, "applications on extension-submit sites"], [w.paused.length, `extension submit: ${w.paused.join(", ") || "none"}`]] : []}>
       <Err msg={err}/>
-      {s && <Table theme={theme} rows={rows} empty="No submits recorded."
-        cols={[{ key: "ats", label: "ATS" }, { key: "sent", label: "Sent", right: true }, { key: "flagged_spam", label: "Flagged as spam", right: true },
-          { key: "challenge", label: "Check", right: true }, { key: "failed", label: "Failed", right: true }, { key: "paused", label: "Held (paused)", right: true },
-          { key: "state", label: "Server submit" }]} />}
+      <div style={{ ...row, marginBottom: 8 }}>
+        <Btn theme={theme} primary={days === 7} onClick={() => setDays(7)}>7 days</Btn>
+        <Btn theme={theme} primary={days === 30} onClick={() => setDays(30)}>30 days</Btn>
+      </div>
+      {w && <Table theme={theme} rows={rows} empty="No submits recorded."
+        cols={[{ key: "ats", label: "ATS" }, { key: "sent", label: "Sent", right: true }, { key: "rejectedOf", label: "Rejected of tried", right: true },
+          { key: "challenge", label: "Check", right: true }, { key: "failed", label: "Failed", right: true },
+          { key: "extensionOf", label: "Extension of all", right: true }, { key: "state", label: "Submit" }, { key: "markedAt", label: "Marked" },
+          { key: "action", label: "" }]} />}
     </Panel>
   );
 }

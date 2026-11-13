@@ -94,13 +94,13 @@ const BY_REASON = {
   // sent from the person's own browser — the extension fills it from the stored payload and the person presses Submit.
   // Not retryable from the server: pressing it again from the same address is what makes the flags worse.
   server_submit_paused: {
-    obstacle: "Filled and ready — this site flags applications sent from draft's servers, so you send it from your own browser",
-    action: "Open & fill: draft fills it in your browser, you press Submit",
+    obstacle: "Extension submit — this site flags applications sent from draft's servers, so it goes from your own browser",
+    action: "Open & fill: draft fills it in your browser, one press of Submit application in the extension sends it",
     protective: true, retryable: false,
   },
   flagged_spam: {
-    obstacle: "The site flagged the submit from draft's servers as possible spam — nothing was sent",
-    action: "Open & fill: draft fills it in your browser, you press Submit",
+    obstacle: "The site flagged the submit from draft's servers as possible spam — nothing was sent; it's ready in your extension",
+    action: "Open & fill: draft fills it in your browser, one press of Submit application in the extension sends it",
     protective: true, retryable: false,
   },
   submit_check_failed: {

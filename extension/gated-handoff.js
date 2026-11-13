@@ -44,6 +44,7 @@ export { neverFillReasonOfField, isSignatureField, withoutNeverFill };
 import { overlayTheme, drawInDock, dockMeta } from './dockHost.js';
 export { overlayTheme };
 import { authedFetch } from './auth.js';
+import { isExtensionSubmitPacket } from './extensionSubmit.js';   // ⭐ A207 (a)
 // The tab binding: the job this tab captured or recognised, sent as a HINT the server checks (tabBinding.js).
 import { bindingForTab, boundMissMessage } from './tabBinding.js';
 // ⭐ D96 §3: where each application stands, remembered — counts and times only, never an answer (progress.js).
@@ -2411,6 +2412,8 @@ async function panelMetaFor({ tab, released, serverUrl, runId = null }) {
     dock: await dockMeta(tab),
     review,
     theme: await overlayTheme(),
+    // ⭐ A207 (a): this ATS flags draft's server — the panel's Submit application sends it with the person's one press
+    extensionSubmit: isExtensionSubmitPacket(released?.packet),
   };
 }
 

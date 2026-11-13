@@ -24,6 +24,7 @@ import { handlers as INTENT_HANDLERS, configureIntent, showPath, runDraft } from
 import { toolbarPress, renderRelay, fillRelay, dockStateInPage, collapseDockInPage } from './toolbarPress.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
 import { lookupBoardJob } from './boardJob.js';
+import { isExtensionSubmitPacket, sendWithPress } from './extensionSubmit.js';   // ⭐ A207 (a)
 // ⭐ BINDING FIRST (owner 10-15): every press on a page draft has not seen identifies the page and binds the tab first.
 import { identifyAndBind, identityView, STOPS as IDENTITY_STOPS } from './identify.js';
 // ⭐ One job per tab across every stage of its application, and the Copy sheet as an in-page panel (owner, 10-12).
@@ -656,6 +657,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.trigger !== 'click' || sender?.frameId !== 0 || !sender?.tab?.id) { sendResponse({ ok: false, message: 'Record it from the dock on the application page.' }); return true; }
     recordSubmitted({ serverUrl: RESUME_MASTER_URL, tab: sender.tab })
       .then(r => sendResponse(r)).catch(() => sendResponse({ ok: false, message: 'Could not record it.' }));
+    return true;
+  }
+  // ⭐ A207 (a) · Submit application: the person's ONE press sends it from their own browser — on an extension-submit packet
+  // only (its ATS flags draft's server), from the dock's TOP frame, as the panel's own trusted press. ⛔ Nothing else sends.
+  if (msg?.type === 'GATE_SEND') {
+    const tabId = sender?.tab?.id;
+    if (msg.trigger !== 'press' || msg.trusted !== true || sender?.frameId !== 0 || !tabId) {
+      sendResponse({ ok: false, outcome: 'refused', message: 'Press Submit application in the panel.' }); return true;
+    }
+    loadPacketForTab(tabId).then(async (held) => {
+      if (!isExtensionSubmitPacket(held?.packet)) return { ok: false, outcome: 'refused', message: 'This one is sent with the Submit button on the form itself.' };
+      return sendWithPress({
+        tabId, frameId: formFrameOf(tabId),
+        executeScript: async ({ tabId: t, frameId: f, func, args }) => {
+          const [r] = await chrome.scripting.executeScript({ target: f ? { tabId: t, frameIds: [f] } : { tabId: t }, func, args });
+          return r?.result ?? null;
+        },
+        recordSubmitted: async () => recordSubmitted({ serverUrl: RESUME_MASTER_URL, tab: await chrome.tabs.get(tabId) }),
+      });
+    }).then(r => sendResponse(r)).catch(() => sendResponse({ ok: false, outcome: 'unknown', message: 'Could not send it — press Submit on the page.' }));
     return true;
   }
   if (msg?.type === 'GATE_SUBMITTED') {

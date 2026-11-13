@@ -223,8 +223,8 @@ export function createChallengeRerun(deps) {
         // ⭐ A187: the employer's site flags submits from draft's servers — send it from your own browser instead.
         entry.outcome = "own_browser";
         entry.message = result.reasonCode === "flagged_spam"
-          ? "The employer's site flagged the submit from draft's servers as possible spam, so nothing was sent. Use Open & fill — you press Submit in your own browser."
-          : "This employer's site flags applications sent from draft's servers, so nothing was sent from here. Use Open & fill — you press Submit in your own browser.";
+          ? "The employer's site flagged the submit from draft's servers as possible spam, so nothing was sent. It's ready in your extension — Open & fill, then one press of Submit application sends it from your browser."
+          : "This employer's site flags applications sent from draft's servers, so nothing was sent from here. Open & fill — one press of Submit application in the extension sends it from your browser.";
       } else if (result?.reasonCode === "answers_changed_since_approval") {
         entry.outcome = "form_changed";
         entry.message = "The form asks something different now, so nothing was sent. Use Run again for a fresh draft of it.";
@@ -276,7 +276,7 @@ export function createChallengeRerun(deps) {
     try { const j = db.prepare(`SELECT * FROM scraped_jobs WHERE job_id = ?`).get(String(pieces.row.job_id)) || null; ctxUrl = jobUrlFor({ userId, jobId: pieces.row.job_id, job: j }); } catch {}
     const blocked = submitBlocker(null, { userId, jobId: String(pieces.row.job_id), url: ctxUrl }) || null;
     if (blocked) return { status: 409, body: { error: blocked, message: OWN_BROWSER_REASONS.has(blocked)
-      ? "This employer's site flags applications sent from draft's servers, so it can't be sent from here. Use Open & fill — you press Submit in your own browser."
+      ? "This employer's site flags applications sent from draft's servers, so it can't be sent from here. It's ready in your extension — Open & fill, then one press of Submit application sends it from your browser."
       : "Automatic sending is paused right now, so the form can't be sent from here. Open & fill still works." } };
     const refused = refuse(userId);
     if (refused) return { status: 409, body: refused };

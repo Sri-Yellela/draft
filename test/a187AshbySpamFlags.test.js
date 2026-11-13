@@ -23,7 +23,8 @@ function logsDb() {
   const db = new Database(":memory:");
   db.exec(`CREATE TABLE apply_job_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, run_job_id INTEGER, user_id INTEGER NOT NULL,
     job_id TEXT, level TEXT NOT NULL DEFAULT 'info', event TEXT NOT NULL, message TEXT, details_json TEXT,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch()));`);
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()));
+    CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER);`);
   const log = (userId, jobId, at = null) => (e, m, d) => db.prepare(`INSERT INTO apply_job_logs (user_id, job_id, event, message, details_json, created_at)
     VALUES (?, ?, ?, ?, ?, COALESCE(?, unixepoch()))`).run(userId, String(jobId), e, m, JSON.stringify(d), at);
   return { db, log };
@@ -55,8 +56,8 @@ test("a187FlaggedNeverRetried: a spam refusal is its own state, recorded, and th
   const { db, log } = logsDb();
   recordSubmitOutcome(db, { ats: "lever", result: { status: "held_review", reasonCode: "flagged_spam" }, log: log(7, "lv::1") });
   assert.equal(serverSubmitBlock(db, { ats: "lever", userId: 7, jobId: "lv::1" }), "flagged_spam", "S2: that job, never again from the server");
-  assert.equal(serverSubmitBlock(db, { ats: "lever", userId: 7, jobId: "lv::2" }), null, "one flag does not pause the family");
-  assert.equal(serverSubmitBlock(db, { ats: "lever", userId: 8, jobId: "lv::1" }), null, "another person's run of the job is theirs");
+  assert.equal(serverSubmitBlock(db, { ats: "lever", userId: 7, jobId: "lv::2" }), "server_submit_paused", "⛔ A207 (b) changed this on purpose: the first flag marks the whole family extension submit");
+  assert.equal(serverSubmitBlock(db, { ats: null, userId: 8, jobId: "lv::1" }), null, "S2 is per person: another person's run of the job is not refused by THIS flag (A207's family mark is pinned in a207ExtensionPrimarySubmit)");
   // not a browser failure, so the submit retry never takes it
   assert.ok(!RETRYABLE_SUBMIT_FAILURES.includes("flagged_spam"));
   assert.equal(submitRetryVerdict({ status: "held_review", reasonCode: "flagged_spam" }, { attempt: 1 }).retry, false);
@@ -67,22 +68,21 @@ test("a187FlaggedNeverRetried: a spam refusal is its own state, recorded, and th
   assert.match(aa, /\} else if \(clicked && postFlow === "flagged_spam"\) \{\n[\s\S]{0,400}submitReasonCode = "flagged_spam";/);
 });
 
-test("a187FlagThresholdPausesFamily: 2 flags in 24 h pause a family's server-side submit; older flags do not count", () => {
+// ⛔ A207 (b) (46l) changed this on purpose: the FIRST flag marks the family "extension submit", durably (A187 paused after
+// 2 flags in 24 h, and the window lapsed by itself). a207FamilyMark.test.js pins the mark; this keeps the family-wide stop.
+test("a187FlagThresholdPausesFamily → A207: the first flag marks a family's server-side submit off, for every person", () => {
   const { db, log } = logsDb();
-  const now = Math.floor(Date.now() / 1000);
-  log(1, "w::old", now - 30 * 3600)("submit_outcome", "", { ats: "workable", outcome: "flagged_spam" });
-  log(1, "w::1")("submit_outcome", "", { ats: "workable", outcome: "flagged_spam" });
-  assert.equal(familyPause(db, "workable"), null, "one flag in the window");
-  assert.equal(FLAG_THRESHOLD, 2);
+  assert.equal(familyPause(db, "workable"), null, "no flag yet");
+  assert.equal(FLAG_THRESHOLD, 1);
   const warn = console.warn; const said = []; console.warn = (m) => said.push(String(m));
-  try { recordSubmitOutcome(db, { ats: "workable", result: { status: "held_review", reasonCode: "flagged_spam" }, log: log(2, "w::2") }); }
+  try { recordSubmitOutcome(db, { ats: "workable", result: { status: "held_review", reasonCode: "flagged_spam" }, log: log(2, "w::2"), runJobId: 7, jobId: "w::2" }); }
   finally { console.warn = warn; }
-  assert.equal(familyPause(db, "workable"), "flags");
+  assert.equal(familyPause(db, "workable"), "marked");
   assert.equal(serverSubmitBlock(db, { ats: "workable", userId: 3, jobId: "w::9" }), "server_submit_paused", "every person's run on it");
-  assert.ok(said.some(m => /\[submit-family\] PAUSED workable/.test(m)), "the owner is told (the log line + Admin)");
+  assert.ok(said.some(m => /\[submit-family\] MARKED workable extension submit/.test(m)), "the owner is told (the log line + Admin)");
   const c = submitOutcomeCounts(db);
   assert.deepEqual(c.paused.sort(), ["ashby", "workable"]);
-  assert.equal(c.families.find(f => f.ats === "workable").flagged_spam, 3);
+  assert.equal(c.families.find(f => f.ats === "workable").flagged_spam, 1);
   assert.match(read("server.js"), /app\.get\("\/api\/admin\/submit-outcomes", requireAdmin/);
   assert.match(read("client/src/panels/AdminPanel.jsx"), /<SubmitOutcomesSection theme=\{theme\}\/>/);
   assert.match(read("scripts/migrations.js"), /id: "275_apply_job_logs_submit_outcome"/);
@@ -95,7 +95,7 @@ test("a187ExtensionFillsFromPayload: both holds are resumable — the packet is 
   }
   assert.match(read("services/heldQuestions.js"), /server_submit_paused: "Filled and ready\./);
   const ob = read("client/src/lib/applyObstacles.js");
-  assert.match(ob, /server_submit_paused: \{\n[^}]*Open & fill: draft fills it in your browser, you press Submit[^}]*retryable: false/);
+  assert.match(ob, /server_submit_paused: \{\n[^}]*Open & fill: draft fills it in your browser, one press of Submit application in the extension sends it[^}]*retryable: false/);
   assert.match(ob, /flagged_spam: \{\n[^}]*retryable: false/);
 });
 
