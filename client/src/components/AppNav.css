@@ -262,7 +262,7 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
    shadow edge. */
 @media not all and (min-width: 1280px) {
   .appnav-ask { --appnav-ask-w: min(420px, 100vw); z-index: 256; /* above Z.NAV and the peek, below the modal tiers */ }
-  .appnav-ask[data-open="true"] { box-shadow: -18px 0 48px rgba(0, 0, 0, .35); }
+  .appnav-ask[data-open="true"] { box-shadow: var(--c-shadow-lg); }   /* the shell's own elevation token (colour literals stay in colorTokens.js) */
 }
 @media (min-width: 1280px) {   /* A201: Ask draft pushes the page only where the page keeps ~900 px; below, it is a sheet */
   :root[data-ask-open="true"] [data-app-shell] { padding-right: var(--appnav-ask-w); }
