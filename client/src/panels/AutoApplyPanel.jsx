@@ -497,7 +497,18 @@ export function AutoApplyPanel({ user = null } = {}) {
   // No per-job retry endpoint exists — the only way to try again is a new run. "Retry" DRAFTS the job
   // again, at once, with the deck's and the board's own call, and says what it did rather than
   // implying the old attempt resumed.
-  const retryJob = (job) => { draftJob?.(job, companyLabel(job.company)); };
+  // ⭐ 46j (owner 11-13: "run again not working for drafts"; production 01:22:21Z: the first Run again started a new draft —
+  // 202 — and the next 13 clicks in 6 s were each refused 400 already_drafted, because nothing on the row changed): one
+  // click per held row. Keyed by the row (job + run job), so the button comes back when the new draft's result replaces it.
+  const [rerunning, setRerunning] = useState({});   // `${jobId}:${rowId}` → "busy" | "started"
+  const rerunKey = (job) => `${job?.jobId}:${job?.id ?? job?.runJobId ?? ""}`;
+  const retryJob = async (job) => {
+    const k = rerunKey(job);
+    if (rerunning[k]) return;
+    setRerunning(m => ({ ...m, [k]: "busy" }));
+    const r = await draftJob?.(job, companyLabel(job.company));
+    setRerunning(m => { const n = { ...m }; if (r) n[k] = "started"; else delete n[k]; return n; });
+  };
   // ⭐ A181 (5c)(5d): the held drafts that can run again, the bulk re-run (free), and the day's new-draft allowance in words.
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMsg, setBulkMsg] = useState("");
@@ -695,7 +706,11 @@ export function AutoApplyPanel({ user = null } = {}) {
         // ⭐ A179 F5: every held run can be RUN AGAIN from its own row — a new Draft of the same job (after a profile fix,
         // a saved answer) — not only from the board.
         // ⭐ A181 (5a): a re-run is FREE (draftSlots counts new jobs only) and always uses the current code (a new run).
-        const runAgain = !r.postingGone ? [{ id: "rerun", label: "Run again", title: "Draft this job again now with draft's current fixes — free: running a draft again never uses a new one.",
+        const rr = rerunning[rerunKey(row)];
+        const runAgain = !r.postingGone ? [{ id: "rerun", label: rr === "busy" ? "Starting…" : rr === "started" ? "Running again…" : "Run again",
+          disabled: !!rr,
+          title: rr === "started" ? "A new draft of this job is running with draft's current fixes — its result replaces this row."
+            : "Draft this job again now with draft's current fixes — free: running a draft again never uses a new one.",
           onClick: () => retryJob(row) }] : [];
         if (node.why === "question") return [
           { id: "answer", label: answersSaving ? "Saving…" : "Answer", kind: "primary", disabled: answersSaving, onClick: () => submitApplyAnswers(true) },
@@ -1075,7 +1090,9 @@ export function AutoApplyPanel({ user = null } = {}) {
     if (!h) return null;
     const counts = node.kind === "approval" && Number.isFinite(node.ref?.answerCount)
       ? { filled: node.ref.answerCount, total: node.ref.answerCount + (node.ref.openCount || 0) } : null;
-    return { ...h, steps: runSteps(node, { counts }), earlier: earlierAttempts(attemptsOf(node)), questions: heldQuestionsFor(node) };
+    // ⭐ 46j (owner 11-13: "we dont need to show all the questions cause we are showing one at a time each"): the row's
+    // header no longer lists every held question — the stepper below asks them one at a time (its "See all N" keeps the list).
+    return { ...h, steps: runSteps(node, { counts }), earlier: earlierAttempts(attemptsOf(node)), questions: [] };
   };
   const renderRow = (row) => {
     const node = row.node;

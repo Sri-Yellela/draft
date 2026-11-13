@@ -65,5 +65,9 @@ test("a165Wiring: the runs feed and the pending feed carry the reason + question
   assert.match(route, /SELECT rj\.\*, r\.mode, r\.tool_type,/, "the pending feed reads the held facts where the columns exist");
   const tracker = read("client/src/components/ApplicationTracker.jsx");
   assert.match(tracker, /data-held-questions=""/);
-  assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /questions: heldQuestionsFor\(node\)/);
+  // 46j (owner, changed on purpose): Draft House's opened row asks the questions ONE AT A TIME (the stepper) and no longer
+  // lists them all in its header; the tracker still renders a list for any surface that passes one.
+  const panel = read("client/src/panels/AutoApplyPanel.jsx");
+  assert.match(panel, /earlier: earlierAttempts\(attemptsOf\(node\)\), questions: \[\] \};/);
+  assert.match(panel, /<HeldQuestionStepper jobId=\{node\.jobId\} questions=\{heldQuestionsFor\(node\)\}/);
 });
