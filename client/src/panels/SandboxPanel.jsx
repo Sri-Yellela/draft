@@ -17,7 +17,11 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useTheme } from "../styles/theme.jsx";
 import PanelShell from "../components/PanelShell.jsx";
 import { C } from "../styles/colorTokens.js";
-import DocToolbar from "../components/DocToolbar.jsx";
+// ⭐ A204 (46k, owner 11-13: "draft would just host the sandbox"): draft edits no résumé of its own — the editor is
+// resume-master's (components/ResumeEditorHost.jsx, openResumeEditor). This panel shows what the editor does not: the
+// generating skeleton, a failure, a missing artifact, the company KB's findings (Accept applies the fix and saves), the A+ /
+// Generate switch — and a READ-ONLY preview when the editor cannot be reached, with "Edit in the editor".
+import { openResumeEditor } from "../lib/resumeEditor.js";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const RESUME_PAGE_WIDTH  = 794;  // A4 at 96dpi
@@ -168,11 +172,13 @@ export default function SandboxPanel({
     return () => ro.disconnect();
   }, [activeEntry?.html]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // A106: the toolbar's view of the pages. A document command applies to every page; the sandbox's own input path
-  // (handleInput: dirty, currentHtmlRef, the other pages' sync) records the result.
-  const toolbarDoc = () => (frameRefs.current[activeFrameRef.current] || frameRefs.current[0])?.contentDocument || null;
-  const toolbarDocs = () => frameRefs.current.map(f => f?.contentDocument).filter(d => d?.body);
-  const toolbarChanged = (doc) => { try { doc?.dispatchEvent(new Event("input")); } catch { /* the page is gone */ } };
+  // A204: editing happens in resume-master's editor — this hands it the résumé as it stands here (a KB fix included).
+  const editInEditor = () => {
+    const html = getCurrentHtml();
+    openResumeEditor({ html, jobId: activeEntry?.jobId, company: activeEntry?.company, title: activeEntry?.title,
+      tool: activeEntry?.tool, version: activeEntry?.version,
+      onSave: onSave ? (h) => onSave(h, activeEntry) : undefined, onExport: onExport ? (h) => onExport(null, h, activeEntry?.company, activeEntry) : undefined });
+  };
 
   // A105 finding 9: unsaved edits are not lost to a closed tab — the browser asks first.
   useEffect(() => {
@@ -271,7 +277,7 @@ export default function SandboxPanel({
     if (!frame) return;
     const doc = frame.contentDocument;
     if (!doc) return;
-    doc.body.contentEditable = "true";
+    // A204: read-only — the pages are a preview; typing happens in resume-master's editor ("Edit in the editor").
     doc.body.spellcheck = false;
 
     const syncPageCount = () => {
@@ -354,7 +360,7 @@ export default function SandboxPanel({
         {activeEntry?.title || "Resume preview"}
       </div>
       <div style={{ display:"flex", alignItems:"center", flexWrap:"wrap", gap:5, marginTop:5 }}>
-        <span style={{ fontSize:ts(10), fontWeight:700, color:"var(--color-primary-text)" }}>PDF SANDBOX</span>
+        <span style={{ fontSize:ts(10), fontWeight:700, color:"var(--color-primary-text)" }}>PREVIEW</span>
         {viewMode === "page" && (
           <span style={{ fontSize:ts(10), color:"var(--color-text-faint)" }}>
             {pageCount} page{pageCount === 1 ? "" : "s"} · A4
@@ -394,7 +400,8 @@ export default function SandboxPanel({
         </button>
       ))}
       <div style={{ flex:1 }}/>
-      <button style={btnStyle()} onClick={save} disabled={!activeEntry?.html}>Save{dirty?"*":""}</button>
+      <button className="dbx-depth" style={{ ...btnStyle(), color:"var(--color-primary-text)" }} onClick={editInEditor} disabled={!activeEntry?.html} data-edit-in-editor="">Edit in the editor</button>
+      {dirty && <button style={btnStyle()} onClick={save}>Save*</button>}
       <button style={btnStyle()} onClick={downloadHtml} disabled={!activeEntry?.html}>HTML</button>
       <button style={btnStyle()} onClick={exportPdf} disabled={!activeEntry?.html||exporting}>
         {exporting ? "Exporting…" : "PDF"}
@@ -594,10 +601,6 @@ export default function SandboxPanel({
                 boxSizing: "border-box",
               }}
             >
-              {/* A106: Word-like tools, above the pages and sticky while they scroll. */}
-              <div style={{ position: "sticky", top: 0, zIndex: 1, marginBottom: 6 }}>
-                <DocToolbar getDoc={toolbarDoc} getAllDocs={toolbarDocs} onChanged={toolbarChanged} />
-              </div>
               {/* Scale host — natural A4 dimensions; transform mutated directly via innerRef */}
               <div
                 ref={innerRef}
