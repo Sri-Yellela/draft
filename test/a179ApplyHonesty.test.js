@@ -103,7 +103,7 @@ test("a179TailoredOnlyWithDelta: 'Tailored' only when the tailored résumé scor
 
 test("a179HeadingCountsReal: the heading counts the questions waiting; 'everything else is done' only when it is", () => {
   const two = heldHeadline(heldNode({ fill: { filled: 7, discovered: 13 } }, ["Proficiency across languages", "Why this role?"]));
-  assert.equal(two.title, "2 drafts to check", "A181 (4): free-text questions are draft's drafts to check, not answers only you can give");
+  assert.equal(two.title, "2 written answers to check", "A181 (4): free-text questions are draft's drafts to check, not answers only you can give");
   assert.match(two.lead, /draft filled 7 of 13 fields/);
   const none = heldHeadline(heldNode({ fill: { filled: 0, discovered: 24 } }, ["Email"]));
   assert.match(none.lead, /Nothing was filled/);

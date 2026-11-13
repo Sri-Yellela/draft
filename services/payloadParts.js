@@ -49,6 +49,43 @@ export function keepAnswers(db, { userId, jobId, answers, source = "drafted", ru
   }, 0);
 }
 
+/**
+ * ⭐ A198 (2) (46j, owner 11-13: "its still asking these questions, i answered a short while ago"): the PERSON's answers for
+ * this job — kept every time they answer (whatever "Save for next time" says), and a later answer to the same question
+ * REPLACES the earlier one (a correction is theirs to make). Returned separately so a run feeds them in as the person's own
+ * answers (custom_answers — exact-question, so even an eligibility question takes it), not as a draft.
+ */
+export function keepPersonAnswers(db, { userId, jobId, answers }) {
+  return safe(() => {
+    const up = db.prepare(`INSERT INTO apply_payload_parts (user_id, job_id, kind, part_key, value, source)
+                           VALUES (?, ?, 'answer', ?, ?, 'person')
+                           ON CONFLICT(user_id, job_id, kind, part_key) DO UPDATE SET value = excluded.value, source = 'person', created_at = unixepoch()`);
+    let n = 0;
+    db.transaction(() => {
+      for (const [question, answer] of Object.entries(answers || {})) {
+        const key = partKeyOf(question);
+        if (!key || answer == null || String(answer).trim() === "") continue;
+        n += up.run(userId, String(jobId), key, JSON.stringify({ question, answer: String(answer) })).changes;
+      }
+    })();
+    return n;
+  }, 0);
+}
+
+/** The kept answers split by who made them: { person: {q: a}, drafted: {q: a} }. */
+export function keptAnswersBySource(db, { userId, jobId }) {
+  return safe(() => {
+    const out = { person: {}, drafted: {} };
+    for (const r of db.prepare(`SELECT value, source FROM apply_payload_parts WHERE user_id = ? AND job_id = ? AND kind = 'answer'`)
+      .all(userId, String(jobId))) {
+      const v = JSON.parse(r.value);
+      if (!v || typeof v.question !== "string" || typeof v.answer !== "string" || !v.answer) continue;
+      (r.source === "person" ? out.person : out.drafted)[v.question] = v.answer;
+    }
+    return out;
+  }, { person: {}, drafted: {} });
+}
+
 /** The kept cover letter's HTML, or null. */
 export function keptCoverLetter(db, { userId, jobId }) {
   return safe(() => db.prepare(`SELECT value FROM apply_payload_parts WHERE user_id = ? AND job_id = ? AND kind = 'cover_letter' AND part_key = 'html'`)

@@ -36,7 +36,10 @@ test("D102 P5 · The Table's History opens a row's page by its record id", () =>
 test("D102 P5 · Draft House's opened row opens the same page by its job id", () => {
   const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
   // ⭐ D146 (changed on purpose): the lead card's "Full page" link is the opened row's Full page action.
-  assert.match(panel, /\{ id: "page", label: "Full page", onClick: \(\) => openFull\(n\.jobId\) \}/);
+  // 46j (owner 11-13, changed on purpose: "full page is also kinda redundant when we want the user to stay within draft"):
+  // an unsent application's row no longer offers Full page; the page itself (openFull, the route) stays for other callers.
+  assert.match(panel, /const page = n \? \[\]/);
+  assert.doesNotMatch(panel, /label: "Full page"/);
   assert.match(panel, /else navigate\(`\/app\/job\/for\/\$\{encodeURIComponent\(jobId\)\}`\);/);
   assert.match(page, /`\/api\/pipeline\/job-for\/\$\{encodeURIComponent\(jobId\)\}`/);
 });

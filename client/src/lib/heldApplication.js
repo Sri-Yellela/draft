@@ -74,7 +74,9 @@ export function heldHeadline(node) {
       const fill = fillOf(latestRow(node));
       // ⭐ A181 (4): "2 answers only you can give · 2 drafts to check" — the free-text ones are draft's to write, the person checks.
       const title = drafts > 0 && n > 1
-        ? [yours ? `${yours} answer${yours === 1 ? "" : "s"} only you can give` : null, `${drafts} draft${drafts === 1 ? "" : "s"} to check`].filter(Boolean).join(" · ")
+        // 46j (owner 11-13: "dropzone is a single draft why is it saying 2 drafts" — a draft is an APPLICATION in draft's words):
+        // the free-text ones are "written answers to check".
+        ? [yours ? `${yours} answer${yours === 1 ? "" : "s"} only you can give` : null, `${drafts} written answer${drafts === 1 ? "" : "s"} to check`].filter(Boolean).join(" · ")
         : n > 1 ? `${n} answers only you can give` : q ? s(q).replace(/\s*\??$/, "?") : "One answer only you can give";
       const rest = fill && fill.filled === 0 ? "Nothing was filled on the form yet — draft had no answers to type."
         : fill && fill.filled > 0 ? `draft filled ${fill.filled}${fill.discovered ? ` of ${fill.discovered}` : ""} fields; the rest are yours.`

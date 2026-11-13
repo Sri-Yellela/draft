@@ -61,7 +61,7 @@ test("a165HeldViewSaysWhyAndLists: the held row's headline is the reason, its le
 test("a165Wiring: the runs feed and the pending feed carry the reason + questions; the row renders them", () => {
   const route = read("routes/apply.js");
   assert.match(route, /const publicRunJob = \(r\) => \(\{\n    \.\.\.heldFacts\(r\),/);
-  assert.match(route, /heldQuestions: heldQuestionsOf\(\{ openQuestionsJson: r\.open_questions_json, blanksJson: r\.blanks_json, packetJson: latestPacketJson\(r\) \}\)/);
+  assert.match(route, /heldQuestions: heldQuestionsOf\(\{ openQuestionsJson: r\.open_questions_json, blanksJson: r\.blanks_json, packetJson: latestPacketJson\(r\), formFilled: !!r\.answers_json \}\)/);
   assert.match(route, /SELECT rj\.\*, r\.mode, r\.tool_type,/, "the pending feed reads the held facts where the columns exist");
   const tracker = read("client/src/components/ApplicationTracker.jsx");
   assert.match(tracker, /data-held-questions=""/);
