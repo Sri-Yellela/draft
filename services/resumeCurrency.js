@@ -44,7 +44,10 @@ export function modeForTool(tool) {
  * @param {{ userId: number, jobId: string|number, tool?: string }} args
  * @returns {{ current: boolean, reason: string, detail?: string, artifact: object|null }}
  */
-export function artifactCurrency(db, { userId, jobId, tool = "generate" } = {}) {
+// ⭐ 46j (owner 11-13: "run again should trigger redraft with a local cached payload"): `anyTool` — a RE-draft of a job that
+// already has a résumé reuses it whichever tool made it (Dropzone was regenerated twice for "CUSTOM_SAMPLER vs TAILORED");
+// every other currency check (the profile, the base résumé, the claims) still applies.
+export function artifactCurrency(db, { userId, jobId, tool = "generate", anyTool = false } = {}) {
   const mode = modeForTool(tool);
   let row = null;
   try {
@@ -65,7 +68,7 @@ export function artifactCurrency(db, { userId, jobId, tool = "generate" } = {}) 
   }
   if (!row?.html) return { current: false, reason: "no_artifact", artifact: null };
 
-  if (row.apply_mode && row.apply_mode !== mode) {
+  if (!anyTool && row.apply_mode && row.apply_mode !== mode) {
     return {
       current: false, reason: "different_tool", artifact: row,
       detail: `stored artifact is ${row.apply_mode}; this run wants ${mode}`,
