@@ -82,7 +82,10 @@ test("a181OneQuestionAtATime + a181QuestionLargeType + a181ReduceMotionNoSlide: 
   const css = read("client/src/components/DraftHouse.css");
   assert.match(css, /\.dht-step__q \{ margin: 0; font-size: calc\(24px \* var\(--type-scale, 1\)\);/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.dht-step__card, \.dht-step__done \{ animation: none; \} \}/);
-  assert.match(src, /heldQuestionsFor\(node\)\.length > 0 && \(\s*<HeldQuestionStepper/);
+  // A199 (2) (46j, owner, changed on purpose): the questions are answered in Ask draft's thread by default; the stepper is
+  // the row's "answer here instead".
+  assert.match(src, /heldQuestionsFor\(node\)\.length > 0 && answerHere\[node\.jobId\] && \(\s*<HeldQuestionStepper/);
+  assert.match(src, /heldQuestionsFor\(node\)\.length > 0 && !answerHere\[node\.jobId\] && \(\s*<QuestionsInAskDraft/);
 });
 
 test("a181RerunFree: a job counts once, from its first draft — Run again (today or tomorrow) is free", () => {

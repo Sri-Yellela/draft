@@ -29,3 +29,22 @@ test("a199: the person's own words go into the draft as their facts; the route c
   assert.match(server, /const note = typeof req\.body\?\.note === "string" \? req\.body\.note\.trim\(\)\.slice\(0, 1500\) : "";/);
   assert.match(server, /checkAnswerDraft\(text, \{ resumeText: note \? `\$\{resumeText\}\n\$\{note\}` : resumeText, untrusted: r\.untrusted \}\)/);
 });
+
+// ⭐ A199 (2) (46j, owner 11-13: "these questions in general can move there as its own thread with the dropzone id or as a
+// linked local chat to that draft" · "it need not use llm calls").
+test("a199QuestionsThread: a held application's questions open as a thread in Ask draft; choices need no model call; Finish saves to that job and re-runs it", () => {
+  const thread = read("client/src/components/AskDraftThread.jsx");
+  assert.match(thread, /q\.kind === "yesno" \|\| q\.kind === "choice" \? \(/, "a choice is buttons");
+  assert.match(thread, /if \(!q \|\| q\.kind !== "draft" \|\| sugg\[q\.question\]\) return;/, "only a written answer asks the model");
+  assert.match(thread, /body: JSON\.stringify\(\{ answers, remember, retryJobIds: \[String\(jobId\)\], mode: "auto" \}\)/, "Finish saves to THIS job and re-runs it");
+  assert.match(thread, /data-ask-redraft=""/, "the person's own words can be written in");
+  const nav = read("client/src/components/AppNav.jsx");
+  assert.match(nav, /window\.addEventListener\("draft:open-questions", onOpen\)/);
+  assert.match(nav, /window\.addEventListener\("draft:open-questions", open\)/, "Ask draft opens beside Home");
+  assert.match(nav, /<AskDraftThread thread=\{thread\}/);
+  const panel = read("client/src/panels/AutoApplyPanel.jsx");
+  assert.match(panel, /<QuestionsInAskDraft node=\{node\}/, "the row points at Ask draft");
+  assert.match(panel, /new CustomEvent\("draft:open-questions",/);
+  assert.match(panel, /data-action="answer-here"/, "the stepper stays one press away");
+  assert.match(read("client/src/modules.manifest.js"), /"components\/AskDraftThread\.jsx":/);
+});
