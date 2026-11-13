@@ -107,3 +107,31 @@ test("a196BackupOffTheThread: the worker copy is consistent while the server wri
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* Windows may hold the file a moment */ }
   }
 });
+
+// ⛔ A196 (2) (production 11-13 02:00Z): the worker's copy written straight onto the database's volume flushed in one burst
+// and the server's reads queued behind it (every request waited 39 s). The snapshot is staged on another disk, then copied
+// onto the volume at a capped rate with periodic syncs.
+test("a196StagedThrottledCopy: the snapshot is staged, copied at the cap, synced, and the stage removed", async () => {
+  const { vacuumIntoInWorker } = await import("../packages/sqlite-backup/src/index.js");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bak196b-"));
+  try {
+    const src = path.join(dir, "live.db");
+    const db = new Database(src);
+    db.pragma("journal_mode = WAL");
+    db.exec("CREATE TABLE t (id INTEGER PRIMARY KEY, body TEXT)");
+    const ins = db.prepare("INSERT INTO t (body) VALUES (?)");
+    db.transaction(() => { for (let i = 0; i < 8000; i++) ins.run("z".repeat(900) + i); })();   // ≈ 8 MB
+    const stage = path.join(dir, "stage.db"), dest = path.join(dir, "out.db");
+    const t0 = Date.now();
+    await vacuumIntoInWorker(src, dest, { stage, mbps: 20 });
+    const ms = Date.now() - t0, size = fs.statSync(dest).size;
+    assert.equal(fs.existsSync(stage), false, "the stage is removed");
+    assert.ok(ms >= (size / (20 * 1048576)) * 1000 * 0.8, `copied no faster than the cap (${size} B in ${ms} ms)`);
+    const copy = new Database(dest, { readonly: true });
+    assert.equal(copy.pragma("integrity_check", { simple: true }), "ok");
+    assert.equal(copy.prepare("SELECT COUNT(*) AS n FROM t").get().n, 8000);
+    copy.close(); db.close();
+    await assert.rejects(vacuumIntoInWorker(path.join(dir, "missing.db"), path.join(dir, "x.db"), { stage: path.join(dir, "s2.db") }));
+    assert.equal(fs.existsSync(path.join(dir, "s2.db")), false, "a failed copy leaves no stage behind");
+  } finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch {} }
+});
