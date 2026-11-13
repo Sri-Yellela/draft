@@ -2006,7 +2006,10 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
        * regenerated" and "it reused a resume I had replaced" are both things the candidate can only
        * find out if the run says so.
        */
-      const currency = artifactCurrency(db, { userId, jobId, tool: toolType });
+      // ⭐ 46j (owner: "run again should trigger redraft with a local cached payload"): a RE-draft of this job (an earlier run
+      // exists) reuses its résumé whichever tool made it — the profile / base-résumé / claim checks still apply.
+      const isRedraft = !!db.prepare(`SELECT 1 FROM apply_run_jobs WHERE user_id = ? AND job_id = ? AND id <> ? LIMIT 1`).get(userId, jobId, runJobId);
+      const currency = artifactCurrency(db, { userId, jobId, tool: toolType, anyTool: isRedraft });
       reuseDecision = { reused: currency.current, reason: currency.reason, detail: currency.detail ?? null };
       // D36: a DEFERRED preview (CASE D below) writes nothing now, so "…so one was generated" was
       // false — and the run history printed it directly above "No resume generated yet". Said as

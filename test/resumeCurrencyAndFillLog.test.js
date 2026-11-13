@@ -122,7 +122,8 @@ test("both reuse sites go through the one rule, so they cannot drift apart again
   const server = fs.readFileSync("server.js", "utf8");
   assert.match(route, /import \{ artifactCurrency, currencySentence \} from "\.\.\/services\/resumeCurrency\.js"/);
   assert.match(server, /import \{ artifactCurrency, currencySentence, modeForTool \} from "\.\/services\/resumeCurrency\.js"/);
-  assert.match(route, /const currency = artifactCurrency\(db, \{ userId, jobId, tool: toolType \}\)/);
+  // 46j (changed on purpose): a re-draft of the job reuses its résumé whichever tool made it (anyTool) — still the one rule.
+  assert.match(route, /const currency = artifactCurrency\(db, \{ userId, jobId, tool: toolType, anyTool: isRedraft \}\)/);
   assert.match(server, /const currency = artifactCurrency\(db, \{ userId, jobId, tool \}\)/);
   // The second, rule-less query CASE A used to run must be gone.
   assert.doesNotMatch(route,

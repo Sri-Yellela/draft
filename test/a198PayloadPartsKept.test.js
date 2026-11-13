@@ -77,3 +77,14 @@ test("46j clera: a row held after the form was filled does not list the packet's
   assert.deepEqual(heldQuestionsOf({ packetJson }).map(q => q.question), ["First Name", "Are you authorized?"], "no fill recorded: listed as before");
   assert.deepEqual(heldQuestionsOf({ packetJson, formFilled: true }).map(q => q.question), ["Are you authorized?"], "filled: only the eligibility answer stays");
 });
+
+test("46j redraft reuses the résumé whichever tool made it (Run again from the cached payload)", async () => {
+  const { artifactCurrency } = await import("../services/resumeCurrency.js");
+  const db = db0();
+  db.prepare("INSERT INTO users (id, username, password_hash) VALUES (1, 'u', 'x')").run();
+  db.prepare("INSERT INTO resumes (user_id, job_id, company, role, apply_mode, html, ats_score) VALUES (1, 'j1', 'Acme', 'Eng', 'CUSTOM_SAMPLER', '<p>r</p>', 90)").run();
+  assert.equal(artifactCurrency(db, { userId: 1, jobId: "j1", tool: "generate" }).reason, "different_tool", "a first draft keeps the old rule");
+  assert.equal(artifactCurrency(db, { userId: 1, jobId: "j1", tool: "generate", anyTool: true }).current, true, "a re-draft reuses it");
+  const src = fs.readFileSync("routes/apply.js", "utf8").replace(/\r\n/g, "\n");
+  assert.match(src, /const currency = artifactCurrency\(db, \{ userId, jobId, tool: toolType, anyTool: isRedraft \}\);/);
+});
