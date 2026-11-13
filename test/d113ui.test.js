@@ -524,7 +524,9 @@ test("d113uiMakeItNowTailorsOnceAndReuses — made on the press (the pick stays 
   // the band and What we changed (D90 P3's ChangesSummaryLine); the server is wired to the apply path's generation.
   const leaf = panel.slice(at(panel, 'const made = node.kind === "pick"'), at(panel, 'out.push({ id: "job", label: "The job"'));
   assert.match(leaf, /Made\{made\.atsScore != null \? `\. Résumé: \$\{atsBandLabel\(atsBandFor\(made\.atsScore\)\)\.short\}` : ""\}\. Nothing was sent\./);
-  assert.match(leaf, /\{pickReady && node\.jobId != null && <ChangesSummaryLine jobId=\{node\.jobId\} jobLabel=\{node\.company\} \/>\}/);
+  // 46j (owner 11-13, changed on purpose): What we changed is a side panel beside the opened résumé, not a line in the pane.
+  assert.match(leaf, /pickReady && node\.jobId != null && \(\s*<AttemptResume jobId=\{node\.jobId\}/);
+  assert.match(fs.readFileSync("client/src/components/ResumeEditorHost.jsx", "utf8"), /<ResumeChangesPanel docked jobId=\{request\.jobId\}/);
   assert.match(read("client/src/components/ResumeChangesPanel.jsx"), /data-what-we-changed="">What we changed ↗<\/button>/);
   assert.match(leaf, /!pickReady && node\.ring === "pick" && \(\s*<button[^>]*data-action="make-now"[\s\S]{0,200}onClick=\{\(\) => makeNow\(node\)\}/);
   assert.match(leaf, /node\.ref\?\.resumeReady === true \|\| made\.ok === true/);

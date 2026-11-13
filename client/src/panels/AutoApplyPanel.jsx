@@ -911,7 +911,7 @@ export function AutoApplyPanel({ user = null } = {}) {
           {pickReady
             ? <p className="dh-fold__quiet">Made{made.atsScore != null ? `. Résumé: ${atsBandLabel(atsBandFor(made.atsScore)).short}` : ""}. Nothing was sent.</p>
             : <p className="dh-fold__quiet">Not made yet: it is tailored only after you tap Apply.</p>}
-          {pickReady && node.jobId != null && <ChangesSummaryLine jobId={node.jobId} jobLabel={node.company} />}
+          {/* 46j (owner 11-13): no "What we changed" line here — it is a side panel beside the tailored résumé (ResumeEditorHost). */}
           {/* ⭐ D171 FIX 4: the résumé opens in draft's editor, never only a link to Profile. */}
           {pickReady && node.jobId != null && (
             <AttemptResume jobId={node.jobId} company={node.company} artifactUrl={artifactUrl} className="dh-btn" />
@@ -935,10 +935,8 @@ export function AutoApplyPanel({ user = null } = {}) {
               {approvalCap ? ` ${approvalCap.remaining} of ${approvalCap.limit} approvals left today.` : ""}
             </p>
           )}
-          {/* D90 P3: the CHANGES, read before Approve & send — nothing to show until the résumé is written. */}
-          {node.jobId != null && node.kind !== "approval" && (
-            <ChangesSummaryLine jobId={node.jobId} jobLabel={node.company} />
-          )}
+          {/* 46j (owner 11-13: "remove this prompt from here, and move the entire what we changed panel as a side panel beside
+              the resume tailored for this job"): opening the résumé shows What we changed beside it (ResumeEditorHost). */}
           {/* ⭐ D171 FIX 4 (owner 11-06: "resume on home should open the resume sandbox editor, but its taking me to your
               resumes"): every row's résumé opens in the editor — the attempt's own, else the job's tailored one; read-only
               once it was sent. It was offered on rows waiting for approval only, so the rest showed just the Profile link. */}
@@ -1015,8 +1013,7 @@ export function AutoApplyPanel({ user = null } = {}) {
     );
     if (id === "resume") return (
       <>
-        {h.imported ? <p className="dh-fold__quiet">Sent elsewhere — imported, so draft has no résumé for it.</p>
-          : <ChangesSummaryLine jobId={row.jobId} jobLabel={row.company} />}
+        {h.imported && <p className="dh-fold__quiet">Sent elsewhere — imported, so draft has no résumé for it.</p>}
         <div className="dht-acts">
           {!h.imported && (h.recordId != null || row.jobId != null) && (
             <AttemptResume recordId={h.recordId ?? null} jobId={row.jobId ?? null} sent company={row.company} className="dh-btn" />
