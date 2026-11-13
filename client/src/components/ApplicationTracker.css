@@ -32,7 +32,7 @@
 
 /* the sketch's .tbl — one card, no border, radius 22; .th / .tr: padding 14 × 18, the columns 2.2fr 1fr 1fr 1.2fr 1fr
    with 12 px between (a table: each column its share of the width, half the gap on each side of a cell) */
-.trk { min-width: 0; border-radius: 22px; background: var(--c-surface-solid); overflow: hidden; line-height: 1.55; }
+.trk { min-width: 0; border-radius: 22px; background: var(--c-surface-solid); overflow: hidden; line-height: 1.55; container-type: inline-size; container-name: trk; }
 .trk-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .trk-table th { text-align: left; padding: 0; border-bottom: 1px solid var(--c-border); font-weight: 400; }
 .trk-table [data-col] { padding-left: 6px; padding-right: 6px; }
@@ -129,7 +129,10 @@
 
 /* phones (the sketch's 760 px): no header row; each row the sketch's `1fr auto` grid — the position and the status,
    the when under the position (right-aligned), 6 px between; the opened row below. */
-@media (max-width: 760px) {
+/* ⭐ A201 (46k, owner 11-13: "the content of the home panel rows are garbled when shrunken"): the stacked rows follow the
+   TABLE's own width (a container query on .trk), not the window's — with Ask draft open the table is ~390 px narrower than
+   the window, and a 768-1024 px window kept five columns in it (titles over the status, 54 px cells). */
+@container trk (max-width: 700px) {
   .trk-table thead { display: none; }
   .trk-table, .trk-table tbody, .trk-open, .trk-open > td { display: block; }
   .trk-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; row-gap: 6px; padding: 14px 18px 20px; }
@@ -137,5 +140,5 @@
   .trk-table [data-col="resume"], .trk-table [data-col="answers"] { display: none; }
   .trk-row td[data-col="when"] { grid-column: 1; text-align: right; }
   .trk-o { padding: 4px 22px 20px; }
-  .trk-search { flex: 1 1 auto; }
 }
+@media (max-width: 760px) { .trk-search { flex: 1 1 auto; } }

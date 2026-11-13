@@ -248,15 +248,26 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 .appnav-ask__link:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
 .appnav-ask__thread .appnav-ask__input { font-size: calc(15px * var(--type-scale, 1)); padding: 10px; }
 @media (prefers-reduced-motion: reduce) { .appnav-ask__card { animation: none; } }
-/* ⭐ A200 (a): NOTHING OF THE THREAD UNDER THE DOCK. The dock is above the panel (Z.NAV > 240). A top dock is centred on the
-   page — so while Ask draft is open it centres in the page's part LEFT of the panel and never reaches into it; a phone
-   panel (88vw) leaves no room beside it, so there the panel's content starts below the dock. */
-:root[data-ask-open="true"][data-dock-place="top"] .appnav-dock[data-nav-dock] {
-  left: calc((100vw - var(--appnav-ask-w)) / 2); max-width: calc(100vw - var(--appnav-ask-w) - 24px);
+/* ⭐ A200 (a): NOTHING OF THE THREAD UNDER THE DOCK. The dock is above the panel (Z.NAV > 240). While Ask draft PUSHES the
+   page (>= 1280 px), a top dock centres in the page's part LEFT of the panel and never reaches into it. */
+@media (min-width: 1280px) {
+  :root[data-ask-open="true"][data-dock-place="top"] .appnav-dock[data-nav-dock] {
+    left: calc((100vw - var(--appnav-ask-w)) / 2); max-width: calc(100vw - var(--appnav-ask-w) - 24px);
+  }
 }
-:root[data-ask-open="true"][data-dock-place="phone"] .appnav-ask { padding-top: calc(var(--appnav-top-y, 10px) + 62px); }   /* the phone dock: its offset + its 44 px row + a gap */
-:root[data-ask-open="true"] [data-app-shell] { padding-right: var(--appnav-ask-w); }
-:root[data-ask-open="true"] [data-app-chrome] { padding-right: calc(20px + var(--appnav-ask-w)) !important; }
+/* ⭐ A201 (46k, owner 11-13: "readjusts gracefully and stay functional when windows shrink"): BELOW 1280 px pushing the page
+   left it too narrow to use (a 390 px phone kept 47 px of page; 768 px kept 388 — the table's columns over each other; 1024 px
+   left Home 644 px — its board column squeezed to ~180 px, the headline under the panel). There Ask draft is a SHEET over the
+   page instead: the page keeps its full width, the panel takes min(420px, 100vw) above the dock (its own Close), with a
+   shadow edge. */
+@media not all and (min-width: 1280px) {
+  .appnav-ask { --appnav-ask-w: min(420px, 100vw); z-index: 256; /* above Z.NAV and the peek, below the modal tiers */ }
+  .appnav-ask[data-open="true"] { box-shadow: -18px 0 48px rgba(0, 0, 0, .35); }
+}
+@media (min-width: 1280px) {   /* A201: Ask draft pushes the page only where the page keeps ~900 px; below, it is a sheet */
+  :root[data-ask-open="true"] [data-app-shell] { padding-right: var(--appnav-ask-w); }
+  :root[data-ask-open="true"] [data-app-chrome] { padding-right: calc(20px + var(--appnav-ask-w)) !important; }
+}
 
 /* Reduced motion: every one of these is instant (the rail, the mark's slide and clip, the names, the peek, Ask draft). */
 @media (prefers-reduced-motion: reduce) {
