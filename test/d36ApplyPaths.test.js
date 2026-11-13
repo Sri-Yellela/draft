@@ -234,7 +234,7 @@ test("D36·2 · submitBlockedReason: null proceeds, a reason blocks, and a THROW
 test("D36·2 · the check sits at the LAST moment before the click, after the per-job abort", () => {
   const src = read("services/applyAutomation.js");
   const abort = anchor(src, "aborted before submit");
-  const blocked = anchor(src, "const blockedBy = await submitBlockedReason(submitBlocker);");
+  const blocked = anchor(src, "const blockedBy = await submitBlockedReason(submitBlocker, detected);");   // A187 (46k): + the ATS
   const submitting = anchor(src, 'inProgress.set(String(jobId), { status: "submitting", browser });');
   const click = anchor(src, "await best.btn.click();");
   assert.ok(abort > 0 && blocked > abort, "after the abort checkpoint");
@@ -246,7 +246,9 @@ test("D36·2 · the check sits at the LAST moment before the click, after the pe
 
 test("D36·2 · every autoApply that can submit is given the operator's switch", () => {
   const src = read("routes/apply.js");
-  assert.match(src, /const submitBlocker = applyMode === "full"\n\s*\? \(\) => \(fullAutoDisabled\(\) \? "full_auto_disabled" : null\)\n\s*: null;/);
+  // ⭐ A187 S1 / S2 (46k) changed this on purpose: the blocker is told the ATS and also refuses a family that flags server
+  // submits (serverSubmitBlock). The operator's switch is still read FIRST, at the click.
+  assert.match(src, /const submitBlocker = applyMode === "full"\n\s*\? \(platform\) => \(fullAutoDisabled\(\) \? "full_auto_disabled"\n\s*: serverSubmitBlock\(db, \{ ats: platform \|\| detectPlatformFromUrl\(jobUrl\), userId, jobId \}\)\)\n\s*: null;/);
   // CASE A (current artifact) and CASE C (generate in parallel) are the two full-mode call sites.
   const calls = [...src.matchAll(/autoApply\(jobUrl, autofillPayload, \{([\s\S]*?)\}\);/g)].map(m => m[1]);
   const fullCapable = calls.filter(c => /mode: applyMode/.test(c) && !/documentsDeferred: true/.test(c));
