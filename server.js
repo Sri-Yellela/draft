@@ -14906,8 +14906,10 @@ app.post("/api/jobs/:id/keywords", requireAuth, async (req, res) => {
     // answer above (a kept report) leaves them, which is why the write-clearing middleware skips this route.
     // ⭐ A195 (46j): the COUNTS are marked stale, not dropped — one posting leaving "unscored" is not worth a full recount
     // on the next request (staging 100k × 20: facets p95 ≈ 600 ms, all of it these recounts); the next ask answers the kept
-    // counts at once and recounts behind it. The board ORDER is still dropped (its key moves with the scores).
-    facetsCache.markStale(userId); boardOrderCache.clearUser(userId); boardDimFacetsCache.markStale(userId);
+    // counts at once and recounts behind it. The board ORDER is still dropped (its key moves with the scores), and so are
+    // the Full House's own counts: marking those stale too put the background recounts against the board's reads
+    // (measured 100k × 20, pool 2 — both stale: facets p95 118 / board 494 ms; facets only: 118 / 438; before: 595 / 359).
+    facetsCache.markStale(userId); boardOrderCache.clearUser(userId); boardDimFacetsCache.clearUser(userId);
 
     res.json(result);
   } catch (e) {

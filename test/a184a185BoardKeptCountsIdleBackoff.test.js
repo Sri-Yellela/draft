@@ -27,8 +27,9 @@ test("a184: the Full House's include_facets counts are KEPT — keyed on the boa
   assert.match(SRC, /const demotedRows = rankApplied \? await keptCount\("demoted",[\s\S]{0,400}\{ sort: req\.query\.sort \|\| "" \}\) : 0;/, "the sort decides the rank, so it is in the demoted key");
   // dropped wherever the kept order is
   assert.match(SRC, /if \(writes\) boardOrderCache\.clearUser\(req\.user\.id\);\n  if \(writes\) boardDimFacetsCache\.clearUser\(req\.user\.id\);/);
-  // A195 (46j, changed on purpose): after a stored score the counts are marked stale (served, recounted behind), the order dropped.
-  assert.match(SRC, /facetsCache\.markStale\(userId\); boardOrderCache\.clearUser\(userId\); boardDimFacetsCache\.markStale\(userId\);/);
+  // A195 (46j, changed on purpose): after a stored score the filter sentence's counts are marked stale (served, recounted
+  // behind); the order and the Full House's counts are dropped (marking those stale raised the board's p95 — measured).
+  assert.match(SRC, /facetsCache\.markStale\(userId\); boardOrderCache\.clearUser\(userId\); boardDimFacetsCache\.clearUser\(userId\);/);
 });
 
 test("a185: a board-load pass with nothing to do backs the catch-all off; explicit triggers are untouched; the feed scores its arrivals", () => {
