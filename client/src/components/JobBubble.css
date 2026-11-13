@@ -184,7 +184,7 @@ a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
  * 18. A touch screen shows the rail always and nothing grows; a phone stacks the pair; reduced motion: no transition.
  * The board is Home's right column, so its page column is the column itself (no 1240 / 20px gutters of its own). */
 .jb-board { max-width: none; padding: 0; }
-.jb-rows[data-columns="2"] { display: flex; flex-direction: column; gap: 18px; }
+.jb-rows[data-columns="2"] { display: flex; flex-direction: column; gap: 18px; container-type: inline-size; container-name: jbrows; }
 .jb-pair { display: flex; gap: 18px; }
 .jb-pair .jb { flex: 1 1 0; min-width: 0; border-radius: 22px; padding: 16px 20px; gap: 14px;
   transition: flex-grow .42s cubic-bezier(.3,.8,.25,1), background .2s; }
@@ -194,7 +194,8 @@ a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
 .jb-pair .jb__logo { width: 42px; height: 42px; }
 /* Every line one line (nowrap, ellipsis), so giving way never changes the row's height. */
 .jb-pair .jb__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.jb-pair .jb__meta { flex-wrap: nowrap; overflow: hidden; white-space: nowrap; }
+/* ⭐ A201 (46k): a fact that does not fit drops WHOLE (it wraps to a second line the box hides) — never "Full-" / "Cor". */
+.jb-pair .jb__meta { flex-wrap: wrap; overflow: hidden; white-space: nowrap; max-height: calc(12.5px * var(--type-scale, 1) * 1.55); }
 .jb-pair .jb__meta i { flex: none; }
 @media (hover: none) {
   .jb-pair .jb:hover, .jb-pair .jb:focus-within { flex-grow: 1; }
@@ -208,6 +209,12 @@ a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
   .jb-rows[data-columns="2"] { gap: 22px; }
   .jb-pair .jb { padding: 20px 24px; gap: 16px; }
   .jb-pair .jb__logo { width: 48px; height: 48px; }
+}
+/* ⭐ A201 (46k): the pair stacks by the BOARD's width (a container query), not the window's — Home's board column at 1024, or
+   beside Ask draft, is ~550 px, and two cards in it cut their titles and facts to a few letters. */
+@container jbrows (max-width: 620px) {
+  .jb-pair { flex-direction: column; gap: 14px; }
+  .jb-pair .jb:hover, .jb-pair .jb:focus-within { flex-grow: 1; }
 }
 @media (max-width: 700px) {
   .jb-pair { flex-direction: column; gap: 14px; }

@@ -182,7 +182,9 @@ test("d146ColumnsAndSort — Position · Résumé · Answers · Status · When; 
   // Phones: two columns, position and status (with its when beneath).
   // D149 (11-03) changed this on purpose: tracker-options.html's phone row is a `1fr auto` grid from 760 px — the when
   // sits on its own line under the position (right-aligned), so the row grid places the When cell instead of a copy.
-  const phone = trkCss.slice(at(trkCss, "@media (max-width: 760px)"));
+  // ⭐ A201 (46k) changed this on purpose: the stacked row follows the TABLE's width (a container query on .trk, 700 px),
+  // not the window's — beside Ask draft a 768-1024 px window left the table ~390 px with five columns in it.
+  const phone = trkCss.slice(at(trkCss, "@container trk (max-width: 700px)"));
   assert.match(phone, /\.trk-row \{ display: grid; grid-template-columns: minmax\(0, 1fr\) auto;/);
   assert.match(phone, /\.trk-table \[data-col="resume"\], \.trk-table \[data-col="answers"\] \{ display: none; \}/);
   assert.match(phone, /\.trk-row td\[data-col="when"\] \{ grid-column: 1; text-align: right; \}/);

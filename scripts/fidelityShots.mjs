@@ -267,6 +267,48 @@ const SCREENS = {
   home163: { sketch: null, app: "/app", fixtures: HOME156, ready: "[data-home-board]", shoot: true,
     sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], phone: [390, 844] },
     appPrep: async () => { await sleep(1200); } },
+  // ⭐ A201 (46k, owner 11-13: "the content of the home panel rows are garbled when shrunken probe the site and fix this across
+  // all places so that the content readjusts gracefully and stay functional when windows shrink") — measured, not compared
+  // (`--styles shrink201 [route,…]`): every screen at 1440 → 390, with Ask draft closed and open: no sideways page scroll,
+  // nothing drawn past the viewport, no text drawn over other text, no text squeezed to a word a line, every control in reach.
+  // A shot only where something fails: docs/fidelity-shots/shrink201-<route>-<size>[-ask].png.
+  shrink201: { sketch: null,
+    sizes: { "1440": [1440, 900], "1280": [1280, 800], "1024": [1024, 768], "900": [900, 800], "768": [768, 1024], "600": [600, 900], "390": [390, 844] },
+    routes: {
+      home: { app: "/app", fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } } }, ready: "[data-nav-dock]", appPrep: async () => { await sleep(1200); } },
+      draft: { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr", appPrep: async () => { await sleep(600); } },
+      "draft-held": { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr",
+        appPrep: async (page) => { await sleep(500); await page.evaluate(() => { const r = [...document.querySelectorAll("[data-tracker-table] tbody tr.trk-row")].find(tr => /Halcyon/.test(tr.textContent)); (r || document.querySelector("[data-tracker-table] tbody tr.trk-row"))?.click(); }); await sleep(900); } },
+      "draft-posting": { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr",
+        appPrep: async (page) => { await sleep(500); await page.evaluate(() => document.querySelector("[data-tracker-table] tbody tr.trk-row")?.click()); await sleep(300);
+          await page.evaluate(() => document.querySelector('[data-row-detail] [data-pane="posting"]')?.click()); await sleep(700); } },
+      board: { app: "/app/jobs", fixtures: FULLHOUSE, ready: "[data-fh-title]", appPrep: async () => { await sleep(900); } },
+      posting: { app: "/app/jobs", fixtures: FACTS, ready: "[data-fh-title]",
+        appPrep: async (page) => { await page.evaluate(() => { const t = [...document.querySelectorAll("*")].find(e => e.children.length === 0 && e.textContent.trim() === "Senior Data Engineer"); t?.click(); }); await sleep(900); } },
+      atlas: { app: "/app/atlas", fixtures: ATLAS163, ready: "main", appPrep: async () => { await sleep(900); } },
+      profile: { app: "/app/profile/about", fixtures: PROFILE163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
+      account: { app: "/app/profile/account", fixtures: ACCOUNT163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
+      answers: { app: "/app/profile/answers", fixtures: SETTINGS, ready: "main", appPrep: async () => { await sleep(900); } },
+      settings: { app: "/app/auto-apply", fixtures: TRK, ready: "[data-settings-open]",
+        appPrep: async (page) => { await page.click("[data-settings-open]").catch(() => {}); await page.waitForSelector("[data-fold-top]", { timeout: 8000 }).catch(() => {}); await sleep(700); } },
+      admin: { app: "/admin", fixtures: { "/api/admin/auth/me": { authenticated: true, enforced: true, admin: { email: "admin@example.invalid" } },
+        "/api/auth/me": { authenticated: false } }, strict: true, ready: "h1", appPrep: async () => { await sleep(900); } },
+    },
+    nodeProbe: async (page, size, routeId) => {
+      const read = () => page.evaluate(SHRINK_PROBE);
+      const bad = (m) => m.sideScroll || m.past.length || m.overlaps.length || m.squeezed.length || m.unreachable.length;
+      const out = { closed: await read() };
+      fs.mkdirSync(OUT, { recursive: true });
+      if (bad(out.closed)) fs.writeFileSync(path.join(OUT, `shrink201-${routeId}-${size}.png`), await page.screenshot({ type: "png" }));
+      if (routeId !== "admin") {
+        await page.evaluate(() => window.dispatchEvent(new CustomEvent("draft:open-questions", { detail: { jobId: "trk-h", company: "Halcyon",
+          questions: [{ question: "Are you open to relocating to Austin?", kind: "yesno", required: true, options: ["Yes", "No"] }] } })));
+        await sleep(800);
+        out.ask = await read();
+        if (bad(out.ask)) fs.writeFileSync(path.join(OUT, `shrink201-${routeId}-${size}-ask.png`), await page.screenshot({ type: "png" }));
+      }
+      return { node: out };
+    } },
   // ⭐ A200 (46k) · ASK DRAFT'S QUESTIONS THREAD — measured, not compared (`--styles ask200`): at each width, with a held
   // application's three questions open in Ask draft (synthetic: Yes / No, a choice, a written answer), nothing of the panel
   // sits under the dock, the question is in the stepper's large type, the timeline column is folded away, no sideways scroll.
@@ -296,7 +338,10 @@ const SCREENS = {
         const tl = document.querySelector(".dh-main > .dht");
         return { place: document.documentElement.getAttribute("data-dock-place"), vw: document.documentElement.clientWidth,
           askOpen: panel?.getAttribute("data-open"), threadShown: !!thread, dock: d, panel: panel && r(panel),
-          underDock: leaves.filter(e => hit(r(e), d)).map(e => `${e.tagName.toLowerCase()} ${(e.textContent || "").trim().slice(0, 30)}`),
+          // UNDER the dock = overlapping it AND the dock drawn on top there (A201: below 1280 px the panel is a sheet ABOVE the dock,
+          // so an overlap with the sheet on top is not content hidden behind the dock — the owner's complaint)
+          underDock: leaves.filter(e => { const b = r(e); if (!hit(b, d)) return false; const x = (Math.max(b.left, d.left) + Math.min(b.right, d.right)) / 2, y = (Math.max(b.top, d.top) + Math.min(b.bottom, d.bottom)) / 2;
+            const top = document.elementFromPoint(x, y); return !!top && !!top.closest("[data-nav-dock]"); }).map(e => `${e.tagName.toLowerCase()} ${(e.textContent || "").trim().slice(0, 30)}`),
           qSize: q ? parseFloat(getComputedStyle(q).fontSize) : null, qWeight: q ? getComputedStyle(q).fontWeight : null,
           choices: [...document.querySelectorAll("[data-ask-choice]")].map(b => ({ cls: b.className, h: Math.round(b.getBoundingClientRect().height), radius: getComputedStyle(b).borderTopLeftRadius })),
           timelineShown: !!tl && getComputedStyle(tl).display !== "none",
@@ -660,6 +705,71 @@ async function compareRegion(browser, id, s, size, dims, skBuf, apBuf, report) {
 }
 
 // ── --styles <screen>: the app screen's COMPUTED styles as JSON (test/fidelity.test.js asserts them against the sketch).
+// ⭐ A201 (46k): what "garbled when shrunken" means, measured on the page — run in the page by the shrink201 screen.
+//   sideScroll   the page scrolls sideways
+//   past         a box drawn past the viewport (not fixed, not inside a scroller / clipper that itself fits)
+//   overlaps     words drawn over other words (text-node boxes, not element boxes; fixed layers compared among themselves)
+//   squeezed     a run of words broken to about a word a line (a column squeezed to nothing)
+//   unreachable  a control clipped out of its box, or drawn under 6 px
+function SHRINK_PROBE() {
+  const de = document.documentElement, vw = de.clientWidth;
+  const vis = (e) => { const s = getComputedStyle(e); if (s.display === "none" || s.visibility === "hidden" || Number(s.opacity) === 0) return false; const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+  const name = (e) => `${e.tagName.toLowerCase()}${e.id ? "#" + e.id : ""}.${String(e.className?.baseVal ?? e.className ?? "").trim().split(/\s+/)[0] || ""}${[...e.attributes].filter(a => a.name.startsWith("data-")).slice(0, 1).map(a => `[${a.name}]`).join("")}`;
+  const clipper = (e) => { for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) { const s = getComputedStyle(p); if (/(auto|scroll|hidden|clip)/.test(s.overflowX) || s.position === "fixed") return p; } return null; };
+  const inAsk = (e) => !!e.closest("[data-ask-draft]");
+  // the layer a box is drawn in: its nearest fixed ancestor (a sheet, a drawer, a dialog) or the page
+  const layerOf = (e) => { for (let p = e; p && p !== document.body; p = p.parentElement) if (getComputedStyle(p).position === "fixed") return p; return document.body; };
+  // read by a screen reader only (clipped to a pixel) — never drawn
+  const srOnly = (e) => { for (let p = e; p && p !== document.body; p = p.parentElement) { const s = getComputedStyle(p); const r = p.getBoundingClientRect();
+    if ((s.clip && s.clip !== "auto") || /inset\(50%/.test(s.clipPath) || (s.position === "absolute" && r.width <= 2 && r.height <= 2)) return true; } return false; };
+  const all = [...document.querySelectorAll("body *")].filter(e => !e.closest("svg") && !e.closest("[aria-hidden='true']") && vis(e));
+  const shown = new Set(all);
+  const past = all.filter(e => {
+    const r = e.getBoundingClientRect(); if (r.right <= vw + 1 && r.left >= -1) return false;
+    if (getComputedStyle(e).position === "fixed" || inAsk(e)) return false;
+    const c = clipper(e); if (c) { const cr = c.getBoundingClientRect(); if (cr.right <= vw + 1 && cr.left >= -1) return false; }
+    return true;
+  });
+  const texts = [];
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    const t = n.textContent.trim(); const el = n.parentElement;
+    if (!t || !el || !shown.has(el)) continue;
+    if (el.closest("[data-nav-dock], [role='tooltip'], .dbx__tip, script, style, noscript")) continue;
+    // a text clipped away by its own box (an ellipsis, a scroller) is not drawn where the range says
+    if (srOnly(el)) continue;
+    const own = /(hidden|clip)/.test(getComputedStyle(el).overflowX) ? el : null;   // an ellipsis: drawn only inside its own box
+    const c = own || clipper(el); const cr = c && c.getBoundingClientRect();
+    const range = document.createRange(); range.selectNodeContents(n);
+    for (const b0 of range.getClientRects()) {
+      let b = { left: b0.left, right: b0.right, top: b0.top, bottom: b0.bottom, width: b0.width, height: b0.height };
+      if (cr) { b.left = Math.max(b.left, cr.left); b.right = Math.min(b.right, cr.right); b.top = Math.max(b.top, cr.top); b.bottom = Math.min(b.bottom, cr.bottom); b.width = b.right - b.left; b.height = b.bottom - b.top; }
+      if (b.width > 1 && b.height > 1) texts.push({ el, b, t: t.slice(0, 24), layer: layerOf(el) });
+    }
+  }
+  const overlaps = [];
+  for (let i = 0; i < texts.length && overlaps.length < 8; i++) for (let j = i + 1; j < texts.length && overlaps.length < 8; j++) {
+    const A = texts[i], B = texts[j]; if (A.el === B.el || A.layer !== B.layer || A.el.contains(B.el) || B.el.contains(A.el)) continue;
+    const w = Math.min(A.b.right, B.b.right) - Math.max(A.b.left, B.b.left), h = Math.min(A.b.bottom, B.b.bottom) - Math.max(A.b.top, B.b.top);
+    if (w > 3 && h > Math.min(A.b.height, B.b.height) * 0.4) overlaps.push(`"${A.t}" x "${B.t}" (${name(A.el)} / ${name(B.el)})`);
+  }
+  const squeezed = [...new Set(texts.map(x => x.el))].filter(el => {
+    const t = el.textContent.trim(); if (t.length < 14 || t.split(/\s+/).length < 3 || el.children.length) return false;
+    const r = el.getBoundingClientRect(), fs = parseFloat(getComputedStyle(el).fontSize) || 14;
+    return r.width < fs * 4.5 && r.height > fs * 3.5;
+  }).slice(0, 6).map(el => `${name(el)} "${el.textContent.trim().slice(0, 24)}" ${Math.round(el.getBoundingClientRect().width)}px`);
+  const unreachable = all.filter(e => e.matches("button, a[href], input:not([type=hidden]):not([type=file]), select, textarea") && !inAsk(e)).filter(e => {
+    const r = e.getBoundingClientRect(); if (getComputedStyle(e).position === "fixed") return r.right > vw + 1 || r.left < -1;
+    const c = clipper(e); if (c && !/(auto|scroll)/.test(getComputedStyle(c).overflowX)) { const cr = c.getBoundingClientRect(); if (r.left >= cr.right - 1 || r.right <= cr.left + 1) return true; }
+    return r.width < 6 || r.height < 6;
+  }).slice(0, 6).map(e => `${name(e)} "${(e.textContent || e.getAttribute("aria-label") || "").trim().slice(0, 20)}"`);
+  // 46k: a page that never drew (a stylesheet that does not compile shows Vite's overlay) has nothing to flag — say so
+  const rendered = !document.querySelector("vite-error-overlay") && (document.body.innerText || "").trim().length > 40;
+  return { rendered, vw, sideScroll: de.scrollWidth > vw + 1, scrollW: de.scrollWidth,
+    past: past.slice(0, 6).map(e => `${name(e)} ${Math.round(e.getBoundingClientRect().left)}->${Math.round(e.getBoundingClientRect().right)}`),
+    overlaps, squeezed, unreachable };
+}
+
 const STYLE_PROBES = {
   deck: () => {
     const cs = (el) => (el ? getComputedStyle(el) : null);
@@ -920,6 +1030,7 @@ const STYLE_PROBES = {
   dock167: () => ({ vw: window.innerWidth, vh: window.innerHeight }),
   dock167place: () => ({ vw: window.innerWidth, vh: window.innerHeight }),
   ask200: () => ({ vw: window.innerWidth, vh: window.innerHeight }),
+  shrink201: () => ({}),
   home163: async () => {
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
     const q = (s, root = document) => root.querySelector(s);
@@ -1357,7 +1468,9 @@ if (process.argv[2] === "--styles") {
   try {
    for (const [routeId, t] of targets) {
     const sink = routeId ? (out[routeId] = {}) : out;
-    for (const [size, [w, h]] of Object.entries(s.sizes || SIZES)) {
+    // A201: FIDELITY_SIZES=768,390 measures only those sizes (a guard test runs the narrow ones; the full sweep is ~45 min)
+    const onlySizes = process.env.FIDELITY_SIZES ? process.env.FIDELITY_SIZES.split(",") : null;
+    for (const [size, [w, h]] of Object.entries(s.sizes || SIZES).filter(([k]) => !onlySizes || onlySizes.includes(k))) {
       const shotName = routeId ? `${id}-${routeId}-${size}` : `${id}-app-${size}`;
       const page = await browser.newPage();
       const pageErrors = [];
@@ -1388,7 +1501,11 @@ if (process.argv[2] === "--styles") {
       // ⭐ D156: a screen that asks for it is also shot as it is measured (docs/fidelity-shots/<screen>-app-<size>.png).
       if (s.shoot) { fs.mkdirSync(OUT, { recursive: true }); fs.writeFileSync(path.join(OUT, `${shotName}.png`), await page.screenshot({ type: "png" })); }
       sink[size] = await page.evaluate(STYLE_PROBES[id], t.probe ?? null);
-      if (s.nodeProbe) Object.assign(sink[size], await s.nodeProbe(page, size));
+      // 46k: a probe that throws names the page's own errors (a blank app otherwise reads as a missing element)
+      if (s.nodeProbe) {
+        try { Object.assign(sink[size], await s.nodeProbe(page, size, routeId)); }   // A201: route-aware probes
+        catch (e) { console.error(`[fidelityShots] ${id} ${size}: the probe failed — page errors: ${JSON.stringify(pageErrors.slice(0, 3))}`); throw e; }
+      }
       if (routeId && pageErrors.length) sink[size].pageErrors = pageErrors.slice(0, 3);   // D163: a screen that did not draw says why
       await page.close();
     }
