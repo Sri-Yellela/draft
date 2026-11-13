@@ -1120,6 +1120,10 @@ function(handlerByAttr, profileKeyToHandler, labelMap) {
 
   for (const el of elems) {
     if (!isVisible(el)) continue;
+    // A206 (46k, Splitero: two required "(unknown)" fields on every retry): react-select's BACKING input — required,
+    // tabindex -1, aria-hidden, no id and no name — mirrors the picker beside it (the picker IS the field). Counted, it was a
+    // nameless required field nothing could fill, so the run held on it and named it "(unknown)".
+    if (el.tagName === 'INPUT' && el.getAttribute('aria-hidden') === 'true' && el.tabIndex === -1 && !el.id && !el.getAttribute('name')) continue;
     const type = (el.type || '').toLowerCase();
     if (el.tagName === 'INPUT' && SKIP_TYPES.has(type)) continue;
 
