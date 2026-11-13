@@ -2455,8 +2455,14 @@ export async function classifyFlowState(page, originalDomain) {
     if (isSpamFlagText(bodyText)) return 'flagged_spam';
 
     // 2. Submitted
-    if (/thank you|application (received|submitted|complete)|successfully (applied|submitted)|we.{0,10}ll be in touch/i.test(bodyText)) {
-      return 'submitted';
+    // ⛔ A209 (46l): confirmation WORDS alone are not a confirmation. A form page that opens "Thank you for your interest in
+    // Example" read as 'submitted' BEFORE the click, and the run was then recorded Sent (confirmation_page_pre_click) WHATEVER
+    // the click did — a spam refusal or a submit blocked by the form's own validation included (found by a207's real-Chrome
+    // acceptance: an Ashby-style refusal behind such a form came back 'submitted'). The words count only when the application form is no longer showing:
+    // fewer than CONFIRMATION_MAX_VISIBLE_CONTROLS visible fields (a confirmation page may keep a search box).
+    if (CONFIRMATION_WORDS_RE.test(bodyText)) {
+      const visible = Number(await page.evaluate(COUNT_VISIBLE_CONTROLS).catch(() => 0));
+      if (!(visible >= CONFIRMATION_MAX_VISIBLE_CONTROLS)) return 'submitted';
     }
 
     // 3. Expired
@@ -2569,6 +2575,11 @@ export const FORM_READY_TIMEOUT_MS = 15000;
 // as undefined — summing that yields NaN, the comparison never matches, and the readiness check
 // silently degrades into a full-timeout sleep on every single run. Matches how APPLY_FN_SRC is
 // invoked elsewhere in this file.
+export const CONFIRMATION_WORDS_RE = /thank you|application (received|submitted|complete)|successfully (applied|submitted)|we.{0,10}ll be in touch/i;
+export const CONFIRMATION_MAX_VISIBLE_CONTROLS = 2;   // A209: 2+ visible fields = the form is still here
+const COUNT_VISIBLE_CONTROLS = `[...document.querySelectorAll(
+  'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]),select,textarea,[contenteditable=true],[role=combobox]'
+)].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; }).length`;
 const COUNT_CONTROLS = `document.querySelectorAll(
   'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]),select,textarea,[contenteditable=true]'
 ).length`;
