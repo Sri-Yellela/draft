@@ -84,7 +84,13 @@ REQUIREMENTS:
 }
 
 /** The check before the person sees it (D173 (1)). */
+// ⛔ 46j (owner 11-13, Dropzone: an acknowledgement — "yes, agreed and understood" — got the reply "I don't see the actual
+// application question in your message … Please provide the question" as its draft): a reply that talks ABOUT the
+// request instead of answering it is never an answer — refused here, for the run and for the Draft button alike.
+const META_REPLY = /\b(i (don'?t|do not|can'?t|cannot) see (the|an|any)|please provide|you(?:'ve| have) (included|provided|not)|i'?d need (the|more)|could you (share|provide|clarify)|as an ai|i'?m (unable|not able) to|no (specific )?question (was|is) (provided|included)|the (specific )?question (is|was) (missing|not))\b/i;
+export const isMetaReply = (t) => META_REPLY.test(String(t || ""));
 export function checkAnswerDraft(text, { resumeText, untrusted }) {
+  if (isMetaReply(text)) return { ok: false, violations: [{ kind: "meta_reply", value: "the reply did not answer the question" }] };
   return checkModelOutput(text, { own: resumeText, untrusted });
 }
 
@@ -102,8 +108,11 @@ export const ANSWER_PICK_SYSTEM =
   "You choose the candidate's answer to one multiple-choice question on a job application, from the candidate's own " +
   "résumé only. Reply with EXACTLY one of the listed options, copied character for character, and nothing else. If the " +
   "résumé does not clearly support one option, reply UNKNOWN. " + UNTRUSTED_DATA_RULE;
-const NOT_FREE_TEXT = /\b(authori[sz]\w*|eligib\w*|sponsor\w*|visa|legally|citizen\w*|gender|race|ethnic\w*|veteran|disabilit\w*|pronoun\w*|salary|compensation|start date|relocat\w*|clearance|criminal|felony|over (the age of )?18|hear about|referr\w*)\b/i;
+// 46j: + acknowledgements / attestations ("type 'Yes, agreed and understood'", "I certify …") — the person's own statement.
+const NOT_FREE_TEXT = /\b(authori[sz]\w*|eligib\w*|sponsor\w*|visa|legally|citizen\w*|gender|race|ethnic\w*|veteran|disabilit\w*|pronoun\w*|salary|compensation|start date|relocat\w*|clearance|criminal|felony|over (the age of )?18|hear about|referr\w*|acknowledg\w*|agreed?|understood|certif\w*|attest\w*|consent\w*|policy|signature|initials)\b/i;
 const FREE_TEXT = /\b(why|describe|tell us|explain|what (interests|excites|motivates)|cover letter|proficien\w*|experience with|additional information|anything else|share)\b/i;
+/** 46j · the question is the person's own statement (eligibility, EEO, salary, an acknowledgement …) — never drafted. */
+export const isOwnStatement = (label) => NOT_FREE_TEXT.test(String(label || ""));
 export function isRunDraftable(q) {
   const text = String(q?.question ?? q?.label ?? "").trim();
   if (text.length < 12 || NOT_FREE_TEXT.test(text) || q?.eligibility) return false;

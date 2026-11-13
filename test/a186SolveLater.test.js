@@ -118,7 +118,9 @@ test("a186SolveLaterRerunsFromPayload: Solve it here re-fills from the stored an
     // ⛔ no model call, no re-tailoring, no new draft (no run started — startRun is where a draft is counted)
     assert.deepEqual({ generate: spent.generate, coverLetter: spent.coverLetter, score: spent.score, draftAnswers: spent.draftAnswers },
       { generate: 0, coverLetter: 0, score: 0, draftAnswers: 0 });
-    assert.equal(c.options.coverLetterOnDemand, undefined, "no cover letter is written");
+    // 46j (owner, changed on purpose: Splitero's re-run stopped short of Submit with no cover letter): a cover letter is offered
+    // ON DEMAND — a function autoApply calls only at a cover-letter upload; this form has none, so nothing was written.
+    assert.equal(typeof c.options.coverLetterOnDemand, "function", "a cover letter only on demand");
     assert.equal(db.prepare("SELECT COUNT(*) FROM apply_runs").pluck().get(), runsBefore, "no new run");
     assert.equal(db.prepare("SELECT COUNT(*) FROM apply_run_jobs").pluck().get(), jobsBefore, "no new run job");
     const row = db.prepare("SELECT * FROM apply_run_jobs WHERE id=?").get(held);

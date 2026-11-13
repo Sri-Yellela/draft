@@ -5389,6 +5389,16 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     },
     derivedLabelMaps: () => { try { return loadAllConfirmedMappings(db); } catch { return undefined; } },
     tmpPath: (userId, jobId) => tmpPdfPath("resume_check", userId, jobId),
+    // ⭐ 46j (owner 11-13: Splitero's Solve it here ended "Nothing was sent (incomplete_form)"): a run's cover letter is never
+    // stored, so the re-run attached none — a form with a cover-letter upload stopped short of Submit. It is written ON
+    // DEMAND, exactly as processRunJob does (only when the form has a cover slot; one small model call, no draft credit).
+    coverLetterFor: ({ userId, jobId, onFile }) => coverLetterOnDemand(() => generateCoverLetterForApply(userId, jobId).then(async (cl) => {
+      if (!cl?.html) return null;
+      const p = tmpPdfPath("cl", userId, jobId);
+      writeFileSync(p, await htmlToPdf(cl.html));
+      onFile?.(p);
+      return p;
+    }).catch(() => null)),
     logEvent,
     onSubmitted: ({ userId, runJobId, jobId, runId, result }) => {
       const moved = db.prepare(`
@@ -5919,7 +5929,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         // cap, FULL AUTO locked) returned an error with the rows already gone — so the application
         // vanished from Draft House: no longer held, never retried, with nothing to press.
         const heldNow = db.prepare(`
-          SELECT id, finished_at FROM apply_run_jobs WHERE user_id=? AND job_id=? AND status='held_review'
+          SELECT rj.id, rj.finished_at, r.tool_type FROM apply_run_jobs rj JOIN apply_runs r ON r.id = rj.run_id
+          WHERE rj.user_id=? AND rj.job_id=? AND rj.status='held_review'
         `);
         const dismissed = [];
         const dismiss = db.prepare(`UPDATE apply_run_jobs SET status='superseded', finished_at=unixepoch() WHERE id=? AND status='held_review'`);
@@ -5929,8 +5940,12 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           }
         })();
 
+        // ⭐ A194 (2) (46j, production 11-13 03:03:51Z: the Dropzone answers retry logged "regenerating … stored artifact is
+        // CUSTOM_SAMPLER; this run wants TAILORED" — a second résumé, two model calls, $0.03): the retry makes the résumé
+        // with the HELD run's tool, as Approve does (approvedTool), not a hard-coded 'generate'.
+        const retryTool = approvedTool(dismissed.length ? dismissed : toRetry.map(() => ({ tool_type: null })), normalisePlanTier(req.user?.planTier));
         const retry = startRun(req.user.id, normalisePlanTier(req.user?.planTier), toRetry,
-          { mode, tool: "generate", approvalMode, retryOfHeld: true });
+          { mode, tool: retryTool, approvalMode, retryOfHeld: true });
         // A refusal is surfaced as-is: the answers were still saved, but the retry did not start,
         // and the caller needs the real reason (cap, kill switch, concurrency).
         if (retry.status !== 202) {

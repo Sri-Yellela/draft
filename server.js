@@ -217,7 +217,7 @@ import { buildCoverLetterRequest, checkCoverLetter } from "./services/coverLette
 import { describeViolations } from "./services/untrustedText.js";
 import { extractPdfText } from "./services/pdfText.js";   // 45s: PDF text with a current pdf.js fallback
 import { rankTerms, removedTerms } from "./services/keywordTerms.js";   // D186-4
-import { answerDraftsEnabled, ANSWER_DRAFTS_SETTING, draftableQuestion, heldDraftQuestion, buildAnswerDraftRequest, checkAnswerDraft, draftAnswersForRun } from "./services/applicationAnswerDraft.js";   // D185-1 (45s)
+import { answerDraftsEnabled, ANSWER_DRAFTS_SETTING, draftableQuestion, heldDraftQuestion, buildAnswerDraftRequest, checkAnswerDraft, draftAnswersForRun, isOwnStatement } from "./services/applicationAnswerDraft.js";   // D185-1 (45s)
 import { heldQuestionsOf as heldQuestionsOfForDraft } from "./services/heldQuestions.js";   // A189
 import { cachedApplicationSchema as cachedSchemaForDraft } from "./services/jobs/applicationSchema.js";
 import { activeBaseResume as baseResumeForDraft } from "./services/baseResumeOnly.js";
@@ -17147,6 +17147,8 @@ app.post("/api/apply/questions/:jobId/draft", requireAuth, async (req, res) => {
   const q = draftableQuestion(cachedSchemaForDraft(db, jobId), req.body?.question)
     || heldDraftQuestion(db.prepare("SELECT open_questions_json, blanks_json FROM apply_run_jobs WHERE user_id=? AND job_id=? AND status='held_review' ORDER BY id DESC LIMIT 5").all(req.user.id, jobId), req.body?.question, heldQuestionsOfForDraft);
   if (!q) return res.status(400).json({ error: "not_a_question", message: "draft can only draft this posting's own written questions — type your answer in the box." });
+  // ⛔ 46j: an acknowledgement / eligibility / salary question is the person's own statement — never drafted.
+  if (isOwnStatement(q.label)) return res.status(400).json({ error: "own_statement", message: "This one is your own statement — type or choose your answer in the box." });
   const resumeText = String(baseResumeForDraft(db, req.user.id)?.content || "").trim();
   if (resumeText.length < 50) return res.status(409).json({ error: "no_resume", message: "Add your résumé first — the draft is written only from it." });
   const r = buildAnswerDraftRequest({ resumeText, question: q, title: job.title, company: job.company });
@@ -17157,6 +17159,10 @@ app.post("/api/apply/questions/:jobId/draft", requireAuth, async (req, res) => {
     const check = checkAnswerDraft(text, { resumeText, untrusted: r.untrusted });
     if (!text || !check.ok) {
       if (text) console.warn(`[answer-draft] withheld (D173): ${describeViolations(check.violations)}`);
+      // 46j: a reply that did not answer (asked for the question, talked about the request) says so in its own words.
+      if (check.violations?.some(v => v.kind === "meta_reply"))
+        return res.status(422).json({ error: "no_answer", retryable: false,
+          message: "draft couldn't write an answer to this one from your résumé — type your answer in the box." });
       return res.status(422).json({ error: "untrusted_output_violation", retryable: true,
         message: "This draft was withheld: it carried a link or contact detail that isn't in your résumé, or text the posting asked for. Try again." });
     }
