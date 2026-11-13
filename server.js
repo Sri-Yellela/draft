@@ -217,7 +217,7 @@ import { buildCoverLetterRequest, checkCoverLetter } from "./services/coverLette
 import { describeViolations } from "./services/untrustedText.js";
 import { extractPdfText } from "./services/pdfText.js";   // 45s: PDF text with a current pdf.js fallback
 import { rankTerms, removedTerms } from "./services/keywordTerms.js";   // D186-4
-import { answerDraftsEnabled, ANSWER_DRAFTS_SETTING, draftableQuestion, heldDraftQuestion, buildAnswerDraftRequest, checkAnswerDraft, draftAnswersForRun, isOwnStatement } from "./services/applicationAnswerDraft.js";   // D185-1 (45s)
+import { answerDraftsEnabled, ANSWER_DRAFTS_SETTING, draftableQuestion, heldDraftQuestion, buildAnswerDraftRequest, checkAnswerDraft, draftAnswersForRun, isOwnStatement, isUnknownReply } from "./services/applicationAnswerDraft.js";   // D185-1 (45s)
 import { heldQuestionsOf as heldQuestionsOfForDraft } from "./services/heldQuestions.js";   // A189
 import { cachedApplicationSchema as cachedSchemaForDraft } from "./services/jobs/applicationSchema.js";
 import { activeBaseResume as baseResumeForDraft } from "./services/baseResumeOnly.js";
@@ -17171,11 +17171,15 @@ app.post("/api/apply/questions/:jobId/draft", requireAuth, async (req, res) => {
   if (isOwnStatement(q.label)) return res.status(400).json({ error: "own_statement", message: "This one is your own statement — type or choose your answer in the box." });
   const resumeText = String(baseResumeForDraft(db, req.user.id)?.content || "").trim();
   if (resumeText.length < 50) return res.status(409).json({ error: "no_resume", message: "Add your résumé first — the draft is written only from it." });
-  const r = buildAnswerDraftRequest({ resumeText, question: q, title: job.title, company: job.company });
+  // ⛔ 46j (owner 11-13: "this was supposed to be my answer, but instead it wrote its inference into it"): the draft goes
+  // INTO the person's answer box, so it follows the run's rule — an answer from the résumé, or UNKNOWN (box left empty).
+  const r = buildAnswerDraftRequest({ resumeText, question: q, title: job.title, company: job.company, forRun: true });
   try {
     const message = await callTask({ task: "answers.routine", anthropic, db, userId: req.user.id, company: job.company || null,
       dataClass: DATA_CLASS.CANDIDATE, system: r.system, messages: r.messages });
     const text = String(message.content?.[0]?.text || "").trim();
+    if (isUnknownReply(text)) return res.status(422).json({ error: "no_answer", retryable: false,
+      message: "draft couldn't write this one from your résumé — it doesn't mention it. Type your own answer." });
     const check = checkAnswerDraft(text, { resumeText, untrusted: r.untrusted });
     if (!text || !check.ok) {
       if (text) console.warn(`[answer-draft] withheld (D173): ${describeViolations(check.violations)}`);
