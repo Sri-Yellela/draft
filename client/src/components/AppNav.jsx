@@ -415,7 +415,7 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
         <h2>Ask draft</h2>
         <button type="button" className="appnav-close appnav-ask__close" data-ask-close="" onClick={onClose}>Close</button>
       </header>
-      {status && !status.available && (
+      {status && !status.available && !thread && (   /* A200: a held application's thread needs no "not open yet" notice above it */
         <p className="appnav-ask__say" data-ask-draft-closed="">
           Ask draft isn't open yet. Soon you will ask it about your jobs, your applications and Atlas here, and it will check
           with you before it does anything.
