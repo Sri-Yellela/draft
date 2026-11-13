@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>D189 workspace — sketch for approval</title>
+<style>
+/* D189 P1 — the agent's sketch for the owner's approval (11-13). Static: nothing here runs. Draft's Dusk tokens. */
+:root { --bg:#1B1B1B; --card:#262626; --well:#2E2E2E; --line:#343434; --ink:#FFF; --muted:#A3A3A3; --faint:#959595;
+  --acc:#FBD3C4; --acc-edge:#F2C2B2; --on-acc:#1B1B1B;
+  --rest:0 3px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08); --glow:0 10px 26px rgba(251,211,196,.16), inset 0 1px 0 rgba(255,255,255,.3); }
+* { box-sizing: border-box; }
+body { margin: 0; background: #111; color: var(--ink); font: 14px/1.45 "DM Sans", system-ui, sans-serif; padding: 28px; }
+h1 { font: 400 34px/1.1 "Instrument Serif", Georgia, serif; margin: 0 0 6px; }
+.lede { color: var(--muted); max-width: 900px; margin: 0 0 26px; }
+.frame { background: var(--bg); border-radius: 18px; overflow: hidden; margin: 0 0 18px; border: 1px solid #000; }
+.cap { font: 700 12px/1 system-ui; letter-spacing: .06em; text-transform: uppercase; color: var(--acc); margin: 30px 0 10px; }
+.note { color: var(--faint); font-size: 12.5px; margin: 6px 0 0; max-width: 1000px; }
+.b { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 9px; background: var(--well); border: 1px solid var(--line); box-shadow: var(--rest); font-weight: 700; font-size: 12.5px; color: var(--ink); white-space: nowrap; }
+.b.p { background: var(--acc); color: var(--on-acc); border-color: var(--acc-edge); box-shadow: var(--glow); }
+.b.on { border-color: var(--acc); color: var(--acc); }
+.b.ic { width: 30px; padding: 0; justify-content: center; }
+.muted { color: var(--muted); } .faint { color: var(--faint); }
+/* top bar */
+.top { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.stamp { background:#fff; color:#0f0f0f; border:2px solid #0f0f0f; transform:rotate(-2deg); padding:2px 7px; font:italic 800 13px/1 "Barlow Condensed", system-ui; letter-spacing:.06em; }
+.fname { font-weight: 700; } .fname small { color: var(--faint); font-weight: 400; margin-left: 6px; }
+.kind { font-size: 11.5px; color: var(--acc); border: 1px solid var(--acc); border-radius: 6px; padding: 2px 6px; }
+.saved { color: var(--faint); font-size: 12px; } .saved::before { content: "● "; color: #9FD8A8; }
+.grow { flex: 1; }
+/* modes + tools */
+.modes { display: flex; gap: 4px; padding: 8px 14px 0; }
+.mode { padding: 8px 14px; border-radius: 10px 10px 0 0; color: var(--muted); font-weight: 700; font-size: 13px; }
+.mode.on { background: var(--card); color: var(--ink); }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; background: var(--card); padding: 9px 14px; border-bottom: 1px solid var(--line); }
+.tool { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; min-width: 52px; padding: 5px 6px; border-radius: 9px; font-size: 11px; color: var(--muted); }
+.tool i { font-style: normal; font-size: 16px; color: var(--ink); }
+.tool.on { background: var(--well); box-shadow: var(--rest); color: var(--acc); } .tool.on i { color: var(--acc); }
+.sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 4px; }
+/* workspace */
+.ws { display: grid; grid-template-columns: 150px 1fr 290px; min-height: 620px; }
+.strip { border-right: 1px solid var(--line); padding: 12px; display: grid; gap: 12px; align-content: start; }
+.thumb { background: #fff; aspect-ratio: 8.5/11; border-radius: 4px; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.thumb.on { outline: 2px solid var(--acc); outline-offset: 3px; }
+.thumb b { position: absolute; left: -2px; bottom: -18px; font-size: 11px; color: var(--faint); font-weight: 400; }
+.thumb .acts { position: absolute; right: 4px; top: 4px; display: flex; gap: 3px; }
+.thumb .acts span { width: 18px; height: 18px; border-radius: 5px; background: rgba(0,0,0,.65); color: #fff; font-size: 10px; display: grid; place-items: center; }
+.addpage { border: 1.5px dashed var(--line); border-radius: 8px; padding: 10px; text-align: center; color: var(--muted); font-size: 12px; }
+.canvas { background: #141414; position: relative; padding: 26px; overflow: hidden; }
+.paper { background: #fff; color: #111; width: 560px; max-width: 100%; margin: 0 auto; aspect-ratio: 8.5/11; padding: 44px 50px; font: 12px/1.5 Georgia, serif; box-shadow: 0 10px 30px rgba(0,0,0,.5); position: relative; }
+.paper h2 { font: 700 20px/1.2 Georgia, serif; margin: 0; text-align: center; letter-spacing: .02em; }
+.paper .c { text-align: center; color: #444; font-size: 11px; margin: 4px 0 14px; }
+.paper .sh { font: 700 11px/1 Georgia, serif; letter-spacing: .08em; border-bottom: 1px solid #222; padding-bottom: 3px; margin: 14px 0 6px; }
+.fld { box-shadow: 0 0 0 1px rgba(30,90,200,.32); border-radius: 2px; padding: 0 2px; }
+.fld.sel { box-shadow: 0 0 0 2px rgba(30,90,200,.9); background: rgba(30,90,200,.06); }
+.fld.ocr { box-shadow: none; outline: 1px dashed rgba(30,90,200,.6); }
+.nav { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 6px; align-items: center; background: rgba(38,38,38,.95); border: 1px solid var(--line); padding: 6px 10px; border-radius: 12px; box-shadow: var(--rest); font-size: 12.5px; }
+.props { border-left: 1px solid var(--line); padding: 14px; display: grid; gap: 12px; align-content: start; }
+.ptabs { display: flex; gap: 4px; }
+.ptab { padding: 6px 10px; border-radius: 8px; font-weight: 700; font-size: 12.5px; color: var(--muted); }
+.ptab.on { background: var(--well); color: var(--ink); box-shadow: var(--rest); }
+.row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.lbl { font-size: 11.5px; color: var(--faint); margin-bottom: 4px; }
+.sub { background: var(--card); border-radius: 12px; padding: 10px; }
+.warn { font-size: 12px; color: #F2CC8F; } .warn::before { content: "▲ "; }
+.okline { font-size: 12px; color: #9FD8A8; } .okline::before { content: "● "; }
+.score { font: 400 30px/1 "Instrument Serif", Georgia, serif; color: var(--acc); }
+.sel-in { height: 30px; border-radius: 9px; background: var(--well); border: 1px solid var(--line); padding: 0 8px; display: inline-flex; align-items: center; font-size: 12.5px; }
+/* home */
+.home { padding: 22px; display: grid; gap: 18px; }
+.drop { border: 2px dashed var(--line); border-radius: 18px; padding: 34px; text-align: center; color: var(--muted); }
+.drop b { display: block; color: var(--ink); font: 400 26px/1.2 "Instrument Serif", Georgia, serif; margin-bottom: 6px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.doc { background: var(--card); border-radius: 14px; padding: 10px; box-shadow: var(--rest); }
+.doc .t { background: #fff; aspect-ratio: 8.5/11; border-radius: 3px; margin-bottom: 8px; }
+.doc small { color: var(--faint); display: block; }
+.toolc { background: var(--card); border-radius: 14px; padding: 12px; box-shadow: var(--rest); font-weight: 700; font-size: 13px; }
+.toolc span { display: block; color: var(--faint); font-weight: 400; font-size: 11.5px; margin-top: 3px; }
+/* phone */
+.phones { display: flex; gap: 26px; flex-wrap: wrap; }
+.phone { width: 300px; height: 620px; background: var(--bg); border-radius: 30px; border: 6px solid #000; overflow: hidden; position: relative; }
+.phone .top { padding: 9px 10px; gap: 6px; }
+.phone .tools { flex-wrap: nowrap; overflow: hidden; padding: 7px 10px; }
+.phone .paper { width: 100%; padding: 22px 20px; font-size: 7.5px; aspect-ratio: auto; height: 330px; margin: 12px 0 0; }
+.phone .paper h2 { font-size: 12px; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--card); border-radius: 18px 18px 0 0; padding: 10px 14px 16px; box-shadow: 0 -10px 30px rgba(0,0,0,.5); }
+.sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 10px; }
+/* embedded */
+.dock { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); display: flex; gap: 14px; background: var(--card); padding: 6px 14px; border-radius: 14px; font-size: 12px; color: var(--muted); box-shadow: var(--rest); }
+</style>
+</head>
+<body>
+<h1>D189 · one document workspace</h1>
+<p class="lede">The agent's sketch for your approval (11-13), from D189's shape and D188's ADOPT NOW list. One component on resumemaster.one and inside draft. Today's pieces move into it: Edit PDF in place + OCR, Sign, the 16 operations, the structured résumé editor. Nothing is built from this until you approve or correct it.</p>
+
+<div class="cap">1 · The workspace — an uploaded PDF in Edit &amp; Annotate (desktop)</div>
+<div class="frame">
+  <div class="top">
+    <span class="stamp">RM</span>
+    <span class="fname">offer-letter.pdf <small>2 pages · 184 KB</small></span>
+    <span class="kind">PDF edit</span>
+    <span class="saved">Saved on this device · just now</span>
+    <span class="grow"></span>
+    <span class="b ic" title="Version history">↺</span><span class="b ic">↶</span><span class="b ic">↷</span>
+    <span class="b">Download ▾</span><span class="b ic" title="Print">⎙</span>
+    <span class="b">Make this an editable résumé</span>
+    <span class="b p">Done</span>
+  </div>
+  <div class="modes"><span class="mode on">Edit</span><span class="mode">Annotate</span><span class="mode">Fill &amp; sign</span><span class="mode">Pages</span><span class="mode">Convert</span></div>
+  <div class="tools">
+    <span class="tool on"><i>⌖</i>Select</span><span class="tool"><i>T</i>Edit text</span><span class="tool"><i>⊞</i>Text box</span>
+    <span class="tool"><i>⌫</i>Erase</span><span class="tool"><i>▣</i>Image</span><span class="tool"><i>✎</i>Sign</span>
+    <span class="tool"><i>✓</i>Check</span><span class="tool"><i>✗</i>Cross</span><span class="tool"><i>▦</i>Date</span>
+    <span class="sep"></span><span class="tool"><i>■</i>Redact</span><span class="tool"><i>⌕</i>Find text in pictures</span>
+    <span class="grow"></span><span class="faint" style="font-size:12px">Edit swaps the tools — the layout never moves</span>
+  </div>
+  <div class="ws">
+    <div class="strip">
+      <div class="thumb on"><div class="acts"><span>⧉</span><span>⟳</span><span>✕</span></div><b>1</b></div>
+      <div class="thumb"><b>2</b></div>
+      <div class="addpage">+ Add page or files<br><span class="faint">PDF · image · Word</span></div>
+    </div>
+    <div class="canvas">
+      <div class="paper">
+        <h2><span class="fld">EXAMPLE ROBOTICS INC.</span></h2>
+        <div class="c"><span class="fld">12 Example Street · Boston, MA</span></div>
+        <div><span class="fld">Dear Ada Testcase,</span></div><br>
+        <div><span class="fld">We are pleased to offer you the position of</span> <span class="fld sel">Senior Data Engineer</span><span class="fld">, starting</span></div>
+        <div><span class="fld">January 4, 2027, at an annual salary of $165,000.</span></div>
+        <div class="sh"><span class="fld ocr">BENEFITS</span></div>
+        <div><span class="fld ocr">Health, dental and vision from your first day.</span></div><br><br>
+        <div><span class="fld">Accepted: ______________________</span></div>
+      </div>
+      <div class="nav"><span>‹</span><b>1 / 2</b><span>›</span><span class="faint">|</span><span>−</span><b>110 %</b><span>+</span><span class="b" style="height:24px">Fit width</span><span class="b" style="height:24px">Fit page</span></div>
+    </div>
+    <div class="props">
+      <div class="ptabs"><span class="ptab on">Text</span><span class="ptab">Page</span><span class="ptab">Résumé</span></div>
+      <div class="sub">
+        <div class="lbl">Face</div><div class="row"><span class="sel-in">Serif (Times) ▾</span><span class="faint" style="font-size:11.5px">font substituted: Times for Garamond</span></div>
+        <div class="lbl" style="margin-top:10px">Size · weight · style</div><div class="row"><span class="b ic">−</span><b>11</b><span class="b ic">+</span><span class="b ic on">B</span><span class="b ic"><i>I</i></span><span class="b ic"><u>U</u></span><span class="b ic">A</span></div>
+        <div class="lbl" style="margin-top:10px">This line</div><div class="row"><span class="b">Undo this line</span><span class="b">Original style</span></div>
+      </div>
+      <div class="sub"><div class="lbl">Changes</div><div class="okline">2 lines changed · old words leave the file</div><div class="warn">1 line read from a picture — covered, then written</div></div>
+      <p class="note">Dashed boxes = read from a picture (OCR). Solid = the PDF's own text. A selected field is outlined.</p>
+    </div>
+  </div>
+</div>
+<p class="note">Modes: <b>Edit</b> (the tools above) · <b>Annotate</b> (highlight, draw, shapes, comments — LATER) · <b>Fill &amp; sign</b> (the PDF's own form fields, text, ✓ / ✗, date, signature / initials) · <b>Pages</b> (the strip goes full width: reorder, rotate, duplicate, delete, insert, merge files, split) · <b>Convert</b> (Word / image → PDF, PDF → Word / Excel / text / images, compress with the size against the form's limit, OCR, protect / unlock). Each mode swaps the tool bar only.</p>
+
+<div class="cap">2 · The same workspace — a résumé (structured), with the Résumé tab</div>
+<div class="frame">
+  <div class="top">
+    <span class="stamp">RM</span><span class="fname">Resume_Example_Robotics <small>1 page</small></span><span class="kind">Résumé — structured</span>
+    <span class="saved">Saved · just now</span><span class="grow"></span>
+    <span class="b ic">↺</span><span class="b ic">↶</span><span class="b ic">↷</span><span class="b">Download ▾</span><span class="b p">Done</span>
+  </div>
+  <div class="modes"><span class="mode on">Write</span><span class="mode">Design</span><span class="mode">Pages</span></div>
+  <div class="tools">
+    <span class="sel-in">Garamond ▾</span><span class="b ic">−</span><b>8.5</b><span class="b ic">+</span><span class="sep"></span>
+    <span class="b ic">B</span><span class="b ic"><i>I</i></span><span class="b ic"><u>U</u></span><span class="b ic">A</span><span class="b ic">•</span><span class="b ic">1.</span><span class="b ic">⇤</span><span class="b ic">⇥</span>
+    <span class="sep"></span><span class="b ic">⯇</span><span class="b ic">≡</span><span class="b ic">⯈</span><span class="sep"></span><span class="b">Fit to one page</span><span class="b">Reset</span>
+  </div>
+  <div class="ws" style="min-height:420px">
+    <div class="strip"><div class="lbl">Sections</div><div class="b on">Name &amp; contact</div><div class="b">Summary</div><div class="b">Experience</div><div class="b">Skills</div><div class="b">Education</div><div class="addpage">+ Add a section</div></div>
+    <div class="canvas"><div class="paper" style="aspect-ratio:auto;height:360px"><h2>ADA TESTCASE</h2><div class="c">Boston, MA · ada@example.invalid</div><div class="sh">EXPERIENCE</div><div>Data Engineer, Example Robotics — built the telemetry pipelines…</div></div></div>
+    <div class="props">
+      <div class="ptabs"><span class="ptab">Text</span><span class="ptab">Page</span><span class="ptab on">Résumé</span></div>
+      <div class="sub"><div class="lbl">For: Senior Data Engineer · Example Robotics</div><div class="row"><span class="score">Strong</span><span class="faint">14 of 17 required terms</span></div></div>
+      <div class="sub"><div class="lbl">Missing</div><div class="faint">Kafka · dbt · Terraform</div></div>
+      <div class="sub"><div class="okline">No tables, no columns, standard fonts</div><div class="warn">1 picture — an ATS can't read it</div><div class="okline">186 KB — under every form's limit</div></div>
+      <div class="b">Review changes</div>
+    </div>
+  </div>
+</div>
+<p class="note">A résumé draft or Resume Master made opens <b>structured</b> (edits change the data; the PDF is made again). An uploaded PDF opens in <b>PDF edit</b>. The label beside the file name says which. "Make this an editable résumé" (frame 1) turns a PDF into this one through the parse.</p>
+
+<div class="cap">3 · Documents home (resumemaster.one/)</div>
+<div class="frame home">
+  <div class="drop"><b>Drop a PDF, Word file or picture here</b>or <span class="b p" style="vertical-align:middle">Open a file</span> — it opens in the workspace and never leaves this device</div>
+  <div><div class="lbl">Recent on this device</div>
+    <div class="grid">
+      <div class="doc"><div class="t"></div><b>offer-letter.pdf</b><small>PDF · 2 pages · edited 5 min ago</small></div>
+      <div class="doc"><div class="t"></div><b>Resume_Example_Robotics</b><small>Résumé · 1 page · yesterday</small></div>
+      <div class="doc"><div class="t"></div><b>transcript.pdf</b><small>PDF · 3 pages · Mon</small></div>
+    </div></div>
+  <div><div class="lbl">Start from</div><div class="row"><span class="b">A blank résumé</span><span class="b">A template</span><span class="b">Check a résumé against a job (ATS)</span></div></div>
+  <div><div class="lbl">Tools — each opens the workspace with that tool on</div>
+    <div class="grid">
+      <div class="toolc">Edit PDF<span>change text where it is</span></div><div class="toolc">Fill &amp; sign<span>forms, signature, initials</span></div><div class="toolc">Compress<span>size vs the form's limit</span></div>
+      <div class="toolc">Convert<span>Word · images · Excel · text</span></div><div class="toolc">Merge &amp; organise<span>pages from many files</span></div><div class="toolc">Redact<span>remove, not cover</span></div>
+      <div class="toolc">OCR<span>text in pictures</span></div><div class="toolc">Protect / unlock<span>AES-256</span></div>
+    </div></div>
+</div>
+<p class="note">The 16 tool pages stay (people search "merge pdf") — each becomes a landing page whose button opens this workspace with its tool on. "Recent" is kept in this browser only (nothing uploaded); signed-in people may choose to keep their résumés in their account.</p>
+
+<div class="cap">4 · Phone · 5 · Inside draft (focused mode)</div>
+<div class="phones">
+  <div class="phone">
+    <div class="top"><span class="stamp">RM</span><span class="fname" style="font-size:12px">offer-letter.pdf</span><span class="grow"></span><span class="b ic">↶</span><span class="b p" style="height:26px">Done</span></div>
+    <div class="tools"><span class="tool on"><i>T</i>Edit</span><span class="tool"><i>⊞</i>Box</span><span class="tool"><i>✎</i>Sign</span><span class="tool"><i>✓</i>Check</span><span class="tool"><i>⌫</i>Erase</span><span class="tool"><i>…</i>More</span></div>
+    <div style="padding:0 12px"><div class="paper"><h2>EXAMPLE ROBOTICS INC.</h2><div class="c">12 Example Street</div><div><span class="fld sel">Senior Data Engineer</span> · starting January 4, 2027</div></div></div>
+    <div class="sheet"><div class="grab"></div><div class="row"><span class="sel-in">Serif ▾</span><span class="b ic">−</span><b>11</b><span class="b ic">+</span><span class="b ic">B</span><span class="b ic">A</span></div><div class="faint" style="font-size:11px;margin-top:8px">Properties and pages are bottom sheets · the tool bar scrolls · the page is full width</div></div>
+  </div>
+  <div class="phone" style="width:520px">
+    <div class="dock">⌂ Home · /draft · Atlas · Profile · Ask draft</div>
+    <div style="padding-top:52px">
+      <div class="top"><span class="fname">Your résumé for Example Robotics</span><span class="kind">Résumé — structured</span><span class="grow"></span><span class="b">Back to draft</span><span class="b p">Use this résumé</span></div>
+      <div class="tools"><span class="sel-in">Garamond ▾</span><span class="b ic">B</span><span class="b ic"><i>I</i></span><span class="b ic">•</span><span class="b">Fit to one page</span></div>
+      <div style="display:grid;grid-template-columns:1fr 170px;gap:0">
+        <div class="canvas" style="padding:14px"><div class="paper" style="aspect-ratio:auto;height:330px;padding:24px;font-size:8px"><h2 style="font-size:13px">ADA TESTCASE</h2><div class="sh">EXPERIENCE</div><div>Data Engineer…</div></div></div>
+        <div class="props" style="padding:10px"><div class="ptab on" style="display:inline-block">Résumé</div><div class="sub"><span class="score" style="font-size:22px">Strong</span><div class="faint" style="font-size:11px">for this job</div></div><div class="b">What we changed</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="note">Inside draft: the same component, themed by draft, no Documents home; the primary action is <b>Use this résumé</b>, Back returns to where the person was (D157 A); the Résumé tab knows the job. draft keeps no editor of its own (A204).</p>
+</body>
+</html>
