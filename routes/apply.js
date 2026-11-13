@@ -1939,6 +1939,19 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       const kept = { ...keptBy.drafted, ...keptBy.person };
       if (Object.keys(keptBy.person).length) autofillPayload.custom_answers = { ...(autofillPayload.custom_answers || {}), ...keptBy.person };
       if (Object.keys(keptBy.drafted).length) autofillPayload.drafted_answers = { ...keptBy.drafted, ...(autofillPayload.drafted_answers || {}) };
+      // ⛔ A202 (46k): the person's answers ALSO keyed by the posting's ATS field name, for a page that words a question
+      // differently from the ATS label they answered (services/applyAutomation.js buildAnswers step 3a).
+      if (Object.keys(keptBy.person).length) {
+        try {
+          const personByKey = new Map(Object.entries(keptBy.person).map(([q, a]) => [partKeyOf(q), { question: q, answer: a }]));
+          const byField = {};
+          for (const f of schemaFieldsForFill(cachedApplicationSchema(db, jobId))) {
+            const hit = f?.name && personByKey.get(partKeyOf(f.label));
+            if (hit) byField[String(f.name).replace(/\[\]$/, "")] = hit;
+          }
+          if (Object.keys(byField).length) autofillPayload.custom_answers_by_field = byField;
+        } catch { /* no cached schema — the label match alone, as before */ }
+      }
       if (Object.keys(kept).length) {
         logEvent(runId, runJobId, userId, jobId, "answers_reused", `Reused ${Object.keys(kept).length} answer(s) kept for this job (${Object.keys(keptBy.person).length} yours, ${Object.keys(keptBy.drafted).length} drafted)`,
           { yours: Object.keys(keptBy.person), drafted: Object.keys(keptBy.drafted) });
@@ -3193,8 +3206,17 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
 
   // ⭐ A165: the latest handoff packet for a held run job (its `unresolved` names what the profile could not answer).
   // Read through the (user_id, job_id, created_at) index, then narrowed to this run job.
+  // ⛔ A202 (46k, owner 11-13: "it literally asked me for the questions again, the ones I answered a minute ago"): a run
+  // that READ the form (its open questions / blanks / typed answers are recorded) is the truth about that form. It no
+  // longer borrows an OLDER packet (an Open & fill packet, run_job_id NULL, built before the person answered) — that
+  // packet's employer questions (from_schema) were re-listed on every later run, answered or not.
   const latestPacketJson = (r) => {
     try {
+      const readTheForm = r.open_questions_json != null || r.blanks_json != null || r.answers_json != null;
+      if (readTheForm) {
+        return db.prepare(`SELECT answers_json FROM apply_gate_packets WHERE user_id=? AND job_id=? AND run_job_id=?
+          ORDER BY created_at DESC LIMIT 1`).get(r.user_id, String(r.job_id), r.id)?.answers_json ?? null;
+      }
       return db.prepare(`SELECT answers_json FROM apply_gate_packets WHERE user_id=? AND job_id=? AND (run_job_id=? OR run_job_id IS NULL)
         ORDER BY (run_job_id = ?) DESC, created_at DESC LIMIT 1`).get(r.user_id, String(r.job_id), r.id, r.id)?.answers_json ?? null;
     } catch { return null; }
