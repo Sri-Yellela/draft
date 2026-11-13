@@ -50,6 +50,10 @@ test("⛔ A202 (1) (Chrome): a react-select choice picked on the Greenhouse form
   assert.equal(picked.current_value, "Yes", "the picked option is read from react-select's single value");
   assert.equal(untouched.current_value, "", "an unpicked picker stays blank — no value lent from a neighbour");
   assert.equal(fields.find(f => f.field_id === "gender")?.current_value, "", "the EEO picker beside it stays blank");
+  // ⛔ A206 (46k, Splitero's two required "(unknown)" fields): react-select's backing input (required, tabindex -1,
+  // aria-hidden, no id, no name) mirrors its picker and is never a field of its own
+  const nameless = fields.filter(f => f.is_required && !f.field_id && !f.name && !f.label);
+  assert.deepEqual(nameless, [], "no nameless required field — the pickers' backing inputs are not counted");
 });
 
 test("⛔ A202 (2): a required field draft answered but the form left empty is fill_failed — named, never asked again", () => {
