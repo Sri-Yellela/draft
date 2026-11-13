@@ -55,7 +55,15 @@ export function heldDraftQuestion(rows, label, heldQuestionsOf) {
 }
 
 /** @returns {{ system, messages, untrusted }} — `untrusted` is what was sent from the employer (for the check). */
-export function buildAnswerDraftRequest({ resumeText, question, title = "", company = "" }) {
+// ⛔ 46j: a run's draft is TYPED INTO THE EMPLOYER'S FORM — the on-demand system line ("if the résumé does not support an
+// answer, say what the candidate could add") would send that advice as the answer. A run's draft replies UNKNOWN instead,
+// and the question holds for the person.
+export const ANSWER_DRAFT_RUN_SYSTEM =
+  "You write the candidate's answer to one question on a job application; it is typed into the form as written. You write " +
+  "only from the candidate's own résumé — never invent an employer, a number, a skill or a date that is not in it. If the " +
+  "résumé does not support an answer, reply UNKNOWN and nothing else. " + UNTRUSTED_DATA_RULE;
+export const isUnknownReply = (t) => /^\W*unknown\W*$/i.test(String(t || "").trim());
+export function buildAnswerDraftRequest({ resumeText, question, title = "", company = "", forRun = false }) {
   const q = stripInvisible(String(question?.label || question || "")).slice(0, 600);
   const role = stripInvisible([title, company].filter(Boolean).join(" at ")).slice(0, 200);
   const untrusted = [q, role].filter(Boolean).join("\n");
@@ -72,7 +80,7 @@ REQUIREMENTS:
 - Use only facts in the résumé; name one or two that answer the question
 - No links, email addresses or phone numbers
 - No placeholders like [Company] — use the company's name only if it appears above`;
-  return { system: ANSWER_DRAFT_SYSTEM, messages: [{ role: "user", content: prompt }], untrusted };
+  return { system: forRun ? ANSWER_DRAFT_RUN_SYSTEM : ANSWER_DRAFT_SYSTEM, messages: [{ role: "user", content: prompt }], untrusted };
 }
 
 /** The check before the person sees it (D173 (1)). */
@@ -186,11 +194,11 @@ export async function draftAnswersForRun({ db, userId, resumeText, questions, ti
       } catch (e) { console.warn(`[answers] run pick failed (${String(question.question).slice(0, 40)}): ${e.message}`); }
       continue;
     }
-    const r = buildAnswerDraftRequest({ resumeText, question, title, company });
+    const r = buildAnswerDraftRequest({ resumeText, question, title, company, forRun: true });
     try {
       const message = await callTask({ task: "answers.routine", anthropic, db, userId, company: company || null, dataClass, system: r.system, messages: r.messages });
       const text = String(message?.content?.[0]?.text || "").trim();
-      if (text && checkAnswerDraft(text, { resumeText, untrusted: r.untrusted }).ok) out[question] = text;
+      if (text && !isUnknownReply(text) && checkAnswerDraft(text, { resumeText, untrusted: r.untrusted }).ok) out[question] = text;
     } catch (e) { console.warn(`[answers] run draft failed (${question.slice(0, 40)}): ${e.message}`); }
   }
   return out;

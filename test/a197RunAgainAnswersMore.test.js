@@ -57,3 +57,15 @@ test("a197: 10 free-text drafts a run (was 4); a low-confidence question keeps i
   assert.deepEqual(q[0].options.map(o => o.label), ["0-2", "6+"]);
   assert.equal(q[0].reason, "low_confidence");
 });
+
+test("a197: a run's free-text draft replies UNKNOWN when the résumé does not support it — never advice typed into the form", async () => {
+  const { buildAnswerDraftRequest, ANSWER_DRAFT_SYSTEM, ANSWER_DRAFT_RUN_SYSTEM } = await import("../services/applicationAnswerDraft.js");
+  assert.equal(buildAnswerDraftRequest({ resumeText: RESUME, question: "Why?" }).system, ANSWER_DRAFT_SYSTEM, "on demand: unchanged");
+  assert.equal(buildAnswerDraftRequest({ resumeText: RESUME, question: "Why?", forRun: true }).system, ANSWER_DRAFT_RUN_SYSTEM);
+  assert.match(ANSWER_DRAFT_RUN_SYSTEM, /reply UNKNOWN/);
+  let sys = null;
+  const out = await draftAnswersForRun({ db: null, userId: 1, resumeText: RESUME, questions: ["Describe your experience with Kubernetes operators"],
+    callTask: async ({ system }) => { sys = system; return { content: [{ text: "UNKNOWN" }] }; } });
+  assert.equal(sys, ANSWER_DRAFT_RUN_SYSTEM, "the run uses the run's instruction");
+  assert.deepEqual(out, {}, "UNKNOWN is not typed — the question holds");
+});
