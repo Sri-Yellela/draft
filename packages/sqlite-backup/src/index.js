@@ -23,6 +23,7 @@
 import Database from "better-sqlite3";
 import fs       from "fs";
 import path     from "path";
+import os       from "os";
 import { Worker } from "worker_threads";
 import { createRequire } from "module";
 
@@ -33,24 +34,56 @@ import { createRequire } from "module";
 // second connection's step-wise backup restarts whenever the server writes), a compact plain file, and the fsync
 // blocks only the worker.
 const BETTER_SQLITE3 = createRequire(import.meta.url).resolve("better-sqlite3");
+// ⛔ A196 (2) (production 11-13 02:00Z, the first worker run: "vacuum-into-worker in 54.6 s", yet every request waited
+// 02:00:16 → 02:00:55, answered in one millisecond): the worker wrote the 2 GB copy onto the SAME volume as the live
+// database, and the burst of dirty pages flushed at its end — the server's own synchronous SQLite reads queued behind it
+// on the device. Now the snapshot is written to the container's temp disk (another device — on Railway the overlay, not
+// the volume), then COPIED onto the volume in 4 MB pieces at a capped rate with an fdatasync every 32 MB, so the volume
+// never holds a burst; the temp file is removed either way.
 const WORKER_SRC = `
 const { workerData, parentPort } = require("worker_threads");
+const fs = require("fs");
 const Database = require(workerData.lib);
 let db = null;
+const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 try {
+  const stage = workerData.stage || workerData.dest;
   db = new Database(workerData.src, { readonly: true, fileMustExist: true });
   db.pragma("busy_timeout = 30000");
-  db.prepare("VACUUM INTO ?").run(workerData.dest);
+  db.prepare("VACUUM INTO ?").run(stage);
   db.close(); db = null;
+  if (stage !== workerData.dest) {
+    const CHUNK = 4 << 20, SYNC_EVERY = 32 << 20, bytesPerMs = (workerData.mbps || 40) * 1048.576;
+    const buf = Buffer.allocUnsafe(CHUNK);
+    const inFd = fs.openSync(stage, "r"), outFd = fs.openSync(workerData.dest, "w");
+    try {
+      let pos = 0, sinceSync = 0; const t0 = Date.now();
+      for (;;) {
+        const n = fs.readSync(inFd, buf, 0, CHUNK, pos);
+        if (!n) break;
+        fs.writeSync(outFd, buf, 0, n, pos);
+        pos += n; sinceSync += n;
+        if (sinceSync >= SYNC_EVERY) { fs.fdatasyncSync(outFd); sinceSync = 0; }
+        const ahead = pos / bytesPerMs - (Date.now() - t0);
+        if (ahead > 5) sleep(Math.min(ahead, 1000));
+      }
+      fs.fdatasyncSync(outFd);
+    } finally { fs.closeSync(inFd); fs.closeSync(outFd); try { fs.unlinkSync(stage); } catch {} }
+  }
   parentPort.postMessage({ ok: true });
 } catch (e) {
   try { db && db.close(); } catch {}
+  try { if (workerData.stage && workerData.stage !== workerData.dest) fs.unlinkSync(workerData.stage); } catch {}
   parentPort.postMessage({ ok: false, error: String(e && e.message || e) });
 }`;
-/** A196 · VACUUM INTO `dest` from `src` in a worker thread; resolves when the file is written and synced. */
-export function vacuumIntoInWorker(src, dest) {
+/**
+ * A196 · VACUUM INTO in a worker thread; resolves when `dest` is written and synced. `stage` (default: the OS temp dir,
+ * another device in production) takes the snapshot first, then it is copied onto `dest` at `mbps` MB/s with periodic
+ * syncs (A196 (2)); `stage: null` writes `dest` directly.
+ */
+export function vacuumIntoInWorker(src, dest, { stage = path.join(os.tmpdir(), `${path.basename(dest)}.stage`), mbps = Number(process.env.BACKUP_COPY_MBPS) || 40 } = {}) {
   return new Promise((resolve, reject) => {
-    const w = new Worker(WORKER_SRC, { eval: true, workerData: { src, dest, lib: BETTER_SQLITE3 } });
+    const w = new Worker(WORKER_SRC, { eval: true, workerData: { src, dest, stage: stage || dest, mbps, lib: BETTER_SQLITE3 } });
     let settled = false;
     w.once("message", (m) => { settled = true; m?.ok ? resolve() : reject(new Error(m?.error || "backup worker failed")); });
     w.once("error", (e) => { if (!settled) { settled = true; reject(e); } });
