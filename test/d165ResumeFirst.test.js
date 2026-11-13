@@ -79,5 +79,5 @@ test("d165AnswersSavedForNextTime: /api/apply/answers saves (remember), retries 
   assert.match(core, /const \{ answers = \{\}, overrides = \{\}, retryJobIds = null, mode = "auto", approvalMode = null \} = req\.body \|\| \{\};/);
   assert.match(core, /if \(approvalMode === "approved"\)\s*\n\s*return out\.status\(400\)/, "answering never authorises a send");
   assert.match(core, /Object\.prototype\.hasOwnProperty\.call\(remember, q\)/, "each answer carries its own remember choice");
-  assert.match(core, /startRun\(req\.user\.id, normalisePlanTier\(req\.user\?\.planTier\), toRetry,\s*\n\s*\{ mode, tool: "generate", approvalMode, retryOfHeld: true \}\)/);
+  assert.match(core, /startRun\(req\.user\.id, normalisePlanTier\(req\.user\?\.planTier\), toRetry,\s*\n\s*\{ mode, tool: retryTool, approvalMode, retryOfHeld: true \}\)/);   // A194 (2) (46j, changed on purpose): the held run's tool
 });

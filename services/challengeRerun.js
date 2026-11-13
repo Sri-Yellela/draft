@@ -152,7 +152,7 @@ export function createChallengeRerun(deps) {
   const {
     db, autoApply, htmlToPdf, payloadFor, jobUrlFor, registerChallenge,
     submitBlocker = () => null, refuse = () => null, onSubmitted = () => {}, onEnded = () => {},
-    logEvent = () => {}, tmpPath, derivedLabelMaps = () => undefined, timeoutMs,
+    logEvent = () => {}, tmpPath, derivedLabelMaps = () => undefined, timeoutMs, coverLetterFor = null,
     now = () => Date.now(),
   } = deps;
   const runs = new Map();     // String(runJobId) -> entry (kept a while after it ends, so the client reads the outcome)
@@ -175,7 +175,7 @@ export function createChallengeRerun(deps) {
     const { row, answers, html } = pieces;
     const { userId, runJobId, jobId } = entry;
     const runId = row.run_id;
-    let tmp = null;
+    let tmp = null, clTmp = null;
     try {
       const job = db.prepare(`SELECT * FROM scraped_jobs WHERE job_id = ?`).get(String(jobId)) || null;
       const url = jobUrlFor({ userId, jobId, job });
@@ -187,8 +187,10 @@ export function createChallengeRerun(deps) {
       const payload = { ...(payloadFor({ userId, jobId, job }) || {}) };
       payload.drafted_answers = { ...draftedFromAnswers(answers), ...(payload.drafted_answers || {}) };
       entry.state = "filling";
+      // 46j: a cover letter on demand (a form with a cover-letter upload stopped short of Submit without one).
+      const coverLetterOnDemand = typeof coverLetterFor === "function" ? coverLetterFor({ userId, jobId, onFile: (f) => { clTmp = f; } }) : undefined;
       const result = await autoApply(url, payload, {
-        mode: "full", jobId, resumePath: tmp,
+        mode: "full", jobId, resumePath: tmp, coverLetterOnDemand,
         approvedAnswers: answers,          // the drift gate: nothing that differs from what the first run typed is sent
         derivedLabelMaps: derivedLabelMaps(),
         submitBlocker,
@@ -219,7 +221,13 @@ export function createChallengeRerun(deps) {
         entry.message = "The form asks something different now, so nothing was sent. Use Run again for a fresh draft of it.";
       } else {
         entry.outcome = "not_sent";
-        entry.message = `Nothing was sent (${result?.reasonCode || result?.status || "no result"}). It stays here — try again, or Open & fill.`;
+        // 46j: name the required fields it could not fill (labels only), so the row and the log say WHY.
+        const missing = (Array.isArray(result?.missingRequired) ? result.missingRequired : []).map(m => String(m?.label || m?.name || m || "").trim()).filter(Boolean).slice(0, 5);
+        entry.missing = missing;
+        entry.message = missing.length
+          ? `Nothing was sent — the form still needed: ${missing.map(m => `"${m.slice(0, 80)}"`).join(", ")}. It stays here — try again, or Open & fill.`
+          : `Nothing was sent (${result?.reasonCode || result?.status || "no result"}). It stays here — try again, or Open & fill.`;
+        console.log(`[solve-check] run job ${runJobId}: not sent (${result?.reasonCode || result?.status}) missing=${JSON.stringify(missing)}`);
       }
       logEvent(runId, runJobId, userId, jobId, "challenge_rerun_done", entry.message,
         { outcome: entry.outcome, status: result?.status ?? null, reasonCode: result?.reasonCode ?? null, msToLive: entry.liveAt ? entry.liveAt - entry.startedAt : null });
@@ -229,6 +237,7 @@ export function createChallengeRerun(deps) {
       logEvent(runId, runJobId, userId, jobId, "challenge_rerun_done", entry.message, { outcome: "error", code: e?.code || null });
     } finally {
       if (tmp) { try { unlinkSync(tmp); } catch {} }
+      if (clTmp) { try { unlinkSync(clTmp); } catch {} }
       entry.endedAt = now();
       entry.state = "done";
       try { onEnded(entry); } catch {}

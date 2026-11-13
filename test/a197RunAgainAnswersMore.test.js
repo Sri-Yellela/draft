@@ -69,3 +69,39 @@ test("a197: a run's free-text draft replies UNKNOWN when the résumé does not s
   assert.equal(sys, ANSWER_DRAFT_RUN_SYSTEM, "the run uses the run's instruction");
   assert.deepEqual(out, {}, "UNKNOWN is not typed — the question holds");
 });
+
+// ⛔ 46j (owner 11-13, Dropzone): an acknowledgement ("yes, agreed and understood") got the model's "I don't see the actual
+// application question … Please provide the question" as its draft.
+test("a197MetaReplyNeverAnAnswer: a reply about the request is refused; acknowledgements / attestations are not drafted", async () => {
+  const { checkAnswerDraft, isMetaReply, isOwnStatement, isRunDraftable } = await import("../services/applicationAnswerDraft.js");
+  const meta = "I don't see the actual application question in your message. You've included the job posting and policy statement, but not the specific question the candidate needs to answer. Please provide the question.";
+  assert.equal(isMetaReply(meta), true);
+  assert.equal(checkAnswerDraft(meta, { resumeText: RESUME, untrusted: "" }).ok, false);
+  assert.equal(isMetaReply("I built payment services in Python at a fintech."), false);
+  for (const q of ["Please type 'Yes, agreed and understood' to acknowledge our hiring policy", "I certify the information above is true", "Do you consent to a background check?"]) {
+    assert.equal(isOwnStatement(q), true, q);
+    assert.equal(isRunDraftable({ question: q, type: "textarea" }), false, q);
+  }
+  const out = await draftAnswersForRun({ db: null, userId: 1, resumeText: RESUME, questions: ["Describe your experience managing Kubernetes infrastructure at scale"],
+    callTask: async () => ({ content: [{ text: meta }] }) });
+  assert.deepEqual(out, {}, "a meta reply is never typed into the form");
+  const fs = await import("node:fs");
+  const server = fs.readFileSync("server.js", "utf8");
+  assert.match(server, /if \(isOwnStatement\(q\.label\)\) return res\.status\(400\)\.json\(\{ error: "own_statement"/);
+  assert.match(server, /check\.violations\?\.some\(v => v\.kind === "meta_reply"\)/);
+});
+
+test("a194RetryKeepsTool + solve-check re-run: the answers retry uses the held run's tool; the re-run writes a cover letter on demand and names what was missing", async () => {
+  const fs = await import("node:fs");
+  const route = fs.readFileSync("routes/apply.js", "utf8").replace(/\r\n/g, "\n");
+  assert.match(route, /SELECT rj\.id, rj\.finished_at, r\.tool_type FROM apply_run_jobs rj JOIN apply_runs r ON r\.id = rj\.run_id/);
+  assert.match(route, /\{ mode, tool: retryTool, approvalMode, retryOfHeld: true \}/);
+  assert.doesNotMatch(route, /\{ mode, tool: "generate", approvalMode, retryOfHeld: true \}/);
+  assert.match(route, /coverLetterFor: \(\{ userId, jobId, onFile \}\) => coverLetterOnDemand\(/);
+  const { createChallengeRerun } = await import("../services/challengeRerun.js");
+  assert.equal(typeof createChallengeRerun, "function");
+  const src = fs.readFileSync("services/challengeRerun.js", "utf8").replace(/\r\n/g, "\n");
+  assert.match(src, /mode: "full", jobId, resumePath: tmp, coverLetterOnDemand,/);
+  assert.match(src, /Nothing was sent — the form still needed: /);
+  assert.match(src, /if \(clTmp\) \{ try \{ unlinkSync\(clTmp\); \} catch \{\} \}/);
+});

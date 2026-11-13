@@ -29,7 +29,7 @@ test("p6eCoverLetterOnlyWhenAsked: the generator runs on the first call only, an
 test("p6eCoverLetterOnlyWhenAsked: no apply path starts the cover letter before the form is seen", () => {
   const apply = read("routes/apply.js");
   const calls = [...apply.matchAll(/generateCoverLetterForApply\(userId, jobId\)/g)].map(m => apply.slice(m.index - 80, m.index));
-  assert.equal(calls.length, 3, "CASE A, B and C");
+  assert.equal(calls.length, 4, "CASE A, B and C + the Solve it here re-run (46j)");
   for (const before of calls) assert.match(before, /coverLetterOnDemand\(\(\) => $/, "each one only inside coverLetterOnDemand");
   assert.doesNotMatch(apply, /coverLetterPathPromise/, "no eager promise is handed to autoApply any more");
   const automation = read("services/applyAutomation.js");
