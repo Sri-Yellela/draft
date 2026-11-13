@@ -74,7 +74,10 @@ test("a181OneQuestionAtATime + a181QuestionLargeType + a181ReduceMotionNoSlide: 
   assert.match(body, /data-held-progress="">\{i \+ 1\} of \{total\}/);
   assert.match(body, /data-action="back-question"/); assert.match(body, /`See all \$\{total\}`/);
   assert.match(body, /data-yes-no=\{o\}/, "Yes / No as their own buttons");
-  assert.match(body, /\/api\/apply\/questions\/\$\{encodeURIComponent\(jobId\)\}\/draft/, "a free-text question asks for its draft");
+  // A199 (46j, owner, changed on purpose): the draft is asked for in ASK DRAFT (the companion), never written into this box.
+  assert.match(body, /new CustomEvent\("draft:ask-question", \{ detail: \{ jobId, question \} \}\)/, "a free-text question asks Ask draft for its draft");
+  assert.doesNotMatch(body, /\/api\/apply\/questions\/\$\{encodeURIComponent\(jobId\)\}\/draft/, "the stepper never fetches a draft into the person's box");
+  assert.match(read("client/src/components/AppNav.jsx"), /\/api\/apply\/questions\/\$\{encodeURIComponent\(target\.jobId\)\}\/draft/, "Ask draft fetches it");
   assert.match(body, /All answered/);
   const css = read("client/src/components/DraftHouse.css");
   assert.match(css, /\.dht-step__q \{ margin: 0; font-size: calc\(24px \* var\(--type-scale, 1\)\);/);

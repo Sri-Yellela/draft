@@ -17173,14 +17173,18 @@ app.post("/api/apply/questions/:jobId/draft", requireAuth, async (req, res) => {
   if (resumeText.length < 50) return res.status(409).json({ error: "no_resume", message: "Add your résumé first — the draft is written only from it." });
   // ⛔ 46j (owner 11-13: "this was supposed to be my answer, but instead it wrote its inference into it"): the draft goes
   // INTO the person's answer box, so it follows the run's rule — an answer from the résumé, or UNKNOWN (box left empty).
-  const r = buildAnswerDraftRequest({ resumeText, question: q, title: job.title, company: job.company, forRun: true });
+  // ⭐ A199 (46j): the Ask draft companion sends the person's own words for this question as `note` — their facts, written in.
+  const note = typeof req.body?.note === "string" ? req.body.note.trim().slice(0, 1500) : "";
+  const r = buildAnswerDraftRequest({ resumeText, question: q, title: job.title, company: job.company, forRun: true, note });
   try {
     const message = await callTask({ task: "answers.routine", anthropic, db, userId: req.user.id, company: job.company || null,
       dataClass: DATA_CLASS.CANDIDATE, system: r.system, messages: r.messages });
     const text = String(message.content?.[0]?.text || "").trim();
     if (isUnknownReply(text)) return res.status(422).json({ error: "no_answer", retryable: false,
-      message: "draft couldn't write this one from your résumé — it doesn't mention it. Type your own answer." });
-    const check = checkAnswerDraft(text, { resumeText, untrusted: r.untrusted });
+      message: note ? "draft still couldn't write this one from what you said — add a little more about it, or type your own answer."
+        : "draft couldn't write this one from your résumé — it doesn't mention it. Tell draft about it here, or type your own answer." });
+    const check = checkAnswerDraft(text, { resumeText: note ? `${resumeText}
+${note}` : resumeText, untrusted: r.untrusted });
     if (!text || !check.ok) {
       if (text) console.warn(`[answer-draft] withheld (D173): ${describeViolations(check.violations)}`);
       // 46j: a reply that did not answer (asked for the question, talked about the request) says so in its own words.

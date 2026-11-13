@@ -106,15 +106,27 @@ function HeldQuestionStepper({ jobId, questions, values, setValue, remember, set
   const total = questions.length;
   const q = questions[Math.min(i, total - 1)];
   useEffect(() => { setI(0); setAll(false); }, [jobId]);
-  // A181 (2): a free-text question arrives as a draft to check — asked for once, from the résumé (D185-1's route; when
-  // answer drafts are switched off it answers 404 and the box stays empty for the person's own words).
+  // ⭐ A199 (46j, owner 11-13: "this was supposed to be my answer, but instead it wrote its inference into it" → "the agent
+  // would write into the ask draft chat for each question … instead of the home section"): a free-text question's draft is
+  // written in ASK DRAFT, beside this (components/AppNav.jsx AskDraftPanel) — never into this box. The box is the person's;
+  // "Use as my answer" there fills it (draft:use-answer).
+  const askDraft = (question) => window.dispatchEvent(new CustomEvent("draft:ask-question", { detail: { jobId, question } }));
   useEffect(() => {
     if (!q || q.kind !== "draft" || drafts[q.question] || jobId == null) return;
-    setDrafts(d => ({ ...d, [q.question]: { state: "loading" } }));
-    api(`/api/apply/questions/${encodeURIComponent(jobId)}/draft`, { method: "POST", body: JSON.stringify({ question: q.question }) })
-      .then(r => { setDrafts(d => ({ ...d, [q.question]: { state: "ready", text: r.draft } })); if (!String(values[q.question] ?? "").trim()) setValue(q.question, r.draft); })
-      .catch(e => setDrafts(d => ({ ...d, [q.question]: { state: e?.status === 404 ? "off" : "error" } })));
+    setDrafts(d => ({ ...d, [q.question]: { state: "asked" } }));
+    askDraft(q.question);
   }, [q, jobId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const onUse = (e) => {
+      const d = e.detail || {};
+      if (String(d.jobId) !== String(jobId) || !d.question) return;
+      setValue(d.question, d.text);
+      setDrafts(x => ({ ...x, [d.question]: { state: "ready", text: d.text } }));
+      setEditing(x => ({ ...x, [d.question]: false }));
+    };
+    window.addEventListener("draft:use-answer", onUse);
+    return () => window.removeEventListener("draft:use-answer", onUse);
+  }, [jobId, setValue]);
   if (!total) return null;
   const answered = (x) => String(values[x.question] ?? "").trim() !== "";
   const next = () => setI(n => Math.min(total, n + 1));
@@ -148,12 +160,15 @@ function HeldQuestionStepper({ jobId, questions, values, setValue, remember, set
             </select>
           ) : q.kind === "draft" ? (
             <div className="dht-step__draft" data-held-draft={drafts[q.question]?.state || "none"}>
-              {drafts[q.question]?.state === "loading" && <span className="dht-step__meta">Writing a draft from your résumé…</span>}
+              {drafts[q.question]?.state === "asked" && !String(values[q.question] ?? "").trim() && (
+                <span className="dht-step__meta" data-held-asked="">draft is writing a suggestion in Ask draft, beside this — use it there, or type your own.{" "}
+                  <button type="button" className="dh-btn dht-step__link" data-action="open-ask-draft" onClick={() => askDraft(q.question)}>Ask again</button></span>
+              )}
               {drafts[q.question]?.state === "ready" && !editing[q.question] ? (
                 <p className="dht-step__drafttext">{values[q.question]}</p>
               ) : (
                 <textarea className="dht-step__in" rows={5} aria-label={q.question} value={values[q.question] ?? ""}
-                  placeholder={drafts[q.question]?.state === "off" ? "In your own words…" : ""} onChange={e => setValue(q.question, e.target.value)} />
+                  placeholder="In your own words…" onChange={e => setValue(q.question, e.target.value)} />
               )}
             </div>
           ) : (
