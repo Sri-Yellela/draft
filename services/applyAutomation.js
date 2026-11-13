@@ -1852,7 +1852,9 @@ export function buildOpenQuestions({ missingFields = [], lowConfidence = [] } = 
       question,
       field: a.name || a.field_id || null,
       type: a.type || 'text',
-      options: [],
+      // ⭐ 46j: the field's options travel with a low-confidence question, so the next run (Run again) can answer a
+      // multiple-choice question from the résumé — one of THESE options or nothing (applicationAnswerDraft runPickQuestions).
+      options: Array.isArray(a.options) ? a.options.filter(o => o && o.value !== '') : [],
       required: false,
       eligibility: eligibilityClassOf(question),
       reason: 'low_confidence',
@@ -2988,7 +2990,7 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
     if (isUnattended && escalation) {
       const escalatedAsQuestions = escalation.answers.map(a => ({
         field: a.label || a.name || a.field_id, name: a.name, field_id: a.field_id,
-        type: a.type, value: a.value, provenance: a.provenance, confidence: a.confidence,
+        type: a.type, value: a.value, provenance: a.provenance, confidence: a.confidence, options: a.options,   // 46j: options kept
       }));
       const pageTitleE = await page.title().catch(() => "");
       const ssE = await takeScreenshot(page, jobId);
@@ -3174,7 +3176,7 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
       if (lowConfidence.length > 0) {
         const lowConfidenceQuestions = lowConfidence.map(a => ({
           field: a.label || a.name || a.field_id, name: a.name, field_id: a.field_id,
-          type: a.type, value: a.value, provenance: a.provenance, confidence: a.confidence,
+          type: a.type, value: a.value, provenance: a.provenance, confidence: a.confidence, options: a.options,   // 46j: options kept
         }));
         const pageTitle3 = await page.title().catch(() => '');
         const ss3 = await takeScreenshot(page, jobId);

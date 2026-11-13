@@ -20,7 +20,7 @@ test("a182WhichQuestionsADraftAnswers: the two free-text ones, never company / r
   const qs = runDraftQuestions({ schemaQuestions: [{ label: SEVEN[1], required: true }],
     lastOpenQuestions: SEVEN.map(q => ({ question: q, required: true })).concat([{ question: "Tell us a little about why you are interested in this role!" }]) });
   assert.deepEqual(qs, [SEVEN[1], SEVEN[0]], "the schema's first, the last attempt's after, each once");
-  assert.ok(RUN_DRAFT_MAX <= 4);
+  assert.ok(RUN_DRAFT_MAX <= 10);   // 46j (owner, changed on purpose): 4 → 10 — a form with more free-text questions held the rest on every run
 });
 
 test("a182DraftsThroughTheGatewayChecked: answers.routine per question; a draft with a foreign link is dropped", async () => {
