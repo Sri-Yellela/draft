@@ -102,8 +102,9 @@ test("⛔ Save and Pass SET — no client code calls the per-id toggle routes", 
   }
   // A repeat is a no-op that shows the set state, never a second write.
   const board = code(read("client/src/panels/JobsPanel.jsx"));
-  assert.match(board, /if \(decision === DECISIONS\.SAVED && prior\.starred\) return;/);
-  assert.match(board, /if \(decision === DECISIONS\.PASSED && prior\.disliked\) return;/);
+  // D190 (46m): the no-op says so ("already") — Ask draft reports what happened; still nothing is written
+  assert.match(board, /if \(decision === DECISIONS\.SAVED && prior\.starred\) return "already";/);
+  assert.match(board, /if \(decision === DECISIONS\.PASSED && prior\.disliked\) return "already";/);
   const card = code(read("client/src/components/JobCard.jsx"));
   assert.match(card, /const handleSave = \(\) => \{\s*if \(starred\) return;/);
 });

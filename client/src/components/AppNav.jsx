@@ -31,7 +31,7 @@
 //   Menu — a Menu button at the top right (in the bar); it opens a side panel from the right whose buttons are EXACTLY
 //          the dock's (one list, one <NavItems>); closes with Close, a click outside, Esc; M toggles it.
 // ⛔ Real links (AH2): ctrl / middle click opens a new tab.
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";   // D180 P1: the network switch
@@ -41,6 +41,12 @@ import { requestBoardSearch } from "../lib/boardSearch.js";
 import { useAccountAvatar } from "../lib/accountAvatar.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import AskDraftThread from "./AskDraftThread.jsx";   // A199 (2): a held application's questions as a thread
+// ⭐ D190 · the one engine (shared with the PDF tools' Tiny) + the one vocabulary + draft's handlers (no model for site data)
+import { createAssistant, TIER_LABEL } from "../../../shared/assistantEngine.js";
+import ASSISTANT_COMMANDS from "../../../content/assistant/commands-v1.json";
+import { createDraftHandlers } from "../lib/assistantDraft.js";
+import { assistantAction, ASK_SESSION_KEY, ASK_CLEAR_EVENT } from "../lib/assistantBridge.js";
+import { heldQuestionsFor } from "../lib/heldApplication.js";
 import { autoToggle } from "../lib/draftHouseExceptions.js";
 import { ACTIVE_THEME } from "../themes/index.js";
 import "./AppNav.css";
@@ -337,7 +343,10 @@ export function ProfilePeek({ open, profile, pos = { top: 0, left: 80 }, onGo, o
 export function AskDraftPanel({ open, onClose, panelRef }) {
   // ⭐ A199 (2): one held application's questions as a thread here (components/AskDraftThread.jsx) — draft:open-questions.
   const [thread, setThread] = useState(null);
-  const { loadApplyRuns, loadApplyPending } = useAutoApply();
+  const auto = useAutoApply();
+  const { loadApplyRuns, loadApplyPending } = auto;
+  const autoRef = useRef(auto); autoRef.current = auto;
+  const navigate = useNavigate();
   useEffect(() => {
     const onOpen = (e) => {
       const d = e.detail || {};
@@ -351,7 +360,50 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
     return () => window.removeEventListener("draft:open-questions", onOpen);
   }, []);
   const [status, setStatus] = useState(null);
-  const [turns, setTurns] = useState([]);
+  const statusRef = useRef(null); statusRef.current = status;
+  // ⭐ D190: the conversation is kept for this tab's session (cleared on sign-out — App.jsx); Undo links live in memory only
+  const [turns, setTurns] = useState(() => { try { return JSON.parse(sessionStorage.getItem(ASK_SESSION_KEY) || "[]"); } catch { return []; } });
+  useEffect(() => {
+    try { sessionStorage.setItem(ASK_SESSION_KEY, JSON.stringify(turns.slice(-60).map(({ undoFn, ...t }) => ({ ...t, live: false })))); } catch { /* storage blocked */ }
+  }, [turns]);
+  useEffect(() => {
+    const clear = () => { setTurns([]); bot.reset(); undoStack.current.length = 0; };
+    window.addEventListener(ASK_CLEAR_EVENT, clear);
+    return () => window.removeEventListener(ASK_CLEAR_EVENT, clear);
+  });
+  // ⭐ D190 · ONE ENGINE (shared/assistantEngine.js): T1 actions and T2 lookups with NO model; T3 only on an explicit ask.
+  const undoStack = useRef([]);
+  const bot = useMemo(() => {
+    const handlers = createDraftHandlers({
+      navigate: (to) => navigate(to), api, action: assistantAction, undoStack: undoStack.current,
+      t3Available: () => !!statusRef.current?.available,
+      counts: () => {
+        const a = autoRef.current || {};
+        const questions = (a.applyQuestions || []).length, ready = (a.applyReviewJobs || []).length, other = (a.applyPending || []).length;
+        return { needsYou: a.needsAttentionCount ?? questions + ready + other, questions, ready, other };
+      },
+      pending: () => {
+        const a = autoRef.current || {};
+        return [...(a.applyGatedJobs || []), ...(a.applyInFlight || []), ...(a.applyReviewJobs || [])]
+          .map(row => ({ jobId: row.jobId, runKey: row.id ?? null, company: row.company || "", questions: heldQuestionsFor({ kind: "approval", ref: row }) }))
+          .filter(p => p.jobId != null && p.questions.length);
+      },
+      openThread: (p) => setThread({ jobId: p.jobId, runKey: p.runKey, company: p.company, questions: p.questions }),
+    });
+    // "cancel that draft": the tracker's own Stop (abortRunJob) on this job's live run-job
+    handlers.cancelDraft = async () => {
+      const j = assistantAction("currentJob")?.() || assistantAction("deckJob")?.();
+      if (!j) throw new Error("Open the job first — on Home, a card or a posting — and ask again.");
+      const a = autoRef.current || {};
+      const rows = [...(a.applyInFlight || []), ...(a.applyReviewJobs || []), ...(a.applyGatedJobs || [])].filter(r => String(r.jobId) === String(j.jobId ?? j.id));
+      if (!rows.length) return { text: `${j.company || "This job"} has no draft running to cancel.` };
+      await a.abortRunJob?.(rows.map(r => r.id));
+      return { text: `Cancelled the draft of ${j.company || "this job"}. It's in your history as stopped.` };
+    };
+    return createAssistant({ commands: ASSISTANT_COMMANDS, site: "draft", handlers, fallback: handlers.fallback,
+      examples: ["draft this job", "open my profile", "how many need me?", "what's my match?"],
+      ledger: (typeof window !== "undefined" ? (window.__askDraftLedger ||= []) : null) });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [app, setApp] = useState(null);   // { jobId, question } — the application question being answered here
@@ -382,7 +434,7 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
     setTurns(x => x.map(y => (y === t ? { ...y, used: true } : y)));
   };
   useEffect(() => {
-    if (!open) { setTurns([]); setQ(""); setApp(null); return; }
+    if (!open) { setQ(""); setApp(null); return; }   // D190: closing keeps the conversation (the session forgets it)
     let live = true;
     api("/api/assistant/status").then(s => { if (live) setStatus(s); }).catch(() => { if (live) setStatus({ available: false }); });
     return () => { live = false; };
@@ -393,14 +445,31 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
     if (!question || busy) return;
     // A199: while an application question is open here, what the person types is THEIR words for it — draft writes the answer.
     if (app) { setQ(""); setTurns(t => [...t, { who: "you", text: question }]); return draftFor(app, question); }
+    return say(question);
+  };
+  // ⭐ D190: every typed line goes through the engine — T1 acts, T2 reads draft's own data, "ask" asks back / confirms first,
+  // T3 (new writing) only when the person asked for it. Nothing that fails to match reaches a model.
+  const say = async (question) => {
     setBusy(true); setQ("");
     setTurns(t => [...t, { who: "you", text: question }]);
     try {
-      const r = await api("/api/assistant/ask", { method: "POST", body: JSON.stringify({ question }) });
-      setTurns(t => [...t, r.ok ? { who: "draft", ...r } : { who: "draft", text: r.message, failed: true }]);
+      const m = await bot.handle(question);
+      if (m.undo) undoStack.current.push(m.undo);
+      setTurns(t => [...t, { who: "draft", tier: m.tier, label: m.label || TIER_LABEL[m.tier] || null, text: m.text, intent: m.intent || null,
+        failed: !!m.failed, confirm: !!m.confirm, live: true, undoFn: m.undo || null, lessons: m.lessons || [], links: m.links || [], next: m.next || "",
+        action: m.action || null }]);
     } catch (err) { setTurns(t => [...t, { who: "draft", text: err.message || "Ask draft couldn't answer just now.", failed: true }]); }
     finally { setBusy(false); }
   };
+  const undoTurn = async (i, t) => {
+    setTurns(x => x.map((y, k) => (k === i ? { ...y, undoing: true } : y)));
+    try {
+      const r = await t.undoFn();
+      const k = undoStack.current.indexOf(t.undoFn); if (k >= 0) undoStack.current.splice(k, 1);
+      setTurns(x => x.map((y, k2) => (k2 === i ? { ...y, undoFn: null, undone: (r && r.text) || "Undone." } : y)));
+    } catch (err) { setTurns(x => x.map((y, k2) => (k2 === i ? { ...y, undoFn: null, undone: err.message || "Couldn't undo." } : y))); }
+  };
+  const answerConfirm = (i, yes) => { setTurns(x => x.map((y, k) => (k === i ? { ...y, confirm: false } : y))); say(yes ? "Yes" : "No"); };
   const decide = async (i, action, confirm) => {
     try {
       const r = await api(`/api/assistant/actions/${action.id}/${confirm ? "confirm" : "cancel"}`, { method: "POST", body: "{}" });
@@ -418,12 +487,7 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
         <h2>Ask draft</h2>
         <button type="button" className="appnav-close appnav-ask__close" data-ask-close="" onClick={onClose}>Close</button>
       </header>
-      {status && !status.available && !thread && (   /* A200: a held application's thread needs no "not open yet" notice above it */
-        <p className="appnav-ask__say" data-ask-draft-closed="">
-          Ask draft isn't open yet. Soon you will ask it about your jobs, your applications and Atlas here, and it will check
-          with you before it does anything.
-        </p>
-      )}
+
       {thread && (
         <AskDraftThread key={`${thread.jobId}:${thread.runKey ?? ""}`} thread={thread} onClose={() => setThread(null)}
           onSaved={() => { loadApplyRuns?.(); loadApplyPending?.(); window.dispatchEvent(new CustomEvent("draft:answers-saved", { detail: { jobId: thread.jobId } })); }} />
@@ -434,11 +498,12 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
           <button type="button" className="appnav-ask__btn" data-ask-app-done="" onClick={() => setApp(null)}>Done</button>
         </p>
       )}
-      {(status?.available || app || turns.some(t => t.app)) && <>
-        {!app && status?.available && <p className="appnav-ask__say">Ask about a skill, a role or how draft works. It checks with you before it does anything.</p>}
+      {<>
+        {!app && !turns.length && <p className="appnav-ask__say" data-ask-intro="">Tell draft what to do — “draft this job”, “open my profile”, “how many need me?” — or ask about a skill, a role or how draft works. Anything draft already holds is done without AI.</p>}
         <div className="appnav-ask__turns" data-ask-turns="" aria-live="polite">
           {turns.map((t, i) => (
-            <div key={i} className="appnav-ask__turn" data-ask-turn={t.who}>
+            <div key={i} className="appnav-ask__turn" data-ask-turn={t.who} data-ask-tier={t.tier || undefined} data-ask-intent={t.intent || undefined}>
+              {t.label && <span className="appnav-ask__kind" data-ask-label={t.tier}>{t.label}</span>}
               <p className="appnav-ask__text">{t.who === "you" ? <b>You: </b> : t.who === "question" ? <b>Question: </b> : null}{t.answer || t.text}</p>
               {t.usable && (t.used
                 ? <span className="appnav-ask__kind" data-ask-used="">In your answer — edit it there.</span>
@@ -448,7 +513,20 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
                   {t.lessons.map(l => <li key={l.slug}><a href={l.href} data-ask-lesson={l.slug}>{l.name}</a> <span className="appnav-ask__kind">{l.kind}</span></li>)}
                 </ul>
               )}
+              {t.links?.length > 0 && (
+                <ul className="appnav-ask__lessons" data-ask-links="">
+                  {t.links.map(l => <li key={l.href}><a href={l.href} data-ask-link="">{l.title}</a></li>)}
+                </ul>
+              )}
               {t.next && <p className="appnav-ask__next" data-ask-next=""><b>Next: </b>{t.next}</p>}
+              {t.undoFn && !t.undone && <button type="button" className="appnav-ask__btn" data-ask-undo="" disabled={!!t.undoing} onClick={() => undoTurn(i, t)}>Undo</button>}
+              {t.undone && <span className="appnav-ask__kind" data-ask-undone="">{t.undone}</span>}
+              {t.confirm && t.live && (
+                <div className="appnav-ask__action" data-ask-confirm-row="">
+                  <button type="button" className="appnav-ask__btn" data-ask-yes="" onClick={() => answerConfirm(i, true)}>Yes</button>
+                  <button type="button" className="appnav-ask__btn" data-ask-no="" onClick={() => answerConfirm(i, false)}>No</button>
+                </div>
+              )}
               {t.action && (
                 <div className="appnav-ask__action" data-ask-action={t.action.tool}>
                   <span>{t.action.summary}?</span>
@@ -465,7 +543,7 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
         <form className="appnav-ask__form" onSubmit={send}>
           <textarea className="appnav-ask__input" aria-label="Your question" rows={3} maxLength={600} value={q}
             onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(e); }}
-            placeholder={app ? "e.g. I set up Splunk alerts for the payments team…" : "What should I learn for a data analyst role?"} data-ask-input="" />
+            placeholder={app ? "e.g. I set up Splunk alerts for the payments team…" : "e.g. draft this job · open my profile · how many need me?"} data-ask-input="" />
           <button type="submit" className="appnav-ask__btn" disabled={busy || !q.trim()} data-ask-send="">Ask</button>
         </form>
         {status?.available && <label className="appnav-ask__opt" data-ask-improve="">

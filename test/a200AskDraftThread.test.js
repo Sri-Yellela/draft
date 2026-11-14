@@ -63,6 +63,7 @@ test("A200: the CSS — the thread's own classes, the dock kept left of the pane
   assert.match(thread, /import DepthButton from "\.\/DepthButton\.jsx";/);
   assert.doesNotMatch(thread, /className="dh-|className="dht-/, "Draft House's classes stay in Draft House (A93)");
   assert.match(thread, /String\(r\?\.draft \|\| ""\)\.trim\(\) \? \{ state: "ready"/, "an answer with no draft is never an empty suggestion box");
-  assert.match(read("client/src/components/AppNav.jsx"), /status && !status\.available && !thread && \(/);
+  // ⭐ D190 (46m): the "isn't open yet" notice is gone altogether (T1 / T2 work for everyone), so nothing sits above a thread
+  assert.doesNotMatch(read("client/src/components/AppNav.jsx"), /data-ask-draft-closed/);
   assert.match(thread, /String\(r\?\.draft \|\| ""\)\.trim\(\) \? \{ state: "ready"/, "an answer with no draft is never an empty suggestion");
 });

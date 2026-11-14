@@ -46,6 +46,7 @@ import CardBack, { CardBackDefs } from "../components/CardBack.jsx";
 import { useViewport } from "../hooks/useViewport.js";
 import { CHROME_HEIGHT_VAR } from "../hooks/useChromeHeight.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
+import { registerAssistantActions } from "../lib/assistantBridge.js";   // D190: Ask draft decides the front card through the deck
 import { DECK_DECIDE_EVENT, DECK_POST_SLOT_ID, POSTING_ON_DECK_EVENT, POST_FADE_MS, closePostingOnDeck, jobDetailHref, openMatchInPosting, openPostingOnDeck, panelOverPosting } from "../lib/jobUrl.js";
 import { TITLE_ATTR, transitionClick } from "../lib/viewTransitions.js";
 import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
@@ -1043,6 +1044,19 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       setLive(`Could not undo: ${e.message}`);
     }
   }, [toast]);
+
+  // ⭐ D190 · ASK DRAFT: the deck's front card, decided by the deck's own decide (its exit, its toast, its one commit) and
+  // undone as the toast's Undo undoes it (lib/assistantBridge.js).
+  useEffect(() => registerAssistantActions("deck", {
+    deckJob: () => { const st = stateRef.current; const c = st?.cards?.[st.index]; return c && !c.decision ? { ...c.job, jobId: c.job.jobId ?? c.job.id } : null; },
+    deckDecide: async (_job, decision) => { decideRef.current?.(decision); },
+    deckUndo: async (job, decision) => {
+      const id = job?.jobId ?? job?.id;
+      const card = stateRef.current.cards.find(c => String(c.job.id) === String(id));
+      await undoDecision({ jobId: card?.job.id ?? id, decision: decision || card?.decision, runId: card?.runId, prior: {} });
+      dispatch({ type: "undone", jobId: card?.job.id ?? id });
+    },
+  }), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!toast) return;

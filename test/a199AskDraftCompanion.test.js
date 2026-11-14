@@ -16,7 +16,10 @@ test("a199: Home's stepper sends a free-text question to Ask draft; Ask draft wr
   assert.match(nav, /new CustomEvent\("draft:use-answer", \{ detail: \{ jobId: t\.app\.jobId, question: t\.app\.question, text: t\.text \} \}\)/);
   assert.match(nav, /if \(app\) \{ setQ\(""\); setTurns\(t => \[\.\.\.t, \{ who: "you", text: question \}\]\); return draftFor\(app, question\); \}/,
     "what the person types for an open question is their words for it");
-  assert.match(nav, /\(status\?\.available \|\| app \|\| turns\.some\(t => t\.app\)\)/, "it works whether or not the general assistant is open");
+  // ⭐ D190 (46m): the panel's form renders for everyone now (T1 / T2 need no switch) — so the companion works whether or not
+  // the general assistant is open, without the old condition
+  assert.doesNotMatch(nav, /status\?\.available \|\| app \|\| turns\.some/, "it works whether or not the general assistant is open");
+  assert.match(nav, /<form className="appnav-ask__form" onSubmit=\{send\}>/);
 });
 
 test("a199: the person's own words go into the draft as their facts; the route checks against résumé + note", () => {

@@ -20,7 +20,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { searchNodes, readNode } from "../atlas/atlasStore.js";
 import { fenceUntrusted, UNTRUSTED_DATA_RULE, checkModelOutput, describeViolations } from "../untrustedText.js";
-import { addSkill } from "../yourSkills.js";
+import { addSkill, yourSkillStates } from "../yourSkills.js";
+import { sponsorshipFactFor } from "../kb/sponsorshipFacts.js";   // D190 T2: the company record, no model
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const HELP_FILE = path.join(ROOT, "content", "assistant", "help.json");
@@ -228,6 +229,60 @@ export async function ask(db, { userId, question, callTask, anthropic, dataClass
   try { logAsk(db, userId, q, { coverage: parsed.coverage, lessons: parsed.lessons, terms: retrieved.terms }); } catch (e) { console.warn("[assistant] ask not logged:", e.message); }
   return { ok: true, answer: parsed.answer, next: parsed.next, lessons: parsed.lessons, action: proposed, coverage: parsed.coverage,
     help: retrieved.help.filter(h => h.href).map(h => ({ title: h.title, href: h.href })) };
+}
+
+// ── ⭐ D190 · T2 — ANSWERS FROM draft's OWN DATA, WITH NO MODEL (the owner's rule, 11-14) ──────────────────────────────
+// Ask draft's engine (shared/assistantEngine.js) sends here what its T2 rows name, and — for what no row matched — the
+// question itself. Everything below is a read + a template sentence. ⛔ No callTask, no gateway, nothing leaves the server.
+// `lookup` returns null when draft's data doesn't cover it; the panel then says so plainly and offers nothing from a model.
+export const LOOKUP_INTENTS = Object.freeze(["drafted_today", "sponsorship", "my_skills", "question"]);
+const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+export function lookup(db, userId, { intent, args = {}, question = "" } = {}) {
+  if (intent === "drafted_today") {
+    const row = db.prepare(`SELECT COUNT(*) AS drafted, SUM(CASE WHEN status IN ('submitted', 'interview', 'assessment', 'offer', 'rejected') THEN 1 ELSE 0 END) AS sent
+      FROM apply_run_jobs WHERE user_id = ? AND created_at >= unixepoch('now', 'start of day')`).get(userId) || {};
+    const drafted = Number(row.drafted) || 0, sent = Number(row.sent) || 0;
+    return { tier: "T2", intent, text: drafted ? `Today you drafted ${plural(drafted, "job")}${sent ? `; ${sent} of them ${sent === 1 ? "has" : "have"} been sent` : ""}.` : "You haven't drafted a job today yet.",
+      links: [{ title: "Your applications", href: "/app/auto-apply" }] };
+  }
+  if (intent === "sponsorship") {
+    const company = String(args.company || "").trim().slice(0, 120);
+    if (!company) return { tier: "ask", intent, text: "Which company? Say “does <company> sponsor?”, or open its posting and ask again." };
+    let fact = null;
+    try { fact = sponsorshipFactFor(db, company); } catch { fact = null; }
+    if (!fact) return { tier: "T2", intent, text: `draft has no H-1B filing record it can show for ${company}. That isn't a no — it may file under another name, or not at all.` };
+    return { tier: "T2", intent, text: `${company}: ${fact.text}.${fact.source?.through ? ` (US Department of Labor data through ${fact.source.through}.)` : ""}`,
+      ...(fact.source?.url ? { links: [{ title: "The source file", href: fact.source.url }] } : {}) };
+  }
+  if (intent === "my_skills") {
+    let states = [];
+    try { states = yourSkillStates(db, userId); } catch { states = []; }
+    if (!states.length) return { tier: "T2", intent, text: "Your skills list is empty. Add skills in Atlas → Your skills, or upload a résumé.", links: [{ title: "Your skills", href: "/atlas" }] };
+    const proven = states.filter(s => s.state === "checked" || s.state === "built");
+    const list = (xs) => xs.slice(0, 12).map(s => s.name).join(", ") + (xs.length > 12 ? `, and ${xs.length - 12} more` : "");
+    return { tier: "T2", intent, text: proven.length
+      ? `You've proven ${plural(proven.length, "skill")}: ${list(proven)}. ${plural(states.length - proven.length, "more is", "more are")} claimed but not checked yet.`
+      : `You have ${plural(states.length, "skill")} (${list(states)}) — none proven yet. A quick check or a link to your work proves one.`,
+      links: [{ title: "Your skills", href: "/atlas" }] };
+  }
+  if (intent === "question") {
+    const q = String(question || "").replace(/\s+/g, " ").trim().slice(0, MAX_QUESTION);
+    if (!q) return null;
+    const r = retrieve(db, userId, q);
+    const help = r.help[0] || null;
+    const lessons = r.lessons.slice(0, MAX_LESSONS);
+    if (!help && !lessons.length) return null;
+    const parts = [];
+    if (help) parts.push(`${help.title}: ${help.text}`);
+    if (lessons.length) {
+      const top = lessons[0];
+      parts.push(top.definition ? `Atlas — ${top.name}: ${top.definition.replace(/\s+/g, " ").slice(0, 280)}${top.definition.length > 280 ? "…" : ""}` : `Atlas has ${plural(lessons.length, "page")} on this.`);
+    }
+    return { tier: "T2", intent, text: parts.join("\n\n"),
+      lessons: lessons.map(l => ({ slug: l.slug, name: l.name, kind: l.kind, href: `/atlas/${encodeURIComponent(l.slug)}` })),
+      links: help?.href ? [{ title: help.title, href: help.href }] : [] };
+  }
+  return null;
 }
 
 /** The person pressed Confirm (or Cancel). `userId` is the SESSION's. Audited in assistant_actions. */

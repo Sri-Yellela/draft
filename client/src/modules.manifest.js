@@ -256,6 +256,8 @@ export const SHARED = Object.freeze({
   "lib/signInReturn.js":               { what: "A138 — the one rule for where a sign-in returns to (the page it was started from)" },
   "lib/openPosting.js":                 { what: "THE way a posting is opened — handed to the extension when it is here (D99 J11)" },
   "lib/boardSearch.js":                { what: "45n — a search started outside the jobs page (the dock's search) handed to the board; one way in" },
+  "lib/assistantBridge.js":            { what: "D190 · how Ask draft reaches the SAME functions the buttons call (the board and the deck register them); the session's conversation key" },
+  "lib/assistantDraft.js":             { what: "D190 · Ask draft's handlers for content/assistant/commands-v1.json — T1 actions and T2 lookups with no model; T3 only on an explicit ask" },
   "lib/resumeEditor.js":                { what: "THE way the résumé editor is opened, from anywhere; its change list and draft's live theme tokens (D157)" },
   "lib/boardPaging.js":                 { what: "the board's paging" },
   "lib/boardViewCache.js":              { what: "the board's view cache (D45)" },

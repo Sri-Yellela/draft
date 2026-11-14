@@ -93,8 +93,11 @@ test("d167DockSideOnlyWhenMarginFitsOpen (pure) / d167AskDraftPushesNeverOverlay
   assert.doesNotMatch(CSS + NAV, /data-dock-push|--appnav-rail-w/, "the push is gone");
   assert.match(NAV, /window\.addEventListener\("resize", schedule\);/, "re-placed on every resize");
   assert.match(CSS, /:root\[data-ask-open="true"\] \[data-app-shell\] \{ padding-right: var\(--appnav-ask-w\); \}/);
-  // ⭐ T5 v1 (owner 11-10): the stub became the assistant; until it is open to everyone the panel says so plainly.
-  assert.match(NAV, /data-ask-draft-closed=""/, "not open yet: the panel says so");
+  // ⭐ T5 v1 (owner 11-10): the stub became the assistant. ⭐ D190 (46m, owner 11-14: nothing within the site's own data or
+  // functions calls a model): T1 actions and T2 lookups need no switch, so the panel works for everyone and the old
+  // "isn't open yet" notice is gone; only T3 (new writing) waits for the switch, and says so in its reply.
+  assert.doesNotMatch(NAV, /data-ask-draft-closed=""/, "D190: no 'not open yet' notice — T1 / T2 work for everyone");
+  assert.match(NAV, /data-ask-intro=""/, "D190: the panel says what it does, without AI");
   assert.match(NAV, /data-ask-confirm=""/, "a proposed action waits for the person's Confirm");
 });
 
