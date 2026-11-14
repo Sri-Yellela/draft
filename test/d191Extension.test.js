@@ -15,6 +15,7 @@ import { companyFacts } from "../extension/boardJob.js";
 import { recordSubmission, USER_METHODS, SERVER_METHODS, SUBMIT_METHODS } from "../services/applicationRecords.js";
 import { extensionSent } from "../services/submitFamilies.js";
 import { EXT_THEMES } from "../extension/tokens.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const read = (p) => fs.readFileSync(path.join(ROOT, p), "utf8").replace(/\r\n/g, "\n");
@@ -41,13 +42,13 @@ test("d191BadgeShowsNewMatches — today's dealt cards the person hasn't decided
   assert.equal(extensionHome(db, 7, { date: "2026-11-13" }).newMatches, null, "not dealt yet → no number");
   // never a board pass: the module reads apply_run_jobs, user_jobs and daily_drafts — not scraped_jobs' board
   const src = read("services/extensionHome.js");
-  const home = src.slice(src.indexOf("export function extensionHome"), src.indexOf("export function badgeText"));
+  const home = src.slice(at(src, "export function extensionHome"), at(src, "export function badgeText"));
   assert.doesNotMatch(home, /scraped_jobs|boardPage|callTask/);
   // the worker asks at most every few minutes, on a page load or a press — never on a timer
   const bg = read("extension/background.js");
   assert.match(bg, /const HOME_EVERY_MS = 5 \* 60 \* 1000;/);
   assert.match(bg, /onUpdated\?\.addListener\?\.\(\(_id, info\) => \{ if \(info\?\.status === 'complete'\) void extensionHomeFacts\(\)/);
-  assert.doesNotMatch(bg.slice(bg.indexOf("const HOME_EVERY_MS"), bg.indexOf("async function publicCompanyCard")), /setInterval|chrome\.alarms/);
+  assert.doesNotMatch(bg.slice(at(bg, "const HOME_EVERY_MS"), at(bg, "async function publicCompanyCard")), /setInterval|chrome\.alarms/);
 });
 
 test("d191PanelMatchNoModelCall — the press's answer (match + the employer's card) and the home view call no model", () => {
@@ -94,7 +95,7 @@ test("D191 (2d) / P1 · the press says the employer's card on a posting, and the
   assert.deepEqual(specs[1].actions.map(a => a.id), ["open-company"]);
   const quiet = relayFor({ identity: SIGNED_IN, ctx: { identity: null }, home: { newMatches: 3, needsYou: 1, drafted: 2, sent: 0 } });
   assert.equal(quiet.length, 1); assert.equal(quiet[0].text, "Today: 3 new matches · 1 needs you · 2 drafted");
-  assert.deepEqual(quiet[0].actions.map(a => a.id), ["open-draft", "open-needs"]);
+  assert.deepEqual(quiet[0].actions.map(a => a.id), ["open-ask", "open-draft"], "Open = the extension's panel; Matches = draft's board");
   assert.equal(homeLine({ newMatches: 0, needsYou: 0, drafted: 0, sent: 0 }), null);
 });
 
@@ -105,7 +106,7 @@ test("d191SignedOutShowsCompanyCard — signed out: Sign in, then the employer f
   assert.deepEqual(specs[1].actions.map(a => a.id), ["sign-up"]);
   assert.equal(relayFor({ identity: { authenticated: false } }).length, 1, "no card → just Sign in");
   const r = read("routes/extensionJob.js");
-  const pub = r.slice(r.indexOf('router.get("/api/extension/company"'), r.indexOf("return router;"));
+  const pub = r.slice(at(r, 'router.get("/api/extension/company"'), at(r, "return router;"));
   assert.ok(!/requireAuth/.test(pub), "public — no account");
   assert.match(pub, /okCompany\(String\(req\.ip/);
   const bg = read("extension/background.js");
@@ -145,5 +146,29 @@ test("d191NoAllUrlsPermission — activeTab, storage, scripting, contextMenus; d
 test("d191NeverAutoSubmits — the extension still never sends without the person's press (D36 / A207)", () => {
   const sub = read("extension/extensionSubmit.js");
   assert.match(sub, /trusted|isTrusted/, "the one press is a trusted one");
-  assert.doesNotMatch(read("extension/background.js").slice(read("extension/background.js").indexOf("const HOME_EVERY_MS"), read("extension/background.js").indexOf("async function rememberCompanyHref")), /submit/i);
+  const bg = read("extension/background.js");
+  assert.doesNotMatch(bg.slice(at(bg, "const HOME_EVERY_MS"), at(bg, "async function publicCompanyCard")), /submit/i);
+});
+
+test("D191 (2e) / (3) / P5 · the extension's panel runs the SITE's engine, mirrored byte-identical, and asks no model", async () => {
+  const norm = (p) => read(p);
+  assert.equal(norm("extension/assistantEngine.js"), norm("shared/assistantEngine.js"), "change both copies of the engine");
+  assert.equal(norm("extension/assistantVoice.js"), norm("shared/assistantVoice.js"), "change both copies of the voice helper");
+  assert.equal(norm("extension/commands-v1.json"), norm("content/assistant/commands-v1.json"), "change both copies of the vocabulary");
+  const ask = norm("extension/ask.js");
+  assert.match(ask, /import COMMANDS from '\.\/commands-v1\.json' with \{ type: 'json' \};/);
+  assert.doesNotMatch(ask, /assistant\/ask|anthropic|\/v1\/messages/, "no model route");
+  assert.doesNotMatch(ask, /const RESUME_MASTER_URL = 'https:\/\/jobsviadraft\.com';/, "draft's address comes from the worker — one source");
+  assert.match(ask, /t3: \(\) => \(\{ ask: /, "T3 is not offered here");
+  const bg = norm("extension/background.js");
+  assert.match(bg, /const fromOwnPage = \(sender\) => sender\?\.id === chrome\.runtime\.id && String\(sender\?\.url \|\| ''\)\.startsWith\(chrome\.runtime\.getURL\('ask\.html'\)\);/);
+  assert.match(bg, /msg\.act === 'draft' \|\| msg\.act === 'capture' \? DOCK_ACTS\[msg\.act\] : null/, "only the dock's own Capture / Draft");
+  const m = JSON.parse(norm("extension/manifest.json"));
+  assert.ok(m.commands["open-ask-draft"] && !m.commands["open-ask-draft"].suggested_key, "a shortcut the person binds (no new default key)");
+  const { CONTEXT_MENUS, MENU_ASK } = await import("../extension/formReport.js");
+  assert.ok(CONTEXT_MENUS.some(i => i.id === MENU_ASK && i.title === "Ask draft…"));
+  // the board takes the panel's search by address, once
+  const bs = norm("client/src/lib/boardSearch.js");
+  assert.match(bs, /export const SEARCH_PARAM = "search";/);
+  assert.match(bs, /u\.searchParams\.delete\(SEARCH_PARAM\);/);
 });

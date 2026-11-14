@@ -13,7 +13,21 @@ export function requestBoardSearch(detail) {
   window.dispatchEvent(new CustomEvent(BOARD_SEARCH_EVENT, { detail }));
 }
 
+/** ⭐ D191 (3): a search handed in by ADDRESS — the extension's search box opens /app/jobs?search=<words> (it cannot reach
+ *  this origin's sessionStorage). Read once and taken off the address. */
+export const SEARCH_PARAM = "search";
+
 /** The search waiting for the board, once (it is removed as it is read). */
 export function takePendingBoardSearch() {
+  try {
+    const u = new URL(window.location.href);
+    const q = (u.searchParams.get(SEARCH_PARAM) || "").trim();
+    if (q) {
+      u.searchParams.delete(SEARCH_PARAM);
+      window.history.replaceState(window.history.state, "", `${u.pathname}${u.search}${u.hash}`);
+      try { sessionStorage.removeItem(KEY); } catch { /* nothing waiting */ }
+      return { query: q.slice(0, 200) };
+    }
+  } catch { /* no window (tests) */ }
   try { const v = sessionStorage.getItem(KEY); sessionStorage.removeItem(KEY); return v ? JSON.parse(v) : null; } catch { return null; }
 }
