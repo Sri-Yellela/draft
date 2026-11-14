@@ -1,5 +1,22 @@
 # Chrome Web Store listing — draft v1.7.0
 
+> **v1.7.0 + D191 (2026-11-14, 46m — the owner's "the extension revamped … enough to be the primary source of traffic").**
+> Still v1.7.0 (unpublished — the zip is rebuilt). **No new permission, no new host.** What changed: (1) on a job posting,
+> after the press's question, a line with the employer's facts from draft's own records — its H-1B filings (US Department of
+> Labor data) and how many of its jobs are open on draft — with a button to its company page on draft; (2) on a page with
+> nothing else to say, the day in one line ("Today: 3 new matches · 1 needs you") with buttons to draft; (3) the toolbar
+> badge shows today's new matches (asked of draft when a page finishes loading or on a press, at most every five minutes —
+> never on a timer); (4) **signed out**, the press reads the posting's company name with the page's own extractor and asks
+> draft's PUBLIC company record for it (no account, no cookie sent) — "sign up to see your match and apply with one click".
+> ⛔ **(4) is a new data flow for signed-out users: the employer's name and the page's address go to draft's server on the
+> press.** Re-paste at the upload that carries it: Privacy practices → Website content (signed-out: the posting's company
+> name and address, on the press, to draft's server, not stored), and the privacy policy's extension section must say the
+> same in the same push (👤 owner step — the agent did not change the policy). Paste-ready short description (≤ 132):
+> *"See your match for any job, which companies sponsor visas, and fill applications in one press — you submit every one."*
+> Paste-ready first paragraph: *"draft knows the job you're looking at: your ATS match, the employer's H-1B filing record
+> and their other open jobs — all from draft's own data, no AI. Draft it to your board in one press; when you apply, draft
+> fills the form from your saved answers and résumé and stops before Submit — you review and send it yourself."*
+
 > **v1.7.0 (2026-11-13, 46l — A207, the owner's "make the extension path the primary submit for ATS boards that flag
 > server submissions").** Where an employer's application site flags submissions sent from draft's servers, the review
 > panel offers **Submit application**: the user's ONE press of it (a trusted click, after every required field is

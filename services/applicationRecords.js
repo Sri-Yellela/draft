@@ -74,9 +74,13 @@ export const SUBMIT_METHODS = Object.freeze({
   recruiter:    "Through a recruiter",
   other:        "Another way",
   draft:        "By Draft's automation",
+  // ⭐ D191 (5b): the person's own press in draft's extension (the employer's page is the evidence, as for ats_portal)
+  extension:    "From draft's extension, in your browser",
 });
-/** Methods a user may state; 'draft' is the automation's own. */
-export const USER_METHODS = Object.freeze(Object.keys(SUBMIT_METHODS).filter(m => m !== "draft"));
+/** Methods only the server writes: the automation's own, and a submission the extension reported. */
+export const SERVER_METHODS = Object.freeze(["draft", "extension"]);
+/** Methods a user may state. */
+export const USER_METHODS = Object.freeze(Object.keys(SUBMIT_METHODS).filter(m => !SERVER_METHODS.includes(m)));
 
 export const VERIFY_RULE = Object.freeze({
   proves: "You said when and how you applied, and gave evidence that matches this employer.",
@@ -292,19 +296,21 @@ function persist(db, userId, jobId, origin, fields, verification, capturedAtsAtA
  * The user records a submission. Verifies it; writes job_applications only if it verifies.
  * Throws { status, code, message } on bad input or on a record already verified.
  */
-export function recordSubmission(db, { userId, jobId, input = {}, capturedAtsAtApply, now = nowSec() }) {
+export function recordSubmission(db, { userId, jobId, input = {}, capturedAtsAtApply, now = nowSec(), serverMethod = null }) {
   const bad = (message) => Object.assign(new Error(message), { status: 400, code: "invalid_submission" });
   if (!jobId) throw bad("Which job? jobId is required.");
   const submitted_at = toEpochSeconds(input.submittedAt);
   if (submitted_at == null) throw bad("When did you submit it? Give a date.");
-  if (!USER_METHODS.includes(input.method)) throw bad(`How did you submit it? One of: ${USER_METHODS.join(", ")}.`);
+  // D191 (5b): a route may record the extension's own method (never a client's claim of it)
+  const method = serverMethod === "extension" ? "extension" : input.method;
+  if (serverMethod !== "extension" && !USER_METHODS.includes(method)) throw bad(`How did you submit it? One of: ${USER_METHODS.join(", ")}.`);
   const existing = readRecord(db, userId, jobId);
   if (existing?.state === "verified" || alreadySubmitted(db, userId, jobId)) {
     throw Object.assign(new Error("This application is already verified and in your Submitted list."),
       { status: 409, code: "already_verified" });
   }
   const fields = {
-    submitted_at, method: input.method,
+    submitted_at, method,
     reference: clip(input.reference, 64), evidence_text: clip(input.evidenceText, 2000),
     evidence_url: clip(input.evidenceUrl, 2000),
   };

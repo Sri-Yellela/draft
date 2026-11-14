@@ -186,7 +186,16 @@ export function shareOf(f) {
 
 /** Admin's two windows at once — 7 and 30 days. */
 export function submitShare(db, { now = nowS() } = {}) {
-  return { d7: submitOutcomeCounts(db, { days: 7, now }), d30: submitOutcomeCounts(db, { days: 30, now }), preClick: preClickSentRuns(db) };
+  return { d7: submitOutcomeCounts(db, { days: 7, now }), d30: submitOutcomeCounts(db, { days: 30, now }), preClick: preClickSentRuns(db),
+    fromExtension: extensionSent(db, { now }) };
+}
+
+/** ⭐ D191 (5b): applications the person sent from draft's extension (application_records.method = 'extension'), 7 / 30 days. */
+export function extensionSent(db, { now = nowS() } = {}) {
+  try {
+    const n = (days) => Number(db.prepare(`SELECT COUNT(*) FROM application_records WHERE method = 'extension' AND submitted_at >= ?`).pluck().get(now - days * 86400)) || 0;
+    return { d7: n(7), d30: n(30) };
+  } catch { return { d7: 0, d30: 0 }; }
 }
 
 /**

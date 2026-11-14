@@ -692,7 +692,9 @@ export function SubmitOutcomesSection({ theme }) {
       numbers={w ? [[`${w.overall.rejected} of ${w.overall.tried}`, `server submits rejected as spam, last ${w.days} days`, w.overall.rejected > 0],
         [`${w.overall.extension} of ${w.overall.all}`, "applications on extension-submit sites"], [w.paused.length, `extension submit: ${w.paused.join(", ") || "none"}`],
         // A209: recorded Sent from a form's own "thank you" before the fix — check these by hand
-        [s.preClick?.count ?? 0, "recorded Sent from a form's own words before A209 — check by hand", (s.preClick?.count ?? 0) > 0]] : []}>
+        [s.preClick?.count ?? 0, "recorded Sent from a form's own words before A209 — check by hand", (s.preClick?.count ?? 0) > 0],
+        // D191 (5b): the traffic the extension drives — applications the person sent from it
+        [days === 7 ? (s.fromExtension?.d7 ?? 0) : (s.fromExtension?.d30 ?? 0), `sent from the extension, last ${days} days`]] : []}>
       <Err msg={err}/>
       <div style={{ ...row, marginBottom: 8 }}>
         <Btn theme={theme} primary={days === 7} onClick={() => setDays(7)}>7 days</Btn>
