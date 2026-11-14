@@ -14,7 +14,8 @@ const SRC = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
 test("a183: the write-clearing middleware skips only the keywords panel's POST, still after the auth context is bound", () => {
   assert.match(SRC, /const KEYWORDS_PANEL = \/\^\\\/api\\\/jobs\\\/\[\^\/\]\+\\\/keywords\$\/;/);
   assert.match(SRC, /const writes = req\.method !== "GET" && req\.method !== "HEAD" && req\.user\?\.id != null && !\(req\.method === "POST" && KEYWORDS_PANEL\.test\(req\.path\)\);/);
-  assert.match(SRC, /if \(writes\) facetsCache\.clearUser\(req\.user\.id\);\n  \/\/ ⭐ A175: …and their kept board order\.\n  if \(writes\) boardOrderCache\.clearUser\(req\.user\.id\);/);
+  // A195 leftover (46m): the order's clear now also skips a pass / save (applied in place by PATCH /api/jobs/interact)
+  assert.match(SRC, /if \(writes\) facetsCache\.clearUser\(req\.user\.id\);\n  \/\/ ⭐ A175: …and their kept board order\.[^\n]*\n[^\n]*\n  if \(writes && !\(req\.method === "PATCH" && req\.path === "\/api\/jobs\/interact"\)\) boardOrderCache\.clearUser\(req\.user\.id\);/);
   assert.ok(at(SRC, "const writes = req.method") > at(SRC, "app.use(bindAuthContext);"));
   const re = /^\/api\/jobs\/[^/]+\/keywords$/;
   assert.ok(re.test("/api/jobs/greenhouse%3A%3A123/keywords"));

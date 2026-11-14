@@ -26,7 +26,8 @@ test("a184: the Full House's include_facets counts are KEPT — keyed on the boa
   assert.match(SRC, /count: await keptCount\("unclassified", `SELECT COUNT\(\*\) as n \$\{joinClause\} \$\{whereClause\} AND \$\{unclassifiedSql\}`, baseArgs\)/);
   assert.match(SRC, /const demotedRows = rankApplied \? await keptCount\("demoted",[\s\S]{0,400}\{ sort: req\.query\.sort \|\| "" \}\) : 0;/, "the sort decides the rank, so it is in the demoted key");
   // dropped wherever the kept order is
-  assert.match(SRC, /if \(writes\) boardOrderCache\.clearUser\(req\.user\.id\);\n  if \(writes\) boardDimFacetsCache\.clearUser\(req\.user\.id\);/);
+  // A195 leftover (46m): the order's clear skips a pass / save (applied in place by PATCH /api/jobs/interact); the counts still clear
+  assert.match(SRC, /if \(writes && !\(req\.method === "PATCH" && req\.path === "\/api\/jobs\/interact"\)\) boardOrderCache\.clearUser\(req\.user\.id\);\n  if \(writes\) boardDimFacetsCache\.clearUser\(req\.user\.id\);/);
   // A195 (46j, changed on purpose): after a stored score the filter sentence's counts are marked stale (served, recounted
   // behind); the order and the Full House's counts are dropped (marking those stale raised the board's p95 — measured).
   assert.match(SRC, /facetsCache\.markStale\(userId\); boardOrderCache\.clearUser\(userId\); boardDimFacetsCache\.clearUser\(userId\);/);
