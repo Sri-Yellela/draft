@@ -740,6 +740,14 @@ export function renderOverlay(model, meta) {
     }
     const mark = (k, v) => { if (host.dataset[k] !== v) host.dataset[k] = v; };
     mark('ready', String(s.ready));
+    // ⭐ A207 (b) (owner 11-14: "keep the dock open on ready"): an extension-submit hand-off that has just turned Ready opens
+    // the dock on its Fill tab — the person's one press (Submit application) is there, never inside a folded slim bar (the
+    // dock folds itself when a page field under it takes focus while the last answers go in). Once per turn to Ready: a
+    // dock the person folds again afterwards stays folded.
+    if (meta.extensionSubmit && s.ready && !run.readyOpened) {
+      run.readyOpened = true;
+      try { if (dock.collapsed?.()) dock.expand?.(); if (dock.active?.() !== 'fill') dock.select?.('fill'); } catch { /* the dock is draft's own; never break the panel */ }
+    } else if (!s.ready) run.readyOpened = false;
     mark('need', String(s.need));
     mark('filled', String(s.filled));
     return s;
