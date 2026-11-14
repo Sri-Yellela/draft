@@ -48,3 +48,18 @@ test("⛔ A209 (Chrome): the run presses Submit on a 'thank you for your interes
   assert.equal(r.status, "submitted");
   assert.notEqual(r.submitEvidence, "confirmation_page_pre_click", "never Sent on the form's own words");
 });
+
+test("A209: Admin counts the runs recorded Sent from a form's own words before the fix (read-only)", async () => {
+  const Database = (await import("better-sqlite3")).default;
+  const { preClickSentRuns, submitShare } = await import("../services/submitFamilies.js");
+  const db = new Database(":memory:");
+  db.exec(`CREATE TABLE apply_run_jobs (id INTEGER PRIMARY KEY, user_id INTEGER, job_id TEXT, finished_at INTEGER, submit_evidence TEXT);
+    CREATE TABLE apply_job_logs (id INTEGER PRIMARY KEY, event TEXT, details_json TEXT, created_at INTEGER);
+    CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER);
+    INSERT INTO apply_run_jobs VALUES (1, 7, 'gh::1', 100, 'confirmation_page_pre_click'), (2, 7, 'gh::2', 200, 'confirmation_page'), (3, 8, 'gh::3', 300, 'confirmation_page_pre_click');`);
+  const r = preClickSentRuns(db);
+  assert.equal(r.count, 2);
+  assert.deepEqual(r.rows.map(x => x.jobId), ["gh::3", "gh::1"]);
+  assert.equal(submitShare(db).preClick.count, 2);
+  assert.match(fs.readFileSync("client/src/panels/adminOps.jsx", "utf8"), /recorded Sent from a form's own words before A209/);
+});

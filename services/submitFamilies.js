@@ -186,5 +186,19 @@ export function shareOf(f) {
 
 /** Admin's two windows at once — 7 and 30 days. */
 export function submitShare(db, { now = nowS() } = {}) {
-  return { d7: submitOutcomeCounts(db, { days: 7, now }), d30: submitOutcomeCounts(db, { days: 30, now }) };
+  return { d7: submitOutcomeCounts(db, { days: 7, now }), d30: submitOutcomeCounts(db, { days: 30, now }), preClick: preClickSentRuns(db) };
+}
+
+/**
+ * ⛔ A209 (46l): runs recorded Sent from the form's own "thank you" words before the fix (submit_evidence
+ * 'confirmation_page_pre_click') — they may never have reached the employer. A count and the newest few (job id, when),
+ * for the owner to check by hand. Read-only.
+ */
+export function preClickSentRuns(db, { limit = 20 } = {}) {
+  try {
+    const n = db.prepare(`SELECT COUNT(*) FROM apply_run_jobs WHERE submit_evidence = 'confirmation_page_pre_click'`).pluck().get();
+    const rows = db.prepare(`SELECT id, user_id AS userId, job_id AS jobId, finished_at AS at FROM apply_run_jobs
+      WHERE submit_evidence = 'confirmation_page_pre_click' ORDER BY id DESC LIMIT ?`).all(limit);
+    return { count: Number(n) || 0, rows };
+  } catch { return { count: 0, rows: [] }; }
 }
