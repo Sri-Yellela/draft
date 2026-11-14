@@ -25,6 +25,7 @@ import { jobFromLabelledText } from "../services/jobs/importJob.js";
 import { previewIngest } from "../services/jobs/jobGateway.js";
 import { createRateLimiter } from "../services/extensionResume.js";
 import { getKnownLogoUrl } from "../shared/companyLogos.js";
+import { extensionHome, badgeText, companyCard } from "../services/extensionHome.js";   // D191: home, badge, company card (no model)
 
 /** ⚠ provisional: a board click is one lookup; 60 a minute is far above a person and far below a script. */
 export const LOOKUP_LIMIT = Object.freeze({ limit: 60, windowMs: 60_000 });
@@ -113,15 +114,18 @@ export function pageJobForExtension(db, userId, { url = "", text = "", frameUrls
       // extension can say "on your board" vs "on the draft board, not yet yours" without a second question.
       return { kind: "job", posting: { known: true, jobId: String(row.job_id), title: row.title ?? null, company: row.company ?? null, how,
                           onBoard: jobOnUsersBoard(db, userId, row.job_id), mine: userHasJob(db, userId, row.job_id) },
-               ats, basis: ats.state === "ready" ? "board" : null };
+               ats, basis: ats.state === "ready" ? "board" : null, company: cardOf(db, row.company, url) };
     }
   }
   // `kind`: "job" — a posting the page's text describes · "not_a_job" — text was read and is no posting · "unread" —
   // no text came (the extension could not read the page) and the address names nothing.
   if (!read) return { kind: body.trim() ? "not_a_job" : "unread", posting: null, ats: null, basis: null };
   const ats = !hasBase ? { state: "no_base_resume" } : reportOf((() => { try { return scoreText(userId, read); } catch { return null; } })());
-  return { kind: "job", posting: { known: false, title: read.title ?? null, company: read.company ?? null }, ats, basis: ats.state === "ready" ? "page" : null };
+  return { kind: "job", posting: { known: false, title: read.title ?? null, company: read.company ?? null }, ats, basis: ats.state === "ready" ? "page" : null,
+           company: cardOf(db, read.company, url) };
 }
+// ⭐ D191 (2d): the employer's card rides with the press's answer — a read, never a failure of the press
+function cardOf(db, company, url) { try { return companyCard(db, { company, url: typeof url === "string" ? url : null }); } catch { return null; } }
 
 export function createExtensionJobRouter({ db, requireAuth, isExtension, scoreFor, scoreText = null, hasBaseResume, limit = LOOKUP_LIMIT, now }) {
   const router = express.Router();
@@ -140,6 +144,25 @@ export function createExtensionJobRouter({ db, requireAuth, isExtension, scoreFo
     if (!okPage(String(req.user.id))) return res.status(429).json({ error: "rate_limited", message: "Too many requests — try again in a minute." });
     res.json(pageJobForExtension(db, req.user.id, { url: req.body?.url, text: req.body?.text, frameUrls: req.body?.frameUrls },
       { scoreFor, scoreText: scoreText || (() => null), hasBaseResume }));
+  });
+  // ⭐ D191 P1 · the extension's home view and its toolbar badge: today's undecided matches, what needs the person, today's
+  // drafts / sends — cheap per-user reads (services/extensionHome.js), asked at most every few minutes by the extension.
+  const okHome = createRateLimiter({ ...limit, ...(now ? { now } : {}) });
+  router.get("/api/extension/home", requireAuth, (req, res) => {
+    if (!isExtension(req)) return res.status(403).json({ error: "extension_only", message: "This is for the draft extension." });
+    if (!okHome(String(req.user.id))) return res.status(429).json({ error: "rate_limited", message: "Too many requests — try again in a minute." });
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.date || "")) ? String(req.query.date) : undefined;
+    const home = extensionHome(db, req.user.id, { date });
+    res.set("Cache-Control", "private, no-store").json({ ...home, badge: badgeText(home) });
+  });
+  // ⭐ D191 P4 · SIGNED OUT, the extension is still useful: a posting's employer card from draft's PUBLIC data (the D179
+  // company pages are public). No account, no cookie read, nothing stored; limited per address.
+  const okCompany = createRateLimiter({ ...limit, ...(now ? { now } : {}) });
+  router.get("/api/extension/company", (req, res) => {
+    if (!okCompany(String(req.ip || "anon"))) return res.status(429).json({ error: "rate_limited", message: "Too many requests — try again in a minute." });
+    const card = (() => { try { return companyCard(db, { company: String(req.query.name || ""), url: typeof req.query.url === "string" ? req.query.url.slice(0, 2048) : null }); } catch { return null; } })();
+    if (!card) return res.status(400).json({ error: "no_company", message: "Which company?" });
+    res.set("Cache-Control", "public, max-age=3600").json({ company: card, signUp: "https://jobsviadraft.com/register?from=extension" });
   });
   return router;
 }

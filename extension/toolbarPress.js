@@ -23,10 +23,14 @@
 // browser work handed in as `deps` so it is tested without a browser.
 
 /** What the press says about this page — the popups, in order (one is shown at a time). */
-export function relayFor({ identity = null, ctx = null, auto = null, away = null } = {}) {
+export function relayFor({ identity = null, ctx = null, auto = null, away = null, home = null, card = null } = {}) {
   if (!identity?.authenticated) {
+    // ⭐ D191 P4 · signed out, still useful: the posting's employer from draft's PUBLIC data, and the reason to sign up
+    const pub = companyLine(card);
     return [{ id: 'draft-relay', kind: 'question', icon: 'info', text: 'Sign in to draft to use it here.',
-      actions: [{ id: 'sign-in', label: 'Sign in to draft', word: 'Sign in', primary: true }] }];
+      actions: [{ id: 'sign-in', label: 'Sign in to draft', word: 'Sign in', primary: true }] },
+      ...(pub ? [{ id: 'draft-company', kind: 'toast', icon: 'info', ms: 9000, text: `${pub} — sign up to see your match and apply with one click.`,
+        actions: [{ id: 'sign-up', label: 'Sign up for draft — free', word: 'Sign up' }] }] : [])];
   }
   if (!ctx) return Array.isArray(away) ? [...away] : [];   // ⭐⭐ D112 item 7: the portal line needs no page context
   const out = [];
@@ -48,6 +52,10 @@ export function relayFor({ identity = null, ctx = null, auto = null, away = null
       actions: [{ id: 'fill', label: 'Fill this page', icon: 'fill', primary: true }] });
   }
   if (ctx.notice) out.push({ id: 'draft-notice', kind: 'toast', icon: 'info', text: String(ctx.notice), ms: 6000 });
+  // ⭐ D191 (2d) · the employer, from draft's own records — said only when draft knows something about them
+  const co = companyLine(ctx.company);
+  if (co) out.push({ id: 'draft-company', kind: 'toast', icon: 'info', ms: 8000, text: co,
+    actions: ctx.company?.href ? [{ id: 'open-company', label: `Open ${ctx.company.name}'s page on draft`, word: 'Company' }] : [] });
   // automatic reading — offered only where it would work, and only until it is set up (or put off).
   // ⭐ D112: while the ONE global-read ask is due, the press opens its window instead (toolbarPress → deps.ask) — no
   // per-site offer beside it; with global read on there is nothing to set up anywhere.
@@ -66,7 +74,26 @@ export function relayFor({ identity = null, ctx = null, auto = null, away = null
   // ⭐⭐ D112 item 7: on a connectable portal's page — "Let draft apply here while you're away?" (signed in there, not yet
   // connected) or the connected line with Disconnect. The specs are applyAway.js awayRelay's (deps.away gathers the facts).
   if (Array.isArray(away)) out.push(...away);
+  // ⭐ D191 P1 · on a page with nothing else to say: the person's day (draft's home, in one line) — never on top of a question
+  const day = !out.length ? homeLine(home) : null;
+  if (day) out.push({ id: 'draft-home', kind: 'toast', icon: 'info', ms: 7000, text: day,
+    actions: [{ id: 'open-draft', label: 'Open your matches in draft', word: 'Matches', primary: true }, ...(home.needsYou ? [{ id: 'open-needs', label: 'Open what needs you', word: 'Needs you' }] : [])] });
   return out;
+}
+
+/** "Kestrel: Filed 412 certified LCAs in FY2025 · 23 open jobs on draft" — or null when draft knows nothing to say. Pure. */
+export function companyLine(c) {
+  if (!c?.name) return null;
+  const facts = [c.sponsorship, Number.isFinite(c.openJobs) && c.openJobs > 0 ? `${c.openJobs} open job${c.openJobs === 1 ? '' : 's'} on draft` : null].filter(Boolean);
+  return facts.length ? `${c.name}: ${facts.join(' · ')}` : null;
+}
+/** "Today: 3 new matches · 1 needs you · 2 drafted" — or null when there is nothing to tell. Pure. */
+export function homeLine(h) {
+  if (!h) return null;
+  const parts = [Number(h.newMatches) > 0 ? `${h.newMatches} new match${h.newMatches === 1 ? '' : 'es'}` : null,
+    Number(h.needsYou) > 0 ? `${h.needsYou} need${h.needsYou === 1 ? 's' : ''} you` : null,
+    Number(h.drafted) > 0 ? `${h.drafted} drafted` : null, Number(h.sent) > 0 ? `${h.sent} sent` : null].filter(Boolean);
+  return parts.length ? `Today: ${parts.join(' · ')}` : null;
 }
 
 /**
@@ -146,7 +173,10 @@ export async function toolbarPress(tab, deps) {
   const ctx = identity?.authenticated ? await deps.context(tab).catch(() => null) : null;
   const auto = identity?.authenticated && deps.auto ? await deps.auto(tab).catch(() => null) : null;
   const away = identity?.authenticated && deps.away ? await deps.away(tab).catch(() => null) : null;
-  const specs = relayFor({ identity, ctx, auto, away });
+  // ⭐ D191: signed in — the day (home line); signed out — the posting's employer from draft's public data
+  const home = identity?.authenticated && deps.home ? await deps.home(tab).catch(() => null) : null;
+  const card = !identity?.authenticated && deps.publicCard ? await deps.publicCard(tab).catch(() => null) : null;
+  const specs = relayFor({ identity, ctx, auto, away, home, card });
   if (specs.length) await deps.relay(tab, specs).catch(() => null);
   // ⭐ D112 b2: the ONE ask — a small window over this posting, opened by this press while it is due (never answered)
   const asked = auto?.globalAsk && deps.ask ? await deps.ask(tab).catch(() => null) : null;

@@ -1,3 +1,4 @@
+import { isExtensionCredential } from "../shared/authPolicy.js";   // D191 (5b): a submission the extension reported
 import os from "os";
 import crypto from "node:crypto";
 // ⭐ D113: a tap on Apply in a picks message is the user's own send for THAT job (services/picks.js pickAuthorisesSend).
@@ -5204,7 +5205,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         message: "draft can't tell which of your jobs this page is — record it from The Table." });
     }
     try {
-      const out = recordSubmission(db, { userId, jobId, capturedAtsAtApply,
+      // ⭐ D191 (5b): reported by draft's extension (its own credential) → method "extension", so Admin counts the traffic it drives
+      const fromExtension = (() => { try { return isExtensionCredential(req); } catch { return false; } })();
+      const out = recordSubmission(db, { userId, jobId, capturedAtsAtApply, serverMethod: fromExtension ? "extension" : null,
         input: { submittedAt: Date.now(), method: "ats_portal", evidenceUrl: evidenceUrlOf(url) || url.split(/[?#]/)[0] } });
       const score = db.prepare("SELECT ats_score_at_apply FROM job_applications WHERE user_id=? AND job_id=?").pluck().get(userId, jobId) ?? null;
       const missing = out.verification.checks.find(c => !c.ok);

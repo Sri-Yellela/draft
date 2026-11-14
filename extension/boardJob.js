@@ -82,5 +82,16 @@ export async function lookupPage(serverUrl, { url = '', text = '', frameUrls = [
           mine: p.mine === true }
       : { known: false, title: words(p.title), company: words(p.company) };
   const kind = ['job', 'not_a_job', 'unread'].includes(body?.kind) ? body.kind : (posting ? 'job' : 'unread');
-  return { ok: true, posting, kind, ats: atsFacts(body?.ats), basis: body?.basis === 'board' || body?.basis === 'page' ? body.basis : null };
+  return { ok: true, posting, kind, ats: atsFacts(body?.ats), basis: body?.basis === 'board' || body?.basis === 'page' ? body.basis : null,
+           company: companyFacts(body?.company) };
+}
+
+/** ⭐ D191 (2d) · the employer's card from draft's answer — named fields only; a link only to draft's own site. Pure. */
+export function companyFacts(c) {
+  if (!c || typeof c !== 'object' || typeof c.name !== 'string' || !c.name.trim()) return null;
+  const n = Number(c.openJobs);
+  const sponsorship = typeof c.sponsorship === 'string' ? c.sponsorship : typeof c.sponsorship?.text === 'string' ? c.sponsorship.text : null;
+  return { name: c.name.trim().slice(0, 120), openJobs: Number.isFinite(n) && n >= 0 ? Math.floor(n) : null,
+    sponsorship: sponsorship ? sponsorship.slice(0, 200) : null,
+    href: typeof c.href === 'string' && /^https:\/\/jobsviadraft\.com\//.test(c.href) ? c.href.slice(0, 300) : null };
 }

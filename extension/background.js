@@ -23,7 +23,7 @@ import { handlers as BOARD_OPEN_HANDLERS, configureBoardOpen } from './boardOpen
 import { handlers as INTENT_HANDLERS, configureIntent, showPath, runDraft } from './intent.js';
 import { toolbarPress, renderRelay, fillRelay, dockStateInPage, collapseDockInPage } from './toolbarPress.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
-import { lookupBoardJob } from './boardJob.js';
+import { lookupBoardJob, companyFacts } from './boardJob.js';
 import { isExtensionSubmitPacket, sendWithPress } from './extensionSubmit.js';   // ⭐ A207 (a)
 // ⭐ BINDING FIRST (owner 10-15): every press on a page draft has not seen identifies the page and binds the tab first.
 import { identifyAndBind, identityView, STOPS as IDENTITY_STOPS } from './identify.js';
@@ -254,6 +254,8 @@ async function popupContext(tab) {
     posting: board?.posting || null,
     ats: board?.ats || null,
     // T3: draft's report for this page — `basis` "board" (the board job's) or "page" (the page's own text)
+    // ⭐ D191 (2d): the employer's card from the same answer (draft's own records, no model)
+    company: (await rememberCompanyHref(tab, page?.company || null)),
     report: page?.ok && page.ats ? { ...page.ats, basis: page.basis }
       : boardReport?.ok && boardReport.ats ? { ...boardReport.ats, basis: 'board' } : null,
     recent: board?.recent || [],
@@ -909,7 +911,47 @@ function pressToolbar(tab) {
     ask: (t) => openGlobalAsk(t),
     // ⭐⭐ D112 item 7: the "apply here while you're away" line — on a connectable portal's page only
     away: async () => awayRelay(await awayFactsFor(tab)),
+    // ⭐ D191 P1 / P4
+    home: async () => { const h = await extensionHomeFacts({ force: true }); return h; },
+    publicCard: (t) => publicCompanyCard(t),
   });
+}
+
+// ── ⭐ D191 P1 · THE BADGE: today's undecided matches (GET /api/extension/home — cheap per-user reads on the server). Asked
+// when a page finishes loading and on a press, AT MOST every few minutes — never a timer, never a board pass.
+const HOME_EVERY_MS = 5 * 60 * 1000;
+let homeAt = 0, homeLast = null;
+async function extensionHomeFacts({ force = false } = {}) {
+  if (!force && Date.now() - homeAt < HOME_EVERY_MS) return homeLast;
+  homeAt = Date.now();
+  const r = await authedFetch(RESUME_MASTER_URL, `/api/extension/home?date=${new Date().toLocaleDateString('en-CA')}`).catch(() => null);
+  homeLast = r && r.ok ? await r.json().catch(() => null) : null;
+  try {
+    await chrome.action.setBadgeText({ text: homeLast?.badge || '' });
+    if (homeLast?.badge) await chrome.action.setBadgeBackgroundColor({ color: C_LIGHT.ACCENT });
+    await chrome.action.setTitle({ title: homeLast?.badge ? `draft — ${homeLast.badge} new match${homeLast.badge === '1' ? '' : 'es'} today` : 'draft' });
+  } catch { /* no action surface (tests) */ }
+  return homeLast;
+}
+chrome.tabs?.onUpdated?.addListener?.((_id, info) => { if (info?.status === 'complete') void extensionHomeFacts().catch(() => null); });
+
+// ── ⭐ D191 P4 · signed out: the posting's employer from draft's PUBLIC data (GET /api/extension/company — no account).
+// The press is the trigger (D23): the page's own extractor names the company, under the press's grant.
+async function publicCompanyCard(tab) {
+  let company = null;
+  try { const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: extractJobPayload }); company = r?.result?.company || null; } catch { company = null; }
+  if (!company) return null;
+  const q = new URLSearchParams({ name: String(company).slice(0, 120), url: String(tab.url || '').slice(0, 2048) });
+  const r = await fetch(`${RESUME_MASTER_URL}/api/extension/company?${q}`, { credentials: 'omit' }).catch(() => null);
+  const body = r && r.ok ? await r.json().catch(() => null) : null;
+  return body?.company ? rememberCompanyHref(tab, companyFacts(body.company)) : null;
+}
+/** The card's link, kept for THIS tab in the worker's memory only (no storage key — the privacy listing's count holds):
+ *  'open-company' opens only what this tab's own read found; a worker that slept in between asks for one more press. */
+const companyHrefByTab = new Map();
+async function rememberCompanyHref(tab, card) {
+  if (tab?.id) { if (card?.href) companyHrefByTab.set(tab.id, card.href); else companyHrefByTab.delete(tab.id); }
+  return card;
 }
 /**
  * ⭐ T31 · what automatic reading could offer on this tab — the toolbar popup's local facts, gathered here now (the
@@ -954,6 +996,16 @@ const DOCK_ACTS = Object.freeze({
     return { ok: true, say: 'Taken off your board.' };
   },
   'sign-in': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/login` }); return { ok: true, say: null }; },
+  // ⭐ D191 · the press's new buttons: the employer's page (from THIS tab's read — never a message's address), the day's
+  // matches and what needs you on draft, and signing up (signed out)
+  'open-company': async (tab) => {
+    const href = companyHrefByTab.get(tab.id);
+    if (!href) return { ok: false, say: 'Press the toolbar icon again to read this page first.' };
+    await chrome.tabs.create({ url: href }); return { ok: true, say: null };
+  },
+  'open-draft': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app` }); return { ok: true, say: null }; },
+  'open-needs': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app/auto-apply` }); return { ok: true, say: null }; },
+  'sign-up': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/register?from=extension` }); return { ok: true, say: null }; },
   // ⭐ D112 b2 (replaces the owner's 10-23 Settings-tab trip, A105 (10)): Allow opens the ONE global-read ask — a small
   // window over this tab whose own Allow asks Chrome; on either answer it closes and this tab has the focus again
   'allow-site': async (tab) => {

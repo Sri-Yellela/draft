@@ -162,6 +162,24 @@ export function resolveCompany(db, { company, url = null, apply_url = null }) {
   return id;
 }
 
+/**
+ * ⭐ D191 · READ-ONLY: a posting's company → its record ({ id, slug, name, domain }) or null. Never makes a record or an alias
+ * (resolveCompany above does that, in the linker) — the extension's company card only reads.
+ */
+export function findCompany(db, { company, url = null } = {}) {
+  const key = nameKey(String(company || "").trim());
+  const ats = atsTenantOf(url), domain = ownDomainOf(url);
+  const keys = [ats ? `ats:${ats.provider}:${ats.tenant}` : null, domain ? `domain:${domain}` : null, key && !isAtsHost(company) ? `name:${key}` : null].filter(Boolean);
+  try {
+    const alias = db.prepare(`SELECT company_id FROM company_aliases WHERE alias_key = ?`);
+    for (const k of keys) {
+      const id = alias.get(k)?.company_id;
+      if (id) return db.prepare(`SELECT id, slug, name, domain FROM companies WHERE id = ?`).get(id) || null;
+    }
+  } catch { /* no records table yet */ }
+  return null;
+}
+
 /** A new name that extends / is extended by a known one sharing its first word → review, never merged. */
 function nearNames(db, s, key, id, name) {
   const first = key.split("-")[0];
