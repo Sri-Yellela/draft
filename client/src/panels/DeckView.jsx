@@ -1048,7 +1048,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   // ⭐ D190 · ASK DRAFT: the deck's front card, decided by the deck's own decide (its exit, its toast, its one commit) and
   // undone as the toast's Undo undoes it (lib/assistantBridge.js).
   useEffect(() => registerAssistantActions("deck", {
-    deckJob: () => { const st = stateRef.current; const c = st?.cards?.[st.index]; return c && !c.decision ? { ...c.job, jobId: c.job.jobId ?? c.job.id } : null; },
+    deckJob: () => { const st = stateRef.current; const c = st?.cards?.[st.index]; return c && !c.decision ? { ...c.job, jobId: c.job.jobId ?? c.job.id, why: c.why || null } : null; },
     deckDecide: async (_job, decision) => { decideRef.current?.(decision); },
     deckUndo: async (job, decision) => {
       const id = job?.jobId ?? job?.id;

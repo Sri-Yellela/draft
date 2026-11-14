@@ -71,7 +71,7 @@ export function createDraftHandlers({ navigate, api, action, counts = () => null
     return r?.found === false ? null : r;
   };
   return {
-    help: () => ({ text: "I act on draft without AI: “draft this job”, “save this”, “pass”, “cancel that draft”, “open my profile”, “go to Atlas”, “set my filter to senior backend remote in Boston”, “open my held questions” — and I answer from your own data: “how many need me?”, “what's my match?”, “does Kestrel sponsor?”, “what skills have I proven?”, or anything Atlas and draft's help cover." }),
+    help: () => ({ text: "I act on draft without AI: “draft this job”, “save this”, “pass”, “cancel that draft”, “open my profile”, “go to Atlas”, “set my filter to senior backend remote in Boston”, “open my held questions” — and I answer from your own data: “how many need me?”, “what's my match?”, “which keywords am I missing?”, “does Kestrel sponsor?”, “what skills have I proven?”, or anything Atlas and draft's help cover." }),
     undo: async () => {
       const last = undoStack.pop();
       if (!last) return { text: "There's nothing to undo from here." };
@@ -130,6 +130,16 @@ export function createDraftHandlers({ navigate, api, action, counts = () => null
       const j = needJob();
       const s = j.atsScore ?? j.baseAtsScore ?? j.ats_score ?? null;
       return { text: s == null ? `There's no ATS score for ${j.company || "this job"} yet — open it and press its score to read your résumé against it.` : `Your résumé scores ${Math.round(s)} for ${j.title ? `${j.title} at ` : ""}${j.company || "this job"}.` };
+    },
+    // the deck's card carries the scorer's matched / missing keywords (`why`); a board posting has them in its ATS report
+    missingKeywords: () => {
+      const j = needJob();
+      const w = j.why || action("deckWhy")?.(j) || null;
+      if (!w || (!w.missing?.length && !w.matched?.length)) return { text: `Open ${j.company || "the job"}'s ATS score to see which of its keywords your résumé has — I don't have them for this posting yet.` };
+      const list = (xs, n) => xs.slice(0, 8).join(", ") + (n > Math.min(8, xs.length) ? `, and ${n - Math.min(8, xs.length)} more` : "");
+      const missN = w.missingTotal ?? w.missing?.length ?? 0, matchN = w.matchedTotal ?? w.matched?.length ?? 0;
+      return { text: missN ? `For ${j.company || "this job"} your résumé is missing ${missN} keyword${missN === 1 ? "" : "s"}: ${list(w.missing || [], missN)}. It matches ${matchN}${w.matched?.length ? ` (${list(w.matched, matchN)})` : ""}.`
+        : `Your résumé has every keyword the scorer found for ${j.company || "this job"} (${matchN}).` };
     },
     sponsorship: async (a) => {
       const company = a.company || job()?.company || "";
