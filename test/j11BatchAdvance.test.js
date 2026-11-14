@@ -55,7 +55,7 @@ globalThis.chrome = {
   },
   commands: { getAll: async () => [], onCommand: ev() },
   action: {
-    async setBadgeText({ text }) { h.badges.push(text); }, async setBadgeBackgroundColor() {}, async setTitle() {},
+    async setBadgeText({ text, tabId }) { if (tabId != null) h.badges.push(text); },   // D191: the GLOBAL new-matches badge (no tabId) is not a fill async setBadgeBackgroundColor() {}, async setTitle() {},
     onClicked: { addListener() {} },   // ⭐ T31: the toolbar press (background.js pressToolbar)
   },
   contextMenus: { create() {}, removeAll(cb) { cb?.(); }, onClicked: ev() },

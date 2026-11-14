@@ -115,8 +115,10 @@ async function say(text) {
   try { const m = await bot.handle(q); turn('draft', { ...m, label: m.label || TIER_LABEL[m.tier] || null }); }
   finally { busy = false; }
 }
-$('ask-form').addEventListener('submit', (e) => { e.preventDefault(); const q = $('ask-input').value; $('ask-input').value = ''; say(q); });
-$('ask-input').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('ask-form').requestSubmit(); } });
+// D36·5: the extension never submits a form programmatically — the Enter key calls the same function the button does
+const sendTyped = () => { const q = $('ask-input').value; $('ask-input').value = ''; say(q); };
+$('ask-form').addEventListener('submit', (e) => { e.preventDefault(); sendTyped(); });
+$('ask-input').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendTyped(); } });
 $('ask-search').addEventListener('submit', (e) => {
   e.preventDefault();
   const q = $('ask-search-input').value.trim();
