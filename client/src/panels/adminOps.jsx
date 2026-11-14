@@ -690,7 +690,9 @@ export function SubmitOutcomesSection({ theme }) {
       code="A187 S3 + A207: apply_job_logs' submit_outcome events by ATS. The FIRST spam flag on a family marks it 'extension submit' (app_settings submit_family:<ats>) until cleared here; Ashby always. On a marked family draft's server never presses Submit — the extension fills the form in the person's own browser and their one press sends it. No proxies, no evasion."
       purpose="Is this 5 % of applications or 50 %? Server submits rejected of those tried, and applications on extension-submit sites of all that reached Submit. Counts start at the A207 deploy — earlier refusals were never logged as refusals."
       numbers={w ? [[`${w.overall.rejected} of ${w.overall.tried}`, `server submits rejected as spam, last ${w.days} days`, w.overall.rejected > 0],
-        [`${w.overall.extension} of ${w.overall.all}`, "applications on extension-submit sites"], [w.paused.length, `extension submit: ${w.paused.join(", ") || "none"}`]] : []}>
+        [`${w.overall.extension} of ${w.overall.all}`, "applications on extension-submit sites"], [w.paused.length, `extension submit: ${w.paused.join(", ") || "none"}`],
+        // A209: recorded Sent from a form's own "thank you" before the fix — check these by hand
+        [s.preClick?.count ?? 0, "recorded Sent from a form's own words before A209 — check by hand", (s.preClick?.count ?? 0) > 0]] : []}>
       <Err msg={err}/>
       <div style={{ ...row, marginBottom: 8 }}>
         <Btn theme={theme} primary={days === 7} onClick={() => setDays(7)}>7 days</Btn>
