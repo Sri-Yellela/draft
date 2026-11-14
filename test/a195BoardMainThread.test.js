@@ -49,3 +49,15 @@ test("A195: a page reads each company's record once; the corpus coverage is kept
   assert.match(lca, /const coverage = getCorpusCoverage\(db, \{ fresh: true \}\);/, "reconcileCompanyLca reads it fresh after an ingest");
   assert.match(lca, /if \(kept && Date\.now\(\) - kept\.at < COVERAGE_KEEP_MS\) return kept\.value;/);
 });
+
+test("A195: the board's score mark is one index seek — migration 276, the same block in both runners", () => {
+  for (const f of ["server.js", "scripts/migrations.js"]) {
+    assert.match(read(f), /id: "276_ats_only_reports_score_mark",\n\s*sql: `\n\s*CREATE INDEX IF NOT EXISTS idx_ats_only_reports_mark ON ats_only_reports\(user_id, domain_profile_id, id\);/, f);
+  }
+  const db = new Database(":memory:");
+  db.exec(`CREATE TABLE ats_only_reports (id INTEGER PRIMARY KEY, user_id INTEGER, domain_profile_id INTEGER, job_id TEXT);
+    CREATE INDEX idx_ats_only_reports_lookup ON ats_only_reports(user_id, domain_profile_id, job_id);
+    CREATE INDEX idx_ats_only_reports_mark ON ats_only_reports(user_id, domain_profile_id, id);`);
+  const plan = db.prepare("EXPLAIN QUERY PLAN SELECT COALESCE(MAX(id), 0) AS e FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ?").all(1, 1).map(r => r.detail).join(" | ");
+  assert.match(plan, /idx_ats_only_reports_mark/, plan);
+});
