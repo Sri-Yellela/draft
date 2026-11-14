@@ -14,7 +14,7 @@ export const PLACES = Object.freeze({
   profile: "/app/profile/about", "my profile": "/app/profile/about", résumé: "/app/profile/about", resume: "/app/profile/about", "my résumé": "/app/profile/about", "my resume": "/app/profile/about",
   settings: "/app/profile/account", account: "/app/profile/account", appearance: "/app/profile/appearance", theme: "/app/profile/appearance",
   notifications: "/app/profile/notifications", privacy: "/app/profile/privacy", "saved answers": "/app/profile/answers", answers: "/app/profile/answers",
-  "auto-apply settings": "/app/profile/autoapply", "auto apply settings": "/app/profile/autoapply", connections: "/app/profile/connections",
+  "applying settings": "/app/profile/autoapply", "apply settings": "/app/profile/autoapply", connections: "/app/profile/connections",
   atlas: "/app/atlas", "your skills": "/app/atlas", skills: "/app/atlas", learning: "/app/atlas",
   interview: "/app/interview", "interview practice": "/app/interview",
 });
