@@ -11,6 +11,7 @@ import { GENERATE_TOOL, A_PLUS_TOOL, TOOL_LABELS, normalizeTool } from "../lib/a
 import { planPageFetch, recordPageCursor } from "../lib/boardPaging.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { DECISIONS, DECISION_SURFACES, DECISION_TOAST_MS, commitDecision, undoDecision, undoFlagsFor, flagsFor, isDrafted, draftBlock } from "../lib/jobDecisions.js";
+import { registerAssistantActions } from "../lib/assistantBridge.js";   // D190: Ask draft calls the board's own decisions
 import { PREREQUISITE_LABELS } from "../lib/applyObstacles.js";
 import { companyRows, companyNotice, matchCompany } from "../../../shared/companyIdentity.js";
 import { roleWord } from "../../../shared/filterSentence.js";   // A145: "Backend · Software engineering"
@@ -3746,19 +3747,21 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
 
   // A105 finding 11: the keyboard handler (set up above, by the open posting) reaches the CURRENT decideJob.
   decideJobRef.current = (...args) => decideJob(...args);
+  const lastDecisionRef = useRef(null);       // D190: the last decision, for Ask draft's Undo link (the toast's lasts 5 s)
+  const undoLastDecisionRef = useRef(null);
   const decideJob = useCallback(async (job, decision, { companyOk = false } = {}) => {
     const jobId = job?.jobId || job?.id;
     if (!jobId) return;
     const prior = { starred: !!job.starred, disliked: !!job.disliked };
     // ⛔ A SET, NEVER A TOGGLE: deciding what is already decided does nothing.
-    if (decision === DECISIONS.SAVED && prior.starred) return;
-    if (decision === DECISIONS.PASSED && prior.disliked) return;
-    if (decision === DECISIONS.DRAFTED && (isJobDrafted(jobId) || draftingIds.has(jobId))) return;
+    if (decision === DECISIONS.SAVED && prior.starred) return "already";
+    if (decision === DECISIONS.PASSED && prior.disliked) return "already";
+    if (decision === DECISIONS.DRAFTED && (isJobDrafted(jobId) || draftingIds.has(jobId))) return "already";
     // D54: warn at the second role — the user decides; nothing is refused here. A105 finding 12: the notice is the
     // toast's line with "Draft anyway" (D54 asked for a NON-blocking notice; the browser's confirm dialog was a modal block).
     if (decision === DECISIONS.DRAFTED) {
       const notice = companyOk ? null : companyNoticeFor(job);
-      if (notice) { setDecisionToast({ jobId, company: job.company, decision, notice, job, at: Date.now() }); return; }
+      if (notice) { setDecisionToast({ jobId, company: job.company, decision, notice, job, at: Date.now() }); return { notice }; }
       // ⛔ D59 (owner, 10-07 (38): "only in panel"): the posting's stated citizenship / clearance is said
       // in the posting panel's line beside Draft — never a confirm at the click.
     }
@@ -3769,6 +3772,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         const r = await commitDecision({ jobId, decision, tool: draftTool, surface: DECISION_SURFACES.BOARD });
         setDraftedIds(prev => new Set(prev).add(jobId));
         setDecisionToast({ jobId, company: job.company, decision, runId: r.runId, line: r.line, prior, at });
+        lastDecisionRef.current = { jobId, company: job.company, decision, runId: r.runId, prior };
         if (r.slots) setDraftSlots(r.slots);
         setFacetsNonce(n => n + 1);
         loadApplyRuns?.();
@@ -3779,19 +3783,23 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         if (e.payload?.code === "already_drafted") setDraftedIds(prev => new Set(prev).add(jobId));
         if (e.payload?.slots) setDraftSlots(e.payload.slots);
         setDecisionToast({ jobId, company: job.company, decision, error: e.message, at });
+        return { error: e.message };
       } finally {
         setDraftingIds(prev => { const n = new Set(prev); n.delete(jobId); return n; });
       }
-      return;
+      return "done";
     }
     applyFlags(jobId, flagsFor(decision));
     setDecisionToast({ jobId, company: job.company, decision, prior, at });
+    lastDecisionRef.current = { jobId, company: job.company, decision, prior };
     try {
       await commitDecision({ jobId, decision });
     } catch (e) {
       applyFlags(jobId, undoFlagsFor(decision, prior));
       setDecisionToast({ jobId, company: job.company, decision, error: e.message, at: Date.now() });
+      return { error: e.message };
     }
+    return "done";
   }, [applyFlags, draftTool, draftedIds, draftingIds, applyStateByJobId, loadApplyRuns, boardTab, currentPage, companyNoticeFor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ⭐ D156 (1c) · THE OPENED POSTING'S Pass · Save · Draft. On Home's deck (besideMode — the posting is drawn in the front
@@ -3811,8 +3819,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   };
   decidePostingRef.current = decidePosting;
 
-  const undoLastDecision = useCallback(async () => {
-    const t = decisionToast;
+  const undoLastDecision = useCallback(async (given = null) => {
+    const t = given || decisionToast;
     if (!t || t.error) return;
     setDecisionToast(null);
     try {
@@ -3829,8 +3837,32 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       }
     } catch (e) {
       setDecisionToast({ jobId: t.jobId, company: t.company, decision: t.decision, error: `Could not undo: ${e.message}`, at: Date.now() });
+      if (given) throw e;
     }
   }, [decisionToast, applyFlags, loadApplyRuns, boardTab, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
+  undoLastDecisionRef.current = undoLastDecision;
+
+  // ⭐ D190 · ASK DRAFT reaches the board's OWN calls (lib/assistantBridge.js): the open posting, Draft / Save / Pass through
+  // decideJob (the same one the buttons use), Undo through the toast's undo, and the sentence's own setters.
+  const assistantStateRef = useRef({});
+  assistantStateRef.current = { selectedJob, experienceLevels, workModels, places, localSearch };
+  useEffect(() => registerAssistantActions("board", {
+    currentJob: () => assistantStateRef.current.selectedJob || null,
+    boardDecide: async (job, decision) => {
+      const r = await decideJobRef.current?.(job, decision);
+      if (r?.error) throw new Error(r.error);
+      if (r?.notice) throw new Error(`${r.notice} — press Draft anyway on the board if you still want it.`);
+      return r;
+    },
+    boardUndo: async (job) => {
+      const t = lastDecisionRef.current;
+      if (!t || String(t.jobId) !== String(job?.jobId ?? job?.id)) throw new Error("That decision can't be undone from here any more.");
+      await undoLastDecisionRef.current?.(t);
+      lastDecisionRef.current = null;
+    },
+    getFilters: () => { const st = assistantStateRef.current; return { experience_levels: st.experienceLevels, work_models: st.workModels, places: st.places, search: st.localSearch }; },
+    setFilters: (f) => { setExperienceLevels(f.experience_levels || []); setWorkModels(f.work_models || []); setPlaces(f.places || []); setLocalSearch(f.search || ""); },
+  }), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!decisionToast) return;
@@ -3987,7 +4019,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   return (
     <div style={{ flex:1, minHeight:0, minWidth:0, display:"flex", flexDirection:"column", overflow:"hidden", background:"transparent" }}>
       {/* A53: the deck's toast and its Undo — one component, both surfaces. */}
-      <DecisionToast toast={decisionToast} onUndo={undoLastDecision} bottom={24}
+      <DecisionToast toast={decisionToast} onUndo={() => undoLastDecision()} bottom={24}
         onConfirmNotice={(t) => decideJob(t.job, t.decision, { companyOk: true })} />
       {/* TRANSPARENT, not theme.bg (09-30). theme.bg is --bg-page, which is mapped to SURFACE — the
           GLASS — so the whole board sat under a 58% cream sheet, the cards were glass on glass, and

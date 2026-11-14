@@ -162,7 +162,8 @@ import { createLearnRouter } from "./routes/learn.js";
 // ⭐ D169: Your skills in Atlas — and the gate: a skill not on the résumé goes into a tailored one only once proven.
 import { createYourSkillsRouter, createYourSkillsAdminRouter } from "./routes/yourSkills.js";
 import { ask as assistantAsk, decideAction as decideAssistantAction, actionLog as assistantActionLog, setImproveAtlas, improveAtlasOn,
-  assistantAvailable, asksSummary as assistantAsksSummary, gapToBacklog as assistantGapToBacklog, ENABLED_KEY as ASSISTANT_ENABLED_KEY } from "./services/assistant/assistant.js";
+  assistantAvailable, asksSummary as assistantAsksSummary, gapToBacklog as assistantGapToBacklog, ENABLED_KEY as ASSISTANT_ENABLED_KEY,
+  lookup as assistantLookup, LOOKUP_INTENTS as ASSISTANT_LOOKUP_INTENTS } from "./services/assistant/assistant.js";
 import { gateClaimsForResume, gatedDomainProfile, yourSkillStates } from "./services/yourSkills.js";
 import { createThumbsRouter, createThumbsAdminRouter, resourceItems } from "./routes/thumbs.js";
 import surveyRoutes from "./routes/survey.js";
@@ -17257,6 +17258,15 @@ app.post("/api/assistant/ask", requireAuth, async (req, res) => {
     if (!e.status) console.error("[assistant]", e.message);
     res.status(e.status || 500).json({ error: e.code || "ask_failed", message: e.status ? e.message : "Ask draft couldn't answer just now. Try again." });
   }
+});
+// ⭐ D190 T2 · Ask draft's answers from draft's own data — open to every signed-in person (no model is called, so the
+// assistant switch above does not gate it). ⛔ No callTask here: the owner's rule (11-14), test d190SiteDataNeverCallsModel.
+app.post("/api/assistant/lookup", requireAuth, (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  const intent = String(req.body?.intent || "");
+  if (!ASSISTANT_LOOKUP_INTENTS.includes(intent)) return res.status(400).json({ error: "bad_intent", message: "That isn't something Ask draft can look up." });
+  try { res.json({ found: true, ...(assistantLookup(db, req.user.id, { intent, args: req.body?.args || {}, question: req.body?.question || "" }) || { found: false }) }); }
+  catch (e) { console.error("[assistant lookup]", e.message); res.status(500).json({ error: "lookup_failed", message: "Ask draft couldn't read that just now." }); }
 });
 app.post("/api/assistant/actions/:id/confirm", requireAuth, (req, res) => {
   try { res.json(decideAssistantAction(db, req.user.id, req.params.id, { confirm: true })); }

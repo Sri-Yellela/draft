@@ -249,6 +249,8 @@ const AUTHENTICATED = new Set([
   // T5: the assistant — the person's own asks, their confirm / cancel of a proposed action, their audit log and switch
   "GET /api/assistant/status", "POST /api/assistant/ask", "POST /api/assistant/actions/:id/confirm", "POST /api/assistant/actions/:id/cancel",
   "GET /api/assistant/actions", "PUT /api/assistant/settings",
+  // D190: Ask draft's T2 — answers from the person's own data and draft's help / Atlas, no model
+  "POST /api/assistant/lookup",
   "GET /api/network",
   "GET /api/network/suggestions",
   "GET /api/network/relation/:handle",

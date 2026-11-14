@@ -56,6 +56,7 @@ import ProductsPage   from "./pages/ProductsPage.jsx";
 import BlogPage       from "./pages/BlogPage.jsx";
 import NotFoundPage   from "./pages/NotFoundPage.jsx";
 import { isReserved as isReservedPath } from "../../shared/companyPaths.js";   // A157 (45q)
+import { clearAskDraftSession } from "./lib/assistantBridge.js";   // D190: sign-out clears Ask draft's conversation
 import { MonetisationProvider, useMonetisationEnabled } from "./lib/monetisation.jsx";
 
 // Marketing pages (lazy-loaded is fine but direct imports work too)
@@ -493,6 +494,7 @@ function AppDashboard({ authUser, setAuthUser }) {
     if (logoutInFlight.current) return logoutInFlight.current;
     logoutInFlight.current = (async () => {
       try { await api("/api/auth/logout", { method:"POST" }); } catch {}
+      clearAskDraftSession();   // D190: Ask draft's conversation leaves with the session
       setAuthContext("");
       setAuthUser(null);
     })().finally(() => { setTimeout(() => { logoutInFlight.current = null; }, 2000); });
