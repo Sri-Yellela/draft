@@ -74,6 +74,22 @@ export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTR
       for (const [k, v] of done) if (userOf(k) === u && v.at > aged) done.set(k, { ...v, at: aged });
       for (const k of [...flying.keys()]) if (userOf(k) === u) flying.delete(k);
     },
+    /**
+     * ⭐ A195 leftover (46m) · apply ONE of the user's writes to their kept entries in place: fn(key, value) → a new value
+     * (kept, its age unchanged), null (dropped) or undefined (unchanged). An answer being computed when the write landed is
+     * not kept (it may predate the write), as clearUser.
+     */
+    updateUser(userId, fn) {
+      const u = String(userId);
+      for (const [k, v] of [...done]) {
+        if (userOf(k) !== u) continue;
+        let next;
+        try { next = fn(k, v.value); } catch { next = null; }
+        if (next === null) done.delete(k);
+        else if (next !== undefined) done.set(k, { ...v, value: next });
+      }
+      for (const k of [...flying.keys()]) if (userOf(k) === u) flying.delete(k);
+    },
     /** Drop every entry (kept or in flight) of one user — called on each of their writes. */
     clearUser(userId) {
       const u = String(userId);

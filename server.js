@@ -331,6 +331,7 @@ import {
 // D24 · GET /api/jobs/facets — the sentence's counts, measured through boardPageResponse itself.
 import { boardFacetsResponse } from "./services/jobs/boardFacets.js";
 import { createFacetsCache, facetsKey } from "./services/jobs/facetsCache.js";
+import { keptOrderAfterDecision } from "./services/jobs/keptOrderDecision.js";   // A195 leftover (46m): a pass / save, in place
 // ⭐ D151 (45k) · the board's held read ("N more being matched"), kept per user + statement, refreshed behind the answer.
 import { createHeldCountCache, heldKey } from "./services/jobs/heldCountCache.js";
 import { mapJobRow } from "./services/jobs/mapJobRow.js";
@@ -11002,8 +11003,9 @@ const KEYWORDS_PANEL = /^\/api\/jobs\/[^/]+\/keywords$/;
 app.use((req, _res, next) => {
   const writes = req.method !== "GET" && req.method !== "HEAD" && req.user?.id != null && !(req.method === "POST" && KEYWORDS_PANEL.test(req.path));
   if (writes) facetsCache.clearUser(req.user.id);
-  // ⭐ A175: …and their kept board order.
-  if (writes) boardOrderCache.clearUser(req.user.id);
+  // ⭐ A175: …and their kept board order. ⭐ A195 leftover (46m): EXCEPT a pass / save (PATCH /api/jobs/interact) — that route
+  // applies the decision to the kept ids in place (services/jobs/keptOrderDecision.js), so the next board load stays warm.
+  if (writes && !(req.method === "PATCH" && req.path === "/api/jobs/interact")) boardOrderCache.clearUser(req.user.id);
   if (writes) boardDimFacetsCache.clearUser(req.user.id);   // ⭐ A184: …and the Full House's kept counts
   next();
 });
@@ -14615,6 +14617,10 @@ app.patch("/api/jobs/interact", requireAuth, (req, res) => {
         disliked   = excluded.disliked,
         updated_at = unixepoch()
     `).run(req.user.id, resolvedJobId, profileId, newStarred, newDisliked);
+    // ⭐ A195 leftover (46m): the kept board orders take this decision in place (a passed job leaves them; what can't be
+    // applied exactly is dropped) — the write middleware left them for this.
+    boardOrderCache.updateUser(req.user.id, (key, value) => keptOrderAfterDecision(key, value, resolvedJobId, {
+      wasStarred: !!existing?.starred, wasDisliked: !!existing?.disliked, starred: !!newStarred, disliked: !!newDisliked }));
 
     // Same as the siblings: other tabs showing this job update instead of going stale. AH2 made
     // several tabs on one session an ordinary thing to do, which makes this worth more than it was.
