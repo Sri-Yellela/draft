@@ -20,7 +20,7 @@ const { zipSync, strToU8 } = await import(pathToFileURL(path.join(RM, "node_modu
 fs.mkdirSync(path.join(ROOT, "tmp"), { recursive: true });
 const app = createApp({ log: () => {} });
 const server = await new Promise(r => { const s = app.listen(0, () => r(s)); });
-const base = `http://127.0.0.1:${server.address().port}`;
+const base = process.env.WALK_BASE || `http://127.0.0.1:${server.address().port}`;   // WALK_BASE: walk a deployed site instead
 const chrome = ["C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe", "/usr/bin/google-chrome", "/usr/bin/chromium"].find(p => fs.existsSync(p));
 const browser = await puppeteer.launch({ executablePath: chrome, headless: true, pipe: true, args: ["--no-first-run"] });
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
