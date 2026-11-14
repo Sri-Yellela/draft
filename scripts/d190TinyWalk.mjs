@@ -45,6 +45,9 @@ try {
   const dl = path.join(ROOT, "tmp", "d190-downloads"); fs.mkdirSync(dl, { recursive: true });
   const cdp = await page.createCDPSession(); await cdp.send("Page.setDownloadBehavior", { behavior: "allow", downloadPath: dl });
   await page.setViewport({ width: 1600, height: 950 });
+  await page.evaluateOnNewDocument(() => { window.SpeechRecognition = class { static async available() { return window.__speechLocal === false ? "unavailable" : "available"; }
+    start() { setTimeout(() => { if (window.__speechErr) { this.onerror?.({ error: window.__speechErr }); this.onend?.(); return; } this.onresult?.({ results: [[{ transcript: window.__say || "help" }]] }); this.onend?.(); }, 60); }
+    stop() { this.onend?.(); } }; });
   await page.goto(`${base}/workspace/`, { waitUntil: "networkidle0" });
   await page.evaluate(async (b64) => {
     const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -130,6 +133,21 @@ try {
   ok("“what's on page 1?” — T2 from the document's text", t.tier === "T2" && t.label === "T2 • from your data" && /Jordan Example/.test(t.text));
   t = await tell("how many pages?");
   ok("how many pages — T2", t.tier === "T2" && /2 pages/.test(t.text), t.text);
+
+  // P2: what an ATS may trip on, from the document itself
+  t = await tell("check my resume for ATS problems");
+  ok("P2 “check my resume for ATS problems” — T2 from the document", t.tier === "T2" && /(Nothing obvious|may trip on)/.test(t.text), t.text);
+  // P4: voice
+  const n0 = (await page.$$("[data-tiny-turn='tiny']")).length;
+  await page.evaluate(() => { window.__say = "go to page 1"; });
+  await page.click("[data-tiny-mic]");
+  await page.waitForFunction((n) => document.querySelectorAll("[data-tiny-turn='tiny']").length > n, { timeout: 10000 }, n0); await sleep(300);
+  t = await lastTurn();
+  ok("P4 a spoken “go to page 1” acts like the typed one", t.tier === "T1" && /Page 1 of 2/.test(t.text), t.text);
+  await page.evaluate(() => { window.__speechErr = "not-allowed"; });
+  await page.click("[data-tiny-mic]"); await sleep(400);
+  ok("P4 a blocked microphone says so plainly", /microphone is blocked/.test(await page.$eval("[data-tiny-voice-note]", e => e.textContent)));
+  await page.evaluate(() => { window.__speechErr = null; });
 
   // T3 rows never reach a model in P1 (the routing stub)
   t = await tell("rewrite this bullet to highlight Kafka");

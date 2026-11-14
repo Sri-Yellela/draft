@@ -84,7 +84,7 @@ try {
     log.all.push(`${req.method()} ${u.pathname}`);
     const json = (body, status = 200) => req.respond({ status, contentType: "application/json", body: JSON.stringify(body) });
     const body = () => { try { return JSON.parse(req.postData() || "{}"); } catch { return {}; } };
-    if (u.pathname === "/api/assistant/ask") { log.asks.push(body()); return json({ ok: false, message: "the walk refuses model calls" }); }
+    if (u.pathname === "/api/assistant/ask") { log.asks.push(body()); return FIX["/api/assistant/status"].available ? json({ ok: true, answer: "Built Kafka streams that cut ingest lag 40% (synthetic).", lessons: [], next: "" }) : json({ ok: false, message: "the walk refuses model calls" }); }
     if (u.pathname === "/api/jobs/interact") { log.interact.push(body()); return json({ ok: true }); }
     if (req.method() === "POST" && u.pathname === "/api/apply/runs") { log.drafts.push(body()); return json({ runId: 77, ok: true }); }
     if (u.pathname === "/api/apply/runs/77") return json({ run: { id: 77 }, jobs: [{ id: 501, jobId: log.drafts.at(-1)?.jobIds?.[0] }] });
@@ -99,6 +99,10 @@ try {
     json(FIX[u.pathname] ?? {});
   });
   await page.evaluateOnNewDocument(() => { try { localStorage.setItem("draft:extension-prompt-seen", "1"); } catch {} });
+  // P4: headless Chrome has no microphone — a stand-in recogniser says what window.__say holds (the browser API's shape)
+  await page.evaluateOnNewDocument(() => { window.SpeechRecognition = class { static async available() { return window.__speechLocal === false ? "unavailable" : "available"; }
+    start() { setTimeout(() => { if (window.__speechErr) { this.onerror?.({ error: window.__speechErr }); this.onend?.(); return; } this.onresult?.({ results: [[{ transcript: window.__say || "help" }]] }); this.onend?.(); }, 60); }
+    stop() { this.onend?.(); } }; });
   await page.goto(`${vite.url}/app`, { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
   await page.waitForSelector("[data-nav-item='ask']", { timeout: 30000 });
   await sleep(1200);
@@ -163,6 +167,22 @@ try {
   t = await tell("what is the meaning of zzqx?");
   ok("a question nothing on draft covers — said plainly, not sent to a model", t.tier === "ask" && /nothing on this site covers it/.test(t.text), t.text);
 
+  // P2: the deck's card carries the scorer's keywords
+  t = await tell("which keywords am I missing?");
+  ok("P2 “which keywords am I missing?” — T2 from the deck card's own keywords", t.tier === "T2" && /missing 1 keyword: Kafka/.test(t.text), t.text);
+  // P4: voice — the spoken words go through the same engine
+  const turns0 = (await page.$$("[data-ask-turn='draft']")).length;
+  await page.evaluate(() => { window.__say = "how many need me"; window.__speechErr = null; });
+  await page.click("[data-ask-mic]");
+  await page.waitForFunction((n) => document.querySelectorAll("[data-ask-turn='draft']").length > n, { timeout: 10000 }, turns0); await sleep(300);
+  t = await lastTurn();
+  const spoken = await page.evaluate(() => [...document.querySelectorAll("[data-ask-turn='you']")].pop()?.textContent || "");
+  ok("P4 a spoken “how many need me” is answered like the typed one", t.tier === "T2" && /need/.test(t.text) && /how many need me/.test(spoken), `${spoken} → ${t.text}`);
+  await page.evaluate(() => { window.__speechErr = "not-allowed"; });
+  await page.click("[data-ask-mic]"); await sleep(400);
+  ok("P4 a blocked microphone says so plainly", /microphone is blocked/.test(await page.$eval("[data-ask-voice-note]", e => e.textContent).catch(() => "")));
+  await page.evaluate(() => { window.__speechErr = null; });
+
   // T3 with the assistant off → nothing sent
   t = await tell("rewrite this bullet to highlight Kafka");
   ok("“rewrite this bullet…” with the assistant off → not sent anywhere", t.tier === "ask" && /isn't open on your account/.test(t.text), t.text);
@@ -191,7 +211,18 @@ try {
 
   const ledger = await page.evaluate(() => (window.__askDraftLedger || []).map(x => x.tier));
   ok("the ledger has no T3", !ledger.includes("T3"), ledger.join(","));
-  ok("⛔ ZERO requests to /api/assistant/ask", log.asks.length === 0, JSON.stringify(log.asks));
+  ok("⛔ ZERO requests to /api/assistant/ask through every T1 / T2 / ask turn", log.asks.length === 0, JSON.stringify(log.asks));
+
+  // P3: the assistant switched on — ONLY an explicit request for new writing reaches the model route, and it is labelled
+  FIX["/api/assistant/status"] = { available: true, improveAtlas: true };
+  await page.click("[data-ask-close]"); await sleep(300);
+  await page.click("[data-nav-item='ask']"); await sleep(600);
+  t = await tell("how many need me?");
+  ok("P3 with the assistant on, site data is still T2 — no model request", t.tier === "T2" && log.asks.length === 0, t.text);
+  t = await tell("what is Spark?");
+  ok("P3 …and an Atlas question is still the lookup", t.tier === "T2" && log.asks.length === 0, t.text);
+  t = await tell("rewrite this bullet to highlight Kafka");
+  ok("P3 “rewrite this bullet…” → ONE request to the gateway route, labelled “written by the assistant”", t.tier === "T3" && t.label === "T3 • written by the assistant" && log.asks.length === 1 && /Kafka streams/.test(t.text), `${t.label} | ${t.text} | asks ${log.asks.length}`);
   ok("no page errors", errors.length === 0, errors.slice(0, 3).join(" | "));
   fs.mkdirSync(path.join(ROOT, "tmp"), { recursive: true });
   await page.screenshot({ path: path.join(ROOT, "tmp", "d190-askdraft.png") });

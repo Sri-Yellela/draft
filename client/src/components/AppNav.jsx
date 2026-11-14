@@ -47,6 +47,7 @@ import ASSISTANT_COMMANDS from "../../../content/assistant/commands-v1.json";
 import { createDraftHandlers } from "../lib/assistantDraft.js";
 import { assistantAction, ASK_SESSION_KEY, ASK_CLEAR_EVENT } from "../lib/assistantBridge.js";
 import { heldQuestionsFor } from "../lib/heldApplication.js";
+import { voiceSupported, listenOnce, voiceNote, VOICE_ERRORS } from "../../../shared/assistantVoice.js";   // D190 P4
 import { autoToggle } from "../lib/draftHouseExceptions.js";
 import { ACTIVE_THEME } from "../themes/index.js";
 import "./AppNav.css";
@@ -469,6 +470,19 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
       setTurns(x => x.map((y, k2) => (k2 === i ? { ...y, undoFn: null, undone: (r && r.text) || "Undone." } : y)));
     } catch (err) { setTurns(x => x.map((y, k2) => (k2 === i ? { ...y, undoFn: null, undone: err.message || "Couldn't undo." } : y))); }
   };
+  // ⭐ D190 P4 · voice: the browser's speech-to-text → the same engine (a spoken command is the typed one)
+  const [voice, setVoice] = useState({ on: false, note: "" });
+  const listenRef = useRef(null);
+  const canSpeak = typeof window !== "undefined" && voiceSupported(window);
+  const toggleVoice = async () => {
+    if (listenRef.current) { listenRef.current.stop(); return; }
+    try {
+      setVoice({ on: true, note: "" });
+      listenRef.current = await listenOnce({ onText: (t) => { if (app) { setTurns(x => [...x, { who: "you", text: t }]); draftFor(app, t); } else say(t); },
+        onEnd: (code) => { listenRef.current = null; setVoice({ on: false, note: code ? (VOICE_ERRORS[code] || "Voice stopped — type instead.") : "" }); } });
+      setVoice({ on: true, note: voiceNote(listenRef.current.local) });
+    } catch (err) { listenRef.current = null; setVoice({ on: false, note: err.message }); }
+  };
   const answerConfirm = (i, yes) => { setTurns(x => x.map((y, k) => (k === i ? { ...y, confirm: false } : y))); say(yes ? "Yes" : "No"); };
   const decide = async (i, action, confirm) => {
     try {
@@ -544,8 +558,10 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
           <textarea className="appnav-ask__input" aria-label="Your question" rows={3} maxLength={600} value={q}
             onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(e); }}
             placeholder={app ? "e.g. I set up Splunk alerts for the payments team…" : "e.g. draft this job · open my profile · how many need me?"} data-ask-input="" />
+          {canSpeak && <button type="button" className="appnav-ask__btn" data-ask-mic="" aria-pressed={voice.on} aria-label="Speak a command" title="Speak a command" onClick={toggleVoice}>{voice.on ? "Stop" : "Speak"}</button>}
           <button type="submit" className="appnav-ask__btn" disabled={busy || !q.trim()} data-ask-send="">Ask</button>
         </form>
+        {voice.note && <p className="appnav-ask__kind" data-ask-voice-note="" aria-live="polite">{voice.note}</p>}
         {status?.available && <label className="appnav-ask__opt" data-ask-improve="">
           <input type="checkbox" checked={!!status.improveAtlas} onChange={toggleImprove} />
           Use my questions to improve Atlas (stored without your name or contact details)

@@ -1,7 +1,7 @@
-// ⭐ D190 P1 · TINY (Resume Master) + ASK DRAFT (draft): ONE ENGINE, ONE VOCABULARY, NO MODEL FOR ANYTHING THE SITE HOLDS.
-// The owner's rule (11-14): "resume master and draft both are supposed to not call for any task that is within the site's
+// ⭐ D190 P1 · TINY (the PDF-tools site) + ASK DRAFT (draft): ONE ENGINE, ONE VOCABULARY, NO MODEL FOR ANYTHING THE SITE HOLDS.
+// The owner's rule (11-14): "[the PDF-tools site] and draft both are supposed to not call for any task that is within the site's
 // premise in terms of data or function." The end-to-end walks are scripts/d190Walk.mjs (draft, real Chrome) and
-// scripts/d190TinyWalk.mjs (Resume Master, real Chrome); these are the spec's unit tests.
+// scripts/d190TinyWalk.mjs (the PDF-tools site, real Chrome); these are the spec's unit tests.
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -192,7 +192,7 @@ test("d190SiteDataNeverCallsModel — every T1 / T2 row and every unmatched ques
   assert.ok(sent.every(([p, b]) => p !== "/api/assistant/lookup" || ["drafted_today", "sponsorship", "my_skills", "question"].includes(b.intent)));
 });
 
-test("d190 · the engine is mirrored byte-identical into Resume Master (line endings aside), with the vocabulary", (t) => {
+test("d190 · the engine is mirrored byte-identical into the PDF-tools repo (line endings aside), with the vocabulary", (t) => {
   const rm = path.join(ROOT, "..", "resume-master", "public", "assistant");
   if (!fs.existsSync(rm)) return t.skip("resume-master is not checked out beside draft");
   const norm = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
@@ -220,4 +220,35 @@ test("d190 · draft: the filter sentence in the board's own words, and the dock'
   assert.equal(PLACES.board, "/app");             // and "draft" is the jobs page
   assert.equal(PLACES.profile, "/app/profile/about");
   assert.equal(PLACES.settings, "/app/profile/account");
+});
+
+test("d190 P4 · voice: the browser's recogniser, on this device when it can; the note never claims no server when there is one", async () => {
+  const { voiceSupported, listenOnce, voiceNote, VOICE_ERRORS } = await import("../shared/assistantVoice.js");
+  assert.equal(voiceSupported({}), false);
+  let made = null;
+  class SR { static async available(o) { SR.asked = o; return SR.state; } start() { made = this; } stop() { this.onend?.(); } }
+  for (const [state, local] of [["available", true], ["downloadable", false]]) {
+    SR.state = state;
+    const heard = [], ended = [];
+    const h = await listenOnce({ w: { webkitSpeechRecognition: SR, navigator: { language: "en-GB" } }, onText: (t) => heard.push(t), onEnd: (c) => ended.push(c) });
+    assert.equal(h.local, local); assert.equal(made.processLocally === true, local); assert.equal(made.lang, "en-GB");
+    assert.deepEqual(SR.asked, { langs: ["en-GB"], processLocally: true });
+    made.onresult({ results: [[{ transcript: " delete page 2 " }]] }); made.onend();
+    assert.deepEqual(heard, ["delete page 2"]); assert.deepEqual(ended, [null]);
+  }
+  assert.match(voiceNote(true), /on this device/);
+  assert.match(voiceNote(false), /browser's speech service/);
+  assert.ok(VOICE_ERRORS["not-allowed"]);
+  await assert.rejects(listenOnce({ w: {} }), /no speech input/);
+  // the voice file is mirrored too
+  const rm = path.join(ROOT, "..", "resume-master", "public", "assistant", "assistantVoice.js");
+  if (fs.existsSync(rm)) assert.equal(fs.readFileSync(rm, "utf8").replace(/\r\n/g, "\n"), read("shared/assistantVoice.js"), "change both copies of the voice helper");
+});
+
+test("d190 P2 · draft: missing keywords come from the card's own scorer reading; a posting without them says where to look", () => {
+  const job = { jobId: "j1", company: "Halcyon", why: { matched: ["Python", "SQL"], missing: ["Kafka", "Airflow"], matchedTotal: 9, missingTotal: 2 } };
+  const h = createDraftHandlers({ navigate() {}, api: async () => { throw new Error("no request"); }, action: (n) => (n === "currentJob" ? () => job : null) });
+  assert.match(h.missingKeywords().text, /missing 2 keywords: Kafka, Airflow\. It matches 9/);
+  const bare = createDraftHandlers({ navigate() {}, api: async () => ({}), action: (n) => (n === "currentJob" ? () => ({ jobId: "x", company: "Quanta" }) : null) });
+  assert.match(bare.missingKeywords().text, /Open Quanta's ATS score/);
 });
