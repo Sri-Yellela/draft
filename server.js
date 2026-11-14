@@ -8053,6 +8053,16 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_apply_logs_submit_outcome_job ON apply_job_logs(user_id, job_id) WHERE event = 'submit_outcome';
       `,
     },
+    {
+      // ⭐ A195 (46l, the 100k main-thread profile): the board's score mark — MAX(id) of a person's stored reports, read on
+      // every board load (the cursor epoch and the kept counts' key) — walked all of that person's rows through the lookup
+      // index (ordered by job_id): 1.57 ms a read, twice a load, on the main thread. Ordered by id it is one seek (0.009 ms;
+      // 740 ms to build over 491k rows).
+      id: "276_ats_only_reports_score_mark",
+      sql: `
+        CREATE INDEX IF NOT EXISTS idx_ats_only_reports_mark ON ats_only_reports(user_id, domain_profile_id, id);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
