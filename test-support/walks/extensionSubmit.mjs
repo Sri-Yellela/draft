@@ -85,12 +85,20 @@ export default async function run(h, { check, observe, section }) {
   } else {
     await page.select('select[name="cards[authorized_to_work]"]', 'yes');
   }
-  if (await page.$('#rm-gate-review-overlay >>> .rm-row[data-group="need"] [aria-label="Location"]')) {
-    await page.type('#rm-gate-review-overlay >>> .rm-row[data-group="need"] [aria-label="Location"]', 'Remote');
-    await page.click('#rm-gate-review-overlay >>> [aria-label="Location"] ~ [data-role="use"]').catch((e) => observe('use Location', e.message));
-    await sleep(1500);
-    observe('the page\'s Location after Use it', await page.$eval('input[name="location"]', el => el.value).catch(() => null));
-  } else observe('no Location input in the panel', true);
+  // The panel redraws as the answers above land (a row moves to Filled), and a redraw can replace the Location input
+  // while it is being typed into — so settle first, and try again (up to 3 times) until the page holds the value.
+  await sleep(1200);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (await page.$eval('input[name="location"]', el => el.value).catch(() => '') === 'Remote') break;
+    const inp = await page.$('#rm-gate-review-overlay >>> .rm-row[data-group="need"] [aria-label="Location"]');
+    if (!inp) break;
+    await inp.evaluate(el => { el.value = ''; });
+    await inp.type('Remote');
+    const use = await page.$('#rm-gate-review-overlay >>> [aria-label="Location"] ~ [data-role="use"]');
+    if (use) await use.click().catch(() => {});
+    await sleep(1200);
+  }
+  observe('the page\'s Location after Use it', await page.$eval('input[name="location"]', el => el.value).catch(() => null));
   const pdf = path.join(os.tmpdir(), 'a207-walk-resume.pdf');
   fs.writeFileSync(pdf, '%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
   const file = await page.$('input[name="resume"]');
@@ -110,9 +118,10 @@ export default async function run(h, { check, observe, section }) {
   check('…and records nothing', !h.api.requests.some(r => /\/api\/apply\/handoff\/submitted/.test(r.url || r.path || '')));
 
   section('5 · the person\'s ONE press');
-  // the dock had folded to its slim bar (data-collapsed) by the time the panel read Ready — the person opens it, as here
-  observe('the dock host', await page.evaluate(() => ({ ...document.getElementById('rm-draft-dock')?.dataset })));
-  if (await page.$('#rm-draft-dock >>> [data-role="expand"]')) { await page.click('#rm-draft-dock >>> [data-role="expand"]').catch(() => {}); await sleep(500); }
+  // ⭐ A207 (b) (owner 11-14: "keep the dock open on ready"): the dock folds itself while the last answers go in (a page
+  // field under it takes focus); the panel turning Ready opens it again, so the press is in reach — the walk never opens it.
+  const dockNow = await page.evaluate(() => ({ ...document.getElementById('rm-draft-dock')?.dataset }));
+  check('the dock is OPEN on a Ready extension-submit hand-off (not folded to its slim bar)', dockNow.collapsed !== 'true', JSON.stringify(dockNow));
   const sendBtn = await page.$('#rm-gate-review-overlay >>> [data-role="send"]');
   await sendBtn.evaluate(el => el.scrollIntoView({ block: 'center' }));
   await sleep(300);
