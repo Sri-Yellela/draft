@@ -49,12 +49,13 @@ test("⛔ T22: every removed action is still reachable — Ctrl+Shift+K and Ctrl
   const bg = stripJs(read("extension/background.js"));
   const onCommand = bg.slice(at(bg, "chrome.commands.onCommand.addListener"));
   assert.match(onCommand.slice(0, 400), /command === 'fill-gated-application'\) \{ void handleGatedHandoff\(\); return; \}/);
-  assert.match(onCommand.slice(0, 400), /void captureActiveTab\(tab\)/);
+  assert.match(onCommand.slice(0, 700), /void captureActiveTab\(tab\)/);   // (D191 added the panel's shortcut above it)
   // the right-click menu: capture (it always was), fill and the score — created on install, routed to the same code
   assert.deepEqual(CONTEXT_MENUS.filter(m => m.contexts.includes("page")).map(m => [m.id, m.title]), [
     [MENU_SAVE_PAGE, "Save this page to draft"],
     [MENU_FILL_PAGE, "Fill this application with draft"],
     [MENU_ATS_PAGE, "Show draft's ATS report"],
+    ["draft-ask", "Ask draft…"],   // ⭐ D191 (3): the extension's own panel
   ]);
   const onClicked = bg.slice(at(bg, "chrome.contextMenus.onClicked.addListener"), at(bg, "async function saveLinkToDraft"));
   assert.match(onClicked, /MENU_SAVE_PAGE\) \{ void captureActiveTab\(tab\); return; \}/, "capture: the same captureActiveTab");

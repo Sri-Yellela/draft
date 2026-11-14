@@ -70,6 +70,9 @@
         "mac": "Command+Shift+Y"
       },
       "description": "Fill the application you signed in to reach"
+    },
+    "open-ask-draft": {
+      "description": "Open draft's panel — your day, search, Ask draft"
     }
   },
   "content_security_policy": {

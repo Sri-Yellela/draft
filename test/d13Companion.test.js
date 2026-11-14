@@ -113,7 +113,9 @@ test("⛔ D13: no new storage, no new permission — the context is asked on the
   // D56: the drafted-application half is the page MATCH (origin list + job id, server-side) — asked only on the press.
   assert.match(ctx, /pageMatchFor\(RESUME_MASTER_URL, tab\)/);
   // ⭐ T31: the press is what asks — the toolbar's onClicked, signed in only (toolbarPress.js)
-  assert.match(bg, /context: \(\) => popupContext\(tab\),/);
+  // ⭐ D191 (46m): the press's read is also remembered in the worker's MEMORY for the Ask window (a Map — still no storage)
+  assert.match(bg, /context: async \(\) => \{ const c = await popupContext\(tab\); rememberPressContext\(tab, c\); return c; \},/);
+  assert.match(bg, /const pressContextByTab = new Map\(\);/);
   assert.match(read("extension/toolbarPress.js"), /const ctx = identity\?\.authenticated \? await deps\.context\(tab\)\.catch\(\(\) => null\) : null;/);
   // Fill is the SAME handoff the shortcut runs.
   assert.match(bg, /if \(message\.type === 'FILL_ACTIVE_TAB'\) \{\s*handleGatedHandoff\(\)/);

@@ -33,7 +33,7 @@ import { renderCopySheetPanel } from './copy-sheet-panel.js';
 import { authedFetch, getIdentity, cachedIdentity, disconnect } from './auth.js';
 import { captureResultFrom } from './captureResult.js';
 import {
-  CONTEXT_MENUS, MENU_SAVE_PAGE, MENU_SAVE_LINK, MENU_FILL_PAGE, MENU_ATS_PAGE, saveableLink, reportHostOf, buildFormReport, collectFormLabels,
+  CONTEXT_MENUS, MENU_SAVE_PAGE, MENU_SAVE_LINK, MENU_FILL_PAGE, MENU_ATS_PAGE, MENU_ASK, saveableLink, reportHostOf, buildFormReport, collectFormLabels,
 } from './formReport.js';
 // D23: the site's colour tokens, generated from client/src/styles/colorTokens.js — the toolbar badge
 // and the capture toast take their colours from here, never from a literal.
@@ -565,6 +565,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // what grants activeTab for the tab they are on — the same grant the gated handoff runs on.
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'fill-gated-application') { void handleGatedHandoff(); return; }
+  if (command === 'open-ask-draft') { chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => { void openAskWindow(tab); }); return; }
   if (command !== 'capture-job') return;
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => { void captureActiveTab(tab); });
 });
@@ -834,6 +835,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   // draft's ATS report" opens the dock on its ATS tab (a view from draft's server; nothing of the page is read for it).
   if (info.menuItemId === MENU_FILL_PAGE) { void handleGatedHandoff(tab); return; }
   if (info.menuItemId === MENU_ATS_PAGE) void openDock(tab, 'ats');
+  if (info.menuItemId === MENU_ASK) void openAskWindow(tab);
 });
 
 /** "Save link to draft": the link's address only — no page is opened or read. The server decides. */
@@ -903,7 +905,8 @@ function pressToolbar(tab) {
     collapse: () => inTop(collapseDockInPage),
     openDock: () => openDock(tab),
     identity: () => getIdentity(RESUME_MASTER_URL),
-    context: () => popupContext(tab),
+    // ⭐ D191: the press's read is remembered for this tab (memory only) — the Ask window's "this job" / "this company"
+    context: async () => { const c = await popupContext(tab); rememberPressContext(tab, c); return c; },
     auto: () => autoFactsFor(tab),
     relay: async (_t, specs) => drawInDock(tab.id, renderRelay, [specs, await overlayTheme()]),
     openBoard: () => chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app` }),
@@ -946,6 +949,32 @@ async function publicCompanyCard(tab) {
   const body = r && r.ok ? await r.json().catch(() => null) : null;
   return body?.company ? rememberCompanyHref(tab, companyFacts(body.company)) : null;
 }
+// ── ⭐ D191 (2e) / (3) · THE EXTENSION'S OWN PANEL — ask.html: the day, a search of draft, Ask draft (the site's engine) ──
+const pressContextByTab = new Map();
+function rememberPressContext(tab, c) {
+  if (!tab?.id || !c) return;
+  const p = c.posting || null, report = c.report || null;
+  const score = Number.isFinite(report?.score) ? report.score : Number.isFinite(p?.scores?.shown) ? p.scores.shown : null;
+  pressContextByTab.set(tab.id, { job: p ? { jobId: p.known ? p.jobId ?? null : null, title: p.title ?? null, company: p.company ?? null, known: !!p.known, score } : null,
+    company: c.company ? { name: c.company.name, sponsorship: c.company.sponsorship, openJobs: c.company.openJobs } : null });
+}
+async function openAskWindow(tab) {
+  await chrome.windows.create({ url: chrome.runtime.getURL(`ask.html?tab=${encodeURIComponent(tab?.id ?? '')}`), type: 'popup', focused: true, width: 440, height: 640 });
+  return { ok: true, say: null };
+}
+const fromOwnPage = (sender) => sender?.id === chrome.runtime.id && String(sender?.url || '').startsWith(chrome.runtime.getURL('ask.html'));
+// the Ask window asks what the press read on its tab, and runs the dock's own Capture / Draft there — ⛔ from ask.html only
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.type !== 'ASK_CONTEXT' && msg?.type !== 'ASK_ACT') return false;
+  if (!fromOwnPage(sender)) { sendResponse(null); return true; }
+  const tabId = Number(msg.tabId) || null;
+  if (msg.type === 'ASK_CONTEXT') { sendResponse({ server: RESUME_MASTER_URL, context: tabId ? pressContextByTab.get(tabId) || null : null }); return true; }
+  const act = msg.act === 'draft' || msg.act === 'capture' ? DOCK_ACTS[msg.act] : null;
+  if (!act || !tabId) { sendResponse({ ok: false, say: 'Press the toolbar icon on the posting first.' }); return true; }
+  chrome.tabs.get(tabId).then(t => act(t)).then(r => sendResponse(r || { ok: false }), () => sendResponse({ ok: false, say: 'That tab is gone — open the posting again.' }));
+  return true;
+});
+
 /** The card's link, kept for THIS tab in the worker's memory only (no storage key — the privacy listing's count holds):
  *  'open-company' opens only what this tab's own read found; a worker that slept in between asks for one more press. */
 const companyHrefByTab = new Map();
@@ -1004,6 +1033,7 @@ const DOCK_ACTS = Object.freeze({
     await chrome.tabs.create({ url: href }); return { ok: true, say: null };
   },
   'open-draft': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app` }); return { ok: true, say: null }; },
+  'open-ask': async (tab) => openAskWindow(tab),
   'open-needs': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app/auto-apply` }); return { ok: true, say: null }; },
   'sign-up': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/register?from=extension` }); return { ok: true, say: null }; },
   // ⭐ D112 b2 (replaces the owner's 10-23 Settings-tab trip, A105 (10)): Allow opens the ONE global-read ask — a small

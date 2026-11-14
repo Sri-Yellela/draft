@@ -252,3 +252,10 @@ test("d190 P2 · draft: missing keywords come from the card's own scorer reading
   const bare = createDraftHandlers({ navigate() {}, api: async () => ({}), action: (n) => (n === "currentJob" ? () => ({ jobId: "x", company: "Quanta" }) : null) });
   assert.match(bare.missingKeywords().text, /Open Quanta's ATS score/);
 });
+
+test("d190 · a bare | outside ( ) fails loudly (it once silently never matched “does Kestrel sponsor h1b”)", () => {
+  assert.throws(() => compileCommands({ commands: [{ intent: "x", site: "rm", tier: "T1", calls: "x", patterns: ["sponsor[ visas| h1b]"], examples: [] }] }, "rm"), /a \| outside \( \)/);
+  const c = compileCommands(COMMANDS, "draft");
+  assert.deepEqual(parse("does Kestrel sponsor h1b", c).args, { company: "Kestrel" });
+  assert.deepEqual(parse("does this company sponsor?", c).args, {}, "“this company” is the open posting's, never a company called that");
+});

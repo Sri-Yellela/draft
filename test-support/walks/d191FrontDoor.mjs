@@ -7,7 +7,9 @@
  *      draft's own records: its H-1B line (none on file here) · "N open jobs on draft" · [Company]
  *   2. Company, the person's own click → draft's company page opens in a new tab (the link from THIS tab's read)
  *   3. the toolbar badge: today's undecided matches (GET /api/extension/home — 2 here), set by the press
- *   4. a page with nothing else to say → the day in one line: "Today: 2 new matches…" [Matches] (+ [Needs you] when something does)
+ *   4. a page with nothing else to say → the day in one line: "Today: 2 new matches…" [Open] (the panel) [Matches]
+ *   5. the panel (ask.html): the day's tiles; Ask draft on the site's engine — T2 from this tab's read and the day, a search
+ *      handed to draft's board (?search=), "save this" through the dock's own Capture, T3 not offered; a spoken command
  *   ⛔ no model route is asked at any point.
  * Synthetic person (Ada Example) and employer throughout.
  */
@@ -65,7 +67,8 @@ export default async function run(h, { check, observe, section }) {
   const before = h.browser.targets().length;
   const btn = await h.page.evaluateHandle(() => document.getElementById('draft-company')?.shadowRoot?.querySelector('[data-action="open-company"]') || null);
   await btn.asElement()?.click();
-  const opened = await waitUntil(() => h.browser.targets().find(t => t.url().startsWith('https://jobsviadraft.com/companies/northwind-systems')) || null, 8000, 200);
+  const opened = await waitUntil(async () => (await h.control.evaluate(async () => (await chrome.tabs.query({})).map(t => t.pendingUrl || t.url)))
+    .find(u => String(u).startsWith('https://jobsviadraft.com/companies/northwind-systems')) || null, 8000, 200);
   check('a tab on https://jobsviadraft.com/companies/northwind-systems', !!opened, `${before} → ${h.browser.targets().length}`);
 
   section('3 · the toolbar badge — today\'s undecided matches');
@@ -82,8 +85,61 @@ export default async function run(h, { check, observe, section }) {
   observe('the popups on this page', await h.page.evaluate(() => [...document.querySelectorAll('[data-draft-popup]')].map(e => `${e.id}: ${e.shadowRoot?.querySelector('.tx')?.textContent || ''}`)));
   observe('the home line', day);
   // (the harness's schema refuses the seeded held run-job, so "needs you" is 0 here — the unit test drives that part)
-  check('"Today: 2 new matches…" with Matches (Needs you only when something does)', /^Today: 2 new matches/.test(day?.text || '') && day.actions[0] === 'open-draft'
-    && (/needs? you/.test(day.text) === day.actions.includes('open-needs')), JSON.stringify(day));
+  check('"Today: 2 new matches…" with Open (the panel) and Matches', /^Today: 2 new matches/.test(day?.text || '') && day.actions.join(',') === 'open-ask,open-draft', JSON.stringify(day));
+
+  section('5 · the extension\'s own panel (ask.html) — the day, Ask draft on the same engine, a search of draft, voice');
+  check('the home line\'s first button opens the panel', day?.actions?.[0] === 'open-ask', JSON.stringify(day?.actions));
+  await h.open(`${origin}/posting`, { settle: 700 });
+  let pressed = await h.send({ type: 'TOOLBAR_PRESS' });
+  if (pressed?.did === 'closed') { await sleep(300); pressed = await h.send({ type: 'TOOLBAR_PRESS' }); }   // a dock left open: close, then open (and read)
+  observe('the press on the posting', pressed);
+  await sleep(1500);
+  const extOrigin = h.control.url().split('/').slice(0, 3).join('/');   // (a chrome-extension:// URL's origin reads "null")
+  const postingTab = await h.control.evaluate(async () => (await chrome.tabs.query({})).find(t => /\/posting$/.test(t.url || ''))?.id ?? null);
+  const ask = await h.browser.newPage();
+  await ask.evaluateOnNewDocument(() => {
+    window.SpeechRecognition = class { static async available() { return 'available'; }
+      start() { setTimeout(() => { this.onresult?.({ results: [[{ transcript: window.__say || 'help' }]] }); this.onend?.(); }, 60); } stop() { this.onend?.(); } };
+  });
+  const askLog = [];
+  ask.on('console', m => askLog.push(`${m.type()}: ${m.text()}`)); ask.on('pageerror', e => askLog.push(`error: ${e.message}`));
+  await ask.goto(`${extOrigin}/ask.html?tab=${postingTab}`, { waitUntil: 'domcontentloaded' });
+  const ready = await waitUntil(() => ask.evaluate(() => globalThis.__askReady === true || null), 10000, 200);
+  observe('the panel loaded', { ready, log: askLog.slice(0, 6), homeAsks: h.api.requests.filter(r => r.path === '/api/extension/home').length });
+  observe('a probe from the panel', await ask.evaluate(async (api) => { try { const m = await import('./auth.js'); const r = await m.authedFetch(api, `/api/extension/home?date=${new Date().toLocaleDateString('en-CA')}`); return { status: r?.status ?? null, body: r ? (await r.text()).slice(0, 200) : null }; } catch (e) { return { error: String(e) }; } }, h.api.origin));
+  const dayTiles = await ask.$$eval('[data-day]', els => els.map(e => `${e.dataset.day}=${e.querySelector('b')?.textContent}`));
+  check('the day: new matches 2 (and needs you, drafted, sent)', dayTiles.includes('newMatches=2') && dayTiles.length === 4, dayTiles.join(' '));
+  const askTell = async (s) => {
+    const n0 = await ask.$$eval('.turn[data-who="draft"]', els => els.length);
+    await ask.type('#ask-input', s); await ask.keyboard.press('Enter');
+    await waitUntil(() => ask.$$eval('.turn[data-who="draft"]', (els, n) => (els.length > n ? true : null), n0), 10000, 150);
+    return ask.evaluate(() => { const t = [...document.querySelectorAll('.turn[data-who="draft"]')].pop(); return { tier: t.dataset.tier, label: t.querySelector('.label')?.textContent || null, text: t.lastChild.textContent }; });
+  };
+  let t = await askTell('does this company sponsor?');
+  check('“does this company sponsor?” — T2 from this tab\'s read (Northwind)', t.tier === 'T2' && /Northwind Systems/.test(t.text), JSON.stringify(t));
+  t = await askTell('how many need me?');
+  check('“how many need me?” — T2 from the day', t.tier === 'T2' && /need|Nothing needs you/.test(t.text), JSON.stringify(t));
+  const tabsBefore = h.browser.targets().length;
+  t = await askTell('show me remote senior jobs');
+  const searched = await waitUntil(() => h.browser.targets().find(x => /\/app\/jobs\?search=remote(%20|\+)senior/.test(x.url())) || null, 6000, 200);
+  check('“show me remote senior jobs” opens draft\'s board with ?search=', t.tier === 'T1' && !!searched, `${t.text} · ${tabsBefore} → ${h.browser.targets().length}`);
+  await ask.bringToFront().catch(() => {});
+  t = await askTell('rewrite this bullet to highlight Kafka');
+  check('“rewrite this bullet…” — not offered in the extension, nothing sent', t.tier === 'ask' && /isn't offered in the extension/.test(t.text), JSON.stringify(t));
+  await ask.bringToFront().catch(() => {});   // the search opened a tab in the main window; the panel comes back to the front
+  await ask.evaluate(() => { window.__say = 'how many need me'; });
+  const n1 = await ask.$$eval('.turn[data-who="draft"]', els => els.length);
+  await ask.click('#ask-mic');
+  await waitUntil(() => ask.$$eval('.turn[data-who="draft"]', (els, n) => (els.length > n ? true : null), n1), 8000, 150);
+  const spoken = await ask.evaluate(() => [...document.querySelectorAll('.turn[data-who="you"]')].pop()?.textContent || '');
+  check('P5 · a spoken command goes through the same engine', /how many need me/.test(spoken), spoken);
+  t = await askTell('save this');
+  const saved = await waitUntil(async () => { const s = await h.send({ type: 'TAB_STATE', tabId: postingTab }).catch(() => null); return s?.state?.jobId || (h.api.requests.some(r => /\/api\/import/.test(r.path) && r.method === 'POST') ? 'posted' : null); }, 10000, 300);
+  check('“save this” — the dock\'s own Capture on the posting\'s tab', t.tier === 'T1' && !!saved, `${t.text} · ${saved}`);
+  await ask.bringToFront().catch(() => {});
+  const ledger = await ask.evaluate(() => (globalThis.__askLedger || []).map(x => x.tier));
+  check('the panel\'s ledger has no T3', !ledger.includes('T3'), ledger.join(','));
+  await ask.close();
 
   const model = h.api.requests.filter(r => /assistant\/ask|anthropic|\/v1\/messages/.test(r.path));
   check('⛔ no model route was asked', model.length === 0, JSON.stringify(model));
