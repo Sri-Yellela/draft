@@ -55,7 +55,9 @@ test("a187: wiring — only the bulk writer goes slim; every reader of a stored 
   // of main thread when done one by one on it; a 3k local fixture, 46i).
   assert.equal((server.match(/await expandSlimPage\(req\.user\.id, profile\.id, body\.jobs\.map\(j => j\.id\)\)/g) || []).length, 2);
   assert.match(server, /const out = await scoreBatchForBasis\(jobs, basis\.runtimeBasis\);/);
-  assert.match(src("services/bestBets.js"), /fullReport\(db\.prepare\(`SELECT ats_report FROM ats_only_reports/);
+  // A195 leftover (b) (46m): one read of the report and its score (a statement prepared once) — the report still through fullReport
+  assert.match(src("services/bestBets.js"), /const stored = safe\(\(\) => prepared\(db, `SELECT ats_report, ats_score FROM ats_only_reports/);
+  assert.match(src("services/bestBets.js"), /fullReport\(stored\?\.ats_report \|\| "null"/);
   assert.match(src("services/interviewPrep.js"), /fullReport\(r\.ats_report, \{ userId, profileId: r\.domain_profile_id, jobId \}\)/);
   assert.match(src("services/learn/dailyQuestion.js"), /fullReport\(r\.ats_report, \{ userId, profileId: r\.domain_profile_id, jobId: r\.job_id \}\)/);
   assert.match(src("routes/apply.js"), /const full = fullReport\(row\.ats_report, \{ userId, profileId, jobId \}\);/);

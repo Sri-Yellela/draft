@@ -14,6 +14,7 @@
 //     CALIBRATED_MIN (500) outcomes exist. Until then the card says signals only.
 // ⛔ D17: rules and arithmetic, no model.
 
+import { prepared } from "./stmtCache.js";   // A195 leftover (b): fixed SQL prepared once per database
 import { bestBetOf, shortlistSize, CALIBRATED_MIN, BEST_BET_WEIGHTS } from "../shared/bestBets.js";
 import { levelRank } from "../shared/postingLevel.js";
 import { responseBucket } from "../shared/applicationResponse.js";
@@ -43,7 +44,7 @@ function velocityOf(db, company, now) {
   if (!key) return null;
   const hit = velocityCache.get(key);
   if (hit && hit.db === db && Math.abs(now - hit.at) < VELOCITY_TTL_SEC) return hit.value;
-  const r = safe(() => db.prepare(`SELECT MIN(first_seen) AS first, SUM(CASE WHEN closed_at >= ? THEN 1 ELSE 0 END) AS closed60
+  const r = safe(() => prepared(db, `SELECT MIN(first_seen) AS first, SUM(CASE WHEN closed_at >= ? THEN 1 ELSE 0 END) AS closed60
       FROM job_history WHERE company_key = ?`).get(now - 60 * DAY, key), null);
   const value = velocityValue(r, now);
   if (velocityCache.size > 20000) velocityCache.clear();
@@ -99,13 +100,14 @@ const breathe = () => new Promise(resolve => setImmediate(resolve));
 export function bestBetSignalsFor(db, { userId, profileId = null, job, userLevel = undefined, inputs = null, aim = undefined, warm = undefined, now = Math.floor(Date.now() / 1000) }) {
   const jobId = String(job?.job_id ?? job?.id ?? job?.jobId);
   const row = job?.description != null && job?.job_id != null ? job
-    : safe(() => db.prepare(`SELECT * FROM scraped_jobs WHERE job_id = ?`).get(jobId), null) ?? {};
+    : safe(() => prepared(db, `SELECT * FROM scraped_jobs WHERE job_id = ?`).get(jobId), null) ?? {};
   const eligInputs = inputs ?? safe(() => userEligibilityInputs(db, userId), { defaults: {}, degrees: [] });
   const elig = safe(() => eligibilityForJob(db, userId, jobId, eligInputs), null);
-  const report = safe(() => fullReport(db.prepare(`SELECT ats_report FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ? AND job_id = ?
-      ORDER BY id DESC LIMIT 1`).get(userId, profileId, jobId)?.ats_report || "null", { userId, profileId, jobId }), null);   // A187: a slim row expanded
-  const score = safe(() => db.prepare(`SELECT ats_score FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ? AND job_id = ?
-      ORDER BY id DESC LIMIT 1`).get(userId, profileId, jobId)?.ats_score, null);
+  // ⭐ A195 leftover (b): the report and its score in ONE read of a statement prepared once (was two, each compiled per call)
+  const stored = safe(() => prepared(db, `SELECT ats_report, ats_score FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ? AND job_id = ?
+      ORDER BY id DESC LIMIT 1`).get(userId, profileId, jobId), null);
+  const report = safe(() => fullReport(stored?.ats_report || "null", { userId, profileId, jobId }), null);   // A187: a slim row expanded
+  const score = stored?.ats_score;
   let mustHaves = null;
   if (report && (report.tier1_matched?.length || report.tier1_missing?.length)) {
     const matched = report.tier1_matched || [], missing = report.tier1_missing || [];
@@ -115,7 +117,7 @@ export function bestBetSignalsFor(db, { userId, profileId = null, job, userLevel
   }
   const uLevel = userLevel === undefined ? safe(() => userLevelFor(db, userId), null) : userLevel;
   const asked = levelRank(row.level_read ?? null);
-  const first = safe(() => db.prepare(`SELECT first_seen FROM job_history WHERE job_id = ?`).pluck().get(jobId), null)
+  const first = safe(() => prepared(db, `SELECT first_seen FROM job_history WHERE job_id = ?`, { pluck: true }).get(jobId), null)
     ?? (Number.isFinite(row.discovered_at) ? row.discovered_at : null);
   return {
     // "you're eligible" only when the user SET something a requirement could contradict, and nothing does.

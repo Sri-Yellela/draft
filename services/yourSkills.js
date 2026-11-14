@@ -20,6 +20,7 @@
 //      accepts as the candidate's claims. Scoring is unchanged (a claim still counts toward the ATS score, D152 (8)).
 // ⛔ D17: no model. ⛔ Not a certificate: a check is self-awareness; nothing here is shown to an employer.
 
+import { prepared } from "./stmtCache.js";   // A195 leftover (b): fixed SQL prepared once per database
 import { resolveTerms, aliasesOf, termOf, readNode } from "./atlas/atlasStore.js";
 import { atlasIndex, computeYourMap } from "./atlas/atlasMe.js";
 import { nodeLearnStates } from "./atlas/atlasTree.js";
@@ -99,11 +100,11 @@ const better = (a, b) => (!a ? b : !b ? a : RANK[b.state] > RANK[a.state] || (RA
 export function proofsOf(db, userId) {
   const out = new Map();
   const put = (key, p) => out.set(key, better(out.get(key), p));
-  for (const r of safe(() => db.prepare(`SELECT * FROM skill_proofs WHERE user_id = ? ORDER BY created_at, id`).all(userId), [])) {
+  for (const r of safe(() => prepared(db, `SELECT * FROM skill_proofs WHERE user_id = ? ORDER BY created_at, id`).all(userId), [])) {   // A195 (b)
     put(r.skill_key, { state: r.state, via: r.via, url: r.url || null, label: r.label || null, kind: r.kind || null, at: r.created_at });
   }
   // D142's adaptive checks: counted as CHECKED only when passed at the same share (a check is awareness; a pass is proof).
-  for (const r of safe(() => db.prepare(`SELECT skill_key, finished_at, summary_json FROM readiness_checks WHERE user_id = ? AND finished_at IS NOT NULL`).all(userId), [])) {
+  for (const r of safe(() => prepared(db, `SELECT skill_key, finished_at, summary_json FROM readiness_checks WHERE user_id = ? AND finished_at IS NOT NULL`).all(userId), [])) {
     const s = safe(() => JSON.parse(r.summary_json), null);
     const asked = (s?.concepts || []).reduce((a, c) => a + (c.asked || 0), 0), right = (s?.concepts || []).reduce((a, c) => a + (c.right || 0), 0);
     if (asked && right / asked >= YOUR_SKILLS.PASS_SHARE) put(r.skill_key, { state: "checked", via: "check", at: r.finished_at });

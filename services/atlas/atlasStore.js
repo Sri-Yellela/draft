@@ -11,6 +11,7 @@
 // ⭐ Amended 10-31: a node is published by a person OR by the nightly auto-publish bar (atlasPublish.js); a person's
 // un-publish is recorded and sticks.
 
+import { prepared } from "../stmtCache.js";   // A195 leftover (b): fixed SQL prepared once per database
 import { normaliseAtsTerm } from "../localAtsScorer.js";
 import { recordSynonymProposals, confirmSynonym } from "../kb/skillSynonyms.js";
 import { searchKey, matchCandidate } from "../../shared/atlasSearchNormalize.js";
@@ -56,8 +57,8 @@ export function addEdge(db, fromId, toId, type, source = "owner") {
 /** The confirmed ALIASES of a term, from the scorer's own table. 'related' pairs are not aliases. */
 export function aliasesOf(db, term) {
   try {
-    return db.prepare(`SELECT CASE WHEN term = ? THEN equivalent ELSE term END AS alias FROM skill_synonyms
-      WHERE status = 'confirmed' AND relation = 'alias' AND (term = ? OR equivalent = ?) ORDER BY alias`).pluck().all(term, term, term);
+    return prepared(db, `SELECT CASE WHEN term = ? THEN equivalent ELSE term END AS alias FROM skill_synonyms
+      WHERE status = 'confirmed' AND relation = 'alias' AND (term = ? OR equivalent = ?) ORDER BY alias`, { pluck: true }).all(term, term, term);   // A195 (b): prepared once
   } catch { return []; }
 }
 
