@@ -18,6 +18,7 @@
 // written by the nightly pass and moved by every posting ingested, changed or closed in between. Before the first full
 // pass one pass of its own counts it. The user half is computed on every read, so a profile change shows at once.
 
+import { prepared } from "../stmtCache.js";   // A195 leftover (b): fixed SQL prepared once per database
 import { postingMatcher, roleLevelsOfBoard } from "./atlasStats.js";
 import { liveRoleLevels, atlasPostingsChanged, liveStamp, LIVE_CACHE_MS } from "./atlasLive.js";
 import { haveTerms, KINDS, termOf, aliasesOf } from "./atlasStore.js";
@@ -181,7 +182,7 @@ export function userBandLabel(db, userId) {
 // LIVE_CACHE_MS. ⛔ The kept objects are SHARED between requests — callers read them, never mutate them.
 const sharedAtlas = new WeakMap();   // db → Map(key → { stamp, at, value })
 function statsKey(db) {
-  try { return db.prepare(`SELECT COUNT(*) || ':' || COALESCE(MAX(computed_at), 0) || ':' || COALESCE(SUM(postings), 0) FROM atlas_node_stats`).pluck().get(); }
+  try { return prepared(db, `SELECT COUNT(*) || ':' || COALESCE(MAX(computed_at), 0) || ':' || COALESCE(SUM(postings), 0) FROM atlas_node_stats`, { pluck: true }).get(); }   // A195 (b)
   catch { return "-"; }
 }
 function keptAtlas(db, key, compute, now = Date.now()) {

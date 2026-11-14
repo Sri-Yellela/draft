@@ -3,6 +3,7 @@
 // The posting's requirements are read from its own text NOW (shared/postingRequirements.js — the stored req_* columns
 // carry only citizenship and clearance), and compared with the user's Application defaults (D101) and the degrees
 // their profile states. Read-only.
+import { prepared } from "./stmtCache.js";   // A195 leftover (b): fixed SQL prepared once per database
 import { postingRequirements } from "../shared/postingRequirements.js";
 import { normalizePosting } from "../shared/postingNormalize.js";
 import { eligibilityOf } from "../shared/eligibility.js";
@@ -39,7 +40,7 @@ export function userEligibilityInputs(db, userId) {
 /** @returns { status, reasons, missing, requirements } — `eligible` with no requirements when the posting is gone. */
 export function eligibilityForJob(db, userId, jobId, inputs = null) {
   let row = null;
-  try { row = db.prepare(`SELECT * FROM scraped_jobs WHERE job_id = ?`).get(String(jobId)); } catch { row = null; }
+  try { row = prepared(db, `SELECT * FROM scraped_jobs WHERE job_id = ?`).get(String(jobId)); } catch { row = null; }   // A195 (b)
   if (!row?.description) return { status: "eligible", reasons: [], missing: [], requirements: null };
   const req = requirementsOfText(row.description_full ?? row.description);   // ⭐ A175 (46g)
   const { defaults, degrees } = inputs || userEligibilityInputs(db, userId);
