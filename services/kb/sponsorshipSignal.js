@@ -48,13 +48,33 @@ const EVERIFY_WORDS = /\bE-?Verify\b/i;
 
 const titleCase = (s) => s.replace(/\b[a-z]/g, c => c.toUpperCase());
 
+// ⭐ A195 (46l, measured — a main-thread profile of 10 users × 45 s on the 100k fixture: the main thread idle 2.6 s of 46 s;
+// boardPageResponse 13.3 s, ~3.7 s of it re-reading the SAME 50 postings' text through postingRequirements on every load).
+// The reading depends on the text alone, so it is kept per text: a bounded map keyed on the text's length and an FNV-1a
+// hash (a few microseconds against the sentence reader's milliseconds). The same text → the same answer, by construction.
+const WORDS_MEMO_MAX = 5000;
+const wordsMemo = new Map();
+function textKey(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return `${s.length}:${(h >>> 0).toString(36)}`;
+}
+/** For the tests: how many readings are kept, and a way to forget them. */
+export const __wordsMemo = { size: () => wordsMemo.size, clear: () => wordsMemo.clear() };
+
 /** The posting's own words: { saysNo, everify } read from its text (D104's reader — the one rule). */
 export function postingSponsorshipWords(posting) {
-  const text = posting?.description_full ?? posting?.description ?? posting?.text ?? "";
-  if (!String(text).trim()) return { saysNo: false, everify: false };
+  const text = String(posting?.description_full ?? posting?.description ?? posting?.text ?? "");
+  if (!text.trim()) return { saysNo: false, everify: false };
+  const k = textKey(text);
+  const kept = wordsMemo.get(k);
+  if (kept) return { ...kept };
   let saysNo = false;
   try { saysNo = postingRequirements(normalizePosting(text)).sponsorship === "no_sponsorship"; } catch { saysNo = false; }
-  return { saysNo, everify: EVERIFY_WORDS.test(String(text)) };
+  const out = { saysNo, everify: EVERIFY_WORDS.test(text) };
+  if (wordsMemo.size >= WORDS_MEMO_MAX) wordsMemo.delete(wordsMemo.keys().next().value);   // oldest first
+  wordsMemo.set(k, out);
+  return { ...out };
 }
 
 /** The title family's certified cases at the matched employer in one fiscal year, or null. */
@@ -101,15 +121,22 @@ export function titleFacts(db, lca, title, fiscalYear) {
  * @param company  the posting's company string (as the board stores it)
  * @param opts     { title — the posting's title (the title level) · posting — a scraped_jobs row or { description } }
  */
-export function sponsorshipSignal(db, company, { title = null, posting = null } = {}) {
+export function sponsorshipSignal(db, company, { title = null, posting = null, companyMemo = null } = {}) {
   const words = postingSponsorshipWords(posting);
   const facts = [];
   const sources = [];
   const addSource = (s) => { if (s && !sources.some(x => x.name === s.name && x.url === s.url)) sources.push(s); };
-  let lca = null;
-  try { lca = company ? getCompanyLca(db, company) : null; } catch { lca = null; }
-  let fact = null;
-  try { fact = lca?.presentable ? sponsorshipFactFor(db, company) : null; } catch { fact = null; }
+  // A195 (46l): a page's rows share companies — the company's record is read once per page (companyMemo), not once per row.
+  const companyRead = () => {
+    let lca = null;
+    try { lca = company ? getCompanyLca(db, company) : null; } catch { lca = null; }
+    let fact = null;
+    try { fact = lca?.presentable ? sponsorshipFactFor(db, company) : null; } catch { fact = null; }
+    return { lca, fact };
+  };
+  const ck = companyMemo && company ? String(company) : null;
+  const read = ck ? (companyMemo.get(ck) ?? (companyMemo.set(ck, companyRead()), companyMemo.get(ck))) : companyRead();
+  const { lca, fact } = read;
 
   let level = "unknown", fiscalYear = null;
   if (fact) {
@@ -152,10 +179,11 @@ export function sponsorshipSignal(db, company, { title = null, posting = null } 
 /** A page of board rows → Map(job_id → signal), one company read per company (the title level per row). */
 export function sponsorshipSignalsForRows(db, rows) {
   const out = new Map();
+  const companyMemo = new Map();   // A195: one company read per company on the page, as this function always said
   for (const r of rows || []) {
     if (!r) continue;
     let s = null;
-    try { s = sponsorshipSignal(db, r.company, { title: r.title, posting: r }); } catch { s = null; }
+    try { s = sponsorshipSignal(db, r.company, { title: r.title, posting: r, companyMemo }); } catch { s = null; }
     out.set(r.job_id ?? r.jobId ?? r.id, s);
   }
   return out;

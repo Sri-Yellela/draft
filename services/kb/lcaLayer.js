@@ -80,7 +80,19 @@ function formatFiscalPeriod(year, quarter) {
  * over those quarters. Exposed rather than hidden because it is a real limit on how finely two
  * employers can be told apart in the older half of the window.
  */
-function getCorpusCoverage(db) {
+// ⭐ A195 (46l, the 100k main-thread profile): every board row re-read and re-sorted lca_source_files (getCompanyLca →
+// getCorpusCoverage), ~1 s of main-thread time per 1,100 board loads. The table changes only when an LCA file is ingested,
+// so its answer is kept per database for COVERAGE_KEEP_MS (an ingest is seen within that); `fresh: true` reads it now.
+const COVERAGE_KEEP_MS = 30_000;
+const coverageKept = new WeakMap();   // db → { at, value }
+function getCorpusCoverage(db, { fresh = false } = {}) {
+  const kept = !fresh && coverageKept.get(db);
+  if (kept && Date.now() - kept.at < COVERAGE_KEEP_MS) return kept.value;
+  const value = readCorpusCoverage(db);
+  try { coverageKept.set(db, { at: Date.now(), value }); } catch { /* a non-object db: never kept */ }
+  return value;
+}
+function readCorpusCoverage(db) {
   const rows = db.prepare(
     `SELECT fiscal_period, file_name, period_start, period_end, has_employer_fein, quarters_covered
        FROM lca_source_files`
@@ -330,7 +342,7 @@ function getUscisHubCoverage(db) {
 function reconcileCompanyLca(db, opts = {}) {
   const now = opts.now ?? Math.floor(Date.now() / 1000);
   const companies = opts.companies?.length ? opts.companies : knownCompanies(db);
-  const coverage = getCorpusCoverage(db);
+  const coverage = getCorpusCoverage(db, { fresh: true });   // A195: a reconcile follows an ingest — read it now
   const provenance = JSON.stringify({
     source: 'dol_oflc_lca',
     files: coverage.files,
@@ -509,10 +521,13 @@ function mapLcaRow(row, coverage) {
  * @param {string} company
  * @returns {ReturnType<typeof mapLcaRow>} null when this company has never been reconciled.
  */
+const companyStmt = new WeakMap();   // A195: prepared once per database, not once per board row
 function getCompanyLca(db, company) {
   let row;
   try {
-    row = db.prepare(`SELECT * FROM company_lca_sponsorship WHERE company = ?`).get(company);
+    let s = companyStmt.get(db);
+    if (!s) { s = db.prepare(`SELECT * FROM company_lca_sponsorship WHERE company = ?`); companyStmt.set(db, s); }
+    row = s.get(company);
   } catch { return null; } // pre-migration DB — the company view must still render
   if (!row) return null;
   return mapLcaRow(row, getCorpusCoverage(db));
