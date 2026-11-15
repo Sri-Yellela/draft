@@ -44,6 +44,9 @@ async function load() {
     .map(([k, label, path]) => { const a = document.createElement('a'); a.href = `${RESUME_MASTER_URL}${path}`; a.target = '_blank'; a.dataset.day = k;
       a.append(Object.assign(document.createElement('b'), { textContent: String(home[k] ?? '–') }), Object.assign(document.createElement('span'), { textContent: label })); return a; })
     : [Object.assign(document.createElement('a'), { href: `${RESUME_MASTER_URL}/login`, target: '_blank', textContent: 'Sign in to draft to see your day' })]));
+  // ⭐ A211 (1a) (b): the runner's button says how many wait to be sent from this browser
+  const n = Number(home?.toSend) || 0;
+  $('ask-runner').textContent = n > 0 ? `${n} waiting to send from this browser — Open the runner` : 'Apply while this is open';
 }
 
 const job = () => ctx?.job || null;

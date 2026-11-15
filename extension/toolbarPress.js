@@ -75,10 +75,14 @@ export function relayFor({ identity = null, ctx = null, auto = null, away = null
   // connected) or the connected line with Disconnect. The specs are applyAway.js awayRelay's (deps.away gathers the facts).
   if (Array.isArray(away)) out.push(...away);
   // ⭐ D191 P1 · on a page with nothing else to say: the person's day (draft's home, in one line) — never on top of a question
-  const day = !out.length ? homeLine(home) : null;
+  // ⭐ A211 (1a) (b): applications waiting to be sent from this browser → the runner is the first thing offered (no timer:
+  // said only on a press, as the day line is)
+  const waiting = !out.length ? runnerLine(home) : null;
+  const day = !out.length ? [homeLine(home), waiting].filter(Boolean).join(' · ') || null : null;
   if (day) out.push({ id: 'draft-home', kind: 'toast', icon: 'info', ms: 7000, text: day,
     // ⭐ D191 (3): Open = the extension's own panel (the day, a search of draft, Tiny); Matches = draft's board
-    actions: [{ id: 'open-ask', label: "Open draft's panel — your day, search, Tiny", word: 'Open', primary: true }, { id: 'open-draft', label: 'Open your matches in draft', word: 'Matches' }] });
+    actions: [...(waiting ? [{ id: 'open-runner', label: 'Open the runner — fill them here, then one press sends them', word: 'Runner', primary: true }] : []),
+      { id: 'open-ask', label: "Open draft's panel — your day, search, Tiny", word: 'Open', primary: !waiting }, { id: 'open-draft', label: 'Open your matches in draft', word: 'Matches' }] });
   return out;
 }
 
@@ -95,6 +99,11 @@ export function homeLine(h) {
     Number(h.needsYou) > 0 ? `${h.needsYou} need${h.needsYou === 1 ? 's' : ''} you` : null,
     Number(h.drafted) > 0 ? `${h.drafted} drafted` : null, Number(h.sent) > 0 ? `${h.sent} sent` : null].filter(Boolean);
   return parts.length ? `Today: ${parts.join(' · ')}` : null;
+}
+/** ⭐ A211 (1a) (b) · "3 waiting to send from this browser" — or null when none. Pure. */
+export function runnerLine(h) {
+  const n = Number(h?.toSend) || 0;
+  return n > 0 ? `${n} waiting to send from this browser` : null;
 }
 
 /**
