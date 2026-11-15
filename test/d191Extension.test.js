@@ -193,3 +193,33 @@ test("46n · the panel's chat is Tiny, with the fox: the same name and face as o
   assert.equal(read("extension/tinyMascot.js"), read("shared/tinyMascot.js"), "change both copies of the mascot");
   assert.match(JSON.parse(read("extension/manifest.json")).commands["open-ask-draft"].description, /Tiny$/);
 });
+
+test("A211 (b) · the home view counts the applications waiting to be sent from this browser; the press and the panel offer the runner", async () => {
+  const { EXTENSION_SUBMIT_REASONS } = await import("../services/extensionHome.js");
+  const ext = await import("../extension/extensionSubmit.js");
+  assert.deepEqual([...EXTENSION_SUBMIT_REASONS], [...ext.EXTENSION_SUBMIT_REASONS], "the server's list = the extension's (change both)");
+  const db = homeDb();
+  db.exec(`ALTER TABLE apply_run_jobs ADD COLUMN hidden_at INTEGER;
+    CREATE TABLE apply_gate_packets (id INTEGER PRIMARY KEY, user_id INTEGER, run_job_id INTEGER, gate_reason TEXT, consumed_at INTEGER, created_at INTEGER DEFAULT (unixepoch()));
+    INSERT INTO apply_run_jobs (id, run_id, user_id, job_id, status, hidden_at) VALUES (50, 2, 7, 'h', 'held_gate', unixepoch());
+    INSERT INTO apply_gate_packets (user_id, run_job_id, gate_reason, consumed_at, created_at) VALUES
+      (7, NULL, 'server_submit_paused', NULL, unixepoch()),
+      (7, NULL, 'flagged_spam', NULL, unixepoch() - 3600),
+      (7, NULL, 'server_submit_paused', unixepoch(), unixepoch()),
+      (7, NULL, 'server_submit_paused', NULL, unixepoch() - 80 * 3600),
+      (7, 50, 'server_submit_paused', NULL, unixepoch()),
+      (7, NULL, 'login_required', NULL, unixepoch()),
+      (8, NULL, 'server_submit_paused', NULL, unixepoch());`);
+  assert.equal(extensionHome(db, 7, { date: "2026-11-14" }).toSend, 2, "fresh, unsent, not cleared, extension-submit, this person's");
+  assert.equal(extensionHome(homeDb(), 7).toSend, 0, "no packets table (an older schema) → 0, the view still draws");
+  const quiet = relayFor({ identity: SIGNED_IN, ctx: { identity: null }, home: { newMatches: 0, needsYou: 0, drafted: 0, sent: 0, toSend: 3 } });
+  assert.equal(quiet[0].text, "3 waiting to send from this browser");
+  assert.deepEqual(quiet[0].actions.map(a => [a.id, !!a.primary]), [["open-runner", true], ["open-ask", false], ["open-draft", false]]);
+  const both = relayFor({ identity: SIGNED_IN, ctx: { identity: null }, home: { newMatches: 2, toSend: 1 } });
+  assert.equal(both[0].text, "Today: 2 new matches · 1 waiting to send from this browser");
+  const none = relayFor({ identity: SIGNED_IN, ctx: { identity: null }, home: { newMatches: 2, toSend: 0 } });
+  assert.deepEqual(none[0].actions.map(a => a.id), ["open-ask", "open-draft"], "nothing waiting → no runner button");
+  assert.match(read("extension/ask.js"), /\$\('ask-runner'\)\.textContent = n > 0 \? `\$\{n\} waiting to send from this browser — Open the runner` : 'Apply while this is open';/);
+  // no timer: the count rides the existing home read (on a page load or a press, at most every few minutes)
+  assert.doesNotMatch(read("extension/toolbarPress.js"), /setInterval|chrome\.alarms/);
+});

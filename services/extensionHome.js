@@ -12,9 +12,12 @@ import { findCompany } from "./companies/companyRecords.js";
 import { sponsorshipFactFor } from "./kb/sponsorshipFacts.js";
 import { decidedJobIds } from "./dailyDraft.js";
 import { companySlug } from "../shared/companyPaths.js";
+import { PACKET_STALE_MS } from "./applyGatePacket.js";
 
 const ORIGIN = "https://jobsviadraft.com";
 const NEEDS_YOU = Object.freeze(["held_review", "held_gate"]);
+// the reasons a packet is sent from the person's browser — the same list as extension/extensionSubmit.js (a test keeps them equal)
+export const EXTENSION_SUBMIT_REASONS = Object.freeze(["server_submit_paused", "flagged_spam"]);
 
 export function extensionHome(db, userId, { date = new Date().toISOString().slice(0, 10) } = {}) {
   const day = db.prepare(`SELECT COUNT(*) AS drafted, SUM(CASE WHEN status = 'submitted' THEN 1 ELSE 0 END) AS sent
@@ -26,7 +29,16 @@ export function extensionHome(db, userId, { date = new Date().toISOString().slic
     const dealt = db.prepare(`SELECT job_id FROM daily_drafts WHERE user_id = ? AND draft_date = ?`).pluck().all(userId, date);
     if (dealt.length) { const decided = decidedJobIds(db, userId); newMatches = dealt.filter(id => !decided.has(id)).length; }
   } catch { newMatches = null; }
-  return { date, drafted: Number(day.drafted) || 0, sent: Number(day.sent) || 0, needsYou: Number(needsYou) || 0, newMatches,
+  // ⭐ A211 (1a) follow-up (b): the applications waiting to be sent FROM THIS BROWSER — the runner's own list (A207's
+  // extension-submit packets: unconsumed, not cleared from the tracker, still fresh). One indexed per-user count.
+  let toSend = 0;
+  try {
+    toSend = db.prepare(`SELECT COUNT(*) FROM apply_gate_packets p WHERE p.user_id = ? AND p.consumed_at IS NULL
+      AND p.gate_reason IN (${EXTENSION_SUBMIT_REASONS.map(() => "?").join(", ")}) AND p.created_at >= unixepoch() - ?
+      AND NOT EXISTS (SELECT 1 FROM apply_run_jobs hx WHERE hx.id = p.run_job_id AND hx.hidden_at IS NOT NULL)`)
+      .pluck().get(userId, ...EXTENSION_SUBMIT_REASONS, Math.floor(PACKET_STALE_MS / 1000)) || 0;
+  } catch { toSend = 0; }
+  return { date, drafted: Number(day.drafted) || 0, sent: Number(day.sent) || 0, needsYou: Number(needsYou) || 0, newMatches, toSend: Number(toSend) || 0,
     links: { board: `${ORIGIN}/app`, home: `${ORIGIN}/app/auto-apply`, search: `${ORIGIN}/app/jobs` } };
 }
 
