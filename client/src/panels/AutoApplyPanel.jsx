@@ -110,9 +110,9 @@ function QuestionsInAskDraft({ node, count, opened, onOpen, onHere }) {
   }, [k]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="dht-step" data-held-in-ask-draft={String(node.jobId)}>
-      <p className="dht-step__meta">{count} question{count === 1 ? "" : "s"} — answered in Ask draft, beside this. draft fills the form when you finish.</p>
+      <p className="dht-step__meta">{count} question{count === 1 ? "" : "s"} — answered with Tiny (the fox at the bottom-right). draft fills the form when you finish.</p>
       <div className="dht-acts">
-        <button type="button" className="dh-btn" data-kind="primary" data-action="open-questions-thread" onClick={onOpen}>Answer them in Ask draft</button>
+        <button type="button" className="dh-btn" data-kind="primary" data-action="open-questions-thread" onClick={onOpen}>Answer them with Tiny</button>
         <button type="button" className="dh-btn dht-step__link" data-action="answer-here" onClick={onHere}>answer here instead</button>
       </div>
     </div>
@@ -182,7 +182,7 @@ function HeldQuestionStepper({ jobId, questions, values, setValue, remember, set
           ) : q.kind === "draft" ? (
             <div className="dht-step__draft" data-held-draft={drafts[q.question]?.state || "none"}>
               {drafts[q.question]?.state === "asked" && !String(values[q.question] ?? "").trim() && (
-                <span className="dht-step__meta" data-held-asked="">draft is writing a suggestion in Ask draft, beside this — use it there, or type your own.{" "}
+                <span className="dht-step__meta" data-held-asked="">Tiny is writing a suggestion (the fox at the bottom-right) — use it there, or type your own.{" "}
                   <button type="button" className="dh-btn dht-step__link" data-action="open-ask-draft" onClick={() => askDraft(q.question)}>Ask again</button></span>
               )}
               {drafts[q.question]?.state === "ready" && !editing[q.question] ? (

@@ -65,7 +65,8 @@ test("d152DockLeftWithLogo / d153DockPushes / d152DockSlidesFromLeftEdge (real C
     assert.equal(d.emboss, null, `${size}: no embossed logo`);
     // ⭐ D167 (owner 11-06, changed on purpose): six places — + Interview, and Ask draft after the divider.
     // 45n (pin brought to the code in 45o): the dock's search icon comes first.
-    assert.deepEqual(d.items, ["search", "today", "auto-apply", "atlas", "interview", "profile", "ask"], `${size}: search · draft · Home · Atlas · Interview · Profile · Ask draft`);
+    // ⭐ owner 11-15: Tiny replaces Ask draft, floating (changed on purpose) — "ask" left the dock (a fox bubble instead).
+    assert.deepEqual(d.items, ["search", "today", "auto-apply", "atlas", "interview", "profile"], `${size}: search · draft · Home · Atlas · Interview · Profile`);
     assert.equal(d.current, "today");
     assert.ok(d.rest.dock.left >= 0 && d.rest.dock.width > 0, `${size}: the rail is on screen at rest`);
     assert.equal(d.out.coversDeck, false, `${size}: the dock never covers the deck`);

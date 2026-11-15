@@ -146,7 +146,9 @@ test("d145MenuPanelMatchesDock → 45n: the Menu's panel is gone; the dock draws
   assert.match(nav, /if \(dock && getComputedStyle\(dock\)\.display !== "none"\) \{ e\.preventDefault\(\); setWide\(\(u\) => !u\); \}/, "M expands the dock (D156)");
   // ⭐ D167 (owner 11-06, changed on purpose): names only — no plain line under a name.
   assert.doesNotMatch(nav, /NAV_PLAIN|today's picks and every job/);
-  assert.equal((nav.match(/<AskItem /g) || []).length, 1, "Ask draft in the dock");
+  // ⭐ owner 11-15: Tiny replaces Ask draft, floating (changed on purpose) — no Ask item in the dock; ONE fox bubble instead.
+  assert.equal((nav.match(/<AskItem /g) || []).length, 0, "Ask draft left the dock");
+  assert.equal((nav.match(/<TinyBubble /g) || []).length, 1, "Tiny, the floating bubble");
 });
 
 // ⭐ D156 (3) changed this on purpose (owner 11-05: "use symbols for the menu dock: a home, a globe like atlas icon, draft

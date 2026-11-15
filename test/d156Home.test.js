@@ -165,7 +165,8 @@ test("d156DockIconsSameSizeThemeAccent / d156ShortLogoInDock (pure): 30 px icons
 // side dock sits in a margin measured to fit it open, otherwise it goes to the top (test/d167Dock).
 test("d156DockPushesPage → D167 (pure): the dock never pushes the page", () => {
   assert.doesNotMatch(NAVCSS, /--appnav-rail-w|padding-left: var\(--appnav/);
-  assert.match(NAVCSS, /\[data-app-shell\] \{ transition: padding-right/, "only Ask draft moves the page (to the left of its panel)");
+  // ⭐ owner 11-15: Tiny replaces Ask draft, floating (changed on purpose) — nothing moves the page now, not even Ask draft
+  assert.doesNotMatch(NAVCSS, /\[data-app-shell\] \{ transition: padding-right/, "nothing moves the page (Tiny floats over it)");
   assert.doesNotMatch(read("client/src/components/FullHouse.css"), /data-dock-open/, "Home has no dock rule of its own");
 });
 
@@ -278,7 +279,8 @@ test("d156 real Chrome (1440 · 1280 · 390): the card, the flip, the dock, the 
     const k = d.dock;
     // ⭐ D167 (owner 11-06, changed on purpose): six places — + Interview, and Ask draft after the divider.
     // 45n (pin brought to the code in 45o): the dock's search icon comes first.
-    assert.deepEqual(k.items, ["search", "today", "auto-apply", "atlas", "interview", "profile", "ask"]);
+    // ⭐ owner 11-15: Tiny replaces Ask draft, floating (changed on purpose) — "ask" left the dock (a fox bubble instead).
+    assert.deepEqual(k.items, ["search", "today", "auto-apply", "atlas", "interview", "profile"]);
     // ⭐ D167 (owner 11-06, changed on purpose): THE DOCK GOES WHERE THE SPACE IS — at 1440 / 1280 it is a top row, on a
     // phone a top row of icons; its form, motion, placement and the peek are test/d167Dock's. What D156 asked still holds:
     // every line icon one size and in the theme's accent, the person's initials in a circle, no emboss and no edge handle.

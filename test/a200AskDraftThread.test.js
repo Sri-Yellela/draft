@@ -51,12 +51,14 @@ test("⭐ A200 (Chrome): the auto-apply timeline folds away while Ask draft is o
   }
 });
 
-test("A200: the CSS — the thread's own classes, the dock kept left of the panel, the timeline's fold in Draft House's sheet", () => {
+test("A200: the CSS — the thread's own classes, Tiny's card above the dock (owner 11-15), the timeline's fold in Draft House's sheet", () => {
   const css = read("client/src/components/AppNav.css");
   assert.match(css, /\.appnav-ask__q \{ margin: 0; font-size: calc\(24px \* var\(--type-scale, 1\)\); line-height: 1\.25; font-weight: 600;/);
-  assert.match(css, /@media \(min-width: 1280px\) \{\n  :root\[data-ask-open="true"\]\[data-dock-place="top"\] \.appnav-dock\[data-nav-dock\] \{\n    left: calc\(\(100vw - var\(--appnav-ask-w\)\) \/ 2\);/);
-  // A201: below 1280 px Ask draft is a sheet ABOVE the dock (the phone padding rule it replaced is gone)
-  assert.match(css, /@media not all and \(min-width: 1280px\) \{\n  \.appnav-ask \{ --appnav-ask-w: min\(420px, 100vw\); z-index: 256;/);
+  // ⭐ owner 11-15: Tiny replaces Ask draft, floating (changed on purpose) — the card floats ABOVE the dock at every width
+  // (z-index 256 > Z.NAV 250), so the dock no longer shifts left of a pushed panel (A200 (a)'s rule) and there is no
+  // below-1280 sheet (A201's): one floating card, a bottom sheet on phones.
+  assert.doesNotMatch(css, /:root\[data-ask-open="true"\]\[data-dock-place="top"\] \.appnav-dock/);
+  assert.match(css, /\.appnav-ask \{\n  position: fixed; right: 20px; bottom: 92px;[^}]*z-index: 256;/);
   const dh = read("client/src/components/DraftHouse.css");
   assert.match(dh, /:root\[data-ask-open="true"\] \.dh-main:not\(\[data-detail="true"\]\) > \.dht \{ display: none; \}/);
   const thread = read("client/src/components/AskDraftThread.jsx");
