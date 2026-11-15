@@ -65,7 +65,7 @@ test("D55 B: Save this page (pages) and Save link (http(s) links only) — and, 
     [MENU_SAVE_LINK, "Save link to draft", ["link"]],
     ["draft-fill-page", "Fill this application with draft", ["page"]],
     ["draft-ats-page", "Show draft's ATS report", ["page"]],
-    ["draft-ask", "Ask draft…", ["page", "action"]],   // ⭐ D191 (3): the extension's own panel (ask.html)
+    ["draft-ask", "Ask Tiny…", ["page", "action"]],   // ⭐ D191 (3): the extension's own panel (ask.html) — 46n: its chat is Tiny
   ]);
   assert.deepEqual([...CONTEXT_MENUS[1].targetUrlPatterns], ["http://*/*", "https://*/*"]);
   assert.equal(saveableLink("javascript:alert(1)"), null);

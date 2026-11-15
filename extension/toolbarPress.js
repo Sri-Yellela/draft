@@ -77,8 +77,8 @@ export function relayFor({ identity = null, ctx = null, auto = null, away = null
   // ⭐ D191 P1 · on a page with nothing else to say: the person's day (draft's home, in one line) — never on top of a question
   const day = !out.length ? homeLine(home) : null;
   if (day) out.push({ id: 'draft-home', kind: 'toast', icon: 'info', ms: 7000, text: day,
-    // ⭐ D191 (3): Open = the extension's own panel (the day, a search of draft, Ask draft); Matches = draft's board
-    actions: [{ id: 'open-ask', label: "Open draft's panel — your day, search, Ask draft", word: 'Open', primary: true }, { id: 'open-draft', label: 'Open your matches in draft', word: 'Matches' }] });
+    // ⭐ D191 (3): Open = the extension's own panel (the day, a search of draft, Tiny); Matches = draft's board
+    actions: [{ id: 'open-ask', label: "Open draft's panel — your day, search, Tiny", word: 'Open', primary: true }, { id: 'open-draft', label: 'Open your matches in draft', word: 'Matches' }] });
   return out;
 }
 

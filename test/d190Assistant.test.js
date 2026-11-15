@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
-import { createAssistant, compileCommands, parse, checkExamples, normalise, TIER_LABEL } from "../shared/assistantEngine.js";
+import { createAssistant, compileCommands, parse, parseCompound, correctFirstWord, checkExamples, normalise, TIER_LABEL } from "../shared/assistantEngine.js";
 import { createDraftHandlers, sentenceToFilters, PLACES } from "../client/src/lib/assistantDraft.js";
 import { lookup, LOOKUP_INTENTS } from "../services/assistant/assistant.js";
 import { at } from "../test-support/sourceAnchors.js";
@@ -41,11 +41,11 @@ test("d190T1NoNetwork — the engine has no network, no imports, no DOM; T1 runs
     assert.deepEqual(calls[0], { old: "10,700,942", new: "10,800,000", line: 3 });
     assert.equal((await bot.handle("go to page 5")).text, "Page 5.");
   } finally { globalThis.fetch = real; }
-  // Tiny's panel fetches only its own vocabulary file
+  // Tiny's bot fetches only two static files of its own site: the vocabulary and (46n, the floating bot) its FAQ
   const tinyPath = path.join(ROOT, "..", "resume-master", "public", "assistant", "tiny.js");
   if (!fs.existsSync(tinyPath)) return;   // resume-master not checked out beside draft
   const tiny = fs.readFileSync(tinyPath, "utf8");
-  assert.deepEqual([...tiny.matchAll(/fetch\(([^)]*)\)/g)].map(m => m[1]), ['"/assistant/commands-v1.json"']);
+  assert.deepEqual([...tiny.matchAll(/fetch\(([^)]*)\)/g)].map(m => m[1]), ['"/assistant/commands-v1.json"', '"/assistant/faq-rm.json"']);
 });
 
 test("d190T2NoModel — the server's lookup answers from draft's own data with a template; it takes no model and calls none", () => {
@@ -258,4 +258,92 @@ test("d190 · a bare | outside ( ) fails loudly (it once silently never matched 
   const c = compileCommands(COMMANDS, "draft");
   assert.deepEqual(parse("does Kestrel sponsor h1b", c).args, { company: "Kestrel" });
   assert.deepEqual(parse("does this company sponsor?", c).args, {}, "“this company” is the open posting's, never a company called that");
+});
+
+// ── 46n (owner 11-15: "rewrute letter as page and boston as NYC" failed; "make tiny a floating bot … give it a cute logo
+// animal … the same for [the PDF-tools site] too") ──
+
+test("46n · Tiny's fox is drawn once: shared/tinyMascot.js mirrored byte-identical into the extension and the PDF-tools repo (line endings aside)", async (t) => {
+  const mine = read("shared/tinyMascot.js");
+  assert.equal(read("extension/tinyMascot.js"), mine, "change both copies of the mascot (extension/tinyMascot.js)");
+  const { tinySvg, TINY_NAME } = await import("../shared/tinyMascot.js");
+  assert.equal(TINY_NAME, "Tiny");
+  assert.match(tinySvg({ size: 30 }), /^<svg [^>]*width="30" height="30" aria-hidden="true" focusable="false">/, "decorative without a title");
+  assert.match(tinySvg({ title: "Tiny" }), /role="img"[^>]*><title>Tiny<\/title>/);
+  assert.doesNotMatch(mine, /\bfetch\(|XMLHttpRequest|\bimport\s|document\.|window\./, "pure: a string, no DOM");
+  const rm = path.join(ROOT, "..", "resume-master", "public", "assistant", "tinyMascot.js");
+  if (!fs.existsSync(rm)) return t.skip("resume-master is not checked out beside draft");
+  assert.equal(fs.readFileSync(rm, "utf8").replace(/\r\n/g, "\n"), mine, "change both copies of the mascot (resume-master)");
+});
+
+test("46n · a typo in the first word is corrected to the nearest command word: “rewrute letter as page” → replace_text", () => {
+  const c = compileCommands(COMMANDS, "rm");
+  const p = parse("rewrute letter as page", c);
+  assert.equal(p.row.intent, "replace_text");
+  assert.deepEqual(p.args, { old: "letter", new: "page" });
+  assert.equal(p.corrected, "rewrite letter as page");
+  assert.equal(correctFirstWord("rewrite letter as page", c), null, "a real command word is left alone");
+  assert.equal(correctFirstWord("xyz letter", c), null, "a short word is never guessed");
+  assert.equal(correctFirstWord("qwertyuiop letter as page", c), null, "nothing near → no guess");
+  assert.equal(parse("replace 2023 with 2024", c).corrected, undefined, "a command that matched as typed carries no correction");
+});
+
+test("46n · 'X as Y' and 'into' are replacements; 'rewrite … to …' stays new writing (T3)", () => {
+  const c = compileCommands(COMMANDS, "rm");
+  for (const [s, args] of [["rewrite letter as page", { old: "letter", new: "page" }], ["turn 2023 into 2024", { old: "2023", new: "2024" }]]) {
+    const p = parse(s, c);
+    assert.equal(p.row.intent, "replace_text", s); assert.deepEqual(p.args, args, s);
+  }
+  const t3 = parse("rewrite this bullet to highlight Kafka", c);
+  assert.equal(t3.row.intent, "write_new"); assert.equal(t3.row.tier, "T3");
+  assert.equal(parseCompound("rewrite this bullet to highlight Kafka", c), null);
+});
+
+test("46n · compound requests: the owner's “rewrute letter as page and boston as NYC” → two replaceText calls; ONE Undo reverts both, in reverse", async () => {
+  const c = compileCommands(COMMANDS, "rm");
+  const parts = parseCompound("rewrute letter as page and boston as NYC", c);
+  assert.deepEqual(parts.map(h => [h.row.intent, h.args]), [["replace_text", { old: "letter", new: "page" }], ["replace_text", { old: "boston", new: "NYC" }]]);
+  assert.deepEqual(parseCompound("replace a with b and c with d", c).map(h => h.args), [{ old: "a", new: "b" }, { old: "c", new: "d" }]);
+  assert.equal(parseCompound("delete page 2 and replace a with b", c), null, "a part that confirms first makes the whole request a single one");
+  let doc = "Dear letter, from boston.";
+  const calls = [], undone = [];
+  const bot = createAssistant({ commands: COMMANDS, site: "rm", handlers: {
+    replaceText: (a) => { const was = doc; calls.push(a); doc = doc.replace(a.old, a.new); return { text: `Replaced ${a.old}.`, undo: () => { undone.push(a.old); doc = was; return { text: `Back: ${a.old}.` }; } }; } } });
+  const m = await bot.handle("rewrute letter as page and boston as NYC");
+  assert.deepEqual(calls, [{ old: "letter", new: "page" }, { old: "boston", new: "NYC" }]);
+  assert.equal(doc, "Dear page, from NYC.");
+  assert.equal(m.tier, "T1"); assert.equal(m.steps, 2); assert.equal(m.intent, "replace_text+replace_text");
+  assert.equal(typeof m.undo, "function");
+  const u = await m.undo();
+  assert.deepEqual(undone, ["boston", "letter"], "reverse order");
+  assert.equal(doc, "Dear letter, from boston.");
+  assert.equal(u.text, "Back: boston. Back: letter.");
+});
+
+test("46n · “replace Q&A with questions and answers” stays ONE replacement (the 'and' is the new text's)", async () => {
+  const c = compileCommands(COMMANDS, "rm");
+  assert.equal(parseCompound("replace Q&A with questions and answers", c), null);
+  assert.deepEqual(parse("replace Q&A with questions and answers", c).args, { old: "Q&A", new: "questions and answers" });
+  const calls = [];
+  const bot = createAssistant({ commands: COMMANDS, site: "rm", handlers: { replaceText: (a) => { calls.push(a); return { text: "Replaced." }; } } });
+  await bot.handle("replace Q&A with questions and answers");
+  assert.deepEqual(calls, [{ old: "Q&A", new: "questions and answers" }]);
+});
+
+test("46n · a command this page can't run answers through `unavailable` BEFORE any “Are you sure?” — and keeps its links", async () => {
+  const ledger = [];
+  const bot = createAssistant({ commands: COMMANDS, site: "rm", handlers: {}, ledger,
+    unavailable: (row) => ({ ask: `“${row.intent}” works on an open document.`, extra: { links: [{ title: "Open the workspace", href: "/workspace/" }] } }) });
+  const m = await bot.handle("delete page 2");
+  assert.equal(m.tier, "ask"); assert.ok(!m.confirm, "no confirm for something that cannot happen");
+  assert.equal(m.text, "“delete_page” works on an open document.");
+  assert.deepEqual(m.links, [{ title: "Open the workspace", href: "/workspace/" }]);
+  assert.equal(m.failed, true);
+  assert.equal(bot.pending, null, "nothing waits for a yes");
+  assert.notEqual((await bot.handle("yes")).confirm, true);
+  // without the hook: a plain line, still no confirm
+  const plain = createAssistant({ commands: COMMANDS, site: "rm", handlers: {} });
+  const p = await plain.handle("delete page 2");
+  assert.equal(p.text, "That isn't available on this page."); assert.ok(!p.confirm);
+  assert.ok(ledger.every(e => e.tier !== "T3"));
 });

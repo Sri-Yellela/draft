@@ -55,7 +55,7 @@ test("⛔ T22: every removed action is still reachable — Ctrl+Shift+K and Ctrl
     [MENU_SAVE_PAGE, "Save this page to draft"],
     [MENU_FILL_PAGE, "Fill this application with draft"],
     [MENU_ATS_PAGE, "Show draft's ATS report"],
-    ["draft-ask", "Ask draft…"],   // ⭐ D191 (3): the extension's own panel
+    ["draft-ask", "Ask Tiny…"],   // ⭐ D191 (3): the extension's own panel — 46n: its chat is Tiny
   ]);
   const onClicked = bg.slice(at(bg, "chrome.contextMenus.onClicked.addListener"), at(bg, "async function saveLinkToDraft"));
   assert.match(onClicked, /MENU_SAVE_PAGE\) \{ void captureActiveTab\(tab\); return; \}/, "capture: the same captureActiveTab");

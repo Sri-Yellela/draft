@@ -2,14 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>draft — Ask draft</title>
-  <!-- ⭐ D191 (2e) / (3) / P5 · the extension's own panel: the person's day, a search of draft's board, and Ask draft (the
-       engine shared with the site — assistantEngine.js, mirrored). D23: the site's tokens and controls. ⛔ No colour
-       literal here. ⛔ D60: rectangles only. ⛔ Nothing here calls a model: T1 / T2 run from draft's own data. -->
+  <title>Tiny — draft</title>
+  <!-- ⭐ D191 (2e) / (3) / P5 · the extension's own panel: the person's day, a search of draft's board, and TINY (the
+       engine shared with the site — assistantEngine.js, mirrored). ⭐ 46n (owner 11-15: "make tiny a floating bot … give it
+       a cute logo animal"): the chat is Tiny, with the fox (tinyMascot.js, mirrored from draft's shared/) in its header —
+       the same name and face as on draft and the PDF-tools site. D23: the site's tokens and controls. ⛔ No colour
+       literal here (the fox's own colours are illustration, in tinyMascot.js). ⛔ D60: rectangles only — the fox's well is
+       a perfect circle. ⛔ Nothing here calls a model: T1 / T2 run from draft's own data. -->
   <link rel="stylesheet" href="tokens.css">
   <link rel="stylesheet" href="ui.css">
   <style>
-    body { padding: 16px 18px; display: grid; gap: 12px; min-height: 100vh; box-sizing: border-box; grid-template-rows: auto auto auto 1fr auto; }
+    body { padding: 16px 18px; display: grid; gap: 12px; min-height: 100vh; box-sizing: border-box; grid-template-rows: auto auto auto auto 1fr auto; }
     .mark { margin-bottom: 2px; }
     .day { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
     .day a { display: grid; gap: 2px; padding: 8px; border: 1px solid var(--c-border); border-radius: 8px; background: var(--c-surface-2); color: var(--c-ink); text-decoration: none; }
@@ -26,6 +29,11 @@
     .note:empty { display: none; }
     .confirm { display: flex; gap: 6px; margin-top: 6px; }
     .confirm .btn { margin-bottom: 0; }
+    .tiny-head { display: flex; align-items: center; gap: 8px; }
+    .tiny-face { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--c-surface-2); flex-shrink: 0; }
+    .tiny-face svg { display: block; }
+    .tiny-who { display: grid; gap: 1px; }
+    .tiny-who span { font-size: 11px; color: var(--c-ink-muted); }
     h2 { font-size: 13px; margin: 0; }
   </style>
 </head>
@@ -36,11 +44,14 @@
     <input id="ask-search-input" type="search" maxlength="200" placeholder="Search draft's jobs — e.g. backend jobs in Boston" aria-label="Search draft's jobs">
     <button class="btn" type="submit">Search</button>
   </form>
-  <h2>Ask draft</h2>
+  <header class="tiny-head">
+    <span class="tiny-face" id="ask-tiny-face" aria-hidden="true"></span>
+    <div class="tiny-who"><h2 id="ask-tiny-name">Tiny</h2><span>Acts on draft and answers from your own data — no AI.</span></div>
+  </header>
   <ol class="turns" id="ask-turns" aria-live="polite"></ol>
   <div>
     <form class="row" id="ask-form">
-      <textarea id="ask-input" rows="2" maxlength="600" placeholder="e.g. draft this job · does this company sponsor? · how many need me?" aria-label="Tell draft what to do"></textarea>
+      <textarea id="ask-input" rows="2" maxlength="600" placeholder="e.g. draft this job · does this company sponsor? · how many need me?" aria-label="Tell Tiny what to do"></textarea>
       <button class="btn" id="ask-mic" type="button" hidden aria-pressed="false" aria-label="Speak a command" title="Speak a command">Speak</button>
       <button class="btn btn-primary" type="submit" id="ask-send">Ask</button>
     </form>
