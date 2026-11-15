@@ -279,7 +279,18 @@ test("⛔ D97 · permissions.request lives in click handlers only — Options' s
   // test/d112GlobalRead.test.js — and Settings → Permissions' "Job postings on any site" switch (onAllowGlobal)
   // ⭐⭐ D112 item 7 (owner 10-30): + the "apply here while you're away" window (apply-away.js) — `cookies` and one portal
   // family's hosts, its Allow's first call, pinned in test/d112ApplyAway.test.js
-  assert.deepEqual(hits, ["apply-away.js", "global-ask.js", "options-auto.js", "options-permissions.js"]);
+  // ⭐ A211 (1a) (owner 11-15): + the runner tab's "Fill all" (runner.js) — those applications' own sites, the click's first
+  // chrome call and its first await (so the click's gesture carries it); never on load
+  assert.deepEqual(hits, ["apply-away.js", "global-ask.js", "options-auto.js", "options-permissions.js", "runner.js"]);
+  {
+    const rj = read("extension/runner.js");
+    const fill = rj.slice(at(rj, "$('runner-fill').addEventListener('click', async (e) => {"), at(rj, "$('runner-send').addEventListener"));
+    const firstChrome = fill.indexOf("chrome.");
+    assert.equal(fill.slice(firstChrome, firstChrome + 26), "chrome.permissions.request", "Fill all's first chrome call is the request");
+    assert.ok(fill.indexOf("chrome.permissions.request(") < fill.indexOf("await send("), "before any message to the worker");
+    assert.equal((fill.match(/await /g) || []).length && fill.indexOf("await ") === fill.indexOf("await chrome.permissions.request("), true, "the request is the first await");
+    assert.equal((rj.match(/permissions\.request\(/g) || []).length, 1, "one request in the runner, in Fill all");
+  }
   const perm = read("extension/options-permissions.js");
   const allow = perm.slice(at(perm, "export function onAllow(api, siteId) {"), at(perm, "/** Draw the section"));
   const firstOf = (src) => { const i = at(src, "api."); return src.slice(i, i + 25); };

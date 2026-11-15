@@ -221,7 +221,12 @@ test("all three extension call sites ask for their origin", () => {
   // The negative lookahead excludes /gate-packets/:id/token, which is a different endpoint that
   // merely shares this prefix. Filtering the MATCHED text instead does not work: the match stops at
   // the prefix, so the token path arrives here looking identical to a bare list call.
-  const calls = [...(bg + gh).matchAll(/\/api\/apply\/gate-packets(?!\/)(\?[^`'"]*)?/g)]
+  // ⭐ A211 (1a): the runner tab lists the WHOLE queue on purpose — it is no page, so it has no origin to ask for; it keeps
+  // only the extension-submit packets (pinned in test/a211Runner.test.js). That one call is set aside here, and only it.
+  const runner = "if (msg.type === 'RUNNER_LIST') {\n      const r = await authedFetch(RESUME_MASTER_URL, '/api/apply/gate-packets').catch(() => null);";
+  const bgN = bg.replace(/\r\n/g, "\n");
+  assert.equal(bgN.split(runner).length, 2, "the runner's whole-queue list call, exactly once");
+  const calls = [...(bgN.replace(runner, "") + gh).matchAll(/\/api\/apply\/gate-packets(?!\/)(\?[^`'"]*)?/g)]
     .map(m => m[0]);
   assert.ok(calls.length >= 3, `expected the three list call sites, found ${calls.length}`);
   for (const c of calls) {

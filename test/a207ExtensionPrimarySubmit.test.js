@@ -144,7 +144,14 @@ test("a207NoSubmitWithoutPress (a): the only send is the panel's trusted press �
   for (const f of fs.readdirSync("extension").filter(f => f.endsWith(".js") && f !== "extensionSubmit.js")) {
     const s = read(`extension/${f}`);
     const uses = (s.match(/sendWithPress\(|pressSubmitInPage/g) || []).length;
-    if (f === "background.js") assert.equal(uses, 1, "background: once, inside GATE_SEND");
+    // ⭐ A211 (1a): and from the runner tab's RUNNER_SEND — the person's press of "Send all", from runner.html only
+    if (f === "background.js") {
+      assert.equal(uses, 2, "background: twice — inside GATE_SEND and inside A211's RUNNER_SEND");
+      const runner = s.slice(at(s, "if (msg.type === 'RUNNER_SEND') {"));
+      assert.match(runner, /msg\.trusted !== true \|\| !runnerTabs\.has\(tabId\)/, "RUNNER_SEND: the press, on a runner tab");
+      assert.ok(at(runner, "if (!isExtensionSubmitPacket(held?.packet))") < at(runner, "return sendWithPress("), "RUNNER_SEND: an extension-submit packet only");
+      assert.match(s, /if \(!fromRunner\(sender\)\) \{ sendResponse\(\{ ok: false/, "RUNNER_*: from runner.html only");
+    }
     else assert.equal(uses, 0, `${f} never presses Submit`);
   }
   assert.doesNotMatch(read("extension/extensionSubmit.js").replace(/^\s*(\/\/|\*).*$/gm, ""), /\.requestSubmit\s*\(|\.submit\s*\(\s*\)|setTimeout\([^)]*click/);

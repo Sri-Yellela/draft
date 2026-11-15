@@ -1,5 +1,16 @@
 # Chrome Web Store listing — draft v1.7.0
 
+> **v1.7.0 + A211 (1a) (2026-11-15, 46n — the owner's "automate applications using the user's own session … by seeking
+> permission").** A new extension page, **"Apply while this is open"** (the runner tab): it lists the applications draft holds
+> to be sent from the user's own browser (sites that flag draft's servers). On the user's click of **Fill all**, Chrome asks
+> the user for those application sites (the existing OPTIONAL host permissions — nothing new in the manifest), the extension
+> opens each in a background tab and fills it from the user's saved answers; **nothing is sent until the user presses Send
+> all**, and then only the applications that read Ready, each from the user's own browser, each confirmation read back. A bot
+> check or a question only the user can answer stops that application at "Needs you". **No new permission, no new host, no
+> new data** (the same packets, fill and press as A207). Paste-ready line for the description: *"Keep draft's runner tab
+> open and it fills your waiting applications in the background — you press Send all, and only the ready ones go, from your
+> own browser."* 👤 Re-read Privacy practices → Website content at the upload: unchanged in kind (the same form answers).
+
 > **v1.7.0 + D191 (2026-11-14, 46m — the owner's "the extension revamped … enough to be the primary source of traffic").**
 > Still v1.7.0 (unpublished — the zip is rebuilt). **No new permission, no new host.** What changed: (1) on a job posting,
 > after the press's question, a line with the employer's facts from draft's own records — its H-1B filings (US Department of

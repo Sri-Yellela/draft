@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Apply while this is open — draft</title>
+  <!-- ⭐ A211 (1a) · THE RUNNER TAB: the applications draft sends from YOUR browser, filled in background tabs on your "Fill all",
+       sent on ONE press of "Send all" (each from your own browser, each confirmation read back). Nothing is sent without that
+       press; a bot check or a question only you can answer stops that application at "Needs you". D23: the site's tokens and
+       controls; ⛔ no colour literal; ⛔ D60 rectangles only (the fox's well is a perfect circle). -->
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="ui.css">
+  <style>
+    body { padding: 18px 22px; max-width: 760px; margin: 0 auto; display: grid; gap: 14px; }
+    .head { display: flex; align-items: center; gap: 10px; }
+    .face { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--c-surface-2); flex-shrink: 0; }
+    h1 { font-size: 18px; margin: 0; }
+    .lead { font-size: 13px; line-height: 1.5; color: var(--c-ink-muted); margin: 0; }
+    .promise { font-size: 12px; font-weight: 700; line-height: 1.5; border-left: 3px solid var(--c-accent); border-radius: 6px; padding: 8px 10px; background: var(--c-surface-2); margin: 0; }
+    .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .bar .btn { margin-bottom: 0; }
+    .sum { font-size: 13px; font-weight: 700; margin-left: auto; }
+    ol.rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 10px 12px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-surface-2); }
+    .row b { font-size: 14px; }
+    .row .sub { font-size: 12px; color: var(--c-ink-muted); }
+    .row .note { grid-column: 1 / -1; font-size: 12px; margin: 0; }
+    .state { font-size: 12px; font-weight: 700; align-self: start; }
+    .state::before { content: "● "; }
+    .row[data-state="ready"] .state, .row[data-state="sent"] .state { color: var(--c-success); }
+    .row[data-state="needs_you"] .state, .row[data-state="failed"] .state { color: var(--c-danger); }
+    .row .open { grid-column: 2; justify-self: end; }
+    .status { font-size: 12px; color: var(--c-ink-muted); min-height: 16px; margin: 0; }
+  </style>
+</head>
+<body>
+  <header class="head">
+    <span class="face" id="runner-face" aria-hidden="true"></span>
+    <div><h1>Apply while this is open</h1><p class="lead">The applications draft sends from your own browser — on sites that flag draft's servers.</p></div>
+  </header>
+  <p class="promise" id="runner-promise">draft fills each one from your saved answers in a background tab. Nothing is sent until you press Send all — and then only the ones that read Ready, each from your own browser. A bot check or a question only you can answer waits for you.</p>
+  <div class="bar">
+    <button class="btn" id="runner-fill" type="button">Fill all</button>
+    <button class="btn btn-primary" id="runner-send" type="button" disabled>Send all ready</button>
+    <button class="btn" id="runner-refresh" type="button">Refresh</button>
+    <span class="sum" id="runner-sum" aria-live="polite"></span>
+  </div>
+  <ol class="rows" id="runner-rows"></ol>
+  <p class="status" id="runner-status" role="status"></p>
+  <script type="module" src="runner.js"></script>
+</body>
+</html>
