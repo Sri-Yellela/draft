@@ -6,6 +6,7 @@
 //      search ("find data analyst jobs", "search for product manager") is the board's text search; all T1, no model
 //   3. FAQs: draft's help (content/assistant/help.json) covers the main features, every href a real route
 // The real-Chrome walk is scripts/d190Walk.mjs (the bubble, the floating card, the filter from Home / Interview, the FAQ).
+import { at } from "../test-support/sourceAnchors.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -76,20 +77,20 @@ test("d190TinyPlainSearch — plain searches are the board's text search; questi
 
 test("d190TinyFloats — the dock has no Ask item; the fox bubble opens the panel as a floating card; tokens only", () => {
   assert.match(NAV, /export const DOCK_PLACES = Object\.freeze\(\["today", "auto-apply", "atlas", "interview", "profile"\]\);/);
-  const dock = NAV.slice(NAV.indexOf('<nav aria-label="Main"'), NAV.indexOf("</nav>", NAV.indexOf('<nav aria-label="Main"')));
+  const dock = NAV.slice(at(NAV, '<nav aria-label="Main"'), at(NAV, "</nav>", at(NAV, '<nav aria-label="Main"')));
   assert.doesNotMatch(dock, /AskItem|data-nav-item="ask"|appnav-sep/);
   assert.match(NAV, /const TINY_FACE = \{ __html: tinySvg\(\{ size: 40 \}\) \};/, "the fox from shared/tinyMascot.js");
   assert.match(NAV, /data-tiny-launch="" data-open=\{open \? "true" : "false"\}/);
   assert.match(NAV, /<h2>\{TINY_NAME\}<\/h2>/, "the card is named Tiny");
   assert.match(NAV, /aria-label=\{TINY_NAME\} data-ask-draft="" data-tiny-card=""/, "the data-ask-* hooks stay");
-  assert.doesNotMatch(NAV.slice(NAV.indexOf("export function AskDraftPanel("), NAV.indexOf("export default function AppNav(")), />Ask draft<|"Ask draft"|Ask draft couldn't/, "no visible “Ask draft” left in the panel");
+  assert.doesNotMatch(NAV.slice(at(NAV, "export function AskDraftPanel("), at(NAV, "export default function AppNav(")), />Ask draft<|"Ask draft"|Ask draft couldn't/, "no visible “Ask draft” left in the panel");
   assert.match(NAV, /sessionStorage\.getItem\(TINY_OPEN_KEY\) === "1"/, "open state remembered for the tab's session");
   // held questions still open Tiny with the thread
   assert.match(NAV, /window\.addEventListener\("draft:open-questions", open\)/);
   assert.match(NAV, /window\.addEventListener\("draft:open-questions", onOpen\)/);
   // the card floats: nothing pads the page for it
   assert.doesNotMatch(CSS, /\[data-ask-open="true"\][^{]*\[data-app-(shell|chrome)\]/);
-  const tiny = CSS.slice(CSS.indexOf("/* ⭐ D190 · TINY"), CSS.indexOf("/* Reduced motion"));
+  const tiny = CSS.slice(at(CSS, "/* ⭐ D190 · TINY"), at(CSS, "/* Reduced motion"));
   assert.ok(tiny.length > 500);
   assert.doesNotMatch(tiny, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i, "colours only from theme tokens (the fox's own live in shared/tinyMascot.js)");
   assert.doesNotMatch(tiny, /999px/, "no capsules (D60)");
