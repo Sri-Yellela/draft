@@ -340,7 +340,11 @@ const SCREENS = {
           askOpen: panel?.getAttribute("data-open"), threadShown: !!thread, dock: d, panel: panel && r(panel),
           // UNDER the dock = overlapping it AND the dock drawn on top there (A201: below 1280 px the panel is a sheet ABOVE the dock,
           // so an overlap with the sheet on top is not content hidden behind the dock — the owner's complaint)
-          underDock: leaves.filter(e => { const b = r(e); if (!hit(b, d)) return false; const x = (Math.max(b.left, d.left) + Math.min(b.right, d.right)) / 2, y = (Math.max(b.top, d.top) + Math.min(b.bottom, d.bottom)) / 2;
+          // ⭐ owner 11-15 (Tiny replaces Ask draft, floating): the card scrolls inside itself, so a line scrolled out of its
+          // body is not drawn at all — only the part of a line inside the body's visible box can sit under anything
+          underDock: leaves.filter(e => { const b0 = r(e), sc = e.closest(".appnav-ask__body"), c = sc ? r(sc) : null;
+            const b = c ? { left: Math.max(b0.left, c.left), right: Math.min(b0.right, c.right), top: Math.max(b0.top, c.top), bottom: Math.min(b0.bottom, c.bottom) } : b0;
+            if (b.right <= b.left || b.bottom <= b.top || !hit(b, d)) return false; const x = (Math.max(b.left, d.left) + Math.min(b.right, d.right)) / 2, y = (Math.max(b.top, d.top) + Math.min(b.bottom, d.bottom)) / 2;
             const top = document.elementFromPoint(x, y); return !!top && !!top.closest("[data-nav-dock]"); }).map(e => `${e.tagName.toLowerCase()} ${(e.textContent || "").trim().slice(0, 30)}`),
           qSize: q ? parseFloat(getComputedStyle(q).fontSize) : null, qWeight: q ? getComputedStyle(q).fontWeight : null,
           choices: [...document.querySelectorAll("[data-ask-choice]")].map(b => ({ cls: b.className, h: Math.round(b.getBoundingClientRect().height), radius: getComputedStyle(b).borderTopLeftRadius })),
@@ -510,17 +514,26 @@ const SCREENS = {
       out.peekAfterPress2 = (await peekState()).open;
       await page.mouse.click(1100, 500); await sleep(450);
       out.peekAfterOutside = (await peekState()).open;
-      // Ask draft: the page moves over, never under the panel
+      // ⭐ owner 11-15: Tiny replaces Ask draft, floating — the fox bubble at the bottom-right opens a card OVER the page; the
+      // page keeps its width (~~Ask draft: the page moves over, never under the panel~~)
       await page.mouse.move(900, 400); await sleep(700);
-      const ask = await box("[data-nav-dock] [data-nav-item='ask']");
-      await page.mouse.click(ask.left + 25, ask.top + ask.height / 2); await sleep(800);
+      const pageRight = () => q(() => Math.max(...[document.querySelector("[data-app-shell] main"), document.querySelector("[data-app-shell] main")?.firstElementChild].filter(Boolean).map(e => e.getBoundingClientRect().right)));
+      const contentRightShut = await pageRight();
+      const ask = await box("[data-tiny-launch]");
+      await page.mouse.click(ask.left + ask.width / 2, ask.top + ask.height / 2); await sleep(800);
       out.ask = await q(() => {
         const p = document.querySelector("[data-ask-draft]"), r = p.getBoundingClientRect(), shell = document.querySelector("[data-app-shell]");
+        const b = document.querySelector("[data-tiny-launch]").getBoundingClientRect();
         // the page's boxes (main and its first box) — leaves inside them may be clipped by their own overflow
         const leaves = [document.querySelector("[data-app-shell] main"), document.querySelector("[data-app-shell] main")?.firstElementChild].filter(Boolean).map(e => e.getBoundingClientRect().right);
-        return { open: p.getAttribute("data-open"), left: r.left, right: r.right, vw: innerWidth, shellPadRight: getComputedStyle(shell).paddingRight,
+        return { open: p.getAttribute("data-open"), left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, vw: innerWidth, vh: innerHeight,
+          position: getComputedStyle(p).position, shellPadRight: getComputedStyle(shell).paddingRight,
+          // (its layout box: an open bubble is drawn at scale(.9), so its painted rect is smaller than its place)
+          bubble: (() => { const e = document.querySelector("[data-tiny-launch]"), cs = getComputedStyle(e); return { width: e.offsetWidth, height: e.offsetHeight, right: parseFloat(cs.right), bottom: parseFloat(cs.bottom), mid: (b.left + b.right) / 2 }; })(),
+          inDock: !!document.querySelector("[data-nav-dock] [data-nav-item='ask']"),
           contentRight: Math.max(...leaves), stub: !!p.querySelector("[data-ask-draft-closed], [data-ask-input]") /* T5: closed notice or the chat */, html: document.documentElement.getAttribute("data-ask-open") };
       });
+      out.ask.contentRightShut = contentRightShut;
       await page.screenshot({ type: "png" }).then(b => fs.writeFileSync(path.join(OUT, `dock167-ask-${size}.png`), b));
       await page.keyboard.press("Escape"); await sleep(600);
       out.askAfterEsc = await q(() => ({ open: document.querySelector("[data-ask-draft]").getAttribute("data-open"), pad: getComputedStyle(document.querySelector("[data-app-shell]")).paddingRight }));

@@ -1,4 +1,4 @@
-// lib/assistantDraft.js — ⭐ D190 · ASK DRAFT's handlers: each row of content/assistant/commands-v1.json (site "draft")
+// lib/assistantDraft.js — ⭐ D190 · TINY's handlers (Ask draft until owner 11-15): each row of content/assistant/commands-v1.json (site "draft")
 // calls the SAME function its button calls (lib/assistantBridge.js reaches the board and the deck while they are mounted).
 // ⛔ The owner's rule (11-14): nothing here calls a model. T1 acts; T2 reads the person's own data (the dock's counts,
 // the open job, POST /api/assistant/lookup — a read + a template on the server). Only the T3 row's handler may reach
@@ -47,12 +47,46 @@ export function sentenceToFilters(sentence) {
 
 const verbFor = { drafted: "Drafted", saved: "Saved", passed: "Passed" };
 
+/** "senior remote jobs in Boston", "data analyst roles" — a place no PLACES key names but that asks for jobs. Pure. */
+export function looksLikeJobSearch(text) {
+  return /\b(jobs?|roles?|positions?|openings?|internships?|vacanc(?:y|ies))\b/i.test(String(text || ""));
+}
+const QUESTION_START = /^(what|whats|what's|how|why|which|who|where|when|is|are|do|does|did|can|could|should|would|will|tell|explain)\b/i;
+/** ⭐ D190 · Tiny (owner 11-15: "put filters into the search and show results on the page"): what no vocabulary row matched
+ *  but is plainly a search of the board — "search for data analyst", "look for product manager jobs", "data analyst jobs in
+ *  Boston" — and the words to search. A question ("what should I learn for a data analyst role?") is never a search. Pure. */
+export function jobSearchSentence(text) {
+  const s = String(text || "").trim().replace(/[?!.]+$/, "");
+  if (!s || QUESTION_START.test(s)) return null;
+  const m = /^(?:please\s+)?(?:search(?:\s+for)?|look(?:ing)?\s+for|hunt\s+for|find\s+me|get\s+me|browse)\s+(.+)$/i.exec(s);
+  if (m) return m[1].trim();
+  if (looksLikeJobSearch(s) && s.split(/\s+/).length <= 10) return s;
+  return null;
+}
+/** How long Tiny waits for the board to mount after it opened it (ms), and how often it looks. */
+export const BOARD_WAIT_MS = 3000;
+const BOARD_POLL_MS = 100;
+
 /**
  * The handlers. Dependencies are passed in so the tests drive them with fakes:
  *   navigate(path) · api(path, opts) · action(name) → the bridge's function or null · counts() → { needsYou, questions, ready }
  *   pending() → held applications [{ jobId, runKey, company, questions }] · t3Available() → bool
  */
-export function createDraftHandlers({ navigate, api, action, counts = () => null, pending = () => [], openThread = () => {}, t3Available = () => false, undoStack = [] }) {
+export function createDraftHandlers({ navigate, api, action, counts = () => null, pending = () => [], openThread = () => {}, t3Available = () => false, undoStack = [],
+  boardPath = "/app", waitMs = BOARD_WAIT_MS, sleep = (ms) => new Promise(r => setTimeout(r, ms)) }) {
+  // ⭐ D190 · Tiny: the filters belong to the board — when it isn't mounted here (Profile, Atlas…), open it and wait for it
+  // to register (≤ waitMs, polling the bridge) so the filters land on the page the person sees.
+  const boardAction = async (name) => {
+    let fn = action(name);
+    if (fn) return { fn, opened: false };
+    navigate(boardPath);
+    for (let waited = 0; waited < waitMs; waited += BOARD_POLL_MS) {
+      await sleep(BOARD_POLL_MS);
+      fn = action(name);
+      if (fn) return { fn, opened: true };
+    }
+    return { fn: null, opened: true };
+  };
   const job = () => action("currentJob")?.() || action("deckJob")?.() || null;
   const needJob = () => { const j = job(); if (!j) throw new Error("Open a job first — on Home, a card or a posting — and ask again."); return j; };
   async function decide(decision) {
@@ -70,8 +104,23 @@ export function createDraftHandlers({ navigate, api, action, counts = () => null
     const r = await api("/api/assistant/lookup", { method: "POST", body: JSON.stringify({ intent, args, question }) });
     return r?.found === false ? null : r;
   };
+  async function setFilter(a, ctx) {
+    const { fn: set, opened } = await boardAction("setFilters");
+    if (!set) throw new Error("The board didn't open in time — press draft in the dock and ask again.");
+    const get = action("getFilters");
+    const before = get ? get() : null;
+    const where = opened ? " I opened the board for you." : "";
+    if (/^clear/i.test(ctx?.said || "")) { set({ experience_levels: [], work_models: [], places: [], search: "" }); return { text: `Cleared the filters.${where}`, undo: before ? () => { set(before); return { text: "The filters are back." }; } : null }; }
+    const f = sentenceToFilters(a.sentence);
+    if (!f.experience_levels.length && !f.work_models.length && !f.places.length && !f.search) return { ask: "Which jobs? Say it like “senior backend, remote, in Boston”." };
+    set(f);
+    // "senior remote “data analyst” jobs in Boston"
+    const bits = [f.experience_levels.length && f.experience_levels.join(" / "), f.work_models.length && f.work_models.join(" / "), f.search && `“${f.search}”`].filter(Boolean);
+    const placeName = f.places.length ? (String(a.sentence).match(/(?:in|near|around|at) ([^,]+?)$/i)?.[1] || "that place") : "";
+    return { text: `The board now shows ${bits.length ? `${bits.join(" ")} ` : ""}jobs${placeName ? ` in ${placeName}` : ""}.${where}`, undo: before ? () => { set(before); return { text: "The filters are back as they were." }; } : null };
+  }
   return {
-    help: () => ({ text: "I act on draft without AI: “draft this job”, “save this”, “pass”, “cancel that draft”, “open my profile”, “go to Atlas”, “set my filter to senior backend remote in Boston”, “open my held questions” — and I answer from your own data: “how many need me?”, “what's my match?”, “which keywords am I missing?”, “does Kestrel sponsor?”, “what skills have I proven?”, or anything Atlas and draft's help cover." }),
+    help: () => ({ text: "I'm Tiny. I act on draft without AI: “draft this job”, “save this”, “pass”, “cancel that draft”, “open my profile”, “go to Atlas”, “show me senior remote jobs in Boston”, “find data analyst jobs”, “open my held questions” — and I answer from your own data: “how many need me?”, “what's my match?”, “which keywords am I missing?”, “does Kestrel sponsor?”, “what skills have I proven?”, or anything Atlas and draft's help cover." }),
     undo: async () => {
       const last = undoStack.pop();
       if (!last) return { text: "There's nothing to undo from here." };
@@ -81,6 +130,8 @@ export function createDraftHandlers({ navigate, api, action, counts = () => null
     navigate: (a) => {
       const key = String(a.place || "").toLowerCase().replace(/^(my|the) /, "").replace(/ (page|tab|screen)$/, "").trim();
       const to = PLACES[key] || PLACES[`my ${key}`];
+      // "show me senior remote jobs in Boston" reads as "show me {place}" — a place that asks for jobs is the board's search
+      if (!to && looksLikeJobSearch(key)) return setFilter({ sentence: a.place }, { said: "" });
       if (!to) return { ask: `I can open draft (the jobs), Home (your applications), Profile, Settings, Appearance, Saved answers, Privacy, Atlas or Interview — which one?` };
       const from = typeof window !== "undefined" ? window.location.pathname + window.location.search : null;
       navigate(to);
@@ -106,17 +157,7 @@ export function createDraftHandlers({ navigate, api, action, counts = () => null
       await call(j);
       return { text: `Cancelled the draft of ${j.company || "this job"}.` };
     },
-    setFilter: (a, ctx) => {
-      const set = action("setFilters"), get = action("getFilters");
-      if (!set) throw new Error("The board isn't open here — go Home and ask again.");
-      const before = get ? get() : null;
-      if (/^clear/i.test(ctx?.said || "")) { set({ experience_levels: [], work_models: [], places: [], search: "" }); return { text: "Cleared the filters.", undo: before ? () => { set(before); return { text: "The filters are back." }; } : null }; }
-      const f = sentenceToFilters(a.sentence);
-      if (!f.experience_levels.length && !f.work_models.length && !f.places.length && !f.search) return { ask: "Which jobs? Say it like “senior backend, remote, in Boston”." };
-      set(f);
-      const bits = [f.search && `“${f.search}”`, f.experience_levels.length && `${f.experience_levels.join(" / ")} level`, f.work_models.length && f.work_models.join(" / "), f.places.length && `in ${String(a.sentence).match(/(?:in|near|around|at) ([^,]+?)$/i)?.[1] || "that place"}`].filter(Boolean);
-      return { text: `The board now shows ${bits.join(", ")} jobs.`, undo: before ? () => { set(before); return { text: "The filters are back as they were." }; } : null };
-    },
+    setFilter: (a, ctx) => setFilter(a, ctx),
     // T2 — the person's own data
     needsMe: () => {
       const c = counts();
@@ -158,6 +199,15 @@ export function createDraftHandlers({ navigate, api, action, counts = () => null
     },
     /** what no row matched → draft's own help and Atlas (T2), or nothing */
     fallback: async (text) => {
+      // ⭐ D190 · Tiny: a plain search ("search for data analyst", "data analyst jobs in Boston") is the board's search, T1
+      const sentence = jobSearchSentence(text);
+      if (sentence) {
+        try {
+          const r = await setFilter({ sentence }, { said: text });
+          if (r.ask) return { tier: "ask", intent: "set_filter", text: r.ask };
+          return { tier: "T1", intent: "set_filter", text: r.text, undo: r.undo || null };
+        } catch (err) { return { tier: "T1", intent: "set_filter", text: err.message, failed: true }; }
+      }
       const r = await lookup("question", {}, text);
       if (!r) return null;
       return { tier: "T2", intent: "lookup", text: r.text, lessons: r.lessons || [], links: r.links || [] };

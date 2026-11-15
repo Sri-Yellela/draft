@@ -10,7 +10,8 @@
 //          focus expands it to the names. Badges are small numbers on the icons.
 //          ⭐ D167 · THE SITE'S MAP (owner 11-06, home-sketch.html — supersedes D156 (1c)'s list): SIX PLACES —
 //          /d → /draft (the jobs) · Home (the house) · Atlas (the globe) · Interview (a microphone) · Profile (the
-//          person's picture) · a thin divider · Ask draft (a speech bubble). NAMES ONLY: the plain lines under the names
+//          person's picture) · [⭐ D190, owner 11-15: the divider and Ask draft left the dock — Tiny floats at the
+//          bottom-right]. NAMES ONLY: the plain lines under the names
 //          are removed ("remove description below menu items"). THE /d MARK DRAWS OUT INTO /draft: the whole wordmark is
 //          set once (DraftMark drawOut) and "raft" is uncovered by clip-path while the mark slides (transform) — the logo
 //          never changes size. THE DOCK'S MOTION ("looks a bit choppy … the menu items have to be centered"): every icon
@@ -26,8 +27,9 @@
 //          It never pushes or covers the page. The quick peek opens beside a side dock and below a top one.
 //          THE PROFILE QUICK PEEK: pressing the picture (or resting on it ≈ 350 ms) opens a small Dusk menu beside the
 //          dock (ProfilePeek) — it closes on Esc, a press outside, or leaving it, and never covers the dock.
-//          ASK DRAFT: the assistant (T5) is not built yet; the item opens AskDraftPanel, a minimal panel on the right that
-//          MOVES THE PAGE OVER (`data-ask-open` pads the app shell by its width) — never on top of it.
+//          ⭐ TINY (D190, owner 11-15: "make tiny a floating bot on the site rather than a panel button"): not in the
+//          dock. A fox bubble fixed at the bottom-right opens AskDraftPanel as a FLOATING CARD over the page (380 × 560
+//          above the bubble; a bottom sheet on phones) — the page keeps its width (D167's push and A201's sheet retired).
 //   Menu — a Menu button at the top right (in the bar); it opens a side panel from the right whose buttons are EXACTLY
 //          the dock's (one list, one <NavItems>); closes with Close, a click outside, Esc; M toggles it.
 // ⛔ Real links (AH2): ctrl / middle click opens a new tab.
@@ -48,6 +50,7 @@ import { createDraftHandlers } from "../lib/assistantDraft.js";
 import { assistantAction, ASK_SESSION_KEY, ASK_CLEAR_EVENT } from "../lib/assistantBridge.js";
 import { heldQuestionsFor } from "../lib/heldApplication.js";
 import { voiceSupported, listenOnce, voiceNote, VOICE_ERRORS } from "../../../shared/assistantVoice.js";   // D190 P4
+import { tinySvg, TINY_NAME } from "../../../shared/tinyMascot.js";   // D190 (owner 11-15): Tiny's face, the fox
 import { autoToggle } from "../lib/draftHouseExceptions.js";
 import { ACTIVE_THEME } from "../themes/index.js";
 import "./AppNav.css";
@@ -57,12 +60,13 @@ export const DOCK_ICON_PX = 30;
 // ⭐ D167: the names, and nothing under them. The jobs are "draft" (the mark draws out into /draft); the tracker is the
 // house, "Home"; Interview is the new page (/app/interview — the d167-profile lane builds the page and its route).
 export const DOCK_NAMES = Object.freeze({ today: "draft", "auto-apply" : "Home", atlas: "Atlas", interview: "Interview", network: "Network", feed: "Feed", messages: "Messages" });   // (the id, spaced for the D6 guard)
-// The six places, in the dock's order (D167). Profile and Ask draft are not tabs: they are drawn by ProfileItem and
-// AskItem after the tabs (and the divider).
+// The places, in the dock's order (D167). Profile is not a tab: ProfileItem draws it after the tabs. ⭐ D190 (owner 11-15:
+// Tiny replaces Ask draft, floating): D167's sixth place, Ask draft after a divider, left the dock — Tiny is the fox bubble
+// at the bottom-right (TinyBubble).
 export const NETWORK_PATH = "/app/network";   // D180 P1
 export const FEED_PATH = "/app/feed";   // 46f: the feed's own page
 export const MESSAGES_PATH = "/app/messages";   // 46f: messages' own page
-export const DOCK_PLACES = Object.freeze(["today", "auto-apply", "atlas", "interview", "profile", "ask"]);
+export const DOCK_PLACES = Object.freeze(["today", "auto-apply", "atlas", "interview", "profile"]);
 export const INTERVIEW_PATH = "/app/interview";
 // ⭐ D167 · the open dock's width, the gaps and where the dock goes — one pure module (dockPlace.js), so the rule is
 // tested without a browser.
@@ -164,13 +168,6 @@ function DockSearch({ onClose }) {
   );
 }
 
-function BubbleIcon() {
-  return (
-    <svg className="appnav-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M4.5 6.5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-6l-4.5 3.5v-3.5h-.5a2 2 0 0 1-2-2z" />
-    </svg>
-  );
-}
 const ICONS = { atlas: () => <GlobeIcon />, "auto-apply" : () => <HouseIcon />, interview: () => <MicIcon />, network: () => <PeopleIcon />, feed: () => <FeedIcon />, messages: () => <EnvelopeIcon /> };   // (the id, spaced for the D6 guard)
 // The jobs' entry is the mark itself — "/d" at rest, "/draft" open (the wordmark IS its name, so no separate word).
 const isJobs = (id) => id === "today" || id === "console";
@@ -266,13 +263,20 @@ function ProfileItem({ profile, onPress, dock = false, peek = null, itemRef = nu
   );
 }
 
-// ⭐ D167 · Ask draft — the sixth place, after the divider.
-function AskItem({ onPress, open, dock = false }) {
+// ⭐ D190 · TINY (owner 11-15: "make tiny a floating bot on the site rather than a panel button. give it a cute logo
+// animal"; the owner chose: Tiny REPLACES Ask draft on draft — one floating Tiny on both sites). The dock's sixth place
+// (D167's Ask draft speech bubble after a divider) is gone: a fox bubble fixed at the bottom-right of every app page opens
+// AskDraftPanel as a floating card above it. A perfect circle (D60 allows it); the fox's own colours live in
+// shared/tinyMascot.js (illustration, like a logo — not theme); everything around it is theme tokens (AppNav.css).
+const TINY_FACE = { __html: tinySvg({ size: 40 }) };          // trusted constant markup (shared/tinyMascot.js), decorative
+const TINY_FACE_SMALL = { __html: tinySvg({ size: 28 }) };
+export const TINY_OPEN_KEY = "draft-ask:open";                 // the card's open state, remembered for the tab's session
+function TinyBubble({ open, onPress, btnRef }) {
   return (
-    <button type="button" className="appnav-item" data-nav-item="ask" aria-expanded={!!open} aria-controls="appnav-ask" onClick={onPress}
-      {...(dock ? { "aria-label": "Ask draft" } : null)}>
-      {dock && <span className="appnav-ico" data-nav-icon="ask"><BubbleIcon /></span>}
-      <span className="appnav-words"><span className="appnav-name">Ask draft</span></span>
+    <button type="button" ref={btnRef} className="appnav-tiny" data-tiny-launch="" data-open={open ? "true" : "false"}
+      aria-expanded={!!open} aria-controls="appnav-ask" aria-label={open ? `Close ${TINY_NAME}` : `Ask ${TINY_NAME}`}
+      title={open ? `Close ${TINY_NAME}` : `Ask ${TINY_NAME}`} onClick={onPress}>
+      <span className="appnav-tiny__face" aria-hidden="true" dangerouslySetInnerHTML={TINY_FACE} />
     </button>
   );
 }
@@ -329,8 +333,10 @@ export function ProfilePeek({ open, profile, pos = { top: 0, left: 80 }, onGo, o
   );
 }
 
-// ⭐ D167 · ASK DRAFT — the assistant's place: on the right, and it MOVES THE PAGE OVER (`data-ask-open` → AppNav.css pads
-// the app shell by --appnav-ask-w), never on top of it. ⭐ T5 v1 (owner 11-10, "OK ship it"): a short answer, one to three
+// ⭐ D190 · TINY (owner 11-15: "Tiny replaces Ask draft, floating") — this panel, renamed Tiny where a person reads it and
+// drawn as a FLOATING CARD over the page above the fox bubble (AppNav.css .appnav-ask); the `data-ask-*` hooks stay (the
+// walks and tests use them). `data-ask-open` on <html> still says it is open (A200's timeline fold reads it) but no longer
+// pads the page. ~~D167 · ASK DRAFT — on the right, and it MOVES THE PAGE OVER~~ (superseded). ⭐ T5 v1 (owner 11-10, "OK ship it"): a short answer, one to three
 // Atlas lessons (only lessons that exist), one next step, and at most one PROPOSED action that runs only when the person
 // presses Confirm (POST /api/assistant/actions/:id/confirm — the server uses this session's user, never the model's say).
 // The conversation lives here only (short-term memory, docs/ASSISTANT.md §2): closing the panel forgets it. Until the
@@ -407,6 +413,9 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
+  // D190 · Tiny's card scrolls inside itself: the newest turn is kept in view (on open, and as each reply lands)
+  const bodyRef = useRef(null);
+  useEffect(() => { const b = bodyRef.current; if (open && b) b.scrollTop = b.scrollHeight; }, [open, turns.length, busy]);
   const [app, setApp] = useState(null);   // { jobId, question } — the application question being answered here
   const draftFor = useCallback(async (target, note = "") => {
     setBusy(true);
@@ -459,7 +468,7 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
       setTurns(t => [...t, { who: "draft", tier: m.tier, label: m.label || TIER_LABEL[m.tier] || null, text: m.text, intent: m.intent || null,
         failed: !!m.failed, confirm: !!m.confirm, live: true, undoFn: m.undo || null, lessons: m.lessons || [], links: m.links || [], next: m.next || "",
         action: m.action || null }]);
-    } catch (err) { setTurns(t => [...t, { who: "draft", text: err.message || "Ask draft couldn't answer just now.", failed: true }]); }
+    } catch (err) { setTurns(t => [...t, { who: "draft", text: err.message || `${TINY_NAME} couldn't answer just now.`, failed: true }]); }
     finally { setBusy(false); }
   };
   const undoTurn = async (i, t) => {
@@ -495,12 +504,14 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
     catch { /* unchanged */ }
   };
   return (
-    <aside id="appnav-ask" ref={panelRef} className="appnav-ask" aria-label="Ask draft" data-ask-draft="" data-open={open ? "true" : "false"}
+    <aside id="appnav-ask" ref={panelRef} className="appnav-ask" role="dialog" aria-label={TINY_NAME} data-ask-draft="" data-tiny-card="" data-open={open ? "true" : "false"}
       {...(open ? null : { inert: "", "aria-hidden": true })}>
       <header className="appnav-ask__head">
-        <h2>Ask draft</h2>
-        <button type="button" className="appnav-close appnav-ask__close" data-ask-close="" onClick={onClose}>Close</button>
+        <span className="appnav-ask__face" aria-hidden="true" dangerouslySetInnerHTML={TINY_FACE_SMALL} />
+        <div className="appnav-ask__who"><h2>{TINY_NAME}</h2><span>draft's helper — no AI for anything draft already holds</span></div>
+        <button type="button" className="appnav-close appnav-ask__close" data-ask-close="" aria-label={`Close ${TINY_NAME}`} onClick={onClose}>Close</button>
       </header>
+      <div className="appnav-ask__body" ref={bodyRef}>
 
       {thread && (
         <AskDraftThread key={`${thread.jobId}:${thread.runKey ?? ""}`} thread={thread} onClose={() => setThread(null)}
@@ -508,12 +519,12 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
       )}
       {app && (
         <p className="appnav-ask__say" data-ask-app-question="">
-          Answering <b>{app.question}</b> — tell draft about it in your own words and it writes the answer.{" "}
+          Answering <b>{app.question}</b> — tell {TINY_NAME} about it in your own words and it writes the answer.{" "}
           <button type="button" className="appnav-ask__btn" data-ask-app-done="" onClick={() => setApp(null)}>Done</button>
         </p>
       )}
       {<>
-        {!app && !turns.length && <p className="appnav-ask__say" data-ask-intro="">Tell draft what to do — “draft this job”, “open my profile”, “how many need me?” — or ask about a skill, a role or how draft works. Anything draft already holds is done without AI.</p>}
+        {!app && !turns.length && <p className="appnav-ask__say" data-ask-intro="">Hi, I'm {TINY_NAME}. Tell me what to do — “show me senior remote jobs in Boston”, “find data analyst jobs”, “draft this job”, “open my profile”, “how many need me?” — or ask about a skill, a role or how draft works. Anything draft already holds is done without AI.</p>}
         <div className="appnav-ask__turns" data-ask-turns="" aria-live="polite">
           {turns.map((t, i) => (
             <div key={i} className="appnav-ask__turn" data-ask-turn={t.who} data-ask-tier={t.tier || undefined} data-ask-intent={t.intent || undefined}>
@@ -554,10 +565,13 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
           ))}
           {busy && <p className="appnav-ask__kind" data-ask-busy="">Thinking…</p>}
         </div>
+      </>}
+      </div>
+      {<>
         <form className="appnav-ask__form" onSubmit={send}>
-          <textarea className="appnav-ask__input" aria-label="Your question" rows={3} maxLength={600} value={q}
+          <textarea className="appnav-ask__input" aria-label={`Ask ${TINY_NAME}`} rows={2} maxLength={600} value={q}
             onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(e); }}
-            placeholder={app ? "e.g. I set up Splunk alerts for the payments team…" : "e.g. draft this job · open my profile · how many need me?"} data-ask-input="" />
+            placeholder={app ? "e.g. I set up Splunk alerts for the payments team…" : `Ask ${TINY_NAME} — e.g. find data analyst jobs · how many need me?`} data-ask-input="" />
           {canSpeak && <button type="button" className="appnav-ask__btn" data-ask-mic="" aria-pressed={voice.on} aria-label="Speak a command" title="Speak a command" onClick={toggleVoice}>{voice.on ? "Stop" : "Speak"}</button>}
           <button type="submit" className="appnav-ask__btn" disabled={busy || !q.trim()} data-ask-send="">Ask</button>
         </form>
@@ -576,8 +590,10 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
   const [wide, setWide] = useState(false);      // the dock, expanded to its names (hover / focus / M)
   const [peekOpen, setPeekOpen] = useState(false);
   const [peekPos, setPeekPos] = useState({ top: 0, left: 80 });
-  const [askOpen, setAskOpen] = useState(false);
-  // A199: Home's held stepper asks for a draft → Ask draft opens beside it (the panel itself takes the question).
+  // ⭐ D190 · Tiny's card: open or closed is remembered for the tab's session (the PDF-tools site's Tiny does the same).
+  const [askOpen, setAskOpen] = useState(() => { try { return sessionStorage.getItem(TINY_OPEN_KEY) === "1"; } catch { return false; } });
+  useEffect(() => { try { sessionStorage.setItem(TINY_OPEN_KEY, askOpen ? "1" : ""); } catch { /* storage blocked */ } }, [askOpen]);
+  // A199: Home's held stepper asks for a draft → Tiny opens (the panel itself takes the question).
   // A199 (2): …and a held application's questions open as a thread there (draft:open-questions).
   useEffect(() => {
     const open = () => setAskOpen(true);
@@ -679,11 +695,12 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
   }, [dockOpen]);
   useEffect(() => () => { const r = document.documentElement; r.removeAttribute("data-dock-open"); r.removeAttribute("data-dock-place"); r.removeAttribute("data-ask-open"); }, []);
 
-  // ⭐ D167 · Ask draft moves the page over: the shell is padded by the panel while it is open.
+  // ⭐ D190 · Tiny floats over the page (owner 11-15): `data-ask-open` says it is open (A200's timeline fold reads it) —
+  // ~~D167: the shell is padded by the panel~~ (no longer: the page keeps its width). Opening puts the cursor in the box.
   useEffect(() => {
     const root = document.documentElement;
     if (askOpen) root.setAttribute("data-ask-open", "true"); else root.removeAttribute("data-ask-open");
-    if (askOpen) askRef.current?.querySelector("button")?.focus({ preventScroll: true });
+    if (askOpen) askRef.current?.querySelector("[data-ask-input]")?.focus({ preventScroll: true });
   }, [askOpen]);
 
   // A press outside the dock folds it back to its icons; outside the dock and the peek closes the peek.
@@ -747,7 +764,7 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
     showPeek();
     requestAnimationFrame(() => peekRef.current?.querySelector("a,button:not([disabled])")?.focus({ preventScroll: true }));
   };
-  const pressAsk = (e) => { askBtnRef.current = e.currentTarget; setWide(false); closePeek(); setAskOpen((o) => !o); };
+  const pressAsk = () => { setWide(false); closePeek(); setAskOpen((o) => !o); };
 
   const body = typeof document !== "undefined" ? document.body : null;
   return (
@@ -768,13 +785,12 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
             </button>
             <NavItems tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onGo={go} dock network={network} netUnread={netUnread} />
             <ProfileItem profile={profile} dock itemRef={profRef} peek={canHover ? peekHover : { open: peekOpen }} onPress={pressProfile} />
-            <span className="appnav-sep" aria-hidden="true" />
-            <AskItem dock open={askOpen} onPress={pressAsk} />
             </>}
           </nav>
           <ProfilePeek open={peekOpen} profile={profile} pos={peekPos} onGo={goPath} onClose={closePeek}
             onEnter={canHover ? onPeekEnter : undefined} onLeave={canHover ? onPeekLeave : undefined} peekRef={peekRef} />
           <AskDraftPanel open={askOpen} panelRef={askRef} onClose={() => { setAskOpen(false); askBtnRef.current?.focus?.({ preventScroll: true }); }} />
+          <TinyBubble open={askOpen} onPress={pressAsk} btnRef={askBtnRef} />
         </>, body)}
     </>
   );

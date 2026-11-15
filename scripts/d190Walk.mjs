@@ -9,6 +9,11 @@
  *   T2  "how many need me?" from the dock's own counts · "does Kestrel sponsor?" / "what is Spark?" through /api/assistant/lookup
  *   T3  "rewrite this bullet…" with the assistant switched off → nothing is sent
  *   ⛔ ZERO requests to /api/assistant/ask the whole walk; the conversation survives a reload and leaves at sign-out.
+ * ⭐ TINY (owner 11-15: "make tiny a floating bot on the site rather than a panel button … put filters into the search and
+ * show results on the page … answer faqs"; Tiny REPLACES Ask draft): opened from the fox bubble fixed at the bottom-right
+ * (not the dock — the dock has no Ask item any more); the card floats over the page (the page keeps its width); a filter
+ * said on a page with no board (Home) opens the board and its next /api/jobs carries the filters; a plain search
+ * ("find data analyst jobs") is the board's text search; an FAQ goes to the lookup; the open card survives a reload.
  * Prints the checks; exit 1 on any failure.   node scripts/d190Walk.mjs
  */
 import path from "node:path";
@@ -94,6 +99,7 @@ try {
       const b = body(); log.lookups.push(b);
       if (b.intent === "sponsorship") return json({ found: true, tier: "T2", intent: "sponsorship", text: `${b.args.company}: Filed 412 certified LCAs in FY2025 (synthetic).` });
       if (b.intent === "question" && /spark/i.test(b.question)) return json({ found: true, tier: "T2", intent: "question", text: "Atlas — Apache Spark: a distributed data-processing engine (synthetic).", lessons: [{ slug: "apache-spark", name: "Apache Spark", kind: "tool", href: "/atlas/apache-spark" }], links: [] });
+      if (b.intent === "question" && /ask me first/i.test(b.question)) return json({ found: true, tier: "T2", intent: "question", text: "Ask me first: draft fills the application and holds it as Ready to approve (synthetic help).", lessons: [], links: [{ title: "Ask me first", href: "/app/auto-apply" }] });
       return json({ found: false });
     }
     json(FIX[u.pathname] ?? {});
@@ -104,17 +110,36 @@ try {
     start() { setTimeout(() => { if (window.__speechErr) { this.onerror?.({ error: window.__speechErr }); this.onend?.(); return; } this.onresult?.({ results: [[{ transcript: window.__say || "help" }]] }); this.onend?.(); }, 60); }
     stop() { this.onend?.(); } }; });
   await page.goto(`${vite.url}/app`, { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
-  await page.waitForSelector("[data-nav-item='ask']", { timeout: 30000 });
+  await page.waitForSelector("[data-tiny-launch]", { timeout: 30000 });
   await sleep(1200);
-  await page.click("[data-nav-item='ask']");
+  // ⭐ Tiny: no Ask item in the dock; the fox bubble is fixed at the bottom-right, a perfect circle with the fox in it
+  const bubble = await page.evaluate(() => {
+    const b = document.querySelector("[data-tiny-launch]"), r = b.getBoundingClientRect(), cs = getComputedStyle(b);
+    return { position: cs.position, right: Math.round(innerWidth - r.right), bottom: Math.round(innerHeight - r.bottom), w: Math.round(r.width), h: Math.round(r.height),
+      radius: cs.borderTopLeftRadius, fox: !!b.querySelector("svg path") && b.querySelectorAll("svg circle").length >= 4, label: b.getAttribute("aria-label"),
+      dockAsk: !!document.querySelector("[data-nav-dock] [data-nav-item='ask']"), dockSep: !!document.querySelector("[data-nav-dock] .appnav-sep") };
+  });
+  ok("Tiny is a fox bubble fixed at the bottom-right (60 px circle), not a dock item", bubble.position === "fixed" && bubble.right === 20 && bubble.bottom === 20 && bubble.w === 60 && bubble.h === 60
+    && bubble.radius === "50%" && bubble.fox && bubble.label === "Ask Tiny" && !bubble.dockAsk && !bubble.dockSep, JSON.stringify(bubble));
+  const pageBox = () => page.evaluate(() => { const sh = document.querySelector("[data-app-shell]"); const m = (sh?.querySelector("main") || sh).getBoundingClientRect(); return { mainW: Math.round(m.width), mainRight: Math.round(m.right), pad: getComputedStyle(sh).paddingRight, scrollW: document.documentElement.scrollWidth, vw: document.documentElement.clientWidth }; });
+  const shut = await pageBox();
+  await page.click("[data-tiny-launch]");
   await page.waitForSelector("[data-ask-draft][data-open='true'] [data-ask-input]", { timeout: 10000 });
-  await sleep(400);
-  const lay = await page.evaluate(() => { const a = document.querySelector("[data-ask-draft]").getBoundingClientRect(); const main = document.querySelector("main") || document.querySelector("#root > div"); const m = main.getBoundingClientRect(); return { askLeft: Math.round(a.left), askW: Math.round(a.width), mainRight: Math.round(m.right) }; });
-  ok("Ask draft opens on the right and moves the page over", lay.askW > 200 && lay.mainRight <= lay.askLeft + 2, JSON.stringify(lay));
+  await sleep(500);
+  const lay = await page.evaluate(() => {
+    const a = document.querySelector("[data-ask-draft]"), r = a.getBoundingClientRect(), b = document.querySelector("[data-tiny-launch]").getBoundingClientRect();
+    return { position: getComputedStyle(a).position, w: Math.round(r.width), h: Math.round(r.height), right: Math.round(innerWidth - r.right), gapToBubble: Math.round(b.top - r.bottom),
+      title: a.querySelector("h2")?.textContent, face: !!a.querySelector(".appnav-ask__face svg"), label: a.getAttribute("aria-label"), focused: document.activeElement?.hasAttribute("data-ask-input"),
+      placeholder: a.querySelector("[data-ask-input]").placeholder, intro: a.querySelector("[data-ask-intro]")?.textContent || "", html: document.documentElement.getAttribute("data-ask-open") };
+  });
+  const open1 = await pageBox();
+  ok("the card floats above the bubble (380 × 560, fixed), named Tiny with the fox", lay.position === "fixed" && lay.w === 380 && lay.h === 560 && lay.right === 20 && lay.gapToBubble >= 8 && lay.gapToBubble <= 16
+    && lay.title === "Tiny" && lay.label === "Tiny" && lay.face && /Tiny/.test(lay.placeholder) && /I'm Tiny/.test(lay.intro) && !/Ask draft/.test(lay.intro + lay.placeholder) && lay.focused && lay.html === "true", JSON.stringify(lay));
+  ok("…over the page: the page does not shrink or move", open1.mainW === shut.mainW && open1.mainRight === shut.mainRight && open1.pad === shut.pad && open1.scrollW <= open1.vw, `${JSON.stringify(shut)} → ${JSON.stringify(open1)}`);
 
   const lastTurn = () => page.evaluate(() => { const t = [...document.querySelectorAll("[data-ask-turn='draft']")].pop(); return t ? { tier: t.dataset.askTier || null, label: t.querySelector("[data-ask-label]")?.textContent || null, text: t.querySelector(".appnav-ask__text")?.textContent || "", undo: !!t.querySelector("[data-ask-undo]"), confirm: !!t.querySelector("[data-ask-yes]") } : null; });
   const tell = async (s) => {
-    if (!(await page.$("[data-ask-draft][data-open='true'] [data-ask-input]"))) { await page.click("[data-nav-item='ask']"); await page.waitForSelector("[data-ask-draft][data-open='true'] [data-ask-input]", { timeout: 10000 }); await sleep(300); }
+    if (!(await page.$("[data-ask-draft][data-open='true'] [data-ask-input]"))) { await page.click("[data-tiny-launch]"); await page.waitForSelector("[data-ask-draft][data-open='true'] [data-ask-input]", { timeout: 10000 }); await sleep(300); }
     const n0 = (await page.$$("[data-ask-turn='draft']")).length;
     await page.click("[data-ask-input]"); await page.type("[data-ask-input]", s); await page.keyboard.press("Enter");
     await page.waitForFunction((n) => document.querySelectorAll("[data-ask-turn='draft']").length > n, { timeout: 20000 }, n0);
@@ -197,11 +222,44 @@ try {
   t = await tell("open my held questions");
   await sleep(500);
   ok("“open my held questions” opens the held application's thread", /Ostara/.test(t.text) && !!(await page.$("[data-ask-thread='j9']")), t.text);
+  await page.evaluate(() => document.querySelector("[data-ask-thread] [data-ask-thread-close], [data-ask-thread] button[aria-label^='Close']")?.click()); await sleep(300);
 
-  // the session keeps the conversation; sign-out clears it
+  // ⭐ Tiny · "put filters into the search and show results on the page": said on Home (no board here), the board opens and
+  // its next /api/jobs carries the filters
+  ok("(on Home — no board mounted)", (await page.evaluate(() => location.pathname)) === "/app/auto-apply");
+  let q2 = log.jobsQueries.length;
+  t = await tell("show me senior remote jobs in Boston");
+  await sleep(1500);
+  let qsNav = log.jobsQueries.slice(q2).join(" ");
+  ok("“show me senior remote jobs in Boston” from Home → the board opens and its next /api/jobs carries the filters",
+    /^\/app(\/today)?$/.test(await page.evaluate(() => location.pathname)) && t.tier === "T1" && /senior/.test(qsNav) && /remote/.test(qsNav) && /boston/i.test(qsNav) && /opened the board/.test(t.text),
+    `${await page.evaluate(() => location.pathname)} | ${t.text} | ${qsNav.slice(0, 240)}`);
+  ok("…Tiny stays open over the board, with an Undo", !!(await page.$("[data-ask-draft][data-open='true']")) && t.undo);
+  await tell("open interview"); await sleep(800);
+  // (Interview, not Profile or Atlas: those pages need fixtures this walk doesn't stub — {} makes them throw)
+  ok("(on Interview — no board mounted)", /^\/app\/interview/.test(await page.evaluate(() => location.pathname)), await page.evaluate(() => location.pathname));
+  q2 = log.jobsQueries.length;
+  t = await tell("find data analyst jobs");
+  await sleep(1500);
+  qsNav = log.jobsQueries.slice(q2).join(" ");
+  ok("“find data analyst jobs” from Interview → the board's text search", /^\/app(\/today)?$/.test(await page.evaluate(() => location.pathname)) && t.tier === "T1" && /data(\+|%20| )analyst/i.test(qsNav) && !/senior/.test(qsNav),
+    `${await page.evaluate(() => location.pathname)} | ${t.text} | ${qsNav.slice(0, 240)}`);
+  q2 = log.jobsQueries.length;
+  t = await tell("search for product manager");
+  await sleep(1500);
+  qsNav = log.jobsQueries.slice(q2).join(" ");
+  ok("“search for product manager” on the board → its search, T1, no lookup", t.tier === "T1" && /product(\+|%20| )manager/i.test(qsNav) && !log.lookups.some(l => /product manager/.test(l.question || "")), `${t.text} | ${qsNav.slice(0, 200)}`);
+  // FAQs: a site question no command matches → draft's own help (the lookup), T2, never the model
+  const l0 = log.lookups.length;
+  t = await tell("how does ask me first work?");
+  ok("an FAQ (“how does ask me first work?”) — T2 from draft's help through /api/assistant/lookup", t.tier === "T2" && /Ready to approve/.test(t.text) && log.lookups.length === l0 + 1 && log.lookups.at(-1).intent === "question", t.text);
+  ok("…with the help page's link", await page.evaluate(() => !![...document.querySelectorAll("[data-ask-link]")].pop()?.getAttribute("href")?.startsWith("/app/auto-apply")));
+
+  // the session keeps the conversation — and Tiny's open card; sign-out clears the conversation
   const turnsBefore = (await page.$$("[data-ask-turn]")).length;
-  await page.reload({ waitUntil: "networkidle2" }); await page.waitForSelector("[data-nav-item='ask']"); await sleep(800);
-  await page.click("[data-nav-item='ask']"); await sleep(500);
+  await page.reload({ waitUntil: "networkidle2" }); await page.waitForSelector("[data-tiny-launch]"); await sleep(800);
+  ok("Tiny's open card is remembered across a reload (this tab's session)", !!(await page.$("[data-ask-draft][data-open='true']")));
+  if (!(await page.$("[data-ask-draft][data-open='true']"))) { await page.click("[data-tiny-launch]"); await sleep(500); }
   const turnsAfter = (await page.$$("[data-ask-turn]")).length;
   ok("the conversation survives a reload (this tab's session)", turnsAfter >= turnsBefore - 2 && turnsAfter > 10, `${turnsBefore} → ${turnsAfter}`);
   await page.evaluate(async () => { const m = await import("/src/lib/assistantBridge.js"); m.clearAskDraftSession(); });
@@ -216,7 +274,11 @@ try {
   // P3: the assistant switched on — ONLY an explicit request for new writing reaches the model route, and it is labelled
   FIX["/api/assistant/status"] = { available: true, improveAtlas: true };
   await page.click("[data-ask-close]"); await sleep(300);
-  await page.click("[data-nav-item='ask']"); await sleep(600);
+  ok("Close folds the card back to the bubble", (await page.$eval("[data-ask-draft]", e => e.getAttribute("data-open"))) === "false" && (await page.evaluate(() => document.documentElement.getAttribute("data-ask-open"))) === null);
+  await page.click("[data-tiny-launch]"); await sleep(600);
+  await page.keyboard.press("Escape"); await sleep(300);
+  ok("Esc closes Tiny", (await page.$eval("[data-ask-draft]", e => e.getAttribute("data-open"))) === "false");
+  await page.click("[data-tiny-launch]"); await sleep(600);
   t = await tell("how many need me?");
   ok("P3 with the assistant on, site data is still T2 — no model request", t.tier === "T2" && log.asks.length === 0, t.text);
   t = await tell("what is Spark?");
@@ -226,6 +288,12 @@ try {
   ok("no page errors", errors.length === 0, errors.slice(0, 3).join(" | "));
   fs.mkdirSync(path.join(ROOT, "tmp"), { recursive: true });
   await page.screenshot({ path: path.join(ROOT, "tmp", "d190-askdraft.png") });
+  // phone: a bottom sheet, the bubble steps aside while it is open
+  await page.setViewport({ width: 390, height: 844 }); await sleep(700);
+  const phone = await page.evaluate(() => { const a = document.querySelector("[data-ask-draft]").getBoundingClientRect(), b = document.querySelector("[data-tiny-launch]");
+    return { left: Math.round(a.left), right: Math.round(innerWidth - a.right), bottom: Math.round(innerHeight - a.bottom), w: Math.round(a.width), bubble: getComputedStyle(b).display, scrollW: document.documentElement.scrollWidth, vw: document.documentElement.clientWidth }; });
+  ok("phone (390): Tiny is a bottom sheet the full width; the bubble steps aside", phone.left === 0 && phone.right === 0 && phone.bottom === 0 && phone.bubble === "none" && phone.scrollW <= phone.vw, JSON.stringify(phone));
+  await page.screenshot({ path: path.join(ROOT, "tmp", "d190-tiny-phone.png") });
 } catch (e) {
   ok("walk ran to the end", false, e.stack || e.message);
   try { const pg = (await browser.pages()).at(-1); await pg.screenshot({ path: path.join(ROOT, "tmp", "d190-askdraft-fail.png") }); console.log("pageerrors:", JSON.stringify(globalThis.__walkErrors || []).slice(0, 900)); console.log("at", await pg.evaluate(() => location.pathname), "text:", JSON.stringify(await pg.evaluate(() => document.body.innerText.slice(0, 300)))); } catch {}

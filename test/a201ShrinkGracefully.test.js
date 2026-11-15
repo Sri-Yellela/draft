@@ -32,14 +32,15 @@ test("⭐ A201 (Chrome): the screens that garbled read cleanly at 768 and 390, w
   }
 });
 
-test("A201: the fixes — the table and the card pairs follow their OWN width; Ask draft is a sheet below 1280 px", () => {
+test("A201: the fixes — the table and the card pairs follow their OWN width; Tiny floats over the page (owner 11-15)", () => {
   assert.match(read("client/src/components/ApplicationTracker.css"), /\.trk \{[^}]*container-type: inline-size; container-name: trk; \}[\s\S]*@container trk \(max-width: 700px\) \{/);
   const jb = read("client/src/components/JobBubble.css");
   assert.match(jb, /container-type: inline-size; container-name: jbrows;/);
   assert.match(jb, /@container jbrows \(max-width: 620px\) \{\n  \.jb-pair \{ flex-direction: column;/);
   assert.match(jb, /\.jb-pair \.jb__meta \{ flex-wrap: wrap; overflow: hidden; white-space: nowrap; max-height:/, "a fact drops whole, never cut mid-word");
   const nav = read("client/src/components/AppNav.css");
-  // pushing the page only from 1280 px (the page keeps ~900 px); below, a sheet over it (A201: 1024 px left Home 644 px)
-  assert.match(nav, /@media \(min-width: 1280px\) \{   \/\* A201: Ask draft pushes the page only where the page keeps ~900 px; below, it is a sheet \*\/\n  :root\[data-ask-open="true"\] \[data-app-shell\] \{ padding-right: var\(--appnav-ask-w\); \}/);
-  assert.match(nav, /@media not all and \(min-width: 1280px\) \{\n  \.appnav-ask \{ --appnav-ask-w: min\(420px, 100vw\); z-index: 256;/);
+  // ⭐ owner 11-15: Tiny replaces Ask draft, floating (changed on purpose) — A201's split (push from 1280 px, a sheet below)
+  // is retired: the card floats over the page at every width, so the page is never narrowed; a bottom sheet on phones.
+  assert.doesNotMatch(nav, /\[data-ask-open="true"\] \[data-app-shell\] \{ padding-right/);
+  assert.match(nav, /@media \(max-width: 600px\) \{   \/\* D190: a bottom sheet on phones; the bubble steps aside while it is open \*\/\n  \.appnav-tiny \{ right: 12px; bottom: 12px; \}/);
 });

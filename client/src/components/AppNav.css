@@ -99,11 +99,10 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 .appnav-initials { font-weight: 700; font-size: 12px; line-height: 1; color: var(--c-ink); }
 /* A badge rides on the icon's top-right corner. */
 .appnav-ico .appnav-badge { position: absolute; top: -5px; right: -7px; }
-/* ⭐ D167: the thin divider before Ask draft. */
-.appnav-sep { display: block; flex: none; height: 1px; margin: 4px 6px; background: var(--c-border); }
+/* ⭐ D167: the end of the rail's rules. (Its thin divider before Ask draft left the dock with Ask draft — D190, owner 11-15:
+   Tiny replaces Ask draft, floating at the bottom-right.) */
 /* ⭐ D167: THE DOCK NEVER PUSHES THE PAGE (the rail's padding and D156 (3)'s push are gone): a side dock sits in a margin
    measured to fit it open; otherwise it goes to the top, and the page starts one gap below it (--appnav-top-reserve). */
-[data-app-shell] { transition: padding-right .38s cubic-bezier(.22, 1, .36, 1); }
 /* (a spacer, not padding: the shell's padding-top is its inline chrome height — App.jsx) */
 :root[data-dock-place="top"] [data-app-shell]::before,
 :root[data-dock-place="phone"] [data-app-shell]::before {
@@ -124,8 +123,6 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 :root[data-dock-place="top"] .appnav-dock[data-nav-dock] .appnav-words { opacity: 1; transform: none; transition: none; }
 :root[data-dock-place="top"] .appnav-dock[data-nav-dock] .appnav-ico--mark [data-draft-mark] { transform: none; transition: none; }
 :root[data-dock-place="top"] .appnav-dock[data-nav-dock] .appnav-ico--mark [data-draft-raft] { clip-path: none; transition: none; }
-:root[data-dock-place="top"] .appnav-dock[data-nav-dock] .appnav-sep,
-:root[data-dock-place="phone"] .appnav-dock[data-nav-dock] .appnav-sep { width: 1px; height: 22px; margin: 0 4px; }
 
 /* PHONE — at the top, centred, below the status bar, ICONS ONLY (the short /d). */
 :root[data-dock-place="phone"] .appnav-dock[data-nav-dock] {
@@ -192,22 +189,44 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 /* ⭐ D167: its place is set by AppNav.jsx — beside a side dock, below a top one (placePeek). */
 @media (max-width: 600px) { .appnav-peek { width: min(268px, calc(100vw - 24px)); } }
 
-/* ⭐ D167 · ASK DRAFT — the assistant's panel, on the right. It MOVES THE PAGE OVER (D153 / D156's rule): while it is open
-   the app shell and the fixed chrome are padded by its width, so nothing is under it. */
-:root { --appnav-ask-w: min(380px, 88vw); }
-.appnav-ask {
-  position: fixed; top: 0; right: 0; bottom: 0; width: var(--appnav-ask-w); box-sizing: border-box; z-index: 240; /* below Z.NAV */
-  display: flex; flex-direction: column; gap: 12px; padding: 22px 20px; overflow-y: auto;
-  background: var(--c-surface-menu); border-left: 1px solid var(--c-border);
-  transform: translateX(100%); visibility: hidden; transition: transform .38s cubic-bezier(.22, 1, .36, 1), visibility 0s linear .38s;
+/* ⭐ D190 · TINY (owner 11-15: "make tiny a floating bot on the site rather than a panel button … a cute logo animal"; Tiny
+   replaces Ask draft on draft). A fox bubble FIXED at the bottom-right of every app page — a perfect circle (D60 allows it) —
+   and the chat as a FLOATING CARD above it, OVER the page: the page keeps its width (D167's push, A200 (a)'s dock shift and
+   A201's below-1280 sheet are retired). On a phone (≤ 600 px) the card is a bottom sheet and the bubble steps aside.
+   Theme tokens only; the fox's own colours are illustration and live in shared/tinyMascot.js. */
+:root { --appnav-ask-w: min(380px, calc(100vw - 40px)); }
+.appnav-tiny {
+  position: fixed; right: 20px; bottom: 20px; z-index: 257; /* above the card's edge, the dock (Z.NAV) and the peek; below the modal tiers */
+  width: 60px; height: 60px; aspect-ratio: 1; border-radius: 50%; padding: 0; display: grid; place-items: center; cursor: pointer;
+  background: linear-gradient(var(--c-surface-menu), var(--c-surface-menu)), var(--c-surface-solid); border: 1px solid var(--c-border); box-shadow: var(--c-shadow-lg);
+  transition: transform .18s ease, box-shadow .18s ease;
 }
-.appnav-ask[data-open="true"] { transform: none; visibility: visible; transition: transform .38s cubic-bezier(.22, 1, .36, 1); }
-.appnav-ask__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.appnav-ask__head h2 { margin: 0; font-size: calc(20px * var(--type-scale, 1)); font-weight: 600; color: var(--c-ink); }
-.appnav-ask .appnav-ask__close { position: static; }
+.appnav-tiny:hover, .appnav-tiny:focus-visible { transform: translateY(-3px) rotate(-4deg); }
+.appnav-tiny:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 3px; }
+.appnav-tiny[data-open="true"] { transform: scale(.9); }
+.appnav-tiny__face, .appnav-ask__face { display: grid; place-items: center; line-height: 0; }
+.appnav-tiny__face svg, .appnav-ask__face svg { display: block; }
+.appnav-ask {
+  position: fixed; right: 20px; bottom: 92px; width: var(--appnav-ask-w); height: min(560px, calc(100vh - 120px)); box-sizing: border-box;
+  z-index: 256; /* above Z.NAV and the peek, below the modal tiers */
+  display: flex; flex-direction: column; overflow: hidden;
+  /* the menu surface over the solid one: a chat card stays readable over whatever page it floats on */
+  background: linear-gradient(var(--c-surface-menu), var(--c-surface-menu)), var(--c-surface-solid);
+  border: 1px solid var(--c-border); border-radius: 16px; box-shadow: var(--c-shadow-lg);
+  transform-origin: bottom right; opacity: 0; transform: translateY(8px) scale(.97); visibility: hidden; pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
+}
+.appnav-ask[data-open="true"] { opacity: 1; transform: none; visibility: visible; pointer-events: auto; transition: opacity .18s ease, transform .18s ease; }
+.appnav-ask__head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--c-border); flex: none; }
+.appnav-ask__face { flex: none; width: 36px; height: 36px; aspect-ratio: 1; border-radius: 50%; background: var(--c-surface-2); }
+.appnav-ask__who { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.appnav-ask__head h2 { margin: 0; font-size: calc(16px * var(--type-scale, 1)); font-weight: 600; color: var(--c-ink); }
+.appnav-ask__who span { color: var(--c-ink-muted); font-size: calc(11.5px * var(--type-scale, 1)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.appnav-ask .appnav-ask__close { position: static; flex: none; }
+.appnav-ask__body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 12px; }
 .appnav-ask__say { margin: 0; color: var(--c-ink-muted); font-size: calc(14px * var(--type-scale, 1)); line-height: 1.5; }
 /* T5 v1 — the conversation, the lesson links, the Confirm / Cancel of a proposed action. No pills (D60): plain boxes. */
-.appnav-ask__turns { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.appnav-ask__turns { display: flex; flex-direction: column; gap: 12px; }
 .appnav-ask__turn { display: flex; flex-direction: column; gap: 6px; }
 .appnav-ask__turn[data-ask-turn="you"] { color: var(--c-ink-muted); }
 .appnav-ask__text, .appnav-ask__next { margin: 0; color: var(--c-ink); font-size: calc(14px * var(--type-scale, 1)); line-height: 1.5; }
@@ -215,12 +234,15 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 .appnav-ask__lessons a { color: var(--c-ink); text-decoration: underline; }
 .appnav-ask__kind { color: var(--c-ink-muted); font-size: calc(12px * var(--type-scale, 1)); }
 .appnav-ask__action { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--c-border); border-radius: 6px; }
-.appnav-ask__form { display: flex; flex-direction: column; gap: 8px; }
-.appnav-ask__input { width: 100%; box-sizing: border-box; resize: vertical; padding: 8px; border: 1px solid var(--c-border); border-radius: 6px;
+.appnav-ask__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--c-border); flex: none; }
+.appnav-ask__form .appnav-ask__input { flex: 1 1 100%; }
+.appnav-ask__input { width: 100%; box-sizing: border-box; resize: none; padding: 8px; border: 1px solid var(--c-border); border-radius: 6px;
   background: var(--c-surface-solid); color: var(--c-ink); font: inherit; font-size: calc(14px * var(--type-scale, 1)); }
 .appnav-ask__btn { align-self: flex-start; padding: 6px 12px; border: 1px solid var(--c-border); border-radius: 6px; background: var(--c-surface-solid);
   color: var(--c-ink); font: inherit; font-size: calc(13px * var(--type-scale, 1)); cursor: pointer; }
+.appnav-ask__form .appnav-ask__btn { align-self: auto; }
 .appnav-ask__btn:disabled { opacity: .5; cursor: default; }
+.appnav-ask > .appnav-ask__kind, .appnav-ask > .appnav-ask__opt { margin: 0; padding: 0 12px 10px; flex: none; }
 .appnav-ask__opt { display: flex; gap: 8px; align-items: flex-start; color: var(--c-ink-muted); font-size: calc(12px * var(--type-scale, 1)); }
 /* ⭐ A200 (46k, owner 11-13: "the content of the questions is going behind the dock, format it and also use the former font
    and styling. design the chat panel inline with design plan"). THE THREAD — the held stepper's look (DraftHouse.css dht-step,
@@ -248,32 +270,17 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 .appnav-ask__link:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
 .appnav-ask__thread .appnav-ask__input { font-size: calc(15px * var(--type-scale, 1)); padding: 10px; }
 @media (prefers-reduced-motion: reduce) { .appnav-ask__card { animation: none; } }
-/* ⭐ A200 (a): NOTHING OF THE THREAD UNDER THE DOCK. The dock is above the panel (Z.NAV > 240). While Ask draft PUSHES the
-   page (>= 1280 px), a top dock centres in the page's part LEFT of the panel and never reaches into it. */
-@media (min-width: 1280px) {
-  :root[data-ask-open="true"][data-dock-place="top"] .appnav-dock[data-nav-dock] {
-    left: calc((100vw - var(--appnav-ask-w)) / 2); max-width: calc(100vw - var(--appnav-ask-w) - 24px);
-  }
-}
-/* ⭐ A201 (46k, owner 11-13: "readjusts gracefully and stay functional when windows shrink"): BELOW 1280 px pushing the page
-   left it too narrow to use (a 390 px phone kept 47 px of page; 768 px kept 388 — the table's columns over each other; 1024 px
-   left Home 644 px — its board column squeezed to ~180 px, the headline under the panel). There Ask draft is a SHEET over the
-   page instead: the page keeps its full width, the panel takes min(420px, 100vw) above the dock (its own Close), with a
-   shadow edge. */
-@media not all and (min-width: 1280px) {
-  .appnav-ask { --appnav-ask-w: min(420px, 100vw); z-index: 256; /* above Z.NAV and the peek, below the modal tiers */ }
-  .appnav-ask[data-open="true"] { box-shadow: var(--c-shadow-lg); }   /* the shell's own elevation token (colour literals stay in colorTokens.js) */
-}
-@media (min-width: 1280px) {   /* A201: Ask draft pushes the page only where the page keeps ~900 px; below, it is a sheet */
-  :root[data-ask-open="true"] [data-app-shell] { padding-right: var(--appnav-ask-w); }
-  :root[data-ask-open="true"] [data-app-chrome] { padding-right: calc(20px + var(--appnav-ask-w)) !important; }
+@media (max-width: 600px) {   /* D190: a bottom sheet on phones; the bubble steps aside while it is open */
+  .appnav-tiny { right: 12px; bottom: 12px; }
+  .appnav-tiny[data-open="true"] { display: none; }
+  .appnav-ask { --appnav-ask-w: 100vw; right: 0; bottom: 0; height: 72vh; border-radius: 18px 18px 0 0; border-bottom: 0; }
 }
 
-/* Reduced motion: every one of these is instant (the rail, the mark's slide and clip, the names, the peek, Ask draft). */
+/* Reduced motion: every one of these is instant (the rail, the mark's slide and clip, the names, the peek, Tiny). */
 @media (prefers-reduced-motion: reduce) {
   .appnav-dock, .appnav-dock[data-nav-dock], .appnav-panel, .appnav-item, .appnav-words, .appnav-dock[data-nav-dock] .appnav-words,
   .appnav-dock[data-nav-dock][data-open="true"] .appnav-words, .appnav-ico--mark [data-draft-mark], .appnav-ico--mark [data-draft-raft],
-  .appnav-peek, .appnav-peek[data-open="true"], .appnav-ask, .appnav-ask[data-open="true"], [data-app-shell] { transition: none; }
+  .appnav-peek, .appnav-peek[data-open="true"], .appnav-ask, .appnav-ask[data-open="true"], .appnav-tiny { transition: none; }
 }
 
 /* ⭐ D149 · the Profile panel (TopBar AccountPanel): the Menu panel's surface, the old account menu's width. */
