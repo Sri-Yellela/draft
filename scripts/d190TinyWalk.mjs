@@ -57,10 +57,13 @@ try {
   await page.waitForFunction(() => document.querySelector("[data-ws]")?.dataset.state === "open", { timeout: 60000 });
   await page.waitForFunction(() => !!window.__rmTiny, { timeout: 20000 });
 
+  // ⭐ 46n (owner 11-15): Tiny is a FLOATING bot — the fox bubble at the bottom-right opens a floating card over the page
+  const bubble = await page.evaluate(() => { const b = document.querySelector("[data-tiny-launch]"); const r = b?.getBoundingClientRect(); return b ? { fixed: getComputedStyle(b.closest("[data-tiny-root]")).position, right: Math.round(innerWidth - r.right), bottom: Math.round(innerHeight - r.bottom), w: Math.round(r.width), h: Math.round(r.height), fox: !!b.querySelector("svg path") } : null; });
+  ok("a floating fox bubble at the bottom-right (no top-bar button)", bubble?.fixed === "fixed" && bubble.right < 40 && bubble.bottom < 40 && bubble.w === bubble.h && bubble.fox && !(await page.$("#ws-tiny-toggle")), JSON.stringify(bubble));
   const canvasBefore = await page.$eval("#ws-canvas", e => e.getBoundingClientRect().width);
-  await page.click("#ws-tiny-toggle"); await sleep(250);
-  const layout = await page.evaluate(() => { const c = document.querySelector("#ws-canvas").getBoundingClientRect(), t = document.querySelector("#ws-tiny").getBoundingClientRect(); return { canvasW: c.width, canvasRight: c.right, tinyLeft: t.left, tinyW: t.width }; });
-  ok("Tiny opens beside the page and moves it over (never on top)", layout.tinyW > 200 && layout.canvasRight <= layout.tinyLeft + 1 && layout.canvasW < canvasBefore, JSON.stringify(layout));
+  await page.click("[data-tiny-launch]"); await sleep(300);
+  const layout = await page.evaluate(() => { const c = document.querySelector("#ws-canvas").getBoundingClientRect(), t = document.querySelector("[data-tiny]").getBoundingClientRect(); return { canvasW: Math.round(c.width), cardW: Math.round(t.width), cardH: Math.round(t.height), cardRight: Math.round(innerWidth - t.right) }; });
+  ok("…it opens a floating card (the page keeps its width)", layout.cardW > 300 && layout.cardH > 300 && layout.cardRight < 40 && layout.canvasW === Math.round(canvasBefore), JSON.stringify(layout));
 
   const texts = () => page.$$eval(".pt-tx", els => els.map(e => e.textContent));
   const lastTurn = () => page.evaluate(() => { const t = [...document.querySelectorAll("[data-tiny-turn='tiny']")].pop(); return t ? { tier: t.dataset.tier, label: t.querySelector("[data-tiny-label]")?.textContent || null, text: t.querySelector(".tiny-text").textContent, undo: !!t.querySelector("[data-tiny-undo]"), confirm: !!t.querySelector("[data-tiny-yes]") } : null; });
@@ -75,6 +78,12 @@ try {
   ok("…with an Undo link", t.undo);
   await undoLast();
   ok("Undo restores the line", (await texts()).includes("Revenue grew to 10,700,942 in 2023") && (await changes()) === 0);
+
+  // the owner's own 11-15 example: a typo, "as", and two edits joined by "and"
+  t = await tell("rewrute Revenue as Income and churn as attrition");
+  ok("“rewrute Revenue as Income and churn as attrition” — the typo fixed, BOTH replacements made", t.tier === "T1" && (await texts()).includes("Income grew to 10,700,942 in 2023") && (await texts()).includes("Projects 2023: attrition model"), t.text);
+  await undoLast();
+  ok("…ONE Undo takes both back", (await texts()).includes("Revenue grew to 10,700,942 in 2023") && (await texts()).includes("Projects 2023: churn model"));
 
   // ambiguous: in two places → asks which, changes nothing
   t = await tell("replace 2023 with 2024");
@@ -168,10 +177,28 @@ try {
   await page.screenshot({ path: path.join(ROOT, "tmp", "d190-tiny.png") });
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });   // (a mobile viewport reloads the page)
   await page.waitForFunction(() => !!window.__rmTiny, { timeout: 30000 });
-  await page.click("#ws-tiny-toggle"); await sleep(400);
-  const sheet = await page.evaluate(() => { const r = document.querySelector("#ws-tiny").getBoundingClientRect(); return { bottom: Math.round(r.bottom), h: Math.round(r.height), vh: innerHeight }; });
+  if (!(await page.$("[data-tiny]:not([hidden])"))) await page.click("[data-tiny-launch]");
+  await sleep(400);
+  const sheet = await page.evaluate(() => { const r = document.querySelector("[data-tiny]").getBoundingClientRect(); return { bottom: Math.round(r.bottom), h: Math.round(r.height), vh: innerHeight }; });
   ok("phone: a bottom sheet", sheet.bottom === sheet.vh && sheet.h < sheet.vh, JSON.stringify(sheet));
   await page.screenshot({ path: path.join(ROOT, "tmp", "d190-tiny-phone.png") });
+
+  // every other page: the same bubble — FAQs and the site's tools, no request
+  const home = await browser.newPage();
+  home.on("request", r => { const u = new URL(r.url()); if (/^\/(api|mcp)\b|anthropic|assistant\/ask/i.test(u.pathname + u.host)) apiCalls.push(u.pathname); });
+  await home.setViewport({ width: 1440, height: 900 });
+  await home.goto(`${base}/`, { waitUntil: "networkidle0" });
+  await home.waitForSelector("[data-tiny-launch]", { timeout: 15000 });
+  await home.click("[data-tiny-launch]"); await sleep(300);
+  const homeTell = async (s) => { const n0 = (await home.$$("[data-tiny-turn='tiny']")).length; await home.type("[data-tiny-input]", s); await home.keyboard.press("Enter"); await home.waitForFunction((n) => document.querySelectorAll("[data-tiny-turn='tiny']").length > n, { timeout: 15000 }, n0); await sleep(150); return home.evaluate(() => { const t = [...document.querySelectorAll("[data-tiny-turn='tiny']")].pop(); return { tier: t.dataset.tier, text: t.querySelector(".tiny-text").textContent, link: t.querySelector("[data-tiny-link]")?.getAttribute("href") || null }; }); };
+  t = await homeTell("is my file uploaded?");
+  ok("home page: “is my file uploaded?” — T2 from the site's FAQ", t.tier === "T2" && /never sent to a server/.test(t.text) && t.link === "/privacy", JSON.stringify(t));
+  t = await homeTell("delete page 2");
+  ok("home page: a document command says where it works", t.tier === "ask" && /open a PDF in the workspace/.test(t.text), t.text);
+  await Promise.all([home.waitForNavigation({ timeout: 15000 }).catch(() => null), homeTell("open the compress tool")]);
+  await sleep(500);
+  ok("home page: “open the compress tool” opens it, and Tiny is there too", home.url().endsWith("/pdf/compress-pdf/") && !!(await home.$("[data-tiny-launch]")), home.url());
+  await home.close();
 } catch (e) {
   ok("walk ran to the end", false, e.stack || e.message);
 } finally {
