@@ -101,7 +101,7 @@ test("⛔ D13: no new storage, no new permission — the context is asked on the
   const manifest = JSON.parse(read("extension/manifest.json"));
   // D55 decision B (10-07) added contextMenus — the owner's decision, rationalised in
   // MANIFEST_RATIONALE.md and reconciled in PRIVACY_RECONCILIATION.md. D13 itself still adds none.
-  assert.deepEqual(manifest.permissions, ["activeTab", "contextMenus", "scripting", "storage"]);
+  assert.deepEqual(manifest.permissions, ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
   assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
   // D99 J11 (owner, 10-14: "build the bridge"): the ONE content script is the bridge, on draft's own origin only.
   assert.deepEqual(manifest.content_scripts, [{ matches: ["https://jobsviadraft.com/*"], js: ["boardBridge.js"], run_at: "document_start", all_frames: false }], "a content script other than D99's bridge appeared");

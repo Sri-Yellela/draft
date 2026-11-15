@@ -14,11 +14,15 @@ import COMMANDS from './commands-v1.json' with { type: 'json' };
 import { voiceSupported, listenOnce, voiceNote, VOICE_ERRORS } from './assistantVoice.js';
 import { authedFetch } from './auth.js';
 import { tinySvg, TINY_NAME } from './tinyMascot.js';
+import { jobLines, companyLines } from './panelModel.js';   // ⭐ D191 (2a)–(2d), 46o
 
 const $ = (id) => document.getElementById(id);
 // draft's address comes from the worker (background.js's RESUME_MASTER_URL — ONE source), with this tab's read
 let RESUME_MASTER_URL = 'https://jobsviadraft.com';
-const tabId = Number(new URLSearchParams(location.search).get('tab')) || null;
+// ⭐ D191 (46o): opened per tab (?tab=) as the side panel or the window; opened from Chrome's own side-panel menu it has no
+// tab named, and follows the window's active tab
+const NAMED_TAB = Number(new URLSearchParams(location.search).get('tab')) || null;
+let tabId = NAMED_TAB;
 const send = (msg) => new Promise((resolve) => { try { chrome.runtime.sendMessage(msg, (r) => { void chrome.runtime.lastError; resolve(r ?? null); }); } catch { resolve(null); } });
 const open = (path) => chrome.tabs.create({ url: `${RESUME_MASTER_URL}${path}` });
 const json = (r) => (r && r.ok ? r.json().catch(() => null) : null);
@@ -35,6 +39,7 @@ export const PLACES = Object.freeze({
 
 let home = null, ctx = null;
 async function load() {
+  if (!NAMED_TAB) { try { const [t] = await chrome.tabs.query({ active: true, currentWindow: true }); tabId = t?.id ?? null; } catch { tabId = null; } }
   const got = await send({ type: 'ASK_CONTEXT', tabId });
   if (typeof got?.server === 'string' && /^https?:\/\//.test(got.server)) RESUME_MASTER_URL = got.server;
   ctx = got?.context || null;
@@ -47,7 +52,50 @@ async function load() {
   // ⭐ A211 (1a) (b): the runner's button says how many wait to be sent from this browser
   const n = Number(home?.toSend) || 0;
   $('ask-runner').textContent = n > 0 ? `${n} waiting to send from this browser — Open the runner` : 'Apply while this is open';
+  $('ask-open-draft').href = `${RESUME_MASTER_URL}/app`; $('ask-open-home').href = `${RESUME_MASTER_URL}/app/auto-apply`;
+  drawCards();
 }
+
+// ── ⭐ D191 (2a)–(2d), 46o · THIS TAB'S POSTING AND ITS EMPLOYER — from the press's read (the worker's memory of this tab),
+// draft's own data, no model. Each line is said only when draft knows it (D182: nothing that restates what is visible).
+const btn = (label, onClick, primary = false) => {
+  const b = Object.assign(document.createElement('button'), { className: `btn${primary ? ' btn-primary' : ''}`, type: 'button', textContent: label });
+  b.addEventListener('click', (e) => { if (e.isTrusted) onClick(); });
+  return b;
+};
+const act = async (name) => { const r = await send({ type: 'ASK_ACT', tabId, act: name }); turn('draft', { text: r?.say || (r?.ok ? 'Done.' : 'That did not work — press the toolbar icon on the posting again.') }); if (r?.ok) await load(); };
+function drawCards() {
+  const j = ctx?.job || null, c = ctx?.company || null;
+  $('ask-nojob').hidden = !!(j || c);
+  $('ask-job').hidden = !j;
+  if (j) {
+    const l = jobLines(j);
+    $('ask-job-title').textContent = [j.title, j.company].filter(Boolean).join(' at ') || 'This posting';
+    $('ask-job-sub').textContent = l.sub;
+    $('ask-job-fit').textContent = l.fit;
+    $('ask-job-works').textContent = l.works;
+    $('ask-job-state').textContent = l.state; $('ask-job-state').dataset.state = l.state;
+    const acts = [];
+    if (!j.mine) acts.push(btn('Draft this job', () => act('draft'), true), btn('Save', () => act('capture')));
+    if (j.application?.sendFromHere || ctx?.prepared) acts.push(btn('Apply from here', () => act('fill'), !!j.mine));
+    if (j.application?.state === 'Needs you') acts.push(btn('Answer the held questions', () => open('/app/auto-apply')));
+    // Open in draft = the posting on draft's board, where Send to a connection lives (D180, while the network is on)
+    if (j.jobId) acts.push(btn('Open in draft', () => open(`/app/jobs?job=${encodeURIComponent(j.jobId)}`)), btn('Send to a connection', () => open(`/app/jobs?job=${encodeURIComponent(j.jobId)}`)));
+    $('ask-job-acts').replaceChildren(...acts);
+  }
+  $('ask-company').hidden = !c;
+  if (c) {
+    $('ask-company-name').textContent = c.name || '';
+    $('ask-company-about').textContent = c.about || '';
+    const logo = $('ask-company-logo');
+    if (c.logo && /^https:\/\//.test(c.logo)) { logo.src = c.logo; logo.hidden = false; } else { logo.removeAttribute('src'); logo.hidden = true; }
+    $('ask-company-facts').textContent = companyLines(c);
+    $('ask-company-acts').replaceChildren(...(c.href ? [btn(`${c.name}'s page on draft`, () => chrome.tabs.create({ url: c.href }))] : []));
+  }
+}
+// the press on this tab redraws the panel; with no tab named, the panel follows the active tab
+chrome.runtime.onMessage.addListener((msg) => { if (msg?.type === 'ASK_PRESSED' && (msg.tabId === tabId || !NAMED_TAB)) void load(); });
+if (!NAMED_TAB) chrome.tabs.onActivated?.addListener(() => { void load(); });
 
 const job = () => ctx?.job || null;
 const needJob = () => { const j = job(); if (!j) throw new Error('Press the toolbar icon on a job posting first, then ask here.'); return j; };

@@ -26,6 +26,7 @@ import { previewIngest } from "../services/jobs/jobGateway.js";
 import { createRateLimiter } from "../services/extensionResume.js";
 import { getKnownLogoUrl } from "../shared/companyLogos.js";
 import { extensionHome, badgeText, companyCard } from "../services/extensionHome.js";   // D191: home, badge, company card (no model)
+import { jobFactsForExtension } from "../services/extensionJobFacts.js";   // D191 (2a)/(2c)/(2d): the side panel's facts (no model)
 
 /** ⚠ provisional: a board click is one lookup; 60 a minute is far above a person and far below a script. */
 export const LOOKUP_LIMIT = Object.freeze({ limit: 60, windowMs: 60_000 });
@@ -76,7 +77,7 @@ export const PAGE_TEXT_MAX = 60_000;
  *   posting  { known: true, jobId, title, company, how, onBoard } · { known: false, title, company } · null (no text, no match)
  *   basis    "board" — the report is the board job's · "page" — it is the page's text · null — no report
  */
-export function pageJobForExtension(db, userId, { url = "", text = "", frameUrls = [] } = {}, { scoreFor, scoreText, hasBaseResume }) {
+export function pageJobForExtension(db, userId, { url = "", text = "", frameUrls = [] } = {}, { scoreFor, scoreText, hasBaseResume, yourSkillStates = null }) {
   const href = /^https?:\/\//i.test(String(url)) ? String(url).slice(0, 2048) : "";
   const body = typeof text === "string" ? text.slice(0, PAGE_TEXT_MAX) : "";
   let jobId = null, how = null;
@@ -114,7 +115,9 @@ export function pageJobForExtension(db, userId, { url = "", text = "", frameUrls
       // extension can say "on your board" vs "on the draft board, not yet yours" without a second question.
       return { kind: "job", posting: { known: true, jobId: String(row.job_id), title: row.title ?? null, company: row.company ?? null, how,
                           onBoard: jobOnUsersBoard(db, userId, row.job_id), mine: userHasJob(db, userId, row.job_id) },
-               ats, basis: ats.state === "ready" ? "board" : null, company: cardOf(db, row.company, url) };
+               ats, basis: ats.state === "ready" ? "board" : null, company: cardOf(db, row.company, url),
+               // ⭐ D191 (2a) / (2c) / (2d) · the side panel's facts — draft's own tables, no model (services/extensionJobFacts.js)
+               facts: (() => { try { return jobFactsForExtension(db, userId, row.job_id, { score: ats.state === "ready" ? ats.score : null, yourSkillStates }); } catch { return null; } })() };
     }
   }
   // `kind`: "job" — a posting the page's text describes · "not_a_job" — text was read and is no posting · "unread" —
@@ -127,7 +130,7 @@ export function pageJobForExtension(db, userId, { url = "", text = "", frameUrls
 // ⭐ D191 (2d): the employer's card rides with the press's answer — a read, never a failure of the press
 function cardOf(db, company, url) { try { return companyCard(db, { company, url: typeof url === "string" ? url : null }); } catch { return null; } }
 
-export function createExtensionJobRouter({ db, requireAuth, isExtension, scoreFor, scoreText = null, hasBaseResume, limit = LOOKUP_LIMIT, now }) {
+export function createExtensionJobRouter({ db, requireAuth, isExtension, scoreFor, scoreText = null, hasBaseResume, yourSkillStates = null, limit = LOOKUP_LIMIT, now }) {
   const router = express.Router();
   const ok = createRateLimiter({ ...limit, ...(now ? { now } : {}) });
   router.get("/api/extension/job/:id", requireAuth, (req, res) => {
@@ -143,7 +146,7 @@ export function createExtensionJobRouter({ db, requireAuth, isExtension, scoreFo
     if (!isExtension(req)) return res.status(403).json({ error: "extension_only", message: "This is for the draft extension." });
     if (!okPage(String(req.user.id))) return res.status(429).json({ error: "rate_limited", message: "Too many requests — try again in a minute." });
     res.json(pageJobForExtension(db, req.user.id, { url: req.body?.url, text: req.body?.text, frameUrls: req.body?.frameUrls },
-      { scoreFor, scoreText: scoreText || (() => null), hasBaseResume }));
+      { scoreFor, scoreText: scoreText || (() => null), hasBaseResume, yourSkillStates }));
   });
   // ⭐ D191 P1 · the extension's home view and its toolbar badge: today's undecided matches, what needs the person, today's
   // drafts / sends — cheap per-user reads (services/extensionHome.js), asked at most every few minutes by the extension.

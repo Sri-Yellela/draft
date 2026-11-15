@@ -16836,7 +16836,7 @@ app.use(createExtensionResumeRouter({ service: extensionResume, requireAuth, isE
 app.use(createExtensionJobRouter({ db, requireAuth, isExtension: isExtensionCredential,
   scoreFor: (userId, jobId) => scoreBaseResumeForApply(userId, jobId, { withReport: true }),
   scoreText: (userId, job) => scorePageTextForBase(userId, job),
-  hasBaseResume: (userId) => !!extensionBaseResumeFor(db, userId) }));
+  hasBaseResume: (userId) => !!extensionBaseResumeFor(db, userId), yourSkillStates }));
 // ⭐ T24 · the extension's Draft button IS the board's Draft (routes/apply.js startRun via draftForExtension) and queues the
 // résumé through the same generation as above (extensionResume.start — once per job and base). The tells only the server
 // holds, and the account's two intent settings (migration 168), in routes/extensionDraft.js.

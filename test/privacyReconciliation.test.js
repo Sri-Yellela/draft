@@ -267,19 +267,21 @@ test("the policy makes the negative disclosures the store listing also makes", (
   assert.match(listing, /Authentication information\*\* — \*not collected/i);
 });
 
-test("the manifest's privacy_policy_url is the page this repo actually serves", () => {
-  const url = manifest.privacy_policy_url;
-  assert.ok(url, "manifest must declare privacy_policy_url");
+test("the privacy policy URL (the Developer Dashboard's field) is the page this repo actually serves", () => {
+  // ⭐ D191 (46o): `privacy_policy_url` is NOT a manifest key (developer.chrome.com/docs/extensions/reference/manifest lists
+  // none; Chrome logs "Unrecognized manifest key" for it) — the store reads the policy from the item's dashboard field, whose
+  // paste-ready value is STORE_LISTING.md's. So the manifest must not carry it, and the listing's URL must be served here.
+  assert.equal(manifest.privacy_policy_url, undefined, "privacy_policy_url is not a manifest key — set it in the dashboard");
+  const m = /Privacy policy URL: `(https:\/\/[^`]+)`/.exec(listing);
+  assert.ok(m, "STORE_LISTING.md must give the dashboard's privacy policy URL");
+  const url = m[1];
   const path = new URL(url).pathname;
   const app = fs.readFileSync("client/src/App.jsx", "utf8");
   assert.match(app, new RegExp(`path="${path}"`),
-    `manifest points at ${url} but App.jsx has no route for ${path}`);
-  // ⛔ FLIPPED AT P4 (2026-09-26), together with the manifest. This previously asserted
-  // LEGACY_HOST, because the reviewed manifest pointed there. It now asserts the canonical host,
-  // and the precondition that came with the flip is that the policy is LIVE AND CORRECT on that
-  // origin — reviewers fetch this URL, and a 404 on it is a rejection.
+    `the listing points at ${url} but App.jsx has no route for ${path}`);
+  // ⛔ reviewers fetch this URL, and a 404 on it is a rejection — it must be the canonical origin.
   assert.equal(new URL(url).host, CANONICAL_HOST,
-    "the policy must be on the origin the shipped manifest declares, not a dev subdomain");
+    "the policy must be on the canonical origin, not a dev subdomain");
 });
 
 test("third parties named in the policy are ones the code actually uses", () => {

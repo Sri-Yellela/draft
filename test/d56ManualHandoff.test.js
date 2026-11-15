@@ -348,7 +348,7 @@ test("§8 row 17 · the Copy sheet: the prepared answers, eligibility first, not
   assert.match(panel, /navigator\.clipboard\.writeText\(String\(row\.value \?\? ''\)\)/);
   assert.match(panel, /v\.textContent = String\(row\.value \?\? ''\);/, "values are text, never parsed into the page");
   // contextMenus is D55 decision B (10-07); what this pins is that the Copy sheet added no clipboard permission.
-  assert.deepEqual(JSON.parse(read("extension/manifest.json")).permissions, ["activeTab", "contextMenus", "scripting", "storage"], "no clipboard permission");
+  assert.deepEqual(JSON.parse(read("extension/manifest.json")).permissions, ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"], "no clipboard permission");
 });
 
 test("§8 row 15 / decision D → T31 · the extension frames nothing as a goal — and the popup's today ring went with the popup", () => {
