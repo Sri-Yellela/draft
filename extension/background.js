@@ -25,6 +25,7 @@ import { toolbarPress, renderRelay, fillRelay, dockStateInPage, collapseDockInPa
 import { extractJobPayload, showCaptureToast } from './extractor.js';
 import { lookupBoardJob, companyFacts } from './boardJob.js';
 import { isExtensionSubmitPacket, sendWithPress } from './extensionSubmit.js';   // ⭐ A207 (a)
+import { runnablePage } from './runnerModel.js';   // ⭐ A211 (1a)
 // ⭐ BINDING FIRST (owner 10-15): every press on a page draft has not seen identifies the page and binds the tab first.
 import { identifyAndBind, identityView, STOPS as IDENTITY_STOPS } from './identify.js';
 // ⭐ One job per tab across every stage of its application, and the Copy sheet as an in-page panel (owner, 10-12).
@@ -958,6 +959,77 @@ function rememberPressContext(tab, c) {
   pressContextByTab.set(tab.id, { job: p ? { jobId: p.known ? p.jobId ?? null : null, title: p.title ?? null, company: p.company ?? null, known: !!p.known, score } : null,
     company: c.company ? { name: c.company.name, sponsorship: c.company.sponsorship, openJobs: c.company.openJobs } : null });
 }
+// ── ⭐ A211 (1a) · THE RUNNER TAB (runner.html): the applications sent from the person's own browser — listed, filled in
+// background tabs on their "Fill all", sent on ONE trusted press of "Send all". ⛔ From runner.html only; only A207
+// extension-submit packets; only tabs this runner opened; "Send all" goes through the same sendWithPress as the panel's press.
+const runnerTabs = new Map();   // tabId → packetId (memory only)
+const fromRunner = (sender) => sender?.id === chrome.runtime.id && String(sender?.url || '').startsWith(chrome.runtime.getURL('runner.html'));
+async function openRunner() {
+  const url = chrome.runtime.getURL('runner.html');
+  const [open] = await chrome.tabs.query({ url }).catch(() => []);
+  if (open?.id) { await chrome.tabs.update(open.id, { active: true }).catch(() => null); return { ok: true, say: null }; }
+  await chrome.tabs.create({ url, pinned: true }); return { ok: true, say: null };
+}
+function tabLoaded(tabId, ms = 45000) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (ok) => { if (done) return; done = true; chrome.tabs.onUpdated.removeListener(on); clearTimeout(t); resolve(ok); };
+    const on = (id, info) => { if (id === tabId && info.status === 'complete') finish(true); };
+    const t = setTimeout(() => finish(false), ms);
+    chrome.tabs.onUpdated.addListener(on);
+    chrome.tabs.get(tabId).then(tb => { if (tb?.status === 'complete') finish(true); }).catch(() => finish(false));
+  });
+}
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!['RUNNER_LIST', 'RUNNER_FILL', 'RUNNER_SEND', 'RUNNER_FOCUS'].includes(msg?.type)) return false;
+  if (!fromRunner(sender)) { sendResponse({ ok: false, message: 'Only the runner tab can do that.' }); return true; }
+  (async () => {
+    if (msg.type === 'RUNNER_LIST') {
+      const r = await authedFetch(RESUME_MASTER_URL, '/api/apply/gate-packets').catch(() => null);
+      if (!r || r.status === 401) return { ok: false, message: 'Sign in to draft in this browser, then Refresh.' };
+      const body = r.ok ? await r.json().catch(() => null) : null;
+      if (!body) return { ok: false, message: 'draft could not list your applications just now — Refresh in a moment.' };
+      return { ok: true, packets: (body.packets || []).filter(isExtensionSubmitPacket) };
+    }
+    if (msg.type === 'RUNNER_FOCUS') {
+      const tabId = Number(msg.tabId);
+      if (!runnerTabs.has(tabId)) return { ok: false };
+      const t = await chrome.tabs.update(tabId, { active: true }).catch(() => null);
+      if (t?.windowId != null) await chrome.windows.update(t.windowId, { focused: true }).catch(() => null);
+      return { ok: !!t };
+    }
+    if (msg.type === 'RUNNER_FILL') {
+      let url; try { url = new URL(String(msg.applyUrl)); } catch { return { ok: false, message: 'This application has no address to open.' }; }
+      if (!runnablePage(url)) return { ok: false, message: 'Only https application pages are filled.' };
+      let tabId = runnerTabs.has(Number(msg.tabId)) ? Number(msg.tabId) : null;
+      if (tabId == null) { const t = await chrome.tabs.create({ url: url.href, active: false }); tabId = t.id; }
+      runnerTabs.set(tabId, msg.packetId);
+      if (!await tabLoaded(tabId)) return { ok: false, tabId, message: 'The application page did not finish loading — open it and use Fill.' };
+      const tab = await chrome.tabs.get(tabId);
+      const result = await runGatedHandoff({ serverUrl: RESUME_MASTER_URL, tab, packetId: msg.packetId }).catch(e => ({ ok: false, message: e?.message || 'Could not fill it.' }));
+      return { ok: !!result?.ok, tabId, result };
+    }
+    if (msg.type === 'RUNNER_SEND') {
+      const tabId = Number(msg.tabId);
+      // ⛔ the person's press, from the runner page, on a tab this runner filled, holding an extension-submit packet
+      if (msg.trusted !== true || !runnerTabs.has(tabId)) return { ok: false, outcome: 'refused', message: 'Press Send all in the runner.' };
+      const held = await loadPacketForTab(tabId).catch(() => null);
+      if (!isExtensionSubmitPacket(held?.packet)) return { ok: false, outcome: 'refused', message: 'This one is sent with the Submit button on the form itself.' };
+      return sendWithPress({
+        tabId, frameId: formFrameOf(tabId),
+        executeScript: async ({ tabId: t, frameId: f, func, args }) => {
+          const [r] = await chrome.scripting.executeScript({ target: f ? { tabId: t, frameIds: [f] } : { tabId: t }, func, args });
+          return r?.result ?? null;
+        },
+        recordSubmitted: async () => recordSubmitted({ serverUrl: RESUME_MASTER_URL, tab: await chrome.tabs.get(tabId) }),
+      });
+    }
+    return { ok: false };
+  })().then(r => sendResponse(r), () => sendResponse({ ok: false, message: 'Something went wrong — try again.' }));
+  return true;
+});
+chrome.tabs?.onRemoved?.addListener?.((tabId) => { runnerTabs.delete(tabId); });
+
 async function openAskWindow(tab) {
   await chrome.windows.create({ url: chrome.runtime.getURL(`ask.html?tab=${encodeURIComponent(tab?.id ?? '')}`), type: 'popup', focused: true, width: 440, height: 640 });
   return { ok: true, say: null };
@@ -965,9 +1037,10 @@ async function openAskWindow(tab) {
 const fromOwnPage = (sender) => sender?.id === chrome.runtime.id && String(sender?.url || '').startsWith(chrome.runtime.getURL('ask.html'));
 // the Ask window asks what the press read on its tab, and runs the dock's own Capture / Draft there — ⛔ from ask.html only
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg?.type !== 'ASK_CONTEXT' && msg?.type !== 'ASK_ACT') return false;
+  if (msg?.type !== 'ASK_CONTEXT' && msg?.type !== 'ASK_ACT' && msg?.type !== 'ASK_RUNNER') return false;
   if (!fromOwnPage(sender)) { sendResponse(null); return true; }
   const tabId = Number(msg.tabId) || null;
+  if (msg.type === 'ASK_RUNNER') { openRunner().then(() => sendResponse({ ok: true }), () => sendResponse({ ok: false })); return true; }
   if (msg.type === 'ASK_CONTEXT') { sendResponse({ server: RESUME_MASTER_URL, context: tabId ? pressContextByTab.get(tabId) || null : null }); return true; }
   const act = msg.act === 'draft' || msg.act === 'capture' ? DOCK_ACTS[msg.act] : null;
   if (!act || !tabId) { sendResponse({ ok: false, say: 'Press the toolbar icon on the posting first.' }); return true; }
@@ -1034,6 +1107,7 @@ const DOCK_ACTS = Object.freeze({
   },
   'open-draft': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app` }); return { ok: true, say: null }; },
   'open-ask': async (tab) => openAskWindow(tab),
+  'open-runner': async () => openRunner(),   // ⭐ A211 (1a)
   'open-needs': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app/auto-apply` }); return { ok: true, say: null }; },
   'sign-up': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/register?from=extension` }); return { ok: true, say: null }; },
   // ⭐ D112 b2 (replaces the owner's 10-23 Settings-tab trip, A105 (10)): Allow opens the ONE global-read ask — a small

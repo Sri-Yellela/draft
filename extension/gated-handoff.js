@@ -1753,7 +1753,12 @@ async function handoffOnce({ serverUrl, tab, opts = {} }) {
   // Newest first, but a packet whose POSTING is gone goes last. It is deprioritised rather than
   // excluded: our record of the listing being cleaned up says nothing about the form the candidate
   // is actually standing on, so it stays usable — just never in preference to a live one.
-  const chosen = fresh.sort((a, b) =>
+  // ⭐ A211 (1a): the runner tab fills ONE named application (two of the person's applications can share an ATS's origin) —
+  // that packet or nothing; never a different application's answers.
+  if (opts.packetId != null && !fresh.some(p => String(p.packetId) === String(opts.packetId))) {
+    return { ok: false, reason: 'packet_not_here', message: "This application's prepared answers aren't for this page any more." };
+  }
+  const chosen = opts.packetId != null ? fresh.find(p => String(p.packetId) === String(opts.packetId)) : fresh.sort((a, b) =>
     (a.postingGone ? 1 : 0) - (b.postingGone ? 1 : 0) || b.createdAt - a.createdAt)[0];
 
   // TARGET MATCH, second half: a form has to be here — on the page or in a frame of it (located above, read-only).

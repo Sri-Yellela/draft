@@ -143,5 +143,7 @@ if (voiceSupported(globalThis)) {
     } catch (e) { listening = null; mic.setAttribute('aria-pressed', 'false'); $('ask-voice-note').textContent = e.message; }
   });
 }
+// ⭐ A211 (1a): the runner tab (pinned) — the applications draft sends from your own browser
+$('ask-runner')?.addEventListener('click', (e) => { if (e.isTrusted) send({ type: 'ASK_RUNNER' }); });
 await load();
 globalThis.__askReady = true;

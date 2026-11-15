@@ -285,6 +285,18 @@ function leverForm() {
   </form>`);
 }
 
+// ── ⭐ A211 (1a) · a plain two-field form: everything on it is answerable from a saved profile, so the runner's
+// background fill can reach Ready on its own (the walk's ready → Send all → sent path).
+function plainForm() {
+  return page('Support Engineer — Apply', `
+  <h1>Support Engineer</h1>
+  <form method="POST" action="/_submit/plain">
+    ${field('Full name', `<input name="name" required>`, true)}
+    ${field('Email',     `<input name="email" type="email" required>`, true)}
+    <button type="submit">Submit application</button>
+  </form>`);
+}
+
 // ── Ashby-flavoured single-step form ─────────────────────────────────────────
 function ashbyForm() {
   return page('Platform Engineer — Application', `
@@ -1680,6 +1692,7 @@ const server = http.createServer(async (req, res) => {
     if (path === '/greenhouse') return send(200, greenhouseStep1());
     if (path === '/greenhouse-standard') return send(200, greenhouseStandardForm({ nameless: url.searchParams.get('nameless') === '1' }));
     if (path === '/lever')      return send(200, leverForm());
+    if (path === '/plain')      return send(200, plainForm());   // ⭐ A211 (1a)
     if (path === '/lever-live')    return send(200, leverLiveForm());
     if (path === '/workable-live') return send(200, workableLiveForm());
     if (path === '/ashby')      return send(200, ashbyForm());
