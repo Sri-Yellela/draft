@@ -1,15 +1,19 @@
 // extension/ask.js — ⭐ D191 (2e) / (3) / P5 · THE EXTENSION'S OWN PANEL (ask.html, a small window opened from the press's
-// home line, the right-click menu or a shortcut): the person's day, a search of draft's board, and ASK DRAFT — the SAME
+// home line, the right-click menu or a shortcut): the person's day, a search of draft's board, and TINY — the SAME
 // engine and vocabulary as the site (assistantEngine.js / commands-v1.json / assistantVoice.js, mirrored byte-identical from
 // draft's shared/ and content/assistant/; test/d191AskWindow.test.js fails when they differ).
 // ⛔ The owner's rule (11-14): nothing within draft's own data or functions calls a model. T1 acts through the worker's own
 // press acts (ASK_ACT → the dock's Capture / Draft on the posting's tab) or opens draft; T2 reads GET /api/extension/home,
 // the posting's card (the worker's memory of this tab's read), the public company record and POST /api/assistant/lookup.
 // T3 (new writing) is not offered here — it says so and sends nothing.
+// ⭐ 46n (owner 11-15: "make tiny a floating bot … give it a cute logo animal … the same for [the PDF-tools site] too"): what the
+// person sees is Tiny with its fox (tinyMascot.js, mirrored from draft's shared/) — the same name and face as on draft and the
+// PDF-tools site; the behaviour is unchanged (the turns keep data-who="draft" for the walks).
 import { createAssistant, TIER_LABEL } from './assistantEngine.js';
 import COMMANDS from './commands-v1.json' with { type: 'json' };
 import { voiceSupported, listenOnce, voiceNote, VOICE_ERRORS } from './assistantVoice.js';
 import { authedFetch } from './auth.js';
+import { tinySvg, TINY_NAME } from './tinyMascot.js';
 
 const $ = (id) => document.getElementById(id);
 // draft's address comes from the worker (background.js's RESUME_MASTER_URL — ONE source), with this tab's read
@@ -18,6 +22,8 @@ const tabId = Number(new URLSearchParams(location.search).get('tab')) || null;
 const send = (msg) => new Promise((resolve) => { try { chrome.runtime.sendMessage(msg, (r) => { void chrome.runtime.lastError; resolve(r ?? null); }); } catch { resolve(null); } });
 const open = (path) => chrome.tabs.create({ url: `${RESUME_MASTER_URL}${path}` });
 const json = (r) => (r && r.ok ? r.json().catch(() => null) : null);
+$('ask-tiny-face').innerHTML = tinySvg({ size: 26 });   // the fox: a fixed SVG string drawn by tinyMascot.js, no input in it
+$('ask-tiny-name').textContent = TINY_NAME;
 
 /** Where "open X" goes on draft (D167's dock names: "draft" is the jobs page, Home is the house). */
 export const PLACES = Object.freeze({

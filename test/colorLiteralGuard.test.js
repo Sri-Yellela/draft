@@ -106,6 +106,11 @@ export function literalCounts() {
 const PERMANENT = {
   // D91 P2 (10-11): DockPortal's three dark-era fallbacks became tokens — the entry went with them.
   // A93 (10-07): ui/chart.jsx deleted — no importer.
+  // ⭐ 46n (owner 11-15: "make tiny a floating bot … give it a cute logo animal"): Tiny's fox is an ILLUSTRATION, not theme —
+  // like a logo it is the same orange fox in every theme, and it is drawn once here and mirrored byte-identical into the
+  // extension and the PDF-tools site (which has no draft tokens at all), so its colours cannot be draft's tokens. The number
+  // is EXACT: one more literal (or one fewer) fails, so the file cannot become a place where theme colour hides.
+  "shared/tinyMascot.js": 13,
 };
 
 /** Not yet migrated. EMPTY since UI step 2b (09-30) — kept as the place a new exception would be argued. */
@@ -143,7 +148,7 @@ test("⛔ no colour literal outside styles/colorTokens.js, beyond the measured b
   const counts = literalCounts();
   const over = [];
   for (const [f, n] of Object.entries(counts)) {
-    if (f in PERMANENT) continue;
+    if (f in PERMANENT) { if (n !== PERMANENT[f]) over.push(`${f}: ${n} literal(s), PERMANENT at exactly ${PERMANENT[f]}`); continue; }
     const allowed = BUDGET[f] ?? 0;
     if (n > allowed) over.push(`${f}: ${n} literal(s), budget ${allowed}`);
   }
@@ -224,6 +229,11 @@ export const EXT_TOKEN_FILES = new Set(["extension/tokens.css", "extension/token
 // colour values are the generated shared/atsReportTokens.js, and every other line is a shared/ module the client scan
 // above already reads. Its staleness is test/t9AtsReportComponent.test.js's job — a hand edit there fails it.
 export const EXT_BUNDLED_FROM_SHARED = new Set(["extension/atsReport.js"]);
+// ⭐ 46n: extension/tinyMascot.js is shared/tinyMascot.js MIRRORED (Tiny's fox — an illustration, PERMANENT above at an exact
+// count). It is skipped only while it is byte-identical to the shared file (line endings aside); an edit here makes it an
+// ordinary extension file again, and every literal in it then fails.
+export const EXT_MIRRORED_ILLUSTRATION = new Map([["extension/tinyMascot.js", "shared/tinyMascot.js"]]);
+const sameText = (a, b) => fs.readFileSync(a, "utf8").replace(/\r\n/g, "\n") === fs.readFileSync(b, "utf8").replace(/\r\n/g, "\n");
 
 function extensionFiles(dir = EXT_ROOT) {
   const out = [];
@@ -241,6 +251,7 @@ export function extensionLiteralCounts() {
   const counts = {};
   for (const f of extensionFiles()) {
     if (EXT_TOKEN_FILES.has(f) || EXT_BUNDLED_FROM_SHARED.has(f)) continue;
+    if (EXT_MIRRORED_ILLUSTRATION.has(f) && EXT_MIRRORED_ILLUSTRATION.get(f) in PERMANENT && sameText(f, EXT_MIRRORED_ILLUSTRATION.get(f))) continue;
     const n = (stripComments(stripHtmlComments(fs.readFileSync(f, "utf8"))).match(LITERAL) || []).length;
     if (n) counts[f] = n;
   }

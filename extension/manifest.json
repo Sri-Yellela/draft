@@ -72,7 +72,7 @@
       "description": "Fill the application you signed in to reach"
     },
     "open-ask-draft": {
-      "description": "Open draft's panel — your day, search, Ask draft"
+      "description": "Open draft's panel — your day, search, Tiny"
     }
   },
   "content_security_policy": {

@@ -19,7 +19,7 @@ export const MENU_SAVE_LINK = 'draft-save-link';
 // A click is a user gesture that grants activeTab, as for "Save this page".
 export const MENU_FILL_PAGE = 'draft-fill-page';
 export const MENU_ATS_PAGE = 'draft-ats-page';
-// ⭐ D191 (3): the extension's own panel — the day, a search of draft, Ask draft (ask.html)
+// ⭐ D191 (3): the extension's own panel — the day, a search of draft, Tiny (ask.html; 46n: the chat is Tiny, the fox)
 export const MENU_ASK = 'draft-ask';
 export const CONTEXT_MENUS = Object.freeze([
   Object.freeze({ id: MENU_SAVE_PAGE, title: 'Save this page to draft', contexts: Object.freeze(['page']) }),
@@ -30,7 +30,7 @@ export const CONTEXT_MENUS = Object.freeze([
   }),
   Object.freeze({ id: MENU_FILL_PAGE, title: 'Fill this application with draft', contexts: Object.freeze(['page']) }),
   Object.freeze({ id: MENU_ATS_PAGE, title: "Show draft's ATS report", contexts: Object.freeze(['page']) }),
-  Object.freeze({ id: MENU_ASK, title: 'Ask draft…', contexts: Object.freeze(['page', 'action']) }),
+  Object.freeze({ id: MENU_ASK, title: 'Ask Tiny…', contexts: Object.freeze(['page', 'action']) }),
 ]);
 
 /** The link a "Save link" click may send: an http(s) URL, or null. Nothing else leaves. */

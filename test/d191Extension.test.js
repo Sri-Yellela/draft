@@ -166,7 +166,7 @@ test("D191 (2e) / (3) / P5 · the extension's panel runs the SITE's engine, mirr
   const m = JSON.parse(norm("extension/manifest.json"));
   assert.ok(m.commands["open-ask-draft"] && !m.commands["open-ask-draft"].suggested_key, "a shortcut the person binds (no new default key)");
   const { CONTEXT_MENUS, MENU_ASK } = await import("../extension/formReport.js");
-  assert.ok(CONTEXT_MENUS.some(i => i.id === MENU_ASK && i.title === "Ask draft…"));
+  assert.ok(CONTEXT_MENUS.some(i => i.id === MENU_ASK && i.title === "Ask Tiny…"), "46n: the panel's chat is Tiny");
   // the board takes the panel's search by address, once
   const bs = norm("client/src/lib/boardSearch.js");
   assert.match(bs, /export const SEARCH_PARAM = "search";/);
@@ -177,4 +177,19 @@ test("46n · the card asks the H-1B record by the posting's own company string f
   const src = read("services/extensionHome.js");
   assert.match(src, /for \(const key of \[\.\.\.new Set\(\[name, rec\?\.name\]\.filter\(Boolean\)\)\]\) \{/);
   assert.match(src, /sponsorshipFactFor\(db, key\); if \(f\) \{ sponsorship = /);
+});
+
+test("46n · the panel's chat is Tiny, with the fox: the same name and face as on draft and the PDF-tools site; no 'Ask draft' left on screen", () => {
+  const html = read("extension/ask.html");
+  assert.match(html, /<title>Tiny — draft<\/title>/);
+  assert.match(html, /<span class="tiny-face" id="ask-tiny-face" aria-hidden="true"><\/span>/);
+  assert.match(html, /<h2 id="ask-tiny-name">Tiny<\/h2>/);
+  assert.match(html, /aria-label="Tell Tiny what to do"/);
+  assert.doesNotMatch(html.replace(/<!--[\s\S]*?-->/g, ""), /Ask draft/, "nothing the person sees says Ask draft");
+  assert.match(html, /\.tiny-face \{[^}]*width: 32px; height: 32px; border-radius: 50%;/, "the fox's well is a perfect circle (D60)");
+  const ask = read("extension/ask.js");
+  assert.match(ask, /import \{ tinySvg, TINY_NAME \} from '\.\/tinyMascot\.js';/);
+  assert.match(ask, /\$\('ask-tiny-face'\)\.innerHTML = tinySvg\(\{ size: 26 \}\);/);
+  assert.equal(read("extension/tinyMascot.js"), read("shared/tinyMascot.js"), "change both copies of the mascot");
+  assert.match(JSON.parse(read("extension/manifest.json")).commands["open-ask-draft"].description, /Tiny$/);
 });
