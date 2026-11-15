@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>What draft reads — draft</title>
+  <!-- ⭐ D191 (46o) · THE IN-PRODUCT DISCLOSURE (Chrome Web Store User Data Policy: "prominently disclose what user data will
+       be collected and how it will be used" and "prominently disclose data practice changes" after install). Opened once on
+       install and on an update from before 1.7.0 (toolbarPress.js noticeDue). It must say what the privacy policy and the
+       store listing's Privacy practices say — change all three together. D23: the site's tokens and controls; ⛔ no colour
+       literal; ⛔ D60 rectangles only. -->
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="ui.css">
+  <style>
+    body { padding: 24px 22px; max-width: 640px; margin: 0 auto; display: grid; gap: 14px; }
+    h1 { font-size: 20px; margin: 0; }
+    .lead { font-size: 14px; line-height: 1.55; color: var(--c-ink-muted); margin: 0; }
+    ul.reads { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+    ul.reads li { padding: 10px 12px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-surface-2); font-size: 13px; line-height: 1.5; }
+    ul.reads b { display: block; font-size: 13px; margin-bottom: 2px; }
+    .bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .bar .btn { margin-bottom: 0; }
+    .small { font-size: 12px; color: var(--c-ink-muted); margin: 0; }
+  </style>
+</head>
+<body>
+  <span class="mark" role="img" aria-label="draft"><span class="mark-slash"></span><span class="mark-word"></span></span>
+  <h1>What draft reads, and when</h1>
+  <p class="lead">draft reads a page only when you ask it to — a press of its icon, a fill, or the automatic reading you switch on — and sends what it reads only to draft's own server (jobsviadraft.com). Nothing is sold, and no AI reads your pages.</p>
+  <ul class="reads" id="notice-reads">
+    <li><b>When you press the toolbar icon</b>The page's address and the job posting's text go to draft, to find the job and your match. Signed out, only the employer's name and the page's address go — to show that employer's public record — and nothing is stored.</li>
+    <li><b>When you fill an application</b>Your saved answers and résumé come from draft and are typed into the form on that page. draft never submits a form on its own — you press Submit.</li>
+    <li><b>When you turn on automatic reading</b>Only where you switch it on in Settings — the application sites you choose, or job postings on any site: those pages are read as they open, so the job and its form are ready. Turn it off there at any time.</li>
+    <li><b>When you use the runner</b>After you click Fill all, it opens your waiting applications in background tabs and fills them. Only your press of Send all sends them, from your own browser.</li>
+    <li><b>For the toolbar badge</b>When a page finishes loading — at most every five minutes — draft asks its server for today's count of new matches. Nothing about the page is sent.</li>
+    <li><b>In your browser</b>Your sign-in and your settings — the privacy policy lists each one.</li>
+  </ul>
+  <div class="bar">
+    <button class="btn btn-primary" id="notice-ok" type="button">Got it</button>
+    <button class="btn" id="notice-settings" type="button">Settings</button>
+    <a class="btn" id="notice-policy" href="https://jobsviadraft.com/privacy" target="_blank" rel="noopener">Privacy policy</a>
+  </div>
+  <p class="small">You can open this page again from Settings.</p>
+  <script type="module" src="notice.js"></script>
+</body>
+</html>

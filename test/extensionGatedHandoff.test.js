@@ -35,9 +35,10 @@ test("externally_connectable stays absent — the extension pulls, nothing pushe
     "adding this would let a website message the extension; the design inverts that deliberately");
 });
 
-test("permissions are still exactly activeTab, contextMenus, scripting and storage", () => {
-  // contextMenus: D55 decision B (10-07). It grants no page access — the handoff still has only activeTab.
-  assert.deepEqual(manifest.permissions, ["activeTab", "contextMenus", "scripting", "storage"]);
+test("permissions are still exactly activeTab, contextMenus, scripting, sidePanel and storage", () => {
+  // contextMenus: D55 decision B (10-07). sidePanel: D191, owner 11-15 (46o) — the panel beside the page. Neither grants page
+  // access — the handoff still has only activeTab.
+  assert.deepEqual(manifest.permissions, ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
 });
 
 test("the gated handoff is invoked by a user gesture, which is what grants activeTab", () => {

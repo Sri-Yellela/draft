@@ -274,7 +274,7 @@ test("⛔ the binding: set by a capture, used first, valid only on its origin, c
 
 test("⛔ no new permission — no tabs, no webNavigation; the manifest's list is pinned", () => {
   const m = JSON.parse(read("extension/manifest.json"));
-  assert.deepEqual([...m.permissions].sort(), ["activeTab", "contextMenus", "scripting", "storage"]);
+  assert.deepEqual([...m.permissions].sort(), ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
   assert.deepEqual(m.host_permissions, ["https://jobsviadraft.com/*"]);
   assert.ok(!m.permissions.includes("tabs") && !m.permissions.includes("webNavigation"));
 });

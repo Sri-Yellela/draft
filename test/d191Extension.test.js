@@ -55,7 +55,10 @@ test("d191PanelMatchNoModelCall — the press's answer (match + the employer's c
   const code = (f) => read(f).replace(/^\s*\/\/.*$/gm, "").replace(/\/\/[^\n"'`]*$/gm, "");   // code, not the prose about it
   for (const f of ["services/extensionHome.js", "routes/extensionJob.js"]) assert.doesNotMatch(code(f), /callTask|anthropic|assistant\.chat/, f);
   const r = read("routes/extensionJob.js");
-  assert.match(r, /ats, basis: ats\.state === "ready" \? "board" : null, company: cardOf\(db, row\.company, url\) \};/);
+  assert.match(r, /ats, basis: ats\.state === "ready" \? "board" : null, company: cardOf\(db, row\.company, url\),/);
+  // ⭐ 46o · the side panel's facts ride the same answer, and their module calls no model either
+  assert.match(r, /facts: \(\(\) => \{ try \{ return jobFactsForExtension\(db, userId, row\.job_id, /);
+  assert.doesNotMatch(code("services/extensionJobFacts.js"), /callTask|anthropic|assistant\.chat|boardPage/);
   assert.match(r, /router\.get\("\/api\/extension\/home", requireAuth,/);
 });
 
@@ -137,7 +140,7 @@ test("d191StylingFromDraftTokens / d191ThemeFromAppearanceSetting — every site
 
 test("d191NoAllUrlsPermission — activeTab, storage, scripting, contextMenus; draft's own origin; every ATS host optional", () => {
   const m = JSON.parse(read("extension/manifest.json"));
-  assert.deepEqual([...m.permissions].sort(), ["activeTab", "contextMenus", "scripting", "storage"]);
+  assert.deepEqual([...m.permissions].sort(), ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
   assert.deepEqual(m.host_permissions, ["https://jobsviadraft.com/*"]);
   assert.ok(!JSON.stringify(m.permissions).includes("<all_urls>") && !m.host_permissions.includes("<all_urls>"));
   assert.ok(!m.permissions.includes("tabs") && !m.permissions.includes("history") && !m.permissions.includes("webRequest"), "nothing that watches browsing");
@@ -162,7 +165,8 @@ test("D191 (2e) / (3) / P5 · the extension's panel runs the SITE's engine, mirr
   assert.match(ask, /t3: \(\) => \(\{ ask: /, "T3 is not offered here");
   const bg = norm("extension/background.js");
   assert.match(bg, /const fromOwnPage = \(sender\) => sender\?\.id === chrome\.runtime\.id && String\(sender\?\.url \|\| ''\)\.startsWith\(chrome\.runtime\.getURL\('ask\.html'\)\);/);
-  assert.match(bg, /msg\.act === 'draft' \|\| msg\.act === 'capture' \? DOCK_ACTS\[msg\.act\] : null/, "only the dock's own Capture / Draft");
+  // ⭐ 46o: + 'fill' — the panel's "Apply from here" (D191 (2c)) is the dock's OWN Fill (D36: it fills, the person submits)
+  assert.match(bg, /msg\.act === 'draft' \|\| msg\.act === 'capture' \|\| msg\.act === 'fill' \? DOCK_ACTS\[msg\.act\] : null/, "only the dock's own Capture / Draft / Fill");
   const m = JSON.parse(norm("extension/manifest.json"));
   assert.ok(m.commands["open-ask-draft"] && !m.commands["open-ask-draft"].suggested_key, "a shortcut the person binds (no new default key)");
   const { CONTEXT_MENUS, MENU_ASK } = await import("../extension/formReport.js");
@@ -222,4 +226,71 @@ test("A211 (b) · the home view counts the applications waiting to be sent from 
   assert.match(read("extension/ask.js"), /\$\('ask-runner'\)\.textContent = n > 0 \? `\$\{n\} waiting to send from this browser — Open the runner` : 'Apply while this is open';/);
   // no timer: the count rides the existing home read (on a page load or a press, at most every few minutes)
   assert.doesNotMatch(read("extension/toolbarPress.js"), /setInterval|chrome\.alarms/);
+});
+
+test("D191 (2a) / (2c) / (2d), 46o · the side panel's facts: level, salary, Works with, fit, the application's state — draft's own tables", async () => {
+  const { jobFactsForExtension, fitWord, salaryLine, runWord, trendWord } = await import("../services/extensionJobFacts.js");
+  const db = new Database(":memory:");
+  db.exec(`CREATE TABLE scraped_jobs (id INTEGER PRIMARY KEY, job_id TEXT, company TEXT, experience_level TEXT, salary_min_usd INTEGER, salary_max_usd INTEGER,
+      salary_period TEXT, salary_min REAL, salary_max REAL, company_icon_url TEXT);
+    CREATE TABLE job_taxonomy (job_id TEXT PRIMARY KEY, category TEXT, subcategory TEXT);
+    CREATE TABLE job_tech (job_id TEXT, tech TEXT);
+    CREATE TABLE apply_run_jobs (id INTEGER PRIMARY KEY, user_id INTEGER, job_id TEXT, status TEXT, created_at INTEGER DEFAULT (unixepoch()), hidden_at INTEGER);
+    CREATE TABLE apply_gate_packets (id INTEGER PRIMARY KEY, user_id INTEGER, job_id TEXT, run_job_id INTEGER, gate_reason TEXT, consumed_at INTEGER, created_at INTEGER DEFAULT (unixepoch()));
+    INSERT INTO scraped_jobs (job_id, company, experience_level, salary_min_usd, salary_max_usd, salary_period, company_icon_url)
+      VALUES ('j1', 'Kestrel', 'Senior', 140000, 180000, 'year', 'https://logo.test/k.png'), ('j2', 'Quiet Co', NULL, NULL, NULL, NULL, NULL);
+    INSERT INTO job_taxonomy VALUES ('j1', 'engineering', 'Backend engineering');
+    INSERT INTO job_tech VALUES ('j1', 'Go'), ('j1', 'Postgres');
+    INSERT INTO apply_run_jobs (user_id, job_id, status) VALUES (7, 'j1', 'held_review'), (8, 'j2', 'submitted');
+    INSERT INTO apply_gate_packets (user_id, job_id, gate_reason) VALUES (7, 'j1', 'server_submit_paused');`);
+  const f = jobFactsForExtension(db, 7, "j1", { score: 51 });
+  assert.equal(f.job.subcategory, "Backend engineering"); assert.equal(f.job.level, "Senior");
+  assert.equal(f.job.salary, "$140k–$180k a year");
+  assert.deepEqual([...f.job.worksWith].sort(), ["Go", "Postgres"]);
+  assert.equal(f.job.fit, "Good fit");
+  assert.equal(f.job.proven, null, "no company record → no 'proven N of M' (said only when draft knows it)");
+  assert.deepEqual(f.application, { state: "Needs you", sendFromHere: true });
+  assert.deepEqual(f.company, { logo: "https://logo.test/k.png", about: null, trend: null });
+  const quiet = jobFactsForExtension(db, 7, "j2", {});
+  assert.equal(quiet.job.salary, null); assert.equal(quiet.job.fit, null); assert.deepEqual(quiet.job.worksWith, []);
+  assert.deepEqual(quiet.application, { state: null, sendFromHere: false }, "another person's application is not this person's");
+  assert.equal(jobFactsForExtension(db, 7, "nope", {}), null);
+  assert.equal(fitWord(44), "Good fit"); assert.equal(fitWord(30), "Stretch"); assert.equal(fitWord(10), "Long shot"); assert.equal(fitWord(null), null);
+  assert.equal(salaryLine(45, 60, "hour"), "$45–$60 an hour"); assert.equal(salaryLine(150000, null, null), "$150k a year"); assert.equal(salaryLine(null, null), null);
+  assert.equal(runWord("submitted"), "Sent"); assert.equal(runWord("held_gate"), "Needs you"); assert.equal(runWord("dismissed"), null); assert.equal(runWord("ready"), "Drafted");
+  assert.equal(trendWord([{ postings: 2 }, { postings: 2 }, { postings: 2 }, { postings: 5 }, { postings: 6 }, { postings: 7 }]), "up");
+  assert.equal(trendWord([{ postings: 4 }, { postings: 4 }]), "flat"); assert.equal(trendWord([{ postings: 1 }]), null);
+});
+
+test("D191 46o · the panel's lines say only what draft knows; the side panel, the notice, no privacy_policy_url", async () => {
+  const { jobLines, companyLines } = await import("../extension/panelModel.js");
+  const l = jobLines({ score: 51.4, facts: { subcategory: "Backend engineering", level: "Senior", salary: "$140k–$180k a year", fit: "Good fit", proven: { count: 4, of: 8 }, worksWith: ["Go", "Postgres"] }, application: { state: "Needs you" } });
+  assert.deepEqual(l, { sub: "Backend engineering · Senior · $140k–$180k a year", fit: "Good fit · 51 ATS match · you've proven 4 of their top 8", works: "Works with Go, Postgres", state: "Needs you" });
+  assert.deepEqual(jobLines({}), { sub: "", fit: "", works: "", state: "" }, "nothing known → nothing said");
+  assert.equal(companyLines({ sponsorship: { text: "Filed 290 certified LCAs in FY2025" }, openJobs: 23, trend: "up" }), "Filed 290 certified LCAs in FY2025 · 23 open jobs on draft · hiring more than three months ago");
+  assert.equal(companyLines({ openJobs: 0 }), "");
+  // the panel's actions: Draft / Save only when not yours; Apply from here = the dock's Fill; Open in draft = the board's job
+  const ask = read("extension/ask.js");
+  assert.match(ask, /if \(!j\.mine\) acts\.push\(btn\('Draft this job', \(\) => act\('draft'\), true\), btn\('Save', \(\) => act\('capture'\)\)\);/);
+  assert.match(ask, /btn\('Apply from here', \(\) => act\('fill'\)/);
+  assert.match(ask, /open\(`\/app\/jobs\?job=\$\{encodeURIComponent\(j\.jobId\)\}`\)/);
+  assert.doesNotMatch(ask, /callTask|anthropic|assistant\.chat/);
+  // the side panel: declared, opened on the person's click with a window fallback
+  const m = JSON.parse(read("extension/manifest.json"));
+  assert.equal(m.side_panel?.default_path, "ask.html");
+  assert.ok(m.permissions.includes("sidePanel"));
+  assert.equal(m.privacy_policy_url, undefined, "not a manifest key (Chrome: Unrecognized manifest key)");
+  const bg = read("extension/background.js");
+  assert.match(bg, /try \{ await chrome\.sidePanel\.open\(\{ tabId: tab\.id \}\); await set; return \{ ok: true, say: null \}; \}/);
+  assert.match(bg, /await chrome\.windows\.create\(\{ url: chrome\.runtime\.getURL\(path\), type: 'popup'/, "the window is the fallback");
+  // the in-product disclosure: once on install and on an update from before 1.7.0; nothing stored
+  const { noticeDue } = await import("../extension/toolbarPress.js");
+  assert.equal(noticeDue({ reason: "install" }), true);
+  assert.equal(noticeDue({ reason: "update", previousVersion: "1.6.1" }), true);
+  assert.equal(noticeDue({ reason: "update", previousVersion: "1.7.0" }), false);
+  assert.equal(noticeDue({ reason: "chrome_update" }), false);
+  assert.match(bg, /chrome\.runtime\.onInstalled\?\.addListener\(\(details\) => \{ if \(noticeDue\(details\)\) void chrome\.tabs\.create\(\{ url: chrome\.runtime\.getURL\('notice\.html'\) \}\)/);
+  const notice = read("extension/notice.html");
+  for (const said of ["only when you ask it to", "only to draft's own server", "Signed out, only the employer's name and the page's address go", "never submits a form on its own", "Only your press of Send all sends them"]) assert.ok(notice.includes(said), said);
+  assert.doesNotMatch(read("extension/notice.js"), /chrome\.storage/, "the notice stores nothing");
 });

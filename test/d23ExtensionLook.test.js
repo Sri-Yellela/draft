@@ -26,7 +26,7 @@ const manifest = JSON.parse(read("extension/manifest.json"));
 
 test("⛔ D23: the permission set is exactly activeTab + scripting + storage, and the one host", () => {
   // + contextMenus by D55 decision B (10-07) — a decided addition, not D23's.
-  assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "storage"]);
+  assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
   assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
   // + optional_host_permissions by D64 (owner, 10-07: automated capture) — a decided addition, not D23's:
   // granted only when the user switches automatic capture on, public job-posting hosts only, and

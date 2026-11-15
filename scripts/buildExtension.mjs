@@ -87,6 +87,7 @@ export function collectRequiredFiles(manifest) {
   if (manifest.background?.service_worker) need.add(manifest.background.service_worker);
   if (manifest.action?.default_popup)      need.add(manifest.action.default_popup);
   if (manifest.options_page)               need.add(manifest.options_page);
+  if (manifest.side_panel?.default_path)   need.add(manifest.side_panel.default_path);   // ⭐ D191 (46o): the side panel
   Object.values(manifest.action?.default_icon || {}).forEach(p => need.add(p));
   Object.values(manifest.icons || {}).forEach(p => need.add(p));
 

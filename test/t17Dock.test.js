@@ -271,7 +271,7 @@ test("T17: the frame paints only with tokens — var(--c-*), no colour literal; 
 // ── 6 · no new permission; it ships ───────────────────────────────────────────────────────────────────────────────
 test("T17: no new permission, and the dock ships in the package (the builder follows files: ['dock.js'])", () => {
   const manifest = JSON.parse(read("extension/manifest.json"));
-  assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "storage"]);
+  assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
   assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
   assert.ok(!manifest.web_accessible_resources, "the dock needs no web-accessible resource");
   const files = collectRequiredFiles(manifest);

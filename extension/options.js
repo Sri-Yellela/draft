@@ -142,3 +142,5 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 document.getElementById('btn-linkedin')?.addEventListener('click', () => {
   chrome.runtime.sendMessage({ type: 'OPEN_LINKEDIN_IMPORT' }).catch(() => {});
 });
+// ⭐ D191 (46o): the disclosure page (notice.html), opened again on request
+document.getElementById('perm-notice')?.addEventListener('click', () => { void chrome.tabs.create({ url: chrome.runtime.getURL('notice.html') }); });

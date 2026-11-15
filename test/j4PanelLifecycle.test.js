@@ -423,7 +423,7 @@ test("⛔ J4: no new storage key, no new permission — and the router wiring ha
   assert.equal(writes("extension/gated-handoff.js"), 2, "gate:{tabId} and batch:{tabId} — one write site each, as before");
   assert.doesNotMatch(read("extension/review-overlay.js"), /localStorage|sessionStorage|indexedDB/);
   const manifest = JSON.parse(fs.readFileSync("extension/manifest.json", "utf8"));
-  assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "storage"]);
+  assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
   // Wired into the shipped router (the coordinator, at the J4 merge) — the browser pass runs exactly this file.
   const router = read("extension/background.js");
   assert.match(router, /import \{ handlers as ANSWER_MEMORY_HANDLERS, configureAnswerMemory \} from '\.\/answerMemory\.js';/);

@@ -21,7 +21,7 @@ import { handlers as RESUME_PANEL_HANDLERS, configureResumePanel } from './resum
 import { handlers as BOARD_OPEN_HANDLERS, configureBoardOpen } from './boardOpen.js';
 // ⭐ T24: the intent model — the Draft button drafts (the board's Draft) and queues the résumé; the dock says the path.
 import { handlers as INTENT_HANDLERS, configureIntent, showPath, runDraft } from './intent.js';
-import { toolbarPress, renderRelay, fillRelay, dockStateInPage, collapseDockInPage } from './toolbarPress.js';
+import { toolbarPress, renderRelay, fillRelay, dockStateInPage, collapseDockInPage, noticeDue } from './toolbarPress.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
 import { lookupBoardJob, companyFacts } from './boardJob.js';
 import { isExtensionSubmitPacket, sendWithPress } from './extensionSubmit.js';   // ⭐ A207 (a)
@@ -259,6 +259,8 @@ async function popupContext(tab) {
     company: (await rememberCompanyHref(tab, page?.company || null)),
     report: page?.ok && page.ats ? { ...page.ats, basis: page.basis }
       : boardReport?.ok && boardReport.ats ? { ...boardReport.ats, basis: 'board' } : null,
+    // ⭐ D191 (2a) / (2c) / (2d): what draft knows about this posting, for the side panel (draft's own data, no model)
+    facts: page?.facts || null,
     recent: board?.recent || [],
     packets: (queue?.packets || []).map(p => ({
       packetId: p.packetId, title: p.title, company: p.company, createdAt: p.createdAt, stale: !!p.stale,
@@ -817,6 +819,11 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // is enough to keep that bounded without a polling alarm.
 chrome.runtime.onStartup?.addListener(() => { void sweepExpiredPackets(); });
 chrome.runtime.onInstalled?.addListener(() => { void sweepExpiredPackets(); });
+// ⭐ D191 (46o) · THE STORE'S DISCLOSURE RULE (User Data Policy: prominently disclose what is collected and how it is used,
+// in the product, and disclose a change of practice after install): on install, and on an update from a version before
+// 1.7.0 (the runner and the signed-out employer card are new practice), the notice page opens once — what draft reads,
+// when, and where it goes. onInstalled fires once per install / update, so nothing is stored to remember it.
+chrome.runtime.onInstalled?.addListener((details) => { if (noticeDue(details)) void chrome.tabs.create({ url: chrome.runtime.getURL('notice.html') }).catch?.(() => {}); });
 
 // ── D55 · the right-click menu (decision B) and "Report this form" (decision E) ──────────────
 // Everything that is not a chrome.* call lives in formReport.js. Both menu items act only on the
@@ -956,8 +963,14 @@ function rememberPressContext(tab, c) {
   if (!tab?.id || !c) return;
   const p = c.posting || null, report = c.report || null;
   const score = Number.isFinite(report?.score) ? report.score : Number.isFinite(p?.scores?.shown) ? p.scores.shown : null;
-  pressContextByTab.set(tab.id, { job: p ? { jobId: p.known ? p.jobId ?? null : null, title: p.title ?? null, company: p.company ?? null, known: !!p.known, score } : null,
-    company: c.company ? { name: c.company.name, sponsorship: c.company.sponsorship, openJobs: c.company.openJobs } : null });
+  const f = c.facts || null;
+  pressContextByTab.set(tab.id, { job: p ? { jobId: p.known ? p.jobId ?? null : null, title: p.title ?? null, company: p.company ?? null, known: !!p.known, score,
+      mine: !!p.mine, onBoard: !!p.onBoard, ...(f?.job ? { facts: f.job } : {}), ...(f?.application ? { application: f.application } : {}) } : null,
+    prepared: !!c.prepared,
+    company: c.company ? { name: c.company.name, sponsorship: c.company.sponsorship, openJobs: c.company.openJobs, href: c.company.href || null,
+      ...(f?.company ? { logo: f.company.logo, about: f.company.about, trend: f.company.trend } : {}) } : null });
+  // ⭐ D191 · the side panel, if it is open on this tab, redraws from the new read
+  try { chrome.runtime.sendMessage?.({ type: 'ASK_PRESSED', tabId: tab.id })?.catch?.(() => {}); } catch { /* no panel open */ }
 }
 // ── ⭐ A211 (1a) · THE RUNNER TAB (runner.html): the applications sent from the person's own browser — listed, filled in
 // background tabs on their "Fill all", sent on ONE trusted press of "Send all". ⛔ From runner.html only; only A207
@@ -1030,8 +1043,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 chrome.tabs?.onRemoved?.addListener?.((tabId) => { runnerTabs.delete(tabId); });
 
+// ⭐ D191 (46o) · the panel is Chrome's SIDE PANEL beside the page (chrome.sidePanel, the platform's place for one), per
+// tab — so it shows what draft knows about THAT tab's posting. open() must run in the person's gesture, so it is called
+// before anything is awaited; where Chrome refuses (an older Chrome, a gesture lost on the way), the small window it was.
 async function openAskWindow(tab) {
-  await chrome.windows.create({ url: chrome.runtime.getURL(`ask.html?tab=${encodeURIComponent(tab?.id ?? '')}`), type: 'popup', focused: true, width: 440, height: 640 });
+  const path = `ask.html?tab=${encodeURIComponent(tab?.id ?? '')}`;
+  if (tab?.id && chrome.sidePanel?.open) {
+    const set = chrome.sidePanel.setOptions({ tabId: tab.id, path, enabled: true });
+    try { await chrome.sidePanel.open({ tabId: tab.id }); await set; return { ok: true, say: null }; }
+    catch { /* no gesture or no side panel — the window below */ }
+  }
+  await chrome.windows.create({ url: chrome.runtime.getURL(path), type: 'popup', focused: true, width: 440, height: 640 });
   return { ok: true, say: null };
 }
 const fromOwnPage = (sender) => sender?.id === chrome.runtime.id && String(sender?.url || '').startsWith(chrome.runtime.getURL('ask.html'));
@@ -1042,7 +1064,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const tabId = Number(msg.tabId) || null;
   if (msg.type === 'ASK_RUNNER') { openRunner().then(() => sendResponse({ ok: true }), () => sendResponse({ ok: false })); return true; }
   if (msg.type === 'ASK_CONTEXT') { sendResponse({ server: RESUME_MASTER_URL, context: tabId ? pressContextByTab.get(tabId) || null : null }); return true; }
-  const act = msg.act === 'draft' || msg.act === 'capture' ? DOCK_ACTS[msg.act] : null;
+  // ⭐ D191 (2b) / (2c): the panel's Draft / Save, and "Apply from here" = the dock's own Fill (D36: it fills, the person submits)
+  const act = msg.act === 'draft' || msg.act === 'capture' || msg.act === 'fill' ? DOCK_ACTS[msg.act] : null;
   if (!act || !tabId) { sendResponse({ ok: false, say: 'Press the toolbar icon on the posting first.' }); return true; }
   chrome.tabs.get(tabId).then(t => act(t)).then(r => sendResponse(r || { ok: false }), () => sendResponse({ ok: false, say: 'That tab is gone — open the posting again.' }));
   return true;

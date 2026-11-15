@@ -1,5 +1,24 @@
 # Chrome Web Store listing — draft v1.7.0
 
+> **v1.7.0 + D191 rebuilt to the current spec (2026-11-15, 46o — the owner's "rebuild and revamp extension to current
+> specifications").** Still v1.7.0 (unpublished — the zip is rebuilt). ⛔ **ONE NEW PERMISSION: `sidePanel`** (the owner
+> chose it, 11-15) — draft's panel (your day, what draft knows about the job on this tab, a search of draft, Tiny) opens in
+> Chrome's side panel beside the page instead of a small window. Chrome shows no install warning for it; it reads no page
+> and collects nothing. Paste into the dashboard's `sidePanel` justification: *"Shows draft's panel — your day, what draft
+> knows about the job on this tab, a search of draft and Tiny — in Chrome's side panel beside the page, when you open it. It
+> reads no page and collects nothing."* **What the panel shows on a posting** (D191 (2a)–(2d), from draft's own records, no
+> AI): the role's subcategory, level and posted salary, *Works with* (the stack the posting names), a one-word fit with the
+> ATS match, *"you've proven 4 of their top 8"*, your application's state, and Draft / Save / Apply from here / Open in
+> draft / Send to a connection; the employer's logo, one line about it, its H-1B record, open jobs and hiring trend. **No new
+> data:** the panel shows the press's read (already disclosed under `activeTab`). **The in-product disclosure (the store's
+> User Data Policy: prominent disclosure, and disclosure of changed practices after install):** `notice.html` opens once on
+> install and on an update from before 1.7.0 — what draft reads, when, and where it goes — and again from Settings. ⛔
+> **`privacy_policy_url` left the manifest** — it is not a manifest key (Chrome logs "Unrecognized manifest key"); the
+> policy URL is the dashboard's field (below). 👤 At the upload: the `sidePanel` justification above; Privacy practices
+> unchanged in kind; the owner's two lines from the 46m / 46n addenda still apply. Paste-ready line for the description:
+> *"Open draft beside any job posting: your match, the role's level and pay, the employer's visa-sponsorship record and
+> hiring trend — all from draft's own data, no AI."*
+
 > **v1.7.0 + A211 (1a) (2026-11-15, 46n — the owner's "automate applications using the user's own session … by seeking
 > permission").** A new extension page, **"Apply while this is open"** (the runner tab): it lists the applications draft holds
 > to be sent from the user's own browser (sites that flag draft's servers). On the user's click of **Fill all**, Chrome asks
@@ -413,7 +432,7 @@ Certifications — tick all four:
   including the Limited Use requirements.** (D68: the privacy policy carries the same affirmation, in
   *How We Use Your Data*.)
 
-Privacy policy URL: `https://jobsviadraft.com/privacy` (set in `manifest.json`).
+Privacy policy URL: `https://jobsviadraft.com/privacy` (set in the Developer Dashboard's privacy policy field — ⭐ 46o: it is not a manifest key, and `manifest.json` no longer carries it).
 
 ---
 

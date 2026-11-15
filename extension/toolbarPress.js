@@ -192,3 +192,11 @@ export async function toolbarPress(tab, deps) {
   const asked = auto?.globalAsk && deps.ask ? await deps.ask(tab).catch(() => null) : null;
   return { ok: true, did: 'opened', said: specs.length, ...(asked?.opened ? { asked: true } : {}) };
 }
+
+/** ⭐ D191 (46o) · whether the notice page opens for this install / update (background.js onInstalled). Pure. */
+export function noticeDue(details) {
+  if (details?.reason === 'install') return true;
+  if (details?.reason !== 'update') return false;
+  const [a = 0, b = 0] = String(details.previousVersion || '').split('.').map(Number);
+  return a < 1 || (a === 1 && b < 7);
+}
