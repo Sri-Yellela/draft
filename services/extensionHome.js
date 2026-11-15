@@ -48,8 +48,12 @@ export function companyCard(db, { company, url = null } = {}) {
     } catch { openJobs = null; }
   }
   let sponsorship = null;
-  try { const f = sponsorshipFactFor(db, rec?.name || name); sponsorship = f ? { text: f.text, filings: f.filings, fiscalYear: f.fiscalYear, through: f.source?.through || null } : null; }
-  catch { sponsorship = null; }
+  // the H-1B record is keyed by the company string the BOARD stores (company_lca_sponsorship.company) — the posting's own
+  // name first, as the board's sponsorship signal reads it; then the D179 record's name when it differs
+  for (const key of [...new Set([name, rec?.name].filter(Boolean))]) {
+    try { const f = sponsorshipFactFor(db, key); if (f) { sponsorship = { text: f.text, filings: f.filings, fiscalYear: f.fiscalYear, through: f.source?.through || null }; break; } }
+    catch { /* no record under this name */ }
+  }
   const slug = rec?.slug || companySlug(name) || null;
   return { name: rec?.name || name, known: !!rec, openJobs, sponsorship, href: slug ? `${ORIGIN}/companies/${slug}` : null };
 }

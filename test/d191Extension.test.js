@@ -172,3 +172,9 @@ test("D191 (2e) / (3) / P5 · the extension's panel runs the SITE's engine, mirr
   assert.match(bs, /export const SEARCH_PARAM = "search";/);
   assert.match(bs, /u\.searchParams\.delete\(SEARCH_PARAM\);/);
 });
+
+test("46n · the card asks the H-1B record by the posting's own company string first (as the board does), then the record's name", () => {
+  const src = read("services/extensionHome.js");
+  assert.match(src, /for \(const key of \[\.\.\.new Set\(\[name, rec\?\.name\]\.filter\(Boolean\)\)\]\) \{/);
+  assert.match(src, /sponsorshipFactFor\(db, key\); if \(f\) \{ sponsorship = /);
+});
