@@ -45,6 +45,15 @@ export function sentenceToFilters(sentence) {
   return out;
 }
 
+/** ⭐ A213 (46r, the 46q audit): a sentence to Tiny REPLACES ONLY THE CLAUSES IT NAMES — "remote data engineer jobs in Boston"
+ *  said over "senior … in Boston" keeps senior. Before this, every clause the sentence did not name was cleared (the career
+ *  level went to "all career levels"). Pure. */
+export function mergeFilters(before, f) {
+  const b = before || {};
+  const pick = (k) => (f[k] && f[k].length ? f[k] : (Array.isArray(b[k]) ? b[k] : []));
+  return { experience_levels: pick("experience_levels"), work_models: pick("work_models"), places: pick("places"), search: f.search || b.search || "" };
+}
+
 const verbFor = { drafted: "Drafted", saved: "Saved", passed: "Passed" };
 
 /** "senior remote jobs in Boston", "data analyst roles" — a place no PLACES key names but that asks for jobs. Pure. */
@@ -111,12 +120,14 @@ export function createDraftHandlers({ navigate, api, action, counts = () => null
     const before = get ? get() : null;
     const where = opened ? " I opened the board for you." : "";
     if (/^clear/i.test(ctx?.said || "")) { set({ experience_levels: [], work_models: [], places: [], search: "" }); return { text: `Cleared the filters.${where}`, undo: before ? () => { set(before); return { text: "The filters are back." }; } : null }; }
-    const f = sentenceToFilters(a.sentence);
+    let f = sentenceToFilters(a.sentence);
     if (!f.experience_levels.length && !f.work_models.length && !f.places.length && !f.search) return { ask: "Which jobs? Say it like “senior backend, remote, in Boston”." };
+    const said = f;
+    f = mergeFilters(before, said);   // A213: only the clauses the sentence names change
     set(f);
-    // "senior remote “data analyst” jobs in Boston"
+    // "senior remote “data analyst” jobs in Boston" — the board as it now reads, kept clauses included
     const bits = [f.experience_levels.length && f.experience_levels.join(" / "), f.work_models.length && f.work_models.join(" / "), f.search && `“${f.search}”`].filter(Boolean);
-    const placeName = f.places.length ? (String(a.sentence).match(/(?:in|near|around|at) ([^,]+?)$/i)?.[1] || "that place") : "";
+    const placeName = said.places.length ? (String(a.sentence).match(/(?:in|near|around|at) ([^,]+?)$/i)?.[1] || "that place") : "";
     return { text: `The board now shows ${bits.length ? `${bits.join(" ")} ` : ""}jobs${placeName ? ` in ${placeName}` : ""}.${where}`, undo: before ? () => { set(before); return { text: "The filters are back as they were." }; } : null };
   }
   return {

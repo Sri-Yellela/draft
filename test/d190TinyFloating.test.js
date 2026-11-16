@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { createAssistant } from "../shared/assistantEngine.js";
-import { createDraftHandlers, jobSearchSentence, looksLikeJobSearch, BOARD_WAIT_MS } from "../client/src/lib/assistantDraft.js";
+import { createDraftHandlers, jobSearchSentence, looksLikeJobSearch, BOARD_WAIT_MS, mergeFilters } from "../client/src/lib/assistantDraft.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const COMMANDS = JSON.parse(read("content/assistant/commands-v1.json"));
@@ -48,6 +48,21 @@ test("d190TinyFilterOnBoard — the board already mounted: no navigation, applie
   const m = await bot.handle("set my filter to backend senior in Boston");
   assert.deepEqual(st.navs, []); assert.equal(st.polls, 0);
   assert.equal(st.applied[0].search, "backend"); assert.doesNotMatch(m.text, /opened the board/);
+});
+
+test("a213TinyKeepsUnnamedClauses — a sentence replaces only the clauses it names (the career level survives)", async () => {
+  const st = { applied: [], cur: { experience_levels: ["senior"], work_models: [], places: ["metro:boston"], search: "" } };
+  const actions = { setFilters: (f) => { st.applied.push(f); st.cur = f; }, getFilters: () => st.cur };
+  const h = createDraftHandlers({ navigate: () => {}, api: async () => ({}), action: (n) => actions[n] || null, sleep: async () => {} });
+  const bot = createAssistant({ commands: COMMANDS, site: "draft", handlers: h, fallback: h.fallback });
+  const m = await bot.handle("show me remote data engineer jobs in Boston");
+  assert.deepEqual(st.applied.at(-1), { experience_levels: ["senior"], work_models: ["remote"], places: ["metro:boston"], search: "data engineer" }, "senior is kept");
+  assert.match(m.text, /senior remote “data engineer” jobs in Boston/);
+  await m.undo();
+  assert.deepEqual(st.cur.experience_levels, ["senior"]); assert.deepEqual(st.cur.work_models, [], "Undo restores the board as it was");
+  assert.deepEqual(mergeFilters({ experience_levels: ["mid"], work_models: ["hybrid"], places: [], search: "x" }, { experience_levels: ["lead"], work_models: [], places: [], search: "" }),
+    { experience_levels: ["lead"], work_models: ["hybrid"], places: [], search: "x" });
+  assert.deepEqual(mergeFilters(null, { experience_levels: [], work_models: ["remote"], places: [], search: "" }), { experience_levels: [], work_models: ["remote"], places: [], search: "" });
 });
 
 test("d190TinyFilterGivesUp — a board that never registers: waits ≤ 3 s of polls, then says so (never a silent no-op)", async () => {
