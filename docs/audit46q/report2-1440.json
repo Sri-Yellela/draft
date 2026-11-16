@@ -1,0 +1,163 @@
+[
+ {
+  "n": 41,
+  "name": "signed-in",
+  "file": "41-signed-in-1440.png",
+  "url": "/app/today",
+  "text": "Today's draft · Monday, November 16 Start with your résumé. Today's draft is dealt from jobs ranked against your résumé. Upload it and draft reads the roles you want and the skills you have, sets up your first job profile, and deals your first draft straight away. Upload your résumé PDF or Word — or drop it here. draft reads your field, level, titles and skills from it and sets up your first job p",
+  "sideScroll": false,
+  "errors": [],
+  "failed": [],
+  "writes": [
+   "POST /api/auth/login"
+  ]
+ },
+ {
+  "n": 42,
+  "name": "after-resume-upload",
+  "file": "42-after-resume-upload-1440.png",
+  "url": "/app/today",
+  "text": "Today's draft · Monday, November 16 1 of 10 today · best match first ‹ › E Ember Works 7 Boston, MA 83% match Senior Data Engineer $145k–$185k Remote Works with Python, SQL, Apache Airflow, Apache Spark skills matched 5 of 5 since posted 36 hours Open the posting DRAFT PASS A Acme Health 2 Los Angeles, CA 83% match Backend Engineer $104k–$144k Remote Works with Go, Python, PostgreSQL, AWS skills m",
+  "sideScroll": false,
+  "errors": [],
+  "failed": [],
+  "writes": [
+   "POST /api/domain-profiles/from-resume"
+  ]
+ },
+ {
+  "n": 43,
+  "name": "home-with-resume",
+  "file": "43-home-with-resume-1440.png",
+  "url": "/app/today",
+  "text": "Today's draft · Monday, November 16 1 of 10 today · best match first ‹ › E Ember Works 7 Boston, MA 83% match Senior Data Engineer $145k–$185k Remote Works with Python, SQL, Apache Airflow, Apache Spark skills matched 5 of 5 since posted 36 hours Open the posting DRAFT PASS A Acme Health 2 Los Angeles, CA 83% match Backend Engineer $104k–$144k Remote Works with Go, Python, PostgreSQL, AWS skills m",
+  "sideScroll": false,
+  "errors": [],
+  "failed": [],
+  "writes": []
+ },
+ {
+  "n": 44,
+  "name": "board-with-resume",
+  "file": "44-board-with-resume-1440.png",
+  "url": "/app/jobs",
+  "text": "Today's draft · Monday, November 16 1 of 10 today · best match first ‹ › E Ember Works 7 Boston, MA 83% match Senior Data Engineer $145k–$185k Remote Works with Python, SQL, Apache Airflow, Apache Spark skills matched 5 of 5 since posted 36 hours Open the posting DRAFT PASS A Acme Health 2 Los Angeles, CA 83% match Backend Engineer $104k–$144k Remote Works with Go, Python, PostgreSQL, AWS skills m",
+  "sideScroll": false,
+  "errors": [],
+  "failed": [],
+  "writes": []
+ },
+ {
+  "n": 45,
+  "name": "posting-open",
+  "file": "45-posting-open-1440.png",
+  "url": "/app/jobs?job=lever%3A%3Ascale219",
+  "text": "F Fable Works 4 Boston, MA Fold it back Senior Software Engineer workstyle Remote salary $81k–$121k posted 55 days ago history Open 55 days sponsorship Sponsorship unknown 66 match The posting Fable Works 4 is hiring a Senior Software Engineer. About the role: You have shipped production work, written it down clearly, and helped others grow. What you'll use: Rust, AWS, Kubernetes, PostgreSQL. Our ",
+  "sideScroll": false,
+  "errors": [],
+  "failed": [],
+  "writes": [
+   "PATCH /api/jobs/lever::scale219/visited"
+  ]
+ },
+ {
+  "n": 46,
+  "name": "after-draft",
+  "file": "46-after-draft-1440.png",
+  "url": "/app/jobs?job=lever%3A%3Ascale219",
+  "text": "F Fable Works 4 Boston, MA Fold it back Senior Software Engineer workstyle Remote salary $81k–$121k posted 55 days ago history Open 55 days sponsorship Sponsorship unknown 66 match The posting Fable Works 4 is hiring a Senior Software Engineer. About the role: You have shipped production work, written it down clearly, and helped others grow. What you'll use: Rust, AWS, Kubernetes, PostgreSQL. Our ",
+  "sideScroll": false,
+  "errors": [],
+  "failed": [],
+  "writes": []
+ },
+ {
+  "name": "drafted",
+  "opened": true,
+  "drafted": null
+ },
+ {
+  "n": 47,
+  "name": "draft-house-after",
+  "file": "47-draft-house-after-1440.png",
+  "url": "/app/auto-apply",
+  "text": "Home Today's question · 2 minutes Ask me first Apply for me Settings Import Export Send all ready (0) 0 needs you 0 in progress 0 sent 0 replied 0 interview All Needs you In progress Sent Replies Stopped Search POSITION RÉSUMÉ ANSWERS STATUS WHEN Nothing drafted yet. Draft jobs from the Daily Deck or Full House. Auto-apply Pause Runs at 9 AM A Draft you press runs right away — these are when draft",
+  "sideScroll": false,
+  "errors": [],
+  "failed": [],
+  "writes": []
+ },
+ {
+  "n": 48,
+  "name": "review",
+  "file": "48-review-1440.png",
+  "url": "/app/profile",
+  "text": "You and your résumé Profile You Your profile Saved answers Applying Auto-apply Ask me first Connections You and draft Appearance Dusk Dark Notifications Privacy and your data Account Your page, from your résumé Only you can see it until you choose otherwise. Each section has its own eye. Who can see your profile Only you Connections Public Each section can be narrower (the eye on it). Contact deta",
+  "sideScroll": false,
+  "errors": [],
+  "failed": [],
+  "writes": []
+ },
+ {
+  "name": "review",
+  "review": "Open Profile"
+ },
+ {
+  "n": 49,
+  "name": "atlas-map-with-resume",
+  "file": "49-atlas-map-with-resume-1440.png",
+  "url": "/app/atlas/your-map",
+  "text": "Your way through the market Atlas You Your run Your map Your skills Grow Library How it works Today's question The audit Explore Roles and skills This week's market Glossary A clear picture of where you are From what you have to where you're going. You 7 yrs R reliability next · 1 deck J Java R React 1 deck K kubernetes 1 deck, 1 lesson R Rust Frontend Engineer 141 open roles Fly my route Start: r",
+  "sideScroll": false,
+  "errors": [],
+  "failed": [],
+  "writes": []
+ },
+ {
+  "n": 50,
+  "name": "atlas-skills",
+  "file": "50-atlas-skills-1440.png",
+  "url": "/app/atlas/your-skills",
+  "text": "Your way through the market Atlas You Your run Your map Your skills Grow Library How it works Today's question The audit Explore Roles and skills This week's market Glossary For a role Compare roles All my skills Role Show or a role on the board… Backend (140) Frontend (141) Full-stack (152) Mobile · cross-platform (134) Data engineering (72) Analytics engineering (61) Data analysis and BI (65) Da",
+  "sideScroll": false,
+  "errors": [],
+  "failed": [],
+  "writes": []
+ },
+ {
+  "n": 51,
+  "name": "atlas-question-fixed",
+  "file": "51-atlas-question-fixed-1440.png",
+  "url": "/app/atlas/todays-question",
+  "text": "Your way through the market Atlas You Your run Your map Your skills Grow Library How it works Today's question The audit Explore Roles and skills This week's market Glossary Picked for you · something new One question a day About two minutes. A review comes back when you miss one. Remind me each day at 12 AM 1 AM 2 AM 3 AM 4 AM 5 AM 6 AM 7 AM 8 AM 9 AM 10 AM 11 AM 12 PM 1 PM 2 PM 3 PM 4 PM 5 PM 6 ",
+  "sideScroll": false,
+  "errors": [],
+  "failed": [],
+  "writes": []
+ },
+ {
+  "n": 52,
+  "name": "profile-with-resume",
+  "file": "52-profile-with-resume-1440.png",
+  "url": "/app/profile/about",
+  "text": "You and your résumé Profile You Your profile Saved answers Applying Auto-apply Ask me first Connections You and draft Appearance Dusk Dark Notifications Privacy and your data Account Your page, from your résumé Only you can see it until you choose otherwise. Each section has its own eye. Who can see your profile Only you Connections Public Each section can be narrower (the eye on it). Contact deta",
+  "sideScroll": false,
+  "errors": [],
+  "failed": [],
+  "writes": []
+ },
+ {
+  "n": 53,
+  "name": "tiny-conversation",
+  "file": "53-tiny-conversation-1440.png",
+  "url": "/app/today",
+  "text": "Today's draft · Monday, November 16 1 of 10 today · best match first ‹ › E Ember Works 7 Boston, MA 83% match Senior Data Engineer $145k–$185k Remote Works with Python, SQL, Apache Airflow, Apache Spark skills matched 5 of 5 since posted 36 hours Open the posting DRAFT PASS A Acme Health 2 Los Angeles, CA 83% match Backend Engineer $104k–$144k Remote Works with Go, Python, PostgreSQL, AWS skills m",
+  "sideScroll": false,
+  "errors": [],
+  "failed": [],
+  "writes": [
+   "POST /api/assistant/lookup",
+   "POST /api/assistant/lookup"
+  ]
+ }
+]
