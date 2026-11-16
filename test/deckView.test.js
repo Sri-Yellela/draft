@@ -39,7 +39,8 @@ test("the deck shows a band and never a score", () => {
 test("/app lands on Today, and the board keeps /app/jobs", () => {
   // D10: displayed as DAILY DECK; the id and route stay "today". ⭐ D152, changed on purpose: displayed as HOME.
   assert.match(app, /\{ id: "today",\s+label: "Home" \}/);
-  assert.match(app, /if \(!routeKey\) \{\s*navigate\("\/app\/today", \{ replace:true \}\);/);
+  // ⭐ 46q A215 (owner 11-16, changed on purpose): ONE board address — /app and /app/today land on /app/jobs, query and anchor kept.
+  assert.match(app, /if \(!routeKey \|\| routeKey === "today"\) \{\s*navigate\(\{ pathname: consolePath, search: location\.search \|\| "", hash: location\.hash \|\| "" \}, \{ replace:true \}\);/);
   // ⭐ D152 (1), changed on purpose: Today is HOME — the deck is Home's left column (test/d152Home.test.js).
   assert.match(app, /const home = activeTab === "today" \|\| activeTab === "console";/);
   assert.match(app, /<DeckView canUseAPlusResume=\{canUseAPlusResumeHere\} home\/>/);
