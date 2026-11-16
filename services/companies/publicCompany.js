@@ -71,8 +71,11 @@ export function publicCompany(db, slug, { now = Date.now() } = {}) {
   const [, provider = null, tenant = null] = ats ? ats.split(":") : [];
   const careers = provider && tenant && ATS_BOARD[provider] ? ATS_BOARD[provider](tenant) : (co.domain ? `https://${co.domain}` : null);
 
+  // ⛔ 46p: CROSS JOIN pins the join order — drive from THIS company's job_company rows. With a plain JOIN SQLite chose
+  // idx_scraped_jobs_duplicate_of (duplicate_of IS NULL = almost every posting) and read the whole table: ~200 ms per query
+  // at 100k postings, ~600 ms per cold company page (and per extension press — D191's facts); pinned, 0.6 ms.
   const open = db.prepare(`SELECT jt.category, jt.subcategory, COUNT(*) AS n FROM job_company jc
-      JOIN scraped_jobs sj ON sj.job_id = jc.job_id LEFT JOIN job_taxonomy jt ON jt.job_id = sj.job_id
+      CROSS JOIN scraped_jobs sj ON sj.job_id = jc.job_id LEFT JOIN job_taxonomy jt ON jt.job_id = sj.job_id
       WHERE jc.company_id = ? AND ${OPEN} GROUP BY jt.category, jt.subcategory`).all(co.id);
   let tax = null; try { tax = taxonomy(); } catch { tax = null; }
   const byCat = new Map(); let openJobs = 0;
@@ -85,7 +88,7 @@ export function publicCompany(db, slug, { now = Date.now() } = {}) {
     if (cid && r.subcategory) c.subcategories.push({ id: r.subcategory, name: tax?.byId.get(cid)?.subs.find(x => x.id === r.subcategory)?.name || r.subcategory, count: r.n });
     byCat.set(k, c);
   }
-  const locations = db.prepare(`SELECT sj.location, COUNT(*) AS n FROM job_company jc JOIN scraped_jobs sj ON sj.job_id = jc.job_id
+  const locations = db.prepare(`SELECT sj.location, COUNT(*) AS n FROM job_company jc CROSS JOIN scraped_jobs sj ON sj.job_id = jc.job_id
       WHERE jc.company_id = ? AND ${OPEN} AND TRIM(COALESCE(sj.location, '')) <> '' GROUP BY sj.location ORDER BY n DESC LIMIT 8`).all(co.id);
   const nowSec = Math.floor(now / 1000), since = nowSec - 183 * 86400;
   const trendRows = db.prepare(`SELECT strftime('%Y-%m', ${SEC("sj.discovered_at")}, 'unixepoch') AS month, COUNT(*) AS n FROM job_company jc
@@ -93,7 +96,7 @@ export function publicCompany(db, slug, { now = Date.now() } = {}) {
   // ⭐ A157 (45q, owner 11-09: "move the direct apply link into the company page"): each job carries its employer's own
   // apply link and its board job id (the Pending tag + the extension's hand-off use it), so the company page applies.
   const jobs = db.prepare(`SELECT sj.id, sj.job_id, sj.title, sj.location, sj.company, sj.posted_at, sj.apply_url, sj.url, jt.category, jt.subcategory FROM job_company jc
-      JOIN scraped_jobs sj ON sj.job_id = jc.job_id LEFT JOIN job_taxonomy jt ON jt.job_id = sj.job_id
+      CROSS JOIN scraped_jobs sj ON sj.job_id = jc.job_id LEFT JOIN job_taxonomy jt ON jt.job_id = sj.job_id
       WHERE jc.company_id = ? AND ${OPEN} ORDER BY COALESCE(sj.posted_at, sj.discovered_at) DESC LIMIT 20`).all(co.id)
     .map(r => ({ id: r.id, jobId: r.job_id, title: r.title, location: r.location || null, postedAt: r.posted_at || null, subcategory: r.subcategory || null, path: jobPath(r),
       applyUrl: /^https?:\/\//i.test(String(r.apply_url || r.url || "")) ? (r.apply_url || r.url) : null }));
