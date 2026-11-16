@@ -73,7 +73,15 @@ const caption = (text) => page.evaluate((t, css) => {
 const go = async (p) => { await page.goto(BASE + p, { waitUntil: "networkidle2", timeout: 45000 }).catch(() => {}); await sleep(800); };
 const smoothScroll = (px, ms = 1800) => page.evaluate((px, ms) => new Promise(r => { const y0 = scrollY, t0 = performance.now(); const f = (t) => { const k = Math.min(1, (t - t0) / ms); scrollTo(0, y0 + px * (k < .5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2)); k < 1 ? requestAnimationFrame(f) : r(); }; requestAnimationFrame(f); }), px, ms);
 const clickText = (re, sel = "button, a, [role=button]") => page.evaluate((src, sel) => { const re = new RegExp(src, "i"); const el = [...document.querySelectorAll(sel)].find(e => re.test((e.textContent || "").trim()) && e.offsetParent); if (el) { el.scrollIntoView({ block: "center" }); el.click(); return true; } return false; }, re.source, sel);
-const typeSlow = async (sel, text) => { await page.click(sel); for (const ch of text) { await page.keyboard.type(ch); await sleep(45); } };
+// Types into ONE element only: it must hold the focus first — stray keys would reach the board's shortcuts (Enter opens a
+// posting, S saves). Each key goes to the element's own handle, never the page.
+const typeSlow = async (sel, text) => {
+  const el = await page.waitForSelector(sel, { visible: true, timeout: 10000 });
+  await el.focus(); await sleep(150);
+  if (!(await el.evaluate(e => e === document.activeElement))) throw new Error(`${sel} did not take the focus`);
+  await el.type(text, { delay: 45 });
+};
+const enterIn = async (sel) => { const el = await page.$(sel); if (await el?.evaluate(e => e === document.activeElement)) await el.press("Enter"); else throw new Error(`${sel} lost the focus`); };
 
 // signed in?
 await go("/app");
@@ -111,9 +119,12 @@ try {
   await step("tiny", async () => {
     await go("/app/today"); await sleep(600);
     await caption("Tiny: ask for what you want — it sets the filters and answers from your own data");
-    await page.click("[data-tiny-launch]"); await sleep(900);
-    await typeSlow("[data-ask-input]", "show remote jobs in New York"); await page.keyboard.press("Enter"); await sleep(4000);
-    await typeSlow("[data-ask-input]", "how many need me?"); await page.keyboard.press("Enter"); await sleep(4000);
+    // Tiny's open card survives a reload — press the fox only when it is shut (a press on an open one closes it)
+    if (!(await page.$("[data-ask-draft][data-open='true']"))) await page.click("[data-tiny-launch]");
+    const INPUT = "[data-ask-draft][data-open='true'] [data-ask-input]";
+    await page.waitForSelector(INPUT, { visible: true, timeout: 10000 }); await sleep(700);
+    await typeSlow(INPUT, "show remote jobs in New York"); await enterIn(INPUT); await sleep(4000);
+    await typeSlow(INPUT, "how many need me?"); await enterIn(INPUT); await sleep(4000);
     await page.click("[data-ask-close]").catch(() => {}); await sleep(600);
   });
   await step("atlas", async () => {
