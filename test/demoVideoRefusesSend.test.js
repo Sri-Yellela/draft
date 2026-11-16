@@ -25,5 +25,9 @@ test("46q demoVideo — production or loopback only, a signed-in profile, and th
   assert.match(src, /host\.origin === "https:\/\/jobsviadraft\.com" \|\| \/\^\(127\\\.0\\\.0\\\.1\|localhost\)\$\/\.test\(host\.hostname\)/);
   assert.match(src, /if \(fs\.existsSync\(OUT\)\) \{ console\.error\(`REFUSING: \$\{OUT\} exists/);
   assert.match(src, /if \(!me\.authenticated\) \{ console\.error\("REFUSING: the profile is signed out/);
-  assert.doesNotMatch(src, /password/i.test(src.replace(/never sees a password/, "")) ? /type\([^)]*password/i : /$^/, "never types a password");
+  assert.doesNotMatch(src, /\.type\([^)]*password/i, "never types a password");
+  // 46q's first production take: keys typed while the field lacked focus reached the board's shortcuts (a posting
+  // opened, a Save was tried). Keys go only to a focused element's own handle — never page.keyboard.
+  assert.doesNotMatch(src, /page\.keyboard\./, "no page-level keys");
+  assert.match(src, /if \(!\(await el\.evaluate\(e => e === document\.activeElement\)\)\) throw new Error/);
 });
