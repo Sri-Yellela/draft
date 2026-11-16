@@ -289,6 +289,7 @@ export const SHARED = Object.freeze({
   // ── styles ──
   "styles/bandStyle.js":                { what: "a fit band's colours (read by mark.js)" },
   "styles/brandMark.js":                { what: "the mark's geometry" },
+  "styles/pageWidth.css":               { what: "THE page width rule (46q FULL WIDTH) — --page-gutter, --page-measure, .page-fill — global, loaded by main.jsx", owner: "main.jsx" },
   "styles/cues.css":                    { what: "THE shape cues + system preferences (D91) — global, loaded by main.jsx", owner: "main.jsx" },
   "styles/colorTokens.js":              { what: "THE colour tokens" },
   "styles/glass.js":                    { what: "THE glass surface" },

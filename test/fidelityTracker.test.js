@@ -55,10 +55,14 @@ test("fidelity · the tracker (tracker-options.html): the page, the header, the 
   // timeline leaves (850 here, the sketch's 882 before the rail), the timeline 300 wide beside it, 18 apart, tops level.
   // ⭐ D167 (changed on purpose, 45b f7a67c3): "the dock never pushes the page" — the rail and its room are gone, so the
   // table is the sketch's own 882 again, and the table + 18 + the 300 timeline are one group centred in the 1280 (D163).
-  assert.equal(dk.table.w, 882, "the table is the sketch's 882 — no rail takes from it");
-  assert.equal(dk.table.x, (1280 - (882 + 18 + 300)) / 2, "the table and the timeline centred as one group");
+  // ⭐ 46q FULL WIDTH (owner 11-16, changed on purpose): the page fills the 1280 inside the page gutter (3vw = 38.4), so
+  // the table takes what the 18 + 300 timeline leave — no longer the sketch's 882 centred.
+  assert.equal(dk.table.x, 38, "the table starts at the page gutter");
+  assert.equal(dk.table.w, Math.round(1280 - 2 * 38.4 - 18 - 300), "the table takes the width the timeline leaves");
   assert.equal(dk.row.h, 84, "a row is the sketch's 84: 14 + the 44 px position + the folded .det's 12 px gap + 14");
-  assert.deepEqual([dk.timeline.w, dk.timeline.x, dk.timeline.y], [300, dk.table.x + dk.table.w + 18, dk.table.y], "the timeline beside, 300 wide, 18 apart, level with the table");
+  // ⭐ 46q: the 38.4 px gutter puts the edges on sub-pixels — the measured x / w are rounded, so the sum may be one off.
+  assert.deepEqual([dk.timeline.w, dk.timeline.y], [300, dk.table.y], "the timeline 300 wide, level with the table");
+  assert.ok(Math.abs(dk.timeline.x - (dk.table.x + dk.table.w + 18)) <= 1, `the timeline beside, 18 apart (${dk.timeline.x} vs ${dk.table.x + dk.table.w + 18})`);
   assert.deepEqual([dk.timeline.bg, dk.timeline.radius, dk.timeline.padding, dk.timeline.border, dk.timeline.shadow], [CARD, "22px", "18px", "0px", "none"]);
   assert.deepEqual([dk.tlTitle.size, dk.tlTitle.weight], ["15px", "600"]);
   assert.deepEqual([dk.bubble.w, dk.bubble.h], [30, 30], "the timeline's 30 px bubbles");
@@ -67,6 +71,7 @@ test("fidelity · the tracker (tracker-options.html): the page, the header, the 
   assert.equal(ph.phoneSwitch, true, "the Applications · Auto-apply timeline switch on a phone");
   assert.equal(ph.timeline.shown, false, "the timeline waits behind the switch");
   // ⭐ D167 (changed on purpose, 45b f7a67c3): a phone's dock is at the top, so no rail: the page's 20 each side.
-  assert.deepEqual([ph.table.x, ph.table.w], [20, 350]);
-  assert.equal(ph.title.x, 20, "the title starts where the table does");
+  // ⭐ 46q FULL WIDTH (changed on purpose): the page gutter's phone minimum, 16 each side.
+  assert.deepEqual([ph.table.x, ph.table.w], [16, 358]);
+  assert.equal(ph.title.x, ph.table.x, "the title starts where the table does");
 });

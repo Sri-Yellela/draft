@@ -138,7 +138,7 @@ export function JobProfilesPanel() {
     // A53: no glass sheet under the page — the leather is the substrate and only the cards are glass
     // (the board's 09-30 fix, which this surface never got).
     <div style={{ flex:1, overflow:"auto", padding:"24px 28px", background:"transparent", color:"var(--color-text)" }}>
-      <div style={{ maxWidth:1100, margin:"0 auto" }}>
+      <div data-page-width="fill">
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:16, marginBottom:18 }}>
           <div>
             <div className="rm-section-label">Job Profiles</div>

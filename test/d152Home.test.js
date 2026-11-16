@@ -38,7 +38,7 @@ test("d152 (1) · the grid is CSS — the deck's 390 column sticky in its track,
   // ⭐ D156 (2) changed the numbers on purpose ("use less margins"): 40 apart (was 56), 1600 wide (was 1440).
   // ⭐ D163 changed them again on purpose ("use the space"): the gap and the gutters grow with the screen (clamp()), the
   // content 1680 wide at most, centred (test/d163UseTheSpace.test.js); below 1440 the deck's track is still `auto`.
-  assert.match(block, /\.home \{ --home-gutter: [^;]+; --home-gap: [^;]+;\n  display: grid; grid-template-columns: var\(--home-deck-track, auto\) minmax\(0, 1fr\); gap: var\(--home-gap\);\n  max-width: calc\(1680px \+ 2 \* var\(--home-gutter\)\);/);
+  assert.match(block, /\.home \{ --home-gutter: [^;]+; --home-gap: [^;]+;\n  display: grid; grid-template-columns: var\(--home-deck-track, auto\) minmax\(0, 1fr\); gap: var\(--home-gap\);\n  max-width: none;/); // ⭐ 46q FULL WIDTH (owner 11-16): no 1680 cap — moved on purpose
   assert.match(block, /\.home__deck \{ position: sticky;[^}]*width: 390px; \}/);
   assert.match(block, /@media \(max-width: 980px\) \{\n  \.home \{ grid-template-columns: minmax\(0, 1fr\);/);
   assert.match(DECK, /export const HOME_DECK_COLUMN = 390;/);

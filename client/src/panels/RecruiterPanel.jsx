@@ -154,7 +154,7 @@ export function RecruiterPanel() {
   return (
     // A53: no glass sheet under the page — the leather is the substrate; the two cards are glass.
     <div style={{ flex: 1, overflowY: "auto", background: "transparent", padding: "28px 24px 44px" }}>
-      <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="page-cards" data-page-width="cards">
         <div>
           <h1 style={TYPE.PAGE_TITLE}>
             Recruiter

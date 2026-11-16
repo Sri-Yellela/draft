@@ -120,7 +120,7 @@ export function SavedAnswersPanel() {
   const sub = { fontSize: ts(12), color: theme.textMuted, lineHeight: 1.5 };
 
   return (
-    <div data-saved-answers-panel="" style={{ maxWidth: 860, margin: "0 auto", padding: "0 16px 40px", display: "flex", flexDirection: "column", gap: 16 }}>
+    <div data-saved-answers-panel="" className="page-cards" style={{ padding: "0 0 40px" }}>
       <div>
         <div style={{ fontWeight: 800, fontSize: ts(20), color: theme.text }}>Saved answers</div>
         <div style={sub}>

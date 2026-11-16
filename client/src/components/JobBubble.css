@@ -136,7 +136,7 @@ a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
  * 14px apart · the match on the right, 22px accent over "match" 12px muted. D1's growth on hover is gone; the rail
  * (ATS · Save · Draft) still opens on hover / focus. The page column is the sketch's: 1240 wide with 20px gutters,
  * and with a posting open on a desktop, two columns — the list | the posting (1fr : 1.05fr, 18px apart). */
-.jb-board { box-sizing: border-box; width: 100%; max-width: 1240px; margin: 0 auto; padding: 0 20px; }
+.jb-board { box-sizing: border-box; width: 100%; max-width: none; margin: 0; padding: 0 var(--page-gutter); } /* 46q FULL WIDTH */
 /* ⛔ D156 (1c): the posting no longer opens in place of the list (D152 (6) / D153 (1)) — it is drawn on the deck. */
 .jb-board__list { min-width: 0; }
 .jb-rows { gap: 8px; padding: 0; }

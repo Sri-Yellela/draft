@@ -1,0 +1,13 @@
+/* ⛔⛔ 46q · FULL WIDTH (owner 11-16: "draft is still not using the full space width of the screen … space the content
+ * out with reasonable margin"). THE one shared layout piece — docs/BRAND.md § FULL WIDTH; guard test/pageWidthGuard.
+ *   --page-gutter   the side gutter of every page container (no centred max-width)
+ *   --page-measure  the reading measure for running text (ledes, definitions, paragraphs) — left-aligned in its column
+ *   .page-fill      a page container: the full width, the gutter on both sides
+ * Grids grow into the width with more columns (repeat(auto-fill, minmax(…))), not wider cards. */
+:root { --page-gutter: clamp(16px, 3vw, 48px); --page-measure: 70ch; }
+.page-fill { box-sizing: border-box; width: 100%; max-width: none; margin-inline: 0; padding-inline: var(--page-gutter); }
+/* A page of stacked cards (Account, Integrations, Saved answers, Recruiter): the cards — its <section> children — flow
+ * into columns as the width grows; everything else (the heading, a notice) spans the row. */
+.page-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(var(--page-card-min, 520px), 100%), 1fr)); gap: 16px; align-items: start; }
+.page-cards > * { grid-column: 1 / -1; min-width: 0; }
+.page-cards > section { grid-column: auto; }

@@ -202,7 +202,9 @@ test("d167DockNeverPushes (real Chrome): a side dock opens into its margin — t
   }
 });
 
-const PLACES = { "1280": "top", "1440": "top", "1920": "top", "2560": "side", phone: "phone" };
+// ⭐ 46q FULL WIDTH (owner 11-16: "the dock can be at the top", changed on purpose): Home fills the width, its content starts at
+// the page gutter, so the margin never fits a side dock — the dock is at the top on every desktop width.
+const PLACES = { "1280": "top", "1440": "top", "1920": "top", "2560": "top", phone: "phone" };
 test("d167DockSideOnlyWhenMarginFitsOpen / d167DockTopCentredOtherwise / d167DockTopOnPhones (real Chrome): the place at each width", { timeout: 300000 }, (t) => {
   const out = placed(t); if (!out) return;
   for (const [s, want] of Object.entries(PLACES)) {
@@ -235,11 +237,11 @@ test("d167DockEqualGaps (real Chrome): a top dock's gap above equals its gap to 
 
 test("d167DockReplacesOnResize / d167PeekFollowsDock (real Chrome)", { timeout: 300000 }, (t) => {
   const out = placed(t); if (!out) return;
-  assert.equal(out["1280"].node.resized.place, "side", "1280 → 2560: to the side");
+  // ⭐ 46q FULL WIDTH (changed on purpose): 2560 keeps the top dock too; the side placement is exercised by --styles dock167
+  // on a page that leaves a margin (the probe centres Home to make one — no screen does since 46q).
+  assert.equal(out["1280"].node.resized.place, "top", "1280 → 2560: still at the top");
   assert.equal(out["1920"].node.resized.place, "top", "1920 → 1280: to the top");
-  const side = out["2560"].node.peek, top = out["1280"].node.peek;
-  assert.equal(side.open, "true"); assert.ok(side.left >= side.dockRight + 8, "beside a side dock");
-  assert.equal(top.open, "true"); assert.ok(top.top >= top.dockBottom + 8, "below a top dock");
+  for (const s of ["1280", "2560"]) { const top = out[s].node.peek; assert.equal(top.open, "true"); assert.ok(top.top >= top.dockBottom + 8, `${s}: below a top dock`); }
 });
 
 // owner 11-15: Tiny replaces Ask draft, floating — this pinned the opposite ("pushes, never overlays"); changed on purpose.

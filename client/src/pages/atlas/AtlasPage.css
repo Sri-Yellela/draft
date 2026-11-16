@@ -3,11 +3,11 @@
    dots are perfect circles. Phone width: every row wraps, nothing is wider than its column (no horizontal scroll). */
 .atl-page { min-height: 100vh; display: flex; flex-direction: column; background: transparent; color: var(--c-ink); }
 .atl {
-  flex: 1; box-sizing: border-box; width: 100%; max-width: 920px; margin: 0 auto; padding: 32px 16px 64px;
+  flex: 1; box-sizing: border-box; width: 100%; max-width: none; margin: 0; padding: 32px var(--page-gutter) 64px;
   color: var(--c-ink); font-family: var(--font-body); overflow-wrap: anywhere; min-width: 0;
 }
 /* ⭐ D116: the home (Your map) and a family's page carry the tree — wider than a node's page. */
-.atl--wide { max-width: 1260px; }
+.atl--wide { max-width: none; }
 .atl__head { margin: 8px 0 18px; }
 .atl__kicker { margin: 0 0 8px; font-size: 12.5px; color: var(--c-ink-muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .atl__title { margin: 0 0 8px; font: 400 clamp(28px, 6vw, 44px)/1.1 var(--font-display); color: var(--c-ink); }

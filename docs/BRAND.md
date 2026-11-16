@@ -78,6 +78,28 @@ the extension injects from JS template strings. Do not add an allow-list entry f
 
 ---
 
+## ⛔⛔ FULL WIDTH — pages use the screen (46q, owner 2026-11-16)
+
+> *"draft is still not using the full space width of the screen, especially in atlas … instead they are crammed to the
+> center portion. space the content out with reasonable margin. audit the whole site for this issue and fix it."*
+
+| What it is | How wide it is |
+|---|---|
+| A page's container (`main`, a place's shell, a board) | **the full width**, with the side gutter `var(--page-gutter)` = `clamp(16px, 3vw, 48px)` — no centred `max-width` |
+| A place's own menu (Atlas, Profile — `PlaceNav`) | **pinned at the left edge** of the page (inside the gutter), the panel taking the rest |
+| Grids, cards, tables, maps, boards | **grow into the width** — more columns (`repeat(auto-fill, minmax(…))`), not wider cards |
+| Running text — ledes, definitions, paragraphs, help | capped at the reading measure `var(--page-measure)` = `70ch`, left-aligned in its column |
+| A prose-only page (Privacy, Terms, FAQ, About, a tool's form) | its column may stay a centred reading measure — it is text |
+| Dialogs, sheets, drawers, popovers | their own size (they are not pages) |
+
+The tokens and the one shared piece (`.page-fill`) live in `client/src/styles/pageWidth.css`, loaded once by `main.jsx`.
+Because the content now starts near the left edge, the dock takes the top on a desktop (`dockPlace` — D167's rule,
+unchanged). ⛔ `test/pageWidthGuard.test.js` fails on a new centred page-level cap: a `max-width` / `maxWidth` of
+640 px or more together with `margin: 0 auto` / `margin-inline: auto` in the same rule or style object, outside its
+allow-list (each entry says why: prose, a dialog, the measure).
+
+---
+
 ## Canonical host — why bare apex
 
 `www.jobsviadraft.com` is configured in DNS and points at the same Railway target, but **is not
