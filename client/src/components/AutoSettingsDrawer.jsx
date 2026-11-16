@@ -553,7 +553,7 @@ function Accounts({ onState = null, probe = false }) {
         <div className="dh-set" data-gmail-setting={g.status}>
           <span className="dh-set__lab">Gmail, for codes and replies</span>
           {g.connected
-            ? <span className="dh-set__hint">Connected{g.email ? ` · ${g.email}` : ""}. Disconnect it from The Table's inbox.</span>
+            ? <span className="dh-set__hint">Connected{g.email ? ` · ${g.email}` : ""}. Disconnect it from Home's inbox.</span>
             : <a className="dh-btn" href={`/api/gmail/connect?${authContextQuery()}`}>{g.status === "expired" ? "Reconnect Gmail" : "Connect Gmail"}</a>}
         </div>
       )}

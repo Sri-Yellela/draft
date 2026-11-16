@@ -1558,7 +1558,7 @@ export function AutoApplyPanel({ user = null } = {}) {
                 renderOpen={renderRow}
                 empty={
                   <p className="dht-empty">{rows.length ? "Nothing here with this filter."
-                    : nothingYet ? "Nothing drafted yet. Draft jobs from the Daily Deck or Full House." : "Nothing to show yet."}</p>
+                    : nothingYet ? "Nothing drafted yet. Draft jobs from /draft." : "Nothing to show yet."}</p>
                 } />
             </>
           )}

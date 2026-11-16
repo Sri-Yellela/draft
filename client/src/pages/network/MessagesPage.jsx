@@ -3,7 +3,7 @@
 // stream, polled as the fallback) beside the open conversation (?thread=<id>). On a phone it is one or the other.
 // Behind the network switch, like D180's Network: off → "This isn't available yet." (data-network-off).
 // ⛔ D60: no capsules. Colours from tokens only (NetworkPage.css).
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { Inbox, Thread, useInbox } from "./MessagesPane.jsx";
 import { useNetworkOn } from "./networkSwitch.js";
 import "./NetworkPage.css";
@@ -29,12 +29,8 @@ function Messages() {
 export default function MessagesPage() {
   const on = useNetworkOn();
   if (on === null) return <main className="net net--wide"><p className="net__quiet" role="status">Opening your messages…</p></main>;
-  if (!on) return (
-    <main className="net" data-network-off="" data-messages-page="">
-      <h1 className="net__title">Messages</h1>
-      <p className="net__quiet">This isn't available yet.</p>
-    </main>
-  );
+  // ⭐ 46q (A222, owner 11-16): with the network switch off (A169) the page is not a place — it goes to the board.
+  if (!on) return <Navigate to="/app/jobs" replace data-network-off="" />;
   return (
     <main className="net net--wide" data-messages-page="">
       <header className="net__head">

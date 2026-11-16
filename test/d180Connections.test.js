@@ -123,7 +123,8 @@ test("the client: the dock draws Network only when on; the page says not availab
   assert.match(nav, /api\("\/api\/network\/status"\)/);
   const page = fs.readFileSync("client/src/pages/network/NetworkPage.jsx", "utf8");
   assert.match(page, /data-network-off=""/);
-  assert.match(page, /This isn't available yet\./);
+  // ⭐ 46q A222 (owner 11-16, changed on purpose): off, the page is not a place — it goes to the board.
+  assert.match(page, /if \(off\) return <Navigate to="\/app\/jobs" replace data-network-off="" \/>;/);
   assert.match(page, /Send request/, "a ?connect= link asks first, never a silent request");
   assert.match(fs.readFileSync("client/src/App.jsx", "utf8"), /\{activeTab === "network" && <NetworkPage\/>\}/);
   assert.match(fs.readFileSync("client/src/panels/AdminPanel.jsx", "utf8"), /\{at\("people", "network"\) && <NetworkTab\/>\}/);

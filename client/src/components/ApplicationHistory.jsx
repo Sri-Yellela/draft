@@ -476,7 +476,7 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse, on
           : !view.rows.length ? (
             <p className="ah__empty">
               {filtered ? "Nothing matches — clear the search, dates or chip."
-                : "No applications yet. Draft a job, or open a posting from Full House, and it appears here."}
+                : "No applications yet. Draft a job, or open a posting on /draft, and it appears here."}
             </p>
           ) : view.rows.map(row => {
             const expanded = open === row.jobId;

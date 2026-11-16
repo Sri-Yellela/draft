@@ -1221,7 +1221,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
               []],
             no_resume: ["Add your résumé to get today's draft.",
               "Fit is judged against your résumé, so there is nothing to rank until it's there. It takes a minute, and nothing is sent anywhere.",
-              [["/app/job-profiles", "Add your résumé →"], ["/app/jobs", "Full House"]]],
+              [["/app/job-profiles", "Add your résumé →"], ["/app/jobs", "Every job"]]],
             empty: ["Nothing strong enough today.",
               "Today's draft only deals Strong and Moderate matches you haven't decided yet, and there are none right now. A thin résumé makes most jobs read as weak — adding detail changes this more than anything else.",
               [["/app/jobs", "All jobs →"], ["/app/job-profiles", "Improve your profile →"]]],

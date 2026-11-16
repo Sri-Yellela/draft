@@ -56,10 +56,10 @@ test("⭐ the approval sentence stays where it is FUNCTIONAL — the auto-apply 
   assert.match(read("client/src/panels/DeckView.jsx"), /<DecisionToast toast=\{toast\} onUndo=\{undo\} undoKey="U" \/>/);
 });
 
-test("⛔ only what a visitor can use today is a link; the recruiter side says 'soon'", () => {
+test("⛔ only what a visitor can use today is a link; the recruiter side is not promised (46q A220, owner: cut)", () => {
   const links = [...stationsSrc.matchAll(/to: "([^"]+)"/g)].map(m => m[1]);
   assert.deepEqual(links.sort(), ["/register", "/tools/ats"]);
-  assert.match(ffa, /grade of your own job posting\. Soon\./);
+  assert.doesNotMatch(ffa, /Hiring\?|Soon\./, "no promise of the unbuilt recruiter side (owner 11-16)");
 });
 
 test("⛔ the line draws on scroll, but content is VISIBLE until the observer is known to work, and never hidden under reduced motion", () => {

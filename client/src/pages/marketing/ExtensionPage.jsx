@@ -124,7 +124,7 @@ export function ExtensionStateCard({ status }) {
 export function ImportsPointer() {
   return (
     <p data-imports-pointer="" style={{ fontSize: ts(14), color: "var(--color-text-muted)", margin: "0 0 48px" }}>
-      Jobs you capture are on your board — open the <Link to="/app/jobs?view=imported">+ view on Full House</Link> to see them.
+      Jobs you capture are on your board — open the <Link to="/app/jobs?view=imported">Imported view on /draft</Link> to see them.
     </p>
   );
 }

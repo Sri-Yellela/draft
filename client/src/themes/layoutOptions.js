@@ -18,7 +18,7 @@ const def = (key, id) => (LAYOUT_OPTION_IDS[key].default === id ? { default: tru
 export const LAYOUT_OPTIONS = Object.freeze([
   {
     id: "sentence", label: "Filter sentence", attribute: LAYOUT_OPTION_IDS.sentence.attribute,
-    description: "The sentence at the top of Full House — “discovering all roles at all career levels…”.",
+    description: "The sentence at the top of /draft — “discovering all roles at all career levels…”.",
     values: [
       { id: "marked", label: "Marked words", ...def("sentence", "marked"),
         description: "The sentence stays text. A highlighter underline marks a word you can change; only a filter you have set becomes a box." },

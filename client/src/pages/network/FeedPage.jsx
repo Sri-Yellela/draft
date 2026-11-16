@@ -3,7 +3,7 @@
 // Helpful, comments, report / delete) beside a side column (What you share; where your people and conversations are).
 // Behind the network switch, like D180's Network: off → "This isn't available yet." (data-network-off).
 // ⛔ D60: no capsules. Colours from tokens only (NetworkPage.css).
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import FeedPane, { WhatYouShare } from "./FeedPane.jsx";
 import { useNetworkOn } from "./networkSwitch.js";
 import "./NetworkPage.css";
@@ -11,12 +11,8 @@ import "./NetworkPage.css";
 export default function FeedPage() {
   const on = useNetworkOn();
   if (on === null) return <main className="net net--wide"><p className="net__quiet" role="status">Opening your feed…</p></main>;
-  if (!on) return (
-    <main className="net" data-network-off="" data-feed-page="">
-      <h1 className="net__title">Feed</h1>
-      <p className="net__quiet">This isn't available yet.</p>
-    </main>
-  );
+  // ⭐ 46q (A222, owner 11-16): with the network switch off (A169) the page is not a place — it goes to the board.
+  if (!on) return <Navigate to="/app/jobs" replace data-network-off="" />;
   return (
     <main className="net net--wide" data-feed-page="">
       <header className="net__head">
