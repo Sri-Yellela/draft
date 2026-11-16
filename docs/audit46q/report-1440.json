@@ -1,0 +1,591 @@
+{
+ "base": "http://127.0.0.1:3991",
+ "width": 1440,
+ "me": {
+  "username": "newcomeru4mr7"
+ },
+ "report": [
+  {
+   "n": 1,
+   "name": "landing",
+   "file": "01-landing-1440.png",
+   "url": "/",
+   "title": "Draft",
+   "h1": [],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 2507,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 2,
+   "name": "features",
+   "file": "02-features-1440.png",
+   "url": "/features",
+   "title": "Draft",
+   "h1": [
+    "What each tool is for"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 2473,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 3,
+   "name": "pricing",
+   "file": "03-pricing-1440.png",
+   "url": "/pricing",
+   "title": "Draft",
+   "h1": [
+    "404 — Page Not Found"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 126,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 4,
+   "name": "how-it-works",
+   "file": "04-how-it-works-1440.png",
+   "url": "/how-it-works",
+   "title": "Draft",
+   "h1": [
+    "From job listing to submitted application in minutes"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 871,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 5,
+   "name": "faq",
+   "file": "05-faq-1440.png",
+   "url": "/faq",
+   "title": "Draft",
+   "h1": [
+    "Frequently asked questions"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 558,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 6,
+   "name": "public-jobs",
+   "file": "06-public-jobs-1440.png",
+   "url": "/jobs",
+   "title": "Draft",
+   "h1": [
+    "2,885 open jobs"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 1699,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 7,
+   "name": "public-company",
+   "file": "07-public-company-1440.png",
+   "url": "/nimbus-cloud-11",
+   "title": "Draft",
+   "h1": [
+    "Nimbus Cloud 11"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 4486,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 8,
+   "name": "extension-page",
+   "file": "08-extension-page-1440.png",
+   "url": "/extension",
+   "title": "Draft",
+   "h1": [
+    "Add any job to your board"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 1629,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 9,
+   "name": "tool-ats",
+   "file": "09-tool-ats-1440.png",
+   "url": "/tools/ats",
+   "title": "Draft",
+   "h1": [
+    "See how well your resume matches any job"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 970,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 10,
+   "name": "atlas-signed-out",
+   "file": "10-atlas-signed-out-1440.png",
+   "url": "/atlas",
+   "title": "Atlas · Draft",
+   "h1": [
+    "Atlas",
+    "Your Atlas"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 798,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 11,
+   "name": "register-1",
+   "file": "11-register-1-1440.png",
+   "url": "/register",
+   "title": "Draft",
+   "h1": [
+    "@keyframes draft-type-set { from { opacity:0; transform:translate3d(0, 0.18em, 0); } }\n        [data-set-once=\"playing\"] span[data-ch] { display:inline-block; animation:draft-type-set 420ms cubic-bezier(.2,.8,.2,1) both; }\n        @media (prefers-reduced-motion: reduce) { [data-set-once=\"playing\"] span[data-ch] { animation:none; } }\n      Ten jobs a day, picked for you."
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 585,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 12,
+   "name": "register-2",
+   "file": "12-register-2-1440.png",
+   "url": "/register",
+   "title": "Draft",
+   "h1": [
+    "@keyframes draft-type-set { from { opacity:0; transform:translate3d(0, 0.18em, 0); } }\n        [data-set-once=\"playing\"] span[data-ch] { display:inline-block; animation:draft-type-set 420ms cubic-bezier(.2,.8,.2,1) both; }\n        @media (prefers-reduced-motion: reduce) { [data-set-once=\"playing\"] span[data-ch] { animation:none; } }\n      Ten jobs a day, picked for you."
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 722,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 13,
+   "name": "after-signup",
+   "file": "13-after-signup-1440.png",
+   "url": "/app/today",
+   "title": "Draft",
+   "h1": [
+    "Today's draft · Monday, November 16",
+    "discovering all roles at all career levels and all workstyles in the United States."
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 1189,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "name": "base-resume",
+   "status": 400
+  },
+  {
+   "n": 14,
+   "name": "home",
+   "file": "14-home-1440.png",
+   "url": "/app/today",
+   "title": "Draft",
+   "h1": [
+    "Today's draft · Monday, November 16",
+    "discovering all roles at all career levels and all workstyles in the United States."
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 1023,
+   "errors": [
+    "no button /^(Continue|Next|Skip|Get started|Start|Done)$/i",
+    "console: Failed to load resource: the server responded with a status of 400 (Bad Request)"
+   ],
+   "failed": [
+    "400 /api/base-resume"
+   ]
+  },
+  {
+   "n": 15,
+   "name": "board",
+   "file": "15-board-1440.png",
+   "url": "/app/jobs",
+   "title": "Draft",
+   "h1": [
+    "Today's draft · Monday, November 16",
+    "discovering all roles at all career levels and all workstyles in the United States."
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 1023,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 16,
+   "name": "draft-house",
+   "file": "16-draft-house-1440.png",
+   "url": "/app/auto-apply",
+   "title": "Draft",
+   "h1": [
+    "Home"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 818,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 17,
+   "name": "today",
+   "file": "17-today-1440.png",
+   "url": "/app/today",
+   "title": "Draft",
+   "h1": [
+    "Today's draft · Monday, November 16",
+    "discovering all roles at all career levels and all workstyles in the United States."
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 1023,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 18,
+   "name": "atlas",
+   "file": "18-atlas-1440.png",
+   "url": "/app/atlas",
+   "title": "Atlas · Draft",
+   "h1": [
+    "Atlas",
+    "Level 1: Foundations"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 1025,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 19,
+   "name": "atlas-map",
+   "file": "19-atlas-map-1440.png",
+   "url": "/app/atlas/your-map",
+   "title": "Your map · Atlas · Draft",
+   "h1": [
+    "Atlas",
+    "A clear picture of where you are",
+    "One tier on top of what you have"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 681,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 20,
+   "name": "atlas-library",
+   "file": "20-atlas-library-1440.png",
+   "url": "/app/atlas/library",
+   "title": "Library · Atlas · Draft",
+   "h1": [
+    "Atlas",
+    "Guides and courses"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 3071,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 21,
+   "name": "atlas-question",
+   "file": "21-atlas-question-1440.png",
+   "url": "/app/atlas/todays-question",
+   "title": "Today's question · Atlas · Draft",
+   "h1": [],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 0,
+   "errors": [
+    "console: TypeError: Cannot read properties of undefined (reading 'level')",
+    "Cannot read properties of undefined (reading 'level')"
+   ],
+   "failed": []
+  },
+  {
+   "n": 22,
+   "name": "interview",
+   "file": "22-interview-1440.png",
+   "url": "/app/interview",
+   "title": "Draft",
+   "h1": [
+    "Interview"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 561,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 23,
+   "name": "profile",
+   "file": "23-profile-1440.png",
+   "url": "/app/profile/about",
+   "title": "Draft",
+   "h1": [
+    "Profile"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 1832,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 24,
+   "name": "saved-answers",
+   "file": "24-saved-answers-1440.png",
+   "url": "/app/profile/answers",
+   "title": "Draft",
+   "h1": [
+    "Profile"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 2516,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 25,
+   "name": "profile-autoapply",
+   "file": "25-profile-autoapply-1440.png",
+   "url": "/app/profile/autoapply",
+   "title": "Draft",
+   "h1": [
+    "Profile"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 681,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 26,
+   "name": "connections",
+   "file": "26-connections-1440.png",
+   "url": "/app/profile/connections",
+   "title": "Draft",
+   "h1": [
+    "Profile"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 2785,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 27,
+   "name": "appearance",
+   "file": "27-appearance-1440.png",
+   "url": "/app/profile/appearance",
+   "title": "Draft",
+   "h1": [
+    "Profile",
+    "Customise"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 3683,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 28,
+   "name": "notifications",
+   "file": "28-notifications-1440.png",
+   "url": "/app/profile/notifications",
+   "title": "Draft",
+   "h1": [
+    "Profile"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 531,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 29,
+   "name": "privacy-data",
+   "file": "29-privacy-data-1440.png",
+   "url": "/app/profile/privacy",
+   "title": "Draft",
+   "h1": [
+    "Profile"
+   ],
+   "sideScroll": false,
+   "hits": [
+    " if you want a copy. Delete my account… Ask draft Use my questions to improve Atlas. They are stored"
+   ],
+   "chars": 1311,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 30,
+   "name": "account",
+   "file": "30-account-1440.png",
+   "url": "/app/profile/account",
+   "title": "Draft",
+   "h1": [
+    "Profile"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 1890,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 31,
+   "name": "companies",
+   "file": "31-companies-1440.png",
+   "url": "/app/jobs",
+   "title": "Draft",
+   "h1": [
+    "Today's draft · Monday, November 16",
+    "discovering all roles at all career levels and all workstyles in the United States."
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 1023,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 32,
+   "name": "network",
+   "file": "32-network-1440.png",
+   "url": "/app/network",
+   "title": "Draft",
+   "h1": [
+    "Network"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 80,
+   "errors": [
+    "console: Failed to load resource: the server responded with a status of 404 (Not Found)"
+   ],
+   "failed": [
+    "404 /api/network"
+   ]
+  },
+  {
+   "n": 33,
+   "name": "feed",
+   "file": "33-feed-1440.png",
+   "url": "/app/feed",
+   "title": "Draft",
+   "h1": [
+    "Feed"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 77,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 34,
+   "name": "messages",
+   "file": "34-messages-1440.png",
+   "url": "/app/messages",
+   "title": "Draft",
+   "h1": [
+    "Messages"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 81,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 35,
+   "name": "job-profiles",
+   "file": "35-job-profiles-1440.png",
+   "url": "/app/job-profiles",
+   "title": "Draft",
+   "h1": [
+    "Job profiles"
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 365,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 36,
+   "name": "board-again",
+   "file": "36-board-again-1440.png",
+   "url": "/app/jobs",
+   "title": "Draft",
+   "h1": [
+    "Today's draft · Monday, November 16",
+    "discovering all roles at all career levels and all workstyles in the United States."
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 1023,
+   "errors": [],
+   "failed": []
+  },
+  {
+   "n": 37,
+   "name": "tiny-open",
+   "file": "37-tiny-open-1440.png",
+   "url": "/app/jobs",
+   "title": "Draft",
+   "h1": [
+    "Today's draft · Monday, November 16",
+    "discovering all roles at all career levels and all workstyles in the United States."
+   ],
+   "sideScroll": false,
+   "hits": [],
+   "chars": 1360,
+   "errors": [],
+   "failed": []
+  }
+ ]
+}
