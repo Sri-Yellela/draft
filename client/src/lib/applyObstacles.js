@@ -504,7 +504,21 @@ export const PREREQUISITE_LABELS = {
   active_profile:{ obstacle: "No active job profile",           action: "Create one",                 to: "job-profiles" },
   profile_email: { obstacle: "Your profile has no email address", action: "Add it in your profile",   to: "profile" },
   profile_name:  { obstacle: "Your profile has no name",        action: "Add it in your profile",     to: "profile" },
+  // ⭐ A216 (46r): no résumé yet is ONE cause — the upload sets the job profile up from it (A104).
+  resume:        { obstacle: "Add your résumé — draft sets up your profile from it", action: "Upload it in Job Profiles", to: "job-profiles" },
 };
+
+/**
+ * ⭐ A216 (46r, the 46q audit) · one prerequisite per CAUSE. The server lists `base_resume` and `active_profile` apart
+ * (routes read them apart), but with no profile there is no base résumé either, and one upload clears both — a newcomer
+ * read two blocker rows, each "Fix it", for one thing to do. When the profile is missing the two become `resume`, first;
+ * a profile without its base résumé keeps `base_resume` as it is.
+ */
+export function prerequisitesByCause(missing = []) {
+  const keys = Array.isArray(missing) ? missing : [];
+  if (!keys.includes("active_profile")) return keys;
+  return ["resume", ...keys.filter(k => k !== "active_profile" && k !== "base_resume")];
+}
 
 // ── CO-RESOLUTION: WHICH PROBLEMS ACTUALLY SHARE ONE CROSSING (TASK AC2) ─────────────────────
 //

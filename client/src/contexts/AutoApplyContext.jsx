@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo } 
 import { api, authContextQuery } from "../lib/api.js";
 import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
 import { DECISIONS, commitDecision } from "../lib/jobDecisions.js";
+import { prerequisitesByCause } from "../lib/applyObstacles.js";   // A216: no résumé is one blocker, not two
 // AD1: the outcome partition, shared with routes/apply.js so the sub-tab a request asks for and the
 // group the server files a row under cannot disagree.
 import { OUTCOME } from "../../../shared/applyOutcomeGroups.js";
@@ -122,7 +123,7 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
     // user queues anything. Its own try: a failure here must not blank the pipeline.
     try {
       const st = await api("/api/integrations/status");
-      setApplyPrereqMissing(Array.isArray(st?.apply?.missing) ? st.apply.missing : []);
+      setApplyPrereqMissing(prerequisitesByCause(st?.apply?.missing));   // A216: one row per cause
     } catch { setApplyPrereqMissing([]); }
     // Separate call: the grouping lives with the packets, and a failure here must not blank the runs
     // list that the rest of this panel is built on.

@@ -21,7 +21,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
   describeApplication, sectionFor, boardApplicationChip, groupByApplication, groupByCompany,
-  splitByFault, SECTION, PREREQUISITE_LABELS,
+  splitByFault, SECTION, PREREQUISITE_LABELS, prerequisitesByCause,
 } from "../client/src/lib/applyObstacles.js";
 // AD1: the outcome partition itself, so the sub-tab assertions read the shared source of truth
 // rather than three literal words that could drift from what routes/apply.js files rows under.
@@ -376,6 +376,21 @@ test("prerequisites are surfaced BEFORE queueing, as one blocking item with a fi
     assert.ok(PREREQUISITE_LABELS[key], `no plain-language label for prerequisite "${key}"`);
     assert.ok(!/_/.test(PREREQUISITE_LABELS[key].obstacle));
   }
+});
+
+test("A216 (46r) · no résumé yet is ONE blocker row — not 'No base resume' + 'No active job profile'", () => {
+  // The server lists the two apart; with no profile there is no base résumé either, and one upload clears both.
+  assert.deepEqual(prerequisitesByCause(["base_resume", "active_profile", "profile_email"]), ["resume", "profile_email"]);
+  assert.deepEqual(prerequisitesByCause(["active_profile"]), ["resume"]);
+  // A profile that exists but has no base résumé keeps its own row.
+  assert.deepEqual(prerequisitesByCause(["base_resume", "profile_name"]), ["base_resume", "profile_name"]);
+  assert.deepEqual(prerequisitesByCause(undefined), []);
+  const items = buildStoppedItems({ prereqMissing: prerequisitesByCause(["base_resume", "active_profile"]), prereqLabels: PREREQUISITE_LABELS });
+  assert.equal(items.filter(i => i.kind === "prerequisite").length, 1);
+  assert.equal(items[0].title, "Add your résumé — draft sets up your profile from it");
+  assert.equal(PREREQUISITE_LABELS.resume.to, "job-profiles");
+  // The context collapses at the read, so the rows, the counts and the Draft button's reason all see one cause.
+  assert.match(ctx, /setApplyPrereqMissing\(prerequisitesByCause\(st\?\.apply\?\.missing\)\)/);
 });
 
 // ── AB3: Open is scoped to the card ──────────────────────────────────────────────────────────
