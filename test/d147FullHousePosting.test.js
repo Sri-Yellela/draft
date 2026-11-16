@@ -151,7 +151,11 @@ test("d147FactsBoxReused · the existing deck strip, restyled into one box; hist
   const { html, PostingPanel } = await loadUi();
   const out = html(PostingPanel, { job: JOB, layout: "panel", matchBox: "MATCH" });
   const cells = [...out.matchAll(/data-cell="([a-z]+)"/g)].map(m => m[1]);
-  assert.deepEqual(cells, ["experience", "workstyle", "salary", "posted", "history", "sponsorship", "requirements"]);
+  // ⭐ A217 (46r) changed this on purpose: JOB's history is "Open 94 days" beside a posted cell — the same fact twice —
+  // so the box leaves it out; a REPOST is news the posted cell does not carry, and keeps its cell.
+  assert.deepEqual(cells, ["experience", "workstyle", "salary", "posted", "sponsorship", "requirements"]);
+  const reposted = html(PostingPanel, { job: { ...JOB, liveness: { kind: "reposted", label: "Reposted 4 times since June" } }, layout: "panel" });
+  assert.deepEqual([...reposted.matchAll(/data-cell="([a-z]+)"/g)].map(m => m[1]), ["experience", "workstyle", "salary", "posted", "history", "sponsorship", "requirements"]);
   // D149 (11-03) changed this on purpose: the box still reads the deck strip, its values said in the sketch's words
   // ("5+ years", "9 hours ago") by panelWords — the deck's own strip is unchanged.
   assert.match(posting, /const cells = deckStrip\(job, \{ experience \}\)\.map\(c => panelWords\(c, job\)\);\n\s+const extra = \[\];/, "the deck strip is the box's source");
@@ -208,6 +212,11 @@ test("d147ActionsPassSaveDraftMore · Pass · Save · Draft · More, one row at 
   // (the résumé controls had been folded under More, and the owner read them as gone; docs/D164_ACTIONS.md).
   assert.match(jdCss, /\.pp__main-acts \{ display: grid; grid-template-columns: 1fr 1fr 1\.4fr auto auto;/);
   assert.match(jd, /<div className="pp__foot" data-posting-actions-bar="">/);
+  // ⭐ A217 (46r, the 46q audit): D149's row followed the posting (`position: static`), so at 1440 Draft / Save sat below a
+  // long description, out of view. The last word on .pp__foot pins it to the panel's foot again, on the card's surface.
+  const footRules = [...jdCss.matchAll(/^\.pp__foot \{([^}]*)\}/gm)].map(m => m[1]);
+  assert.match(footRules.at(-1), /position: sticky; bottom: 0;[^}]*background: var\(--c-surface-solid\)/);
+  assert.ok(!footRules.some(r => /position: static/.test(r)), "no later rule un-pins the actions");
   // Close is a small word in the header now.
   // ⭐ D156 (1c) (changed on purpose): drawn on the deck it says "Fold it back"; elsewhere "Close", as D147 had it.
   assert.match(header, /aria-label=\{onDeck \? "Fold the posting back into its card" : "Close the posting"\}/);
