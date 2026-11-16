@@ -33,6 +33,8 @@
 /* the sketch's .tbl — one card, no border, radius 22; .th / .tr: padding 14 × 18, the columns 2.2fr 1fr 1fr 1.2fr 1fr
    with 12 px between (a table: each column its share of the width, half the gap on each side of a cell) */
 .trk { min-width: 0; border-radius: 22px; background: var(--c-surface-solid); overflow: hidden; line-height: 1.55; container-type: inline-size; container-name: trk; }
+/* ⭐ 46q (audit): the empty line sits inside the card's padding, not on its left edge. */
+.trk > .dht-empty { padding: 14px 18px 18px; }
 .trk-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .trk-table th { text-align: left; padding: 0; border-bottom: 1px solid var(--c-border); font-weight: 400; }
 .trk-table [data-col] { padding-left: 6px; padding-right: 6px; }

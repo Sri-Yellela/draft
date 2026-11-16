@@ -401,7 +401,7 @@ test("d146NothingDropped — every capability in the row's map survives, where t
   check("the side column → the counts", TRACKER_COUNTS.map(x => x.id).join() === "needs,progress,sent,replied,interview"
     && c.needs === 3 && c.progress === 2 && c.sent === 2 && c.replied === 2 && c.interview === 1);
   check("… and a banner for a broken connection", /data-connection-banner=\{c\.key\}/.test(panel) && /onClick=\{\(\) => fixConnection\(c\)\}/.test(panel));
-  check("… Review all, the line and Tidy up stay (under the timeline)", /\{needsYouCount > 0 && timelineExtra\.review\}/.test(panel)
+  check("… Review all, the line and Tidy up stay (under the timeline)", /\{reviewAppsCount > 0 && timelineExtra\.review\}/.test(panel)
     && /\{timelineExtra\.running\}/.test(panel) && /\{timelineExtra\.tidy\}/.test(panel) && /onClick=\{\(\) => confirmOlder\(30\)\}/.test(panel));
   check("Pause / Resume stays (the timeline's head)", /data-stop-everything=""/.test(panel.slice(at(panel, "const timelineHead = ("))));
   // The Settings drawer → Settings.

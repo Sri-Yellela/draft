@@ -180,7 +180,7 @@ test("AD1 requirement 5 -> D25: the actionable work is not behind any tab — it
   // D113 UI: the work is the tree's bubbles, always rendered. ⭐ D146 (changed on purpose): the side column is gone —
   // the work is the table's rows (counts + Needs you filter), and Review all sits under the timeline.
   const side = panel.slice(at(panel, "const timelineExtra = {"), at(panel, "running: (applyLine.waiting"));
-  assert.match(side, /Review all \{needsYouCount\} →/);
+  assert.match(side, /Review all \{reviewAppsCount\} →/ /* 46q: applications only, as "needs you" counts */);
   assert.match(panel, /<DraftHouseTree view=\{view\}/);
   assert.match(panel, /<ApplicationTracker rows=\{shownRows\}/);
   for (const feed of ["prereqMissing: applyPrereqMissing", "gatePortals: applyGatePortals",

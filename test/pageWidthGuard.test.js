@@ -50,7 +50,8 @@ export function centredCaps(src, file) {
     for (const m of s.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
       const [, sel, body] = m;
       if (/@media|@container|@supports/.test(sel) && !/[.#\w]/.test(sel.replace(/@\w+[^{]*/, ""))) continue;
-      const mw = body.match(/max-width:\s*(\d+)px/);
+      // 46q: a px fallback inside var() counts too (the landing's var(--content-wide, 1200px) hid a centred cap)
+      const mw = body.match(/max-width:\s*(?:var\(--[\w-]+,\s*)?(\d+)px/);
       if (!mw || Number(mw[1]) < MIN_PX) continue;
       if (/margin:\s*(0|[\d.]+px)\s+auto\b|margin:\s*auto\b|margin-inline:\s*auto\b|margin-left:\s*auto[^;]*;[^}]*margin-right:\s*auto/.test(body))
         out.push({ key: sel.trim().split("\n").pop().trim(), px: Number(mw[1]), text: `${sel.trim().split("\n").pop().trim()} { max-width: ${mw[1]}px … auto }` });
@@ -101,6 +102,7 @@ test("46q pageWidthGuard — the detector itself: a centred cap is found, a meas
   assert.equal(centredCaps(".x { max-width: 920px; margin: 0 auto; }", "a.css").length, 1);
   assert.equal(centredCaps(".x { max-width: 70ch; margin: 0 auto; }", "a.css").length, 0);
   assert.equal(centredCaps(".x { max-width: 920px; }", "a.css").length, 0);
+  assert.equal(centredCaps(".x { max-width: var(--content-wide, 1200px); margin-inline: auto; }", "a.css").length, 1);
   assert.equal(centredCaps('<div style={{ maxWidth: 980, margin: "0 auto" }}/>', "a.jsx").length, 1);
   assert.equal(centredCaps('<div style={{ maxWidth: 420, margin: "0 auto" }}/>', "a.jsx").length, 0);
   // Admin's old wrapper: a template hole (`${…}`) inside the style object, and a comment between the cap and the margin
