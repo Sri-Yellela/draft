@@ -194,6 +194,21 @@ export function gapToBacklog(db, term, { by = "admin" } = {}) {
 }
 
 // ── switch, limits, the call ──────────────────────────────────────────────────────────────────────────────────────
+/**
+ * ⭐ 46q (A212, owner 11-16: "link by verified email") · D95 made the admin a separate ADMIN ACCOUNT (its cookie is scoped to
+ * /api/admin), so "admins always" could never reach an app session. An app account counts as the admin's own when its
+ * VERIFIED email (users.email_verified_at, the user_profile email) is an active admin account's email (not disabled, a
+ * password set). It opens T3 for that account only — no admin power, no other route.
+ */
+export function isAdminsOwnAccount(db, userId) {
+  if (userId == null) return false;
+  try {
+    return !!db.prepare(`SELECT 1 FROM users u JOIN user_profile p ON p.user_id = u.id
+      JOIN admin_accounts a ON a.email = p.email COLLATE NOCASE
+      WHERE u.id = ? AND u.email_verified_at IS NOT NULL AND p.email IS NOT NULL AND TRIM(p.email) <> ''
+        AND a.disabled_at IS NULL AND a.password_set_at IS NOT NULL LIMIT 1`).get(userId);
+  } catch { return false; }
+}
 export function assistantAvailable(db, user) {
   if (user?.isAdmin || user?.is_admin || user?.role === "admin") return true;   // admins always (to try it before everyone)
   try { return /^(1|on|true)$/i.test(String(db.prepare(`SELECT value FROM app_settings WHERE key = ?`).pluck().get(ENABLED_KEY) ?? "")); }

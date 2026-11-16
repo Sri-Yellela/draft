@@ -162,7 +162,7 @@ import { createLearnRouter } from "./routes/learn.js";
 // ⭐ D169: Your skills in Atlas — and the gate: a skill not on the résumé goes into a tailored one only once proven.
 import { createYourSkillsRouter, createYourSkillsAdminRouter } from "./routes/yourSkills.js";
 import { ask as assistantAsk, decideAction as decideAssistantAction, actionLog as assistantActionLog, setImproveAtlas, improveAtlasOn,
-  assistantAvailable, asksSummary as assistantAsksSummary, gapToBacklog as assistantGapToBacklog, ENABLED_KEY as ASSISTANT_ENABLED_KEY,
+  assistantAvailable, isAdminsOwnAccount, asksSummary as assistantAsksSummary, gapToBacklog as assistantGapToBacklog, ENABLED_KEY as ASSISTANT_ENABLED_KEY,
   lookup as assistantLookup, LOOKUP_INTENTS as ASSISTANT_LOOKUP_INTENTS } from "./services/assistant/assistant.js";
 import { gateClaimsForResume, gatedDomainProfile, yourSkillStates } from "./services/yourSkills.js";
 import { createThumbsRouter, createThumbsAdminRouter, resourceItems } from "./routes/thumbs.js";
@@ -17254,7 +17254,8 @@ ${note}` : resumeText, untrusted: r.untrusted });
 // ⭐ T5 · THE ASSISTANT v1 (services/assistant/assistant.js; docs/ASSISTANT.md). Available to admins always and to everyone
 // once Admin → Atlas → Asks turns it on (app_settings assistant_enabled). Every action it proposes runs only on the person's
 // Confirm, with THIS session's user id. Questions are logged de-identified, unless the person switched that off.
-const assistantAdmin = (req) => { try { return !!mayActAsAdmin(req); } catch { return false; } };
+// ⭐ 46q (A212): or the app account whose VERIFIED email is an active admin account's (services/assistant/assistant.js).
+const assistantAdmin = (req) => { try { return !!mayActAsAdmin(req) || isAdminsOwnAccount(db, req.user?.id); } catch { return false; } };
 app.get("/api/assistant/status", requireAuth, (req, res) => {
   res.set("Cache-Control", "private, no-store").json({ available: assistantAvailable(db, { isAdmin: assistantAdmin(req) }), improveAtlas: improveAtlasOn(db, req.user.id) });
 });
