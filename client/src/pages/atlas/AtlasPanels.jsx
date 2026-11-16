@@ -205,8 +205,9 @@ function DailyReminderRow() {
 // or built skills — answering more never raises it), the share right per skill (3+ answers, the last 20), no curve.
 function PracticeProgressCard({ day, refresh }) {
   const [p, setP] = useState(null);
-  useEffect(() => { api(`/api/learn/progress?day=${day}`).then(setP).catch(() => setP(null)); }, [day, refresh]);
-  if (!p) return null;
+  useEffect(() => { api(`/api/learn/practice-progress?day=${day}`).then(setP).catch(() => setP(null)); }, [day, refresh]);
+  // ⭐ 46q: never draw an answer of another shape (a shadowed route once handed this card {marks} and blanked the Atlas)
+  if (!p?.level || !p.accuracy || !p.streak) return null;
   return (
     <details className="atl-dq__progress" data-practice-progress="">
       <summary className="atl__quiet"><b>{p.level.level}</b> · {p.level.line}{p.level.next ? ` · ${p.level.next.more} more for “${p.level.next.word}”` : ""}</summary>
