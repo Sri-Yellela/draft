@@ -4,6 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { at } from "../test-support/sourceAnchors.js";
 import { durationLabel } from "../shared/durationLabel.js";
 import { durationLabel as fromPage } from "../services/profilePage.js";
 
@@ -55,4 +56,15 @@ test("A153 part 2 · photo on the profile, the page's own replace, edited marks,
   assert.deepEqual(provesSkills({ backed: true, name: "Tidewatch", description: "A Kafka pipeline in Go, C++ core" }, sk), ["Kafka", "Go", "C++"]);
   assert.deepEqual(provesSkills({ backed: true, name: "JavaScript app", description: "good stuff" }, sk), [], "Java is not JavaScript; Go is not good");
   assert.deepEqual(provesSkills({ backed: false, name: "Kafka" }, sk), [], "no proof link, no claim");
+});
+
+test("A223 (46r) · 'Add a photo' sits beside the avatar — the full-width head row's free space goes after it, not around it", () => {
+  const css = fs.readFileSync("client/src/pages/profile/YourProfile.css", "utf8");
+  assert.match(css, /\.yp__headrow \{ display: flex; justify-content: space-between;/);
+  assert.match(css.match(/^\.yp__photo \{([^}]*)\}/m)[1], /margin-right: auto;/);
+  // the order the row draws: the avatar, the photo control, then the actions
+  const yp = fs.readFileSync("client/src/pages/profile/YourProfile.jsx", "utf8");
+  const from = at(yp, '<div className="yp__headrow">');
+  const row = yp.slice(from, at(yp, '<h2 className="yp__name">', from));
+  assert.ok(at(row, "yp__avatar") < at(row, "<PhotoUpload") && at(row, "<PhotoUpload") < at(row, 'className="yp__acts"'));
 });
