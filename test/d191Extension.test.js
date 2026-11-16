@@ -11,6 +11,7 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import { extensionHome, badgeText, companyCard } from "../services/extensionHome.js";
 import { relayFor, companyLine, homeLine } from "../extension/toolbarPress.js";
+import * as boardJobModule from "../extension/boardJob.js";
 import { companyFacts } from "../extension/boardJob.js";
 import { recordSubmission, USER_METHODS, SERVER_METHODS, SUBMIT_METHODS } from "../services/applicationRecords.js";
 import { extensionSent } from "../services/submitFamilies.js";
@@ -218,7 +219,7 @@ test("A211 (b) · the home view counts the applications waiting to be sent from 
   assert.equal(extensionHome(homeDb(), 7).toSend, 0, "no packets table (an older schema) → 0, the view still draws");
   const quiet = relayFor({ identity: SIGNED_IN, ctx: { identity: null }, home: { newMatches: 0, needsYou: 0, drafted: 0, sent: 0, toSend: 3 } });
   assert.equal(quiet[0].text, "3 waiting to send from this browser");
-  assert.deepEqual(quiet[0].actions.map(a => [a.id, !!a.primary]), [["open-runner", true], ["open-ask", false], ["open-draft", false]]);
+  assert.deepEqual(quiet[0].actions.map(a => [a.id, !!a.primary]), [["open-runner", true], ["open-ask", false]], "runner first; T27's two-button popup → Matches gives way (46p walk)");
   const both = relayFor({ identity: SIGNED_IN, ctx: { identity: null }, home: { newMatches: 2, toSend: 1 } });
   assert.equal(both[0].text, "Today: 2 new matches · 1 waiting to send from this browser");
   const none = relayFor({ identity: SIGNED_IN, ctx: { identity: null }, home: { newMatches: 2, toSend: 0 } });
@@ -293,4 +294,25 @@ test("D191 46o · the panel's lines say only what draft knows; the side panel, t
   const notice = read("extension/notice.html");
   for (const said of ["only when you ask it to", "only to draft's own server", "Signed out, only the employer's name and the page's address go", "never submits a form on its own", "Only your press of Send all sends them"]) assert.ok(notice.includes(said), said);
   assert.doesNotMatch(read("extension/notice.js"), /chrome\.storage/, "the notice stores nothing");
+});
+
+test("⭐ 46p · the side panel's facts survive the page read (lookupPage → postingFacts) and `mine` comes from the page answer", () => {
+  const { postingFacts } = boardJobModule;
+  assert.equal(postingFacts(null), null);
+  const f = postingFacts({
+    job: { category: "Engineering", subcategory: "Backend", level: "Senior", salary: "$150k–$190k a year", worksWith: ["Go", "Kafka", 7, ""], fit: "Good fit", proven: { count: 3, of: 8 } },
+    application: { state: "Needs you", sendFromHere: true, extra: "x" },
+    company: { logo: "http://insecure.test/x.png", about: "A maker of things.", trend: "sideways" },
+    extra: { leaked: true },
+  });
+  assert.deepEqual(f, {
+    job: { category: "Engineering", subcategory: "Backend", level: "Senior", salary: "$150k–$190k a year", worksWith: ["Go", "Kafka"], fit: "Good fit", proven: { count: 3, of: 8 } },
+    application: { state: "Needs you", sendFromHere: true },
+    company: { logo: null, about: "A maker of things.", trend: null },
+  }, "named fields only; an http logo and an unknown trend are dropped");
+  assert.equal(postingFacts({ job: { fit: "Amazing" } }).job.fit, null, "only the three fit words");
+  const src = read("extension/boardJob.js");
+  assert.match(src, /facts: postingFacts\(body\?\.facts\)/, "lookupPage carries the facts (46p: they were dropped here)");
+  assert.match(read("extension/background.js"), /board\.posting = \{ \.\.\.board\.posting, mine: p\.mine === true \}/, "`mine` from the page answer when both name the same job");
+  assert.match(read("extension/background.js"), /chrome\.commands\.onCommand\.addListener\(\(command, cmdTab\) =>/, "the shortcut opens the side panel with the tab Chrome hands it (no query awaited first)");
 });

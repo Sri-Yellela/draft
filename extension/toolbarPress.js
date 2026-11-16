@@ -81,8 +81,12 @@ export function relayFor({ identity = null, ctx = null, auto = null, away = null
   const day = !out.length ? [homeLine(home), waiting].filter(Boolean).join(' · ') || null : null;
   if (day) out.push({ id: 'draft-home', kind: 'toast', icon: 'info', ms: 7000, text: day,
     // ⭐ D191 (3): Open = the extension's own panel (the day, a search of draft, Tiny); Matches = draft's board
-    actions: [...(waiting ? [{ id: 'open-runner', label: 'Open the runner — fill them here, then one press sends them', word: 'Runner', primary: true }] : []),
-      { id: 'open-ask', label: "Open draft's panel — your day, search, Tiny", word: 'Open', primary: !waiting }, { id: 'open-draft', label: 'Open your matches in draft', word: 'Matches' }] });
+    // ⛔ T27: a popup draws at most two buttons (popup-layer.js) — with the runner first, Matches gives way (the panel's own
+    // "Open draft" link reaches the board); 46p's real-extension walk found the third button silently dropped
+    actions: waiting
+      ? [{ id: 'open-runner', label: 'Open the runner — fill them here, then one press sends them', word: 'Runner', primary: true },
+        { id: 'open-ask', label: "Open draft's panel — your day, search, Tiny", word: 'Open' }]
+      : [{ id: 'open-ask', label: "Open draft's panel — your day, search, Tiny", word: 'Open', primary: true }, { id: 'open-draft', label: 'Open your matches in draft', word: 'Matches' }] });
   return out;
 }
 
