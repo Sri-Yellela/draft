@@ -63,7 +63,6 @@ import { glass } from "../styles/glass.js";
 import { atsScorePair } from "../../../shared/resumeScores.js";
 import { openPosting } from "../lib/openPosting.js";
 import { rememberBoardFilters } from "../lib/boardFilterMemory.js";
-import StartFromResume from "../components/StartFromResume.jsx";
 import { openResumeEditor } from "../lib/resumeEditor.js";
 import { sentenceFromResume } from "../../../shared/resumeSentence.js";   // D184 B-7
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
@@ -3988,21 +3987,14 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         onAction: () => { setProfilesState("loading"); setProfilesTry(n => n + 1); },
       }
     : profilesState !== "ready" ? null
+    // ⭐ A214 (46r, the 46q audit): the board sits beside the deck (App.jsx's home grid is the board's only mount), and
+    // the deck's empty state already carries "Start with your résumé" with the upload — two identical cards side by side
+    // was the newcomer's first screen. The board now only says where its jobs will be; the deck's upload hands the new
+    // profile to the shared active id, which re-runs the profile read above and lifts this block.
     : {
-        title: "Start with your résumé",
-        body: "Your résumé already says the roles you want and the skills you have. draft reads it and sets up your first job profile — refine it whenever you like.",
-        actionLabel: "Add Profile",
-        onAction: () => setProfileWizardOpen(true),
-        // A104: one upload sets the profile up; the wizard is "Set it up by hand instead".
-        children: (
-          <StartFromResume onManual={() => setProfileWizardOpen(true)}
-            onDone={(r) => {
-              if (!r?.profile) return;
-              setDomainProfiles([r.profile]);
-              setActiveProfileId?.(r.profile.id);
-              setProfileSwitchKey(k => k + 1);
-            }}/>
-        ),
+        title: "Your jobs show here once your résumé is in",
+        body: "Upload it in the card beside this one — draft sets up your first job profile from it and ranks every job against it.",
+        actionLabel: null,
       };
 
   // The board ranks by fit only when there are signals to rank with. Published to the context
@@ -5015,14 +5007,14 @@ function SetupGateNotice({ theme, title, body, actionLabel, onAction, children =
         <div style={{ fontSize:ts(13), lineHeight:1.6, color:theme.textMuted, marginBottom:18 }}>
           {body}
         </div>
-        {children || (
+        {children || (actionLabel && (
           <button className="dbx-depth" onClick={onAction}
             style={{ border:"none", padding:"10px 16px",
                      background:theme.accent, color:C.ON_ACCENT, fontWeight:800,
                      cursor:"pointer", fontFamily:"inherit"}}>
             {actionLabel}
           </button>
-        )}
+        ))}
       </div>
     </div>
   );

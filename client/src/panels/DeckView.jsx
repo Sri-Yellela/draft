@@ -33,6 +33,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";
 import { deckWheelHandler } from "../lib/deckWheel.js";
 import StartFromResume from "../components/StartFromResume.jsx";
+import { useJobBoard } from "../contexts/JobBoardContext.jsx";   // A214: the upload's profile reaches the board
 import { C } from "../styles/colorTokens.js";
 import { Z } from "../styles/zLayers.js";
 import { glass } from "../styles/glass.js";
@@ -774,6 +775,10 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   const { needsAttentionCount = 0 } = useAutoApply();
   const reduced = useReducedMotion();   // the CSS-driven motion reads it here; framer's reads MotionConfig
   const navigate = useNavigate();
+  // A214 (46r): the deck's "Start with your résumé" is the newcomer's one set-up card — the board beside it only says
+  // its jobs show once the résumé is in — so the profile the upload sets up is handed to the shared active id, and the
+  // board (whose profile read re-runs on that id) leaves its empty state on its own.
+  const setActiveProfileId = useJobBoard()?.setActiveProfileId;
   // Cards present on the first ready paint are simply THERE (unless this is the deal); a card that
   // arrives later — an undo, a refusal — fades into its slot.
   const firstPaint = useRef(true);
@@ -1235,7 +1240,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                 {links.map(([to, label]) => <Link key={to} to={to} style={{ color: C.ACCENT_INK }}>{label}</Link>)}
               </div>
               {s.reason === "no_profile" && (
-                <StartFromResume onDone={() => fetchDeck()} onManual={() => navigate("/app/job-profiles")} />
+                <StartFromResume onDone={(r) => { fetchDeck(); if (r?.profile?.id) setActiveProfileId?.(r.profile.id); }} onManual={() => navigate("/app/job-profiles")} />
               )}
             </div>
           );

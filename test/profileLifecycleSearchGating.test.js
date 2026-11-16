@@ -134,8 +134,9 @@ test("domain profile API repairs zero-active profile state and marks empty profi
 test("jobs UI does not keep a stale active profile id when there are no profiles", () => {
   assert.match(jobsPanel, /const activeProfileKey = activeDomainProfile\?\.id \|\| null/);
   // A104 (10-30) on purpose: the no-profile gate asks for the résumé, which sets the profile up; the wizard is one press away.
-  assert.match(jobsPanel, /title: "Start with your résumé"/);
-  assert.match(jobsPanel, /<StartFromResume onManual=\{\(\) => setProfileWizardOpen\(true\)\}/);
+  // A214 (46r, moved on purpose): the upload is the deck's card beside the board; the board's gate says where its jobs will be.
+  assert.match(jobsPanel, /title: "Your jobs show here once your résumé is in"/);
+  assert.doesNotMatch(jobsPanel, /<StartFromResume/);
 });
 
 test("⛔ A MISSING RESUME GATES THE ATS SORT, NOT THE BOARD", () => {
