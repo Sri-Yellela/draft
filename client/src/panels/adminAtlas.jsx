@@ -225,7 +225,7 @@ function AtlasAsks({ say }) {
     <div data-atlas-asks="" style={{ ...sub, marginBottom: 12, display: "grid", gap: 8 }}>
       <div style={{ ...row, justifyContent: "space-between" }}>
         <b style={{ fontSize: ts(13), color: C.INK }}>Asks (last {s.days} days)</b>
-        <DepthButton size="compact" onClick={flip} data-assistant-enabled={s.enabled ? "on" : "off"}>{s.enabled ? "Ask draft is open to everyone — close it" : "Open Ask draft to everyone"}</DepthButton>
+        <DepthButton size="compact" onClick={flip} data-assistant-enabled={s.enabled ? "on" : "off"}>{s.enabled ? "Tiny writes for everyone (model calls) — stop" : "Let Tiny write for everyone (model calls)"}</DepthButton>
       </div>
       <span style={quiet}>{s.total} question(s): {s.byCoverage.covered} covered · {s.byCoverage.partial} partly · {s.byCoverage.gap} gaps. Stored without the person's name or contact details; people can switch this off.</span>
       {s.topGaps.length > 0 && (

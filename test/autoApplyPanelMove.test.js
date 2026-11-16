@@ -45,7 +45,7 @@ test("every piece of the surface arrived in the panel — nothing dropped in the
     // "the run control" (Autofill for Review) was removed in A53 with the basket it dispatched.
     ["run status badges",      /run\.submittedCount/],
     // D25: "Review all N" over the Stopped column (the "need review" this matched was a comment).
-    ["the review queue",       /Review all \{needsYouCount\} →/],
+    ["the review queue",       /Review all \{reviewAppsCount\} →/],
     ["held-gate batches",      /applyGatePortals\.map/],
     // Reads the scoped list since AB3 — the queue survives, its contents are now scoped to the card
     // the popup was opened from rather than being every question every time.

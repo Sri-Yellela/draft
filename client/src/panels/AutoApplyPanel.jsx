@@ -372,6 +372,9 @@ export function AutoApplyPanel({ user = null } = {}) {
     // APPLICATIONS, not rows: one application held three times is one.
     applyQuestions.length + applyPending.length + heldApplications.length +
     applyPrereqMissing.length;
+  // ⭐ 46q (audit): Review all counts APPLICATIONS, as the header's "needs you" does — a newcomer read "Review all 2 →" under
+  // "0 needs you" (the 2 were the setup blockers, which keep their own Fix it rows above the table).
+  const reviewAppsCount = needsYouCount - applyPrereqMissing.length;
 
   /**
    * TASK Q — THE BUDGET IS ON THE SCREEN WHERE IT IS SPENT: how the approval budget compares with what
@@ -1342,7 +1345,7 @@ export function AutoApplyPanel({ user = null } = {}) {
         {/* THE DELIBERATE "REVIEW ALL" (AB3 requirement 3) — its own control, not what every item's
             Open does. ⛔ Approve all lives INSIDE it, with its second confirm (the modal below). */}
         <button onClick={openEverything} type="button" className="dh-btn" data-kind="primary" data-review-all=""
-          title="Every application needing review, in one list.">Review all {needsYouCount} →</button>
+          title="Every application needing review, in one list.">Review all {reviewAppsCount} →</button>
         {/* ⭐ A181 (5c): bulk — every held draft run again with draft's current fixes (free), or cancelled (credits back). */}
         {heldRerunnableFrom(nodes).length > 0 && (() => {
           const all = heldRerunnableFrom(nodes), chosen = chosenHeldFrom(nodes);
@@ -1577,7 +1580,7 @@ export function AutoApplyPanel({ user = null } = {}) {
             empty={!view.some(v => !v.run.future) ? <p className="dht-empty">No runs yet. Each run's picks show here as they are made.</p> : null}
             footer={(needsYouCount > 0 || timelineExtra.running || bin.items.length > 0 || binMsg) ? (
               <div className="dht-foot" data-timeline-foot="">
-                {needsYouCount > 0 && timelineExtra.review}
+                {reviewAppsCount > 0 && timelineExtra.review}
                 {timelineExtra.running}
                 {timelineExtra.tidy}
               </div>

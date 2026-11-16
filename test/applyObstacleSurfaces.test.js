@@ -481,7 +481,7 @@ test("the popup SAYS which application it is about, and the empty state does too
 test("REVIEW ALL survives as a deliberate, separate control", () => {
   // Requirement 3: it may exist — it is genuinely useful for working a queue in one sitting — but it
   // must not be what every row's Open does.
-  assert.match(panel, /Review all \{needsYouCount\} →/);
+  assert.match(panel, /Review all \{reviewAppsCount\} →/ /* 46q: applications only, as "needs you" counts */);
   assert.match(panel, /const openEverything = \(\) => openScoped\(null\)/);
 });
 
