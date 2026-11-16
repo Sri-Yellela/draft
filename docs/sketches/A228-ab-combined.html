@@ -1,0 +1,268 @@
+<title>A228 · A + B — Your skill map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Instrument+Serif&display=swap">
+<link rel="stylesheet" href="A228-common.css">
+<style>
+  /* A + B (owner 11-16: "i love both the one map and the readout, combine both … use logos and thumbnails, and reduce
+     text jargon"). One number and the distribution lead (B); the map is the main picture (A), with a List view that is
+     B's ranked bars (one view of the same data, never both on screen); the route is B's step chart with logos and the
+     companies each step opens; the move-sideways view is B's scatter plus a card per role. Plain words throughout:
+     "jobs", not postings / asks / coverage. */
+  .ab-hero { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 1000px) { .ab-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); align-items: center; } }
+  .who { display: flex; gap: 12px; align-items: center; }
+  .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; font-weight: 600; color: var(--ink-muted); flex: none; }
+  .lv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .lv div { display: grid; gap: 2px; }
+  .lv b { font-family: var(--font-display); font-weight: 400; font-size: 30px; line-height: 1; }
+  .ab-main { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 1200px) { .ab-main { grid-template-columns: minmax(0, 1.9fr) minmax(360px, 1fr); align-items: start; } }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .role-btn { display: inline-flex; align-items: center; gap: 8px; }
+  .mark { width: 22px; height: 22px; border-radius: 5px; display: inline-grid; place-items: center; font-size: 10px; font-weight: 700; letter-spacing: -.02em; flex: none; background: var(--surface-2); color: var(--ink); border: 1px solid var(--border); }
+  .mark--lg { width: 30px; height: 30px; font-size: 12px; border-radius: 7px; }
+  .co { width: 26px; height: 26px; border-radius: 6px; display: inline-grid; place-items: center; font-size: 12px; font-weight: 700; color: #fff; flex: none; }
+  .cos { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+  .steps li { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .steps .plus { font-family: var(--font-count); font-size: 15px; color: var(--ink); }
+  .steps .sub { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 13px; color: var(--ink-muted); }
+  .move { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); }
+  .move .panel { gap: 8px; padding: 14px 16px; }
+  .meter { height: 8px; background: var(--track); border-radius: 4px; overflow: hidden; }
+  .meter i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .seg button { font: inherit; font-size: 13px; border: 0; background: var(--surface); color: var(--ink-muted); padding: 5px 12px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--canvas); }
+  .tile-label { pointer-events: none; }
+  .fam-label { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; fill: var(--ink-faint); }
+</style>
+<div class="page">
+  <div class="sk-bar"><nav><a class="btn" href="A228-concepts.html">All concepts</a><a class="btn" aria-current="page" href="A228-ab-combined.html">A + B · combined</a><a class="btn" href="A228-a-map.html">A</a><a class="btn" href="A228-b-readout.html">B</a><a class="btn" href="A228-c-route.html">C</a></nav><div class="sk-themes"></div></div>
+
+  <!-- 1 · where you stand (B leads) -->
+  <section class="panel ab-hero">
+    <div style="display:grid;gap:12px">
+      <div class="who"><span class="avatar">RC</span><div><b>Rin Calloway</b> <span class="small">· synthetic</span><div class="small">Backend Engineer → aiming for <b id="ab-aim">Data Engineer</b></div></div></div>
+      <div class="hero"><span class="hero__n num" id="ab-n">—</span><span class="small" id="ab-n-of"></span></div>
+      <p id="ab-n-l" style="max-width:44ch"></p>
+      <div class="lv" id="ab-lv"></div>
+    </div>
+    <div style="display:grid;gap:8px;min-width:0">
+      <div class="panel__head"><h2>How close you are to each job</h2><span class="small" id="ab-hist-l"></span></div>
+      <div class="chart" id="ab-hist"></div>
+      <div id="ab-hist-t"></div>
+    </div>
+  </section>
+
+  <section class="ab-main">
+    <!-- 2 · the map (A), List = B's bars -->
+    <div class="panel">
+      <div class="panel__head">
+        <h2 id="ab-map-h">What Data Engineer jobs want</h2>
+        <div class="seg" role="group" aria-label="View"><button type="button" id="v-map" aria-pressed="true">Map</button><button type="button" id="v-list" aria-pressed="false">List</button></div>
+      </div>
+      <div class="tabs" id="ab-roles" role="group" aria-label="Show the map for a job"></div>
+      <div class="legend"><span><i class="sw sw--proven"></i>Proven</span><span><i class="sw sw--claimed"></i>On your résumé</span><span><i class="sw sw--missing"></i>Not yet</span><span class="faint">Bigger square = more jobs want it</span></div>
+      <div class="chart" id="ab-map"></div>
+      <div id="ab-map-t"></div>
+    </div>
+    <!-- 3 · close the gap (B's step chart + logos + the companies it opens) -->
+    <div class="panel">
+      <div class="panel__head"><h2>Learn next</h2><span class="small" id="ab-route-l"></span></div>
+      <div class="chart" id="ab-route"></div>
+      <ol class="steps" id="ab-steps"></ol>
+      <div class="actions"><button class="btn btn--primary" type="button" id="ab-next"></button><button class="btn" type="button">See these jobs</button></div>
+    </div>
+  </section>
+
+  <!-- 4 · move sideways (B's scatter + a card per job) -->
+  <section class="panel">
+    <div class="panel__head"><h2>Jobs you could move to</h2><span class="small">Further right = you already have more of what they want. Higher = more open jobs.</span></div>
+    <div class="chart" id="ab-pivot"></div>
+    <div class="move" id="ab-move"></div>
+  </section>
+  <p class="note">Sketch of A + B for the owner (D149 rule 3). Synthetic person, companies and jobs; every number is counted from the sketch's seeded board. No model is called. The letter marks stand in for real logos: the build shows each skill's own logo (its Wikipedia image, which Atlas already caches) and each company's logo (draft's CompanyLogo). Hover or focus any mark.</p>
+</div>
+<script src="A228-common.js"></script>
+<script>
+(function () {
+  const { model, svg, defs, fillOf, stateWord, tips, table, responsive, sketchBar, fmt, pct } = A228;
+  sketchBar(); tips();
+  const M = model();
+  let role = M.target;
+  let view = "map";
+  const MONO = { sql: "SQL", python: "Py", go: "Go", java: "Jv", typescript: "TS", scala: "Sc", spark: "Sp", kafka: "Kf", airflow: "Af", dbt: "dbt", flink: "Fl", postgres: "Pg", redis: "Rd", snowflake: "Sf", bigquery: "BQ", aws: "AWS", docker: "Dk", k8s: "K8s", terraform: "Tf", cicd: "CI", grpc: "gR", react: "Re", pytorch: "PT", stats: "St" };
+  const mono = (id) => MONO[id] || M.S[id].name.slice(0, 2);
+  const markHtml = (id, lg) => `<span class="mark${lg ? " mark--lg" : ""}" aria-hidden="true">${mono(id)}</span>`;
+  // synthetic employers (letter tiles in draft's tile colours stand in for CompanyLogo)
+  const COS = [["Kestrel Analytics", "#2E5AAC"], ["Northwind Data", "#2F7D4F"], ["Bluefin Labs", "#6B4FA8"], ["Harbor & Pike", "#B4562D"], ["Quillmark", "#1F7A7A"], ["Ostrava Health", "#4B5563"], ["Larkspur", "#A23B63"], ["Tidewater", "#2E5AAC"]];
+  const cosFor = (id, n = 4) => { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) & 0xffff; return Array.from({ length: n }, (_, i) => COS[(h + i * 3) % COS.length]); };
+  const coHtml = (list) => `<span class="cos">${list.map(([n, c]) => `<span class="co" style="background:${c}" title="${n}" aria-label="${n}">${n[0]}</span>`).join("")}</span>`;
+  const jobsWord = (n) => `${fmt(n)} ${n === 1 ? "job" : "jobs"}`;
+
+  // ── 1 · where you stand
+  function hero() {
+    document.getElementById("ab-aim").textContent = role.name;
+    document.getElementById("ab-n").textContent = fmt(role.within);
+    document.getElementById("ab-n-of").textContent = `jobs you can apply for today`;
+    const f = role.route[0];
+    document.getElementById("ab-n-l").innerHTML = `Out of ${fmt(role.open)} open ${role.name} jobs, you have most of what these ask for.${f ? ` ${f.kind === "prove" ? "Prove" : "Learn"} <b>${f.name}</b> and that grows by ${fmt(f.gain)}.` : ""}`;
+    document.getElementById("ab-lv").innerHTML = M.LEVELS.map(l => { const all = role.sim.postings.filter(p => p.level === l).length * role.sim.scale; const w = M.within(role.sim, null, l); return `<div><span class="eyebrow">${l === "mid" ? "Mid-level" : l[0].toUpperCase() + l.slice(1)}</span><b class="num">${fmt(w)}</b><span class="small">of ${fmt(all)} jobs</span></div>`; }).join("");
+    document.getElementById("ab-hist-l").textContent = `Every open ${role.name} job, by how much of it you have`;
+    const host = document.getElementById("ab-hist"); host.replaceChildren(drawHist(host.clientWidth || 700));
+    const t = document.getElementById("ab-hist-t"); t.replaceChildren();
+    table(t, ["You have", "Jobs"], M.histogram(role.sim).map((b, i) => [`${i * 10}–${i * 10 + 10}% of it`, fmt(b.n)]));
+  }
+  function drawHist(W) {
+    const bins = M.histogram(role.sim), H = 210, pb = 40, pl = 40, mx = Math.max(...bins.map(b => b.n)), top = Math.max(100, Math.ceil(mx / 100) * 100), bw = (W - pl) / 10;
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Jobs by how much of each you have" });
+    for (let t = 0; t <= top; t += top / 4) { const y = H - pb - (t / top) * (H - pb - 14); s.append(svg("line", { x1: pl, x2: W, y1: y, y2: y, class: "grid" })); s.append(svg("text", { x: pl - 6, y: y + 4, "text-anchor": "end" }, fmt(t))); }
+    bins.forEach((b, i) => {
+      const h = (b.n / top) * (H - pb - 14), ok = b.from >= M.REACH - 1e-9;
+      s.append(svg("rect", { x: pl + i * bw + 1, y: H - pb - h, width: Math.max(0, bw - 2), height: h, rx: 4, class: ok ? "f-proven" : "f-market", tabindex: 0, "data-tip": `${jobsWord(b.n)}\nYou have ${i * 10}–${i * 10 + 10}% of what they want${ok ? "\nYou can apply" : ""}` }));
+      if (W > 520 || i % 2 === 0) s.append(svg("text", { x: pl + i * bw + bw / 2, y: H - pb + 16, "text-anchor": "middle" }, `${i * 10}%`));
+    });
+    const xr = pl + M.REACH * (W - pl);
+    s.append(svg("line", { x1: xr, x2: xr, y1: 4, y2: H - pb, stroke: "var(--ink)", "stroke-width": 1.5, "stroke-dasharray": "4 3" }));
+    s.append(svg("text", { x: xr - 8, y: H - 6, "text-anchor": "end" }, "← not yet"));
+    s.append(svg("text", { x: xr + 8, y: H - 6, class: "t-ink" }, "you can apply →"));
+    return s;
+  }
+
+  // ── 2 · the map (squarified treemap) / the list (ranked bars)
+  function squarify(items, x, y, w, h) {
+    const out = [], total = items.reduce((a, b) => a + b.v, 0) || 1, rest = items.map(it => ({ ...it, a: it.v / total * w * h }));
+    let row = [];
+    const worst = (r, side) => { const s = r.reduce((a, b) => a + b.a, 0), mx = Math.max(...r.map(z => z.a)), mn = Math.min(...r.map(z => z.a)); return Math.max(side * side * mx / (s * s), (s * s) / (side * side * mn)); };
+    const lay = (r) => { const s = r.reduce((a, b) => a + b.a, 0); if (w >= h) { const cw = s / h; let cy = y; for (const z of r) { const ch = z.a / cw; out.push({ ...z, x, y: cy, w: cw, h: ch }); cy += ch; } x += cw; w -= cw; } else { const rh = s / w; let cx = x; for (const z of r) { const cw = z.a / rh; out.push({ ...z, x: cx, y, w: cw, h: rh }); cx += cw; } y += rh; h -= rh; } };
+    while (rest.length) { const side = Math.min(w, h), c = rest[0]; if (!row.length || worst([...row, c], side) <= worst(row, side)) { row.push(c); rest.shift(); } else { lay(row); row = []; } }
+    if (row.length) lay(row);
+    return out;
+  }
+  const fit = (txt, w, cw) => txt.length * cw <= w ? txt : txt.slice(0, Math.max(1, Math.floor(w / cw) - 1)) + "…";
+  const tipFor = (k, p) => `${k.name}\n${pct(p)} of ${role.name} jobs want it · ${jobsWord(p * role.open)}\nYou: ${stateWord(k)}${k.state !== "missing" ? ` — ${k.evidence}` : ""}`;
+  function drawMap(W) {
+    const H = Math.round(Math.max(380, Math.min(620, W * .58)));
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `Your skills, sized for ${role.name}` }, [defs()]);
+    const fams = M.FAMILIES.map(f => ({ id: f, kids: M.skills.filter(k => k.family === f && role.asks[k.id]).map(k => ({ k, v: role.asks[k.id] })) })).map(f => ({ ...f, v: f.kids.reduce((a, b) => a + b.v, 0) })).filter(f => f.v > 0).sort((a, b) => b.v - a.v);
+    for (const f of squarify(fams, 0, 0, W, H)) {
+      s.append(svg("text", { x: f.x + 6, y: f.y + 14, class: "fam-label" }, f.w > 80 ? fit(f.id, f.w - 10, 7) : ""));
+      for (const t of squarify(f.kids.sort((a, b) => b.v - a.v), f.x + 3, f.y + 20, Math.max(1, f.w - 6), Math.max(1, f.h - 23))) {
+        const k = t.k, on = k.state === "proven";
+        s.append(svg("rect", { x: t.x + 1, y: t.y + 1, width: Math.max(0, t.w - 2), height: Math.max(0, t.h - 2), rx: 5, class: fillOf(k), tabindex: 0, "data-tip": tipFor(k, t.v) }));
+        if (t.w > 46 && t.h > 40) {
+          // the skill's logo (placeholder mark), then its name and how many jobs want it
+          s.append(svg("rect", { x: t.x + 8, y: t.y + 8, width: 24, height: 24, rx: 5, fill: "var(--surface)", stroke: "var(--border)", class: "tile-label" }));
+          s.append(svg("text", { x: t.x + 20, y: t.y + 24, "text-anchor": "middle", class: "tile-label", style: "fill:var(--ink);font-size:9px;font-weight:700" }, mono(k.id)));
+          if (t.w > 90 && t.h > 62) {
+            s.append(svg("text", { x: t.x + 8, y: t.y + 50, class: "tile-label", style: `fill:${on ? "var(--on-accent)" : "var(--ink)"};font-weight:600;font-size:${t.w > 150 && t.h > 90 ? 15 : 12}px` }, fit(k.name, t.w - 14, t.w > 150 ? 8.2 : 6.8)));
+            s.append(svg("text", { x: t.x + 8, y: t.y + 66, class: "tile-label", style: `fill:${on ? "var(--on-accent)" : "var(--ink-muted)"}` }, `${pct(t.v)} of jobs`));
+          }
+        }
+      }
+    }
+    return s;
+  }
+  function drawList(W) {
+    const rows = Object.entries(role.asks).sort((a, b) => b[1] - a[1]).map(([id, p]) => ({ k: M.S[id], p })), row = 30, pl = Math.min(170, W * .36), pr = 70, H = rows.length * row + 26;
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "What the job wants, most-wanted first" }, [defs()]);
+    const x = (v) => pl + v * (W - pl - pr);
+    for (const t of [0, .5, 1]) { s.append(svg("line", { x1: x(t), x2: x(t), y1: 0, y2: H - 20, class: "grid" })); s.append(svg("text", { x: x(t), y: H - 4, "text-anchor": "middle" }, `${pct(t)} of jobs`)); }
+    rows.forEach(({ k, p }, i) => {
+      const y = i * row;
+      s.append(svg("rect", { x: 0, y: y + 5, width: 22, height: 20, rx: 4, fill: "var(--surface-2)", stroke: "var(--border)" }));
+      s.append(svg("text", { x: 11, y: y + 19, "text-anchor": "middle", style: "fill:var(--ink);font-size:8px;font-weight:700" }, mono(k.id)));
+      s.append(svg("text", { x: 30, y: y + 19, class: k.state === "missing" ? "t-strong" : "t-ink" }, fit(k.name, pl - 38, 6.8)));
+      s.append(svg("rect", { x: x(0), y: y + 7, width: Math.max(2, x(p) - x(0)), height: row - 14, rx: 4, class: fillOf(k), tabindex: 0, "data-tip": tipFor(k, p) }));
+      s.append(svg("text", { x: x(p) + 6, y: y + 19 }, pct(p)));
+    });
+    return s;
+  }
+  function mapPanel() {
+    document.getElementById("ab-map-h").textContent = `What ${role.name} jobs want`;
+    const host = document.getElementById("ab-map"), W = host.clientWidth || 900;
+    host.replaceChildren(view === "map" ? drawMap(W) : drawList(W));
+    const t = document.getElementById("ab-map-t"); t.replaceChildren();
+    table(t, ["Skill", "Jobs that want it", "You"], Object.entries(role.asks).sort((a, b) => b[1] - a[1]).map(([id, p]) => [M.S[id].name, `${pct(p)} · ${fmt(p * role.open)}`, stateWord(M.S[id])]));
+  }
+
+  // ── 3 · learn next
+  function routePanel() {
+    const total = role.route.reduce((a, b) => a + b.hours, 0);
+    document.getElementById("ab-route-l").textContent = role.route.length ? `about ${total} hours in all` : "";
+    const host = document.getElementById("ab-route"); host.replaceChildren(drawRoute(host.clientWidth || 380));
+    const ol = document.getElementById("ab-steps"); ol.replaceChildren();
+    for (const st of role.route) {
+      const li = document.createElement("li");
+      li.innerHTML = `${markHtml(st.id, true)}<span><b>${st.kind === "prove" ? "Prove" : "Learn"} ${st.name}</b></span><span class="plus">+${fmt(st.gain)} jobs</span><span class="sub"><span>about ${st.hours} h</span>${coHtml(cosFor(st.id))}<span>and more</span></span>`;
+      li.querySelector(".plus").setAttribute("data-tip", `${st.name}\n${st.proof}\nThen ${fmt(st.total)} jobs you can apply for`);
+      ol.append(li);
+    }
+    if (!role.route.length) ol.innerHTML = `<li><span></span><span>Prove what's on your résumé to grow this.</span><span></span></li>`;
+    const f = role.route[0];
+    document.getElementById("ab-next").textContent = f ? `${f.kind === "prove" ? "Prove" : "Start"} ${f.name} · ${f.hours} h` : "Prove a skill";
+  }
+  function drawRoute(W) {
+    const pts = [{ name: "Today", total: role.within, hours: 0 }]; let h = 0; for (const st of role.route) { h += st.hours; pts.push({ ...st, hours: h }); }
+    const H = 190, pl = 44, pr = 16, pb = 26, maxY = Math.max(200, Math.ceil(Math.max(...pts.map(p => p.total)) / 200) * 200), maxX = Math.max(10, h);
+    const x = (v) => pl + v / maxX * (W - pl - pr), y = (v) => H - pb - v / maxY * (H - pb - 12);
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Jobs you can apply for as you learn each skill" });
+    for (let t = 0; t <= maxY; t += maxY / 4) { s.append(svg("line", { x1: pl, x2: W - pr, y1: y(t), y2: y(t), class: "grid" })); s.append(svg("text", { x: pl - 6, y: y(t) + 4, "text-anchor": "end" }, fmt(t))); }
+    s.append(svg("text", { x: pl, y: H - 6 }, "now")); s.append(svg("text", { x: W - pr, y: H - 6, "text-anchor": "end" }, `${h} h`));
+    let d = `M${x(0)},${y(pts[0].total)}`; for (let i = 1; i < pts.length; i++) d += ` H${x(pts[i].hours)} V${y(pts[i].total)}`;
+    s.append(svg("path", { d: d + ` V${H - pb} H${x(0)} Z`, fill: "var(--accent)", opacity: .12 }));
+    s.append(svg("path", { d, fill: "none", stroke: "var(--accent)", "stroke-width": 2 }));
+    pts.forEach((p, i) => s.append(svg("circle", { cx: x(p.hours), cy: y(p.total), r: 5, fill: "var(--accent)", stroke: "var(--surface)", "stroke-width": 2, tabindex: 0, "data-tip": i ? `${p.kind === "prove" ? "Prove" : "Learn"} ${p.name}\n+${fmt(p.gain)} jobs · then ${fmt(p.total)}` : `Today\n${fmt(p.total)} jobs you can apply for` })));
+    return s;
+  }
+
+  // ── 4 · jobs you could move to
+  function movePanel() {
+    const others = M.roles.filter(r => r !== role);
+    const host = document.getElementById("ab-pivot"); host.replaceChildren(drawPivot(host.clientWidth || 900, others));
+    const box = document.getElementById("ab-move"); box.replaceChildren();
+    for (const r of others.sort((a, b) => b.coverage - a.coverage)) {
+      const p = document.createElement("div"); p.className = "panel";
+      p.innerHTML = `<div class="panel__head"><b>${r.name}${r.current ? " · today" : ""}</b><span class="small num">${fmt(r.open)} open</span></div>
+        <div class="meter" aria-label="You have ${pct(r.coverage)} of it"><i style="width:${Math.round(r.coverage * 100)}%"></i></div>
+        <div class="small">You have ${pct(r.coverage)} of it · ${fmt(r.within)} jobs to apply for now</div>
+        <div class="cos">${r.carries.slice(0, 5).map(id => markHtml(id)).join("")}<span class="small">carry over</span></div>
+        <div class="cos">${r.missing.slice(0, 3).map(id => markHtml(id)).join("")}<span class="small">to learn${r.hoursToHalf ? ` · about ${r.hoursToHalf} h` : ""}</span></div>
+        <div class="actions"><button class="btn" type="button" data-aim="${r.id}">Aim for this</button></div>`;
+      p.querySelector("[data-aim]").onclick = () => setRole(r);
+      box.append(p);
+    }
+  }
+  function drawPivot(W, others) {
+    const H = Math.max(240, Math.min(340, W * .3)), pl = 52, pr = 24, pb = 30, maxY = 4500;
+    const x = (v) => pl + v * (W - pl - pr), y = (v) => H - pb - v / maxY * (H - pb - 14);
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Jobs you could move to" });
+    for (let t = 0; t <= maxY; t += 1500) { s.append(svg("line", { x1: pl, x2: W - pr, y1: y(t), y2: y(t), class: "grid" })); s.append(svg("text", { x: pl - 6, y: y(t) + 4, "text-anchor": "end" }, fmt(t))); }
+    for (const t of [0, .5, 1]) s.append(svg("text", { x: x(t), y: H - 8, "text-anchor": t === 1 ? "end" : t ? "middle" : "start" }, t === 0 ? "you have little of it" : t === 1 ? "you have all of it" : "half"));
+    const placed = [];   // label boxes already drawn — a later label that would overlap moves below it
+    for (const r of [role, ...others].sort((a, b) => b.open - a.open)) {
+      const me = r === role, cx = x(r.coverage), right = cx > W * .72; let cy = y(r.open);
+      const lw = r.name.length * 7, lx = right ? cx - 16 - lw : cx + 16;
+      let ly = cy; for (const p of placed) if (Math.abs(p.y - ly) < 15 && lx < p.x + p.w && lx + lw > p.x) ly = p.y + 15;
+      placed.push({ x: lx, y: ly, w: lw });
+      s.append(svg("circle", { cx, cy, r: me ? 11 : 8, fill: me ? "var(--accent)" : "var(--info)", stroke: "var(--surface)", "stroke-width": 2, tabindex: 0, "data-tip": `${r.name}${me ? " · your aim" : ""}\n${fmt(r.open)} open jobs · you have ${pct(r.coverage)} of it\n${fmt(r.within)} you can apply for now` }));
+      s.append(svg("text", { x: cx + (right ? -16 : 16), y: ly + 4, "text-anchor": right ? "end" : "start", class: me ? "t-strong" : "t-ink" }, r.name));
+    }
+    return s;
+  }
+
+  function setRole(r) { role = r; document.querySelectorAll("#ab-roles button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.role === r.id))); renderAll(); }
+  function renderAll() { hero(); mapPanel(); routePanel(); movePanel(); }
+  const tabs = document.getElementById("ab-roles");
+  for (const r of M.roles) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "btn role-btn"; b.dataset.role = r.id;
+    b.innerHTML = `${r.name}${r.current ? ' <span class="faint">· today</span>' : ""}`;
+    b.setAttribute("aria-pressed", String(r === role)); b.onclick = () => setRole(r); tabs.append(b);
+  }
+  const seg = (v) => { view = v; document.getElementById("v-map").setAttribute("aria-pressed", String(v === "map")); document.getElementById("v-list").setAttribute("aria-pressed", String(v === "list")); mapPanel(); };
+  document.getElementById("v-map").onclick = () => seg("map"); document.getElementById("v-list").onclick = () => seg("list");
+  let w0 = 0; new ResizeObserver(() => { const w = document.querySelector(".page").clientWidth; if (Math.abs(w - w0) > 4) { w0 = w; renderAll(); } }).observe(document.querySelector(".page"));
+  renderAll();
+})();
+</script>
