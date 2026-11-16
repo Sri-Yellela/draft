@@ -410,7 +410,7 @@ test("D113 UI · the adapter falls back when the runs route 404s, and the next r
 
 // Moved from test/d14DraftPanelSplit.test.js (its Stopped │ Queued split is gone; these two still hold).
 test("D10 follow-up (from d14): the empty tree names the new tabs", () => {
-  assert.match(panel, /Draft jobs from the Daily Deck or Full House\./);
+  assert.match(panel, /Draft jobs from \/draft\./);   // ⭐ 46q A215 (owner: keep /draft + Home; the retired names leave the copy)
   assert.doesNotMatch(panel, /Draft jobs from Today or the board/);
 });
 test("D14 (kept): a section heading wraps rather than breaking its title in a narrow column", () => {

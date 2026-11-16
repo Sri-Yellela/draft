@@ -16,7 +16,8 @@ import "./FullHouse.css";
 
 // ⭐ D145 · the preview's bar and the Dock under it — drawn with AppNav's real classes. (45n: the Menu button and the
 // Navigation option are retired; the dock is the one navigation.)
-const NAV = [["Daily Deck", "today's jobs"], ["Full House", "every job"], ["Home", "in progress"], ["The Table", "applied"], ["Atlas", "your skills"]];
+// 46q (A215): the dock's own names — /draft (today's picks and every job) and Home (your applications).
+const NAV = [["/draft", "today's picks"], ["/draft", "every job"], ["Home", "in progress"], ["Home", "applied"], ["Atlas", "your skills"]];
 
 function Navigation() {
   return (

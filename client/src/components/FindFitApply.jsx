@@ -134,11 +134,7 @@ export default function FindFitApply() {
         </Link>
       </div>
 
-      {/* The same line, reversed — the brand's best symmetry, stated honestly as not yet here. */}
-      <p style={{ textAlign: "center", fontSize: ts(13.5), color: C.INK_FAINT, margin: "40px auto 0", maxWidth: 560, lineHeight: 1.55 }}>
-        Hiring? The same line runs the other way — find candidates, see the fit, reach out — starting with a free
-        grade of your own job posting. Soon.
-      </p>
+      {/* ⭐ 46q (A220, owner 11-16: cut): the "Hiring? … Soon." line is gone until the recruiter side exists. */}
     </section>
   );
 }

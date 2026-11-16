@@ -1153,7 +1153,7 @@ function TableEmptyState({ sheet, hasFilter, theme }) {
       title={hasFilter ? "No rows match your filter" : sheet === "applications" ? "No applications tracked yet" : "No resumes generated yet"}
       body={hasFilter ? "Try clearing the search or date filter."
         : sheet === "applications" ? "When you export a PDF for a job, it's automatically logged here."
-        : "Generate resumes from Full House — they appear here with ATS scores."} />
+        : "Generate resumes from /draft — they appear here with ATS scores."} />
   );
 }
 

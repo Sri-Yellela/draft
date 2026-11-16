@@ -35,7 +35,7 @@ const DECK_SIZE_COPY = { 5: "A short list — the five best.", 10: "The deck as 
 function DeckSection({ geometry, order, size, onLayout, onOrder, onGeometry, onSize }) {
   const custom = geometry?.preset === "custom";
   return (
-    <SettingsSection title="Daily Deck" subtitle="How many cards you're dealt each day, how they are fanned out, and the order they come in.">
+    <SettingsSection title="Today's picks" subtitle="How many cards you're dealt each day, how they are fanned out, and the order they come in.">
       <div className="cz-sub">Cards a day</div>
       <RadioCards label="Cards a day" name="deck-size" value={String(size)} onChange={(id) => onSize(Number(id))}
         items={DECK_SIZES.map((n) => ({ id: String(n), label: `${n} a day`, description: DECK_SIZE_COPY[n], tag: n === DECK_SIZE_STANDARD ? "default" : null }))} />

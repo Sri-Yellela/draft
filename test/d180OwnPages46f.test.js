@@ -36,8 +36,8 @@ test("d180OwnPages46f: both pages ask the switch first and say so when off — a
   assert.match(SWITCH, /api\("\/api\/network\/status"\)\.then\(r => \{ if \(live\) setOn\(!!r\?\.enabled\); \}\)\.catch\(\(\) => \{ if \(live\) setOn\(false\); \}\)/);
   for (const [name, src] of [["Feed", FEED], ["Messages", MSGS]]) {
     assert.match(src, /const on = useNetworkOn\(\);/, name);
-    assert.match(src, /if \(!on\) return \(\s*<main className="net" data-network-off=""/, `${name}: off says so`);
-    assert.match(src, /This isn't available yet\./, name);
+    // ⭐ 46q A222 (owner 11-16, changed on purpose): off → the board, never a dead-end page.
+    assert.match(src, /if \(!on\) return <Navigate to="\/app\/jobs" replace data-network-off="" \/>;/, `${name}: off goes to the board`);
     assert.doesNotMatch(src, /callModel|anthropic|dangerouslySetInnerHTML/i, name);
   }
 });

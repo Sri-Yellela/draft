@@ -556,8 +556,10 @@ function AppDashboard({ authUser, setAuthUser }) {
   });
 
   useEffect(() => {
-    if (!routeKey) {
-      navigate("/app/today", { replace:true });
+    // ⭐ 46q (A215, owner 11-16: one address per place): the board is /app/jobs — /app and /app/today land there, their
+    // query and anchor kept (a ?job= deep link still opens its posting).
+    if (!routeKey || routeKey === "today") {
+      navigate({ pathname: consolePath, search: location.search || "", hash: location.hash || "" }, { replace:true });
       return;
     }
     if (LEGACY_CONSOLE_ROUTES.has(routeKey)) {

@@ -4,7 +4,7 @@
 // /app/network?connect=<handle> (from a person's public page) asks before sending — never a silent request.
 // ⛔ D60: no capsules. Colours from tokens only.
 import { useCallback, useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import DepthButton from "../../components/DepthButton.jsx";
 import "./NetworkPage.css";
@@ -82,12 +82,8 @@ export default function NetworkPage() {
     } catch (e) { setSaid(e.message || "The request didn't go through."); }
   };
 
-  if (off) return (
-    <main className="net" data-network-off="">
-      <h1 className="net__title">Network</h1>
-      <p className="net__quiet">This isn't available yet.</p>
-    </main>
-  );
+  // ⭐ 46q (A222, owner 11-16): with the network switch off (A169) the page is not a place — it goes to the board.
+  if (off) return <Navigate to="/app/jobs" replace data-network-off="" />;
   if (!net) return <main className="net"><p className="net__quiet" role="status">{said || "Opening your network…"}</p></main>;
 
   return (

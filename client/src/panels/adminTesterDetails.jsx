@@ -21,7 +21,7 @@ const LABELS = {
   interview_prep: "interview prep", salary_insights: "salary insights", referrals: "referrals", mobile_app: "mobile app", browser_extension: "browser extension",
   computing: "computing", engineering: "engineering", management: "management", business: "business", science: "science",
   legal: "legal", arts_media: "design / media", sales: "sales", marketing: "marketing",
-  picks: "the picks", filters: "the filters", draft_house: "Home", map: "Your map", learn: "Learn", table: "The Table",
+  picks: "the picks", filters: "the filters", draft_house: "Home", map: "Your map", learn: "Learn", table: "Home (full sheet)",
 };
 
 // ⭐ D130 · BOTH SURVEYS — the trial's and the standalone page's (/survey): THE YC NUMBERS over everyone who answered,

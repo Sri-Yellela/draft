@@ -195,7 +195,7 @@ export default function PendingApplications({ data, theme, onRecord, onWithdraw,
               {/* D112 c2: a pending row nobody acts on moves to Not applied — say when, never delete it. */}
               {row.movesInDays != null && (
                 <span data-moves-in="" style={{ fontSize: ts(11), color: theme.textMuted }}
-                  title="After 14 days with nothing recorded it moves to Not applied in The Table — kept, and you can Restore it.">
+                  title="After 14 days with nothing recorded it moves to Not applied in Home — kept, and you can Restore it.">
                   {movesLabel(row.movesInDays)}
                 </span>
               )}
