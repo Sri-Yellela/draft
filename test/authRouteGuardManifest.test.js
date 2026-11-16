@@ -302,6 +302,7 @@ const AUTHENTICATED = new Set([
   "POST /api/audit/:token/claim",   // D150 T07: keep the result — signed in
   "GET /api/learn/today",           // D154 P1: today's question
   "POST /api/learn/today/answer",
+  "GET /api/learn/practice-progress", // D154 P6: the practice card (46q: moved off the shadowed /api/learn/progress)
   // 11-07: the D124 trial's /api/trial/* routes were removed with it. The sample résumés' practice form stays at
   // /try/practice/:jobId (routes/survey.js), outside /api, behind an HMAC naming one (account, posting).
   // D115 P3: a learner's own progress marks.

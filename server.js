@@ -13992,7 +13992,9 @@ app.get("/api/admin/phase1", requireAdmin, (_req, res) => {
   try { res.set("Cache-Control", "no-store").json(phase1Measures(db)); } catch (e) { res.status(500).json({ error: e.message }); }
 });
 // ⭐ D154 P6 + P7 (45n) · the quiet progress card — per-skill accuracy, the level from proof, the forgiving streak.
-app.get("/api/learn/progress", requireAuth, (req, res) => {
+// ⭐ 46q: its own path — at /api/learn/progress it was SHADOWED by routes/learn.js's lesson marks (mounted earlier), so
+// the practice card read {marks} and crashed the Atlas (p.level undefined) for every person since D154 P6.
+app.get("/api/learn/practice-progress", requireAuth, (req, res) => {
   try { res.set("Cache-Control", "no-store").json(practiceProgress(db, req.user.id, /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.day || "")) ? String(req.query.day) : null)); }
   catch (e) { auditFail(res, e); }
 });
