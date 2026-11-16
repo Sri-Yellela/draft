@@ -285,7 +285,10 @@ export function lookup(db, userId, { intent, args = {}, question = "" } = {}) {
     if (!q) return null;
     const r = retrieve(db, userId, q);
     const help = r.help[0] || null;
-    const lessons = r.lessons.slice(0, MAX_LESSONS);
+    // ⭐ A219 (46r, the 46q audit): a question draft's help answers is answered by the help ALONE. The Atlas lookup runs
+    // on every word of the question, so "how does ask me first work?" also drew an unrelated card ("Atlas — API: …" on
+    // production; "Work" on a fixture) — a wrong answer that reads as Tiny guessing. Atlas answers only what help doesn't.
+    const lessons = help ? [] : r.lessons.slice(0, MAX_LESSONS);
     if (!help && !lessons.length) return null;
     const parts = [];
     if (help) parts.push(`${help.title}: ${help.text}`);
