@@ -192,8 +192,11 @@ a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
 .jb-pair .jb__rail { gap: 8px; }
 .jb-pair .jb:hover .jb__rail, .jb-pair .jb:focus-within .jb__rail { max-width: 124px; }
 .jb-pair .jb__logo { width: 42px; height: 42px; }
-/* Every line one line (nowrap, ellipsis), so giving way never changes the row's height. */
-.jb-pair .jb__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* ⭐ A218 (46r, the 46q audit): the ROLE wraps to two lines (it was one, cut to "Senior Software Engin…" at 1440 — the role is
+   the thing being read). Its box always holds two lines, so a title that re-wraps as its neighbour gives way never changes
+   the row's height; a third line is clamped. The company and the facts below stay one line each. */
+.jb-pair .jb__title { white-space: normal; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+  min-height: calc(2em * 1.25); overflow-wrap: normal; word-break: normal; }
 /* ⭐ A201 (46k): a fact that does not fit drops WHOLE (it wraps to a second line the box hides) — never "Full-" / "Cor". */
 .jb-pair .jb__meta { flex-wrap: wrap; overflow: hidden; white-space: nowrap; max-height: calc(12.5px * var(--type-scale, 1) * 1.55); }
 .jb-pair .jb__meta i { flex: none; }
