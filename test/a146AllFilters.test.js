@@ -27,3 +27,10 @@ test("A146 · the panel draws EVERY clause through its own panel's options; the 
   assert.match(app, /<button type="button" className="bh__all" id=\{ALL_FILTERS_ID\} data-slot=\{BOARD_PANEL\.ALL\}/);
   assert.match(app, /onClick=\{\(\) => setBoardPanel\(current => nextBoardPanel\(current, BOARD_PANEL\.ALL\)\)\}>All filters<\/button>/);
 });
+
+test("A221 (46r) · the All filters word is drawn at the page's small text size — never a fraction of its parent's", () => {
+  const css = fs.readFileSync("client/src/components/FullHouse.css", "utf8");
+  const rule = css.match(/^\.bh__all \{([^}]*)\}/m)[1];
+  assert.match(rule, /font-size: calc\(13px \* var\(--type-scale, 1\)\);/, "it follows Settings → Text size");
+  assert.doesNotMatch(rule, /font-size: [\d.]+em/, "a relative em drew it at ~6 px beside the search's small text");
+});

@@ -140,7 +140,9 @@
 .fh-addrow { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--c-fh-line); }
 .fh-addrow .fh-k { display: block; margin-bottom: 8px; }
 /* ⭐ A146 (45o): "All filters" — the word after the sentence, and its panel's sections (every clause at once). */
-.bh__all { font: inherit; font-size: 0.55em; vertical-align: middle; margin-left: 6px; padding: 4px 10px; border-radius: 8px;
+/* ⭐ A221 (46r, the 46q audit): its size was 0.55em of whatever it sat in — beside the search bar's small text that drew it at
+   ~6 px, unreadable (shots 13, 43, 45). Now the page's small text size, whatever its parent; it follows Settings → Text size. */
+.bh__all { font: inherit; font-size: calc(13px * var(--type-scale, 1)); line-height: 1.4; vertical-align: middle; margin-left: 6px; padding: 4px 10px; border-radius: 8px;
   border: 1px solid var(--c-fh-line); background: transparent; color: var(--c-ink-muted); cursor: pointer; }
 .bh__all[aria-expanded="true"] { color: var(--c-ink); border-color: var(--c-accent); }
 .fh-all { display: flex; flex-direction: column; gap: 14px; }
