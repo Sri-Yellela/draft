@@ -99,7 +99,10 @@ function PanelMasthead({ job, experience, vtTitle, matchBox, matchPanel = null }
   const [open, setOpen] = useState(null);
   const cells = deckStrip(job, { experience }).map(c => panelWords(c, job));
   const extra = [];
-  if (job.liveness?.label) extra.push({ key: "history", label: "History", value: job.liveness.label });
+  // ⭐ A217 (46r, the 46q audit): "Open 55 days" beside "55 days ago · posted" was the same fact twice — the history cell
+  // is drawn only when it says something the posted cell does not (reposted, new).
+  const sameAsPosted = (job.liveness?.kind === "open" || job.liveness?.kind === "open_long") && cells.some(c => c.key === "posted" && c.value != null);
+  if (job.liveness?.label && !sameAsPosted) extra.push({ key: "history", label: "History", value: job.liveness.label });
   const sig = job.sponsorship?.level ? job.sponsorship : null;
   if (sig) extra.push({ key: "sponsorship", label: "Sponsorship", value: sig.label, more: <SponsorshipBlock signal={sig} /> });
   else if (job.sponsorshipFact?.text) extra.push({ key: "sponsorship", label: "Visa filings", value: "On file", more: <PostingSponsorship fact={job.sponsorshipFact} /> });
