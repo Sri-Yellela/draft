@@ -34,9 +34,9 @@ Size: **S** < 1 h, no design · **M** a few hours or a small design choice · **
 | F5 | Home (applications) | "Review all **2** →" under "**0** needs you" — shot 16 | two numbers for one thing on the same screen | Review all counts applications only (the 2 were the setup blockers) — `98fa9f21` | S |
 | F6 | Profile → Privacy · Admin → Atlas | still "Ask draft" (Tiny since 46n); the admin switch said "Open Ask draft to everyone" | retired name; the switch didn't say it means model spend | "Tiny"; "Let Tiny write for everyone (model calls)" — `98fa9f21` | S |
 | F7 | Home (applications) | "Nothing to show yet." on the table card's left edge | looked unfinished | padded inside the card — `98fa9f21` | S |
-| F·A224 | Account | "member since **12/31/1969**" when the account's created date is missing | an epoch date reads as a bug | no date → nothing — this commit | S |
-| F·A225 | Sign-up | the `<h1>` carries a `<style>` block (the type-set animation) — its CSS is the heading's text content | screen readers and anything reading the heading get CSS | the <style> moved beside the heading — this commit | S |
-| F·A226 | Tiny | the card's sub-line "draft's helper — no AI for anything draft alr…" is cut | the honest line about AI is the one that's cut | the line wraps — this commit | S |
+| F·A224 | Account | "member since **12/31/1969**" when the account's created date is missing | an epoch date reads as a bug | no date → nothing — `50232bc6` | S |
+| F·A225 | Sign-up | the `<h1>` carries a `<style>` block (the type-set animation) — its CSS is the heading's text content | screen readers and anything reading the heading get CSS | the <style> moved beside the heading — `50232bc6` | S |
+| F·A226 | Tiny | the card's sub-line "draft's helper — no AI for anything draft alr…" is cut | the honest line about AI is the one that's cut | the line wraps — `50232bc6` | S |
 
 ## To act on — ranked (A rows in the WORKLOG)
 
