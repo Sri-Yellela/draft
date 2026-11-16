@@ -130,7 +130,9 @@ test("44p · resumePromptOnlyOnEmptySuccess — 'Start with your résumé' only 
   assert.match(jp, /setProfilesState\(s => \(s === "ready" \? s : "error"\)\)/);
   const from = at(jp, "const setupBlock = ");
   const block = jp.slice(from, at(jp, "const canRankByFit", from));
-  assert.ok(block.indexOf(`profilesState === "error"`) < block.indexOf("Start with your résumé"), "the failure is answered before the prompt");
+  // A214 (46r, moved on purpose): the board's empty state is "Your jobs show here once your résumé is in" (the upload is the deck's).
+  assert.ok(block.indexOf("Your jobs show here once your résumé is in") > 0, "the empty state is in the block");
+  assert.ok(block.indexOf(`profilesState === "error"`) < block.indexOf("Your jobs show here once your résumé is in"), "the failure is answered before the prompt");
   assert.match(block, /We couldn't load your job profiles/);
   assert.match(block, /profilesState !== "ready" \? null/, "nothing replaces the board while the read is in flight");
 });

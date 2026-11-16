@@ -222,7 +222,7 @@ export const SHARED = Object.freeze({
   "components/DraftHouse.css":          { what: "Draft House's look", owner: "panels/AutoApplyPanel.jsx" },
   "components/ApplicationHistory.jsx":  { what: "The Table's history view (D15) — the full sheet's History; its CSV import is the tracker's header Import (D146)", module: "draftHouse" },
   "components/RefineJobProfile.jsx":   { what: "'Refine your job profile' — a profile made from a résumé opens the same wizard, everything filled (D112 e2); profiles and the profile panel" },
-  "components/StartFromResume.jsx":    { what: "the first screen of a new account — one résumé upload sets up the first job profile (A104); the board and the deck" },
+  "components/StartFromResume.jsx":    { what: "the first screen of a new account — one résumé upload sets up the first job profile (A104); the deck (A214: the board beside it no longer repeats it)" },
   "components/ProfileSections.jsx":    { what: "Profile in sections + Application defaults — what the fill reads for eligibility and self-ID (D101)" },
   "components/ApplicationInbox.jsx":    { what: "The Table's Inbox — replies from job sites, forwarded or read through a Gmail connection, filed by rule (D103, D112)", module: "draftHouse" },
   "components/ApplicationHistory.css":  { what: "its look", owner: "components/ApplicationHistory.jsx" },
