@@ -221,7 +221,8 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 .appnav-ask__face { flex: none; width: 36px; height: 36px; aspect-ratio: 1; border-radius: 50%; background: var(--c-surface-2); }
 .appnav-ask__who { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
 .appnav-ask__head h2 { margin: 0; font-size: calc(16px * var(--type-scale, 1)); font-weight: 600; color: var(--c-ink); }
-.appnav-ask__who span { color: var(--c-ink-muted); font-size: calc(11.5px * var(--type-scale, 1)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 46q (A226): the honest line about AI wraps — it was the line cut by the ellipsis. */
+.appnav-ask__who span { color: var(--c-ink-muted); font-size: calc(11.5px * var(--type-scale, 1)); line-height: 1.35; }
 .appnav-ask .appnav-ask__close { position: static; flex: none; }
 .appnav-ask__body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 12px; }
 .appnav-ask__say { margin: 0; color: var(--c-ink-muted); font-size: calc(14px * var(--type-scale, 1)); line-height: 1.5; }

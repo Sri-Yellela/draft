@@ -429,7 +429,7 @@ function ProfileSection({ account, avatarUrl, fileRef, busy, run, post }) {
             <input id="acct-name" style={input} value={name} maxLength={120} onChange={e => setName(e.target.value)} />
             <button style={btn} disabled={!!busy || !name.trim() || name.trim() === account.displayName}>Save</button>
           </form>
-          <div style={muted}>Username <strong style={{ color: "var(--color-text)" }}>{account.username}</strong> · member since {new Date((account.createdAt || 0) * 1000).toLocaleDateString()}</div>
+          <div style={muted}>Username <strong style={{ color: "var(--color-text)" }}>{account.username}</strong> {/* 46q (A224): no date → nothing, never 12/31/1969 */}{account.createdAt ? ` · member since ${new Date(account.createdAt * 1000).toLocaleDateString()}` : ""}</div>
         </div>
       </div>
     </SettingsSection>

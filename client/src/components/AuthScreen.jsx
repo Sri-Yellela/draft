@@ -456,15 +456,16 @@ let headlineSet = false;   // module-level: the type sets once per page session,
 
 function SetOnceHeading({ size }) {
   const [animate] = useState(() => { const first = !headlineSet; headlineSet = true; return first; });
-  return (
-    <h1 aria-label={HEADLINE} data-set-once={animate ? "playing" : "set"}
-      style={{ fontFamily:"var(--font-display)", fontWeight:400, fontSize:size, lineHeight:1.02, letterSpacing:"-0.01em",
-               color:C.INK, margin:0, maxWidth:560 }}>
+  // 46q (A225): the animation's <style> sits BESIDE the heading, not inside it (it was the heading's text content).
+  return (<>
       <style>{`
         @keyframes draft-type-set { from { opacity:0; transform:translate3d(0, 0.18em, 0); } }
         [data-set-once="playing"] span[data-ch] { display:inline-block; animation:draft-type-set 420ms cubic-bezier(.2,.8,.2,1) both; }
         @media (prefers-reduced-motion: reduce) { [data-set-once="playing"] span[data-ch] { animation:none; } }
       `}</style>
+    <h1 aria-label={HEADLINE} data-set-once={animate ? "playing" : "set"}
+      style={{ fontFamily:"var(--font-display)", fontWeight:400, fontSize:size, lineHeight:1.02, letterSpacing:"-0.01em",
+               color:C.INK, margin:0, maxWidth:560 }}>
       {animate
         ? HEADLINE.split(" ").flatMap((word, wi, words) => {
             // Words never break inside: letters are inline-blocks, and a line may break between any two.
@@ -478,7 +479,7 @@ function SetOnceHeading({ size }) {
           })
         : HEADLINE}
     </h1>
-  );
+  </>);
 }
 
 // Paper that reacts: the substrate drifts a few pixels against the pointer. Fine pointers only (a
