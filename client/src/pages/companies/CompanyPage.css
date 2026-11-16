@@ -1,5 +1,5 @@
 /* ⭐ D179 P4b · the company page. Colours from tokens only (D149 / D181); no capsule shapes (D60). */
-.co { max-width: 880px; margin: 0 auto; padding: 32px 24px 64px; color: var(--c-ink); box-sizing: border-box; }
+.co { max-width: none; margin: 0; padding: 32px var(--page-gutter) 64px; /* 46q FULL WIDTH */ color: var(--c-ink); box-sizing: border-box; }
 .co--empty { text-align: center; color: var(--c-ink-muted); }
 .co__back { background: none; border: none; color: var(--c-accent-ink); font: inherit; font-size: 14px; cursor: pointer; padding: 0; margin-bottom: 16px; }
 .co__head { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 28px; }

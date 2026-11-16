@@ -97,7 +97,7 @@ test("the hero's offset became a distance BELOW the chrome, not an absolute one"
   // D35: the hero is the Full House header (FullHouse.css .fh — header.html's 22px), still a distance
   // BELOW the reserved chrome and never an absolute offset that clears it.
   assert.match(app, /<header className="fh"/);
-  assert.match(fs.readFileSync("client/src/components/FullHouse.css", "utf8"), /\.fh \{[^}]*padding: 22px 22px 0;/);
+  assert.match(fs.readFileSync("client/src/components/FullHouse.css", "utf8"), /\.fh \{[^}]*padding: 22px var\(--page-gutter\) 0;/);
   assert.ok(!strip(app).includes('padding:"80px 20px 40px"'),
     "the hero is back on an absolute offset that clears the chrome by coincidence");
 });

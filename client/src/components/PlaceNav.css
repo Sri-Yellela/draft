@@ -1,13 +1,13 @@
 /* ⭐ D167 · a place with its own navigation (components/PlaceNav.jsx) — the sketches' .atlas / .nav / .panel, in the
- * theme's tokens. One centred group (D163): the nav card and the panel (at most 900 px — the panels' own content is
- * narrower, and a wider column left the group leaning left), the free space shared on both sides.
+ * theme's tokens. ⭐ 46q FULL WIDTH (owner 11-16; was D163's centred group): the nav card pinned at the left edge (inside
+ * --page-gutter), the panel taking the rest of the width — docs/BRAND.md § FULL WIDTH.
  * No capsule (D60): the card's corners are 24 px on a tall card, the items 12 px on a 38 px row. */
 .pl {
-  display: grid; grid-template-columns: 232px minmax(0, 900px); justify-content: center; gap: clamp(20px, 3vw, 40px);
-  max-width: 1280px; margin: 0 auto; padding: 28px clamp(16px, 3vw, 40px) 72px; box-sizing: border-box; width: 100%;
+  display: grid; grid-template-columns: 232px minmax(0, 1fr); justify-content: stretch; gap: clamp(20px, 3vw, 40px);
+  max-width: none; margin: 0; padding: 28px var(--page-gutter) 72px; box-sizing: border-box; width: 100%;
 }
 /* ⭐ A136 · inside a page that already pads it (Atlas's <main>): no second padding, and the panel takes the rest. */
-.pl--fill { grid-template-columns: 232px minmax(0, 1fr); justify-content: stretch; max-width: none; padding: 0; }
+.pl--fill { padding: 0; }
 .pl__item:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
 .pl__nav {
   position: sticky; top: calc(var(--app-chrome-height, 0px) + 20px); align-self: start;

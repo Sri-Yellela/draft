@@ -79,7 +79,7 @@ export default function FindFitApply() {
 
   return (
     <section aria-labelledby="ffa-title" data-find-fit-apply
-      style={{ maxWidth: 1040, margin: "0 auto", padding: "72px 20px 88px", boxSizing: "border-box", color: C.INK }}>
+      style={{ margin: 0, padding: "72px var(--page-gutter) 88px", boxSizing: "border-box", color: C.INK }}>
       <h2 id="ffa-title" style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "clamp(40px, 6vw, 72px)",
                                     lineHeight: 1, letterSpacing: "-0.01em", margin: "0 0 14px", textAlign: "center" }}>
         find <span style={{ color: C.ACCENT_INK }}>/</span> fit <span style={{ color: C.ACCENT_INK }}>/</span> apply

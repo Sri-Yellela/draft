@@ -44,7 +44,7 @@ test("D37(1) · each slot is a token PLUS its noun — plural unset, singular wi
 test("D37(2)(3) · ONE centred column: margin-inline auto, a 760px ceiling, the sentence filling it", () => {
   const css = read("client/src/components/FullHouse.css");
   const fh = css.slice(at(css, ".fh {"), at(css, "}", at(css, ".fh {")));
-  assert.match(fh, /max-width: 804px; margin-inline: auto;/, "the column: 760px plus the 22px gutters, centred");
+  assert.match(fh, /max-width: none; margin-inline: 0; padding: 22px var\(--page-gutter\) 0;/, "⭐ 46q FULL WIDTH (owner 11-16, moved on purpose): the column fills the width with the page gutter (was D37's centred 804)");
   const bh = css.slice(at(css, ".bh {"), at(css, "}", at(css, ".bh {")));
   assert.match(bh, /max-width: none;/, "the sentence shares the bar's width, not a narrower 46ch of its own");
   assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ""), /text-align:\s*center/, "centred as a BLOCK, never as text");

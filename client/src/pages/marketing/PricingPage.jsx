@@ -61,7 +61,7 @@ export function PricingPage() {
                   background: "transparent", color: "var(--color-text)",
                   fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <ScrollDock variant="marketing" />
-      <main style={{ flex: 1, maxWidth: 960, margin: "0 auto", padding: "64px 24px" }}>
+      <main style={{ flex: 1, width: "100%", boxSizing: "border-box", margin: 0, padding: "64px var(--page-gutter)" }}>
         <h1 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 400,
                       color: "var(--color-text)", marginBottom: 12, lineHeight: 1.1, textAlign: "center",
                       fontFamily: "var(--font-display)" }}>

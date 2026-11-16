@@ -1,7 +1,7 @@
 /* ⭐ D167 · ATLAS'S PANELS (AtlasPanels.jsx, AtlasPage.jsx) — the approved sketch (docs/sketches/Atlas.html) in the site's
    tokens: every colour a theme token (var(--c-*)), so all four themes paint it. No capsules (D60): states are marks, the one
    action a depth box. ⭐ A136: the nav card and the shell beside it are components/PlaceNav.jsx (one implementation). */
-.atl--panels { max-width: 1280px; }
+.atl--panels { max-width: none; }
 @media (prefers-reduced-motion: no-preference) { .atl-pan { animation: atl-pan-in .28s ease; } }
 @keyframes atl-pan-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 

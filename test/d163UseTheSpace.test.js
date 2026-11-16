@@ -28,8 +28,9 @@ function measured(t) {
 
 // ── pure ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 test("d163 (pure): one centred group at most 1680 wide; gutters and gaps are clamp()s; the dock centred on its gutter", () => {
-  assert.match(FH, /\.home \{ --home-gutter: clamp\(24px, 5\.625vw - 48px, 96px\); --home-gap: clamp\(32px, 2\.5vw, 64px\);/);
-  assert.match(FH, /max-width: calc\(1680px \+ 2 \* var\(--home-gutter\)\); margin: 0 auto;\n  padding: 28px var\(--home-gutter\) 80px;/);
+  // ⭐ 46q FULL WIDTH (owner 11-16, moved on purpose): the page gutter, no 1680 cap — the composition fills the screen.
+  assert.match(FH, /\.home \{ --home-gutter: var\(--page-gutter\); --home-gap: clamp\(32px, 2\.5vw, 64px\);/);
+  assert.match(FH, /max-width: none; margin: 0;\n  padding: 28px var\(--home-gutter\) 80px;/);
   assert.match(FH, /@media \(min-width: 1440px\) \{ \.home \{ --home-deck-track: minmax\(640px, \.75fr\); \}/);
   // ⭐ D167 (changed on purpose): a side dock is centred in the page's margin both ways (AppNav.jsx measures the margin).
   assert.match(NAVCSS, /\.appnav-dock\[data-nav-dock\] \{ top: 50%; left: calc\(var\(--appnav-margin, 72px\) \/ 2\); transform: translate\(-50%, -50%\); \}/);
@@ -45,11 +46,10 @@ test("d163ContentGroupCentred (real Chrome, 1280 · 1440 · 1920 · 2560): left 
     assert.ok(Math.abs(r.leftFree - r.rightFree) <= 0.05 * out[w].vw,
       `${w}: left ${r.leftFree} vs right ${r.rightFree} (the drawn content)`);
     assert.ok(Math.abs(r.homeLeftFree - r.homeRightFree) <= 0.05 * out[w].vw, `${w}: the composition's box ${r.homeLeftFree} / ${r.homeRightFree}`);
-    assert.ok(r.group.right - r.group.left <= 1680 + 2, `${w}: at most 1680 wide (${r.group.right - r.group.left})`);
+    // ⭐ 46q FULL WIDTH (owner 11-16, moved on purpose — was "at most 1680 wide, > 300 free each side at 2560"): the
+    // composition fills the screen inside the page gutter (clamp(16px, 3vw, 48px)) at every width.
+    assert.ok(r.leftFree <= 80 && r.rightFree <= 80, `${w}: the composition fills the width (${r.leftFree} / ${r.rightFree})`);
   }
-  // on the widest screen the composition sits in the middle, never in a corner
-  const r = out["2560"].rest;
-  assert.ok(r.leftFree > 300 && r.rightFree > 300, `2560: room on both sides (${r.leftFree} / ${r.rightFree})`);
 });
 
 test("d163GapsScaleWithWidth (real Chrome): the gap between the columns and the side gutters grow with the screen", { timeout: 300000 }, (t) => {
@@ -60,7 +60,8 @@ test("d163GapsScaleWithWidth (real Chrome): the gap between the columns and the 
     assert.ok(gutters[i] >= gutters[i - 1], `gutters never shrink as the screen grows (${gutters})`);
   }
   assert.ok(gaps[0] >= 24 && gaps[0] <= 40 && gaps[3] === 64, `the gap ≈ 24–40 at 1280, 64 at 2560 (${gaps})`);
-  assert.ok(gutters[0] === 24 && gutters[3] === 96, `the gutters 24 at 1280, 96 at 2560 (${gutters})`);
+  // ⭐ 46q FULL WIDTH (changed on purpose): the page gutter clamp(16px, 3vw, 48px) — 38.4 at 1280, 48 from 1600 (was 24 → 96).
+  assert.ok(Math.round(gutters[0]) === 38 && Math.round(gutters[3]) === 48, `the gutters 38 at 1280, 48 at 2560 (${gutters})`);
   for (const w of WIDTHS) assert.equal(out[w].rest.gutterL, out[w].rest.gutterR, `${w}: even gutters`);
   // the postings keep two columns, and the bubbles are larger on a wide screen
   for (const w of WIDTHS) assert.equal(out[w].rest.bubbles.length, 2, `${w}: two columns of postings`);
@@ -94,7 +95,8 @@ test("d163DockOwnGutterVerticallyCentred → D167 (real Chrome): a side dock cen
       assert.ok(r.dock.bottom <= (r.group?.top ?? Infinity), `${w}: above the content (${r.dock.bottom} vs ${r.group?.top})`);
     }
   }
-  assert.equal(out["2560"].rest.place, "side"); assert.equal(out["1280"].rest.place, "top");
+  // ⭐ 46q FULL WIDTH (changed on purpose): the content starts at the page gutter, so the dock is at the top at every width.
+  assert.equal(out["2560"].rest.place, "top"); assert.equal(out["1280"].rest.place, "top");
   for (const w of WIDTHS) {
     const o = out[w].open;
     if (!o) continue;

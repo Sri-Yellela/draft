@@ -82,7 +82,7 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded
   const tabs = prep ? [...TABS.slice(0, 1), ["prep", "Prep"], ...TABS.slice(1)] : TABS;
 
   return (
-    <div data-job-workspace={d.id} style={{ flex: 1, overflowY: "auto", padding: embedded ? 0 : "16px 20px 32px", display: "flex", flexDirection: "column", gap: 14, maxWidth: 980, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+    <div data-job-workspace={d.id} style={{ flex: 1, overflowY: "auto", padding: embedded ? 0 : "16px 20px 32px", display: "flex", flexDirection: "column", gap: 14, width: "100%", boxSizing: "border-box" }}>
       <header style={{ display: "flex", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
         {!embedded && <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={back} aria-label="Back">←</button>}
         <div style={{ flex: 1, minWidth: 220 }}>

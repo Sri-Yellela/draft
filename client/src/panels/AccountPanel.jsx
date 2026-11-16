@@ -130,7 +130,7 @@ export function AccountPanel({ onSignedOut, only = null }) {
     <div className="rm-account" style={{ flex: 1, overflowY: "auto", padding: "28px 16px 44px" }}>
       {/* A disabled control must LOOK disabled — inline styles cannot reach :disabled. */}
       <style>{".rm-account button:disabled{opacity:.45;cursor:not-allowed}"}</style>
-      <div style={{ maxWidth: 820, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="page-cards" data-page-width="cards">
         {!only && (
         <div>
           <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: ts(28), fontWeight: 400, color: "var(--color-text)" }}>Account</h1>

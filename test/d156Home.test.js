@@ -59,7 +59,7 @@ test("d156LandscapeCardAt1440WithStats (pure): 600 × 372 at ≥ 1440, the 640 c
   // between the columns grow with the screen (24 → 96, 32 → 64) and the content is 1680 wide at most
   // (test/d163UseTheSpace.test.js). At 1280 the gutters are still D156 (2)'s 24.
   assert.match(css, /@media \(min-width: 1440px\) \{ \.home \{ --home-deck-track: minmax\(640px, \.75fr\); \} \.home__deck \{ width: auto; min-width: 640px; \} \}/);
-  assert.match(css, /\.home \{ --home-gutter: clamp\(24px, 5\.625vw - 48px, 96px\);[^}]*grid-template-columns: var\(--home-deck-track, auto\) minmax\(0, 1fr\); gap: var\(--home-gap\);/,
+  assert.match(css, /\.home \{ --home-gutter: var\(--page-gutter\);[^}]*grid-template-columns: var\(--home-deck-track, auto\) minmax\(0, 1fr\); gap: var\(--home-gap\);/,
     "less page margin (was 44 40 90, 56 between the columns); D163: growing with the screen");
 });
 

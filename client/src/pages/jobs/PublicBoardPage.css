@@ -1,5 +1,5 @@
 /* ⭐ D179 P3 · the open board. Colours from tokens only (D149 / D181); no capsule shapes (D60). */
-.pb { max-width: 920px; margin: 0 auto; padding: 32px 24px 64px; color: var(--c-ink); box-sizing: border-box; }
+.pb { max-width: none; margin: 0; padding: 32px var(--page-gutter) 64px; /* 46q FULL WIDTH */ color: var(--c-ink); box-sizing: border-box; }
 .pb__head h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 4vw, 40px); margin: 0; }
 .pb__lead { color: var(--c-ink-muted); margin: 6px 0 20px; font-size: 14px; }
 .pb a { color: var(--c-accent-ink); }

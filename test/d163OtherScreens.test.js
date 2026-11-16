@@ -37,7 +37,7 @@ test("d163 other screens (pure): one probe measures every screen; Integrations p
   for (const s of [...SCREENS, "settings"]) assert.match(SHOTS, new RegExp(`\\n      "?${s}"?: \\{ app: "/(app|admin)`), `${s} is measured`);
   assert.match(SHOTS, /sizes: \{ "1280": \[1280, 800\], "1440": \[1440, 900\], "1920": \[1920, 1080\], "2560": \[2560, 1440\], phone: \[390, 844\] \},\n    routes:/);
   // the wrapper was background: var(--color-bg) (= --bg-page = SURFACE): a lighter slab from the dock to the right edge
-  assert.match(INTEG, /<div style=\{\{ flex:1, overflowY:"auto", padding:"28px 24px 44px" \}\}>\n      <div style=\{\{ maxWidth:980, margin:"0 auto"/);
+  assert.match(INTEG, /<div style=\{\{ flex:1, overflowY:"auto", padding:"28px 24px 44px" \}\}>\n      <div className="page-cards" data-page-width="cards">/); // ⭐ 46q FULL WIDTH
   assert.doesNotMatch(INTEG, /overflowY:"auto", background:"var\(--color-bg\)"/);
 });
 
@@ -49,10 +49,12 @@ test("d163ContentGroupCentred, the other screens (real Chrome, 1280 · 1440 · 1
     assert.ok(m.group, `${s} ${w}: drew (${m.missing ? `no ${m.missing}` : ""} ${(m.pageErrors || []).join(" | ")})`);
     assert.ok(Math.abs(m.leftFree - m.rightFree) <= 0.05 * m.vw, `${s} ${w}: left ${m.leftFree} vs right ${m.rightFree}`);
   }
-  // on the widest screen every screen sits in the middle, never in a corner
-  for (const s of SCREENS) {
-    const m = out[s]["2560"];
-    assert.ok(m.leftFree > 200 && m.rightFree > 200, `${s} 2560: room on both sides (${m.leftFree} / ${m.rightFree})`);
+  // ⭐ 46q FULL WIDTH (owner 11-16, moved on purpose — was "> 200 free each side at 2560", D163's centred group): every
+  // screen fills the width inside the page gutter (clamp(16px, 3vw, 48px)), the dock at the top on a desktop.
+  for (const s of SCREENS) for (const w of WIDTHS) {
+    const m = out[s][w];
+    assert.ok(m.leftFree <= 80 && m.rightFree <= 80, `${s} ${w}: fills the width (${m.leftFree} / ${m.rightFree})`);
+    if (s !== "admin") assert.equal(m.place, "top", `${s} ${w}: the dock at the top — the content starts at the gutter`);
   }
 });
 

@@ -8,7 +8,7 @@
 /* The shell already reserves the floating mark's 74 px above (App.jsx, useChromeHeight), so 10 more puts the title at
    the sketch's 84. The interface face is the theme's (Inter Tight in Dusk) — the shell's inline DM Sans is overridden. */
 .dh-page {
-  padding: 10px 20px 120px; max-width: 1240px; width: 100%; margin: 0 auto; display: flex; flex-direction: column;
+  padding: 10px var(--page-gutter) 120px; max-width: none; width: 100%; margin: 0; box-sizing: border-box; /* 46q FULL WIDTH */ display: flex; flex-direction: column;
   line-height: 1.55; font-family: var(--shape-font-ui, var(--font-body)); font-size: calc(16px * var(--type-scale, 1));
 }
 .dh-page > .dht-acts, .dh-page > .dh-note, .dh-page > .dh-handoff, .dh-page > .dh-banner { margin-top: 12px; }

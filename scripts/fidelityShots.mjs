@@ -427,7 +427,9 @@ const SCREENS = {
     // ⭐ D167 (owner 11-06, the dock goes where the space is): the rail's motion exists only as a SIDE dock — 2560 has the
     // margin for it; narrower screens put the dock at the top (`--styles dock167place`).
     sizes: { "2560": [2560, 1440], rm: [2560, 1440] },
-    appPrep: async () => { await sleep(1200); },
+    // ⭐ 46q FULL WIDTH: no screen leaves a side margin any more (the dock is at the top everywhere); the side dock still
+    // serves a page that does, so this probe centres Home at its pre-46q 1680 to measure it.
+    appPrep: async (page) => { await page.addStyleTag({ content: ".home { max-width: calc(1680px + 2 * var(--home-gutter)) !important; margin: 0 auto !important; }" }); await sleep(1200); },
     nodeProbe: async (page, size) => {
       const q = (fn, ...a) => page.evaluate(fn, ...a);
       const box = (sel) => q((s) => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height }; }, sel);
@@ -562,7 +564,7 @@ const SCREENS = {
       "saved-answers": { app: "/app/profile/answers", fixtures: SETTINGS, ready: "main", appPrep: async () => { await sleep(900); } },
       interview: { app: "/app/interview/upcoming", fixtures: { ...SETTINGS, "/api/interview/upcoming": { interviews: [] } }, ready: "[data-upcoming-empty]", appPrep: async () => { await sleep(900); } },
       admin: { app: "/admin", fixtures: { "/api/admin/auth/me": { authenticated: true, enforced: true, admin: { email: "admin@example.invalid" } },
-        "/api/auth/me": { authenticated: false } }, strict: true, ready: "h1", probe: { root: 'div[style*="max-width: 1200px"]' }, appPrep: async () => { await sleep(900); } },
+        "/api/auth/me": { authenticated: false } }, strict: true, ready: "h1", probe: { root: "[data-admin-page]" }, appPrep: async () => { await sleep(900); } },
     } },
   deck: { sketch: "declutter-v7.html", app: "/app", fixtures: DECK, ready: "[data-deck-face]" },
   fullhouse: { sketch: "fullhouse-declutter.html", app: "/app/jobs", fixtures: FULLHOUSE, ready: "[data-fh-title]",

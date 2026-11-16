@@ -88,7 +88,7 @@ test("D92 · THE SEAM TEST — no hard step where no boundary is intended: 4 the
   const { THEME_LIST, cssVarName } = await import("../client/src/themes/index.js");
   const { FULL_HOUSE_TYPE, typeVarName } = await import("../client/src/styles/type.js");
   const { LAYOUT_OPTION_IDS } = await import("../shared/appearance.js");
-  const css = ["client/src/components/TopBar.css", "client/src/components/AppNav.css", "client/src/components/StickyBar.css", "client/src/components/FullHouse.css"].map(read).join("\n");
+  const css = ["client/src/styles/pageWidth.css" /* 46q: global, loaded by main.jsx */, "client/src/components/TopBar.css", "client/src/components/AppNav.css", "client/src/components/StickyBar.css", "client/src/components/FullHouse.css"].map(read).join("\n");
   const typeVars = Object.entries(FULL_HOUSE_TYPE).map(([k, v]) => `${typeVarName(k)}:${v}`).join(";");
   const page0 = (t, nav, sentence, stuck) => `<!doctype html><html data-theme="${t.id}" data-navigation="${nav}" data-sentence="${sentence}"
     style="${Object.entries(t.tokens).map(([k, v]) => `${cssVarName(k)}:${v}`).join(";")};${typeVars};--z-sticky:5;--font-body:sans-serif;--app-chrome-height:74px">

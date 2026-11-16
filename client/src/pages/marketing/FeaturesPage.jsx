@@ -69,7 +69,7 @@ export function FeaturesPage() {
     <div className="scroll-dock-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
                   background: "transparent", color: C.INK, fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <ScrollDock variant="marketing" />
-      <main style={{ flex: 1, width: "100%", maxWidth: 920, margin: "0 auto", padding: "64px 16px 80px", boxSizing: "border-box" }}>
+      <main style={{ flex: 1, width: "100%", margin: 0, padding: "64px var(--page-gutter) 80px", boxSizing: "border-box" }}>
         <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "clamp(40px, 6vw, 68px)", lineHeight: 1,
                      letterSpacing: "-0.01em", margin: "0 0 16px" }}>
           What each tool is for

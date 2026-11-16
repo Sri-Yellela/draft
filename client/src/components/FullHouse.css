@@ -20,7 +20,7 @@
 .fh {
   --fh-t: .34s; --fh-e: cubic-bezier(.3, .8, .25, 1);
   /* the column: a 760px ceiling plus the 22px gutters */
-  box-sizing: border-box; width: 100%; max-width: 804px; margin-inline: auto; padding: 22px 22px 0;
+  box-sizing: border-box; width: 100%; max-width: none; margin-inline: 0; padding: 22px var(--page-gutter) 0; /* 46q FULL WIDTH (was D37's centred 804) */
   text-align: left;
 }
 
@@ -245,7 +245,9 @@
   background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; border-bottom: 0;
 }
 .fh.fh--bar-row[data-stuck="true"]::before {
-  content: ""; position: absolute; inset: -8px -28px -12px; z-index: -1; pointer-events: none;
+  /* ⭐ 46q FULL WIDTH: the column fills the window now, so the frost stays inside it (was -28px fringes each side) —
+     the mask still feathers its edges; a fringe would widen the page (1468 in a 1440 window, measured by d92). */
+  content: ""; position: absolute; inset: -8px 0 -12px; z-index: -1; pointer-events: none;
   background: color-mix(in srgb, var(--c-surface-solid) 70%, transparent);
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   -webkit-mask-image: linear-gradient(to right, transparent, var(--c-ink) 6%, var(--c-ink) 94%, transparent), linear-gradient(to bottom, var(--c-ink) 72%, transparent);
@@ -293,7 +295,7 @@
  * no edge, no glyph · `.fsent` 400 30px/1.35 serif in --body, 18px above / 14 below, 30ch; its words ink, underlined
  * 1.5px in the accent · `.sbar` the field alone: the card, corner 14, padding 12 16, 16px, 620 wide, no edge, no shadow
  * · `.cnt` 30px 500 (-.03em) over 13px muted, 28px apart, 22px under the search, 14px above the list. */
-.fh[data-fh-d147], .fh.fh--bar-row, .fh.fh-counts { max-width: 1240px; padding-left: 20px; padding-right: 20px; }
+.fh[data-fh-d147], .fh.fh--bar-row, .fh.fh-counts { max-width: none; padding-left: var(--page-gutter); padding-right: var(--page-gutter); } /* 46q FULL WIDTH */
 .fh[data-fh-d147] { padding-top: 10px; font-family: var(--shape-font-ui, var(--font-body)); }
 /* ⭐ D156 (1d): the sentence's size is the original's (above), not the sketch's 30px at every width. */
 .fh[data-fh-d147] .bh { margin: 18px 0 14px; max-width: 30ch; color: var(--c-ink-muted); }
@@ -332,9 +334,10 @@
  * space is shared evenly on both sides; the side gutters grow with the screen, 24 at 1280 → 96 at 2560 (were 24 at every
  * width), and the gap between the columns 32 → 64 (was 40 at every width). Measured: scripts/fidelityShots.mjs --styles
  * home163 (test/d163UseTheSpace.test.js). */
-.home { --home-gutter: clamp(24px, 5.625vw - 48px, 96px); --home-gap: clamp(32px, 2.5vw, 64px);
+/* ⭐ 46q FULL WIDTH (owner 11-16): no 1680 cap, the page gutter — the composition fills the screen. */
+.home { --home-gutter: var(--page-gutter); --home-gap: clamp(32px, 2.5vw, 64px);
   display: grid; grid-template-columns: var(--home-deck-track, auto) minmax(0, 1fr); gap: var(--home-gap);
-  max-width: calc(1680px + 2 * var(--home-gutter)); margin: 0 auto;
+  max-width: none; margin: 0;
   padding: 28px var(--home-gutter) 80px; box-sizing: border-box; width: 100%; }
 /* ⛔ D156 (1c): D152 (6)'s posting in place of the list (the whole right column) is REMOVED — the opened posting is drawn
    on the deck, in the front card's place (DeckView's slot); the list beside it stays as it is. */

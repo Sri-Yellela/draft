@@ -538,8 +538,8 @@ export default function AuthScreen({ onLogin, initialTab = "login" }) {
     <div style={{ display:"flex", flexDirection:"column", minHeight:"100vh", position:"relative", isolation:"isolate",
                   fontFamily:"'DM Sans',system-ui,sans-serif" }}>
       <DealBackdrop compact={!wide} />
-      <main style={{ flex:"1 1 auto", position:"relative", zIndex:Z.CONTENT, width:"100%", maxWidth:1180, margin:"0 auto",
-                     boxSizing:"border-box", padding: wide ? "64px 40px 56px" : "28px 16px 40px",
+      <main style={{ flex:"1 1 auto", position:"relative", zIndex:Z.CONTENT, width:"100%", margin:0, /* 46q FULL WIDTH */
+                     boxSizing:"border-box", padding: wide ? "64px var(--page-gutter) 56px" : "28px 16px 40px",
                      display:"grid", gap: wide ? 48 : 24, alignItems:"start",
                      gridTemplateColumns: wide ? "minmax(0, 1fr) 400px" : "minmax(0, 1fr)" }}>
         {/* Narrow: the form comes straight after the headline — the hook follows it, never in front. */}

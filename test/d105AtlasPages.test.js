@@ -268,7 +268,7 @@ test("D105 P4 · phone width — nothing in the Atlas is wider than its column; 
   assert.match(css, /\.atl__graph svg \{[^}]*width: 100%;[^}]*max-width: 100%/);
   assert.match(css, /repeat\(auto-fit, minmax\(min\(180px, 100%\), 1fr\)\)/, "the columns collapse to one on a phone");
   assert.match(css, /\.atl__search \{[^}]*flex-wrap: wrap/);
-  assert.match(css, /\.atl \{[^}]*padding: 32px 16px 64px/, "a 16px side gutter");
+  assert.match(css, /\.atl \{[^}]*padding: 32px var\(--page-gutter\) 64px/, "a 16px side gutter");
   assert.doesNotMatch(css, /border-radius:\s*(999|50%)/);
   const page = read("client/src/pages/atlas/AtlasPage.jsx");
   assert.match(page, /className="mark mark--/, "status and kind are marks");

@@ -313,7 +313,7 @@ export function IntegrationsPanel({ embedded = false }) {
     // a lighter slab flush against the screen at every width while the cards sat centred inside it (measured: the slab
     // 72–1920 at 1920, the cards 434 / 434 from its sides). The page is the substrate, as on the board (JobsPanel, 09-30).
     <div style={{ flex:1, overflowY:"auto", padding:"28px 24px 44px" }}>
-      <div style={{ maxWidth:980, margin:"0 auto", display:"flex", flexDirection:"column", gap:16 }}>
+      <div className="page-cards" data-page-width="cards">
         {!embedded && (
         <div>
           <div style={{ fontFamily: "var(--font-display)", fontSize:ts(28),
