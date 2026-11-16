@@ -87,7 +87,9 @@
 .yp__row { border-top: 1px solid var(--c-border); padding: 10px 0; }
 .yp__row > summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
 .yp__row[open] > summary { margin-bottom: 10px; }
-.yp__photo { display: inline-flex; align-items: center; gap: 6px; }
+.yp__photo { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; }
+/* ⭐ A223 (46r, the 46q audit): the head row is space-between, so at full width "Add a photo" floated mid-row between the
+   avatar and the actions; its auto margin takes the free space, so it sits beside the avatar and the actions stay right. */
 
 /* (B)-3 (45o): Apply for me's new family waits for Keep / Change back */
 .yp__decision { border: 1px solid var(--c-accent); border-radius: 12px; padding: 10px 12px; display: grid; gap: 6px; }
