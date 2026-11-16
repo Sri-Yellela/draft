@@ -26,6 +26,10 @@
 //   GET  /api/atlas/tree/role/:slug       centre = the role, its top skills, distance = the share of its postings
 //   GET  /api/atlas/tree/family/:key      centre = the family (shared/atlasFamilies.js — computing's five and, ⭐ A111 P3, a family per field of every D127 category)
 // ⭐ A111 P3 · ONE ROLE AGAINST THE READER'S RÉSUMÉ (public; signed in, the reader's own have / missing — never stored):
+// ⭐ A228 (46r) · THE SKILL MAP (signed in; private):
+//   GET  /api/atlas/skill-map?role=<id or slug>  → services/atlas/skillMap.js skillMapFor: the jobs the reader can apply for
+//                                         (≥ 60 % of a job's asks, proven 1 · on the résumé 0.5), the histogram, the role's asks,
+//                                         Learn next (jobs per hour) and the roles to move to. 404 for an unknown role.
 //   GET  /api/atlas/role-fit?role=<slug or title>&job=<job_id>   → services/atlas/atlasRoleFit.js roleFitReading: the role's
 //                                         top 15 from the board, have / missing ("You cover 9 of this role's top 15"), the
 //                                         next level's rising skills, the role page link; another category's skills never
@@ -96,6 +100,7 @@ import { computeYourMap, SECTIONS } from "../services/atlas/atlasMe.js";
 import { roleTree, familyTree } from "../services/atlas/atlasTree.js";
 import { roleBoard } from "../services/atlas/atlasRolePage.js";
 import { roleFitReading } from "../services/atlas/atlasRoleFit.js";
+import { skillMapFor } from "../services/atlas/skillMap.js";   // A228: the skill map, one reading
 import { atlasPostingsChanged, liveCached, LIVE_CACHE_MS } from "../services/atlas/atlasLive.js";
 import { thumbIndex } from "../services/thumbs/resourceThumbs.js";
 
@@ -202,6 +207,16 @@ export function createAtlasRouter(db) {
     const roles = String(req.query.roles ?? "").slice(0, 400).split("|").map(s => s.trim()).filter(Boolean);
     if (!roles.length) return res.status(400).json({ error: "roles_required", message: "Name up to four roles to compare." });
     res.json(compareRoles(db, req.user.id, roles));
+  });
+  // ⭐ A228 (46r) · THE SKILL MAP: for the person and a role (?role=<id or slug>; default the aim, else the current role,
+  // else the biggest), the jobs they can apply for, how close they are to the rest, what the role asks, Learn next and the
+  // roles they could move to — counted from the live rows, no model (services/atlas/skillMap.js). Signed in; private.
+  router.get("/skill-map", (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (req.user?.id == null) return res.status(401).json({ error: "sign_in" });
+    const r = skillMapFor(db, req.user.id, { role: String(req.query.role ?? "").slice(0, 120) || null });
+    if (!r.found) return res.status(404).json(r);
+    res.json(r);
   });
   router.get("/readiness", (req, res) => {
     res.set("Cache-Control", "private, no-store");
