@@ -32,6 +32,16 @@ test("D149: the row — a 36px tile (corner 11) · the role 600 15px · company 
   assert.ok(at(jsx, 'className="jb__title"') < at(jsx, 'className="jb__sub"') && at(jsx, 'className="jb__sub"') < at(jsx, 'className="jb__meta"'));
 });
 
+test("A218 (46r): in Home's two-column rows the role wraps to two lines (never one line cut 'Senior Software Engin…')", () => {
+  const block = css.slice(at(css, "D152 (5) · HOME: TWO COLUMNS OF BUBBLES"));
+  const rule = block.match(/\.jb-pair \.jb__title \{([^}]*)\}/)[1];
+  assert.match(rule, /white-space: normal;/);
+  assert.match(rule, /-webkit-line-clamp: 2;/);
+  assert.match(rule, /min-height: calc\(2em \* 1\.25\);/, "the box holds two lines, so giving way never changes the row's height");
+  assert.doesNotMatch(rule, /nowrap|text-overflow: ellipsis/);
+  assert.match(rule, /word-break: normal;/, "a word is never broken to fit");
+});
+
 test("⛔ A78: the company name is a link with NO underline and NO ↗ — and a NON-COLOUR hover cue", () => {
   assert.match(css, /\.jb__company \{[\s\S]*?text-decoration: none;/);
   assert.match(css, /a\.jb__company:hover, a\.jb__company:focus-visible \{ text-decoration: underline; \}/);
