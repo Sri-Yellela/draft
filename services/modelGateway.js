@@ -151,7 +151,20 @@ export function cohortBucket(task, userId) {
  * became unservable (an eval set's version bumped, a model retired) errors rather than serving a model nobody vouches for.
  */
 export function resolveRoute(db, task, { userId = SYSTEM_USER_ID, env = process.env } = {}) {
-  const eff = validateRoute(db, task, effectiveRoute(db, task, { env }));
+  // ⭐ 46q: a fallback nobody has evaluated is DROPPED (never served), not fatal to a primary that has passed — the
+  // default route of assistant.chat names a Sonnet fallback, and with no eval recorded for it every T3 ask was refused
+  // before the primary (Haiku, evaluated) was tried. Setting a fallback by hand still requires its eval (applyRouteChange).
+  const raw = effectiveRoute(db, task, { env });
+  let eff = raw;
+  if (raw.fallback) {
+    try { checkServable(db, task, raw.fallback, `${task} fallback`); }
+    catch (e) {
+      if (e?.code !== "model_route_needs_eval") throw e;
+      console.warn(`[gateway] ${e.message} — the fallback is not used`);
+      eff = { ...raw, fallback: undefined };
+    }
+  }
+  eff = validateRoute(db, task, eff);
   const primary = { provider: eff.provider, model: eff.model, params: eff.params || {} };
   const c = eff.candidate;
   const cand = c ? { provider: c.provider, model: c.model, params: { ...primary.params, ...(c.params || {}) } } : null;

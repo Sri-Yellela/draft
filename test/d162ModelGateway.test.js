@@ -209,6 +209,25 @@ test("D162 G2: a fallback serves only when the model is down — never for a bil
   assert.equal(unfunded.calls.length, 1, "no second call for a failure the fallback would repeat");
 });
 
+test("46q: a DEFAULT route's un-evaluated fallback is dropped, not fatal — assistant.chat serves its evaluated primary", async () => {
+  const db = makeDb();
+  assert.ok(TASKS["assistant.chat"].defaultRoute.fallback, "the registry names a fallback for assistant.chat");
+  assert.equal(canTakeTask(db, "assistant.chat", "anthropic", MODEL_SONNET), false, "no eval recorded for the fallback");
+  const amsgs = [{ role: "user", content: `${fenceUntrusted("question", "rewrite this bullet")}
+${fenceUntrusted("retrieved", "(nothing found)")}` }];
+  const r = resolveRoute(db, "assistant.chat", { userId: 1, env: NOENV });
+  assert.equal(r.serve.model, MODEL_HAIKU); assert.equal(r.fallback, null, "the un-evaluated fallback is never served");
+  const up = stubAnthropic();
+  const out = await callTask({ task: "assistant.chat", anthropic: up, db, userId: 1, messages: amsgs, env: NOENV });
+  assert.equal(sourceOf(out).model, MODEL_HAIKU); assert.equal(up.calls.length, 1);
+  const down = stubAnthropic({ failModels: [MODEL_HAIKU] });
+  await assert.rejects(() => callTask({ task: "assistant.chat", anthropic: down, db, userId: 1, messages: amsgs, env: NOENV }));
+  assert.equal(down.calls.length, 1, "no call to the un-evaluated fallback when the primary is down");
+  recordEval(db, { task: "assistant.chat", provider: "anthropic", model: MODEL_SONNET, reason: "synthetic run", actor: "admin:adm_test",
+    metrics: { answerCorrectness: 0.95, unconfirmedActions: 0, outOfScopeActions: 0, cases: 60, costPerCallUsd: 0.009 } });
+  if (canTakeTask(db, "assistant.chat", "anthropic", MODEL_SONNET)) assert.equal(resolveRoute(db, "assistant.chat", { userId: 1, env: NOENV }).fallback.model, MODEL_SONNET, "once evaluated, the fallback is back");
+});
+
 // ── G3 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 test("D162 d162PassRuleBeforeTakeover: the server applies the pass rule; a failing or stale record does not open the gate", () => {
   const db = makeDb();
