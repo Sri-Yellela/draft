@@ -83,7 +83,31 @@ export async function lookupPage(serverUrl, { url = '', text = '', frameUrls = [
       : { known: false, title: words(p.title), company: words(p.company) };
   const kind = ['job', 'not_a_job', 'unread'].includes(body?.kind) ? body.kind : (posting ? 'job' : 'unread');
   return { ok: true, posting, kind, ats: atsFacts(body?.ats), basis: body?.basis === 'board' || body?.basis === 'page' ? body.basis : null,
-           company: companyFacts(body?.company) };
+           company: companyFacts(body?.company),
+           // ⭐ D191 (2a) / (2c) / (2d) · the side panel's facts (46p: the real-extension walk found them dropped here)
+           facts: postingFacts(body?.facts) };
+}
+
+/**
+ * ⭐ D191 (2a) / (2c) / (2d) · what draft knows about the posting, for the side panel — named fields only, words capped,
+ * a logo only on https (services/extensionJobFacts.js builds it; no model). → { job, application, company } or null. Pure.
+ */
+export function postingFacts(f) {
+  if (!f || typeof f !== 'object') return null;
+  const w = (v, n = 80) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
+  const j = f.job && typeof f.job === 'object' ? f.job : null;
+  const a = f.application && typeof f.application === 'object' ? f.application : null;
+  const c = f.company && typeof f.company === 'object' ? f.company : null;
+  const count = (v) => (Number.isFinite(Number(v)) && Number(v) >= 0 ? Math.floor(Number(v)) : null);
+  const proven = j?.proven && count(j.proven.count) != null && count(j.proven.of) > 0 ? { count: count(j.proven.count), of: count(j.proven.of) } : null;
+  return {
+    job: j ? { category: w(j.category), subcategory: w(j.subcategory), level: w(j.level, 40), salary: w(j.salary, 60),
+      worksWith: Array.isArray(j.worksWith) ? j.worksWith.map(x => w(x, 40)).filter(Boolean).slice(0, 8) : [],
+      fit: ['Good fit', 'Stretch', 'Long shot'].includes(j.fit) ? j.fit : null, proven } : null,
+    application: a ? { state: ['Sent', 'Needs you', 'In progress', 'Failed', 'Drafted'].includes(a.state) ? a.state : null, sendFromHere: a.sendFromHere === true } : null,
+    company: c ? { logo: typeof c.logo === 'string' && /^https:\/\//.test(c.logo) ? c.logo.slice(0, 500) : null, about: w(c.about, 300),
+      trend: ['up', 'down', 'flat'].includes(c.trend) ? c.trend : null } : null,
+  };
 }
 
 /** ⭐ D191 (2d) · the employer's card from draft's answer — named fields only; a link only to draft's own site. Pure. */

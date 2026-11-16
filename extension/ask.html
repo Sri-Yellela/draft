@@ -42,6 +42,10 @@
     form.row { display: flex; gap: 8px; margin: 0; }
     form.row input, form.row textarea { flex: 1; border: 1px solid var(--c-border-control); border-radius: 8px; background: var(--c-surface-input); color: var(--c-ink); padding: 7px 9px; font: inherit; font-size: 13px; resize: none; }
     form.row .btn { margin-bottom: 0; }
+    /* 46p: in the side panel (320 px) Speak + Ask crushed the text box — it takes its own line, the buttons below */
+    #ask-form { flex-wrap: wrap; }
+    #ask-form textarea { flex: 1 1 100%; min-width: 0; }
+    #ask-form .btn { flex: 1 1 0; }
     .turns { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: grid; gap: 8px; align-content: start; flex: 1; min-height: 120px; }
     .turn { padding: 8px 10px; border-radius: 8px; background: var(--c-surface-2); font-size: 13px; line-height: 1.45; white-space: pre-wrap; }
     .turn[data-who="you"] { justify-self: end; background: var(--c-surface-solid); }

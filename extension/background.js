@@ -217,6 +217,9 @@ async function popupContext(tab) {
     if (p?.known && !board.posting.known) {
       board.posting = { ...board.posting, known: true, jobId: p.jobId, title: p.title, company: p.company, how: p.how, active: true, scores };
     } else if (score != null && !Number.isFinite(board.posting.scores?.shown)) board.posting = { ...board.posting, scores };
+    // ⭐ D191 (2b) · `mine` is the page answer's (the import context sends none) — the side panel offers Draft / Save only
+    // for a job not yet the person's own (46p: the real-extension walk found it always false)
+    if (p?.known && board.posting.known && String(p.jobId) === String(board.posting.jobId)) board.posting = { ...board.posting, mine: p.mine === true };
   }
   // ⭐ T9: when the identify's answer carried no report (an older server, or no page answer at all), ask draft for the
   // bound board job's report (GET /api/extension/job/:id: no page text leaves the browser), for the web app's ATS report
@@ -566,9 +569,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 //
 // THE LISTENER FIRING IS THE PERMISSION. A chrome.commands invocation is a user gesture, which is
 // what grants activeTab for the tab they are on — the same grant the gated handoff runs on.
-chrome.commands.onCommand.addListener((command) => {
+chrome.commands.onCommand.addListener((command, cmdTab) => {
   if (command === 'fill-gated-application') { void handleGatedHandoff(); return; }
-  if (command === 'open-ask-draft') { chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => { void openAskWindow(tab); }); return; }
+  // ⭐ D191 · sidePanel.open() must run inside the gesture: the tab Chrome hands the listener, no query awaited first (46p)
+  if (command === 'open-ask-draft') { if (cmdTab?.id) { void openAskWindow(cmdTab); return; } chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => { void openAskWindow(tab); }); return; }
   if (command !== 'capture-job') return;
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => { void captureActiveTab(tab); });
 });
