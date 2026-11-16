@@ -69,6 +69,28 @@ test("d190T2NoModel — the server's lookup answers from draft's own data with a
   assert.deepEqual([...LOOKUP_INTENTS].sort(), ["drafted_today", "my_skills", "question", "sponsorship"]);
 });
 
+test("A219 (46r) · a question draft's help answers gets the help alone — no Atlas card on a word inside it", async () => {
+  const { MIGRATIONS } = await import("../scripts/migrations.js");
+  const { upsertNode, setStatus } = await import("../services/atlas/atlasStore.js");
+  const db = new Database(":memory:");
+  for (const m of MIGRATIONS) db.exec(m.sql);
+  const publish = (kind, name, definition) => {
+    const n = upsertNode(db, { kind, name, source: "registry", definition });
+    setStatus(db, db.prepare(`SELECT slug FROM atlas_nodes WHERE id = ?`).pluck().get(n.id), "published");
+  };
+  publish("skill", "Work", "Synthetic: a node any question with 'work' in it finds.");
+  publish("tool", "Kafka", "Synthetic: streams events between services.");
+  const faq = lookup(db, 7, { intent: "question", question: "how does ask me first work?" });
+  assert.match(faq.text, /^Ask me first: /);
+  assert.doesNotMatch(faq.text, /Atlas —/, "the FAQ answer carries no Atlas card");
+  assert.deepEqual(faq.lessons, []);
+  assert.deepEqual(faq.links.map(l => l.title), ["Ask me first"]);
+  // a question help does NOT cover still gets Atlas
+  const atlas = lookup(db, 7, { intent: "question", question: "what is kafka?" });
+  assert.match(atlas.text, /^Atlas — Kafka: Synthetic: streams events/);
+  assert.deepEqual(atlas.lessons.map(l => l.slug), ["kafka"]);
+});
+
 test("d190T3OnlyWhenAsked — nothing that fails to match reaches T3; the T3 handler runs only for a new-writing row", async () => {
   let t3 = 0;
   const bot = createAssistant({ commands: COMMANDS, site: "draft", handlers: { t3: () => { t3++; return { text: "written" }; } } });
