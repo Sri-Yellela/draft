@@ -14,6 +14,9 @@ export const description = 'Options in a tab: "I agree" is recorded and the per-
 
 export default async function run(h, { check, section }) {
   const p = h.control;
+  // 46p: since D191's disclosure (46o), a fresh install opens notice.html as the ACTIVE tab — the Options tab behind it is
+  // hidden, and puppeteer's waits there stalled to the 180 s protocol timeout. The person would be looking at Options.
+  await p.bringToFront();
   await p.reload({ waitUntil: 'domcontentloaded' });
   await p.waitForSelector('#auto-sites-body input[type=checkbox]');
 
