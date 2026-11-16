@@ -1,0 +1,132 @@
+<title>A228 · C — The route</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Instrument+Serif&display=swap">
+<link rel="stylesheet" href="A228-common.css">
+<style>
+  /* Concept C: the route leads. A line of stations from where you are to the aim, each station's column = postings within
+     reach once it's proven. Other destinations as small multiples on one shared scale (the pivot), and the skill map as
+     a skills × roles grid: where each skill you have (or lack) counts. */
+  .mult { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+  .mult .panel { gap: 8px; }
+  .mult h3 { display: flex; justify-content: space-between; gap: 8px; }
+  .matrix-wrap { overflow-x: auto; }
+</style>
+<div class="page">
+  <div class="sk-bar"><nav><a class="btn" href="A228-concepts.html">All concepts</a><a class="btn" href="A228-a-map.html">A · One map</a><a class="btn" href="A228-b-readout.html">B · The readout</a><a class="btn" aria-current="page" href="A228-c-route.html">C · The route</a></nav><div class="sk-themes"></div></div>
+
+  <header style="display:grid;gap:8px">
+    <span class="eyebrow">Atlas · sketch C · synthetic person</span>
+    <h1>From Backend Engineer to Data Engineer</h1>
+    <p class="lede" id="c-lede"></p>
+  </header>
+
+  <section class="panel">
+    <div class="panel__head"><h2>Your route</h2><span class="small">Each column: Data Engineer postings within reach once that skill is proven (grey = already within reach)</span></div>
+    <div class="chart" id="c-line"></div>
+    <div id="c-line-t"></div>
+    <div class="actions"><button class="btn btn--primary" type="button" id="c-next"></button><button class="btn" type="button">Change the aim</button></div>
+  </section>
+
+  <section style="display:grid;gap:12px">
+    <div class="panel__head"><h2>Other places this road goes</h2><span class="small">Same scale for every role: share of its postings within reach, hour by hour</span></div>
+    <div class="mult" id="c-mult"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__head"><h2>Your skills across these roles</h2><div class="legend"><span><i class="sw sw--proven"></i>Proven</span><span><i class="sw sw--claimed"></i>On your résumé</span><span><i class="sw sw--missing"></i>Not yet</span><span>Darker cell = asked by more of that role's postings</span></div></div>
+    <div class="chart matrix-wrap" id="c-matrix"></div>
+  </section>
+  <p class="note">Sketch for the owner's pick (D149 rule 3). Synthetic person and market; every number is counted from the sketch's seeded board. No model is called. Hover or focus any mark.</p>
+</div>
+<script src="A228-common.js"></script>
+<script>
+(function () {
+  const { model, svg, defs, fillOf, stateWord, tips, table, responsive, sketchBar, fmt, pct } = A228;
+  sketchBar(); tips();
+  const M = model(), R = M.target;
+  const totalH = R.route.reduce((a, b) => a + b.hours, 0);
+  document.getElementById("c-lede").textContent = `${fmt(R.within)} of ${fmt(R.open)} open Data Engineer postings are within reach today. ${R.route.length} skills, about ${totalH} hours of work with a proof for each, takes that to ${fmt(R.route.at(-1)?.total || R.within)}.`;
+  document.getElementById("c-next").textContent = `${R.route[0]?.kind === "prove" ? "Prove" : "Learn"} ${R.route[0]?.name} · about ${R.route[0]?.hours} h`;
+
+  responsive(document.getElementById("c-line"), (W) => {
+    const stations = [{ name: "You today", total: R.within, sub: "Backend Engineer" }, ...R.route.map(s => ({ ...s, name: `${s.kind === "prove" ? "Prove" : "Learn"} ${s.name}`, sub: `${s.hours} h · +${fmt(s.gain)}` }))];
+    const narrow = W < 560, H = narrow ? stations.length * 64 + 20 : 300;
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "The route, station by station" });
+    const maxY = R.open;
+    if (!narrow) {
+      const pl = 24, pr = 24, base = H - 70, top = 24, step = (W - pl - pr) / (stations.length - 1 || 1), bw = Math.min(64, step * .42);
+      const y = (v) => base - v / maxY * (base - top);
+      s.append(svg("line", { x1: pl, x2: W - pr, y1: y(R.open * M.REACH), y2: y(R.open * M.REACH), class: "grid", "stroke-dasharray": "4 3" }));
+      s.append(svg("text", { x: pl, y: y(R.open * M.REACH) - 6, class: "faint" }, `60% of all ${fmt(R.open)} postings`));
+      s.append(svg("line", { x1: pl, x2: W - pr, y1: base + 22, y2: base + 22, stroke: "var(--ink-faint)", "stroke-width": 4, "stroke-linecap": "round" }));
+      stations.forEach((st, i) => {
+        const cx = pl + i * step, prev = i ? stations[i - 1].total : 0;
+        if (i) s.append(svg("rect", { x: cx - bw / 2, y: y(prev), width: bw, height: base - y(prev), rx: 4, class: "f-market", opacity: .45 }));
+        else s.append(svg("rect", { x: cx - bw / 2, y: y(st.total), width: bw, height: base - y(st.total), rx: 4, class: "f-market" }));
+        if (i) s.append(svg("rect", { x: cx - bw / 2, y: y(st.total), width: bw, height: y(prev) - y(st.total) - 2, rx: 4, class: "f-proven", tabindex: 0, "data-tip": `${st.name}\n+${fmt(st.gain)} postings within reach → ${fmt(st.total)}\nAbout ${st.hours} h · proof: ${st.proof}` }));
+        else s.append(svg("rect", { x: cx - bw / 2, y: y(st.total), width: bw, height: base - y(st.total), rx: 4, fill: "transparent", tabindex: 0, "data-tip": `Today\n${fmt(st.total)} postings within reach` }));
+        s.append(svg("text", { x: cx, y: y(st.total) - 8, "text-anchor": "middle", class: "t-strong num" }, fmt(st.total)));
+        s.append(svg("circle", { cx, cy: base + 22, r: i ? 8 : 10, fill: i ? "var(--surface)" : "var(--accent)", stroke: "var(--accent)", "stroke-width": 3 }));
+        s.append(svg("text", { x: cx, y: base + 50, "text-anchor": "middle", class: "t-ink" }, st.name));
+        s.append(svg("text", { x: cx, y: base + 65, "text-anchor": "middle" }, st.sub));
+      });
+    } else {
+      const lx = 22, bx = Math.max(170, Math.round(W * .5)), bwMax = W - bx - 50;
+      s.append(svg("line", { x1: lx, x2: lx, y1: 20, y2: H - 30, stroke: "var(--ink-faint)", "stroke-width": 4, "stroke-linecap": "round" }));
+      stations.forEach((st, i) => {
+        const cy = 24 + i * 64;
+        s.append(svg("circle", { cx: lx, cy, r: i ? 7 : 9, fill: i ? "var(--surface)" : "var(--accent)", stroke: "var(--accent)", "stroke-width": 3 }));
+        s.append(svg("text", { x: lx + 18, y: cy + 4, class: "t-ink" }, st.name));
+        s.append(svg("text", { x: lx + 18, y: cy + 20 }, st.sub));
+        s.append(svg("rect", { x: bx, y: cy - 8, width: Math.max(2, st.total / maxY * bwMax), height: 16, rx: 4, class: i ? "f-proven" : "f-market", tabindex: 0, "data-tip": `${st.name}\n${fmt(st.total)} within reach` }));
+        s.append(svg("text", { x: bx + st.total / maxY * bwMax + 6, y: cy + 4, class: "t-strong num" }, fmt(st.total)));
+      });
+    }
+    return s;
+  });
+  table(document.getElementById("c-line-t"), ["Station", "Proof", "Hours", "Within reach"], [["Today", "—", "—", fmt(R.within)], ...R.route.map(s => [s.name, s.proof, s.hours, fmt(s.total)])]);
+
+  // small multiples: each other role's route as share within reach over hours, one scale (0–100%, 0–maxH)
+  const others = M.roles.filter(r => !r.current && !r.target);
+  const maxH = Math.max(...M.roles.map(r => r.route.reduce((a, b) => a + b.hours, 0)), 40);
+  const mult = document.getElementById("c-mult");
+  for (const r of [R, ...others]) {
+    const p = document.createElement("div"); p.className = "panel";
+    const end = r.route.at(-1)?.total ?? r.within;
+    p.innerHTML = `<h3><span>${r.name}${r.target ? " · your aim" : ""}</span><span class="small num">${fmt(r.open)} open</span></h3><div class="chart"></div><p class="small">Carries over: ${r.carries.slice(0, 4).map(id => M.S[id].name).join(", ") || "little"}. Next: ${r.route.slice(0, 2).map(s => s.name).join(", ") || "prove what's on your résumé"}.</p>`;
+    mult.append(p);
+    responsive(p.querySelector(".chart"), (W) => {
+      const H = 150, pl = 34, pr = 10, pb = 22, x = (v) => pl + v / maxH * (W - pl - pr), y = (v) => H - pb - v * (H - pb - 10);
+      const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `${r.name}: share within reach over hours` });
+      for (const t of [0, .5, 1]) { s.append(svg("line", { x1: pl, x2: W - pr, y1: y(t), y2: y(t), class: "grid" })); s.append(svg("text", { x: pl - 4, y: y(t) + 4, "text-anchor": "end" }, pct(t))); }
+      s.append(svg("text", { x: W - pr, y: H - 6, "text-anchor": "end" }, `${maxH} h`)); s.append(svg("text", { x: pl, y: H - 6 }, "0 h"));
+      let h = 0, d = `M${x(0)},${y(r.within / r.open)}`; const pts = [[0, r.within / r.open, "Today"]];
+      for (const st of r.route) { h += st.hours; d += ` H${x(h)} V${y(st.total / r.open)}`; pts.push([h, st.total / r.open, st.name]); }
+      s.append(svg("path", { d, fill: "none", stroke: r.target ? "var(--accent)" : "var(--info)", "stroke-width": 2 }));
+      for (const [hh, v, n] of pts) s.append(svg("circle", { cx: x(hh), cy: y(v), r: 4, fill: r.target ? "var(--accent)" : "var(--info)", stroke: "var(--surface)", "stroke-width": 2, tabindex: 0, "data-tip": `${r.name} · ${n}\n${pct(v)} of postings within reach · ${hh} h in` }));
+      return s;
+    });
+  }
+
+  // skills × roles: the map as a grid. Row = a skill (your state), column = a role, cell shade = share of its postings asking.
+  const roles = M.roles, skills = M.skills.filter(k => roles.some(r => r.asks[k.id])).sort((a, b) => (R.asks[b.id] || 0) - (R.asks[a.id] || 0));
+  responsive(document.getElementById("c-matrix"), (Wbox) => {
+    const pl = 150, cw = Math.max(70, Math.min(150, (Wbox - pl) / roles.length)), ch = 24, top = 46, W = pl + cw * roles.length, H = top + skills.length * ch + 4;
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, width: W, role: "img", "aria-label": "Skills by role" }, [defs()]);
+    s.style.width = W + "px"; s.style.maxWidth = "none";
+    roles.forEach((r, j) => { s.append(svg("text", { x: pl + j * cw + cw / 2, y: 18, "text-anchor": "middle", class: r.target ? "t-strong" : "t-ink" }, r.name.replace(" Engineer", ""))); s.append(svg("text", { x: pl + j * cw + cw / 2, y: 34, "text-anchor": "middle" }, r.current ? "now" : r.target ? "aim" : `${pct(r.coverage)} shown`)); });
+    skills.forEach((k, i) => {
+      const yy = top + i * ch;
+      s.append(svg("rect", { x: 0, y: yy + 6, width: 12, height: 12, rx: 3, class: fillOf(k) }));
+      s.append(svg("text", { x: 20, y: yy + 16, class: k.state === "missing" ? "t-strong" : "t-ink" }, k.name));
+      roles.forEach((r, j) => {
+        const v = r.asks[k.id] || 0;
+        s.append(svg("rect", { x: pl + j * cw + 1, y: yy + 1, width: cw - 2, height: ch - 2, rx: 3, fill: v ? `color-mix(in oklab, var(--accent) ${Math.round(12 + v * 80)}%, var(--surface))` : "var(--surface-2)", tabindex: v ? 0 : null,
+          "data-tip": v ? `${k.name} · ${r.name}\nAsked in ${pct(v)} of postings · ${fmt(v * r.open)} open\nYou: ${stateWord(k)}` : null }));
+        if (v >= .3 && cw > 80) s.append(svg("text", { x: pl + j * cw + cw / 2, y: yy + 16, "text-anchor": "middle", style: `fill:${v > .55 ? "var(--on-accent)" : "var(--ink)"}` }, pct(v)));
+      });
+    });
+    return s;
+  });
+})();
+</script>

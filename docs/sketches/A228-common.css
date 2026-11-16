@@ -1,0 +1,116 @@
+/* A228 sketches (46r) — shared tokens and pieces for the three concepts. SYNTHETIC data only.
+   Layout: full width with draft's gutter clamp(16px, 3vw, 48px); running text capped at ~70ch; charts grow into the width.
+   Themes: Dusk Light (bare :root), Dusk Dark (system dark / data-theme="dark"), and draft's Plain Light / Plain Dark via
+   html[data-skin]. Values copied from client/src/themes/{dusk,plain}-{light,dark}.js. No pills (D60): squares and dots only. */
+:root {
+  --canvas: #F7F3F0; --surface: #FFFFFF; --surface-2: #F1ECE8; --ink: #1B1B1B; --ink-muted: #55504C; --ink-faint: #6B6763;
+  --border: #E6DED8; --accent: #BE5739; --accent-ink: #A54A32; --on-accent: #FFFFFF; --info: #625B55; --success: #1B7440;
+  --warning: #8B5A00; --track: #ECE5DF;
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-count: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --gutter: clamp(16px, 3vw, 48px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: #1B1B1B; --surface: #262626; --surface-2: #2E2E2E; --ink: #FFFFFF; --ink-muted: #A3A3A3; --ink-faint: #959595;
+    --border: #343434; --accent: #FBD3C4; --accent-ink: #FBD3C4; --on-accent: #1B1B1B; --info: #9A9A9A; --success: #8FD6A8;
+    --warning: #F2C26B; --track: #333333; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"], html:root[data-skin="dusk-dark"] {
+  --canvas: #1B1B1B; --surface: #262626; --surface-2: #2E2E2E; --ink: #FFFFFF; --ink-muted: #A3A3A3; --ink-faint: #959595;
+  --border: #343434; --accent: #FBD3C4; --accent-ink: #FBD3C4; --on-accent: #1B1B1B; --info: #9A9A9A; --success: #8FD6A8;
+  --warning: #F2C26B; --track: #333333; color-scheme: dark;
+}
+html:root[data-skin="dusk-light"] {
+  --canvas: #F7F3F0; --surface: #FFFFFF; --surface-2: #F1ECE8; --ink: #1B1B1B; --ink-muted: #55504C; --ink-faint: #6B6763;
+  --border: #E6DED8; --accent: #BE5739; --accent-ink: #A54A32; --on-accent: #FFFFFF; --info: #625B55; --success: #1B7440;
+  --warning: #8B5A00; --track: #ECE5DF; color-scheme: light;
+}
+html:root[data-skin="plain-light"] {
+  --canvas: #F6F7F9; --surface: #FFFFFF; --surface-2: #F1F3F5; --ink: #111111; --ink-muted: #4B5563; --ink-faint: #5F6672;
+  --border: #E3E6EA; --accent: #1D4ED8; --accent-ink: #1D4ED8; --on-accent: #FFFFFF; --info: #6B7280; --success: #1A6B33;
+  --warning: #855000; --track: #E9ECEF; color-scheme: light;
+  --font-display: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+}
+html:root[data-skin="plain-dark"] {
+  --canvas: #111315; --surface: #1B1E21; --surface-2: #22262A; --ink: #F3F4F6; --ink-muted: #C2C7CE; --ink-faint: #A9B0B8;
+  --border: #2E3338; --accent: #8AB4F8; --accent-ink: #8AB4F8; --on-accent: #111315; --info: #6B7280; --success: #5FCB8C;
+  --warning: #E6AA4E; --track: #2A2F34; color-scheme: dark;
+  --font-display: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--canvas); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.page { padding-left: max(var(--gutter), env(safe-area-inset-left, 0px)); padding-right: max(var(--gutter), env(safe-area-inset-right, 0px)); padding-block: 20px 64px; display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 400; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(30px, 3.4vw, 44px); line-height: 1.1; }
+h2 { font-size: clamp(22px, 2vw, 28px); line-height: 1.2; }
+h3 { font-size: 19px; }
+p { margin: 0; }
+.lede { max-width: 70ch; color: var(--ink-muted); }
+.small { font-size: 13px; color: var(--ink-muted); }
+.faint { color: var(--ink-faint); }
+.num { font-family: var(--font-count); font-variant-numeric: tabular-nums; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+a { color: var(--accent-ink); }
+
+/* the sketch bar: which concept, which theme — not part of the product */
+.sk-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.sk-bar nav, .sk-themes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.btn { font: inherit; font-size: 13px; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 5px 10px; cursor: pointer; text-decoration: none; }
+.btn:hover { border-color: var(--ink-faint); }
+.btn[aria-pressed="true"], .btn[aria-current="page"] { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+.btn:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn--primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: clamp(16px, 2vw, 24px); display: grid; gap: 14px; min-width: 0; }
+.panel__head { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; justify-content: space-between; }
+.grid-2 { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); }
+.grid-3 { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); }
+.chart { width: 100%; min-width: 0; position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { fill: var(--ink-muted); font-family: var(--font-body); font-size: 12px; }
+.chart .t-ink { fill: var(--ink); }
+.chart .t-strong { fill: var(--ink); font-weight: 600; }
+.chart .grid { stroke: var(--border); stroke-width: 1; }
+.chart .axis { stroke: var(--ink-faint); stroke-width: 1; }
+.chart [data-tip] { cursor: default; }
+.chart [data-tip]:hover, .chart [data-tip]:focus { filter: brightness(1.08); }
+
+/* the three states, one hue: proven = solid, on your résumé = hatched, not yet = outline (never colour alone: the legend
+   names each, and every mark's tooltip says it in words) */
+.f-proven { fill: var(--accent); }
+.f-claimed { fill: url(#hatch); }
+.f-missing { fill: var(--surface); stroke: var(--ink-faint); stroke-width: 1.25; stroke-dasharray: 3 2; }
+.f-market { fill: var(--info); }
+.f-track { fill: var(--track); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: none; }
+.sw--proven { background: var(--accent); }
+.sw--claimed { background: repeating-linear-gradient(45deg, color-mix(in oklab, var(--accent) 45%, transparent) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--accent); }
+.sw--missing { border: 1.25px dashed var(--ink-faint); }
+.sw--market { background: var(--info); }
+.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; background: currentColor; margin-right: 6px; vertical-align: middle; }
+
+.tip { position: fixed; z-index: 20; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 13px; max-width: 280px; box-shadow: 0 6px 24px rgb(0 0 0 / .18); }
+.tip b { display: block; margin-bottom: 2px; }
+
+details.table { font-size: 13px; }
+details.table summary { cursor: pointer; color: var(--ink-muted); }
+details.table .tw { overflow-x: auto; margin-top: 8px; }
+details.table table { border-collapse: collapse; width: 100%; min-width: 420px; }
+details.table th, details.table td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+details.table th { color: var(--ink-faint); font-weight: 500; }
+
+.hero { display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: baseline; }
+.hero__n { font-family: var(--font-display); font-size: clamp(52px, 6vw, 84px); line-height: 1; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 14px; }
+.kv dt { color: var(--ink-faint); }
+.kv dd { margin: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.note { border-left: 3px solid var(--border); padding-left: 12px; color: var(--ink-muted); font-size: 13px; max-width: 76ch; }
+@media (prefers-reduced-motion: no-preference) { .chart rect, .chart circle, .chart path { transition: opacity .15s, filter .15s; } }

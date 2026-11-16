@@ -1,0 +1,137 @@
+<title>A228 · B — The readout</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Instrument+Serif&display=swap">
+<link rel="stylesheet" href="A228-common.css">
+<style>
+  /* Concept B: a readout for one aim — the one number first, then each of the five questions as its own chart, in the
+     order a person asks them: gaps (ranked bars), standing (distribution + you), the route (a step chart), the pivot
+     (a scatter of roles: overlap × market). */
+  .b-hero { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 1000px) { .b-hero { grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr); align-items: center; } }
+  .lv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .lv div { display: grid; gap: 2px; }
+  .lv b { font-family: var(--font-display); font-weight: 400; font-size: 30px; line-height: 1; }
+</style>
+<div class="page">
+  <div class="sk-bar"><nav><a class="btn" href="A228-concepts.html">All concepts</a><a class="btn" href="A228-a-map.html">A · One map</a><a class="btn" aria-current="page" href="A228-b-readout.html">B · The readout</a><a class="btn" href="A228-c-route.html">C · The route</a></nav><div class="sk-themes"></div></div>
+
+  <section class="panel b-hero">
+    <div style="display:grid;gap:10px">
+      <span class="eyebrow">Atlas · sketch B · synthetic person · aim: Data Engineer</span>
+      <div class="hero"><span class="hero__n num" id="b-n">—</span></div>
+      <p id="b-n-l" style="max-width:46ch"></p>
+      <div class="lv" id="b-lv"></div>
+    </div>
+    <div style="display:grid;gap:8px;min-width:0">
+      <div class="panel__head"><h2>Where you stand</h2><span class="small">Every open Data Engineer posting, by how much of what it asks you have</span></div>
+      <div class="chart" id="b-hist"></div>
+      <div id="b-hist-t"></div>
+    </div>
+  </section>
+
+  <section class="grid-2">
+    <div class="panel">
+      <div class="panel__head"><h2>Your gaps, by how often they're asked</h2><div class="legend"><span><i class="sw sw--proven"></i>Proven</span><span><i class="sw sw--claimed"></i>On your résumé</span><span><i class="sw sw--missing"></i>Not yet</span></div></div>
+      <div class="chart" id="b-gaps"></div>
+      <div id="b-gaps-t"></div>
+    </div>
+    <div class="panel">
+      <div class="panel__head"><h2>Close the gap</h2><span class="small">Postings within reach as you prove each skill, in the shortest order</span></div>
+      <div class="chart" id="b-route"></div>
+      <div id="b-route-t"></div>
+      <div class="actions"><button class="btn btn--primary" type="button" id="b-next"></button><button class="btn" type="button">Show the jobs it opens</button></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__head"><h2>Or move sideways</h2><span class="small">Roles next to yours: how much of what they ask you already have, and how big the market is. Size = hours to reach 30% of its postings.</span></div>
+    <div class="chart" id="b-pivot"></div>
+    <div id="b-pivot-t"></div>
+  </section>
+  <p class="note">Sketch for the owner's pick (D149 rule 3). Synthetic person and market; every number is counted from the sketch's seeded board. No model is called. Hover or focus any mark.</p>
+</div>
+<script src="A228-common.js"></script>
+<script>
+(function () {
+  const { model, svg, defs, fillOf, stateWord, tips, table, responsive, sketchBar, fmt, pct } = A228;
+  sketchBar(); tips();
+  const M = model(), R = M.target;
+
+  document.getElementById("b-n").textContent = fmt(R.within);
+  document.getElementById("b-n-l").innerHTML = `of <b>${fmt(R.open)}</b> open Data Engineer postings are within reach today: you have at least 60% of what each asks. ${R.route[0]?.kind === "prove" ? "Proving" : "Learning"} <b>${R.route[0]?.name}</b> next adds about <b>${fmt(R.route[0]?.gain || 0)}</b>.`;
+  { const f = R.route[0]; document.getElementById("b-next").textContent = f ? `${f.kind === "prove" ? "Prove" : "Learn"} ${f.name} · about ${f.hours} h` : "Prove what is on your résumé"; }
+  document.getElementById("b-lv").innerHTML = M.LEVELS.map(l => { const all = R.sim.postings.filter(p => p.level === l).length * R.sim.scale; const w = M.within(R.sim, null, l); return `<div><span class="eyebrow">${l}</span><b class="num">${pct(w / all)}</b><span class="small">${fmt(w)} of ${fmt(all)}</span></div>`; }).join("");
+
+  responsive(document.getElementById("b-hist"), (W) => {
+    const bins = M.histogram(R.sim), H = 220, pb = 28, pl = 36, mx = Math.max(...bins.map(b => b.n)), bw = (W - pl) / 10, top = Math.ceil(mx / 100) * 100;
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Postings by the share of their asks you have" });
+    for (let t = 0; t <= top; t += top / 4) { const y = H - pb - (t / top) * (H - pb - 14); s.append(svg("line", { x1: pl, x2: W, y1: y, y2: y, class: "grid" })); s.append(svg("text", { x: pl - 6, y: y + 4, "text-anchor": "end" }, fmt(t))); }
+    bins.forEach((b, i) => {
+      const h = (b.n / top) * (H - pb - 14), reach = b.from >= M.REACH - 1e-9;
+      s.append(svg("rect", { x: pl + i * bw + 1, y: H - pb - h, width: bw - 2, height: h, rx: 4, class: reach ? "f-proven" : "f-market", tabindex: 0,
+        "data-tip": `${i * 10}–${i * 10 + 10}% of their asks\n${fmt(b.n)} postings${reach ? " · within reach" : ""}` }));
+      s.append(svg("text", { x: pl + i * bw + bw / 2, y: H - 9, "text-anchor": "middle" }, W > 520 || i % 2 === 0 ? `${i * 10}%` : ""));
+    });
+    const xr = pl + M.REACH * (W - pl);
+    s.append(svg("line", { x1: xr, x2: xr, y1: 4, y2: H - pb, stroke: "var(--ink)", "stroke-width": 1.5, "stroke-dasharray": "4 3" }));
+    s.append(svg("text", { x: xr + 6, y: 14, class: "t-ink" }, "within reach →"));
+    return s;
+  });
+  table(document.getElementById("b-hist-t"), ["Share of asks you have", "Postings"], M.histogram(R.sim).map((b, i) => [`${i * 10}–${i * 10 + 10}%`, fmt(b.n)]));
+
+  const gaps = Object.entries(R.asks).sort((a, b) => b[1] - a[1]).map(([id, p]) => ({ k: M.S[id], p }));
+  responsive(document.getElementById("b-gaps"), (W) => {
+    const row = 26, pl = Math.min(130, W * .32), pr = 64, H = gaps.length * row + 26;
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Skills the role asks for, ranked" }, [defs()]);
+    const x = (v) => pl + v * (W - pl - pr);
+    for (const t of [0, .25, .5, .75, 1]) { s.append(svg("line", { x1: x(t), x2: x(t), y1: 0, y2: H - 20, class: "grid" })); s.append(svg("text", { x: x(t), y: H - 4, "text-anchor": "middle" }, pct(t))); }
+    gaps.forEach(({ k, p }, i) => {
+      const y = i * row;
+      s.append(svg("text", { x: pl - 8, y: y + 17, "text-anchor": "end", class: k.state === "missing" ? "t-strong" : "t-ink" }, k.name));
+      s.append(svg("rect", { x: x(0), y: y + 5, width: Math.max(2, x(p) - x(0)), height: row - 10, rx: 4, class: fillOf(k), tabindex: 0,
+        "data-tip": `${k.name}\nAsked in ${pct(p)} of postings · ${fmt(p * R.open)} open\n${stateWord(k)} — ${k.evidence}` }));
+      s.append(svg("text", { x: x(p) + 6, y: y + 17 }, `${pct(p)}${k.state === "missing" ? " · gap" : ""}`));
+    });
+    return s;
+  });
+  table(document.getElementById("b-gaps-t"), ["Skill", "Asked in", "You"], gaps.map(({ k, p }) => [k.name, pct(p), stateWord(k)]));
+
+  responsive(document.getElementById("b-route"), (W) => {
+    const pts = [{ name: "Today", total: R.within, hours: 0 }]; let h = 0; for (const st of R.route) { h += st.hours; pts.push({ ...st, hours: h }); }
+    const H = 260, pl = 44, pr = 20, pb = 30, maxY = Math.ceil(Math.max(...pts.map(p => p.total)) / 200) * 200, maxX = Math.max(10, h);
+    const x = (v) => pl + v / maxX * (W - pl - pr), y = (v) => H - pb - v / maxY * (H - pb - 14);
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Postings within reach as you prove each skill" });
+    for (let t = 0; t <= maxY; t += maxY / 4) { s.append(svg("line", { x1: pl, x2: W - pr, y1: y(t), y2: y(t), class: "grid" })); s.append(svg("text", { x: pl - 6, y: y(t) + 4, "text-anchor": "end" }, fmt(t))); }
+    for (let t = 0; t <= maxX; t += maxX > 60 ? 20 : 10) s.append(svg("text", { x: x(t), y: H - 8, "text-anchor": "middle" }, `${t} h`));
+    let d = `M${x(0)},${y(pts[0].total)}`; for (let i = 1; i < pts.length; i++) d += ` H${x(pts[i].hours)} V${y(pts[i].total)}`;
+    s.append(svg("path", { d: d + ` V${H - pb} H${x(0)} Z`, fill: "var(--accent)", opacity: .12 }));
+    s.append(svg("path", { d, fill: "none", stroke: "var(--accent)", "stroke-width": 2 }));
+    pts.forEach((p, i) => {
+      s.append(svg("circle", { cx: x(p.hours), cy: y(p.total), r: 5, fill: "var(--accent)", stroke: "var(--surface)", "stroke-width": 2, tabindex: 0,
+        "data-tip": i ? `${p.kind === "prove" ? "Prove" : "Learn"} ${p.name}\n+${fmt(p.gain)} postings within reach · about ${p.hours - pts[i - 1].hours} h\nProof: ${p.proof}` : `Today\n${fmt(p.total)} within reach` }));
+      if (i === 0 || i === 1 || i === pts.length - 1 || W > 640) s.append(svg("text", { x: x(p.hours) + (i === pts.length - 1 ? -6 : 6), y: y(p.total) - 9, "text-anchor": i === pts.length - 1 ? "end" : "start", class: "t-ink" }, i ? p.name : `Today ${fmt(p.total)}`));
+    });
+    return s;
+  });
+  { let h = 0; table(document.getElementById("b-route-t"), ["Step", "Proof", "Hours", "Adds", "Within reach"], R.route.map(st => { h += st.hours; return [st.name, st.proof, `${st.hours} (${h})`, `+${fmt(st.gain)}`, fmt(st.total)]; })); }
+
+  const others = M.roles.filter(r => !r.current);
+  responsive(document.getElementById("b-pivot"), (W) => {
+    const H = Math.max(280, Math.min(380, W * .32)), pl = 52, pr = 24, pb = 34, maxY = 2500;
+    const x = (v) => pl + v * (W - pl - pr), y = (v) => H - pb - v / maxY * (H - pb - 16);
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Adjacent roles: overlap and open postings" });
+    for (let t = 0; t <= maxY; t += 500) { s.append(svg("line", { x1: pl, x2: W - pr, y1: y(t), y2: y(t), class: "grid" })); s.append(svg("text", { x: pl - 6, y: y(t) + 4, "text-anchor": "end" }, fmt(t))); }
+    for (const t of [0, .25, .5, .75, 1]) s.append(svg("text", { x: x(t), y: H - 10, "text-anchor": "middle" }, pct(t)));
+    s.append(svg("text", { x: W - pr, y: H - pb - 6, "text-anchor": "end", class: "faint" }, "how much of what they ask you have shown →"));
+    for (const r of others.sort((a, b) => (b.hoursToHalf ?? 99) - (a.hoursToHalf ?? 99))) {
+      const rad = 7 + Math.min(22, (r.hoursToHalf ?? 80) / 4);
+      s.append(svg("circle", { cx: x(r.coverage), cy: y(r.open), r: rad, fill: r.target ? "var(--accent)" : "var(--info)", "fill-opacity": r.target ? .9 : .55, stroke: "var(--surface)", "stroke-width": 2, tabindex: 0,
+        "data-tip": `${r.name}\nYou have shown ${pct(r.coverage)} of what it asks · ${fmt(r.open)} open\n${fmt(r.within)} within reach now · ${r.hoursToHalf == null ? "a long way" : r.hoursToHalf === 0 ? "already 30%+" : `about ${r.hoursToHalf} h to 30%`}\nCarries over: ${r.carries.slice(0, 4).map(id => M.S[id].name).join(", ")}\nMissing: ${r.missing.slice(0, 3).map(id => M.S[id].name).join(", ")}` }));
+      const right = x(r.coverage) > W * .75;
+      s.append(svg("text", { x: x(r.coverage) + (right ? -rad - 6 : rad + 6), y: y(r.open) + 4, "text-anchor": right ? "end" : "start", class: "t-ink" }, r.name));
+    }
+    return s;
+  });
+  table(document.getElementById("b-pivot-t"), ["Role", "You have shown", "Open", "Within reach", "Hours to 30%", "Missing most"], others.map(r => [r.name, pct(r.coverage), fmt(r.open), fmt(r.within), r.hoursToHalf ?? "—", r.missing.slice(0, 3).map(id => M.S[id].name).join(", ")]));
+})();
+</script>

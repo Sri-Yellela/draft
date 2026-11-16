@@ -1,0 +1,140 @@
+<title>A228 · A — One map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Instrument+Serif&display=swap">
+<link rel="stylesheet" href="A228-common.css">
+<style>
+  /* Concept A: the skill map IS the product — one treemap of your skills by family; a role switch re-weights the same tiles
+     (area = how many of that role's postings ask for it), so a pivot is the same picture with different sizes. */
+  .a-top { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 1100px) { .a-top { grid-template-columns: minmax(0, 2.2fr) minmax(320px, 1fr); align-items: start; } }
+  .roles { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tile-label { pointer-events: none; }
+  .fam-label { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; fill: var(--ink-faint); }
+  .route { display: grid; gap: 10px; counter-reset: step; margin: 0; padding: 0; list-style: none; }
+  .route li { display: grid; grid-template-columns: 28px 1fr auto; gap: 4px 10px; align-items: baseline; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .route li::before { counter-increment: step; content: counter(step); font-family: var(--font-count); color: var(--ink-faint); }
+  .route .gain { font-family: var(--font-count); color: var(--ink); }
+  .route .how { grid-column: 2 / 4; font-size: 13px; color: var(--ink-muted); }
+</style>
+<div class="page">
+  <div class="sk-bar"><nav><a class="btn" href="A228-concepts.html">All concepts</a><a class="btn" aria-current="page" href="A228-a-map.html">A · One map</a><a class="btn" href="A228-b-readout.html">B · The readout</a><a class="btn" href="A228-c-route.html">C · The route</a></nav><div class="sk-themes"></div></div>
+
+  <header style="display:grid;gap:8px">
+    <span class="eyebrow">Atlas · Your map · sketch A · synthetic person</span>
+    <h1 id="a-h1">Your skills, sized by what Data Engineer postings ask</h1>
+    <p class="lede">Each square is one skill. Its size is how many open postings for the role ask for it; its fill is how far you've shown it. Switch the role and the same squares resize, which is how a pivot reads here.</p>
+  </header>
+
+  <section class="a-top">
+    <div class="panel">
+      <div class="panel__head">
+        <div class="roles" id="a-roles" role="group" aria-label="Size the map for a role"></div>
+        <div class="legend"><span><i class="sw sw--proven"></i>Proven (a check or a build)</span><span><i class="sw sw--claimed"></i>On your résumé</span><span><i class="sw sw--missing"></i>Not yet</span></div>
+      </div>
+      <div class="chart" id="a-map" aria-label="Skill map"></div>
+      <div id="a-map-table"></div>
+    </div>
+    <aside style="display:grid;gap:20px;min-width:0">
+      <div class="panel">
+        <span class="eyebrow">Where you stand</span>
+        <div class="hero"><span class="hero__n num" id="a-within">—</span><span id="a-within-l" class="small"></span></div>
+        <div class="chart" id="a-hist" aria-label="Postings by share of their asks you have"></div>
+        <p class="small" id="a-hist-l"></p>
+      </div>
+      <div class="panel">
+        <div class="panel__head"><span class="eyebrow">Close the gap · in this order</span><span class="small" id="a-route-l"></span></div>
+        <ol class="route" id="a-route"></ol>
+      </div>
+    </aside>
+  </section>
+  <p class="note">Sketch for the owner's pick (D149 rule 3). Synthetic person and market; every number is counted from the sketch's seeded board, the way draft counts job_tech per posting. No model is called. Hover or focus any square for its numbers.</p>
+</div>
+<script src="A228-common.js"></script>
+<script>
+(function () {
+  const { model, svg, defs, fillOf, stateWord, tips, table, responsive, sketchBar, fmt, pct } = A228;
+  sketchBar(); tips();
+  const M = model();
+  let role = M.target;
+
+  // squarified treemap (Bruls et al.) inside a rect
+  function squarify(items, x, y, w, h) {
+    const out = [], total = items.reduce((a, b) => a + b.v, 0) || 1;
+    const scaled = items.map(it => ({ ...it, a: it.v / total * w * h }));
+    let row = [], rest = scaled.slice();
+    const worst = (r, side) => { const s = r.reduce((a, b) => a + b.a, 0), mx = Math.max(...r.map(z => z.a)), mn = Math.min(...r.map(z => z.a)); return Math.max(side * side * mx / (s * s), (s * s) / (side * side * mn)); };
+    function lay(r) { const s = r.reduce((a, b) => a + b.a, 0); if (w >= h) { const cw = s / h; let cy = y; for (const z of r) { const ch = z.a / cw; out.push({ ...z, x, y: cy, w: cw, h: ch }); cy += ch; } x += cw; w -= cw; } else { const rh = s / w; let cx = x; for (const z of r) { const cw = z.a / rh; out.push({ ...z, x: cx, y, w: cw, h: rh }); cx += cw; } y += rh; h -= rh; } }
+    while (rest.length) { const side = Math.min(w, h), c = rest[0]; if (!row.length || worst([...row, c], side) <= worst(row, side)) { row.push(c); rest.shift(); } else { lay(row); row = []; } }
+    if (row.length) lay(row);
+    return out;
+  }
+
+  const fit = (txt, w, cw) => txt.length * cw <= w ? txt : txt.slice(0, Math.max(1, Math.floor(w / cw) - 1)) + "…";
+  function drawMap(W) {
+    const H = Math.round(Math.max(360, Math.min(640, W * 0.56)));
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `Skill map sized for ${role.name}` }, [defs()]);
+    const fams = M.FAMILIES.map(f => ({ id: f, kids: M.skills.filter(k => k.family === f && role.asks[k.id]).map(k => ({ k, v: role.asks[k.id] })) }))
+      .map(f => ({ ...f, v: f.kids.reduce((a, b) => a + b.v, 0) })).filter(f => f.v > 0).sort((a, b) => b.v - a.v);
+    for (const f of squarify(fams, 0, 0, W, H)) {
+      const pad = 3, top = 20;
+      s.append(svg("text", { x: f.x + 6, y: f.y + 14, class: "fam-label" }, f.w > 70 ? f.id : ""));
+      const tiles = squarify(f.kids.sort((a, b) => b.v - a.v), f.x + pad, f.y + top, Math.max(1, f.w - pad * 2), Math.max(1, f.h - top - pad));
+      for (const t of tiles) {
+        const k = t.k, n = Math.round(t.v * role.open), g = 2;
+        const r = svg("rect", { x: t.x + g / 2, y: t.y + g / 2, width: Math.max(0, t.w - g), height: Math.max(0, t.h - g), rx: 4, class: fillOf(k), tabindex: 0,
+          "data-tip": `${k.name}\n${pct(t.v)} of ${role.name} postings ask for it · ${fmt(n)} open\n${stateWord(k)} — ${k.evidence}` });
+        s.append(r);
+        if (t.w > 64 && t.h > 30) {
+          const onFill = k.state === "proven";
+          s.append(svg("text", { x: t.x + 8, y: t.y + 20, class: "tile-label", style: `fill:${onFill ? "var(--on-accent)" : "var(--ink)"};font-weight:600;font-size:${t.w > 140 && t.h > 60 ? 15 : 12}px` }, fit(k.name, t.w - 14, t.w > 140 && t.h > 60 ? 8.2 : 6.8)));
+          if (t.h > 48) s.append(svg("text", { x: t.x + 8, y: t.y + 37, class: "tile-label", style: `fill:${onFill ? "var(--on-accent)" : "var(--ink-muted)"}` }, `${pct(t.v)} ask`));
+        }
+      }
+    }
+    return s;
+  }
+
+  function drawHist(W) {
+    const bins = M.histogram(role.sim), H = 150, pb = 26, mx = Math.max(...bins.map(b => b.n)), bw = W / 10;
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "How many postings you meet, by share" });
+    s.append(svg("line", { x1: 0, x2: W, y1: H - pb, y2: H - pb, class: "axis" }));
+    bins.forEach((b, i) => {
+      const h = mx ? (b.n / mx) * (H - pb - 18) : 0, reach = b.from >= M.REACH - 1e-9;
+      s.append(svg("rect", { x: i * bw + 1, y: H - pb - h, width: bw - 2, height: h, rx: 3, class: reach ? "f-proven" : "f-market", tabindex: 0,
+        "data-tip": `You have ${b.from * 100}–${b.from * 100 + 10}% of what they ask\n${fmt(b.n)} ${role.name} postings${reach ? "\nWithin reach" : ""}` }));
+      if (i % 2 === 0 || W > 420) s.append(svg("text", { x: i * bw + bw / 2, y: H - 8, "text-anchor": "middle" }, `${i * 10}%`));
+    });
+    const xr = M.REACH * W;
+    s.append(svg("line", { x1: xr, x2: xr, y1: 6, y2: H - pb, stroke: "var(--ink)", "stroke-width": 1.5, "stroke-dasharray": "4 3" }));
+    s.append(svg("text", { x: xr + 6, y: 16, class: "t-ink" }, "within reach →"));
+    return s;
+  }
+
+  function render() {
+    document.getElementById("a-h1").textContent = `Your skills, sized by what ${role.name} postings ask`;
+    document.getElementById("a-map").replaceChildren(drawMap(document.getElementById("a-map").clientWidth || 900));
+    const t = document.getElementById("a-map-table"); t.replaceChildren();
+    table(t, ["Skill", "Family", "Postings asking", "Open", "You"], Object.entries(role.asks).sort((a, b) => b[1] - a[1]).map(([id, p]) => [M.S[id].name, M.S[id].family, pct(p), fmt(p * role.open), stateWord(M.S[id])]));
+    const n = role.within;
+    document.getElementById("a-within").textContent = fmt(n);
+    document.getElementById("a-within-l").textContent = `of ${fmt(role.open)} open ${role.name} postings are within reach — you have at least 60% of what they ask.`;
+    const hist = document.getElementById("a-hist"); hist.replaceChildren(drawHist(hist.clientWidth || 360));
+    const lv = M.LEVELS.map(l => `${l} ${fmt(M.within(role.sim, null, l))}`).join(" · ");
+    document.getElementById("a-hist-l").textContent = `By level: ${lv}. Bars right of the line are postings you could apply to today.`;
+    const ol = document.getElementById("a-route"); ol.replaceChildren();
+    let h = 0;
+    for (const st of role.route) { h += st.hours; const li = document.createElement("li"); li.innerHTML = `<span><b>${st.kind === "prove" ? "Prove" : "Learn"} ${st.name}</b> <span class="small">· ${pct(st.ask)} ask</span></span><span class="gain">+${fmt(st.gain)}</span><span class="how">${st.proof} · about ${st.hours} h · then ${fmt(st.total)} within reach</span>`; ol.append(li); }
+    if (!role.route.length) ol.innerHTML = `<li><span>Nothing left raises this count — prove what's on your résumé.</span></li>`;
+    document.getElementById("a-route-l").textContent = role.route.length ? `${h} h in all` : "";
+  }
+
+  const box = document.getElementById("a-roles");
+  for (const r of M.roles) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = r.name + (r.current ? " · now" : r.target ? " · aim" : "");
+    b.onclick = () => { role = r; box.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); render(); };
+    b.setAttribute("aria-pressed", String(r === role)); box.append(b);
+  }
+  let w0 = 0; new ResizeObserver(() => { const w = document.getElementById("a-map").clientWidth; if (Math.abs(w - w0) > 4) { w0 = w; render(); } }).observe(document.getElementById("a-map"));
+  render();
+})();
+</script>

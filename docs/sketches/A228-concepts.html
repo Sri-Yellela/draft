@@ -1,0 +1,52 @@
+<title>Atlas Skill Map Concepts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Instrument+Serif&display=swap">
+<link rel="stylesheet" href="A228-common.css">
+<style>
+  .cards { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+  .cards .panel { align-content: start; }
+  .qs { margin: 0; padding-left: 20px; display: grid; gap: 4px; max-width: 72ch; }
+  .cmp-wrap { overflow-x: auto; }
+  table.cmp { border-collapse: collapse; width: 100%; min-width: 720px; font-size: 14px; }
+  table.cmp th, table.cmp td { text-align: left; vertical-align: top; padding: 8px 14px 8px 0; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--ink-faint); font-weight: 500; }
+</style>
+<div class="page">
+  <div class="sk-bar"><nav><a class="btn" aria-current="page" href="A228-concepts.html">All concepts</a><a class="btn" href="A228-a-map.html">A · One map</a><a class="btn" href="A228-b-readout.html">B · The readout</a><a class="btn" href="A228-c-route.html">C · The route</a></nav><div class="sk-themes"></div></div>
+  <header style="display:grid;gap:10px">
+    <span class="eyebrow">A228 · 46r · for the owner's pick</span>
+    <h1>Atlas skill map: three ways to show it</h1>
+    <p class="lede">Each concept answers the same five questions from the same counted data. They differ in what leads. One synthetic person (a mid-level backend engineer aiming at Data Engineer) is shown in each, on a seeded board. No model is called.</p>
+    <ol class="qs">
+      <li><b>My skill map:</b> what I have, and how strongly it's shown (proven, on my résumé, not yet).</li>
+      <li><b>My gaps:</b> what the role asks that I lack, ranked by how many postings ask for it.</li>
+      <li><b>Where I stand:</b> how many open postings I already meet, against all of them, by level. No surface in draft answers this today.</li>
+      <li><b>How to close it:</b> the next skill, the order, the proof for each, and the postings each one opens.</li>
+      <li><b>A pivot:</b> the roles next to mine, what carries over, the market size, and the cost to move.</li>
+    </ol>
+  </header>
+  <section class="cards">
+    <a class="panel" href="A228-a-map.html" style="text-decoration:none;color:inherit"><span class="eyebrow">Concept A</span><h2>One map</h2><p>The skill map leads: a treemap of your skills by family, each square sized by how many postings ask for it and filled by how far you've shown it. A role switch resizes the same squares, so a pivot is the same picture. Where you stand and the route sit beside it.</p><p class="small">Strongest on Q1 and Q5. Q3 and Q4 are side panels.</p></a>
+    <a class="panel" href="A228-b-readout.html" style="text-decoration:none;color:inherit"><span class="eyebrow">Concept B</span><h2>The readout</h2><p>One number leads: postings within reach today, split by level. Below it, one chart per question: the distribution of postings by how much of each you meet, ranked gap bars, a step chart of the route, and a scatter of adjacent roles by overlap and market.</p><p class="small">Strongest on Q2 and Q3. The most direct to build from draft's counts.</p></a>
+    <a class="panel" href="A228-c-route.html" style="text-decoration:none;color:inherit"><span class="eyebrow">Concept C</span><h2>The route</h2><p>The journey leads: a line of stations from you today to the aim, each column showing postings within reach once that skill is proven. Other roles follow as small multiples on one scale. The skill map becomes a skills × roles grid.</p><p class="small">Strongest on Q4 and Q5. Closest to the track board Atlas has now.</p></a>
+  </section>
+  <section class="panel">
+    <h2>How they compare</h2>
+    <div class="cmp-wrap"><table class="cmp">
+      <thead><tr><th></th><th>A · One map</th><th>B · The readout</th><th>C · The route</th></tr></thead>
+      <tbody>
+        <tr><th>Leads with</th><td>Your skills, as a picture</td><td>One number: postings within reach</td><td>The next steps, as a line</td></tr>
+        <tr><th>Q1 skill map</th><td>Treemap by family</td><td>Ranked bars (one role)</td><td>Skills × roles grid</td></tr>
+        <tr><th>Q2 gaps</th><td>Outlined squares, sized by demand</td><td>Ranked bars of demand</td><td>Grid rows, shaded by demand</td></tr>
+        <tr><th>Q3 vs the market</th><td>Small histogram + level line</td><td>Large histogram + level tiles</td><td>The first column of the route</td></tr>
+        <tr><th>Q4 route</th><td>Ordered list</td><td>Step chart over hours</td><td>Station line with columns</td></tr>
+        <tr><th>Q5 pivot</th><td>Role switch resizes the map</td><td>Scatter: overlap × market</td><td>Small multiples per role</td></tr>
+        <tr><th>Replaces in Atlas today</th><td>The market tree, the Your skills ring map, the families list</td><td>The readiness dial, Compare roles, the five sections</td><td>The track board, the Navigator's cards, Compare roles</td></tr>
+        <tr><th>New data draft needs</th><td colspan="3">Per-posting asks (have: atlas_posting_match.asked); the posting's level (scraped_jobs.level_read; its fill on production is not measured); Library hours per skill (atlas_resources.hours). One definition of "have" for all three, replacing the three Atlas uses today.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+  <p class="note">Every theme is on the bar above (Dusk and Plain, light and dark). Each page works at phone width. Each chart has a hover layer and a "Show as a table" view. Pick one, or name the parts to combine (e.g. B's histogram inside A).</p>
+</div>
+<script src="A228-common.js"></script>
+<script>A228.sketchBar();</script>
