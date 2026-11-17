@@ -53,6 +53,10 @@
 .skm-fam { fill: var(--c-ink-faint); font-family: var(--font-body); font-size: calc(11px * var(--type-scale, 1)); letter-spacing: .06em; }
 .skm-nohit { pointer-events: none; }
 .skm-tile__n { fill: var(--c-ink); font-family: var(--font-body); font-weight: 600; }
+/* a tile's words: a halo of the surface keeps them legible on the hatch; on a proven (solid accent) tile they are
+   the on-accent ink, with no halo (more specific than .skm-t / .skm-tile__n on purpose) */
+[data-skm-tile] text { paint-order: stroke; stroke: var(--c-surface-solid); stroke-width: 3px; stroke-linejoin: round; }
+.skm-chart [data-skm-tile] .skm-on-accent { fill: var(--c-on-accent); stroke: none; }
 .skm-logo { fill: var(--c-surface-solid); stroke: var(--c-border); }
 .skm-logo__t { fill: var(--c-ink); font-family: var(--font-body); font-weight: 700; }
 .skm-f-proven { fill: var(--c-accent); }
