@@ -164,16 +164,16 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ### ⛔⛔⛔ NEW SESSION (46s) STARTS HERE (end of 46r, 11-17)
 
-**STATE AT THE END OF 46r (measured 11-17 — re-measure before quoting):** production on **`da5d640`** (`/api/version`, started 2026-11-16 16:44:19Z, migration 276). Local `main` is **0 behind / 21 ahead of `origin/main`, NOT pushed** (`git rev-list --left-right --count origin/main...HEAD`): A213, A214, A216, A217 (+ its revert), A218, A219, A221, A223, A228 (sketches + the build), CLAUDE.md, WORKLOG. The whole suite: 6,491 / 1 red, fixed (see ▶▶▶ 46r PROGRESS). The A228 sketches: https://claude.ai/artifact/Pyta8iMnJJ61XSAUzNedjK (private).
+**STATE AT THE END OF 46r (measured 11-17 ~01:40Z — re-measure before quoting):** ✅ **PUSHED on the owner's "push and pin it" (11-17):** staging then production on **`5e84cd6`** (`/api/version` both). Staging started 01:32:49Z, boot ready 1,470 ms, log clean (only the expected no-model-key warning). Production started 01:35:04Z, **boot ready 5,195 ms**, model key OK, migration 276 (none added), `/api/health/ready` 200, `/api/atlas/skill-map` 401 signed out, `/atlas/your-map` 200; watched 5 min after the deploy, every request 200 in 0.09–0.31 s (no freeze). Local `main` = `origin/main` + this log commit. **A217 pinned on the owner's word** `5e84cd68` (sticky foot back; `fidelityFullHouse` moved on purpose — `pinnedFoot` sticky, the 18 px rhythm checked only where nothing is stuck; 13 / 13). The whole suite: 6,491 / 1 red, fixed (see ▶▶▶ 46r PROGRESS). The A228 sketches: https://claude.ai/artifact/Pyta8iMnJJ61XSAUzNedjK (private).
 
 **THE ORDER FOR 46s (agent):**
-1. **On the owner's "push":** staging first, then production, each verified (`/api/version`); then on production, read Atlas → Your map as a real-shaped account and **measure `/api/atlas/skill-map`** (first answer, cached, and during a crawl's drain — the ~200 ms index rebuild); watch for same-millisecond clusters (memory: board reads freeze the site).
+1. ✅ pushed 11-17 (above). **Now** on production: read Atlas → Your map as a real-shaped account and **measure `/api/atlas/skill-map`** (first answer, cached, and during a crawl's drain — the ~200 ms index rebuild); watch for same-millisecond clusters (memory: board reads freeze the site).
 2. **A228 follow-ups (agent, no decision):** walk Your map in Dusk Light and Plain Dark; a skill with a Wikipedia thumbnail on a fixture (the logo path is unproven); delete or keep the three server endpoints with no client caller (`/api/atlas/readiness/compare`, `/subcategory-roles`, `/api/your-skills/map`) — check every caller first (Profile and Today's question still use roleReadiness); the extension's "proven N of their top 8" vs the company page's top 12 (one cut).
 3. **The level fill** — find a cheap read of `scraped_jobs.level_read`'s share on production (a count, not a board pass); if it is low, the by-level split needs D106's reader running on more postings.
 
 ### 👤👤👤 OWNER — YOUR STEPS FOR 46s
-1. ☐ **Say "push"** for the 21 local commits (staging first, then production).
-2. ☐ **A217 — pin the posting's Draft / Save to the panel's foot?** The audit found them below a long description at 1440; your D149 Full House sketch has them follow the posting. 46r kept the sketch. Say "pin them" to change it (and the sketch's pin moves).
+1. ✅ "push and pin it" (11-17) — both done, live on `5e84cd6`.
+2. ✅ A217 pinned.
 3. ☐ Look at Atlas → Your map once it's live and say what to change.
 4. ☐ Still open from 46r: verify your app account's email (A212 / Tiny T3) · the demo video · the extension v1.7.0 upload · D191 (3) / (5a) · A211 options.
 
