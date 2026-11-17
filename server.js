@@ -17558,6 +17558,11 @@ app.get(["/:company/:id(\\d{1,12})", "/companies/:company/:id(\\d{1,12})"], (req
   const page = found ? renderPublicJobPage(db, found.row, { base: appBaseUrl(req), open: found.open }) : renderMissingJobPage();
   res.set("Cache-Control", "public, max-age=600").status(page.status).type("html").send(page.html);
 });
+// ⭐ 46t (found after A230's push): an /api address no route answers is a 404 in JSON — it used to fall through to the
+// app's index.html with 200, so a deleted or mistyped endpoint looked alive to every caller (curl, the extension, Tiny).
+app.all(/^\/api(\/|$)/, (_req, res) => {
+  res.status(404).json({ error: "not_found" });
+});
 app.get("*", (_req, res) => {
   res.sendFile(path.join(CLIENT_DIST, "index.html"));
 });
