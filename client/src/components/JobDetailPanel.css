@@ -114,10 +114,9 @@
 }
 .pp__x:hover, .pp__x:focus-visible { color: var(--c-ink); }
 .pp__body { padding: 0; flex: none; }   /* the row follows the posting; the panel does not stretch the gap */
-/* ⭐ A217 (46r, the 46q audit): the row PINS to the panel's foot again — at 1440 Draft / Save sat below a long description,
-   out of view. On the card's own surface (no edge), so the posting scrolls under it; at the posting's end it rests where
-   the sketch put it. */
-.pp__foot { position: sticky; bottom: 0; z-index: 2; padding: 0 0 4px; background: var(--c-surface-solid); border-top: 0; }
+/* A217 (46r): the sticky foot was REVERTED — D149's approved sketch (fullhouse-declutter.html, fidelityFullHouse) has the
+   row follow the posting. Pinning the actions is the owner's call (WORKLOG 46r). */
+.pp__foot { position: static; padding: 0; background: transparent; border-top: 0; }
 .pp__main-acts { gap: 10px; margin-top: 18px; }
 .pp__btn {
   border: 0; border-radius: 16px; padding: 14px; cursor: pointer; background: var(--c-fh-well); color: var(--c-ink);
