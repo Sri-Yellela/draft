@@ -191,7 +191,10 @@ export async function publicSuggest(db, read, q, { limit = 5, kind = null } = {}
  * person has PROVEN (D169's Your skills: checked or built), which they only list (claimed), and which are missing — each
  * missing one with its Atlas page when it has one ("learn what they use"). The page never shows this signed out.
  */
-export function companyMatchFor(db, slug, userId, { yourSkillStates, top = 12 } = {}) {
+// ⭐ 46t · ONE CUT for "you've proven N of their top M": the company page and the extension's posting facts read the same
+// top M of the company's stack (the extension cut at 8 while the page cut at 12 — the same company read two ways).
+export const COMPANY_MATCH_TOP = 12;
+export function companyMatchFor(db, slug, userId, { yourSkillStates, top = COMPANY_MATCH_TOP } = {}) {
   const page = publicCompany(db, slug);
   if (!page) return null;
   const techs = Object.values(page.stack?.groups || {}).flat().sort((a, b) => b.postings - a.postings).slice(0, top);
