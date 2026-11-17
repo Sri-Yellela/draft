@@ -29,6 +29,9 @@ const [VW, VH] = String(arg("--size", "1600x900")).split("x").map(Number);
 const today = new Date().toISOString().slice(0, 10);
 const OUT = path.resolve(arg("--out", path.join(os.homedir(), "Videos", `draft-demo-${today}.mp4`)));
 const NO_DRAFT = flag("--no-draft");
+// ⭐ 46s (owner 11-17: "do the demo in plain light theme"): the theme is applied IN THIS BROWSER ONLY — the account's
+// saved appearance is answered with this theme for the recording (a read, mocked); nothing is written to the account.
+const THEME = arg("--theme", null);
 const CHROME = arg("--chrome", "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe");
 const MAX_SECONDS = 180;
 
@@ -52,8 +55,20 @@ const browser = await puppeteer.launch({ executablePath: CHROME, headless: true,
   args: ["--no-first-run", `--window-size=${VW},${VH}`, "--disable-features=HttpsFirstBalancedModeAutoEnable"], defaultViewport: { width: VW, height: VH, deviceScaleFactor: 1 } });
 const page = await browser.newPage();
 await page.setRequestInterception(true);
+if (THEME) await page.evaluateOnNewDocument((t) => { try { localStorage.setItem("draft-theme", t); } catch { /* blocked */ } }, THEME);
+// a visible pointer for the recording (a headless screencast draws none): a dot that follows the mouse
+await page.evaluateOnNewDocument(() => {
+  addEventListener("DOMContentLoaded", () => {
+    const d = document.createElement("div"); d.id = "demo-pointer";
+    d.style.cssText = "position:fixed;left:-40px;top:-40px;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:rgba(20,20,20,.55);border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.35);z-index:2147483646;pointer-events:none;transition:left .06s linear,top .06s linear";
+    document.body.appendChild(d);
+    addEventListener("pointermove", (e) => { d.style.left = e.clientX + "px"; d.style.top = e.clientY + "px"; }, { passive: true });
+  });
+});
 page.on("request", (req) => {
   const u = new URL(req.url()), m = req.method();
+  if (THEME && m === "GET" && u.origin === host.origin && u.pathname === "/api/settings/appearance")
+    return req.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ theme: THEME, cues: false }) });
   if (m === "GET" || m === "HEAD" || m === "OPTIONS" || u.origin !== host.origin) return req.continue();
   // ONE Draft per recording — a second POST /api/apply/runs (a re-render, a second press) is aborted
   const isDraft = u.pathname === "/api/apply/runs";
@@ -81,6 +96,16 @@ const typeSlow = async (sel, text) => {
   if (!(await el.evaluate(e => e === document.activeElement))) throw new Error(`${sel} did not take the focus`);
   await el.type(text, { delay: 45 });
 };
+// ⭐ 46s · hover like a person: bring the mark into view, glide the pointer to it (its tooltip opens), hold
+const hover = async (sel, { nth = 0, hold = 2200 } = {}) => {
+  const els = await page.$$(sel); const el = els[Math.min(nth, els.length - 1)];
+  if (!el) return false;
+  await el.evaluate(e => e.scrollIntoView({ block: "center", behavior: "smooth" })); await sleep(700);
+  const b = await el.boundingBox(); if (!b) return false;
+  await page.mouse.move(b.x + b.width / 2, b.y + Math.min(b.height / 2, 40), { steps: 18 }); await sleep(hold);
+  return true;
+};
+const scrollToSel = async (sel) => { await page.evaluate((s) => document.querySelector(s)?.scrollIntoView({ block: "start", behavior: "smooth" }), sel); await sleep(1200); };
 const enterIn = async (sel) => { const el = await page.$(sel); if (await el?.evaluate(e => e === document.activeElement)) await el.press("Enter"); else throw new Error(`${sel} lost the focus`); };
 
 // signed in?
@@ -127,10 +152,35 @@ try {
     await typeSlow(INPUT, "how many need me?"); await enterIn(INPUT); await sleep(4000);
     await page.click("[data-ask-close]").catch(() => {}); await sleep(600);
   });
+  // ⭐ 46s (owner 11-17: "showing atlas properly especially what we built today, hovering over the map explaining how it
+  // works"): A228's skill map, walked with the pointer — every hover opens the mark's own tooltip. Reads only: the role
+  // buttons and Map | List fetch or redraw; "Aim for this" (a write) is never pressed.
   await step("atlas", async () => {
-    await go("/app/atlas"); await caption("Atlas: your run — points come only from proof, a skill checked or something built"); await sleep(4500);
-    await go("/app/atlas/your-map"); await caption("Your map: where your skills stand against the roles you want"); await sleep(3000); await smoothScroll(700, 2200); await sleep(1500);
-    await go("/app/atlas/library"); await caption("Guides and courses for the next skill on your route"); await sleep(4000);
+    await go("/app/atlas/your-map"); await sleep(1200);
+    await caption("Atlas: how many jobs you can apply for today — counted from the skills on your résumé, no guesswork"); await sleep(4200);
+    await caption("Every open job for your aim, by how much of it you already have — right of the line, you can apply");
+    await hover("[data-skm-histogram] [data-tip]", { nth: 3, hold: 2000 }); await hover("[data-skm-histogram] [data-tip]", { nth: 7, hold: 2200 });
+    await scrollToSel("[data-skm-section=wants]");
+    await caption("Your skill map: each square is a skill, sized by how many jobs want it");
+    await hover("[data-skm-tile] rect", { nth: 0, hold: 2400 });
+    await caption("Solid: proven · striped: on your résumé · outlined: a gap you don't have yet");
+    await hover("[data-skm-tile][data-state=claimed] rect", { hold: 2200 }) || await hover("[data-skm-tile][data-state=proven] rect", { hold: 2200 });
+    await hover("[data-skm-tile][data-state=missing] rect", { hold: 2400 });
+    await caption("Switch the job and the same map resizes to what that role wants");
+    await page.evaluate(() => { const b = [...document.querySelectorAll("[data-skm-role-btn]")].map(s => s.closest("button")).filter(Boolean); (b.find(x => x.getAttribute("aria-pressed") !== "true") || null)?.click(); });
+    await sleep(3200);
+    await page.evaluate(() => [...document.querySelectorAll("[data-skm-view] button")].find(b => /list/i.test(b.textContent))?.click()); await sleep(500);
+    await caption("Or read it as a list, most-wanted first"); await sleep(2600);
+    await page.evaluate(() => [...document.querySelectorAll("[data-skm-view] button")].find(b => /map/i.test(b.textContent))?.click()); await sleep(600);
+    // back to the aim, so Learn next and the moves read for the job the person is aiming at
+    await page.evaluate(() => [...document.querySelectorAll("[data-skm-role-btn]")].map(s => s.closest("button")).find(b => /your aim/i.test(b?.textContent || ""))?.click()); await sleep(1800);
+    await scrollToSel("[data-skm-section=learn]");
+    await caption("Learn next: the skills that open the most jobs per hour — with the companies hiring for them");
+    await hover("[data-skm-point]", { nth: 1, hold: 2200 }); await hover("[data-skm-step]", { nth: 0, hold: 2200 });
+    await scrollToSel("[data-skm-section=move]");
+    await caption("Jobs you could move to: further right, the more of it you already have");
+    await hover("[data-skm-role]", { nth: 1, hold: 2400 }); await hover("[data-skm-card]", { nth: 0, hold: 2000 });
+    await page.mouse.move(8, 8);
   });
   await step("profile", async () => {
     await go("/app/profile/about"); await caption("Your profile, built from your résumé — you choose who sees each part"); await sleep(4000); await smoothScroll(500, 1800); await sleep(1200);
