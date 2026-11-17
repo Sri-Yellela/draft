@@ -13,7 +13,7 @@ import DepthButton from "./DepthButton.jsx";
 import RadioCards from "./RadioCards.jsx";
 import { api } from "../lib/api.js";
 import { useStudioForUsers } from "../lib/monetisation.jsx";
-import { THEME_LIST, STUDIO_IDS, DUSK_IDS, ACTIVE_THEME, appearance, layout, setAppearance, pairPreference, CONTRAST_OFFER, dismissContrastOffer } from "../themes/index.js";
+import { THEME_LIST, STUDIO_IDS, DUSK_IDS, ACTIVE_THEME, appearance, layout, setAppearance, pairPreference, resolve, CONTRAST_OFFER, dismissContrastOffer } from "../themes/index.js";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 /** Save the whole appearance to the account (theme, cues and the layout options), then apply it (a reload). */
@@ -49,7 +49,15 @@ export function ThemeSection() {
   const studioOn = useStudioForUsers() || STUDIO_IDS.includes(ACTIVE_THEME.id);
   // ⭐ D144 → D149: Dusk is the DEFAULT now, so it is always offered (its admin switch no longer gates it).
   const duskOn = true;
-  const choose = (id) => { const t = THEME_LIST.find((x) => x.id === id); saveAppearance({ pref: follow ? pairPreference(t) : t.id, cues: cur.cues }); };
+  // ⭐ 46t (owner 11-17: "the light themes just wont switch on"): with "follow my system" on, a card used to save its PAIR,
+  // and on a dark device the pair resolves to the DARK one — the light card the person pressed never showed. A card is
+  // the person's choice: when the pair would not land on it, the card itself is saved and following is turned off.
+  const choose = (id) => {
+    const t = THEME_LIST.find((x) => x.id === id);
+    const keepFollow = follow && resolve(pairPreference(t)).id === t.id;
+    if (follow && !keepFollow) setFollow(false);
+    saveAppearance({ pref: keepFollow ? pairPreference(t) : t.id, cues: cur.cues });
+  };
   return (
     <SettingsSection title="Theme"
       subtitle="How draft looks on this account, on every device. Documents — your résumé and cover letter — always stay black on white.">
