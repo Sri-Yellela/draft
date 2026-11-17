@@ -116,6 +116,25 @@ export function nudgeLabels(pts, W, { charW = 7, gap = 16, line = 15 } = {}) {
   });
 }
 
+/**
+ * ⭐ A231 (46t, owner 11-17: "go with c") · the move-to scatter's LOG height scale. One role can hold 20× the open jobs of
+ * the rest (production: Software Engineer 4,996 vs 14–213), and on a straight scale every other dot sat on the floor.
+ * Ticks are the powers of ten from the smallest count's decade up to the clean top (10 · 100 · 1,000 · 5,000); a count
+ * below the first tick (0 included) sits on the floor. pos(v) is 0 at the floor, 1 at the top.
+ */
+export function logScale(values = []) {
+  const vals = values.map(Number).filter(v => Number.isFinite(v) && v > 0);
+  const lo = 10 ** Math.floor(Math.log10(vals.length ? Math.max(1, Math.min(...vals)) : 1));
+  let hi = niceTop(Math.max(...vals, 1));
+  if (hi <= lo) hi = lo * 10;
+  const ticks = [];
+  for (let t = lo; t < hi; t *= 10) ticks.push(t);
+  if (hi / ticks[ticks.length - 1] < 1.5 && ticks.length > 1) ticks.pop();   // a top too close to the last power would crowd it
+  ticks.push(hi);
+  const l0 = Math.log10(lo), span = Math.log10(hi) - l0;
+  return { lo, hi, ticks, pos: (v) => Math.min(1, Math.max(0, (Math.log10(Math.max(Number(v) || 0, lo)) - l0) / span)) };
+}
+
 /** The scatter's y scale top: the largest open count rounded up to a clean step. */
 export function niceTop(max) {
   const m = Math.max(1, max);

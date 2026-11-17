@@ -1,21 +1,23 @@
 // ⭐ A228 (46r) · "Jobs you could move to" — each role a dot: further right = you already have more of what its jobs want
 // (the credit-weighted share of its asks), higher = more open jobs. The role on screen is the accent; the others the chart
-// neutral. Labels never overlap (skillMapModel.js nudgeLabels).
+// neutral. Labels never overlap (skillMapModel.js nudgeLabels). ⭐ A231 (46t, owner's pick C): the height is a LOG scale
+// (logScale), so a role with 20× the open jobs no longer pins every other dot to the floor; exact counts stay in the
+// tooltip and the table.
 import { ChartFrame, ChartTable, useWidth } from "./SkillMapBits.jsx";
-import { fmt, niceTop, nudgeLabels, pct } from "./skillMapModel.js";
+import { fmt, logScale, nudgeLabels, pct } from "./skillMapModel.js";
 
 export default function MoveRolesScatter({ roles = [] }) {
   const [ref, W] = useWidth(900);
   const H = Math.round(Math.max(240, Math.min(340, W * 0.3))), pl = 56, pr = 24, pb = 30;
-  const maxY = niceTop(Math.max(...roles.map(r => r.open), 1));
-  const x = (v) => pl + v * (W - pl - pr), y = (v) => H - pb - (v / maxY) * (H - pb - 14);
+  const ys = logScale(roles.map(r => r.open));
+  const x = (v) => pl + v * (W - pl - pr), y = (v) => H - pb - ys.pos(v) * (H - pb - 14);
   const pts = nudgeLabels([...roles].sort((a, b) => b.open - a.open).map(r => ({ ...r, cx: x(r.coverage), cy: y(r.open) })), W);
   const tag = (r) => (r.isShown ? " · on screen" : r.isAim ? " · your aim" : r.isCurrent ? " · today" : "");
   return (
     <>
       <ChartFrame label="move" frameRef={ref}>
         <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Jobs you could move to" data-skm-scatter="">
-          {[0, 1, 2, 3].map(i => (maxY * i) / 3).map(t => (
+          {ys.ticks.map(t => (
             <g key={t}>
               <line x1={pl} x2={W - pr} y1={y(t)} y2={y(t)} className="skm-grid" />
               <text x={pl - 6} y={y(t) + 4} textAnchor="end" className="skm-t">{fmt(t)}</text>
