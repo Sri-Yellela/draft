@@ -188,9 +188,13 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 - ⏸ **A231 — SKETCHED, waits for the owner's pick:** https://claude.ai/artifact/9QpoP6Z32V2RWq5JzZoajR (private) — the reviewer account's real rows (Software Engineer 4,996 open, the rest 14–213) drawn three ways: A straight (today, approved in A228), B square root, C log with ticks 10 · 100 · 1,000 · 5,000 (recommended). Nothing changed in the app.
 - 👁 **The cold-index watch, read 11-17 on production** (the reviewer account): `/api/atlas/skill-map` first answer 406 ms, then 63 ms — fine at this board size; stays a watch item.
 
+- ✅ **A231 BUILT on the owner's pick (11-17: "go with c") — `f6b581f1` (LOCAL)**. TECH: **wrong** — on a straight scale Software Engineer's 4,996 open jobs pinned every other role (14–213) to the floor · **change** — `logScale` (`skillMapModel.js`, pure): decade ticks from the smallest count's decade up to the clean top (10 · 100 · 1,000 · 5,000), 0 on the floor; `MoveRolesScatter` reads it; exact counts stay in the tooltip and table · **verified** — the real component rendered with production's rows (every role its own height, no label overlap); `a228SkillMapPage` (+ the A231 pin) and the Atlas files / guards 48 / 48.
+- ✅ **THE DEMO, TAKE 2 — `C:\Users\duggi\Videos\draft-demo-2026-11-17-v2.mp4`** (175 s; take 1 kept). Owner 11-17: *"the demo is nice … i have no complaints but none of the courses and learning material is covered. distribute to accommodate."* TECH: **change** (recorder, `scripts/demoVideo.mjs`) — a LEARNING part (118 → 166 s): Your run (today's plan, points only from proof), the Library (guides by level, courses, pathways), a course's circle (108 lessons, hovered), a guide deck paged, Today's question; room made by shorter lines across the walk, the skill map's List beat and "counted" line folded into its opening line, and the Profile beat dropped — Atlas is now ~104 s (skill map 62–118, learning 118–166); edge-tts writing an EMPTY clip with exit 0 is now retried (a 0-byte clip had broken the first build) · **verified** — every step ok; writes allowed: the visited mark + ONE Draft (StubHub, waits for review); aborted none; speech ends 173 s; frames read at 12 points; the board filter Tiny changed restored ("mid … all workstyles in Boston").
+
 ### 👤👤👤 OWNER — YOUR STEPS FOR 46t
 1. ✅ Signed into the reviewer account (and added a synthetic résumé).
-1c. ☐ A231: pick A / B / C in the sketch (link above).
+1c. ✅ A231: C (log) — built, local.
+1e. ☐ Watch take 2 (`draft-demo-2026-11-17-v2.mp4`).
 1d. ☐ Say "push" for A230 + the top-M cut (both local).
 1b. ☐ Read `docs/A232_TEST_AUDIT.md` §2 and §6 — pick R1–R6 (yes / no each).
 2. ☐ Watch the new demo (`C:\Users\duggi\Videos\draft-demo-2026-11-17.mp4`) and say what to change.
