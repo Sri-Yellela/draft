@@ -21,7 +21,7 @@
 // ⛔ D17: no model. ⛔ Not a certificate: a check is self-awareness; nothing here is shown to an employer.
 
 import { prepared } from "./stmtCache.js";   // A195 leftover (b): fixed SQL prepared once per database
-import { resolveTerms, aliasesOf, termOf, readNode } from "./atlas/atlasStore.js";
+import { resolveTerms, aliasesOf, termOf, readNode, headingStrippedNames } from "./atlas/atlasStore.js";
 import { atlasIndex, computeYourMap } from "./atlas/atlasMe.js";
 import { nodeLearnStates } from "./atlas/atlasTree.js";
 import { learnStepForNode, learnStepPath } from "./learn/learnLinks.js";
@@ -199,6 +199,11 @@ function lineFor(e) {
 export function listYourSkills(db, userId) {
   const names = skillNames(db, userId);
   const slugs = safe(() => resolveTerms(db, [...names.values()].map(n => n.name)), {});
+  // 46s: a name that matched nothing — try it without a glued résumé heading ("Languages Java" → "Java")
+  for (const n of names.values()) {
+    if (slugs[n.name]) continue;
+    for (const rest of headingStrippedNames(n.name)) { const hit = safe(() => resolveTerms(db, [rest])[rest], null); if (hit) { slugs[n.name] = hit; break; } }
+  }
   const text = baseResumeText(db, userId);
   const proofs = proofsOf(db, userId);
   const live = liveCountsBySlug(db);

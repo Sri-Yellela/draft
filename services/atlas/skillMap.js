@@ -7,10 +7,11 @@
 // each open posting, services/atlas/atlasLive.js) and the person's own skill states (services/yourSkills.js).
 //
 // ONE DEFINITION of "a job you can apply for" (it replaces the three "have for a role" readings A228 found):
-//   a posting's share = Σ credit(ask) / its asks, credit: proven 1 · on the résumé 0.5 · not yet 0;
+//   a posting's share = Σ credit(ask) / its asks, credit: proven 1 · on the résumé 1 · not yet 0 (⭐ owner 11-17,
+//   46s: "counts in full" — at 0.5 nobody without a proof could ever reach the line; proof is drawn, not counted);
 //   applicable ⇔ share ≥ SKILL_MAP.APPLY_SHARE.
 // The sketch's "last used before 2024 = 0.25" rule is DROPPED: a claimed skill carries no date (profile_skills has no
-// recency column — docs/A228_SKILL_MAP.md §3), so every claim counts the same half.
+// recency column — docs/A228_SKILL_MAP.md §3), so every claim counts the same (in full since owner 11-17).
 //
 // ⛔ PERFORMANCE (memory: sync SQL on the one thread froze production — A126, A158, A162, A186). The per-role COMPACT INDEX
 // (posting → its ask node ids, its level, its company; and node → the postings asking for it) is built ONCE per process
@@ -25,7 +26,7 @@
 import { ACTIVE_POSTINGS_WHERE, postingMatcher } from "./postingMatcher.js";
 import { atlasPostingsChanged, liveVersion } from "./atlasLive.js";
 import { atlasIndex, targetRoleIds } from "./atlasMe.js";
-import { aliasesOf, termOf } from "./atlasStore.js";
+import { aliasesOf, termOf, headingStrippedNames } from "./atlasStore.js";
 import { categoryIndex, roleCategory, registryCached } from "./atlasCategories.js";
 import { familyName } from "../../shared/atlasFamilies.js";
 import { LEVELS_READ } from "../../shared/postingLevel.js";
@@ -38,7 +39,7 @@ export const SKILL_MAP = Object.freeze({
   /** a job you can apply for: you have at least this share of what it asks (credit-weighted) */
   APPLY_SHARE: 0.6,
   /** credit per state — proven (a check passed, a build, a proof link) · on the résumé (claimed) · not yet */
-  CREDIT: Object.freeze({ proven: 1, claimed: 0.5, missing: 0 }),
+  CREDIT: Object.freeze({ proven: 1, claimed: 1, missing: 0 }),
   /** the histogram's bins (0–10 %, 10–20 %, … 90–100 %) */
   BINS: 10,
   /** the role's most-asked skills drawn in the map / list */
@@ -157,24 +158,26 @@ export function skillMapIndex(db, { clock = () => performance.now() } = {}) {
 // ── the person ──────────────────────────────────────────────────────────────────────────────────
 
 /**
- * The person's credit per Atlas node: proven (checked / built) 1, claimed 0.5 — the same names and states Your skills
+ * The person's credit per Atlas node: proven (checked / built) 1, claimed 1 (owner 11-17) — the same names and states Your skills
  * reads (yourSkillStates), matched to nodes by term and confirmed alias (as Your map does, atlasMe.js).
- * @returns {{ credit: Map(nodeId → 0.5 | 1), counts: { proven, claimed }, hash }}
+ * @returns {{ credit: Map(nodeId → 1), proven: Set(nodeId), counts: { proven, claimed }, hash }} — `proven` keeps the state the
+ *   map draws (solid vs hatched) now that both count the same
  */
 export function personCredit(db, userId, index) {
-  const credit = new Map();
+  const credit = new Map(), proven = new Set();
   for (const s of safe(() => yourSkillStates(db, userId), [])) {
     const t = termOf(s.name);
     if (!t) continue;
-    const c = s.state === "checked" || s.state === "built" ? SKILL_MAP.CREDIT.proven : SKILL_MAP.CREDIT.claimed;
-    for (const term of [t, ...safe(() => aliasesOf(db, t), [])]) {
-      for (const id of index.termToIds.get(term) || []) if ((credit.get(id) || 0) < c) credit.set(id, c);
-    }
+    const isProven = s.state === "checked" || s.state === "built";
+    const c = isProven ? SKILL_MAP.CREDIT.proven : SKILL_MAP.CREDIT.claimed;
+    const idsOf = (tt) => [tt, ...safe(() => aliasesOf(db, tt), [])].flatMap(term => index.termToIds.get(term) || []);
+    let ids = idsOf(t);
+    // 46s: "Languages Java" (a heading glued to the first skill of a résumé line) → "Java"
+    if (!ids.length) for (const rest of headingStrippedNames(s.name)) { const tt = termOf(rest); ids = tt ? idsOf(tt) : []; if (ids.length) break; }
+    for (const id of ids) { if ((credit.get(id) || 0) < c) credit.set(id, c); if (isProven) proven.add(id); }
   }
-  let proven = 0, claimed = 0;
-  for (const c of credit.values()) c >= 1 ? proven++ : claimed++;
-  const hash = [...credit.entries()].sort((a, b) => a[0] - b[0]).map(([id, c]) => `${id}:${c}`).join(",");
-  return { credit, counts: { proven, claimed }, hash };
+  const hash = [...credit.entries()].sort((a, b) => a[0] - b[0]).map(([id, c]) => `${id}:${c}${proven.has(id) ? "p" : ""}`).join(",");
+  return { credit, proven, counts: { proven: proven.size, claimed: credit.size - proven.size }, hash };
 }
 
 // ── the arithmetic (PURE over the index and a credit map) ──────────────────────────────────────────
@@ -292,7 +295,7 @@ function chooseRole(db, userId, index, asked) {
 }
 
 const nodeOut = (index, id) => { const n = index.idx.byId.get(id); return n ? { id, slug: n.slug, name: n.name, thumb: index.thumbs.get(id) || null } : null; };
-const stateOf = (credit, id) => { const c = credit.get(id) || 0; return c >= SKILL_MAP.CREDIT.proven ? "proven" : c > 0 ? "claimed" : "missing"; };
+const stateOf = (person, id) => (person.proven?.has(id) ? "proven" : (person.credit.get(id) || 0) > 0 ? "claimed" : "missing");
 
 /**
  * ⭐ THE SKILL MAP for one person and one role (GET /api/atlas/skill-map).
@@ -326,7 +329,7 @@ function compute(db, index, pick, person) {
   const asks = [...r.askCount.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0]).slice(0, SKILL_MAP.TOP_ASKS).map(([id, jobs]) => {
     const n = index.idx.byId.get(id);
     return { ...nodeOut(index, id), family: n?.family || null, familyName: (n?.family && familyName(n.family)) || "Other",
-      jobs, share: r.n ? jobs / r.n : 0, state: stateOf(credit, id) };
+      jobs, share: r.n ? jobs / r.n : 0, state: stateOf(person, id) };
   });
 
   // Learn next.
@@ -359,7 +362,7 @@ function compute(db, index, pick, person) {
       for (const s of greedyRoute(rr, credit, hoursOf, { steps: SKILL_MAP.MOVE_REACH_STEPS, start: { s2: rd.s2, len: rd.len } })) { h += s.hours; if (s.total >= want) { hoursTo = Math.round(h); break; } }
     }
     return { id, slug: n.slug, name: n.name, open: rr.open, judged: rr.n, coverage: coverageOf(rr, credit), applicable: rd.applicable,
-      carries: ranked.filter(([k]) => (credit.get(k) || 0) > 0).slice(0, SKILL_MAP.CARRY_NAMES).map(([k]) => ({ ...nodeOut(index, k), state: stateOf(credit, k) })),
+      carries: ranked.filter(([k]) => (credit.get(k) || 0) > 0).slice(0, SKILL_MAP.CARRY_NAMES).map(([k]) => ({ ...nodeOut(index, k), state: stateOf(person, k) })),
       missing: ranked.filter(([k]) => !credit.get(k)).slice(0, SKILL_MAP.MISSING_NAMES).map(([k]) => nodeOut(index, k)),
       hoursTo30: hoursTo, isAim: id === pick.aimId, isCurrent: id === pick.currentId, isShown: id === pick.roleId };
   };

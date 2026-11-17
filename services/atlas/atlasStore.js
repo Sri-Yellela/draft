@@ -31,6 +31,24 @@ export function slugOf(name) {
 }
 
 export const termOf = (name) => normaliseAtsTerm(String(name ?? "")) || String(name ?? "").toLowerCase().trim();
+/** ⭐ 46s (production, the owner's account): a résumé's skills line written as a bold heading with no colon
+ *  ("Languages Java, Kotlin") reaches profile_skills as "Languages Java", which no node's term matches. For a PERSON's
+ *  skill name that matched nothing, the names left after dropping 1–5 leading words, longest first ("Java" from
+ *  "Languages Java"; "AWS Lambda" from "Cloud & DevOps (AWS) AWS Lambda"). Only for a person's own names — postings
+ *  never take this path. The caller tries the full name first. Pure. */
+export function headingStrippedNames(name) {
+  const words = String(name ?? "").trim().split(/\s+/).filter(Boolean);
+  if (words.length < 2 || !/^[A-Z(&]/.test(words[0])) return [];
+  const out = [];
+  for (let i = 1; i <= Math.min(5, words.length - 1); i++) {
+    const head = words[i], rest = words.slice(i).join(" ");
+    // not a fragment ("AI (familiar)" from "Vertex AI (familiar)") nor a bare common word ("architecture")
+    if (head.length <= 2 || !/^[A-Za-z0-9.#+]/.test(head)) continue;
+    if (i === words.length - 1 && head === head.toLowerCase()) continue;
+    out.push(rest);
+  }
+  return out;
+}
 
 /**
  * Create a node, or return the one with the same slug. Never overwrites a curator's edits: an existing node keeps its
