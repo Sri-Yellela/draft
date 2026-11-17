@@ -182,8 +182,16 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 - ▶ **LEFT IN THE LOG after the demo + the audit (owner 11-17: "log these to the work log and then push, then do A230 and rest of the log"):** A232 (d) the pruning — waits for the owner's R1–R6 pick · **A230** the three dead endpoints (agent, next) · **A231** the move-to scatter's scale — a sketch for the owner first · the extension's "top 8" vs the company page's "top 12" (one cut, agent) · the cold-index first answer (watch). The push of `704632c1` (the theme fix) + the recorder + the audit: on the owner's "push" 11-17.
 
+- ✅ **PUSHED on the owner's "push" (11-17): staging then production `e306677`** — staging started 06:04:14Z (ready 200 in 0.1 s), production 06:06:23Z (`listenMs` 2,314, `readyMs` 4,971; `/api/health/ready`, `/jobs`, `/atlas/your-map`, `/app` 200 in ≤ 0.19 s). **The theme fix walked on production** (the reviewer profile, the device set to dark): before, the account read `plain` and drew `plain-dark`; pressing Plain Light saved `theme: "plain-light"` (PUT) and drew Plain Light — the reviewer account now stays Plain Light.
+- ✅ **A230 `1d92e7c3` (LOCAL)** — TECH: **wrong** — three endpoints with no caller since A228 (`/api/atlas/readiness/compare`, `/api/atlas/subcategory-roles` — a whole-board GROUP BY on the request path — and `/api/your-skills/map`) · **checked** — every caller in the main checkout (client, extension, scripts, tests); only stale `.claude/worktrees/*` named them · **change** — the routes deleted with their only readers (`compareRoles` / `compareFrom`, `yourSkillsMap`); kept `/api/atlas/readiness` + `subcategoryReadiness` (Profile, Today's question); `scaleSuite` now times `/api/atlas/skill-map` as "Your map"; pins moved on purpose (`d178CompareRoles` deleted with `compareFrom`; `d169YourSkills`' map block) · **verified** — `a230DeadEndpointsGone` + the 34 files reading these sources + the route / module / anchor / handoff guards 243 / 243.
+- ✅ **One top-M cut `e0fab8f8` (LOCAL)** — TECH: the extension's posting facts asked `companyMatchFor(… top: 8)` while the company page used 12 (one company, two readings); `COMPANY_MATCH_TOP = 12` in `publicCompany.js`, the extension's facts take it; server-side only (`extension/` unchanged); 41 / 41.
+- ⏸ **A231 — SKETCHED, waits for the owner's pick:** https://claude.ai/artifact/9QpoP6Z32V2RWq5JzZoajR (private) — the reviewer account's real rows (Software Engineer 4,996 open, the rest 14–213) drawn three ways: A straight (today, approved in A228), B square root, C log with ticks 10 · 100 · 1,000 · 5,000 (recommended). Nothing changed in the app.
+- 👁 **The cold-index watch, read 11-17 on production** (the reviewer account): `/api/atlas/skill-map` first answer 406 ms, then 63 ms — fine at this board size; stays a watch item.
+
 ### 👤👤👤 OWNER — YOUR STEPS FOR 46t
 1. ✅ Signed into the reviewer account (and added a synthetic résumé).
+1c. ☐ A231: pick A / B / C in the sketch (link above).
+1d. ☐ Say "push" for A230 + the top-M cut (both local).
 1b. ☐ Read `docs/A232_TEST_AUDIT.md` §2 and §6 — pick R1–R6 (yes / no each).
 2. ☐ Watch the new demo (`C:\Users\duggi\Videos\draft-demo-2026-11-17.mp4`) and say what to change.
 2b. ☐ Say "push" for the theme fix (`704632c1`), then press Plain Light once more in Settings → Appearance.
