@@ -255,9 +255,11 @@ test("D167 · panels whose feature is not built say so, and draw only numbers th
   // Today's question and the market say they are not built.
   assert.match(u.page("/atlas/todays-question"), /data-atlas-panel-body="todays-question"/);   // D154 P1 (45l, on purpose): built
   const m = u.market([{ slug: "data-engineer", title: "Data Engineer", openPostings: 120 }], { "data-engineer": { openThisWeek: 120, newThisWeek: 17 } });
-  assert.match(m, /The weekly market read \(D150 T09\) is not built yet/);
-  assert.match(m, /<b>17<\/b><span>new Data Engineer postings in 7 days · 120 open<\/span>/);
-  assert.match(u.market([], {}), /Not enough postings are read as a role yet\./);
+  // ⭐ A233 (46u, changed on purpose): a note card, no ticket code on the page; jobs, not postings.
+  assert.match(m, /The weekly view is still being built/);
+  assert.doesNotMatch(m, /D150|T09/);
+  assert.match(m, /<b>17<\/b><span>new Data Engineer jobs this week · 120 open<\/span>/);
+  assert.match(u.market([], {}), /Not enough jobs are sorted into roles yet\./);
   // The audit's card: the board's numbers, the hidden pay said why, its sentence.
   const c = u.card({ slug: "data-engineer", title: "Data Engineer", openThisWeek: 31, newThisWeek: 4, asOf: "2026-11-06", said: "Market data from 31 open postings, not a promise.",
     payRange: { hidden: true, n: 3, why: "Pay is shown once at least 20 of these postings state it (3 do)." }, topRequirements: [{ slug: "sql", name: "SQL", share: 71 }] });

@@ -8,18 +8,19 @@ import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follo
 // Both wordings are kept so turning the lever on restores the tier copy exactly, rather than
 // obliging someone to reconstruct it.
 const STEPS = (monetisationEnabled) => [
-  { n: 1, title: "Upload your base resume",
-    body: "We extract your experience, skills, and history. This is your foundation — we do the rest." },
-  { n: 2, title: "Search for roles",
-    body: "Type any role. ATS Search and ATS Sort run in the shared jobs console." },
+  // ⭐ A233: the steps as draft works today (step 2 named a console that is gone; step 4 promised a "match score").
+  { n: 1, title: "Upload your résumé",
+    body: "draft reads your experience and skills, and reads every job on the board against them." },
+  { n: 2, title: "Get your best jobs each day",
+    body: "Each morning draft picks the jobs that fit you best. Draft the ones you want and pass the rest." },
   { n: 3, title: monetisationEnabled ? "Use unlocked tools" : "Use the tools",
     body: monetisationEnabled
       ? "Plus adds Generate on expanded job cards. Pro adds A+ Resume for deeper JD-driven resume generation."
       : "Generate sits on expanded job cards. A+ Resume goes deeper on the job description." },
-  { n: 4, title: "Review your ATS score",
-    body: "See your match score instantly. Green keywords you already cover, red keywords to watch." },
+  { n: 4, title: "See how well you fit",
+    body: "See which of the job's words your résumé already covers, and which it is missing." },
   { n: 5, title: "Apply",
-    body: "Hit Apply. Our automation fills the form. You review and submit." },
+    body: "draft fills the form and waits for you. Nothing is sent until you approve it." },
 ];
 
 export function HowItWorksPage() {

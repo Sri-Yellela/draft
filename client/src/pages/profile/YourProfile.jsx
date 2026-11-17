@@ -28,6 +28,7 @@ import { RESUME_REPLACED_EVENT } from "../../panels/ProfilePanel.jsx";
 import ProfileSections from "../../components/ProfileSections.jsx";
 import { FourThingsCard, RankingTerms, SecondFamilyChoice } from "./ResumeSetup.jsx";   // D186
 import "./YourProfile.css";
+import { Promises } from "../../components/TextBlocks.jsx";   // A233: the consent as ✓ / ✕
 
 const LEVELS = [["only_me", "Only you"], ["connections", "Connections"], ["public", "Public"]];
 const RANK = { only_me: 0, connections: 1, public: 2 };
@@ -90,6 +91,21 @@ function Eye({ id, vis, onSet }) {
 
 // ⭐ D113 consent wording for public profiles (owner 11-08, decision (5): the agent's draft built on D183's line).
 // Choosing Connections or Public asks once, in words, before anything becomes visible to anyone but the person.
+// ⭐ A233 (owner's pick: promises as ✓ / ✕): the same clauses, item by item (PUBLIC_CONSENT_ITEMS); the sentences stay as
+// the record of what was approved and for anything that reads them.
+export const PUBLIC_CONSENT_ITEMS = {
+  public: [
+    { ok: true, text: "Anyone with its link sees the sections you leave visible." },
+    { ok: true, text: "People can find it by your name in draft's search, shown with your workplace and school when those sections are visible." },
+    { ok: false, text: "Your contact details and everything under Behind your profile are never shown." },
+    { ok: true, text: "You can make it private again at any time, and the link stops showing it at once." },
+  ],
+  connections: [
+    { ok: true, text: "The people you connect with on draft see the sections you leave visible." },
+    { ok: false, text: "Your contact details and everything under Behind your profile are never shown." },
+    { ok: true, text: "You can change this at any time." },
+  ],
+};
 const PUBLIC_CONSENT = {
   public: "Your profile is private unless you make it public. Making it public lets anyone with its link see the sections you leave visible, and lets people find it by your name in draft's search — shown with your workplace and school when those sections are visible. Your contact details and everything under Behind your profile stay private. You can make it private again at any time, and the link stops showing it at once.",
   connections: "Your profile is private unless you choose otherwise. Connections lets the people you connect with on draft see the sections you leave visible. Your contact details and everything under Behind your profile stay private. You can change this at any time.",
@@ -114,7 +130,7 @@ function WhoCanSee({ vis, onSet }) {
       </div>
       {asking && (
         <div className="yp__consent" role="alertdialog" aria-label={`Make your profile ${WORD[asking].toLowerCase()}`} data-visibility-consent={asking}>
-          <p>{PUBLIC_CONSENT[asking]}</p>
+          <Promises title={asking === "public" ? "If you make it public" : "If you show it to connections"} items={PUBLIC_CONSENT_ITEMS[asking]} />
           <div className="yp__row">
             <button type="button" className="dbx-depth" data-consent-yes="" onClick={() => { onSet({ page: asking }); setAsking(null); }}>
               {asking === "public" ? "Make it public" : "Show it to connections"}</button>

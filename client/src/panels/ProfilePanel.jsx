@@ -1538,7 +1538,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
             <PRow label="Search Terms" theme={theme}>
               <textarea className="rm-input" rows={2} value={signalsForm.searchTerms}
                 onChange={e => setSignalsForm(f => ({ ...f, searchTerms: e.target.value }))}/>
-              <PHint theme={theme}>These terms are used for profile-scoped search shaping and ATS basis signals.</PHint>
+              <PHint theme={theme}>draft searches for these words and matches your jobs on them — for this job profile only.</PHint>
             </PRow>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
               <span style={{ fontSize:ts(12), color:signalStatus ? theme.text : theme.textMuted }}>

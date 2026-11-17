@@ -207,12 +207,12 @@ export function JobProfilesPanel() {
                         <div style={{ fontSize:ts(11), color:profile.has_base_resume ? C.SUCCESS : C.WARNING, marginTop:3 }}>
                           {profile.has_base_resume
                             ? `Ready${profile.base_resume_updated_at ? ` · ${formatTimestamp(profile.base_resume_updated_at)}` : ""}`
-                            : "Required before search, ATS, and enhancement"}
+                            : "Needed before draft can find and score jobs"}
                         </div>
                         <div style={{ fontSize:ts(10), color:"var(--color-text-muted)", marginTop:2 }}>
                           {profile.has_base_resume
-                            ? "Extracted metadata ready for this profile only"
-                            : "ATS scoring, new scrapes, and enhancement are blocked for this profile"}
+                            ? "Read from your résumé, for this job profile only"
+                            : "Upload a résumé to start finding and scoring jobs for this profile"}
                         </div>
                       </div>
                       {carried && !profile.has_base_resume && uploadingProfileId !== profile.id && (

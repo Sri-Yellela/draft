@@ -346,15 +346,15 @@ export function IntegrationsPanel({ embedded = false }) {
         </Section>
 
         <Section theme={theme} title="Job Feed"
-          subtitle="Official API providers for job search results."
+          subtitle="Where draft finds jobs."
           status={{
             healthy: (status.jobSources || []).some(s => s.configured),
             status:  (status.jobSources || []).some(s => s.configured) ? "configured" : "missing",
           }}>
           <div style={{ fontSize:ts(12), color:"var(--color-text-muted)" }}>
             {(status.jobSources || []).some(s => s.configured)
-              ? `Job search active — ${(status.jobSources || []).filter(s => s.configured).length} provider(s) configured.`
-              : "No job feed providers configured. Contact the app operator."}
+              ? `Finding jobs from ${(status.jobSources || []).filter(s => s.configured).length} source${(status.jobSources || []).filter(s => s.configured).length === 1 ? "" : "s"}.`
+              : "No job source is switched on yet — that's on our side, not yours."}
           </div>
         </Section>
 
@@ -399,7 +399,7 @@ export function IntegrationsPanel({ embedded = false }) {
           </div>
         </Section>
 
-        <Section theme={theme} title="Resume and Profile" subtitle="Manual application tracking and resume tools depend on local profile readiness."
+        <Section theme={theme} title="Resume and Profile" subtitle="Tracking and the résumé tools need your résumé and profile."
           status={{ healthy:status.resume?.healthy && status.profile?.healthy, status:status.resume?.healthy && status.profile?.healthy ? "ready" : "missing_setup" }}>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(220px, 1fr))", gap:10 }}>
             <div style={{ background:"var(--color-surface-offset)", borderRadius:6, padding:10 }}>

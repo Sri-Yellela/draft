@@ -284,3 +284,6 @@
 .atree-chip__bar { display: block; height: 6px; border-radius: 3px; background: var(--c-surface-2); overflow: hidden; margin-top: 5px; }
 .atree-chip__bar i { display: block; height: 100%; background: var(--c-accent); }
 .atree-chip__bar--branch i { background: var(--atree-systems); }
+
+/* A233: the legend as short items */
+.atree__legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }

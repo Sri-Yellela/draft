@@ -14,6 +14,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import { loginHref } from "../../lib/signInReturn.js";
 import DepthButton from "../../components/DepthButton.jsx";
+import { NoteCard } from "../../components/TextBlocks.jsx";   // A233
 import CompanyLogo from "../../components/CompanyLogo.jsx";
 import JobsHistogram from "./JobsHistogram.jsx";
 import SkillTreemap from "./SkillTreemap.jsx";
@@ -169,14 +170,10 @@ function MovePanel({ m, onRole, onAim, aiming }) {
 export function SkillMapEmpty({ base = "/app/atlas", reason = "no_roles", onBack = null }) {
   const unknown = reason === "unknown_role";
   return (
-    <div className="skm-empty" data-skm-empty={reason}>
-      <p className="skm-empty__t">{unknown ? "That role isn't on the map" : "Your map is on its way"}</p>
-      <p className="skm-empty__s">{unknown ? "Pick another role, or go back to the one you're aiming for." : "It appears once draft has read enough jobs to know what each role asks for. Meanwhile, start with a guide."}</p>
-      <p className="skm-empty__acts">
-        {unknown && onBack ? <DepthButton primary onClick={onBack}>Back to your role</DepthButton>
-          : <Link to={`${base}/library`} className="atl__link">Open the Library</Link>}
-      </p>
-    </div>
+    <NoteCard id="skill-map-empty" title={unknown ? "That role isn't on the map" : "Your map is on its way"} data-skm-empty={reason}
+      actions={unknown && onBack ? <DepthButton primary onClick={onBack}>Back to your role</DepthButton> : <Link to={`${base}/library`}>Open the Library</Link>}>
+      {unknown ? "Pick another role, or go back to the one you're aiming for." : "It appears once draft has read enough jobs to know what each role asks for. Meanwhile, start with a guide."}
+    </NoteCard>
   );
 }
 

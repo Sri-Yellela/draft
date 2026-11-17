@@ -116,7 +116,7 @@ test("base resume management is profile-card scoped, not a global menu control",
   assert.doesNotMatch(topBar, /Upload Resume/);
   assert.match(panel, /Base Resume/);
   assert.match(panel, /\/api\/domain-profiles\/\$\{profile\.id\}\/base-resume/);
-  assert.match(panel, /Required before search, ATS, and enhancement/);
+  assert.match(panel, /Needed before draft can find and score jobs/);   // A233 (46u): plain words, on purpose
   assert.match(database, /\/api\/domain-profiles\/\$\{profileId\}\/base-resume/);
   assert.doesNotMatch(database, /api\("\/api\/base-resume"\)/);
 });

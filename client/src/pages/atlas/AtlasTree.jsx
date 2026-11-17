@@ -106,7 +106,11 @@ export function SidePanel({ tree, page, base, state, onChoose, onFamily, onHover
     </>);
     return (<>
       <div className="atree__k">Reading the tree</div><h2 className="atree__h2">Your skills, branching out</h2>
-      <div className="atree__fact"><p>Each family is a branch from you. <b>Coloured</b> squares are skills you have; <b>grey</b> ones you don't yet. The further out a square sits, the further it is from what you know. Size is how many postings ask for it; an orange ring means it rises toward senior.</p></div>
+      {/* ⭐ A233: the legend as short items, not a 48-word paragraph */}
+      <ul className="atree__fact atree__legend">
+        <li><b>Coloured</b> · a skill you have</li><li><b>Grey</b> · not yet</li><li><b>Further out</b> · further from what you know</li>
+        <li><b>Bigger</b> · more jobs ask for it</li><li><b>Orange ring</b> · asked for more at senior</li>
+      </ul>
       <div className="atree__fact"><p>Press a skill to light its branch back to you, or a family to list it here. <b>Fly my route</b> travels the steps in order.</p></div>
     </>);
   }

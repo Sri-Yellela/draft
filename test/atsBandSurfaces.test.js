@@ -203,7 +203,7 @@ test("a thin resume is called out as its own state, not delivered as an all-Weak
   const thin = resumeDepthWarning({ resumeText: "John Doe. C++ Java.", skills: ["c++", "java"] });
   assert.ok(thin, "a 19-character resume must raise the depth warning");
   assert.match(thin.headline, /too thin/i);
-  assert.match(thin.detail, /resume/i);
+  assert.match(thin.detail, /r[eé]sum[eé]/i);   // A233 (46u): the plain-words line spells it résumé, as the app does
 
   const full = resumeDepthWarning({
     resumeText: "x".repeat(5000),

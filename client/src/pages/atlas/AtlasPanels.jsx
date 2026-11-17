@@ -24,6 +24,7 @@ import { overviewStats, panelHref, learnStepHref } from "./atlasPanels.js";
 import CardPile from "../../components/CardPile.jsx";   // ⭐ 46u: the question on draft's card
 import { pastelVar } from "../../../../shared/pastel.js";
 import "./AtlasPanels.css";
+import { NoteCard } from "../../components/TextBlocks.jsx";   // A233
 import { loginHref } from "../../lib/signInReturn.js";   // A138: back to this page after sign-in
 
 const nodeHref = (base, slug) => `${base}/${encodeURIComponent(slug)}`;
@@ -455,16 +456,17 @@ export function MarketView({ base, roles, cards }) {
   return (
     <div className="atl-pan" data-atlas-panel-body="this-weeks-market">
       <PanelHead eyebrow="This week's market" title="What moved this week"
-        lead={roles.length ? `The biggest roles the audit reads, from ${num(total)} open postings.` : null} />
-      <NotYet>The weekly market read (D150 T09) is not built yet. What the board already counts:</NotYet>
-      {!roles.length ? <p className="atl__quiet">Not enough postings are read as a role yet.</p> : (
+        lead={roles.length ? `The biggest roles on the board, from ${num(total)} open jobs.` : null} />
+      {/* ⭐ A233: an explanation is a note card — and never a ticket code on the page. */}
+      <NoteCard id="market-week" title="The weekly view is still being built">Until then, here is what the board counts today.</NoteCard>
+      {!roles.length ? <p className="atl__quiet">Not enough jobs are sorted into roles yet.</p> : (
         <div className="atl-pan__stats" data-atlas-market="">
           {roles.slice(0, MARKET_ROLES).map(r => {
             const c = cards[r.slug];
             return (
               <Link key={r.slug} to={nodeHref(base, r.slug)} className="atl-pan__stat" data-market-role={r.slug}>
                 <b>{num(c ? c.newThisWeek : r.openPostings)}</b>
-                <span>{c ? `new ${r.title} postings in 7 days · ${num(c.openThisWeek)} open` : `open ${r.title} postings`}</span>
+                <span>{c ? `new ${r.title} jobs this week · ${num(c.openThisWeek)} open` : `open ${r.title} jobs`}</span>
               </Link>
             );
           })}

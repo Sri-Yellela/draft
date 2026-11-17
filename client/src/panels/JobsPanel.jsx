@@ -1,5 +1,6 @@
 // client/src/panels/JobsPanel.jsx — Lucy Brand, shared job pool
 import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from "react";
+import { NoteCard } from "../components/TextBlocks.jsx";   // A233: the empty states as note cards
 import { Link, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import EmptyState from "../components/EmptyState.jsx";
@@ -869,9 +870,8 @@ function FiltersPanel({
             <span style={{ fontSize:ts(12), fontWeight:600 }}>Hide employers with no H-1B filings</span>
           </button>
           <div style={{ fontSize:ts(10), color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
-            From US Department of Labor LCA disclosure data. Removes only employers we matched
-            confidently and that filed nothing in the quarters we hold — a company we could not
-            identify stays on the board.
+            From the US government's visa sponsorship records. Hides only employers we're sure filed none
+            lately; a company we couldn't identify stays.
           </div>
         </div>
 
@@ -4942,22 +4942,14 @@ function FilteredEmptyState({ theme, count, onClearFilters }) {
 //
 // The server now says `cache_empty` instead. This states it plainly and points at the one thing
 // that actually resolves it — nothing the user can fix by editing a profile or clearing a filter.
-function NoPoolEmptyState({ theme }) {
-  const { theme: t } = useTheme();
-  const th = theme || t;
+function NoPoolEmptyState() {
+  // ⭐ A233: a note card — the cause in plain words (the board is empty for everyone, not this person's filters), the way on.
   return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
-                  justifyContent:"center", gap:14, padding:40, color:th.textDim }}>
-      <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                    fontSize:ts(29), color:th.text,
-                    textAlign:"center" }}>
-        No jobs have been collected yet
-      </div>
-      <div style={{ fontSize:ts(12), textAlign:"center", color:th.textDim, maxWidth:380, lineHeight:1.8 }}>
-        This is not your profile and not your filters — the shared job pool itself is empty, so there
-        is nothing for any board to show. It refills on the next scheduled crawl. You can also add a
-        posting yourself with the <Link to="/extension" target="_blank" rel="noopener">draft browser extension</Link>.
-      </div>
+    <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:40 }}>
+      <NoteCard id="board-no-jobs" title="No jobs collected yet"
+        actions={<Link to="/extension" target="_blank" rel="noopener">Add a job with the draft extension</Link>}>
+        The board is empty for everyone right now, not just for you. draft looks for new jobs every night.
+      </NoteCard>
     </div>
   );
 }
@@ -4971,23 +4963,13 @@ function NoPoolEmptyState({ theme }) {
 // run a search that could not change the answer. Naming the profile makes the actual next move
 // (switch or widen the profile) findable, and it is honest whether the cause is an empty pool or a
 // role with no matches: either way, nothing matches this profile's role.
-function RoleScopedEmptyState({ theme, profileName }) {
-  const { theme: t } = useTheme();
-  const th = theme || t;
+function RoleScopedEmptyState({ profileName }) {
+  // ⭐ A233: a note card. Nothing on the board is sorted into this job profile's role, and no filter is hiding any.
   return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
-                  justifyContent:"center", gap:14, padding:40, color:th.textDim }}>
-      <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                    fontSize:ts(29), color:th.text,
-                    textAlign:"center" }}>
-        No jobs in your profile&rsquo;s role
-      </div>
-      <div style={{ fontSize:ts(12), textAlign:"center", color:th.textDim, maxWidth:380, lineHeight:1.8 }}>
-        This board only shows postings matching the role of your active profile
-        {profileName ? <> (<strong style={{ color:th.text }}>{profileName}</strong>)</> : null}, and
-        no filters are narrowing it — nothing in the pool is classified under that role yet. Switch
-        profiles, or run a search to pull in new postings.
-      </div>
+    <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:40 }}>
+      <NoteCard id="board-no-role-jobs" title={profileName ? `No jobs in your profile\u2019s role (${profileName}) yet` : "No jobs in your profile\u2019s role yet"}>
+        Nothing on the board is sorted into this role yet, and no filter is hiding any. Switch job profile, or search to bring in new jobs.
+      </NoteCard>
     </div>
   );
 }

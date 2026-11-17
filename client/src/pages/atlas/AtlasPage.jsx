@@ -38,6 +38,7 @@ import {
 import { SponsorshipChip } from "../../components/SponsorshipSignal.jsx";
 import ResourceTile, { ResourceGrid } from "../../components/ResourceTile.jsx";
 import "./AtlasPage.css";
+import { NoteCard } from "../../components/TextBlocks.jsx";   // A233
 
 function SearchBox({ base, initial = "" }) {
   const navigate = useNavigate();
@@ -311,7 +312,7 @@ export function AtlasNodeView({ base, node, from, onWalk, signedIn = false }) {
       <div className="atl-card__facts" data-atlas-board="">
         {headline
           ? <p className="atl-card__fact atl__big"><b>{headline.value}</b> {headline.words}</p>
-          : <p className="atl__quiet">Not computed yet — the numbers come from the board's active postings after the nightly crawl.</p>}
+          : <NoteCard id={`node-${node.slug}`} title="Numbers arrive tonight">Every night draft counts the open jobs for this page: how many, what they pay, what they ask for.</NoteCard>}
         {node.you && (
           <div className="atl__you atl-card__fact" data-atlas-you={node.you.status}>
             <span className={`mark ${YOU_MARK[node.you.status] || "mark--dim"}`}>{YOU_LABEL[node.you.status] || node.you.status}</span>

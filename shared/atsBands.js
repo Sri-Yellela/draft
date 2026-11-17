@@ -177,9 +177,9 @@ export function resumeDepthWarning(basis = {}) {
     skills,
     headline: "Your resume may be too thin to match against",
     detail:
-      "Bands are computed by comparing your resume's wording to each posting's. There is not much " +
-      "here to compare, so most jobs will read as a weak match regardless of how good a fit they " +
-      "actually are. Adding detail to your resume will change these bands more than changing your filters will.",
+      // ⭐ A233: plain words (was "Bands are computed by comparing your resume's wording to each posting's …", 46 words)
+      "There isn't much in your résumé to compare with each job, so most jobs will look like a weak fit " +
+      "however good they are. Adding detail to your résumé changes this more than any filter will.",
   };
 }
 

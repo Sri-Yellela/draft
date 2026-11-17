@@ -1327,7 +1327,7 @@ export function AutoApplyPanel({ user = null } = {}) {
       {held && <p className="dht-head__say" data-house-sentence="">{sentence}</p>}
       {runnerHealth?.stalled && (
         <p className="dht-head__say" role="alert" data-runner-stalled="">
-          {`${runnerHealth.waiting} of your drafts ${runnerHealth.waiting === 1 ? "is" : "are"} waiting and draft's application runner hasn't started one in ${Math.max(3, Math.round((runnerHealth.oldestWaitMs || 0) / 60000))} minutes — nothing is being filled right now. They start on their own when it recovers.`}
+          {`${runnerHealth.waiting} of your drafts ${runnerHealth.waiting === 1 ? "is" : "are"} waiting: draft's form filler has been stuck for ${Math.max(3, Math.round((runnerHealth.oldestWaitMs || 0) / 60000))} minutes. They start on their own once it's back.`}
         </p>
       )}
     </div>

@@ -125,6 +125,17 @@ try {
       await shot("course");
       say(`course ${theme} ${w}`, course.cards === 1 && course.backs >= 1 && !!course.title && !(await hscroll()) && !errors.length, JSON.stringify({ ...course, errors: errors.slice(0, 2) }));
 
+      // 4b · A233's note cards: This week's market (no ticket code) and the empty board
+      for (const [name, url, sel] of [["market", "/app/atlas/this-weeks-market", '[data-note-card="market-week"]'], ["board", "/app/jobs", '[data-note-card^="board-"]']]) {
+        errors.length = 0;
+        await page.goto(`${BASE}${url}`, { waitUntil: "networkidle2", timeout: 120000 });
+        const found = await page.waitForSelector(sel, { timeout: 30000 }).then(() => true).catch(() => false);
+        const ticket = await page.evaluate(() => /D150|T09/.test(document.body.innerText));
+        await shot(name);
+        // the board shows its résumé gate before any empty state for a person with no résumé — the note is recorded, not required there
+        say(`${name} note ${theme} ${w}`, (found || name === "board") && !ticket && !(await hscroll()) && !errors.length, JSON.stringify({ found, ticket, errors: errors.slice(0, 2) }));
+      }
+
       // 5 · Today's question (on the card if the bank has one live for this person)
       errors.length = 0;
       await page.goto(`${BASE}/app/atlas/todays-question`, { waitUntil: "networkidle2", timeout: 120000 });

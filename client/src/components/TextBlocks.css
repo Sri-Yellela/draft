@@ -1,0 +1,26 @@
+/* ⭐ A233 · lines of text, designed (TextBlocks.jsx). Tokens only; no capsules (D60). On a pastel only INK is held at AA,
+   so inside a note card the muted and accent inks read as INK. */
+.tb-note { display: grid; gap: 8px; padding: 20px 22px; border-radius: 24px; background: var(--tb-c, var(--c-surface)); color: var(--c-ink);
+  box-shadow: var(--c-shadow-glass); max-width: 640px; box-sizing: border-box; text-align: left;
+  --c-ink-muted: var(--c-ink); --c-ink-faint: var(--c-ink); --c-accent-ink: var(--c-ink); }
+.tb-note__t { margin: 0; font: 400 26px/1.12 var(--font-display); text-wrap: balance; }
+.tb-note__s { font-size: 14.5px; line-height: 1.5; }
+.tb-note__s p { margin: 0; }
+.tb-note__s a { color: inherit; }
+.tb-note__acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+
+.tb-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 10px; margin: 0; }
+.tb-fact { display: flex; flex-direction: column-reverse; gap: 2px; padding: 12px 14px; border-radius: 16px; background: var(--c-surface-solid); box-shadow: var(--c-depth-rest); min-width: 0; }
+.tb-fact__v { margin: 0; font: 400 28px/1.05 var(--font-display); color: var(--c-ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tb-fact__l { font-size: 13px; color: var(--c-ink-muted); }
+
+.tb-prom { display: grid; gap: 8px; }
+.tb-prom__t { margin: 0; font: 400 21px/1.2 var(--font-display); color: var(--c-ink); text-wrap: balance; }
+.tb-prom__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.tb-prom__i { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; align-items: start; padding: 9px 12px; border-radius: 12px;
+  background: var(--c-surface-solid); color: var(--c-ink); font-size: 14px; line-height: 1.45; }
+.tb-prom__mark { font-weight: 700; }
+.tb-prom__i--yes .tb-prom__mark { color: var(--c-success); }
+.tb-prom__i--no .tb-prom__mark { color: var(--c-danger); }
+.tb-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 560px) { .tb-note { padding: 18px; } .tb-note__t { font-size: 23px; } }

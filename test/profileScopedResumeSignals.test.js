@@ -170,8 +170,9 @@ test("job profile cards expose per-profile resume readiness and upload controls"
   const panel = fs.readFileSync("client/src/panels/JobProfilesPanel.jsx", "utf8");
 
   assert.match(panel, /profile\.has_base_resume/);
-  assert.match(panel, /Required before search, ATS, and enhancement/);
-  assert.match(panel, /ATS scoring, new scrapes, and enhancement are blocked for this profile/);
-  assert.match(panel, /Extracted metadata ready for this profile only/);
+  // ⭐ A233 (46u, changed on purpose): the same three states in plain words.
+  assert.match(panel, /Needed before draft can find and score jobs/);
+  assert.match(panel, /Upload a résumé to start finding and scoring jobs for this profile/);
+  assert.match(panel, /Read from your résumé, for this job profile only/);
   assert.match(panel, /\/api\/domain-profiles\/\$\{profile\.id\}\/base-resume/);
 });

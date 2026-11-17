@@ -121,6 +121,8 @@ export const SHARED = Object.freeze({
   "components/DecisionToast.jsx":       { what: "the undo toast after a decision — deck and board" },
   "components/CardPile.jsx":            { what: "46u · draft's card for reading — the jobs deck's look in an item's pastel, the next cards fanned behind; guide decks, a course's lessons, the questions" },
   "components/CardPile.css":            { what: "46u · the reading card's look", owner: "components/CardPile.jsx" },
+  "components/TextBlocks.jsx":          { what: "A233 · lines of text, designed — NoteCard (explanations, empty states), Facts (figures), Promises (✓ / ✕)" },
+  "components/TextBlocks.css":          { what: "A233 · their look", owner: "components/TextBlocks.jsx" },
   "components/ResumeList.jsx":          { what: "THE résumé list (D62) — the posting match's History (D152 (8)) and Settings" },
   "components/ResumeList.css":          { what: "its look — the list's classes only (A93)", owner: "components/ResumeList.jsx" },
   // ── controls and surfaces ──
