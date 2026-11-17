@@ -163,3 +163,21 @@ test("a228TokensOnly: the skill map's look is theme tokens only, no capsule, red
   assert.match(css, /@media \(min-width: 1200px\) \{ \.skm-main \{ grid-template-columns: minmax\(0, 1\.9fr\) minmax\(360px, 1fr\);/, "the sketch's two columns from 1200 px; one below");
   for (const t of ["dusk-light", "dusk-dark", "plain-light", "plain-dark"]) assert.match(read(`client/src/themes/${t}.js`), /CHART_NEUTRAL: +"#[0-9A-F]{6}"/, t);
 });
+
+test("a228NudgeLabelsEnds (46s, production froze the tab): fractional positions that stack within 15 px still finish", () => {
+  // the owner's production answer at 900 px: seven roles bunched at one corner (open 28–339, coverage 0.12–0.17)
+  const roles = [["Software Engineer", 4997, 0.117], ["Platform Engineer", 339, 0.145], ["DevOps Engineer", 204, 0.174], ["Site Reliability Engineer", 176, 0.15],
+    ["Software Developer", 113, 0.144], ["Cloud Engineer", 55, 0.153], ["Cloud Security Engineer", 28, 0.161]];
+  for (const W of [1200, 900, 600, 360]) {
+    const H = Math.max(240, Math.min(340, W * 0.3)), x = (v) => 52 + v * (W - 76), y = (v) => H - 30 - (v / 5000) * (H - 44);
+    const t0 = Date.now();
+    const pts = nudgeLabels(roles.map(([name, open, c]) => ({ name, cx: x(c), cy: y(open) })), W);
+    assert.ok(Date.now() - t0 < 50, `${W}: finishes at once`);
+    assert.equal(pts.length, 7);
+    for (let i = 0; i < pts.length; i++) for (let j = 0; j < i; j++) {
+      const a = pts[i], b = pts[j], aw = a.name.length * 7, bw = b.name.length * 7;
+      const ax = a.anchor === "end" ? a.lx - aw : a.lx, bx = b.anchor === "end" ? b.lx - bw : b.lx;
+      if (ax < bx + bw && ax + aw > bx) assert.ok(Math.abs(a.ly - b.ly) >= 14, `${W}: ${a.name} clears ${b.name}`);
+    }
+  }
+});

@@ -103,9 +103,13 @@ export function nudgeLabels(pts, W, { charW = 7, gap = 16, line = 15 } = {}) {
     const lw = String(p.name).length * charW;
     const lx = right ? p.cx - gap - lw : p.cx + gap;
     let ly = p.cy;
-    for (let moved = true; moved;) {
+    // ⛔ 46s (production froze the tab): with real fractional positions |q.y − (q.y + line)| reads 14.999999999999998 < 15,
+    // so "moved below q" fired on the same spot forever. A label MOVES only when it goes down, and the passes are capped.
+    for (let moved = true, passes = 0; moved && passes <= placed.length; passes++) {
       moved = false;
-      for (const q of placed) if (Math.abs(q.y - ly) < line && lx < q.x + q.w && lx + lw > q.x) { ly = q.y + line; moved = true; }
+      for (const q of placed) {
+        if (Math.abs(q.y - ly) < line - 0.5 && lx < q.x + q.w && lx + lw > q.x && q.y + line > ly) { ly = q.y + line; moved = true; }
+      }
     }
     placed.push({ x: lx, y: ly, w: lw });
     return { ...p, lx: right ? p.cx - gap : p.cx + gap, ly, anchor: right ? "end" : "start" };
