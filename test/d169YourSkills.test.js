@@ -76,14 +76,12 @@ async function loadUi() {
       contents: `
         import { createElement as h } from "react";
         import { renderToStaticMarkup } from "react-dom/server.browser";
-        import YourSkillsPanel, { SkillsList, SkillsMapView, skillsMapLayout } from ${abs("pages/atlas/YourSkillsPanel.jsx")};
+        import YourSkillsPanel, { SkillsList } from ${abs("pages/atlas/YourSkillsPanel.jsx")};
         import SkillCheck from ${abs("components/SkillCheck.jsx")};
         export const panel = (p) => renderToStaticMarkup(h(YourSkillsPanel, p));
         export const list = (l) => renderToStaticMarkup(h(SkillsList, { list: l, onOpen() {}, openKey: null }));
         export const listOpen = (l, key) => renderToStaticMarkup(h(SkillsList, { list: l, onOpen() {}, openKey: key }));
-        export const map = (d) => renderToStaticMarkup(h(SkillsMapView, { data: d }));
-        export const check = (s) => renderToStaticMarkup(h(SkillCheck, { skill: s }));
-        export { skillsMapLayout };`,
+        export const check = (s) => renderToStaticMarkup(h(SkillCheck, { skill: s }));`,
       resolveDir: CLIENT, loader: "jsx",
     },
     bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
@@ -112,20 +110,15 @@ test("D169 · d169SkillsPanelInAtlasListAndMap — one panel, List and Map of th
   assert.match(html, /Add proof/, "dbt has none (its only item is an explain item)");
   assert.match(html, /Add a skill, for example Terraform/);
   const shell = u.panel({ signedIn: true });
-  assert.match(shell, /aria-pressed="true">List</);
-  assert.match(shell, />Map</);
+  // ⭐ A228 (46r, moved on purpose): the panel's ring MAP view is retired — Your map (the skill map) draws the skills against
+  // the market; the panel is the list alone. The server's map reading (GET /api/your-skills/map) stays, below.
+  assert.doesNotMatch(shell, />Map</);
   assert.match(shell, /What you can show/);
-  // The Map reads the same list (each have-node carries the list's state).
+  // The server's map reads the same list (each have-node carries the list's state).
   const m = yourSkillsMap(db, 1);
   assert.deepEqual(m.have.map(h => h.name).sort(), ["Kafka", "Python", "SQL", "dbt"].sort());
   assert.equal(m.have.find(h => h.name === "Kafka").state, "claimed", "a claimed, unchecked skill COUNTS on the map");
   for (const k of ["near", "opens", "gaps"]) assert.ok(Array.isArray(m[k]), k);
-  const mapHtml = u.map({ ...m, map: true, near: [{ slug: "airflow", name: "Airflow", postings: 9, line: "Often asked with Kafka" }] });
-  assert.match(mapHtml, /aria-label="Your skills against the market"/);
-  for (const h of ["Near what you have", "Opens the most roles", "Gaps for your target"]) assert.match(mapHtml, new RegExp(h));
-  assert.match(mapHtml, /data-map-node="near"/);
-  const L = u.skillsMapLayout({ have: m.have, near: [], gaps: [] });
-  assert.equal(L.nodes.length, 4);
   // ⛔ D60 / D152 (7b): no capsules, no chips in the panel's look.
   for (const f of ["client/src/pages/atlas/YourSkillsPanel.css", "client/src/components/SkillCheck.css"]) {
     const css = read(f);

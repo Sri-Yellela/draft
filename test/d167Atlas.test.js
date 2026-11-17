@@ -33,12 +33,12 @@ async function loadUi() {
     stdin: { contents: `import { createElement as h } from "react"; import { renderToStaticMarkup } from "react-dom/server.browser";
         import { MemoryRouter } from "react-router-dom";
         import AtlasPage from ${abs("pages/atlas/AtlasPage.jsx")};
-        import { AtlasHome } from ${abs("pages/atlas/YourMap.jsx")};
+        import { SkillMapView } from ${abs("pages/atlas/SkillMap.jsx")};
         import { GlossaryView, OverviewView, MarketView, AuditCard, searchGlossary } from ${abs("pages/atlas/AtlasPanels.jsx")};
         export { searchGlossary };
         const at = (url, el) => renderToStaticMarkup(h(MemoryRouter, { initialEntries: [url] }, el));
         export const page = (url, base = "/atlas") => at(url, h(AtlasPage, { base }));
-        export const home = (me, parts) => at("/atlas/your-map", h(AtlasHome, { me, base: "/atlas", parts, course: h("div", { "data-course": "" }) }));
+        export const skillMap = (m) => at("/app/atlas/your-map", h(SkillMapView, { m, base: "/app/atlas" }));
         export const glossary = (terms, q = "", concepts = []) => at("/atlas/glossary", h(GlossaryView, { base: "/atlas", terms, q, concepts }));
         export const overview = (props) => at("/atlas", h(OverviewView, { base: "/atlas", ...props }));
         export const market = (roles, cards) => at("/atlas/this-weeks-market", h(MarketView, { base: "/atlas", roles, cards }));
@@ -181,11 +181,14 @@ test("D167 · d167AtlasKeepsEverySurface — each existing surface is mounted by
   // ⭐ D178 (changed on purpose): Learn's address redirects to the course's circle view, which mounts the full Learn view.
   assert.ok(page.includes('{learning && <Navigate replace to={`${base}/library/silicon-to-software?view=circle${location.hash || ""}`} />}'));
   assert.ok(read("client/src/pages/atlas/LibraryPanel.jsx").includes('{view === "circle" && <div data-course-circle-view=""><LearnView signedIn={signedIn} /></div>}'));
-  // ⭐ D178: Your route's navigator is drawn inside Your map.
-  assert.ok(page.includes('{signedIn && <section className="atl__section" data-atlas-route-in-map=""><YourRoutePanel base={base} signedIn={signedIn} /></section>}'));
-  // 5, 8, 10, 12 · Your map: the tree, the course, the sections, the families (and the signed-out line + course).
+  // ⭐ D178: Your route's navigator is drawn inside Your map — ⭐ A228 (moved on purpose): below the skill map, inside the
+  // closed "Your route, step by step".
+  assert.ok(page.includes('<section className="atl__section" data-atlas-route-in-map=""><YourRoutePanel base={base} signedIn={signedIn} /></section>'));
+  // 5, 8, 10, 12 · Your map — ⭐ A228 (46r, owner 11-16 "Build it", moved on purpose): the skill map (SkillMap.jsx) replaces
+  // the tree, the course, the five sections and the families on this panel (the tree stays on role and family pages).
   assert.match(page, /\{panel === "your-map" && !familyKey && \(/);
-  assert.match(page, /<YourMap base=\{base\} parts=\{\{ navigator: false, explore: false, families: true, recent: false \}\} \/>/);
+  assert.match(page, /<SkillMap base=\{base\} signedIn=\{signedIn\} \/>/);
+  assert.doesNotMatch(page, /<YourMap /);
   // 7 · the navigator is Your route; 6 · its next step (or D120's line) is Overview's Next step.
   assert.match(panels, /<Navigator base=\{base\} fallback=/);
   assert.match(panels, /nav\?\.ready && nav\.next \? \{ text: nav\.next\.text \} : \(me\?\.tree \? directionLine\(me\.tree\) : null\)/);
@@ -194,14 +197,17 @@ test("D167 · d167AtlasKeepsEverySurface — each existing surface is mounted by
   // 14 · D142's check is the Your skills slot (D169 replaces it at merge).
   // ⭐ D169 (merged 45b): the slot holds D169's panel (List + Map), and D142's full check below it keeps its home.
   // ⭐ D178-3 (changed on purpose): the list and map sit under Your skills' "All my skills" tab, beside "For a role".
-  assert.match(panels, /data-skills-all="">\n\s+<SkillsListAndMap signedIn=\{signedIn\} base=\{base\} \/>/);
+  // ⭐ A228 (changed on purpose): the ring Map, For a role and Compare roles are retired — the slot is the list + the check.
+  assert.match(panels, /data-skills-all="">\n\s+<YourSkillsPanel signedIn=\{signedIn\} base=\{base\} \/>/);
+  assert.doesNotMatch(panels, /RoleReadiness|CompareRoles|data-skills-tab=/);
   assert.match(panels, /data-atlas-readiness="" aria-label="The full readiness check">\n\s+<ReadinessCheck signedIn=\{signedIn\} \/>/);
   // 19 · the audit's role card and its counts.
   assert.match(panels, /api\(`\/api\/audit\/role\/\$\{encodeURIComponent\(pick\)\}`\)/);
   assert.match(panels, /api\("\/api\/audit\/roles"\)/);
-  // The old home's pieces are switched off per panel, never deleted: the default still draws them all.
-  assert.match(map, /export const ALL_PARTS = Object\.freeze\(\{ navigator: true, explore: true, families: true, recent: true \}\);/);
-  assert.match(map, /\{parts\.navigator \? <Navigator base=\{base\} fallback=\{dir && \(/);
+  // ⭐ A228 (moved on purpose): the old home (AtlasHome / ExploreHome and its parts switch) is retired with the market tree;
+  // YourMap.jsx keeps only what other panels read — the role / family trees, Explore by role, Recent, the direction line.
+  assert.doesNotMatch(map, /ALL_PARTS|export function AtlasHome|export default function YourMap/);
+  assert.match(map, /export function RoleMap[\s\S]*export function FamilyMap/);
   // The mapping doc: 22 surfaces, every panel named, the curator tools kept in Admin.
   const doc = read("docs/D167_ATLAS_MAP.md");
   const rows = [...doc.matchAll(/^\| (\d+) \| \*\*/gm)].map(m => Number(m[1]));
@@ -212,19 +218,23 @@ test("D167 · d167AtlasKeepsEverySurface — each existing surface is mounted by
   for (const name of ["Python", "SQL", "Kubernetes", "Data Engineer", "Machine learning", "Learning", "Market", "Audit", "Roles"]) assert.ok(!isPanelSlug(slugOf(name)), name);
 });
 
-test("D167 · d167AtlasKeepsEverySurface — Your map keeps the tree, sections and families; the moved pieces draw elsewhere", async () => {
+// ⭐ A228 (46r, moved on purpose): "Your map keeps the tree, sections and families" became the skill map's own reading — its
+// four sections top to bottom, from one answer of GET /api/atlas/skill-map. Explore by role and Recent stay Roles and skills'.
+test("D167 · d167AtlasKeepsEverySurface — Your map is the skill map; the moved pieces draw elsewhere", async () => {
   const u = await loadUi();
   const me = computeYourMap(mapWorld(), 7);
-  assert.equal(me.map, true);
-  assert.ok(me.exploreByRole.items.length && me.recent.length && me.tree.families.length);
-  const yourMap = u.home(me, { navigator: false, explore: false, families: true, recent: false });
-  assert.match(yourMap, /data-your-map=""/);
-  assert.match(yourMap, /data-map-section="nextLevel"/);
-  assert.match(yourMap, /data-atlas-home-families=""/);
-  assert.match(yourMap, /data-course=""/);
-  assert.doesNotMatch(yourMap, /data-atlas-explore=""|data-atlas-home-recent=""|data-navigator/);
-  const all = u.home(me, undefined);
-  assert.match(all, /data-atlas-explore=""[\s\S]*data-atlas-home-families=""[\s\S]*data-atlas-home-recent=""/, "the default still draws the D120 home");
+  assert.ok(me.exploreByRole.items.length && me.recent.length, "Roles and skills still reads /api/atlas/me");
+  const step = { id: 3, slug: "kubernetes", name: "Kubernetes", kind: "learn", gain: 2, total: 5, hours: 8, estimated: false, published: true, stepId: null, thumb: null,
+    companies: [{ name: "Co", iconUrl: null, jobs: 2 }] };
+  const html = u.skillMap({ found: true, role: { id: 5, slug: "data-engineer", name: "Data Engineer", open: 5, judged: 5 }, aim: null, current: null, threshold: 0.6,
+    skills: { proven: 0, claimed: 2 }, applicable: 3, levels: null,
+    histogram: Array.from({ length: 10 }, (_, i) => ({ from: i / 10, to: (i + 1) / 10, jobs: i === 7 ? 3 : i === 3 ? 2 : 0 })),
+    asks: [{ id: 1, slug: "python", name: "Python", family: "data", familyName: "Data", jobs: 5, share: 1, state: "claimed", thumb: null }],
+    route: { steps: [step], hours: 8, estimated: false },
+    move: [{ id: 5, slug: "data-engineer", name: "Data Engineer", open: 5, judged: 5, coverage: 0.5, applicable: 3, carries: [], missing: [], hoursTo30: 0, isAim: false, isCurrent: false, isShown: true }],
+    roles: [{ id: 5, slug: "data-engineer", name: "Data Engineer" }] });
+  assert.deepEqual([...html.matchAll(/data-skm-section="([^"]+)"/g)].map(m => m[1]), ["number", "wants", "learn", "move"]);
+  assert.doesNotMatch(html, /data-your-map=""|data-map-section=|data-atlas-home-families=""|data-atlas-explore=""|data-atlas-home-recent=""/);
 });
 
 test("D167 · panels whose feature is not built say so, and draw only numbers that exist", async () => {

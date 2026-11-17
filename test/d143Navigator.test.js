@@ -134,8 +134,9 @@ test("D143 · D136's aim signal: a posting on the user's route gets the reason",
 });
 
 test("D143 · surfaces: the navigator is first on the Atlas home and the D120 line is its fallback; routes are the user's own", () => {
-  const home = read("client/src/pages/atlas/YourMap.jsx");
-  assert.match(home, /<Navigator base=\{base\} fallback=\{dir && \(/);
+  // ⭐ A228 (46r, moved on purpose): the Atlas home that put the navigator first (YourMap.jsx AtlasHome) is retired; the
+  // navigator is Your route's panel (AtlasPanels.jsx), drawn under Your map's "Your route, step by step".
+  assert.match(read("client/src/pages/atlas/AtlasPanels.jsx"), /<Navigator base=\{base\} fallback=/);
   const nav = read("client/src/pages/atlas/Navigator.jsx");
   assert.match(nav, /if \(!nav\?\.ready\) return fallback;/);
   assert.match(nav, /data-navigator-next=""/);

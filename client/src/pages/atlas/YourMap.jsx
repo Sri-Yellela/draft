@@ -1,61 +1,12 @@
-// ⭐ D116 · YOUR MAP — the Atlas home built from the reader's résumé (GET /api/atlas/me). Signed in with skills on the
-// Atlas: THE TREE (AtlasTree.jsx) and, below it, the five sections (M6) — To reach senior <role> · Adjacent · Branches
-// · Learn next · You have — every chip opening the same node on the tree. Signed out / no résumé (M9): the signed-out
-// home — Explore by role (the board's biggest roles, each opening its role page) and "Upload a résumé and this page
-// becomes your map." Search and Learn sit above it on the page (AtlasPage.jsx).
-import { useEffect, useRef, useState } from "react";
+// ⭐ D116 · the Atlas tree's page wrappers and the readers of GET /api/atlas/me that outlive YOUR MAP's old home.
+// ⭐ A228 (46r, owner 11-16 "Build it"): Your map is the skill map now (SkillMap.jsx). The market tree it replaces — the
+// home drawn from /api/atlas/me (AtlasHome / ExploreHome), the five sections (mapSections), the families list and
+// Your course on it — is retired. What stays: the same tree on a role page (RoleMap) and a family page (FamilyMap),
+// Explore by role and Recently published (Roles and skills), the direction line (Overview) and useAtlasMe.
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import AtlasTree from "./AtlasTree.jsx";
-import { headerLine } from "./atlasTreeModel.js";
-import YourCourse from "./YourCourse.jsx";
-import Navigator from "./Navigator.jsx";
-import { familyCountLine } from "../../../../shared/atlasFamilyCount.js";
-
-/** The five sections' chips, in M6's order. Pure: the page's test reads it. */
-export function mapSections(me) {
-  const nl = me.nextLevel || { items: [] };
-  const role = nl.items[0]?.role?.name || me.targetRoles?.[0]?.name || "";
-  return [
-    { id: "nextLevel", title: `To reach ${nl.items[0] ? nl.items[0].to.level : "the next level"}${role ? ` ${role}` : ""}`,
-      why: "Skills whose share of postings rises most from your level to the next, for your role.",
-      chips: nl.items.map(i => ({ slug: i.slug, name: i.name, line: `${i.from.share} % at ${i.from.level} → ${i.to.share} % at ${i.to.level}`, bar: i.to.share })),
-      empty: nl.reason === "no_target_role" ? "Set an aim to see what seniority adds." : "Nothing measured rises by enough yet." },
-    { id: "adjacent", title: "Adjacent", why: "Asked for alongside what you already have.",
-      chips: (me.adjacent?.items || []).map(i => ({ slug: i.slug, name: i.name, line: `${i.line} · ${i.postings} postings` })), empty: "Nothing yet." },
-    { id: "branches", title: "Branches", why: "Other roles you already mostly cover.",
-      chips: (me.branches?.items || []).map(b => ({ role: b.slug, name: b.name, line: b.line.replace(/^You cover /, ""), bar: Math.round(b.coverage * 100) })), empty: "No other role is close enough yet." },
-    { id: "learnNext", title: "Learn next", why: "Course steps that close your biggest gaps. Start at any of them.",
-      chips: (me.learnNext?.items || []).map(s => ({ step: s.stepId, name: s.title, line: `Enter the course here${s.progress ? ` · ${s.progress.done} of ${s.progress.total}` : ""}` })), empty: "No step teaches these gaps yet." },
-    { id: "haveSkills", title: "You have", why: "From your résumé, with how many open postings ask for each.",
-      chips: (me.haveSkills?.groups || []).flatMap(g => g.items).map(i => ({ slug: i.slug, name: i.name, line: `${i.postings} postings` })), empty: "" },
-  ];
-}
-
-function Sections({ me, base, onOpen }) {
-  const famOf = new Map((me.tree?.nodes || []).map(n => [n.slug, n]));
-  const sq = (slug, fallback = "off") => {
-    const n = famOf.get(slug);
-    return <span className={`atree__fsq ${n && (n.have || n.learned) ? `atree__sq--${n.family}` : `atree__sq--${fallback}`} atree__fsq--${n?.ring || "none"}`} aria-hidden="true">{(n?.name || " ").charAt(0)}</span>;
-  };
-  return mapSections(me).map(sec => (
-    <section key={sec.id} className="atree-sec" data-map-section={sec.id} aria-labelledby={`map-${sec.id}`}>
-      <h2 id={`map-${sec.id}`}>{sec.title}</h2>
-      <p className="atree-sec__why">{sec.why}</p>
-      {sec.chips.length === 0 ? <p className="atree-sec__why">{sec.empty}</p> : (
-        <div className="atree-sec__row">
-          {sec.chips.map(c => {
-            const body = (<span><span className="atree-chip__t">{c.name}</span><span className="atree-chip__s">{c.line}</span>
-              {c.bar != null && <span className={`atree-chip__bar${c.role ? " atree-chip__bar--branch" : ""}`}><i style={{ width: `${c.bar}%` }} /></span>}</span>);
-            if (c.role) return <Link key={c.role} className="dbx-depth atree-chip" to={`${base}/${encodeURIComponent(c.role)}`} data-map-chip={c.role}><span className="atree__fsq atree__sq--systems" aria-hidden="true">{c.name.charAt(0)}</span>{body}</Link>;
-            if (c.step) return <Link key={c.step} className="dbx-depth atree-chip" to={`${base}/learn#step-${encodeURIComponent(c.step)}`} data-map-chip={c.step}><span className="atree__fsq atree__sq--data" aria-hidden="true">▸</span>{body}</Link>;
-            return <button key={c.slug} type="button" className="dbx-depth atree-chip" data-map-chip={c.slug} onClick={() => onOpen(c.slug)}>{sq(c.slug)}{body}</button>;
-          })}
-        </div>
-      )}
-    </section>
-  ));
-}
 
 /** ⭐ D120 P2 · the side column's Explore by role — the board's biggest roles, each opening its role page. */
 export function ExploreByRole({ roles = [], base }) {
@@ -67,23 +18,6 @@ export function ExploreByRole({ roles = [], base }) {
         {roles.map(r => (
           <li key={r.slug}><Link to={`${base}/${encodeURIComponent(r.slug)}`} className="atl__link">{r.name}</Link>
             <span className="atl__count"> · {r.postings} postings{r.topSkills.length ? ` · ${r.topSkills.map(s => s.name).join(", ")}` : ""}</span></li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-/** ⭐ D120 P2 · the five families, each with what the reader has of it, opening the family's page. */
-export function Families({ families = [], base }) {
-  if (!families.length) return null;
-  return (
-    <section className="atl__section" data-atlas-home-families="" aria-labelledby="atl-families">
-      <h2 className="atl__h2" id="atl-families">The families</h2>
-      <ul className="atl__links">
-        {families.map(f => (
-          <li key={f.key}><Link to={`${base}/family/${encodeURIComponent(f.key)}`} className="atl__link">{f.name}</Link>
-            {/* ⭐ D178-2: "2 proven · 3 claimed · of 8" — the same sentence as the tree's tag (shared/atlasFamilyCount.js). */}
-            <span className="atl__count" data-family-count=""> · {familyCountLine({ provenCount: f.provenCount || 0, claimedCount: f.claimedCount ?? f.haveCount ?? 0, learnedCount: f.learnedCount || 0, total: f.total })}</span></li>
         ))}
       </ul>
     </section>
@@ -113,31 +47,6 @@ export function directionLine(tree) {
   const part = n.courseStep?.label ? n.courseStep.label.split(" · ")[0] : null;
   const start = n.courseStep ? ` · start with ${n.courseStep.title}${part ? ` (${part})` : ""}` : "";
   return { slug: n.slug, stepId: n.courseStep?.stepId || null, text: `Next up: ${n.name} · ${n.closeness ?? 0} % close${start}` };
-}
-
-/** The signed-out (or no résumé) home — never an empty page: search, Learn (the full circle), Explore by role. */
-// ⭐ D167 · Atlas's own navigation splits the old home into panels: Your map keeps the tree, the course, the five sections
-// and the families; Roles and skills takes search, Explore by role and the recent pages; Your route takes the navigator.
-// `parts` turns a piece off for its panel; the default draws everything (the home as D120 drew it).
-export const ALL_PARTS = Object.freeze({ navigator: true, explore: true, families: true, recent: true });
-
-export function ExploreHome({ me, base, search = null, signedIn = false, course = null, parts = ALL_PARTS }) {
-  const side = search || parts.explore || parts.recent;
-  return (
-    <div className={`atl-home${side ? "" : " atl-home--one"}`} data-atlas-home="explore">
-      <div className="atl-home__main">
-        <p className="atl__lede" data-atlas-upload="">{me.prompt}</p>
-        {course || <YourCourse base={base} signedIn={signedIn} />}
-      </div>
-      {side && (
-        <aside className="atl-home__side" data-atlas-home-side="">
-          {search}
-          {parts.explore && <ExploreByRole roles={me.exploreByRole?.items} base={base} />}
-          {parts.recent && <Recent items={me.recent} base={base} />}
-        </aside>
-      )}
-    </div>
-  );
 }
 
 /** ⭐ M7 · the same tree on a role page: centre = the role, its top skills; signed in, the reader's own colours. */
@@ -191,53 +100,4 @@ export function useAtlasMe() {
     return () => { live = false; };
   }, []);
   return me;
-}
-
-export default function YourMap({ base, search = null, parts = ALL_PARTS }) {
-  const me = useAtlasMe();
-  const [request, setRequest] = useState(null);
-  const top = useRef(null);
-  if (!me) return null;
-  return <AtlasHome me={me} base={base} search={search} request={request} setRequest={setRequest} top={top} parts={parts} />;
-}
-
-/** ⭐ D120 P2 · the home drawn from GET /api/atlas/me's answer — pure apart from the open-on-tree request (tests render it). */
-export function AtlasHome({ me, base, search = null, request = null, setRequest = () => {}, top = null, course = null, parts = ALL_PARTS }) {
-  if (!me.map || !me.tree) return <ExploreHome me={me} base={base} search={search} signedIn={!!me.signedIn} course={course} parts={parts} />;
-  const open = (slug) => { setRequest(r => ({ slug, n: (r?.n || 0) + 1 })); top?.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" }); };
-  const dir = directionLine(me.tree);
-  const side = search || parts.explore || parts.families || parts.recent;
-  return (
-    <div className={`atl-home${side ? "" : " atl-home--one"}`} data-atlas-home="you">
-      <div className="atl-home__main">
-        {/* ⭐ D143: the navigator first — its next step is the direction line; D120's line is its fallback.
-            ⭐ D167: in Atlas's own navigation the navigator is the Your route panel; Your map keeps D120's line. */}
-        {parts.navigator ? <Navigator base={base} fallback={dir && (
-          <p className="atl-home__dir" data-atlas-direction={dir.slug}>
-            <span>{dir.text}</span>
-            {dir.stepId
-              ? <Link className="dbx-depth atl-home__go" to={`${base}/learn#step-${encodeURIComponent(dir.stepId)}`} data-atlas-direction-open="">Open the piece</Link>
-              : <button type="button" className="dbx-depth atl-home__go" onClick={() => open(dir.slug)} data-atlas-direction-open="">Show it on the map</button>}
-          </p>
-        )} /> : null}
-        <div className="atree-map" data-your-map="" ref={top}>
-          <header className="atl__head">
-            <p className="atl__lede" data-map-header="">{headerLine(me.tree)}</p>
-            {me.nudge && <p className="atl__quiet" data-map-nudge="">Drawn from your résumé's skills. <Link to="/app/profile" className="atl__link">{me.nudge}</Link>.</p>}
-          </header>
-          <AtlasTree tree={me.tree} base={base} request={request} />
-        </div>
-        {course || <YourCourse base={base} signedIn />}
-        <Sections me={me} base={base} onOpen={open} />
-      </div>
-      {side && (
-        <aside className="atl-home__side" data-atlas-home-side="">
-          {search}
-          {parts.explore && <ExploreByRole roles={me.exploreByRole?.items} base={base} />}
-          {parts.families && <Families families={me.tree.families} base={base} />}
-          {parts.recent && <Recent items={me.recent} base={base} />}
-        </aside>
-      )}
-    </div>
-  );
 }

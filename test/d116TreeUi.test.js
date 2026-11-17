@@ -32,12 +32,10 @@ async function loadUi() {
         import { renderToStaticMarkup } from "react-dom/server.browser";
         import { MemoryRouter } from "react-router-dom";
         import AtlasTree, { SidePanel } from ${abs("pages/atlas/AtlasTree.jsx")};
-        import { ExploreHome, mapSections } from ${abs("pages/atlas/YourMap.jsx")};
         const wrap = (el) => renderToStaticMarkup(h(MemoryRouter, null, el));
         export const tree = (t) => wrap(h(AtlasTree, { tree: t, base: "/atlas" }));
         export const side = (t, state) => wrap(h(SidePanel, { tree: t, page: t.page, base: "/atlas", state: { sel: null, focusFam: null, special: null, lastFam: null, ...state }, onChoose() {}, onFamily() {} }));
-        export const explore = (me) => wrap(h(ExploreHome, { me, base: "/atlas" }));
-        export { mapSections };`,
+`,
       resolveDir: CLIENT, loader: "jsx",
     },
     bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
@@ -93,13 +91,6 @@ const role = (signedIn = true) => ({
   nodes: [N({ slug: "sql", name: "SQL", family: "data", have: true, state: "have", ring: signedIn ? "have" : null, postings: 880, share: 86, sub: "86 % of postings" }),
     N({ slug: "spark", name: "Spark", family: "data", have: !signedIn, state: signedIn ? "not_yet" : "have", ring: signedIn ? "rises" : null, postings: 640, share: 64, sub: "64 % of postings" })],
 });
-/** /api/atlas/me as YOUR MAP answers it (the five sections; see test/d116YourMap.test.js for their rules). */
-const mapSectionsFor = () => ({ map: true, targetRoles: [{ slug: "backend-engineer", name: "Backend Engineer" }],
-  nextLevel: { total: 1, items: [{ slug: "terraform", name: "Terraform", role: { name: "Backend Engineer" }, from: { level: "mid", share: 8 }, to: { level: "senior", share: 19 } }] },
-  adjacent: { total: 1, items: [{ slug: "spark", name: "Spark", postings: 640, line: "Often asked with SQL" }] },
-  branches: { total: 1, items: [{ slug: "data-engineer", name: "Data Engineer", coverage: 0.6, line: "You cover 9 of 15 for Data Engineer — missing: Spark" }] },
-  learnNext: { total: 1, items: [{ stepId: "o4", title: "Virtual machines, containers and the cloud", progress: { done: 1, total: 6 } }] },
-  haveSkills: { total: 1, groups: [{ kind: "tool", items: [{ slug: "kubernetes", name: "Kubernetes", postings: 411 }] }] }, tree: you() });
 const BOARD = JSON.parse(fs.readFileSync("test/fixtures/d116TreeBoard.json", "utf8"));
 
 test("D116 M3 · d116TreeColouredIfHave — a skill you have (or learned) is filled in its family's colour, with the green ring", async () => {
@@ -334,21 +325,8 @@ test("D116 M10 · d116TreeFourThemes — tokens only, both themes and the contra
   assert.doesNotMatch(read("client/src/pages/atlas/AtlasTree.jsx").replace(/^\s*\/\/.*$/gm, ""), /<canvas|getContext\(|from "three"/, "M9: plain SVG, no WebGL");
 });
 
-test("D116 M6 · the five sections below the map, in order; every chip opens the same node on the tree; signed out → Explore by role", async () => {
-  const u = await loadUi();
-  const me = mapSectionsFor();
-  assert.deepEqual(u.mapSections(me).map(s => [s.id, s.title]), [["nextLevel", "To reach senior Backend Engineer"], ["adjacent", "Adjacent"], ["branches", "Branches"], ["learnNext", "Learn next"], ["haveSkills", "You have"]]);
-  const secs = u.mapSections(me);
-  assert.deepEqual(secs[0].chips[0], { slug: "terraform", name: "Terraform", line: "8 % at mid → 19 % at senior", bar: 19 });
-  assert.equal(secs[2].chips[0].role, "data-engineer");
-  assert.equal(secs[3].chips[0].step, "o4");
-  const src = read("client/src/pages/atlas/YourMap.jsx");
-  assert.match(src, /onClick=\{\(\) => onOpen\(c\.slug\)\}/);
-  assert.match(src, /setRequest\(r => \(\{ slug, n: \(r\?\.n \|\| 0\) \+ 1 \}\)\)/);
-  const html = u.explore({ map: false, prompt: "Upload a résumé and this page becomes your map.", exploreByRole: { total: 1, items: [{ slug: "data-engineer", name: "Data Engineer", postings: 388, topSkills: [{ name: "SQL" }] }] } });
-  assert.match(html, /Upload a résumé and this page becomes your map\./);
-  assert.match(html, /href="\/atlas\/data-engineer"/);
-});
+// ⭐ A228 (46r, owner 11-16 "Build it"): "D116 M6 · the five sections below the map" is deleted with its code — the five
+// sections (mapSections) and the signed-out home (ExploreHome) were retired with the market tree; Your map is the skill map.
 
 test("D116 M8 · d116UnlockReducedMotion — a node unlocks (the ring closes, the square fills) once, on the first draw after it was learned; never under reduced motion", () => {
   const t = you();

@@ -110,7 +110,10 @@ test("D117 C7 · d117EntryOpensPiece — an entry from anywhere lands on #step-<
   assert.match(read("client/src/pages/atlas/AtlasPage.jsx"), /\/learn#step-\$\{encodeURIComponent\(node\.learn\.stepId\)\}/);
   assert.match(read("client/src/components/AtlasTerm.jsx"), /#step-\$\{encodeURIComponent\(p\.learnStep\.stepId\)\}/);
   assert.match(read("client/src/pages/atlas/AtlasTree.jsx"), /\/learn#step-\$\{encodeURIComponent\(n\.courseStep\.stepId\)\}/);
-  assert.match(read("client/src/pages/atlas/YourMap.jsx"), /\/learn#step-\$\{encodeURIComponent\(c\.step\)\}/);
+  // ⭐ A228 (46r, moved on purpose): the five sections' Learn next chips (YourMap.jsx) are retired; the skill map's steps
+  // enter the course at their piece through atlasPanels.js learnStepHref (#step-<id> on the course's circle view).
+  assert.match(read("client/src/pages/atlas/SkillMap.jsx"), /if \(s\.stepId\) return learnStepHref\(base, s\.stepId\);/);
+  assert.match(read("client/src/pages/atlas/atlasPanels.js"), /#step-\$\{encodeURIComponent\(stepId\)\}/);
   const view = read("client/src/pages/atlas/LearnView.jsx");
   assert.match(view, /const \[entry, setEntry\] = useState\(\(\) => entryFromHash\(location\.hash\)\);/);
   // ⭐ D178 (changed on purpose): Learn is the circle only (its tabs retired), so an entry just selects the piece.

@@ -32,11 +32,12 @@ test("d172MapTrackBoardWithStations: the loop — top row left to right, the tur
   assert.equal(layoutTrack([]).stops.length, 0);
 });
 
-test("d172MapTrackBoardWithStations: wired — Your map leads with the board; the tree is kept, on demand; the navigator sends the stations", () => {
+// ⭐ A228 (46r, owner 11-16 "Build it", moved on purpose): Your map leads with the skill map now; the track board and the
+// route are KEPT, below it, inside a closed <details> "Your route, step by step" (the market tree it led is retired).
+test("d172MapTrackBoardWithStations: wired — the board and the route stay, below the skill map, on demand; the navigator sends the stations", () => {
   const page = read("client/src/pages/atlas/AtlasPage.jsx");
-  // ⭐ D178 (changed on purpose): Your route's navigator sits between the board and the tree.
-  assert.match(page, /<TrackBoard base=\{base\} signedIn=\{signedIn\} \/>\n[\s\S]{0,400}<YourRoutePanel base=\{base\} signedIn=\{signedIn\} \/><\/section>\}\n\s*<details className="atl-more" data-atlas-market-tree="" open=\{!signedIn\}>/);
-  assert.match(page, /<summary className="atl__link">See the whole market around you<\/summary>/);
+  assert.match(page, /<SkillMap base=\{base\} signedIn=\{signedIn\} \/>[\s\S]{0,300}<details className="atl-more skm-route-more" data-atlas-route-steps="">\n\s*<summary className="atl__link">Your route, step by step<\/summary>\n\s*<TrackBoard base=\{base\} signedIn=\{signedIn\} \/>\n\s*<section className="atl__section" data-atlas-route-in-map=""><YourRoutePanel base=\{base\} signedIn=\{signedIn\} \/><\/section>/);
+  assert.doesNotMatch(page, /data-atlas-market-tree|See the whole market around you/);
   // ⭐ A154 (45o, on purpose): + the You pill's years.
   assert.match(read("services/navigator.js"), /route: route \? \{ \.\.\.route, stations, openRoles: aimReading\?\.role\?\.postings \?\? null, youYears \} : null/);
   const css = read("client/src/pages/atlas/TrackBoard.css");

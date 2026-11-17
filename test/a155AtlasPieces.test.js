@@ -40,8 +40,10 @@ test("A155 · the card, the course page, the ring and Your skills carry the piec
   assert.match(page, /data-course-marks=""/);
   assert.match(page, /routesFor\(circle, coursePieces\(course, circle\), null\)/);
   assert.match(page, /m\.lessons\.filter\(l => !onRoute \|\| onRoute\.has\(l\.id\)\)/, "the list keeps only the route's lessons");
-  const rr = fs.readFileSync("client/src/pages/atlas/RoleReadiness.jsx", "utf8");
-  assert.match(rr, /api\("\/api\/navigator\/aim", \{ method: "PUT", body: JSON\.stringify\(\{ slug: r\.role\.slug \}\) \}\)/);
-  assert.match(rr, />Aim here and fly my route</, "it says the aim changes");
+  // ⭐ A228 (46r, moved on purpose): For a role (RoleReadiness.jsx) is retired; the skill map's "Aim for this" sets the aim
+  // through the same navigator endpoint, and the map follows it.
+  const sm = fs.readFileSync("client/src/pages/atlas/SkillMap.jsx", "utf8");
+  assert.match(sm, /api\("\/api\/navigator\/aim", \{ method: "PUT", body: JSON\.stringify\(\{ slug \}\) \}\)/);
+  assert.match(sm, />Aim for this</);
   assert.match(fs.readFileSync("client/src/pages/atlas/TrackBoard.jsx", "utf8"), /get\("fly"\) === "1"/);
 });
