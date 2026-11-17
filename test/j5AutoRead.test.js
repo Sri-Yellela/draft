@@ -364,8 +364,16 @@ test("⛔ D97 · Options: nothing is asked on load; nothing can be switched on b
   assert.equal(ui.boxes.size, SITES.length * BEHAVIOURS.length);
   for (const [k, box] of ui.boxes) { assert.equal(box.disabled, true, `${k} is switchable before consent`); assert.equal(box.checked, false); }
   // the disclosure is on the page, in the code's words
-  const shown = doc.byId.get("auto-disclosure-list").children.map(c => c.textContent).join("\n");
-  for (const k of ["read", "prepare", "capture", "fill", "never"]) assert.ok(shown.includes(DISCLOSURE[k]), k);
+  // ⭐ A233 (46u, changed on purpose): drawn as each switch's name and ✓ / ✕ items — every sentence is still on the page.
+  const textOf = (el) => [el.textContent, ...(el.children || []).map(textOf)].filter(Boolean).join("\n");
+  const shown = textOf(doc.byId.get("auto-disclosure-list"));
+  const { disclosureItems } = await import("../extension/options-auto.js");
+  for (const k of ["read", "prepare", "capture", "fill", "never"]) {
+    const { head, items } = disclosureItems(DISCLOSURE[k], k);
+    assert.equal([head, ...items.map(i => i.text)].filter(Boolean).join(" ").replace(/\s+/g, " "),
+      DISCLOSURE[k].replace(" — ", " ").replace(/\s+/g, " "), `${k}: no word lost`);
+    for (const it of items) assert.ok(shown.includes(it.text), `${k}: ${it.text.slice(0, 40)}`);
+  }
   // agree
   doc.byId.get("auto-agree").fire("click");
   await new Promise(r => setTimeout(r, 0)); await ui.ready; await new Promise(r => setTimeout(r, 0));

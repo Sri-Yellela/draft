@@ -1,4 +1,4 @@
-// ⭐ D105 P12 (owner 10-31) · ROLE PAGES PUBLISH ON BOARD DATA — a node of kind role with ≥ 5 active postings publishes
+// ⭐ D105 P12 (owner 10-31) · ROLE PAGES PUBLISH ON BOARD DATA — a node of kind role with ≥ 5 open jobs publishes
 // with no Wikipedia summary and no definition; its page is the board's own data (top skills with shares, levels from
 // D106, pay where postings state it, companies hiring, D116's "to reach the next level"). Every other kind keeps the
 // old bar. Synthetic nodes, companies and postings; an in-memory database; nothing here touches the network.
@@ -62,7 +62,7 @@ function post(db, title, text, { level = null, company = "Synthetic Co", pay = n
     VALUES (?,?,?,?,?,?,?,1,?,?,?)`).run(id, title, company, `https://x.test/${id}`, "t", `h${id}`, text, level, pay?.[0] ?? null, pay?.[1] ?? null);
 }
 /**
- * Backend Engineer: 62 postings, no definition, no Wikipedia — 20 early (Python), 20 mid (Python + Kubernetes), 20
+ * Backend Engineer: 62 jobs, no definition, no Wikipedia — 20 early (Python), 20 mid (Python + Kubernetes), 20
  * senior (Python + Kubernetes + Terraform, pay stated), 2 with no level read. Data Engineer: 4 postings.
  */
 function board() {
@@ -78,7 +78,7 @@ function board() {
   return db;
 }
 
-test("D105 P12 · d105RolePublishesOnBoardData — a role with ≥ 5 active postings publishes with no Wikipedia summary and no definition", () => {
+test("D105 P12 · d105RolePublishesOnBoardData — a role with ≥ 5 open jobs publishes with no Wikipedia summary and no definition", () => {
   const db = board();
   assert.deepEqual(BOARD_DATA_KINDS, ["role"]);
   assert.equal(db.prepare(`SELECT COUNT(*) FROM atlas_wiki_cache`).pluck().get(), 0, "no summary anywhere");
@@ -90,7 +90,7 @@ test("D105 P12 · d105RolePublishesOnBoardData — a role with ≥ 5 active post
   const r = autoPublish(db);
   assert.deepEqual(r.published, ["backend-engineer"], "the role, and nothing without a summary or a definition");
   assert.equal(status(db, "backend-engineer"), "published");
-  assert.equal(status(db, "data-engineer"), "draft", "4 postings is under the bar");
+  assert.equal(status(db, "data-engineer"), "draft", "4 jobs is under the bar");
   for (const s of ["python", "kubernetes", "terraform"]) assert.equal(status(db, s), "draft", `${s}: a skill still needs a summary or a definition`);
   // ⛔ The owner's un-publish still wins for a role.
   setStatus(db, "backend-engineer", "draft", "owner");
@@ -126,8 +126,8 @@ test("D105 P12 · d105RolePageShowsBoardSections — the role page is the board'
     const html = nodeView(node);
     for (const part of ["data-atlas-role-board", "data-role-skills", "data-role-levels", "data-role-pay", "data-role-companies", "data-atlas-next-level"])
       assert.ok(html.includes(part), `the page draws ${part}`);
-    assert.match(html, /Python<\/a><span class="atl__count" data-share="100"> · 100 % of postings/);
-    assert.match(html, /Early career<span class="atl__count"> · 20 postings · 32 %/);
+    assert.match(html, /Python<\/a><span class="atl__count" data-share="100"> · 100 % of jobs/);
+    assert.match(html, /Early career<span class="atl__count"> · 20 jobs · 32 %/);
     assert.match(html, /\$160k, median \$160k/);
     assert.match(html, /Globex Synthetic<span class="atl__count"> · 40/);
     assert.match(html, /Early-career → mid/);
@@ -140,7 +140,7 @@ test("D105 P12 · d105RolePageShowsBoardSections — the role page is the board'
     assert.ok(withDef.indexOf("data-atlas-definition") < withDef.indexOf("data-atlas-board"), "the definition above the board's data");
     // A step with too few postings read says so instead of listing nothing.
     const thin = nodeView({ ...node, roleBoard: { ...rb, nextLevel: [{ from: "mid", to: "senior", postings: { from: 3, to: 9 }, reason: "too_few_postings", items: [] }] } });
-    assert.match(thin, /Not enough postings read at both levels to measure yet \(3 mid · 9 senior\)/);
+    assert.match(thin, /Not enough jobs read at both levels to measure yet \(3 mid · 9 senior\)/);
   } finally { server.close(); }
 });
 

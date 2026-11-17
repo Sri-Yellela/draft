@@ -88,8 +88,8 @@ const role = (signedIn = true) => ({
   page: "role", centre: { slug: "data-engineer", name: "Data Engineer", postings: 388 }, signedIn,
   cover: signedIn ? { have: 1, of: 2, missing: [{ slug: "spark", name: "Spark", share: 64 }], line: "You cover 1 of 2; missing Spark 64 %" } : null,
   families: [{ key: "data", name: "Data", haveCount: signedIn ? 1 : 2, total: 2, drawn: 2, more: 0, order: ["sql", "spark"] }],
-  nodes: [N({ slug: "sql", name: "SQL", family: "data", have: true, state: "have", ring: signedIn ? "have" : null, postings: 880, share: 86, sub: "86 % of postings" }),
-    N({ slug: "spark", name: "Spark", family: "data", have: !signedIn, state: signedIn ? "not_yet" : "have", ring: signedIn ? "rises" : null, postings: 640, share: 64, sub: "64 % of postings" })],
+  nodes: [N({ slug: "sql", name: "SQL", family: "data", have: true, state: "have", ring: signedIn ? "have" : null, postings: 880, share: 86, sub: "86 % of jobs" }),
+    N({ slug: "spark", name: "Spark", family: "data", have: !signedIn, state: signedIn ? "not_yet" : "have", ring: signedIn ? "rises" : null, postings: 640, share: 64, sub: "64 % of jobs" })],
 });
 const BOARD = JSON.parse(fs.readFileSync("test/fixtures/d116TreeBoard.json", "utf8"));
 
@@ -184,11 +184,11 @@ test("D116 M4 · d116TreePathBackToYou — a chosen skill lights its branch back
   assert.deepEqual(pathBack("sql", t, L), ["sql", "trunk:data", "centre"]);
 });
 
-test("D116 M4 · d116TreeFamilyListOrder — a family's list: yours first by postings, then closest → furthest, each row '81 % close · 380 postings · +23 toward senior'", async () => {
+test("D116 M4 · d116TreeFamilyListOrder — a family's list: yours first by postings, then closest → furthest, each row '81 % close · 380 jobs · +23 toward senior'", async () => {
   const t = you();
   assert.deepEqual(familyList(t, "infra").map(n => n.slug), ["docker", "kubernetes", "terraform", "prometheus"]);
-  assert.equal(rowLine(t.nodes.find(n => n.slug === "terraform")), "66 % close · 480 postings · +11 toward senior");
-  assert.equal(rowLine(t.nodes.find(n => n.slug === "docker")), "You have it · 530 postings");
+  assert.equal(rowLine(t.nodes.find(n => n.slug === "terraform")), "66 % close · 480 jobs · +11 toward senior");
+  assert.equal(rowLine(t.nodes.find(n => n.slug === "docker")), "You have it · 530 jobs");
   const html = (await loadUi()).side(t, { focusFam: "data" });
   const rows = [...html.matchAll(/data-tree-row="([^"]+)"/g)].map(m => m[1]);
   assert.deepEqual(rows, ["sql", "dbt", "spark", "airflow"], "every member — drawn or not — in the list");
@@ -288,9 +288,9 @@ test("D116 M10 · d116TreeKeyboard — every node a real button, Tab walks a fam
   const inDom = [...html.matchAll(/<g class="atree__nd[^"]*" role="button" tabindex="0" aria-label="([^"]+)" data-tree-node="([^"]+)"/g)];
   assert.deepEqual(inDom.map(m => m[2]), tabOrder(t));
   assert.deepEqual(tabOrder(t), ["docker", "kubernetes", "terraform", "prometheus", "sql", "dbt", "spark"]);
-  assert.equal(inDom.find(m => m[2] === "terraform")[1], "Terraform, you don&#x27;t have it yet, 66 % close, 480 postings");
-  assert.equal(ariaFor(t.nodes.find(n => n.slug === "prometheus")), "Prometheus, learning, 3 of 5 in its step, 57 % close, 280 postings");
-  assert.equal(ariaFor(t.nodes.find(n => n.slug === "docker")), "Docker, you have it, 530 postings");
+  assert.equal(inDom.find(m => m[2] === "terraform")[1], "Terraform, you don&#x27;t have it yet, 66 % close, 480 jobs");
+  assert.equal(ariaFor(t.nodes.find(n => n.slug === "prometheus")), "Prometheus, learning, 3 of 5 in its step, 57 % close, 280 jobs");
+  assert.equal(ariaFor(t.nodes.find(n => n.slug === "docker")), "Docker, you have it, 530 jobs");
   const src = read("client/src/pages/atlas/AtlasTree.jsx");
   assert.match(src, /if \(e\.key === "Enter" \|\| e\.key === " "\) \{ e\.preventDefault\(\); e\.stopPropagation\(\); onChoose\(n\.slug\); \}/);
   assert.match(src, /onKeyDown=\{\(e\) => \{ if \(e\.key === "Escape"\) home\(\); \}\}/);

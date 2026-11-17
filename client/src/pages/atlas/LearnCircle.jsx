@@ -46,7 +46,7 @@ export function CircleSvg({ pieces, layout, states, sel, route, onSelect }) {
   const title = s ? wrapTitle(s.t) : [];
   const st = s ? states.get(s.id) : null;
   return (
-    <svg className="lrc__svg" viewBox={circleViewBox()} role="group" aria-label={`The course as a circle of ${pieces.length} pieces`} data-learn-circle="">
+    <svg className="lrc__svg" viewBox={circleViewBox()} role="group" aria-label={`The course as a circle of ${pieces.length} lessons`} data-learn-circle="">
       <circle cx={GEO.c} cy={GEO.c} r={GEO.r - 24} className="lrc__guide" />
       {layout.parts.map(part => {
         const am = (part.a0 + part.a1) / 2, lr = GEO.r + 40;
@@ -79,7 +79,7 @@ export function CircleSvg({ pieces, layout, states, sel, route, onSelect }) {
         const dim = inRoute && !inRoute.has(p.id);
         return (
           <g key={p.id} className={`lrc__tick lrc__tick--${cs}${sel === p.id ? " is-sel" : ""}${dim ? " is-dim" : ""} lrc__part--${p.partIndex}`}
-            role="button" tabIndex={0} aria-label={`${p.t}, piece ${p.n} of ${pieces.length}, ${cs === "filled" ? "finished" : cs === "half" ? "started" : "not started"}`}
+            role="button" tabIndex={0} aria-label={`${p.t}, lesson ${p.n} of ${pieces.length}, ${cs === "filled" ? "finished" : cs === "half" ? "started" : "not started"}`}
             aria-pressed={sel === p.id} data-learn-piece={p.id} data-state={cs}
             onClick={() => onSelect(p.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(p.id); } }}>
             <title>{p.t}</title>
@@ -148,7 +148,7 @@ function BuildLink({ piece, saved, signedIn, onBuild }) {
   return (
     <div className="lrc__box" data-learn-build={piece.id}>
       <h3 className="lrc__box-h">What you built</h3>
-      <p className="atl__quiet">This piece asks you to build something. Link it — a repository or a live demo — and the bar's last fifth fills.</p>
+      <p className="atl__quiet">This lesson asks you to build something. Link it (a repository or a live demo) to finish the lesson.</p>
       {signedIn ? (
         <div className="lrc__build">
           <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="What the link is" className="lrc__input">
@@ -213,7 +213,7 @@ export function PieceBody({ piece, pieces, states, marks = {}, explanations = {}
           <div className="lrc__box lrc__box--after">
             <h3 className="lrc__box-h">After this · what it opens</h3>
             {(piece.opens || []).length ? <ul className="lrc__nbs">{piece.opens.map(id => nb(id))}</ul>
-              : <p className="atl__quiet">It doesn't lead to another piece; it rounds off its part.</p>}
+              : <p className="atl__quiet">It doesn't lead to another lesson; it rounds off its part.</p>}
           </div>
         </div>
       )}
@@ -286,7 +286,7 @@ export default function LearnCircle({ learn, pieces, circle, earned, signedIn = 
   };
   const makeSense = () => {
     const id = pieceForConcept(q, pieces, learn?.INDEX);
-    if (!id) { setQSay(`No piece teaches “${q.trim()}” yet.`); return; }
+    if (!id) { setQSay(`No lesson teaches “${q.trim()}” yet.`); return; }
     const list = routeClosure(needsMap(pieces), pieces.map(p => p.id), [id]);
     setQSay("");
     setRouteId(null);
@@ -316,7 +316,7 @@ export default function LearnCircle({ learn, pieces, circle, earned, signedIn = 
           <LearnWheel pieces={pieces} states={states} sel={piece.id} route={route} reduced={reduced} onSelect={setSel}
             onOpenPiece={() => { try { document.querySelector("[data-learn-selected]")?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "nearest" }); } catch { /* no DOM */ } }} />
         </div>
-        <section className="lrc__piece" aria-label={`Piece: ${piece.t}`} data-learn-selected={piece.id}>
+        <section className="lrc__piece" aria-label={`Lesson: ${piece.t}`} data-learn-selected={piece.id}>
           {route && ri >= 0 && (
             <div className="lrc__rnav" data-learn-rnav="">
               <span>Route: <b>{route.name}</b> · step {ri + 1} of {route.list.length}</span>
@@ -334,7 +334,7 @@ export default function LearnCircle({ learn, pieces, circle, earned, signedIn = 
         <li><span className="lrc__sw lrc__sw--filled" />Filled: finished</li>
         <li><span className="lrc__sw lrc__sw--half" />Half: started</li>
         <li><span className="lrc__sw lrc__sw--open" />Open: not yet</li>
-        <li><span className="lrc__sw lrc__sw--before" />Lines in: what this piece builds on</li>
+        <li><span className="lrc__sw lrc__sw--before" />Lines in: what this lesson builds on</li>
         <li><span className="lrc__sw lrc__sw--after" />Lines out: what it opens</li>
         <li><span className="lrc__sw lrc__sw--ink" />The ink stroke: your chosen route</li>
       </ul>

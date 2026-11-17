@@ -80,7 +80,7 @@ function AtlasSearch({ base, q }) {
       {state.status === "loading" && <p className="atl__quiet" role="status">Looking up “{q}”…</p>}
       {state.status === "error" && <p className="atl__quiet" role="alert">The Atlas could not be reached: {state.error}</p>}
       {state.status === "done" && (state.results.length === 0
-        ? <p className="atl__quiet" role="status" data-atlas-none="">No published page matches “{q}” yet.</p>
+        ? <p className="atl__quiet" role="status" data-atlas-none="">Nothing in the Atlas matches “{q}” yet.</p>
         : (
           <ul className="atl__results" data-atlas-results="">
             {state.results.map(r => (
@@ -135,7 +135,7 @@ function RoleBoard({ base, rb, payText }) {
     <div className="atl__cols" data-atlas-role-board="">
       {parts.skills && (
         <div data-role-skills="">
-          <h3 className="atl__h3">Skills its postings ask for</h3>
+          <h3 className="atl__h3">Skills its jobs ask for</h3>
           <ul className="atl__links">
             {rb.topSkills.map(s => (
               <li key={s.slug}><Link to={href(s.slug)} className="atl__link">{s.name}</Link>
@@ -146,11 +146,11 @@ function RoleBoard({ base, rb, payText }) {
       )}
       {parts.levels && (
         <div data-role-levels="">
-          <h3 className="atl__h3">Levels the postings ask for</h3>
+          <h3 className="atl__h3">Levels its jobs ask for</h3>
           <ul className="atl__links">
             {rb.levels.read.filter(l => l.postings > 0).map(l => (
               <li key={l.level} data-level={l.level}>{LEVEL_READ_LABEL[l.level] || l.level}
-                <span className="atl__count"> · {l.postings} posting{l.postings === 1 ? "" : "s"} · {l.share} %</span></li>
+                <span className="atl__count"> · {l.postings} job{l.postings === 1 ? "" : "s"} · {l.share} %</span></li>
             ))}
           </ul>
           {rb.levels.unread > 0 && <p className="atl__quiet">{rb.levels.unread} more say nothing that reads as a level.</p>}
@@ -158,7 +158,7 @@ function RoleBoard({ base, rb, payText }) {
       )}
       {parts.pay && payText && (
         <div data-role-pay=""><h3 className="atl__h3">Pay range</h3>
-          <p className="atl__pay" data-atlas-pay="">{payText}<br /><span className="atl__quiet">from {rb.pay.n} posting{rb.pay.n === 1 ? "" : "s"} that state pay</span></p></div>
+          <p className="atl__pay" data-atlas-pay="">{payText}<br /><span className="atl__quiet">from {rb.pay.n} job{rb.pay.n === 1 ? "" : "s"} that state pay</span></p></div>
       )}
       {parts.companies && (
         <div data-role-companies="">
@@ -194,7 +194,7 @@ function RoleNextLevel({ base, steps }) {
           </div>
         ))}
       </div>
-      <p className="atl__quiet">Skills whose share of this role's postings rises from one level to the next, read from the postings' own asks.</p>
+      <p className="atl__quiet">Skills asked for more as the level goes up, read from the jobs themselves.</p>
     </section>
   );
 }
@@ -235,7 +235,7 @@ export function AtlasNodeView({ base, node, from, onWalk, signedIn = false }) {
           {node.sponsors.map(s => (
             <li key={s.company} data-atlas-sponsor-level={s.level || undefined}>
               <b>{s.company}</b>{s.signal ? <> <SponsorshipChip signal={s.signal} needed /></> : null}
-              {" "}· {s.titleLine || s.text} · {s.postings} open posting{s.postings === 1 ? "" : "s"}
+              {" "}· {s.titleLine || s.text} · {s.postings} open job{s.postings === 1 ? "" : "s"}
             </li>
           ))}
         </ul>
@@ -254,7 +254,7 @@ export function AtlasNodeView({ base, node, from, onWalk, signedIn = false }) {
         <p className="atl__quiet" data-atlas-computed="">{computedLine(stats)}</p>
       </>
     ),
-    pay: pay && <p className="atl__pay" data-atlas-pay="">{pay}<br /><span className="atl__quiet">from {stats.pay.n} posting{stats.pay.n === 1 ? "" : "s"} that state pay</span></p>,
+    pay: pay && <p className="atl__pay" data-atlas-pay="">{pay}<br /><span className="atl__quiet">from {stats.pay.n} job{stats.pay.n === 1 ? "" : "s"} that state pay</span></p>,
     related: (
       <div className="atl__related">
         <div className="atl__cols">
@@ -461,7 +461,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
           {page.status === "loading" && <p className="atl__quiet" role="status">Opening…</p>}
           {page.status === "error" && <p className="atl__quiet" role="alert">The Atlas could not be reached: {page.error}</p>}
           {page.status === "missing" && (
-            <p className="atl__quiet" role="status" data-atlas-missing="">There is no published Atlas page by that name. <Link to={base} className="atl__link">Search the Atlas</Link></p>
+            <p className="atl__quiet" role="status" data-atlas-missing="">There's no Atlas page by that name. <Link to={base} className="atl__link">Search the Atlas</Link></p>
           )}
           {page.status === "done" && page.node && (
             <AtlasNodeView base={base} node={page.node} signedIn={signedIn} from={location.state?.from ? { q: location.state.from, via: location.state.via } : null}

@@ -73,7 +73,7 @@ test("D105 P7 · d105BelowBarStaysPublished — a page whose count falls under 5
   autoPublish(db);
   assert.equal(status(db, "kubernetes"), "published");
   assert.equal(readNode(db, "kubernetes").fewOpenPostings, false);
-  // The board shrinks: the nightly stats rewrite the count (no active postings at all here).
+  // The board shrinks: the nightly stats rewrite the count (no open jobs at all here).
   computeAtlasStats(db);
   assert.equal(db.prepare(`SELECT postings FROM atlas_node_stats WHERE node_id = ?`).pluck().get(id), 0);
   autoPublish(db);
@@ -82,7 +82,7 @@ test("D105 P7 · d105BelowBarStaysPublished — a page whose count falls under 5
   assert.equal(page.fewOpenPostings, true);
   const view = read("client/src/pages/atlas/AtlasPage.jsx");
   assert.match(view, /node\.fewOpenPostings && <p className="atl__quiet" data-atlas-few="">\{FEW_POSTINGS_LINE\}<\/p>/);
-  assert.match(read("client/src/pages/atlas/atlasModel.js"), /FEW_POSTINGS_LINE = "Few open postings/);
+  assert.match(read("client/src/pages/atlas/atlasModel.js"), /FEW_POSTINGS_LINE = "Few open jobs/);
   assert.doesNotMatch(read("services/atlas/atlasPublish.js"), /status\s*=\s*'draft'\s*,|SET status = 'draft'/, "auto-publish never writes draft");
 });
 

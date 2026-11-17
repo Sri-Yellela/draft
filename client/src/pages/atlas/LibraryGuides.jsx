@@ -101,7 +101,7 @@ export function PathwaysPlan({ base, want = null }) {
   return (
     <section className="lib-plan" aria-labelledby="lib-plan-h" data-pathways-plan="">
       <h2 className="atl__h2" id="lib-plan-h">Every pathway</h2>
-      <p className="atl__quiet" data-pathways-count="">{plan.written} of {total} decks written{plan.drafted ? ` · ${plan.drafted} drafted, waiting for review` : ""} · the rest are planned, in this order</p>
+      <p className="atl__quiet" data-pathways-count="">{plan.written} of {total} decks written{plan.drafted ? ` · ${plan.drafted} more being written` : ""} · the rest are planned, in this order</p>
       {plan.pathways.map(p => {
         const isOpen = open === p.id;
         const n = p.stages.reduce((a, s) => a + s.topics.length, 0), w = p.stages.reduce((a, s) => a + s.topics.filter(t => t.deck).length, 0);
@@ -120,7 +120,7 @@ export function PathwaysPlan({ base, want = null }) {
                       {s.topics.map((t, i) => (
                         <li key={i} data-topic-state={t.deck ? "written" : t.drafted ? "drafted" : "planned"}>
                           {t.deck ? <Link className="atl__link" to={`${base}/library/${t.deck}`}>{t.title}</Link> : <span>{t.title}</span>}
-                          {!t.deck && <span className="atl__quiet"> · {t.drafted ? "drafted, waiting for review" : "planned"}</span>}
+                          {!t.deck && <span className="atl__quiet"> · {t.drafted ? "being written" : "planned"}</span>}
                         </li>
                       ))}
                     </ul>

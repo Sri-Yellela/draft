@@ -17,7 +17,7 @@ export function ExploreByRole({ roles = [], base }) {
       <ul className="atl__links">
         {roles.map(r => (
           <li key={r.slug}><Link to={`${base}/${encodeURIComponent(r.slug)}`} className="atl__link">{r.name}</Link>
-            <span className="atl__count"> · {r.postings} postings{r.topSkills.length ? ` · ${r.topSkills.map(s => s.name).join(", ")}` : ""}</span></li>
+            <span className="atl__count"> · {r.postings} jobs{r.topSkills.length ? ` · ${r.topSkills.map(s => s.name).join(", ")}` : ""}</span></li>
         ))}
       </ul>
     </section>
@@ -29,7 +29,7 @@ export function Recent({ items = [], base }) {
   if (!items.length) return null;
   return (
     <section className="atl__section" data-atlas-home-recent="" aria-labelledby="atl-recent">
-      <h2 className="atl__h2" id="atl-recent">Recently published</h2>
+      <h2 className="atl__h2" id="atl-recent">New in the Atlas</h2>
       <ul className="atl__links">
         {items.map(n => <li key={n.slug}><Link to={`${base}/${encodeURIComponent(n.slug)}`} className="atl__link">{n.name}</Link></li>)}
       </ul>
@@ -84,9 +84,9 @@ export function FamilyMap({ base, familyKey }) {
       <header className="atl__head">
         <p className="atl__kicker"><Link to={base} className="atl__link">The Atlas</Link> · <span className="mark mark--accent">Family</span></p>
         <h1 className="atl__title">{t.centre.name}</h1>
-        <p className="atl__lede">{t.centre.postings} open postings ask for at least one {t.centre.name} skill. The tree shows what the family is made of{t.signedIn ? "; coloured squares are yours" : ""}.</p>
+        <p className="atl__lede">{t.centre.postings} open jobs ask for at least one {t.centre.name} skill. The tree shows what the family is made of{t.signedIn ? "; coloured squares are yours" : ""}.</p>
       </header>
-      {t.nodes.length ? <AtlasTree tree={t} base={base} /> : <p className="atl__quiet" data-atlas-family-empty="">No published skill in this family is asked for by an open posting yet.</p>}
+      {t.nodes.length ? <AtlasTree tree={t} base={base} /> : <p className="atl__quiet" data-atlas-family-empty="">No job asks for a skill in this family yet.</p>}
     </article>
   );
 }

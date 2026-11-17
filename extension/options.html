@@ -34,6 +34,14 @@
       padding: 10px 12px; margin: 8px 0 14px; background: var(--c-surface-2); }
     .disclosure-title { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
     .disclosure .note + .note { margin-top: 6px; }
+    /* A233: the disclosure as each switch's name and ✓ / ✕ items — the same words */
+    .disc + .disc { margin-top: 10px; }
+    .disc__h { margin: 0 0 4px; font-size: 12px; font-weight: 700; color: var(--c-ink); }
+    .disc__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+    .disc__i { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 6px; font-size: 11px; line-height: 1.5; color: var(--c-ink); }
+    .disc__mark { font-weight: 700; }
+    .disc__i--yes .disc__mark { color: var(--c-success); }
+    .disc__i--no .disc__mark { color: var(--c-danger); }
     .auto-sites { width: 100%; border-collapse: collapse; font-size: 12px; margin: 6px 0 8px; }
     .auto-sites th, .auto-sites td { padding: 6px 4px; border-bottom: 1px solid var(--c-border); text-align: center; vertical-align: top; }
     .auto-sites th[scope="row"] { text-align: left; font-weight: 700; }

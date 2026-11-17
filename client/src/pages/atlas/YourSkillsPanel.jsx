@@ -23,7 +23,7 @@ function SkillRow({ s, open, onOpen, onRemove, base }) {
     <div className="ysk__row" data-skill-row={s.key} data-skill-state={s.state}>
       <div className="ysk__what">
         <b className="ysk__name">{s.node ? <a className="ysk__link ysk__link--plain" href={`${base}/${encodeURIComponent(s.node.slug)}`}>{s.name}</a> : s.name}</b>
-        <small className="ysk__sub">{s.line}{s.held ? " · not on the Atlas yet, held for the curator" : ""}</small>
+        <small className="ysk__sub">{s.line}{s.held ? " · not on the Atlas yet — we'll review it" : ""}</small>
       </div>
       <span className={`ysk__state ysk__state--${s.state}`} data-state-word={s.state}>{STATE_WORDS[s.state]}</span>
       <span className="ysk__acts">
@@ -47,7 +47,7 @@ export function SkillsList({ list, base = "/app/atlas", onChanged, openKey = nul
     try {
       const r = await api("/api/your-skills/skills", { method: "POST", body: JSON.stringify({ name }) });
       setName("");
-      setNote(r.held ? `${r.skill?.name || name} is added as claimed. It isn't on the Atlas yet, so it's held for the curator.`
+      setNote(r.held ? `${r.skill?.name || name} is added as claimed. It isn't on the Atlas yet; we'll review it and add it.`
         : `${r.skill?.name || name} is added as claimed.`);
       onChanged?.();
     } catch (err) { setNote(err.message || "That skill was not added."); }

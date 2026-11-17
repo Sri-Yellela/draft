@@ -51,7 +51,7 @@ test("d155PathwaysPlanShown: served at GET /api/learn/pathways and drawn on the 
   assert.match(read("routes/learn.js"), /router\.get\("\/pathways", \(_req, res\) => \{ res\.set\("Cache-Control", LEARN_CACHE\); res\.json\(pathwaysPlan\(\)\); \}\);/);
   const ui = read("client/src/pages/atlas/LibraryGuides.jsx");
   assert.match(ui, /\{t\.deck \? <Link className="atl__link" to=\{`\$\{base\}\/library\/\$\{t\.deck\}`\}>\{t\.title\}<\/Link> : <span>\{t\.title\}<\/span>\}/);
-  assert.match(ui, /\{!t\.deck && <span className="atl__quiet"> · \{t\.drafted \? "drafted, waiting for review" : "planned"\}<\/span>\}/);
+  assert.match(ui, /\{!t\.deck && <span className="atl__quiet"> · \{t\.drafted \? "being written" : "planned"\}<\/span>\}/);
   // ⭐ A154 (45o, on purpose): the pathways' covers above it ask the plan to open one.
   assert.match(read("client/src/pages/atlas/LibraryPanel.jsx"), /<PathwaysPlan base=\{base\} want=\{wantPathway\} \/>/);
 });

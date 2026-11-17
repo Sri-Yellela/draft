@@ -113,7 +113,7 @@ export function computedLine(stats) {
   if (!stats) return null;
   const n = Number(stats.postings) || 0;
   const day = formatDay(stats.computedAt);
-  return `computed from ${n} active posting${n === 1 ? "" : "s"}${day ? ` on ${day}` : ""}`;
+  return `counted from ${n} open job${n === 1 ? "" : "s"}${day ? ` on ${day}` : ""}`;
 }
 
 // ⭐ D105 P8 (amended 10-31): Wikidata's official site and docs first, then the Wikipedia article, then the curated ones.
@@ -125,7 +125,7 @@ export function orderedResources(list = []) {
 }
 
 /** ⭐ D105 P7: the line a published page shows when its board count fell under the auto-publish bar. */
-export const FEW_POSTINGS_LINE = "Few open postings right now — this page stays up; the numbers above are today's.";
+export const FEW_POSTINGS_LINE = "Few open jobs right now. This page stays up; the numbers above are today's.";
 
 /** level · format · hours · cost · last checked — the parts a resource has, in that order. */
 export function resourceMeta(r) {
@@ -152,7 +152,7 @@ export const YOU_MARK = Object.freeze({ have: "mark--ok", partial: "mark--warn",
 export const LEVEL_READ_LABEL = Object.freeze({ entry: "Entry", early: "Early career", mid: "Mid", senior: "Senior" });
 
 /** "61 % of postings" — a share the server computed, never re-derived here. */
-export const shareText = (share) => `${Math.round(Number(share) || 0)} % of postings`;
+export const shareText = (share) => `${Math.round(Number(share) || 0)} % of jobs`;
 
 /** "Early-career → mid" — one step of the next-level list. */
 export function stepTitle(step) {
@@ -164,7 +164,7 @@ export function stepTitle(step) {
 export function stepEmptyLine(step) {
   if (step?.reason === "too_few_postings") {
     const p = step.postings || {};
-    return `Not enough postings read at both levels to measure yet (${p.from ?? 0} ${step.from} · ${p.to ?? 0} ${step.to}).`;
+    return `Not enough jobs read at both levels to measure yet (${p.from ?? 0} ${step.from} · ${p.to ?? 0} ${step.to}).`;
   }
   return `No skill is asked for clearly more often at ${step?.to} than at ${step?.from}.`;
 }
@@ -215,5 +215,5 @@ export function nodePanes(node = {}) {
 export function nodeHeadline(node = {}) {
   const n = node.onTheBoard?.postings;
   if (!Number.isFinite(n)) return null;
-  return { value: n.toLocaleString("en-US"), words: `open posting${n === 1 ? "" : "s"} ${node.kind === "role" ? "for this role" : "ask for it"}` };
+  return { value: n.toLocaleString("en-US"), words: `open job${n === 1 ? "" : "s"} ${node.kind === "role" ? "for this role" : "ask for it"}` };
 }

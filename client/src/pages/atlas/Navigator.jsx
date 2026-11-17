@@ -35,7 +35,7 @@ export default function Navigator({ base, fallback = null }) {
         <p className="atl-home__dir" data-atlas-direction={next.slug} data-navigator-next="">
           <span>{next.text}</span>
           {next.learn
-            ? <Link className="dbx-depth atl-home__go" to={`${base}${next.learn.path}`} data-atlas-direction-open="">Open the piece</Link>
+            ? <Link className="dbx-depth atl-home__go" to={`${base}${next.learn.path}`} data-atlas-direction-open="">Open the lesson</Link>
             : <Link className="dbx-depth atl-home__go" to={`${base}/${encodeURIComponent(next.slug)}`} data-atlas-direction-open="">What it is</Link>}
         </p>
       )}

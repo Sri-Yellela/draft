@@ -230,8 +230,8 @@ export function CoursePage({ base, id, signedIn = false }) {
           <p className="atl__kicker">Course · {course.counts.modules} modules · {course.counts.lessons} lessons</p>
           <h1 className="atl__title">{course.title}</h1>
           <p className="atl__lede">Each lesson: the best material we found, and a quick check in your own words.</p>
-          <div className="lib-chead__bar" role="img" aria-label={`${progress.done} of ${progress.total} lessons lit`}><i style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }} /></div>
-          <p className="atl__quiet" data-course-lit="">{progress.done} of {progress.total} lit{signedIn ? "" : " · sign in to light them"}</p>
+          <div className="lib-chead__bar" role="img" aria-label={`${progress.done} of ${progress.total} lessons done`}><i style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }} /></div>
+          <p className="atl__quiet" data-course-lit="">{progress.done} of {progress.total} done{signedIn ? "" : " · sign in to keep your progress"}</p>
         </div>
       </header>
       <div className="rr-tabs lib-views" role="tablist" aria-label="View the course" data-course-views="">

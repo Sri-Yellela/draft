@@ -56,7 +56,7 @@ test("d172NodePageOneCard: a skill's panes, in the card's order, only when they 
   assert.deepEqual(nodePanes({ kind: "role", roleBoard: { nextLevel: [{ slug: "a" }] }, sponsors: [{ company: "Acme" }] }).map(p => p.id),
     ["board", "map", "next", "sponsors"], "a role: the board, the map, the next level, sponsors");
   for (const p of nodePanes(kafka)) assert.equal(p.label, NODE_PANE_LABEL[p.id]);
-  assert.deepEqual(nodeHeadline(kafka), { value: "1,240", words: "open postings ask for it" });
+  assert.deepEqual(nodeHeadline(kafka), { value: "1,240", words: "open jobs ask for it" });
   assert.equal(nodeHeadline({ kind: "skill" }), null, "not computed → no number (unknowns omitted)");
 });
 
@@ -65,7 +65,7 @@ test("d172NodePageOneCard: ONE card — the facts and actions first, every pane 
   const html = card(kafka, true);
   assert.match(html, /data-atlas-card=""/);
   assert.match(html, /<h1 class="atl__title">Kafka<\/h1>/);
-  assert.match(html, /<b>1,240<\/b> open postings ask for it/);
+  assert.match(html, /<b>1,240<\/b> open jobs ask for it/);
   assert.match(html, /data-atlas-you="partial"/);
   // Learn it / Prove it are the one depth box (DepthButton); data-href says where each goes.
   assert.match(html, /data-atlas-learn-it="" data-href="\/app\/atlas\/learn#step-s-12"><button[^>]*class="dbx[^"]*dbx--p[^>]*>[\s\S]*?Learn it/);

@@ -204,11 +204,11 @@ test("D105 P4 · the page — name, aliases, kind; On the board with its provena
   assert.match(html, /<h1 class="atl__title">Kubernetes<\/h1>/);
   assert.match(html, /Also called: k8s/);
   assert.match(html, /class="mark mark--accent">Tool or tech</);
-  assert.match(html, /<b>42<\/b> open postings ask for it/);
-  assert.match(html, /computed from 42 active postings on 30 Oct 2026/);
+  assert.match(html, /<b>42<\/b> open jobs ask for it/);
+  assert.match(html, /counted from 42 open jobs on 30 Oct 2026/);
   assert.match(html, /\$120k – \$190k, median \$150k/);
   assert.match(html, /href="\/atlas\/helm"/);
-  assert.equal(computedLine({ postings: 1, computedAt: 1793318400 }), "computed from 1 active posting on 30 Oct 2026");
+  assert.equal(computedLine({ postings: 1, computedAt: 1793318400 }), "counted from 1 open job on 30 Oct 2026");
   assert.equal(payLine(null), null, "no posting stated pay — no range is invented");
   // Related: the typed edges, named from this page's side.
   assert.deepEqual(relatedGroups(node.related).map(g => [g.title, g.items.map(i => i.slug)]),

@@ -39,7 +39,7 @@ function Face({ p, st, total, route }) {
         <span>{st.opened}/{st.toOpen} opened · {st.explained}/{st.checkpoints} explained</span></div>
       <div className="lwh__fbar" aria-hidden="true"><i style={{ width: `${st.bar}%` }} /></div>
       <div className="lwh__fmeta"><span>{(p.needs || []).length} before · {(p.opens || []).length} after{ri >= 0 ? ` · route step ${ri + 1}` : ""}</span>
-        <span>open the piece ↓</span></div>
+        <span>open the lesson ↓</span></div>
     </div>
   );
 }
@@ -195,7 +195,7 @@ export default function LearnWheel({ pieces, states, sel, route = null, reduced 
             <div key={p.id} className="lwh__spoke" style={{ transform: `rotate(${a0}deg)` }} ref={el => { if (el) spokeRefs.current.set(p.id, el); }}>
               <div className={`lwh__card lwh__card--${cs} lrc__part--${p.partIndex}${front ? " is-front" : ""}`} style={{ top: `${-(WHEEL.R + WHEEL.CH)}px` }}
                 ref={el => { if (el) cardRefs.current.set(p.id, el); }}
-                role="button" tabIndex={front ? 0 : -1} aria-label={`${p.t}, piece ${p.n} of ${N}, ${STATE_WORD[cs].toLowerCase()}`}
+                role="button" tabIndex={front ? 0 : -1} aria-label={`${p.t}, lesson ${p.n} of ${N}, ${STATE_WORD[cs].toLowerCase()}`}
                 aria-pressed={sel === p.id} data-learn-piece={p.id} data-state={cs}
                 onClick={() => press(p.id)} onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); press(p.id); } }}>
                 <div className="lwh__back"><span className="lwh__num">{p.n}</span>{ri >= 0 && <span className="lwh__rno">{ri + 1}</span>}</div>

@@ -9,8 +9,8 @@ export const familyLabel = (key) => FAMILIES.find(f => f.key === key)?.name ?? k
 
 /** M10 · a node's accessible name: "Model serving, you don't have it yet, 81 % close, 380 postings". */
 export function ariaFor(n, page = "you") {
-  const posts = `${n.postings} posting${n.postings === 1 ? "" : "s"}`;
-  if (page !== "you") return `${n.name}, ${n.have ? "you have it" : "you don't have it yet"}, ${n.share} % of postings, ${posts}`;
+  const posts = `${n.postings} job${n.postings === 1 ? "" : "s"}`;
+  if (page !== "you") return `${n.name}, ${n.have ? "you have it" : "you don't have it yet"}, ${n.share} % of jobs, ${posts}`;
   if (n.have) return `${n.name}, you have it, ${posts}`;
   const state = n.learned ? "learned in the course" : n.state === "learning" && n.progress ? `learning, ${n.progress.done} of ${n.progress.total} in its step` : "you don't have it yet";
   return `${n.name}, ${state}, ${n.closeness ?? 0} % close, ${posts}`;
@@ -21,9 +21,9 @@ export const subFor = (n) => n.sub || "";
 
 /** M4 · a family list's row: "81 % close · 380 postings · +23 toward senior". */
 export function rowLine(n, page = "you") {
-  if (page !== "you") return `${n.have ? "You have it · " : ""}${n.share} % of postings · ${n.postings} postings`;
-  if (n.have) return `You have it · ${n.postings} postings`;
-  return `${n.learned ? "Learned · " : ""}${n.closeness ?? 0} % close · ${n.postings} postings${n.rises && n.rise != null ? ` · +${n.rise} toward senior` : ""}`;
+  if (page !== "you") return `${n.have ? "You have it · " : ""}${n.share} % of jobs · ${n.postings} jobs`;
+  if (n.have) return `You have it · ${n.postings} jobs`;
+  return `${n.learned ? "Learned · " : ""}${n.closeness ?? 0} % close · ${n.postings} jobs${n.rises && n.rise != null ? ` · +${n.rise} toward senior` : ""}`;
 }
 
 /** M4 · a family's list, in the server's order (yours first by postings, then closest → furthest). */

@@ -95,13 +95,13 @@ export function SidePanel({ tree, page, base, state, onChoose, onFamily, onHover
   }
   if (!sel) {
     if (page === "role") return (<>
-      <div className="atree__k">Role · {tree.centre.postings} open postings</div><h2 className="atree__h2">{tree.centre.name}</h2>
+      <div className="atree__k">Role · {tree.centre.postings} open jobs</div><h2 className="atree__h2">{tree.centre.name}</h2>
       {tree.cover && <div className="atree__fact" data-tree-cover=""><h4>You cover</h4><p>{tree.cover.line}.</p></div>}
-      <div className="atree__fact"><p>Closer to the centre = asked for in more of this role's postings.{tree.signedIn ? " Coloured = you have it." : ""}</p></div>
+      <div className="atree__fact"><p>Closer to the centre = asked for in more of this role's jobs.{tree.signedIn ? " Coloured = you have it." : ""}</p></div>
     </>);
     if (page === "family") return (<>
       <div className="atree__k">Family</div><h2 className="atree__h2">{tree.centre.name}</h2>
-      <div className="atree__fact"><p>Closer to the centre = asked for in more of the {tree.centre.postings} postings that ask for any {tree.centre.name} skill.{tree.signedIn ? " Coloured = you have it." : ""}</p></div>
+      <div className="atree__fact"><p>Closer to the centre = asked for in more of the {tree.centre.postings} jobs that ask for any {tree.centre.name} skill.{tree.signedIn ? " Coloured = you have it." : ""}</p></div>
       {tree.more?.length > 0 && <p className="atree__quiet">And {tree.more.length} more: {tree.more.map(m => m.name).join(", ")}.</p>}
     </>);
     return (<>
@@ -124,7 +124,7 @@ export function SidePanel({ tree, page, base, state, onChoose, onFamily, onHover
     return (<>{back}
       <div className={`atree__k atree__k--${n.ring || "none"}`}>{tree.signedIn ? (n.have ? "You have" : "You don't yet") : "Skill"} · {familyLabel(n.family)}</div>
       <h2 className="atree__h2">{n.name}</h2>
-      <div className="atree__fact"><h4>{page === "role" ? "In this role's postings" : "In this family's postings"}</h4>
+      <div className="atree__fact"><h4>{page === "role" ? "In this role's jobs" : "In this family's jobs"}</h4>
         <p><b>{n.share} %</b> of them ask for it · {n.postings} postings across the board.</p></div>
       <div className="atree__acts"><Link className="dbx-depth atree__btn"to={page$}>Its page</Link></div>
     </>);
@@ -132,7 +132,7 @@ export function SidePanel({ tree, page, base, state, onChoose, onFamily, onHover
   if (n.have) {
     return (<>{back}
       <div className="atree__k atree__k--have">You have · {familyLabel(n.family)}</div><h2 className="atree__h2">{n.name}</h2>{notDrawn}
-      <div className="atree__fact" data-tree-fact="postings"><h4>Postings</h4><p>{n.facts.postings}.</p></div>
+      <div className="atree__fact" data-tree-fact="postings"><h4>Jobs</h4><p>{n.facts.postings}.</p></div>
       {n.facts.opensToward.length > 0 && <div className="atree__fact" data-tree-fact="opens"><h4>It opens toward</h4>
         <p>{n.facts.opensToward.map((o, i) => <span key={o.slug}>{i ? ", " : ""}<button type="button" className="atree__inline" onClick={() => onChoose(o.slug)}>{o.name}</button></span>)}</p></div>}
       <div className="atree__acts"><Link className="dbx-depth atree__btn"to={page$}>Its page</Link></div>
@@ -151,7 +151,7 @@ export function SidePanel({ tree, page, base, state, onChoose, onFamily, onHover
           <span className="atree__track"><i style={{ left: `${n.midShare}%`, width: `${Math.max(1, n.rise)}%` }} /><u style={{ left: `${n.midShare}%` }} /></span><span>senior</span></div>
       </>) : tree.noAim ? (
         <p data-tree-no-aim="">{tree.noAim.line}. <Link className="atree__link" to={tree.noAim.path}>{tree.noAim.label}</Link></p>
-      ) : <p className="atree__quiet">Not enough postings read at mid and senior to say.</p>}
+      ) : <p className="atree__quiet">Not enough jobs read at mid and senior to say.</p>}
     </div>
     {(f.route || tree.noAim) && <div className="atree__fact" data-tree-fact="route"><h4>Your route{aim ? ` to senior ${aim.name}` : ""}</h4>
       <p>{f.route || (tree.noAim ? tree.noAim.line + "." : "")}</p></div>}
@@ -365,7 +365,7 @@ export default function AtlasTree({ tree, base = "/atlas", request = null }) {
         {(page === "you" || tree.signedIn) && <span><span className="atree__sw atree__sq--off" />Grey: you don't yet</span>}
         {(page === "you" || tree.signedIn) && <span><span className="atree__sw atree__sw--rises" />Orange ring: rises toward senior</span>}
         {(page === "you" || tree.signedIn) && <span><span className="atree__sw atree__sw--other" />Blue ring: {page === "you" ? "other skills near you" : "others"}</span>}
-        <span>Size: postings · Distance from the centre: {page === "you" ? "how close" : "how often its postings ask"}</span>
+        <span>Size: jobs · Distance from the centre: {page === "you" ? "how close" : "how often its jobs ask"}</span>
       </div>
     </div>
   );

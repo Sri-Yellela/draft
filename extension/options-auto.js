@@ -95,6 +95,18 @@ export function onSwitch(api, { siteId = null, origin = null, behaviour, checked
 const hhmm = (ms) => { try { return new Date(ms).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
 
 /** Draw the section into `doc` and wire it. Returns the switches by "site:behaviour" (the tests drive them). */
+/** ⭐ A233 · one disclosure paragraph → its name (the words before " — ") and its sentences, each marked ✕ when it says
+ *  what draft never does or what is never sent. Pure; every word of the paragraph is kept. */
+export function disclosureItems(text, key = '') {
+  const t = String(text || '');
+  const cut = key === 'intro' || key === 'never' ? -1 : t.indexOf(' — ');
+  const head = cut > 0 ? t.slice(0, cut) : '';
+  const body = cut > 0 ? t.slice(cut + 3) : t;
+  const sentences = body.split(/(?<=[.!?])\s+(?=[A-Z"'])/).map(x => x.trim()).filter(Boolean);
+  const never = (x) => key === 'never' || /^(it |draft )?(is )?never\b|^it is never\b|^nothing\b|nothing is sent\.$|sends nothing\.$/i.test(x);
+  return { head, items: sentences.map(x => ({ text: x, never: never(x) })) };
+}
+
 export function mount(doc, api) {
   const $ = (id) => doc.getElementById(id);
   const root = $('auto-read');
@@ -108,10 +120,28 @@ export function mount(doc, api) {
   $('auto-disclosure-title').textContent = DISCLOSURE.title;
   const list = $('auto-disclosure-list');
   for (const k of ['intro', 'read', 'prepare', 'capture', 'fill', 'never']) {
-    const p = doc.createElement('p');
-    p.className = 'note';
-    p.textContent = DISCLOSURE[k];
-    list.append(p);
+    // ⭐ A233 (46u): each switch's paragraph as its name and one item per sentence — ✕ for what draft never does, ✓ for
+    // what it does. The words are DISCLOSURE's own; only the layout changed.
+    const block = doc.createElement('div');
+    block.className = 'disc';
+    const { head, items } = disclosureItems(DISCLOSURE[k], k);
+    if (head) { const h = doc.createElement('p'); h.className = 'disc__h'; h.textContent = head; block.append(h); }
+    const ul = doc.createElement('ul');
+    ul.className = 'disc__list';
+    for (const it of items) {
+      const li = doc.createElement('li');
+      li.className = `disc__i disc__i--${it.never ? 'no' : 'yes'}`;
+      const mark = doc.createElement('span');
+      mark.className = 'disc__mark';
+      mark.setAttribute('aria-hidden', 'true');
+      mark.textContent = it.never ? '✕' : '✓';
+      const text = doc.createElement('span');
+      text.textContent = it.text;
+      li.append(mark, text);
+      ul.append(li);
+    }
+    block.append(ul);
+    list.append(block);
   }
   const agree = $('auto-agree');
   agree.textContent = DISCLOSURE.agree;

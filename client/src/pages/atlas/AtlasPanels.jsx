@@ -144,7 +144,7 @@ export function YourRoutePanel({ base, signedIn }) {
   return (
     <div className="atl-pan" data-atlas-panel-body="your-route">
       <PanelHead title="One tier on top of what you have"
-        lead="Where you're headed, the skills in order with the Learn piece for each, and the roles to apply to while you learn." />
+        lead="Where you're headed, the skills in order with the lesson for each, and the roles to apply to while you learn." />
       {signedIn
         ? <Navigator base={base} fallback={<NotYet>Your route appears once your job profile names your current role and your résumé's skills are read.
             {" "}<Link to="/app/profile" className="atl__link">Open your Profile</Link></NotYet>} />
@@ -222,7 +222,7 @@ function StackExposureCard() {
         : <ul className="atl-dq__acc">{s.stack.map(t => (
             <li key={t.tech} data-stack-tech={t.tech} data-trend={t.trend}><span>{t.tech}</span>
               <span className="atl__quiet">{t.open.toLocaleString()} open ({t.share}%) · {t.words}</span></li>))}</ul>}
-      <p className="atl__quiet">From postings draft has read, not the whole market: the last {s.windowDays} days against the {s.windowDays} before.</p>
+      <p className="atl__quiet">From the jobs draft has read, not the whole market: the last {s.windowDays} days against the {s.windowDays} before.</p>
     </details>
   );
 }
@@ -244,10 +244,10 @@ export function TodaysQuestionPanel({ base }) {
     <div className="atl-pan" data-atlas-panel-body="todays-question">
       <PanelHead eyebrow={t?.reasonWords ? `Picked for you · ${t.reasonWords}` : null} title="One question a day"
         // ⭐ A155 (45o): ONE streak — answering lights the day on Your run; this says that streak (the old per-question count only when the run's is absent).
-        lead={(t?.atlasStreak ?? t?.streak) ? `Your Atlas streak: ${t.atlasStreak ?? t.streak} day${(t.atlasStreak ?? t.streak) === 1 ? "" : "s"} — answering lights today.` : "About two minutes. A review comes back when you miss one."} />
+        lead={(t?.atlasStreak ?? t?.streak) ? `Your Atlas streak: ${t.atlasStreak ?? t.streak} day${(t.atlasStreak ?? t.streak) === 1 ? "" : "s"} — answering counts for today.` : "About two minutes. A review comes back when you miss one."} />
       {err && <p className="atl__quiet" role="alert">{err}</p>}
       {!t && !err && <p className="atl__quiet" role="status">Picking today's question…</p>}
-      {t && !q && <NotYet>No question to ask yet — the bank has nothing new for you today.</NotYet>}
+      {t && !q && <NotYet>No question to ask yet — there's nothing new for you today.</NotYet>}
       {t && <DailyReminderRow />}
       {t && <PracticeProgressCard day={day} refresh={r ? 1 : 0} />}
       {t && <StackExposureCard />}
@@ -377,7 +377,7 @@ export function AuditCard({ base, card }) {
   return (
     <section className="atl__section" data-atlas-audit-card={card.slug}>
       <h2 className="atl__h2">{card.title}</h2>
-      <p className="atl-pan__line"><b>{num(card.openThisWeek)}</b> open posting{card.openThisWeek === 1 ? "" : "s"} · <b>{num(card.newThisWeek)}</b> new in the last 7 days</p>
+      <p className="atl-pan__line"><b>{num(card.openThisWeek)}</b> open job{card.openThisWeek === 1 ? "" : "s"} · <b>{num(card.newThisWeek)}</b> new in the last 7 days</p>
       <p className="atl-pan__line" data-audit-pay="">{card.payRange?.hidden ? card.payRange.why : `Pay, middle half: ${usd(card.payRange.p25Usd)}–${usd(card.payRange.p75Usd)} (from ${num(card.payRange.n)} postings that state it)`}</p>
       {card.topRequirements?.length > 0 && (
         <>
@@ -411,9 +411,9 @@ export function AuditPanel({ base }) {
   return (
     <div className="atl-pan" data-atlas-panel-body="the-audit">
       <PanelHead title="Do you clear the bar?"
-        lead="The role's card from the board's own postings: how many are open, what they pay, what they ask for most." />
+        lead="The role's card from the board's own jobs: how many are open, what they pay, what they ask for most." />
       {roles == null ? <p className="atl__quiet" role="status">Opening…</p> : !roles.length
-        ? <NotYet>No role can be audited yet: a role needs reviewed questions in the bank and at least 30 open postings.</NotYet>
+        ? <NotYet>No role can be audited yet: a role needs reviewed questions and at least 30 open jobs.</NotYet>
         : (
           <>
             <label className="atl-pan__pick">
@@ -438,7 +438,7 @@ export function RolesPanel({ base, search }) {
   return (
     <div className="atl-pan" data-atlas-panel-body="roles-and-skills">
       <PanelHead eyebrow="Explore" title="Roles and skills"
-        lead="Every published role, skill, tool and stack: what it is, what the board asks for alongside it, and where to learn it." />
+        lead="Every role, skill, tool and stack in the Atlas: what it is, what the board asks for alongside it, and where to learn it." />
       {search}
       {me && <ExploreByRole roles={me.exploreByRole?.items} base={base} />}
       {me && <Recent items={me.recent} base={base} />}

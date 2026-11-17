@@ -263,7 +263,7 @@ test("D167 · panels whose feature is not built say so, and draw only numbers th
   // The audit's card: the board's numbers, the hidden pay said why, its sentence.
   const c = u.card({ slug: "data-engineer", title: "Data Engineer", openThisWeek: 31, newThisWeek: 4, asOf: "2026-11-06", said: "Market data from 31 open postings, not a promise.",
     payRange: { hidden: true, n: 3, why: "Pay is shown once at least 20 of these postings state it (3 do)." }, topRequirements: [{ slug: "sql", name: "SQL", share: 71 }] });
-  assert.match(c, /<b>31<\/b> open postings · <b>4<\/b> new in the last 7 days/);
+  assert.match(c, /<b>31<\/b> open jobs · <b>4<\/b> new in the last 7 days/);
   assert.match(c, /Pay is shown once at least 20/);
   assert.match(c, /href="\/atlas\/sql"[^>]*>SQL<\/a><span class="atl__count"> · 71 % of its postings/);
   // ⭐ D178 (retired on purpose): the Learn panel's stages left with the Learn nav item — the course page's half ring and

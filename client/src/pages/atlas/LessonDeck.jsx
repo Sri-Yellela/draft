@@ -42,7 +42,7 @@ export function HalfRing({ course, marks, progress, module, onModule }) {
   const sel = course.modules.find(m => m.n === module);
   const mp = progress.modules.find(m => m.n === module);
   return (
-    <div className="lrc lib-half" ref={ref} tabIndex={0} data-half-ring="" aria-label={`The course at a glance: ${progress.done} of ${progress.total} lessons lit. Module ${module} selected; the left and right arrows change it.`}
+    <div className="lrc lib-half" ref={ref} tabIndex={0} data-half-ring="" aria-label={`The course at a glance: ${progress.done} of ${progress.total} lessons done. Module ${module} selected; the left and right arrows change it.`}
       onKeyDown={e => { if (e.key === "ArrowRight" && module < n) { e.preventDefault(); onModule(module + 1); } if (e.key === "ArrowLeft" && module > 1) { e.preventDefault(); onModule(module - 1); } }}>
       <svg className="lib-half__svg" viewBox={`0 0 ${HALF.w} ${HALF.h}`} aria-hidden="true" focusable="false">
         {ticks.map(t => (
@@ -51,8 +51,8 @@ export function HalfRing({ course, marks, progress, module, onModule }) {
             style={fresh.has(t.module) ? { animationDelay: `${(t.i ?? 0) * 40}ms` } : undefined}
             onClick={() => onModule(t.module)} />
         ))}
-        <text x={HALF.cx} y={HALF.cy - 70} textAnchor="middle" className="lib-half__big">{progress.done} of {progress.total} lit</text>
-        <text x={HALF.cx} y={HALF.cy - 40} textAnchor="middle" className="lib-half__sub">Module {module} · {sel?.title} · {mp?.done} of {mp?.total} lit</text>
+        <text x={HALF.cx} y={HALF.cy - 70} textAnchor="middle" className="lib-half__big">{progress.done} of {progress.total} done</text>
+        <text x={HALF.cx} y={HALF.cy - 40} textAnchor="middle" className="lib-half__sub">Module {module} · {sel?.title} · {mp?.done} of {mp?.total} done</text>
       </svg>
       <div className="lib-half__chips" role="tablist" aria-label="Modules">
         {course.modules.map(m => (

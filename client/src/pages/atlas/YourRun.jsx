@@ -9,6 +9,7 @@ import { api } from "../../lib/api.js";
 import DepthButton from "../../components/DepthButton.jsx";   // A155: the one-button add
 import { runLines, questHref } from "./yourRunModel.js";
 import "./YourRun.css";
+import { NoteCard } from "../../components/TextBlocks.jsx";   // A233
 
 function Ring({ pct }) {
   const r = 52, c = 2 * Math.PI * r;
@@ -97,7 +98,7 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
               title={d.lit ? "proof that day" : d.rest ? "the week's rest day" : d.off ? "a weekend — not counted" : d.today ? "today" : ""} data-day={d.day} />)}
           </ol>
           {/* ⭐ A155 (45o, the D178 picks): every real act lights a day — Today's question and a proof link too (one streak). */}
-          <p className="atl__quiet">A day lights when you do one real thing — a check passed, an idea explained in your own words, Today's question answered, a build, a proof link added. One rest day a week keeps the streak.</p>
+          <NoteCard id="run-streak" title="One real thing a day">A check passed, an idea explained in your own words, today's question answered, or something you built and linked. One rest day a week doesn't break your streak.</NoteCard>
           <label className="run-weekdays" data-run-weekdays={run.weekdaysOnly ? "on" : "off"}>
             <input type="checkbox" checked={!!run.weekdaysOnly} onChange={(e) => setWeekdays(e.target.checked)} /> Weekdays only — weekends never break it
           </label>
