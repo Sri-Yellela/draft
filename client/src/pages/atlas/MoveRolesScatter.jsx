@@ -24,12 +24,13 @@ export default function MoveRolesScatter({ roles = [] }) {
           <text x={x(0)} y={H - 8} className="skm-t">you have little of it</text>
           {W > 520 && <text x={x(0.5)} y={H - 8} textAnchor="middle" className="skm-t">half</text>}
           <text x={x(1)} y={H - 8} textAnchor="end" className="skm-t">you have all of it</text>
+          {/* 46s: every dot first, then every label — a later dot was drawn over an earlier label ("oftware Engineer") */}
           {pts.map(p => (
-            <g key={p.id} data-skm-role={p.slug}>
-              <circle cx={p.cx} cy={p.cy} r={p.isShown ? 11 : 8} className={p.isShown ? "skm-dot skm-dot--on" : "skm-dot"} tabIndex={0}
-                data-tip={`${p.name}${tag(p)}\n${fmt(p.open)} open jobs · you have ${pct(p.coverage)} of it\n${fmt(p.applicable)} you can apply for now`} />
-              <text x={p.lx} y={p.ly + 4} textAnchor={p.anchor} className={p.isShown ? "skm-t skm-t--strong" : "skm-t skm-t--ink"}>{p.name}</text>
-            </g>
+            <circle key={`d${p.id}`} data-skm-role={p.slug} cx={p.cx} cy={p.cy} r={p.isShown ? 11 : 8} className={p.isShown ? "skm-dot skm-dot--on" : "skm-dot"} tabIndex={0}
+              data-tip={`${p.name}${tag(p)}\n${fmt(p.open)} open jobs · you have ${pct(p.coverage)} of it\n${fmt(p.applicable)} you can apply for now`} />
+          ))}
+          {pts.map(p => (
+            <text key={`l${p.id}`} data-skm-role-label={p.slug} x={p.lx} y={p.ly + 4} textAnchor={p.anchor} className={p.isShown ? "skm-t skm-t--strong" : "skm-t skm-t--ink"}>{p.name}</text>
           ))}
         </svg>
       </ChartFrame>
