@@ -212,10 +212,11 @@ test("d147ActionsPassSaveDraftMore · Pass · Save · Draft · More, one row at 
   // (the résumé controls had been folded under More, and the owner read them as gone; docs/D164_ACTIONS.md).
   assert.match(jdCss, /\.pp__main-acts \{ display: grid; grid-template-columns: 1fr 1fr 1\.4fr auto auto;/);
   assert.match(jd, /<div className="pp__foot" data-posting-actions-bar="">/);
-  // A217's sticky foot was reverted (46r): D149's approved sketch has the row follow the posting (fidelityFullHouse);
-  // pinning it is the owner's call. The last word on .pp__foot is static.
+  // ⭐ A217 (46r, the 46q audit): D149's row followed the posting (`position: static`), so at 1440 Draft / Save sat below a
+  // long description, out of view. The last word on .pp__foot pins it to the panel's foot again, on the card's surface (owner 11-17: "pin it").
   const footRules = [...jdCss.matchAll(/^\.pp__foot \{([^}]*)\}/gm)].map(m => m[1]);
-  assert.match(footRules.at(-1), /position: static;/);
+  assert.match(footRules.at(-1), /position: sticky; bottom: 0;[^}]*background: var\(--c-surface-solid\)/);
+  assert.ok(!footRules.some(r => /position: static/.test(r)), "no later rule un-pins the actions");
   // Close is a small word in the header now.
   // ⭐ D156 (1c) (changed on purpose): drawn on the deck it says "Fold it back"; elsewhere "Close", as D147 had it.
   assert.match(header, /aria-label=\{onDeck \? "Fold the posting back into its card" : "Close the posting"\}/);

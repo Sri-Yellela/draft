@@ -81,13 +81,18 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
     // plain word on the accent gradient (changed on purpose).
     assert.deepEqual([draft.mark, draft.label], [true, "Draft"], `${size}: Draft is the /draft logo button`);
     assert.deepEqual([d.panel.more.bg, d.panel.more.color, d.panel.more.radius], [RAISE, BODY, "16px"]);
-    assert.equal(d.panel.pinnedFoot, "static", `${size}: the actions follow the posting (the sketch does not pin them)`);
+    // ⭐ A217 (owner 11-17, "pin it"): the actions PIN to the panel's foot — the sketch did not (changed on purpose).
+    assert.equal(d.panel.pinnedFoot, "sticky", `${size}: the actions stay in view at the panel's foot`);
     // The sketch's vertical rhythm inside the posting.
     const b = d.panel.boxes;
     const near = (got, want, msg) => assert.ok(Math.abs(got - want) <= 1, `${msg} (${got})`);   // boxes are rounded to whole px
     near(b.title.top - (b.co.top + b.co.height), 16, `${size}: 16px from the header to the role`);
     near(b.eyebrow.top - (b.facts.top + b.facts.height), 20, `${size}: 20px under the facts box`);
-    near(b.actions.top - (b.body.top + b.body.height), 18, `${size}: the actions 18px under the posting`);
+    // ⭐ A217 (owner 11-17, "pin it"): where the posting is taller than its panel (the phone), the pinned actions sit OVER
+    // the posting's end (it scrolls under them); the sketch's 18px rhythm holds only where nothing is stuck.
+    const stuck = b.actions.top < b.body.top + b.body.height;
+    if (!stuck) near(b.actions.top - (b.body.top + b.body.height), 18, `${size}: the actions 18px under the posting`);
+    else assert.ok(b.actions.height > 0, `${size}: the pinned actions are drawn over the posting's end`);
   }
   // Desktop. ⭐ D152 (6) / D153 (1), changed on purpose (11-04): the posting opens IN PLACE of the list — it takes Home's
   // whole board column (486–1240 at 1280: the deck's 390 + the 56 gap after the 40 padding), never over the deck, and is
