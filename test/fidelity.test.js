@@ -4,10 +4,9 @@
 // with no Chrome.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { probe as fidelityProbe } from "../test-support/fidelityProbe.mjs";
 
-const probe = (screen) => JSON.parse(execFileSync(process.execPath, ["scripts/fidelityShots.mjs", "--styles", screen],
-  { encoding: "utf8", timeout: 180000, stdio: ["ignore", "pipe", "ignore"] }).trim().split("\n").pop());
+const probe = (screen) => fidelityProbe(screen);
 
 // ⭐ D152 (1) / (2), changed on purpose (11-04): /app is HOME, and the deck is its left column — home-sketch.html's .card
 // (300 × 420, corner 26, 22 22 18 padding, a 15 px company, the 30 px serif title, 44 px from the top of the screen) now,

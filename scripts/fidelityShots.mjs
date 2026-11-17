@@ -22,7 +22,9 @@ import { LOGO_HOST } from "../shared/companyLogos.js";
 import { resolveBrowserExecutable } from "../services/browserLauncher.js";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\//, "")), "..");
-const OUT = path.join(ROOT, "docs", "fidelity-shots");
+// ⭐ A232 R2 (46t): FIDELITY_OUT sends the shots elsewhere — the tests' shared probe writes to tmp/, so a suite run no longer
+// rewrites the tracked docs/fidelity-shots/*.png (they changed on every run). Run the script yourself to refresh them.
+const OUT = process.env.FIDELITY_OUT ? path.resolve(ROOT, process.env.FIDELITY_OUT) : path.join(ROOT, "docs", "fidelity-shots");
 const PORT = 5199;
 const SIZES = { desktop: [1280, 800], phone: [390, 844] };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -1467,24 +1469,18 @@ const STYLE_PROBES = {
     };
   },
 };
-if (process.argv[2] === "--styles") {
-  const id = process.argv[3] || "deck";
+// ⭐ D149 rule 3 / A232 R2 (46t): one screen's computed styles, measured in an open browser against a running vite.
+async function measureStyles(browser, vite, id, pickRoutes = null, onlySizes = null) {
   const s = SCREENS[id];
-  const resolution = await resolveBrowserExecutable();
-  if (!resolution) { console.log(JSON.stringify({ skipped: "no Chrome" })); process.exit(0); }
-  const vite = await startVite();
-  const browser = await puppeteer.launch({ executablePath: resolution.path, headless: "new", pipe: true, args: ["--no-first-run", "--no-default-browser-check"] });
+  if (!s) throw new Error(`no screen "${id}" in SCREENS`);
   const out = {};
   // ⭐ D163: a screen may name several ROUTES (`routes: { tracker: { app, fixtures, ready, appPrep, probe }, … }`), each
   // measured at the screen's sizes by the screen's probe (handed the route's `probe` argument): out[route][size], and its
   // shot docs/fidelity-shots/<screen>-<route>-<size>.png. `--styles <screen> a,b` measures only routes a and b.
-  const pickRoutes = process.argv[4] ? process.argv[4].split(",") : null;
   const targets = s.routes ? Object.entries(s.routes).filter(([k]) => !pickRoutes || pickRoutes.includes(k)) : [[null, s]];
-  try {
    for (const [routeId, t] of targets) {
     const sink = routeId ? (out[routeId] = {}) : out;
     // A201: FIDELITY_SIZES=768,390 measures only those sizes (a guard test runs the narrow ones; the full sweep is ~45 min)
-    const onlySizes = process.env.FIDELITY_SIZES ? process.env.FIDELITY_SIZES.split(",") : null;
     for (const [size, [w, h]] of Object.entries(s.sizes || SIZES).filter(([k]) => !onlySizes || onlySizes.includes(k))) {
       const shotName = routeId ? `${id}-${routeId}-${size}` : `${id}-app-${size}`;
       const page = await browser.newPage();
@@ -1525,8 +1521,46 @@ if (process.argv[2] === "--styles") {
       await page.close();
     }
    }
-  } finally { await browser.close(); vite.proc.kill(); }
+  return out;
+}
+
+if (process.argv[2] === "--styles") {
+  const id = process.argv[3] || "deck";
+  const resolution = await resolveBrowserExecutable();
+  if (!resolution) { console.log(JSON.stringify({ skipped: "no Chrome" })); process.exit(0); }
+  fs.mkdirSync(OUT, { recursive: true });
+  const vite = await startVite();
+  const browser = await puppeteer.launch({ executablePath: resolution.path, headless: "new", pipe: true, args: ["--no-first-run", "--no-default-browser-check"] });
+  let out;
+  // A201: FIDELITY_SIZES=768,390 measures only those sizes (a guard test runs the narrow ones; the full sweep is ~45 min)
+  try { out = await measureStyles(browser, vite, id, process.argv[4] ? process.argv[4].split(",") : null, process.env.FIDELITY_SIZES ? process.env.FIDELITY_SIZES.split(",") : null); }
+  finally { await browser.close(); vite.proc.kill(); }
   console.log(JSON.stringify(out));
+  process.exit(0);
+}
+
+// ⭐ A232 R2 (46t, owner 11-17: "go with R1 and R2"): MANY screens with ONE vite and ONE Chrome —
+// `--styles-batch '[{"id":"home163"},{"id":"shrink201","routes":"board","sizes":"768,390"}]'` prints
+// { "<id>|<routes>|<sizes>": <the --styles answer> | { error } } on its last line. Each --styles run paid its own vite start
+// (a cold transform of the whole client) and Chrome launch; test-support/fidelityProbe.mjs runs this once per suite.
+if (process.argv[2] === "--styles-batch") {
+  const specs = JSON.parse(process.argv[3] || "[]");
+  const key = (p) => [p.id, p.routes || "", p.sizes || ""].join("|");
+  const resolution = await resolveBrowserExecutable();
+  if (!resolution) { console.log(JSON.stringify(Object.fromEntries(specs.map(p => [key(p), { skipped: "no Chrome" }])))); process.exit(0); }
+  fs.mkdirSync(OUT, { recursive: true });
+  const vite = await startVite();
+  const browser = await puppeteer.launch({ executablePath: resolution.path, headless: "new", pipe: true, args: ["--no-first-run", "--no-default-browser-check"] });
+  const all = {};
+  try {
+    for (const p of specs) {
+      const t0 = Date.now();
+      try { all[key(p)] = await measureStyles(browser, vite, p.id, p.routes ? p.routes.split(",") : null, p.sizes ? p.sizes.split(",") : null); }
+      catch (e) { all[key(p)] = { error: String(e?.message || e).slice(0, 500) }; }
+      console.error(`[fidelityShots] batch ${key(p)} ${Date.now() - t0} ms`);
+    }
+  } finally { await browser.close(); vite.proc.kill(); }
+  console.log(JSON.stringify(all));
   process.exit(0);
 }
 

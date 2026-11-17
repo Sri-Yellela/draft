@@ -19,8 +19,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { execFileSync } from "node:child_process";
 import { at } from "../test-support/sourceAnchors.js";
+import { probe as fidelityProbe } from "../test-support/fidelityProbe.mjs";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const NAV = read("client/src/components/AppNav.jsx");
@@ -33,8 +33,7 @@ const MOTION = ["2560"];
 const probes = {};
 function run(t, screen) {
   if (!(screen in probes)) {
-    probes[screen] = JSON.parse(execFileSync(process.execPath, ["scripts/fidelityShots.mjs", "--styles", screen],
-      { encoding: "utf8", timeout: 280000, stdio: ["ignore", "pipe", "ignore"] }).trim().split("\n").pop());
+    probes[screen] = fidelityProbe(screen);
   }
   if (probes[screen].skipped) { t.skip(probes[screen].skipped); return null; }
   return probes[screen];

@@ -12,8 +12,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { execFileSync } from "node:child_process";
 import { at } from "../test-support/sourceAnchors.js";
+import { probe as fidelityProbe } from "../test-support/fidelityProbe.mjs";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const DECK = read("client/src/panels/DeckView.jsx");
@@ -26,8 +26,7 @@ const SIZES = ["wide", "desktop"];
 let probe = null;
 function measured(t) {
   if (probe === null) {
-    probe = JSON.parse(execFileSync(process.execPath, ["scripts/fidelityShots.mjs", "--styles", "home168"],
-      { encoding: "utf8", timeout: 280000, stdio: ["ignore", "pipe", "ignore"] }).trim().split("\n").pop());
+    probe = fidelityProbe("home168");
   }
   if (probe.skipped) { t.skip(probe.skipped); return null; }
   return probe;
