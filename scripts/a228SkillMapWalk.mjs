@@ -95,7 +95,8 @@ try {
   const warmMs = Math.round(performance.now() - t2);
   say("skill-map API", first.status === 200 && first.body?.found, `${first.status} first ${firstMs} ms (incl. the index build), warm ${warmMs} ms · ${first.body?.role?.name}: ${first.body?.applicable} of ${first.body?.role?.judged} · levels ${JSON.stringify(first.body?.levels)}`);
 
-  for (const theme of ["dusk-dark", "plain-light"]) {
+  // A228_THEMES=dusk-light,plain-dark to walk the other two (46s); the default is the build's pair
+  for (const theme of (process.env.A228_THEMES || "dusk-dark,plain-light").split(",")) {
     const ap = await api("/api/settings/appearance", "PUT", { theme });
     await page.evaluateOnNewDocument((t) => { try { localStorage.setItem("draft-theme", t); localStorage.setItem("draft:extension-prompt-seen", "1"); } catch { /* blocked */ } }, theme);
     for (const [w, h] of [[1920, 1080], [400, 860]]) {
