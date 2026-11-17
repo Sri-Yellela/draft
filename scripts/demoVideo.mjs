@@ -118,39 +118,43 @@ const enterIn = async (sel) => { const el = await page.$(sel); if (await el?.eva
 /** The script: [id, caption, narration]. The narration says how draft works; the caption names the step. */
 export const LINES = {
   intro: ["draft reads employers' own career pages every day, and ranks every job against your résumé",
-    "This is draft. Every day it reads open jobs straight from employers' own career pages, on Greenhouse, Lever, Ashby and Workday, and scores each one against your résumé the way an applicant tracking system would. These are today's picks."],
+    "This is draft. Every day it reads open jobs straight from employers' career pages, on Greenhouse, Lever, Ashby and Workday, and scores each one against your résumé the way an applicant tracking system would. These are today's picks."],
   board: ["The whole board, every job with your match",
-    "Below the picks is the whole board. Every job carries your match, so you can see where you stand before you open anything."],
+    "Below them is the whole board, every job with your match."],
   posting: ["Open a job: pay, workstyle, sponsorship and your match, at a glance",
-    "Open one and you get the posting in full: the pay, the workstyle, whether they sponsor visas, and how your résumé scores against it."],
+    "Open one: the pay, the workstyle, visa sponsorship, and how your résumé scores against it."],
   draft: ["Draft: a tailored résumé and a filled form — nothing is sent until you say so",
-    "Press Draft, and draft tailors your résumé to this one job, rewording what's true and never inventing experience. Then it fills in the employer's form, and stops. Nothing is sent without you."],
+    "Press Draft, and draft tailors your résumé to this one job, never inventing experience, then fills in the employer's form and stops. Nothing is sent without you."],
   home: ["Home: every application, and what each one needs from you",
-    "Home is every application in one place: what's drafted, what's waiting on you, and what has gone out."],
+    "Home is every application in one place, and what each one needs from you."],
   review: ["Review, answer what only you can, and send it yourself",
-    "Open one to check the tailored résumé and the answers, fill in what only you can answer, and send it yourself."],
+    "Check the résumé and the answers, fill in what only you can, and send it yourself."],
   tiny: ["Tiny: ask in plain words — it sets the filters and answers from your own data",
-    "Tiny lives on every page. Ask in plain words, and it sets the board's filters, or counts what needs you. It answers from your own data, not a model's guess."],
-  atlas: ["Atlas: how many jobs you can apply for today, counted from your résumé",
-    "Now Atlas, where draft shows you where you stand in the market. The big number is counted, not estimated: the open jobs you can apply for today, from the skills on your résumé, split by level."],
+    "Tiny lives on every page. Ask in plain words: it sets the board's filters, or counts what needs you, from your own data."],
+  atlas: ["Atlas: how many jobs you can apply for today — counted, never a model's guess",
+    "Now Atlas: where you stand in the market. The big number is counted from live postings and your résumé, never a model's guess: the jobs you can apply for today, split by level."],
   histogram: ["Every open job for your aim, by how much of it you already have",
-    "This chart is every open job for the role you're aiming at, placed by how much of what it asks you already have. Hover a bar to see how many jobs sit there. Everything right of the line, sixty percent or more, is within reach."],
+    "This is every open job for your aim, placed by how much of it you already have. Right of the line, sixty percent or more, you can apply."],
   map: ["Your skill map: each square is a skill, sized by how many jobs want it",
-    "Below is your skill map. Every square is a skill these jobs ask for, and the bigger the square, the more jobs ask for it."],
+    "Your skill map: each square is a skill these jobs ask for, sized by how many ask."],
   states: ["Solid: proven · striped: on your résumé · outlined: a gap",
-    "Solid means you have proven it. Striped means it's on your résumé. An outline is a gap: a skill the market wants that you don't show yet. Hover any square for its count."],
+    "Solid is proven, striped is on your résumé, and an outline is a gap the market wants."],
   role: ["Switch the job and the same map redraws for what that role wants",
-    "Switch to a neighbouring role, and the same map redraws for what that job wants, so you can see how far a move really is."],
-  list: ["Or read it as a list, most-wanted first",
-    "Prefer a list? The same skills, ranked, most wanted first."],
+    "Switch roles, and the same map redraws for what that job wants."],
   learn: ["Learn next: the skills that open the most jobs per hour, with who is hiring",
-    "Learn next turns your gaps into a plan: the skills that open the most jobs for each hour of study, in order, with the companies hiring for each one."],
+    "Learn next turns your gaps into a plan: the skills that open the most jobs per hour of study, with the companies hiring for each."],
   move: ["Jobs you could move to: further right, the more of it you already have",
-    "Jobs you could move to plots the roles next to yours: further right, the more of it you already have; higher, the more are open. Each card shows what carries over, and what you'd need to learn."],
-  counted: ["Every number here is counted from live postings and your résumé — no model guesses",
-    "None of this is a model's guess. Every number is counted from live postings and your own résumé, and it moves the moment you prove a new skill."],
-  profile: ["Your profile, built from your résumé — you choose who sees each part",
-    "Your profile is built from your résumé, and you choose who sees each part."],
+    "And the roles you could move to: further right, the more you already have; higher, the more are open."],
+  run: ["Your run: a plan for today, and points only from proof",
+    "Atlas also teaches. Your run sets today's plan, about nine minutes, and points come only from proof: a check passed, an idea explained, a build finished."],
+  library: ["The library: guides by level, courses and pathways",
+    "The library holds guides by level, full courses, and a pathway for each kind of engineering role."],
+  course: ["A course is one circle: 108 lessons, from silicon to software",
+    "A course is one circle: a hundred and eight lessons, from the first transistor to the cloud. Each lesson links the best material we found, and ends with a quick check in your own words."],
+  deck: ["A guide is a short deck — five minutes to read",
+    "Guides are short decks you can read in five minutes."],
+  question: ["One question a day, picked from your gaps and the jobs you saved",
+    "And one question a day, picked from the gaps on your map and the skills your saved jobs ask for."],
   close: ["draft — find the job, fit the résumé, apply when you say so.  jobsviadraft.com",
     "draft. Find the right jobs, fit your résumé to each one, and apply when you say so. jobs via draft dot com."],
 };
@@ -161,7 +165,12 @@ if (VOICE) {
   fs.mkdirSync(CLIPS, { recursive: true });
   for (const [id, [, text]] of Object.entries(LINES)) {
     const f = path.join(CLIPS, `${VOICE}-${createHash("sha1").update(text).digest("hex").slice(0, 12)}.mp3`);
-    if (!fs.existsSync(f)) execFileSync("python", ["-m", "edge_tts", "--voice", VOICE, "--rate", "+8%", "--text", text, "--write-media", f], { stdio: "inherit" });
+    // edge-tts can exit 0 with an EMPTY file (a dropped connection, 46t): retry, and never keep a 0-byte clip in the cache
+    for (let i = 0; i < 3 && !(fs.existsSync(f) && fs.statSync(f).size > 0); i++) {
+      fs.rmSync(f, { force: true });
+      try { execFileSync("python", ["-m", "edge_tts", "--voice", VOICE, "--rate", "+8%", "--text", text, "--write-media", f], { stdio: "inherit" }); } catch { /* retried */ }
+    }
+    if (!(fs.existsSync(f) && fs.statSync(f).size > 0)) { fs.rmSync(f, { force: true }); throw new Error(`no voice for "${id}" after 3 tries`); }
     const sec = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f]).toString().trim());
     clip[id] = { f, ms: Math.round(sec * 1000) };
   }
@@ -192,19 +201,19 @@ const roleBtns = () => page.evaluate(() => [...document.querySelectorAll("[data-
 try {
   await step("today", async () => {
     await go("/app/today");
-    await beat("intro", async () => { await sleep(3500); for (let i = 0; i < 3; i++) { await clickText(/^›$/); await sleep(1800); } });
-    await beat("board", async () => { await smoothScroll(650, 2200); await sleep(1800); await smoothScroll(-650, 1400); });
+    await beat("intro", async () => { await sleep(3200); for (let i = 0; i < 3; i++) { await clickText(/^›$/); await sleep(1600); } });
+    await beat("board", async () => { await smoothScroll(650, 1800); await sleep(900); await smoothScroll(-650, 1200); });
   });
   await step("posting", async () => {
     await beat("posting", async () => {
-      await page.evaluate(() => document.querySelector("[data-jb-row], .jb, [data-job-row]")?.click()); await sleep(3200);
-      await smoothScroll(380, 1600); await sleep(1500); await smoothScroll(-380, 1000);
+      await page.evaluate(() => document.querySelector("[data-jb-row], .jb, [data-job-row]")?.click()); await sleep(2600);
+      await smoothScroll(380, 1400); await sleep(900); await smoothScroll(-380, 900);
     });
   });
   await step("draft", async () => {
     await beat("draft", async () => {
       // the open posting takes the deck's place — fold it back, then the deck card's Draft
-      await clickText(/^Fold it back$/); await sleep(1200);
+      await clickText(/^Fold it back$/); await sleep(1100);
       if (!NO_DRAFT && !(await clickText(/^Draft$/))) throw new Error("no Draft button on screen");
     });
   });
@@ -214,55 +223,62 @@ try {
     await beat("review", async () => { await page.evaluate(() => document.querySelector("[data-tracker-table] tbody tr")?.click()); });
   });
   await step("tiny", async () => {
-    await go("/app/today"); await sleep(500);
+    await go("/app/today"); await sleep(400);
     await beat("tiny", async () => {
       // Tiny's open card survives a reload — press the fox only when it is shut (a press on an open one closes it)
       if (!(await page.$("[data-ask-draft][data-open='true']"))) await page.click("[data-tiny-launch]");
       const INPUT = "[data-ask-draft][data-open='true'] [data-ask-input]";
-      await page.waitForSelector(INPUT, { visible: true, timeout: 10000 }); await sleep(600);
-      await typeSlow(INPUT, "show remote jobs in New York"); await enterIn(INPUT); await sleep(2800);
-      await typeSlow(INPUT, "how many need me?"); await enterIn(INPUT); await sleep(2400);
+      await page.waitForSelector(INPUT, { visible: true, timeout: 10000 }); await sleep(500);
+      await typeSlow(INPUT, "show remote jobs in New York"); await enterIn(INPUT); await sleep(2400);
+      await typeSlow(INPUT, "how many need me?"); await enterIn(INPUT); await sleep(2000);
     });
-    await page.click("[data-ask-close]").catch(() => {}); await sleep(500);
+    await page.click("[data-ask-close]").catch(() => {}); await sleep(400);
   });
-  // ⭐ 46s / 46t (owner 11-17: "showing atlas properly especially what we built today, hovering over the map explaining how
-  // it works"): A228's skill map, walked with the pointer — every hover opens the mark's own tooltip. Reads only: the role
-  // buttons and Map | List fetch or redraw; "Aim for this" (a write) is never pressed.
+  // ⭐ 46s / 46t (owner 11-17: "showing atlas properly … hovering over the map explaining how it works"): A228's skill map,
+  // walked with the pointer — every hover opens the mark's own tooltip. Reads only: the role buttons fetch or redraw;
+  // "Aim for this" (a write) is never pressed.
   await step("atlas", async () => {
-    await go("/app/atlas/your-map"); await sleep(900);
-    await beat("atlas", async () => { await hover("[data-skm-applicable]", { hold: 3000 }); await hover("[data-skm-levels] > div", { nth: 1, hold: 2500 }); });
-    await beat("histogram", async () => {
-      for (const n of [2, 4, 6, 8]) await hover("[data-skm-histogram] [data-tip]", { nth: n, hold: 1900 });
-    });
+    await go("/app/atlas/your-map"); await sleep(700);
+    await beat("atlas", async () => { await hover("[data-skm-applicable]", { hold: 2600 }); await hover("[data-skm-levels] > div", { nth: 1, hold: 2200 }); });
+    await beat("histogram", async () => { for (const n of [3, 6, 8]) await hover("[data-skm-histogram] [data-tip]", { nth: n, hold: 1600 }); });
     await scrollToSel("[data-skm-section=wants]");
-    await beat("map", async () => { await hover("[data-skm-tile] rect", { nth: 0, hold: 2400 }); await hover("[data-skm-tile] rect", { nth: 3, hold: 2200 }); });
+    await beat("map", async () => { await hover("[data-skm-tile] rect", { nth: 0, hold: 2200 }); });
     await beat("states", async () => {
-      await hover("[data-skm-tile][data-state=proven] rect", { hold: 2300 }) || await hover("[data-skm-tile][data-state=claimed] rect", { nth: 1, hold: 2300 });
-      await hover("[data-skm-tile][data-state=claimed] rect", { hold: 2300 });
-      await hover("[data-skm-tile][data-state=missing] rect", { hold: 2300 });
+      await hover("[data-skm-tile][data-state=claimed] rect", { hold: 1900 }) || await hover("[data-skm-tile][data-state=proven] rect", { hold: 1900 });
+      await hover("[data-skm-tile][data-state=missing] rect", { hold: 1900 });
     });
     await beat("role", async () => {
       if (await roleBtns() < 2) return;
       await page.evaluate(() => { const b = [...document.querySelectorAll("[data-skm-role-btn]")].map(s => s.closest("button")).filter(Boolean); (b.find(x => x.getAttribute("aria-pressed") !== "true") || null)?.click(); });
-      await sleep(2400); await hover("[data-skm-tile] rect", { nth: 0, hold: 2200 });
+      await sleep(2200); await hover("[data-skm-tile] rect", { nth: 0, hold: 1800 });
     });
-    await beat("list", async () => {
-      await page.evaluate(() => [...document.querySelectorAll("[data-skm-view] button")].find(b => /list/i.test(b.textContent))?.click()); await sleep(2800);
-    });
-    await page.evaluate(() => [...document.querySelectorAll("[data-skm-view] button")].find(b => /map/i.test(b.textContent))?.click()); await sleep(400);
     // back to the aim, so Learn next and the moves read for the job the person is aiming at
-    await page.evaluate(() => [...document.querySelectorAll("[data-skm-role-btn]")].map(s => s.closest("button")).find(b => /your aim/i.test(b?.textContent || ""))?.click()); await sleep(1400);
+    await page.evaluate(() => [...document.querySelectorAll("[data-skm-role-btn]")].map(s => s.closest("button")).find(b => /your aim/i.test(b?.textContent || ""))?.click()); await sleep(1200);
     await scrollToSel("[data-skm-section=learn]");
-    await beat("learn", async () => { await hover("[data-skm-point]", { nth: 1, hold: 2200 }); await hover("[data-skm-step]", { nth: 0, hold: 2200 }); });
+    await beat("learn", async () => { await hover("[data-skm-point]", { nth: 1, hold: 1900 }); await hover("[data-skm-step]", { nth: 0, hold: 2000 }); });
     await scrollToSel("[data-skm-section=move]");
-    await beat("move", async () => { await hover("[data-skm-role]", { nth: 1, hold: 2400 }); await hover("[data-skm-card]", { nth: 0, hold: 2400 }); });
+    await beat("move", async () => { await hover("[data-skm-role]", { nth: 1, hold: 2200 }); await hover("[data-skm-card]", { nth: 0, hold: 2000 }); });
     await page.mouse.move(8, 8);
-    await page.evaluate(() => scrollTo({ top: 0, behavior: "smooth" })); await sleep(900);
-    await beat("counted");
   });
-  await step("profile", async () => {
-    await go("/app/profile/about");
-    await beat("profile", async () => { await sleep(1500); await smoothScroll(500, 1800); });
+  // ⭐ 46t (owner 11-17: "none of the courses and learning material is covered. distribute to accommodate"): Your run, the
+  // library, a course's circle, a guide deck, Today's question — reads only (a deck's Next is a page turn; an answer to
+  // Today's question would be a write and is never pressed).
+  await step("learning", async () => {
+    await go("/app/atlas/your-run");
+    await beat("run", async () => { await hover("[data-run-total], [data-run-level]", { hold: 2200 }); await hover("[data-quest]", { hold: 2400 }); await hover("[data-run-week], [data-run-weekdays]", { hold: 1800 }); });
+    await go("/app/atlas/library");
+    await beat("library", async () => { await hover("[data-guide]", { nth: 0, hold: 1600 }); await hover("[data-course]", { nth: 0, hold: 1600 }); await smoothScroll(700, 1600); await sleep(700); });
+    await go("/app/atlas/library/silicon-to-software");
+    await beat("course", async () => {
+      await scrollToSel("[data-learn-circle]");
+      for (const n of [4, 30, 70]) await hover("[data-learn-piece]", { nth: n, hold: 1700 });
+      await hover("[data-resource-tile]", { nth: 0, hold: 1800 });
+    });
+    await go("/app/atlas/library/sw-f-04");
+    await beat("deck", async () => { await sleep(900); for (let i = 0; i < 2; i++) { await clickText(/^Next/); await sleep(1300); } });
+    await go("/app/atlas/todays-question");
+    await beat("question", async () => { await hover("[data-daily-question]", { hold: 2200 }); });
+    await page.mouse.move(8, 8);
   });
   await step("close", async () => {
     await go("/app/today"); await beat("close", async () => {}, { tail: 1200 });
