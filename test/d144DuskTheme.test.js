@@ -91,7 +91,8 @@ test("d144NoThirdPartyAssets: Inter Tight is served from our origin; no other co
 test("d144ExistingThemesUnchanged: the six themes before Dusk are value for value what they were; the shape set is Dusk's only", () => {
   // D149 (owner 11-04, "go bold") ADDED the letter tile's keys to every theme; the pin covers every value that existed
   // before, so an addition is allowed and a change to an existing value is not.
-  const D149_TILES = new Set(["TILE_BLUE", "TILE_GREEN", "TILE_PURPLE", "TILE_ORANGE", "TILE_TEAL", "TILE_SLATE", "TILE_ROSE", "ON_TILE"]);
+  const D149_TILES = new Set(["TILE_BLUE", "TILE_GREEN", "TILE_PURPLE", "TILE_ORANGE", "TILE_TEAL", "TILE_SLATE", "TILE_ROSE", "ON_TILE",
+    "CHART_NEUTRAL"]);   // ⭐ A228 (46r): + the skill map's chart neutral — another addition, no existing value changed
   const h = (t) => crypto.createHash("sha256").update(JSON.stringify({ tokens: Object.fromEntries(Object.entries(t.tokens).filter(([k]) => !D149_TILES.has(k))),
     substrate: t.substrate, label: t.label, scheme: t.scheme, contrast: t.contrast })).digest("hex");
   // The four D133 measured (test/d133StudioTheme.test.js), unchanged by D144.

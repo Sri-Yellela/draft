@@ -1,0 +1,107 @@
+/* ⭐ A228 (46r) · YOUR MAP, the skill map (SkillMap.jsx and its four charts) — docs/sketches/A228-ab-combined.html in the
+   site's tokens: every colour a theme token (var(--c-*)), so every theme paints it. The three states are ONE hue:
+   proven = solid accent · on your résumé = hatched accent · not yet = a dashed outline; the jobs not yet within reach are
+   the chart neutral (--c-chart-neutral, A228: the dataviz validator's normal-vision ΔE ≥ 15 and 3:1 on every theme's
+   surface). No capsules (D60): squares and perfect circles only. FULL WIDTH (docs/BRAND.md): the charts grow into the
+   width; running text keeps ~70ch. Font sizes follow Settings → Text size (--type-scale). */
+.skm { display: grid; gap: 20px; min-width: 0; }
+.skm-panel { display: grid; gap: 14px; min-width: 0; padding: clamp(16px, 2vw, 24px); border: 1px solid var(--c-border);
+  border-radius: 10px; background: var(--c-surface-solid); align-content: start; }
+.skm-head { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; justify-content: space-between; min-width: 0; }
+.skm-h2 { margin: 0; font: 400 calc(clamp(20px, 1.8vw, 26px) * var(--type-scale, 1))/1.2 var(--font-display); color: var(--c-ink); text-wrap: balance; }
+.skm-small { font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-muted); }
+.skm-faint { color: var(--c-ink-faint); }
+.skm-eyebrow { font-size: calc(12px * var(--type-scale, 1)); letter-spacing: .08em; text-transform: uppercase; color: var(--c-ink-faint); }
+.skm-num { font-variant-numeric: tabular-nums; }
+.skm-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* 1 · the number and the histogram */
+.skm-hero { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+@media (min-width: 1000px) { .skm-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); align-items: center; } }
+.skm-hero__lead, .skm-hero__chart { display: grid; gap: 10px; min-width: 0; align-content: start; }
+.skm-hero__num { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: baseline; margin: 0; }
+.skm-hero__num b { font: 400 calc(clamp(52px, 6vw, 84px) * var(--type-scale, 1))/1 var(--font-display); color: var(--c-ink); }
+.skm-hero__line { margin: 0; max-width: 44ch; font-size: calc(15px * var(--type-scale, 1)); line-height: 1.5; color: var(--c-ink); }
+.skm-levels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 110px), 1fr)); gap: 12px; }
+.skm-levels > div { display: grid; gap: 2px; }
+.skm-levels b { font: 400 calc(30px * var(--type-scale, 1))/1 var(--font-display); color: var(--c-ink); }
+
+/* 2 + 3 · the map beside Learn next (the map takes the width; Learn next a column from 1200 px) */
+.skm-main { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1200px) { .skm-main { grid-template-columns: minmax(0, 1.9fr) minmax(360px, 1fr); align-items: start; } }
+.skm-roles { display: flex; flex-wrap: wrap; gap: 6px; }
+.skm-seg { display: inline-flex; border: 1px solid var(--c-border); border-radius: 6px; overflow: hidden; }
+.skm-seg button { font: inherit; font-size: calc(13px * var(--type-scale, 1)); border: 0; background: var(--c-surface-solid); color: var(--c-ink-muted); padding: 5px 12px; cursor: pointer; }
+.skm-seg button[aria-pressed="true"] { background: var(--c-ink); color: var(--c-canvas); }
+.skm-seg button:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: -2px; }
+.skm-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-muted); }
+.skm-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.skm-sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: none; }
+.skm-sw--proven { background: var(--c-accent); }
+.skm-sw--claimed { background: repeating-linear-gradient(45deg, color-mix(in oklab, var(--c-accent) 45%, transparent) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--c-accent); }
+.skm-sw--missing { border: 1.25px dashed var(--c-ink-faint); }
+
+/* the charts (SVG drawn from tokens) */
+.skm-chart { width: 100%; min-width: 0; position: relative; }
+.skm-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.skm-t { fill: var(--c-ink-muted); font-family: var(--font-body); font-size: calc(12px * var(--type-scale, 1)); }
+.skm-t--ink { fill: var(--c-ink); }
+.skm-t--strong { fill: var(--c-ink); font-weight: 600; }
+.skm-on-accent { fill: var(--c-on-accent); }
+.skm-grid { stroke: var(--c-border); stroke-width: 1; }
+.skm-reach { stroke: var(--c-ink); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.skm-fam { fill: var(--c-ink-faint); font-family: var(--font-body); font-size: calc(11px * var(--type-scale, 1)); letter-spacing: .06em; }
+.skm-nohit { pointer-events: none; }
+.skm-tile__n { fill: var(--c-ink); font-family: var(--font-body); font-weight: 600; }
+.skm-logo { fill: var(--c-surface-solid); stroke: var(--c-border); }
+.skm-logo__t { fill: var(--c-ink); font-family: var(--font-body); font-weight: 700; }
+.skm-f-proven { fill: var(--c-accent); }
+.skm-f-claimed { stroke: var(--c-accent); stroke-width: 1; }
+.skm-f-missing { fill: var(--c-surface-solid); stroke: var(--c-ink-faint); stroke-width: 1.25; stroke-dasharray: 3 2; }
+.skm-f-neutral { fill: var(--c-chart-neutral); }
+.skm-hatch__ground { fill: var(--c-surface-solid); }
+.skm-hatch__line { fill: var(--c-accent); fill-opacity: .45; }
+.skm-route__area { fill: var(--c-accent); opacity: .12; }
+.skm-route__line { fill: none; stroke: var(--c-accent); stroke-width: 2; }
+.skm-route__dot { fill: var(--c-accent); stroke: var(--c-surface-solid); stroke-width: 2; }
+.skm-dot { fill: var(--c-chart-neutral); stroke: var(--c-surface-solid); stroke-width: 2; }
+.skm-dot--on { fill: var(--c-accent); }
+.skm-chart [data-tip] { cursor: default; }
+.skm-chart [data-tip]:hover, .skm-chart [data-tip]:focus { filter: brightness(1.08); }
+.skm-chart [data-tip]:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
+.skm-tip { position: fixed; z-index: 40; pointer-events: none; max-width: 280px; padding: 8px 10px; border: 1px solid var(--c-border);
+  border-radius: 8px; background: var(--c-surface-solid); color: var(--c-ink); font-size: calc(13px * var(--type-scale, 1)); box-shadow: var(--c-shadow-lg); }
+.skm-tip b { display: block; margin-bottom: 2px; }
+@media (prefers-reduced-motion: no-preference) { .skm-chart rect, .skm-chart circle, .skm-chart path { transition: opacity .15s, filter .15s; } }
+
+/* "Show as a table" */
+.skm-table { font-size: calc(13px * var(--type-scale, 1)); }
+.skm-table summary { cursor: pointer; color: var(--c-ink-muted); }
+.skm-table__wrap { overflow-x: auto; margin-top: 8px; }
+.skm-table table { border-collapse: collapse; width: 100%; min-width: 360px; }
+.skm-table th, .skm-table td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--c-border); font-variant-numeric: tabular-nums; color: var(--c-ink); }
+.skm-table th { color: var(--c-ink-faint); font-weight: 500; }
+
+/* a skill's mark (its Wikipedia picture, else a letter mark) and the companies */
+.skm-mark { display: inline-grid; place-items: center; flex: none; border-radius: 6px; border: 1px solid var(--c-border);
+  background: var(--c-surface-2); color: var(--c-ink); font-weight: 700; letter-spacing: -.02em; overflow: hidden; }
+.skm-mark--img { background: var(--c-surface-solid); padding: 2px; }
+.skm-mark--img img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.skm-cos { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+
+/* Learn next — the steps */
+.skm-steps { list-style: none; margin: 0; padding: 0; display: grid; }
+.skm-step { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--c-border); }
+.skm-step__name { font-weight: 700; color: var(--c-ink); text-decoration: none; }
+.skm-step__name:hover { text-decoration: underline; }
+.skm-step__plus { font-variant-numeric: tabular-nums; font-size: calc(15px * var(--type-scale, 1)); color: var(--c-ink); }
+.skm-step__sub { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-muted); }
+
+/* 4 · jobs you could move to */
+.skm-move { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); }
+.skm-card { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-surface); min-width: 0; align-content: start; }
+.skm-meter { height: 8px; border-radius: 2px; background: var(--c-surface-2); box-shadow: inset 0 0 0 1px var(--c-border); overflow: hidden; }
+.skm-meter i { display: block; height: 100%; background: var(--c-accent); }
+
+/* "Your route, step by step" — the track board and the route, below the page, closed */
+.skm-route-more > summary { cursor: pointer; }

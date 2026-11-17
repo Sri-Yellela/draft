@@ -48,6 +48,7 @@ const tokens = Object.freeze({
   DANGER_QUIET:        "#3B1C18",
   INFO:                "#9A9A9A",   // answer 4: ordinary bars grey
   INFO_QUIET:          "#15263A",
+  CHART_NEUTRAL:       "#6B7280",
   VIOLET:              "#C6A8F0",   // theme-dusk-v2.html (D149)
   VIOLET_QUIET:        "#2B2142",
   TEAL:                "#62C5D1",

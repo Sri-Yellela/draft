@@ -49,6 +49,7 @@ const tokens = Object.freeze({
   DANGER_QUIET:        "#FDEEEE",   // §3 (the sketch)
   INFO:                "#0B4F8A",   // §3 (the sketch)
   INFO_QUIET:          "#E4EEF9",   // §3 (the sketch)
+  CHART_NEUTRAL:       "#6D6D6D",   // grey at 54% canvas→ink
   VIOLET:              "#60339C",   // #6A3DB0 → #60339C: the least move that passes every pair it is in (violet, from #6A3DB0)
   VIOLET_QUIET:        "#EEE7F6",   // violet quiet fill (hue 267°)
   TEAL:                "#0E5662",   // #0E6470 → #0E5662: the least move that passes every pair it is in (teal, from #0E6470)

@@ -49,6 +49,7 @@ const tokens = Object.freeze({
   DANGER_QUIET:        "#301010",   // §3 (the sketch)
   INFO:                "#6DB8FF",   // §3 (the sketch)
   INFO_QUIET:          "#0E2236",   // §3 (the sketch)
+  CHART_NEUTRAL:       "#6E6E6E",   // grey at 47% canvas→ink
   VIOLET:              "#BCA2F0",   // violet, from #BCA2F0
   VIOLET_QUIET:        "#1D102B",   // violet quiet fill (hue 267°)
   TEAL:                "#62C5D1",   // teal, from #62C5D1
