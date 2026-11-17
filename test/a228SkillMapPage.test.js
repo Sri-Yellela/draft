@@ -181,3 +181,21 @@ test("a228NudgeLabelsEnds (46s, production froze the tab): fractional positions 
     }
   }
 });
+
+// ⭐ A231 (46t, owner 11-17: "go with c"): the move-to scatter's height is a LOG scale — production's Software Engineer
+// (4,996 open) no longer pins the other roles (14–213) to the floor.
+test("A231: the move-to scatter reads heights on a log scale with clean decade ticks", async () => {
+  const { logScale } = await import("../client/src/pages/atlas/skillMapModel.js");
+  const prod = [60, 4996, 213, 26, 54, 113, 14];   // the reviewer account's move-to rows, production 11-17
+  const s = logScale(prod);
+  assert.deepEqual(s.ticks, [10, 100, 1000, 5000]);
+  const ps = prod.map(s.pos);
+  assert.ok(Math.max(...ps) > 0.99, "the biggest role at the top (4,996 of a 5,000 top)");
+  assert.ok([60, 213, 26, 54, 113].every(v => s.pos(v) > 0.1), "every other role off the floor (only the 14-job role sits near it)");
+  assert.ok(new Set(ps.map(p => p.toFixed(2))).size === prod.length, "each role at its own height");
+  assert.equal(s.pos(0), 0, "no open jobs sits on the floor");
+  assert.deepEqual(logScale([]).ticks, [1, 10], "nothing to draw still gives an axis");
+  const src = fs.readFileSync(new URL("../client/src/pages/atlas/MoveRolesScatter.jsx", import.meta.url), "utf8");
+  assert.match(src, /const ys = logScale\(roles\.map\(r => r\.open\)\);/);
+  assert.match(src, /\{ys\.ticks\.map\(t => \(/);
+});
