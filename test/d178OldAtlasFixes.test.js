@@ -37,8 +37,10 @@ test("d178CountsReadClaims: the family sentence — proven, claimed, learned; ne
   assert.equal(familyCountLine({ total: 8 }), "none yet · of 8");
   // One sentence, two readers (the tree's tag and the family list) — and both read the claims Your skills reads.
   assert.match(read("services/atlas/atlasTree.js"), /tag: `\$\{f\.name\.toUpperCase\(\)\} · \$\{familyCountLine\(/);
-  assert.match(read("client/src/pages/atlas/YourMap.jsx"), /familyCountLine\(\{ provenCount: f\.provenCount/);
+  // ⭐ A228 (46r, moved on purpose): the family LIST (YourMap.jsx Families) is retired with the market tree; the tree's tag is
+  // the sentence's one reader now, and the skill map reads the same states (yourSkillStates) for its counts.
   assert.doesNotMatch(read("client/src/pages/atlas/YourMap.jsx"), /you have \{/);
+  assert.match(read("services/atlas/skillMap.js"), /for \(const s of safe\(\(\) => yourSkillStates\(db, userId\), \[\]\)\)/);
   const me = read("services/atlas/atlasMe.js");
   assert.match(me, /for \(const s of safeRead\(\(\) => yourSkillStates\(db, userId\), \[\]\)\)/, "Your map reads Your skills' names and states");
   const ys = read("services/yourSkills.js");

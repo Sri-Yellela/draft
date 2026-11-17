@@ -100,10 +100,3 @@ export const LEARNED_KEY = "draft-atlas-learned";
 /** M8 · a learning node's progress arc: the share of its step done, 0–100 (the ring's dash). */
 export const progressArc = (n) => (n.progress && n.progress.total ? Math.round((n.progress.done / n.progress.total) * 100) : null);
 
-/** Your map's header line: "From your résumé: Backend Engineer, mid level, 11 skills. Aim: senior." */
-export function headerLine(tree) {
-  const u = tree.user || {};
-  const have = tree.nodes.filter(n => n.have).length;
-  const who = [u.role?.name, u.level ? `${u.level} level` : null].filter(Boolean).join(", ");
-  return `From your résumé: ${who ? `${who}, ` : ""}${have} skill${have === 1 ? "" : "s"} on the tree.${u.aim ? ` Aim: ${u.aim.level} ${u.aim.name}.` : ""}`;
-}

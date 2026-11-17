@@ -136,3 +136,9 @@ a.lib-rung__link:hover, a.lib-rung__link:focus-visible { border-color: var(--c-a
 @media (prefers-reduced-motion: reduce) { .lib-half__tick.is-new-whole { animation: none; } }
 /* A154 (45o): a pathway's cover is a button (it opens the plan below), drawn like a course's link. */
 button.lib-cover__link { width: 100%; border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+
+/* the view tabs (moved here from RoleReadiness.css with A228, 46r: the readiness dial is retired, the course's views stay) */
+.rr-tabs { display: inline-flex; gap: 2px; padding: 3px; margin: 0 0 14px; border-radius: 14px; background: var(--c-surface-solid); }
+.rr-tabs button { all: unset; cursor: pointer; padding: 7px 14px; border-radius: 11px; color: var(--c-ink-muted); font-weight: 600; font-size: 13.5px; }
+.rr-tabs button[aria-pressed="true"] { background: var(--c-surface); color: var(--c-ink); }
+.rr-tabs button:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }

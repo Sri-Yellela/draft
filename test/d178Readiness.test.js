@@ -1,10 +1,12 @@
 // ⭐ D178-3 (owner's pick 11-07) · readiness for a role — d178ReadinessCountsProvenOnly · d178ReadinessWeightsByPostingShare ·
 // d178ThinRoleShowsNoPercent · d178NeverCalledExpertise. Synthetic skills and shares.
+// ⭐ A228 (46r, owner 11-16 "Build it"): the CLIENT views — For a role (RoleReadiness.jsx, its dial roleReadinessModel.js) and
+// Compare roles (CompareRoles.jsx) — are retired (Your map, the skill map, answers them); their pins went with them. The
+// server reading stays (the daily question, the metrics list and the Profile read roleReadiness / subcategoryReadiness).
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { readinessOf, tierOf, READINESS } from "../services/atlas/roleReadiness.js";
-import { dialArcs } from "../client/src/pages/atlas/roleReadinessModel.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const top = [
@@ -28,24 +30,20 @@ test("d178ReadinessWeightsByPostingShare: each skill weighs by its share of the 
   assert.deepEqual([READINESS.MUST, READINESS.COMMON], [60, 30]);
   assert.deepEqual([a.tiers.must.have, a.tiers.must.of], [1, 2]);
   assert.equal(readinessOf([], new Map()).ready, 0);
-  const d = dialArcs(40, 35);
-  assert.ok(d.ready && d.waiting && parseFloat(d.waiting) > parseFloat(d.ready), "the waiting segment extends beyond ready");
 });
 
 test("d178ThinRoleShowsNoPercent: under the minimum postings, no % — 'not enough postings yet'", () => {
   assert.equal(READINESS.MIN_POSTINGS, 30);
   const svc = read("services/atlas/roleReadiness.js");
   assert.match(svc, /if \(f\.role\.postings < READINESS\.MIN_POSTINGS\) return \{ \.\.\.base, thin: true, line: "Not enough postings yet to say how ready you are\." \};/);
-  assert.match(read("client/src/pages/atlas/RoleReadiness.jsx"), /\{!r\.thin && <Dial ready=\{r\.ready\} waiting=\{r\.waiting\} \/>\}/);
 });
 
 test("d178NeverCalledExpertise: 'ready', never 'expertise' or a guarantee; the scope is shown", () => {
-  for (const f of ["services/atlas/roleReadiness.js", "client/src/pages/atlas/RoleReadiness.jsx"]) {
+  for (const f of ["services/atlas/roleReadiness.js"]) {
     const src = read(f).replace(/\/\/[^\n]*/g, "");
     assert.doesNotMatch(src, /expertise|guarantee|certif/i, f);
   }
   assert.match(read("services/atlas/roleReadiness.js"), /line: `from \$\{f\.role\.postings\} live posting/);
-  assert.match(read("client/src/pages/atlas/RoleReadiness.jsx"), /data-rr-scope=""/);
 });
 
 test("d178CompareRoles (Idea E): the skills-by-role grid and the skill that lifts the most roles", async () => {

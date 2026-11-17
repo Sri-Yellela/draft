@@ -17,13 +17,11 @@ import { useRepeatsNav } from "../../components/PlaceNav.jsx";
 import { matchCandidate } from "../../../../shared/atlasSearchNormalize.js";
 import Navigator from "./Navigator.jsx";
 import ReadinessCheck from "./ReadinessCheck.jsx";
-import SkillsListAndMap from "./YourSkillsPanel.jsx";   // D169
+import YourSkillsPanel from "./YourSkillsPanel.jsx";   // D169
 import { ExploreByRole, Recent, directionLine, useAtlasMe } from "./YourMap.jsx";
 import { KIND_LABEL } from "./atlasModel.js";
 import { overviewStats, panelHref, learnStepHref } from "./atlasPanels.js";
 import "./AtlasPanels.css";
-import RoleReadiness from "./RoleReadiness.jsx";
-import CompareRoles from "./CompareRoles.jsx";
 import { loginHref } from "../../lib/signInReturn.js";   // A138: back to this page after sign-in
 
 const nodeHref = (base, slug) => `${base}/${encodeURIComponent(slug)}`;
@@ -119,28 +117,16 @@ export function OverviewPanel({ base }) {
 // ── You · Your skills (a slot) ─────────────────────────────────────────────────────────────────
 
 /**
- * ⭐ D169 (owner 11-06, approved, revisable) · YOUR SKILLS — D169's panel (List + Map of the same data; claimed · checked
- * · built; "Check it · 1 min" in place), and below it D142's full readiness check, which keeps its home here
- * (docs/D167_ATLAS_MAP.md row 14; /atlas/check still lights this panel).
+ * ⭐ D169 (owner 11-06, approved, revisable) · YOUR SKILLS — D169's list (claimed · checked · built; "Check it · 1 min" in
+ * place), and below it D142's full readiness check, which keeps its home here (docs/D167_ATLAS_MAP.md row 14; /atlas/check
+ * still lights this panel). ⭐ A228 (46r, owner 11-16 "Build it"): the ring Map view, For a role (the readiness dial) and
+ * Compare roles are retired — Your map (the skill map, SkillMap.jsx) answers them for every role at once.
  */
 export function YourSkillsSlot({ signedIn, base = "/app/atlas" }) {
-  // ⭐ D178-3 (owner's pick): tabs — For a role (the default: readiness, the tree grown for the role, what moves your %)
-  // · Compare roles (Idea E: up to four dials, the skills-by-role grid, the skill that lifts the most roles)
-  // · All my skills (D169's list and map, D142's check — unchanged).
-  const [tab, setTab] = useState(signedIn ? "role" : "all");
   return (
     <div className="atl-pan" data-atlas-panel-body="your-skills" data-atlas-slot="your-skills">
-      {signedIn && (
-        <div className="rr-tabs" role="tablist" aria-label="Your skills" data-skills-tabs="">
-          <button type="button" role="tab" aria-selected={tab === "role"} aria-pressed={tab === "role"} onClick={() => setTab("role")} data-skills-tab="role">For a role</button>
-          <button type="button" role="tab" aria-selected={tab === "compare"} aria-pressed={tab === "compare"} onClick={() => setTab("compare")} data-skills-tab="compare">Compare roles</button>
-          <button type="button" role="tab" aria-selected={tab === "all"} aria-pressed={tab === "all"} onClick={() => setTab("all")} data-skills-tab="all">All my skills</button>
-        </div>
-      )}
-      {signedIn && tab === "role" && <RoleReadiness base={base} />}
-      {signedIn && tab === "compare" && <CompareRoles base={base} />}
-      <div hidden={signedIn && tab !== "all"} data-skills-all="">
-        <SkillsListAndMap signedIn={signedIn} base={base} />
+      <div data-skills-all="">
+        <YourSkillsPanel signedIn={signedIn} base={base} />
         <section className="atl-pan__more" data-atlas-readiness="" aria-label="The full readiness check">
           <ReadinessCheck signedIn={signedIn} />
         </section>
