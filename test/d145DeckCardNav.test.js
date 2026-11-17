@@ -52,7 +52,7 @@ test("d145MatchTopRightNoAts: the match is the header's right-hand side — a nu
 
 test("d145InfoRowSalaryTypeMode: one info row — salary · job type · work mode, each a value over a grey label, only those on file", () => {
   const f = cardFacts(CARD, NOW);
-  // 45n D182 (18d82c2c, owner 11-08 decision (8)): values only — each value says what it is, the grey labels were
+  // 45n D182 (bb297b05, owner 11-08 decision (8)): values only — each value says what it is, the grey labels were
   // removed as restating the screen (pin moved on purpose).
   assert.deepEqual(f.info, [
     { key: "salary", value: "$165k–$190k" },
@@ -119,7 +119,7 @@ test("d145ScrollExpandsAndFolds → D168: the wheel never opens or folds 'Why th
   assert.match(face, /data-deck-why-button="" aria-expanded=\{!!why\}/);
 });
 
-// ⛔ 45n D145 / D152 decision (10) (d85ed150, owner 11-08): the side MENU is RETIRED — the dock (D167) is the one
+// ⛔ 45n D145 / D152 decision (10) (ffd57262, owner 11-08): the side MENU is RETIRED — the dock (D167) is the one
 // navigation. The Automatic · Dock · Menu option and its data-navigation switch are gone; these two tests now guard that
 // the retirement holds and the dock stays the navigation everywhere (pins moved on purpose).
 test("d145NavDockOrMenuSetting → 45n: no Navigation option; the dock is the one navigation at every width", () => {
@@ -161,7 +161,7 @@ test("d145NoNavSymbols → d156: icons only in the Dock (house · /d · globe ·
   assert.match(items, /\{dock && jobs && <span className="appnav-ico appnav-ico--mark"/);
   assert.match(nav, /\{dock && \(\n\s+<span className="appnav-ico appnav-ico--me"/);
   assert.doesNotMatch(items, /[☰≡★⏳✦→←↑↓]/u);
-  // 45n D145 / D152 decision (10) (d85ed150): the Menu button is retired, so there is no word button to check (pin moved on purpose).
+  // 45n D145 / D152 decision (10) (ffd57262): the Menu button is retired, so there is no word button to check (pin moved on purpose).
   assert.doesNotMatch(nav, /className="appnav-menu-btn"/, "the Menu button came back");
 });
 

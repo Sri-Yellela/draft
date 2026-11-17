@@ -5,7 +5,7 @@ import path from "node:path";
 
 // THE REDESIGNED MARK, ON EVERY SURFACE THAT SHOWS ONE (09-30).
 //
-// 9feac48 put the "/draft" artwork on the app bar, the landing page and the dock, and said
+// 9a0179e put the "/draft" artwork on the app bar, the landing page and the dock, and said
 // "everywhere". Five surfaces still set the name as styled TEXT — the sign-in screen, the marketing
 // nav, the footer, the admin bar and the admin sign-in — so a signed-out visitor met the old look
 // first. Each now renders <StampLogo>, and this keeps a sixth from appearing: the wordmark constant

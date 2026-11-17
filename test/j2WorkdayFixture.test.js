@@ -27,7 +27,7 @@ test("the steps: My Information → My Experience → Application Questions → 
   assert.deepEqual(Object.entries(templates).filter(([, t]) => !t.onPath).map(([id]) => id).sort(), ["signIn", "unrecognised"]);
   assert.match(html, /<form data-automation-id="applyFlowPage" id="ws-root"/);
   assert.match(html, /id="next-step" data-automation-id="bottom-navigation-next-button"/);
-  assert.match(html, /<h2 data-automation-id="jobPostingHeader">Software Engineer<\/h2>/, "the extractor's Workday header (8d1fa87)");
+  assert.match(html, /<h2 data-automation-id="jobPostingHeader">Software Engineer<\/h2>/, "the extractor's Workday header (f72be86)");
 });
 
 test("every apply stage answers with the steps; the posting has none", async () => {

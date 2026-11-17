@@ -2,7 +2,7 @@
 
 *Dated 2026-10-31. This is a read-only audit; it lists facts only. P2 decides what changes, after the owner has read it. The spec is WORKLOG D122.*
 
-⚠ **About the line numbers.** `server.js` lines were measured after `425905c`. That commit added 27 lines near the top of `server.js` and did not touch the other files cited. The D121 surfaces lane, committed after this audit, adds a few more lines around the board route (≈ 10620–10660), so `server.js` numbers below that point may be a few lines off.
+⚠ **About the line numbers.** `server.js` lines were measured after `a6a892c`. That commit added 27 lines near the top of `server.js` and did not touch the other files cited. The D121 surfaces lane, committed after this audit, adds a few more lines around the board route (≈ 10620–10660), so `server.js` numbers below that point may be a few lines off.
 
 ⚠ **No `resume_version_id` column exists anywhere in the schema.** D122's rule, *"has a résumé = `application.resume_version_id`"*, has nothing behind it today. A résumé is stored in these places, and each one answers "is there a résumé?" its own way:
 

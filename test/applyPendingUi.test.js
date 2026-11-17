@@ -15,7 +15,7 @@ const jobsPanel = [
   "client/src/panels/JobsPanel.jsx",
   "client/src/panels/AutoApplyPanel.jsx",
   "client/src/contexts/AutoApplyContext.jsx",
-  // D171 FIX 4 (7865477): every row's résumé link is ONE component now — the PDF link moved into it.
+  // D171 FIX 4 (a3e4ce9): every row's résumé link is ONE component now — the PDF link moved into it.
   "client/src/components/AttemptResume.jsx",
 ].map(f => fs.readFileSync(f, "utf8")).join("\n");
 const apiLib    = fs.readFileSync("client/src/lib/api.js", "utf8");

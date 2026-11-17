@@ -29,8 +29,8 @@ test("D105 · d105OneThesaurus — no Atlas alias table; an alias added in the A
   // D118 P2 (b) adds atlas_changes (one change counter the in-memory indexes key on) — not an alias table either.
   // D118 P1 adds the live counts' four (each posting's reading, per role × level counts, the store's state, the queue).
   // D169 (migration 223) adds atlas_skill_holds — a typed skill with no published node, held for the curator; not an alias.
-  // 45o A155 (e89f532f, migration 251) adds atlas_prefs (weekdays_only per person) and 45q D185-3 (325c6f2c) adds
-  // atlas_backlog (rising-skill content drafts); 45l D179 P6 (d2613da8, migration 241) adds atlas_taxonomy_roles (the
+  // 45o A155 (3dc0b800, migration 251) adds atlas_prefs (weekdays_only per person) and 45q D185-3 (f90068ed) adds
+  // atlas_backlog (rising-skill content drafts); 45l D179 P6 (be7b2642, migration 241) adds atlas_taxonomy_roles (the
   // taxonomy subcategory -> role draft map) — none holds aliases (pin moved on purpose).
   assert.deepEqual(tables.map(t => t.name).sort(), ["atlas_backlog", "atlas_changes", "atlas_edges", "atlas_link_counts", "atlas_live_state", "atlas_node_stats", "atlas_nodes",
     "atlas_posting_dirty", "atlas_posting_match", "atlas_prefs", "atlas_resources", "atlas_role_level_stats", "atlas_skill_holds", "atlas_taxonomy_roles", "atlas_wiki_cache"]);

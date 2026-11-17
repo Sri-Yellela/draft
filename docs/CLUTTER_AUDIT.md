@@ -1,6 +1,6 @@
 # D145 · Step 1 — the clutter audit (read-only)
 
-**Measured 2026-11-03 (session 44k)** in a real Chrome, at **1280 × 800** and **390 × 844**, against a LOCAL draft at `14c9cf4`.
+**Measured 2026-11-03 (session 44k)** in a real Chrome, at **1280 × 800** and **390 × 844**, against a LOCAL draft at `94bcf52`.
 That draft ran on a copy of the local database (board as of 10-31, 746 matches for this account) with the synthetic
 reviewer account (`services/reviewerDemo.js`, "Alex Rivera"). It had 12 sample applications (8 waiting in Draft House,
 4 sent) and 6 synthetic rows in The Table. **Nothing on production was read or changed.** No screen was changed: this

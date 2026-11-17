@@ -1,6 +1,6 @@
 # D98 · P0 — the inventory before the server (lane J3, 2026-10-13)
 
-Read-only, measured from the source at `dbb0f28` and one real-Chrome experiment. Spec: `docs/EXTENSION_ONPAGE_SPEC.md`
+Read-only, measured from the source at `2914719` and one real-Chrome experiment. Spec: `docs/EXTENSION_ONPAGE_SPEC.md`
 (D98), card J3 of `docs/EXTENSION_PARALLEL_PLAN.md`. **Verdict: P1 needs no new extension permission, sends no page
 content to the server, makes no model call outside draft's server, and turns nothing on by default — P1 proceeds.**
 

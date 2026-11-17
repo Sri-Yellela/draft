@@ -25,7 +25,7 @@ test("fidelity · the deck on Home (home-sketch.html): the page, the card, its t
     // ⭐ D156 (2) / (1b) / (1c) (changed on purpose — home-sketch.html revised 11-05): the page's 28 px padding + the count
     // row with ‹ › (34 px buttons, .flip) + 10 px under it = 72. ⚠ A phone measures 75 (the sketch has no phone rule for
     // this row) — ✅ APPROVED 11-06 by the owner (O99 (c): the 75 px phone card top accepted).
-    // ⭐ D167 (changed on purpose, 45b f7a67c3 — the dock goes where the space is): at 1280 and on a phone the dock is a
+    // ⭐ D167 (changed on purpose, 45b 21ff9b5 — the dock goes where the space is): at 1280 and on a phone the dock is a
     // row at the top and the page starts one gap below it (--appnav-top-reserve, measured), so the card's top is the
     // sketch's number below that reserve.
     assert.ok(["top", "phone"].includes(d.dock?.place), `${size}: the dock sits at the top at this width`);

@@ -323,8 +323,8 @@ async function main() {
     // ⛔ THIS CHECK WAS WRONG FOR EIGHT DAYS AND REPORTED A HEALTHY BOARD AS BROKEN.
     //
     // It used to be `['the ATS badge', /\b7[0-9]\b/]` — a search of document.body.innerText for a
-    // raw two-digit number, written at ed13f45 (2026-08-23) when the badge rendered `ATS {score}`.
-    // 7494289 (2026-08-31) deliberately replaced the number with a BAND label, and
+    // raw two-digit number, written at 8c768ef (2026-08-23) when the badge rendered `ATS {score}`.
+    // 1ed3b89 (2026-08-31) deliberately replaced the number with a BAND label, and
     // scripts/ak2BandSurfaces.mjs asserts in as many words that "the raw number is nowhere on the
     // board". So the two harnesses contradicted each other and this one lost: it reported
     // "the ATS badge survived — MISSING" against a board that was rendering the badge correctly,

@@ -57,13 +57,13 @@
 > The single-purpose and "never submits" statements below now read "never submits on its own".
 
 > **v1.6.1 (2026-11-12, 46j — the owner's "bump up the extension to latest requirements").** 1.6.0 plus 46i's
-> `3889f77c` (Open & fill fills by itself on a tab draft opened to apply). No new permission, no new host, no new
+> `08fa9a9c` (Open & fill fills by itself on a tab draft opened to apply). No new permission, no new host, no new
 > data collected — the listing text and the privacy disclosures below are unchanged. Checked against the Chrome Web
 > Store's 2026 policy update (enforced 2026-08-01: every data collection prominently disclosed, changes in data
 > handling disclosed to users): this version changes no data handling.
 
 > **v1.6.0 (2026-10-30, D112 — NOT yet uploaded; released on the owner's word).** The manifest is 1.6.0 since D112
-> item 4 (global read, `d43550f` — its listing changes are that commit's). ⭐⭐ **D112 item 7 adds ONE optional API
+> item 4 (global read, `ad99064` — its listing changes are that commit's). ⭐⭐ **D112 item 7 adds ONE optional API
 > permission, `cookies`** — *"Let draft apply here while you're away"*: on a signed-in amazon.jobs page the dock offers
 > the line; a small window's Allow asks Chrome for `cookies` and that portal's three hosts; the extension verifies the
 > apply worker's key against the identity built into it, reads only that portal's cookies, seals them on the device and

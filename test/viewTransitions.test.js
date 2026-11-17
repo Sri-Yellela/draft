@@ -126,7 +126,7 @@ test("the three surfaces carry the shared title, and the tab row navigates throu
   assert.doesNotMatch(read("client/src/components/ApplicationTracker.jsx"), /vtTitle/, "a second element of the same transition name");
   const app = read("client/src/App.jsx");
   const handler = app.slice(at(app, "const handlePanelChange = useCallback", 0, "tab handler"), at(app, "const handleProfileActivate", 0, "next"));
-  // ⭐ D167 (changed on purpose, 45b `45076cf`): Profile and Interview are places of their own — a third tab route, also
+  // ⭐ D167 (changed on purpose, 45b `5104dbf`): Profile and Interview are places of their own — a third tab route, also
   // through the transition. The rule is the next line: no tab navigation bypasses it.
   assert.equal((handler.match(/transitionTo\(navigate,/g) || []).length, 3);
   assert.doesNotMatch(handler, /\bnavigate\(/, "a tab navigation that bypasses the transition");

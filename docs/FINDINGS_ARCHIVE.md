@@ -102,8 +102,8 @@ production with the SPA's `index.html`, because the client catch-all answers 200
 path. A status-code probe "confirmed" a deployment that had not happened. **Assert a specific JSON
 key, never a 200** — that is why task T's `approvalCap` probe worked.
 
-**The cleanup brake was committed, documented, and not deployed** for a day. `bd95d20` was in `main`
-while production ran a build predating `abea2c9`, committed 49 seconds later. 1248 live postings
+**The cleanup brake was committed, documented, and not deployed** for a day. `6233ea9` was in `main`
+while production ran a build predating `0147c9b`, committed 49 seconds later. 1248 live postings
 were one process start from the id-85 predicate. Documenting a guard does not guard anything.
 
 **Production enrichment was dead for three days and perfectly instrumented.** Railway carried a

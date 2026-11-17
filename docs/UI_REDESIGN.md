@@ -89,7 +89,7 @@ implies a precision the engine does not have; sequence does not. The band label 
 demand, but the primary signal should be where the card sits.
 
 ✅ **The dependency is met.** The owner decided position encodes fit (09-29), and the board ranks by
-it since `28b8a33` (deployed 09-30 in `9108a15`; the boot pass scored all 2,688 active jobs):
+it since `60a668d` (deployed 09-30 in `eaa2537`; the boot pass scored all 2,688 active jobs):
 rank keys → band (Strong, Moderate, *not established*, Weak) → score → recency. *Not established*
 — a declined score or one not yet computed — sorts between Moderate and Weak and is never coerced to
 a number. The deck deals from exactly this order; see §Step 3.
@@ -209,11 +209,11 @@ Specific to this work:
 5. **Mobile** — `ANDROID.md` 2c/2d revised for the deck, not the board
 6. **Dark mode**
 
-✅ **Decided 09-29: position encodes fit**, and the ranking landed (`28b8a33`). Step 3 is unblocked.
+✅ **Decided 09-29: position encodes fit**, and the ranking landed (`60a668d`). Step 3 is unblocked.
 
 ---
 
-## Step 2 status — tokens and the paper substrate (2026-09-29, `1fd46dc` + `0b76191`; LIVE since `9108a15`, 09-30)
+## Step 2 status — tokens and the paper substrate (2026-09-29, `eee4795` + `c35d921`; LIVE since `eaa2537`, 09-30)
 
 **Built:** `client/src/styles/colorTokens.js` is the one named token file (mirrors `zLayers.js`:
 one object `C`, published once as `--c-*` custom properties). The video background and the
@@ -240,7 +240,7 @@ screenshotted — step 2 photographed only what renders without a backend. Band/
 (`#16a34a` 2.81:1, `#d97706` 2.71:1 on cream) FAIL AA as text and are in that remainder. The grain
 is deliberately faint (measured spread 6 levels); how much texture glass needs is an owner call.
 
-## Step 2b status — the signed-in app (2026-09-30, `2356153`; LIVE since `9108a15`)
+## Step 2b status — the signed-in app (2026-09-30, `052a43f`; LIVE since `eaa2537`)
 
 **Built:** the 22 budgeted files are migrated — **549 literals, 0 left**; `BUDGET` in
 `test/colorLiteralGuard.test.js` is empty and the 22 files (plus `styles/bandStyle.js`) are pinned
@@ -281,7 +281,7 @@ measured a luminance sd of 0.95 — flat. Six candidates were rendered and measu
 (`draft-screenshots/grain/bench-2.png`); chosen: pebble frequency 0.28 × 2 octaves (0.14 was
 blotchy), with a white SHEEN layer for the lit side of each pebble — the contrast floor caps the
 shadow, not the light. sd 0.95 → 3.6; darkest substrate pixel `#E6DED2`, still above
-`CANVAS_SHADE`, and the floor is now a test computed from the component's constants (`0d67462`).
+`CANVAS_SHADE`, and the floor is now a test computed from the component's constants (`79be625`).
 
 ---
 
@@ -594,15 +594,15 @@ can be more apparent". In order:
 
 | | Commit | What |
 |---|---|---|
-| Grain + glass | `3f448e7` | Bench C exactly; the floor token moved for it (`CANVAS_SHADE` → `#DFD6C9`) and every pair re-proved (`WARNING` darkened). `styles/glass.js`: a lit glass material — specular top edge, upper-left sheen, a body clearer at the bottom, rim and underside, a warm resting shadow. Found: the board sat on `theme.bg`, which is the GLASS token, so the listing was a 58% cream sheet over the leather |
-| 3a | `be26aa7` | Migration 111 `daily_drafts`; the deal service; the board handler became `boardPageResponse` so the deal uses the board's own query |
-| 3b | `4a139af` `9464bae` | `GET /api/draft/today`; contract 1.2.0; the deck surface may not send any `approvalMode`; frozen evidence ("why") per card |
-| 3c/3d/4 | `be8833a` | `DeckView` — Today's draft; keys, web swipe, the stack, the stamps, the fly-outs, the slash; one `MotionConfig`; `/app` → Today |
+| Grain + glass | `e3f21f0` | Bench C exactly; the floor token moved for it (`CANVAS_SHADE` → `#DFD6C9`) and every pair re-proved (`WARNING` darkened). `styles/glass.js`: a lit glass material — specular top edge, upper-left sheen, a body clearer at the bottom, rim and underside, a warm resting shadow. Found: the board sat on `theme.bg`, which is the GLASS token, so the listing was a 58% cream sheet over the leather |
+| 3a | `2ffad4a` | Migration 111 `daily_drafts`; the deal service; the board handler became `boardPageResponse` so the deal uses the board's own query |
+| 3b | `d7e52a7` `16aea18` | `GET /api/draft/today`; contract 1.2.0; the deck surface may not send any `approvalMode`; frozen evidence ("why") per card |
+| 3c/3d/4 | `0a4b9ef` | `DeckView` — Today's draft; keys, web swipe, the stack, the stamps, the fly-outs, the slash; one `MotionConfig`; `/app` → Today |
 | 5b | draft-android `f7fdc2c` | Android's Jobs tab is Today on the same deal; right is a server Draft; two gestures only |
-| 6 | `6788a8e` | Dark mode — both palettes proved; the leather per theme with the floor inverted |
+| 6 | `84e93be` | Dark mode — both palettes proved; the leather per theme with the floor inverted |
 
 **Deviations from the design, recorded:** ~~the theme preference is per device~~ — closed 09-30
-(`c39dff7`, it follows the account); ~~Android keeps its earlier Material look~~ — closed 09-30
+(`322ea41`, it follows the account); ~~Android keeps its earlier Material look~~ — closed 09-30
 (draft-android `d2f0e3a`; the one remaining difference: no backdrop blur on Android glass);
 a deck transition test is a reducer test plus a reduced-motion screenshot, not a rendered-DOM test
 (the client has no DOM test harness). Screenshots: `C:\Users\duggi\WebstormProjects\draft-screenshots\`

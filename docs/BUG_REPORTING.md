@@ -1,8 +1,8 @@
 # Bug reporting and a ticket panel — design (D3)
 
 **Design document. Nothing here is built.** ⛔ Do not write any of it into `ARCHITECTURE.md` until it is.
-Brief: WORKLOG § "D3 · BUG REPORTING AND A TICKET PANEL". Written 2026-10-03 against `main` `131e721`
-(local; D1 `c6bd112` and D2 `568b556` included). Every "today" claim below was read from code, with
+Brief: WORKLOG § "D3 · BUG REPORTING AND A TICKET PANEL". Written 2026-10-03 against `main` `c13af09`
+(local; D1 `58547af` and D2 `35cc912` included). Every "today" claim below was read from code, with
 file:line — not from a doc.
 
 ⛔ **The payload and the data model come first. The panel is the easy half.**

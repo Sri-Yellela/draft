@@ -1,4 +1,4 @@
-# Staging — the plan (APPROVED 11-11; guard BUILT `47d3bcd8`; staging CREATED 11-11 21:04Z — see §11)
+# Staging — the plan (APPROVED 11-11; guard BUILT `ee6a27cc`; staging CREATED 11-11 21:04Z — see §11)
 
 46g, 2026-11-11 (WORKLOG A188). The owner: *"we would soon need to separate deploys for users and testing and also A/B"* — then *"start with staging, draft it first"*.
 
@@ -47,7 +47,7 @@ The code reads 134 names (`grep env.X` over server.js, routes, services, shared,
 | **Reaches other sites** | `DISCOVERY_PAUSED` `PIPELINE_PAUSED_SOURCES` `BOARD_FIT_PRECOMPUTE` | `DISCOVERY_PAUSED=1`; the posting feeds paused (staging never crawls employers — production already does, and a second crawler doubles their load) |
 | **Everything else** | `DRAFT_READ_WORKERS_SIZE`, `BG_JOBS`, `READ_SLOW_MS`, the `DRAFT_*` switches … | copied as production has them — staging must behave like production; `READ_SLOW_MS` may be set for measurement |
 
-**The guard in code (BUILT `47d3bcd8`, `services/stagingGuard.js`, test `a188StagingGuard`; staging sets `DRAFT_ENV=staging`):** `DRAFT_ENV=staging` makes the server **refuse to start** if any live-looking credential is present (a `sk_live_` Stripe key, the production model-key label or fingerprint, a Resend / Twilio / VAPID / Hirebase key, a `COOKIE_DOMAIN`) and forces the kill switches on (`DISCOVERY_PAUSED`, billing off, marketing sends off). A mistake in the variable table then stops the boot instead of emailing real people. `/api/version` reports `env: staging`; every page shows a small "staging" mark.
+**The guard in code (BUILT `ee6a27cc`, `services/stagingGuard.js`, test `a188StagingGuard`; staging sets `DRAFT_ENV=staging`):** `DRAFT_ENV=staging` makes the server **refuse to start** if any live-looking credential is present (a `sk_live_` Stripe key, the production model-key label or fingerprint, a Resend / Twilio / VAPID / Hirebase key, a `COOKIE_DOMAIN`) and forces the kill switches on (`DISCOVERY_PAUSED`, billing off, marketing sends off). A mistake in the variable table then stops the boot instead of emailing real people. `/api/version` reports `env: staging`; every page shows a small "staging" mark.
 
 ## 5 · Data — synthetic only
 

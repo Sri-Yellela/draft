@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // ⭐ D151 Rule 5 · SETTLE A SCALE FIXTURE ONCE — run the server's own background passes (descriptions, tags, levels) to
 // completion on the fixture, so `npm run test:scale` measures the STEADY STATE production is in (its board is tagged),
-// not a 100k-posting cold backlog. Without this the boot's tag / level walk — sliced to ≈ 50 ms since a3dc58a, so it takes
+// not a 100k-posting cold backlog. Without this the boot's tag / level walk — sliced to ≈ 50 ms since 45d4ff6, so it takes
 // minutes at 100k — runs through the suite's load window and every request queues behind it (seen 11-08: stalls of 1–3 s
 // logged next to "[tags] (boot) tagged 50 of …").
 //   node scripts/scaleSettleFixture.mjs --fixture tmp/scale-100k

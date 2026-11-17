@@ -3130,7 +3130,7 @@ export const MIGRATIONS = [
     },
     {
       // 106 — CREDENTIAL-SHAPED RESIDUE OF A DELETED FEATURE.
-      // The extension token copy/paste flow was removed in c818b9c. SQLite does not drop a table
+      // The extension token copy/paste flow was removed in ee2c3b0. SQLite does not drop a table
       // when its CREATE statement leaves the source, so production kept `import_extension_tokens`
       // — 3 rows of token hashes bound to users(id) that no code can expire, consume or rotate,
       // because the code that did was deleted. Zero references repo-wide, verified before writing
@@ -3261,7 +3261,7 @@ export const MIGRATIONS = [
     {
       // 109 — RESTORE THE SENIORITY ENRICHMENT STRIPPED OUT OF normalized_title.
       //
-      // ccfef0f stopped enrichment overwriting this column. This repairs what it already did — but
+      // 8e161a9 stopped enrichment overwriting this column. This repairs what it already did — but
       // only the part of it that measurement can defend, which is NARROWER than the audit that
       // prompted it first claimed.
       //

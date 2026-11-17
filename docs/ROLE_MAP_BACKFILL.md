@@ -188,7 +188,7 @@ once and nothing on every boot after.
 
 ### What it actually did on production: nothing, correctly
 
-Deployed as `a110365` and then read back from the deployment (read-only, `/api/admin/db/raw-query`):
+Deployed as `1fcddc5` and then read back from the deployment (read-only, `/api/admin/db/raw-query`):
 
 | | production |
 |---|---|

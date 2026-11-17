@@ -23,7 +23,7 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
     assert.equal(d.title, null, `${size}: no page title on Home`);
     // ⭐ D156 (5) (changed on purpose): no "Sort: …" word — the sort is an icon inside the search (test/d156Home.test.js).
     assert.equal(d.sort, null, `${size}: no Sort word at the top`);
-    // ⭐ D156 (1d) (changed on purpose): the sentence's ORIGINAL type and marked look (67be9da) — the logo face, its words
+    // ⭐ D156 (1d) (changed on purpose): the sentence's ORIGINAL type and marked look (7ebed68) — the logo face, its words
     // in ink over the quiet accent's .16em highlighter underline, each an inline box with a transparent 1px edge.
     assert.match(d.sentence.family, /^Poppins/, `${size}: the sentence in the logo face`);
     assert.equal(d.sentence.color, BODY);
@@ -42,7 +42,7 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
     // the row's 20 / 14 16.
     // ⭐ D152 (6): the list keeps its pairs at both widths now (the posting opens in place of it, not beside it).
     const bubble = true;
-    // ⭐ D156 (1b) (changed on purpose): D1's bubble padding, 16 / 20 (c6bd1124's JobBubble.css).
+    // ⭐ D156 (1b) (changed on purpose): D1's bubble padding, 16 / 20 (58547afd's JobBubble.css).
     assert.deepEqual([d.row.bg, d.row.radius, d.row.border, d.row.shadow, d.row.padding],
       [CARD, bubble ? "22px" : "20px", "0px", "none", bubble ? "16px 20px" : "14px 16px"],
       `${size}: a row is the card, no border, no shadow`);
@@ -100,7 +100,7 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
   // ⭐ D156 (1c) (changed on purpose, owner 11-05: "the card can turn into the long post"): the posting is drawn ON THE
   // DECK, in the front card's place — the deck's column (from the rail's 72 + the page's 24, 390 wide), the card's corner.
   const D = out.desktop;
-  // ⭐ D167 (changed on purpose, 45b f7a67c3): "the dock never pushes the page" — the 72 px rail is gone; at 1280 the dock
+  // ⭐ D167 (changed on purpose, 45b 21ff9b5): "the dock never pushes the page" — the 72 px rail is gone; at 1280 the dock
   // is a row at the top, so the deck's column starts at the page's own 24.
   assert.equal(D.dock?.place, "top", "the dock sits at the top at 1280");
   // ⭐ 46q FULL WIDTH (changed on purpose): the page gutter at 1280 is 3vw = 38.4 (was Home's 24).

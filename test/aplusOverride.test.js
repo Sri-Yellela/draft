@@ -37,7 +37,7 @@ test("aPlusStrategyTimesModel: a served Generate takes the admin's strategy and 
   // The generation kernel decides the served mode, and only a GENERATE gets a strategy (A+ stays the full call).
   const s = read("server.js");
   const kernel = s.slice(at(s, "async function coreGenerateResume("), at(s, "const generateBody = toolsGenerateRequest("));
-  // 45n A137 option (a) (a23f2bec): promptMode / eventSubtype became `let` — an A+ request whose base already scores
+  // 45n A137 option (a) (43e82f65): promptMode / eventSubtype became `let` — an A+ request whose base already scores
   // >= the minimum is served as a lean GENERATE — so the tailoring line leads with that case (pins moved on purpose).
   assert.match(kernel, /let promptMode     = servedPromptMode\(db, tool\);/);
   assert.match(kernel, /let eventSubtype   = promptMode;/, "the ledger says what was served");

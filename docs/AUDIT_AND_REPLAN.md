@@ -67,7 +67,7 @@ method, not as fact.
 
 5 · ENRICHMENT AND THE BALANCE
    Outstanding candidates, per-column coverage, and confirm the Anthropic balance is still
-   deliberately unfunded. Capture now degrades rather than failing (e602a5f) — confirm that holds
+   deliberately unfunded. Capture now degrades rather than failing (cffafe6) — confirm that holds
    in production, which has not been exercised with a real posting.
 
 6 · RAILWAY DOMAIN SLOTS — an open question blocking the split

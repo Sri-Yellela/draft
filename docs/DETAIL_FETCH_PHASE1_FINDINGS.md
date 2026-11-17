@@ -208,7 +208,7 @@ current pricing, ~**$3.90 of downstream enrichment** (1,500 × ~$0.0026) spread 
 - **Adobe: 300 of 711 (42%).** `limit: 20` is **forced** — Workday returns `400` for `limit=50` and
   above. So 15 pages × 20 is the ceiling the loop can reach, and the remaining 411 need more pages.
 
-Neither is this task's scope; both are the `0de67c8` shape (a cap that discards without saying so)
+Neither is this task's scope; both are the `d0ba45b` shape (a cap that discards without saying so)
 and both should be recorded rather than fixed here.
 
 ---

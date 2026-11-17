@@ -212,7 +212,7 @@ Three premises were stale or wrong. All were caught by measuring them, which is 
 |---|---|
 | "`job_role_map` holds **5 rows** locally… any UI verification of curation done locally is measuring fixtures" | **2,188 rows.** A crawl repopulated it (`classifyForIngest` writes at ingest). Local verification is no longer measuring fixtures — but **277 active rows still have no map row**, because `am3RestoreBoard` restores `scraped_jobs` without it. |
 | "1,266 active rows"; "960 reachable by NEITHER" | **2,460 active**, **1,888** reachable by neither. The board grew when a crawl ran; every count in the brief is against the smaller population. |
-| "test baseline 2443" (`CORRECTIONS_REGISTER.md`) | **2,475** at `eecbe09`, **2,484** now. The register's own figure was already stale. |
+| "test baseline 2443" (`CORRECTIONS_REGISTER.md`) | **2,475** at `4f6a499`, **2,484** now. The register's own figure was already stale. |
 
 One more, not a correction but worth recording: the résumé basis contributes almost nothing to the
 score, which caps how much any membership rule can achieve.

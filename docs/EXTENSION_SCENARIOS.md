@@ -10,9 +10,9 @@ rows"** (added after the 43k merges: T17 dock, T18 + T23, T20). Each row's wordi
 row is added to the WORKLOG first, then here, with the same number. `test/t10ScenarioRows.test.js` fails if a number
 1–46 is missing from this table or appears twice. (43)–(46) are the 10-19 field report's rows (T31–T34), added 10-30.
 
-**Measured** 2026-10-15 on local `main` `9f3864c` (43k: binding-first, T9, D97R + T12, T17 dock, T22 launcher,
+**Measured** 2026-10-15 on local `main` `8e579db` (43k: binding-first, T9, D97R + T12, T17 dock, T22 launcher,
 T18 + T23, T20; then T25 + T21, T24 (migration 168) and the live-markup lane — `test/liveFormMarkup.test.js`,
-`docs/LIVE_FORM_MEASUREMENT.md`, the Greenhouse fixture rewritten to measured markup). First mapped on `7e9c0c1`,
+`docs/LIVE_FORM_MEASUREMENT.md`, the Greenhouse fixture rewritten to measured markup). First mapped on `234c5ea`,
 re-checked after that merge. See *Test runs* at the end. **Updated 2026-10-17** (open items 4 and 5): rows 5, 6, 7, 12, 13, 17, 34
 and 39 → COVERED, rows 16, 18 and 19 gained tests and stay PARTIAL — each row's cell says what was added.
 
@@ -216,7 +216,7 @@ below passes. The order follows a real application, so earlier steps set up late
 
 Every file cited above was run with `node --import ./test-support/isolateTrackingSink.mjs --test test/<file>`.
 
-On `7e9c0c1`, before the merge:
+On `234c5ea`, before the merge:
 - **Run 1 — 26 files together, default concurrency (many Chromes at once): 323 tests, 317 pass, 6 fail.** The 6 were
   real-Chrome walks under load (`bindingFirst` matrix, `d99AtsOnPage` J12 dark, `j9FullPass` light, `t9` pixel parity,
   `workdayStages` Copy sheet) and `d99Bridge` › "openPosting: with the extension…" (a 7.9 s wait that fell back to the
@@ -225,7 +225,7 @@ On `7e9c0c1`, before the merge:
   210 pass, 1 fail** — `t9AtsReportComponent`'s pixel test, *"host.html could not load the card's faces"*, because this
   worktree had no `client/node_modules`.
 
-On `9f3864c` merged (after T25 + T21, T24 and the live-markup lane):
+On `8e579db` merged (after T25 + T21, T24 and the live-markup lane):
 - **The guard and every cited non-browser file — 26 files: 328 tests, 328 pass, 0 fail.** (`t10ScenarioRows`,
   `d97rT12AlwaysRead`, `d98ExtensionResume`, `d99BoardJob`, `d96AnswerLifecycle`, `fieldReport1014`, `j1Progress`,
   `j2WorkdayFixture`, `j4PanelLifecycle`, `j5AutoRead`, `j6ResumePanel`, `t11EmbeddedForm`, `t17Dock`,

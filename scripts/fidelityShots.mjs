@@ -1312,7 +1312,7 @@ const STYLE_PROBES = {
       statLabel: q("[data-deck-stat] dt", fart) ? getComputedStyle(q("[data-deck-stat] dt", fart)).fontSize : null,
       statCols: q("[data-deck-stats]", fart) ? getComputedStyle(q("[data-deck-stats]", fart)).gridTemplateColumns.split(" ").length : 0 };
 
-    // ── ⭐ D156 (1d) the filtering sentence in its ORIGINAL type (67be9da): the logo face, 800 italic, line 1.5, -.015em
+    // ── ⭐ D156 (1d) the filtering sentence in its ORIGINAL type (7ebed68): the logo face, 800 italic, line 1.5, -.015em
     const sent = q(".fh[data-fh-d147] .bh"), tok = q(".fh[data-fh-d147] .bh .tok:not([aria-pressed='true'])"), on = q(".fh[data-fh-d147] .bh .tok[aria-pressed='true']");
     const scs = sent && getComputedStyle(sent);
     out.sentence = sent && { family: scs.fontFamily, weight: scs.fontWeight, style: scs.fontStyle, size: scs.fontSize, line: scs.lineHeight, spacing: scs.letterSpacing, color: scs.color,

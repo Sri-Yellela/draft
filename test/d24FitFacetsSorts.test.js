@@ -1,6 +1,6 @@
 // D24 — FULL HOUSE, THE SERVER HALF: the fit filter, the sort panel's tie-breaks, GET /api/jobs/facets.
 //
-// shared/filterSentence.js is the contract (written first, 217d140). This file makes it true on the
+// shared/filterSentence.js is the contract (written first, 33b6f7b). This file makes it true on the
 // server and pins it, in four parts:
 //
 //   1. FUNCTION BEFORE FORM — each filter the sentence uses, measured against a migrated in-memory

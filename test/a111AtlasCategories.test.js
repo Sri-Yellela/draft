@@ -144,7 +144,7 @@ test("A111 P3 · a111AtlasSeedsEveryCategory — every categorised registry doma
   for (const c of Object.keys(CATEGORIES)) assert.ok(familiesOfCategory(c).length >= 1, `${c} has a family`);
   assert.deepEqual(FAMILY_KEYS.slice(0, 5), ["ml", "systems", "infra", "data", "backend"], "computing's tree unchanged, first");
   const file = readFamilyMapping();
-  // 45n D179 (2b37211d): twelve taxonomy families were added to shared/atlasFamilies.js with NO reviewed members in
+  // 45n D179 (aa611006): twelve taxonomy families were added to shared/atlasFamilies.js with NO reviewed members in
   // content/atlas/families.json yet — exempt until the owner reviews their members (never invented here). Every
   // family that existed before 45n must still list members.
   const AWAITING_REVIEW_45N = new Set(["frontend", "mobile", "game_graphics", "qa", "quant", "it", "security",

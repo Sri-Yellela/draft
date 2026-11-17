@@ -5,7 +5,7 @@
 //     SHRANK below their text — each with overflow:hidden — so every line was cut. Now min-height,
 //     lines never shrink, line-height ≥ 1.2. Verified in the app: no clipped text node in ALL, /d or +
 //     at 100 / 125 / 150% zoom (A92-style headless pass, 10-07).
-// (b) /d cards were dead, logos missing. FOUND: before A91 (28fc86b, live 10-06 15:50Z), /d rendered RAW
+// (b) /d cards were dead, logos missing. FOUND: before A91 (542a641, live 10-06 15:50Z), /d rendered RAW
 //     database rows from /api/jobs/pending — job_id, company_icon_url — through a card that reads
 //     jobId and companyIconUrl, so clicks found no job and logos no URL. A91 moved /d onto the board's
 //     own query and mapJobRow. Verified in the app 10-07: a card click opens the posting panel and the

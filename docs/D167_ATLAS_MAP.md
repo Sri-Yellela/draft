@@ -2,7 +2,7 @@
 
 Owner, 11-06: *"approving the sketch but where is the glossary and everything"* — **"everything" = every Atlas surface
 that exists today keeps a home in the new navigation; nothing existing is dropped.** This table was written before the
-build (lane `d167-atlas`, 45b) from the code as it stood at `3c74cead`, and `test/d167Atlas.test.js`
+build (lane `d167-atlas`, 45b) from the code as it stood at `ceca8fac`, and `test/d167Atlas.test.js`
 (`d167AtlasKeepsEverySurface`) holds the code to it.
 
 The navigation (`client/src/pages/atlas/atlasPanels.js` `ATLAS_NAV`, drawn by `AtlasNav.jsx`, the panels in

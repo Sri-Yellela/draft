@@ -76,7 +76,7 @@ test("⛔ the substring filter is GONE from the board", () => {
   assert.doesNotMatch(src, /sj\.title LIKE \? OR sj\.company LIKE \? OR sj\.description LIKE \?/);
   assert.match(src, /const keyFilter = boardSearch \? `AND \$\{boardSearch\.sql\} IS NOT NULL` : '';/);
   assert.match(src, /buildOrderKeys\(sort, richFilters\.rank\.keys,\s*\{ fit: fitRequested, search: boardSearch, established: richFilters\.established\.keys,\s*ineligible: ineligibleOrderKey\(boardEligInputs\.defaults\), ghost: boardHasGhosts, skillTier: boardSkillTier \}\)/);
-  // ^ 45p D184 B-8 (789145a8): the order also takes skillTier after ghost (pin moved on purpose).
+  // ^ 45p D184 B-8 (0e4f5b0c): the order also takes skillTier after ghost (pin moved on purpose).
   assert.match(src, /registerBoardSearch\(db\);/);
   // A search is the user asking: the profile's role scope (a default) does not hide what they typed.
   // D30: so does an explicitly chosen job function (the sentence's domain).

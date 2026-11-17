@@ -20,7 +20,7 @@ test("fidelity · the tracker (tracker-options.html): the page, the header, the 
     // .ph3 h1 — 400 44px/1 Instrument Serif, its top at the page's 84 px; the line in body grey, 16.
     assert.match(d.title.family, /^"Instrument Serif"/, `${size}: the title in Instrument Serif`);
     assert.deepEqual([d.title.size, d.title.weight, d.title.lh], ["44px", "400", "44px"], `${size}: the title 400 44/1`);
-    // ⭐ D167 (changed on purpose, 45b f7a67c3): the page starts below a top dock's reserve (--appnav-top-reserve, measured).
+    // ⭐ D167 (changed on purpose, 45b 21ff9b5): the page starts below a top dock's reserve (--appnav-top-reserve, measured).
     assert.equal(d.title.y, 84 + (d.dock?.reserve || 0), `${size}: the title at the sketch's 84 px`);
     assert.deepEqual([d.line.size, d.line.color], ["16px", BODY]);
     // .seg2 / .quiet / .btn.p — the card colour, no borders, no capsules; the primary in the accent's gradient.
@@ -52,7 +52,7 @@ test("fidelity · the tracker (tracker-options.html): the page, the header, the 
   // ⭐ D156 (3) (changed on purpose): the dock is a rail always visible at the left, and the app shell gives it its room
   // (72 px at 1280) — the page is the sketch's layout in what is left: the table from 72 + 20, taking the width the
   // timeline leaves (850 here, the sketch's 882 before the rail), the timeline 300 wide beside it, 18 apart, tops level.
-  // ⭐ D167 (changed on purpose, 45b f7a67c3): "the dock never pushes the page" — the rail and its room are gone, so the
+  // ⭐ D167 (changed on purpose, 45b 21ff9b5): "the dock never pushes the page" — the rail and its room are gone, so the
   // table is the sketch's own 882 again, and the table + 18 + the 300 timeline are one group centred in the 1280 (D163).
   // ⭐ 46q FULL WIDTH (owner 11-16, changed on purpose): the page fills the 1280 inside the page gutter (3vw = 38.4), so
   // the table takes what the 18 + 300 timeline leave — no longer the sketch's 882 centred.
@@ -69,7 +69,7 @@ test("fidelity · the tracker (tracker-options.html): the page, the header, the 
   // Layout 3: the switch, the table alone, full width inside the 20 px gutters.
   assert.equal(ph.phoneSwitch, true, "the Applications · Auto-apply timeline switch on a phone");
   assert.equal(ph.timeline.shown, false, "the timeline waits behind the switch");
-  // ⭐ D167 (changed on purpose, 45b f7a67c3): a phone's dock is at the top, so no rail: the page's 20 each side.
+  // ⭐ D167 (changed on purpose, 45b 21ff9b5): a phone's dock is at the top, so no rail: the page's 20 each side.
   // ⭐ 46q FULL WIDTH (changed on purpose): the page gutter's phone minimum, 16 each side.
   assert.deepEqual([ph.table.x, ph.table.w], [16, 358]);
   assert.equal(ph.title.x, ph.table.x, "the title starts where the table does");

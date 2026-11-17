@@ -320,7 +320,7 @@ test("a run that fetched rows and wrote NONE is not healthy, whatever its status
 // production raised CRITICAL for workable (0 of 23) and recruitee (0 of 16) while both were
 // working exactly as designed. `unchanged` was not even selected by the health query.
 //
-// This matters more now than when the route was written: `2e4429e` DELIVERS these alerts. A false
+// This matters more now than when the route was written: `536b941` DELIVERS these alerts. A false
 // critical is no longer a wrong cell in a panel nobody opens, it is the standing alarm nobody
 // reads — the exact outcome that commit's own header warns about.
 
@@ -384,7 +384,7 @@ test("a source whose whole yield the classifier refuses gets its own state and i
 
 test("refusals that do not add up to the fetch are an outage again, not a policy outcome", async () => {
   // 23 fetched, 15 refused, and no account of the other 8. A run that cannot say where rows went
-  // is the 0de67c8 silent-discard shape, and it must not be downgraded to the benign word.
+  // is the d0ba45b silent-discard shape, and it must not be downgraded to the benign word.
   // ⛔ This one passes against the OLD classifier too, and that is the point: it guards the new
   // `all_rejected` path from swallowing a case the old check got right. The three tests above are
   // the ones proved to fail by injecting `written === 0` back in.

@@ -1877,7 +1877,7 @@ function workdayShapedRoute(path, send) {
 //   ON THE PATH (Save and Continue, #next-step):
 //     myInformation → myExperience → applicationQuestions → voluntaryDisclosures → selfIdentify → review
 //   OFF THE PATH (reached with window.__wd.go(id), the harness's goStep — the URL never changes):
-//     signIn        — sign-in on the SAME applyManually URL (d53fbd7: there is no separate sign-in address), with a
+//     signIn        — sign-in on the SAME applyManually URL (56cbfb4: there is no separate sign-in address), with a
 //                     PASSWORD input pre-filled with WS_CONFIG.passwordSentinel, so a run can prove it never left
 //                     the page (test-support/extensionBrowser.mjs: leaked()).
 //     unrecognised  — no control draft can recognise: the "Nothing was filled" case (D96 §5).
@@ -1948,7 +1948,7 @@ const WS_PHONE_CODES = ['Canada (+1)', 'India (+91)', 'United Kingdom (+44)', 'U
 const WS_STEPS = [
   { id: 'signIn', title: 'Sign In', onPath: false, body: () => [
     // ⚠ shape assumed, re-measure on a live tenant (O73): Workday's sign-in panel on the applyManually URL — the
-    // owner saw sign-in there (d53fbd7); its markup and automation ids were never measured.
+    // owner saw sign-in there (56cbfb4); its markup and automation ids were never measured.
     wsText('ws-signIn-email', 'email', 'Email Address', { req: true, type: 'email', autocomplete: 'username' }),
     wsText('ws-signIn-password', 'password', 'Password', { req: true, type: 'password', autocomplete: 'current-password' }),
     `<button type="button" data-automation-id="signInSubmitButton" data-ws-go="myInformation">Sign In</button>`,

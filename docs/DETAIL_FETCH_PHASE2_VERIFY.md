@@ -191,7 +191,7 @@ A third, found in review rather than by a run: **the per-company cap wasted the 
 lived only in `budget.take()`, so the SELECT filled its `LIMIT` by priority — and Bosch offers 900
 of the 1,200 SmartRecruiters rows, so a 300-row day would take almost all Bosch rows, fetch its 100,
 and refuse ~200 slots Ubisoft and Adobe rows could have used. Budget silently discarded: the
-`0de67c8` shape again. The cap is now applied in the SELECT with `ROW_NUMBER() OVER (PARTITION BY
+`d0ba45b` shape again. The cap is now applied in the SELECT with `ROW_NUMBER() OVER (PARTITION BY
 company)` and *also* kept in the budget, so the SELECT decides who is offered a slot and the budget
 remains the thing that cannot be exceeded.
 

@@ -1,5 +1,5 @@
 /**
- * v1.5.2 · ONE JOB ACROSS WORKDAY'S STAGES — the walk of 8d1fa87, on the J2 harness (scripts/workdayStagesWalk.mjs
+ * v1.5.2 · ONE JOB ACROSS WORKDAY'S STAGES — the walk of f72be86, on the J2 harness (scripts/workdayStagesWalk.mjs
  * runs this file). The owner's case (10-12): the application opened straight from LinkedIn at
  *   https://zoom.wd5.myworkdayjobs.com/en-US/Zoom/job/Remote--(US)/Software-Engineer_R19749-1/apply/applyManually?source=linkedin
  * — the extension never saw the posting, and the board's Zoom copy came from another ATS.

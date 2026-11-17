@@ -6,7 +6,7 @@ calls, static evaluation and eval of the prompt and tokens itself is the first t
 report. Counts, lengths and rule names only: no résumé or posting text appears here.
 
 **Measured 2026-11-01 (43x).** The tools service is `resume-master` `50f83e0` (= production, `/v1/version`); draft is
-`59cec0b`. Tool: `scripts/d123LlmAudit.mjs --static`, which builds the EXACT request draft sends
+`3848d4f`. Tool: `scripts/d123LlmAudit.mjs --static`, which builds the EXACT request draft sends
 (`services/toolsServiceRequests.js` `generateRequest`) and renders it with the tools service's own `assemblePrompt` /
 `buildRuntimeInputs`, imported from the sibling checkout (not a copy). **Evaluation set:** 3 résumés (the owner's, and
 D124's two fictional samples, `content/trial/sample-a.json` and `sample-b.json`) × 10 real postings (5 software, 5 ML /

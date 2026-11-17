@@ -25,7 +25,7 @@ rather than rebuilding it.
 
 ### Task 1 — Outcome UI · **already landed, verified not rebuilt**
 
-Found in `9edb91a`. The deliverable was not a new screen: there are **two** application endpoints,
+Found in `ebf55da`. The deliverable was not a new screen: there are **two** application endpoints,
 and the Database panel's Applications sheet already read the other one (`/api/applications`). It
 became two columns — `ATS @ Apply` and `Outcome` — on the sheet that existed, with the outcome cell
 posting to the merge endpoint rather than the generic field PATCH. No work needed.
@@ -66,7 +66,7 @@ in `project.pbxproj`.
 
 ### Task 3 — Web client cursor paging · **already landed, re-verified**
 
-Found in `5d11da7`, and thorough: requirement 4 was *answered* rather than assumed — the board is a
+Found in `e4471b6`, and thorough: requirement 4 was *answered* rather than assumed — the board is a
 **numbered** pager, so a step (Next/Prev) uses a cursor and a jump ("page 17") uses offset, because
 a cursor has no notion of position and removing offset would have deleted random page access.
 
@@ -190,7 +190,7 @@ missed.
 
 ## Files changed, with dependent verdicts
 
-### `82a5f74` — encoding repair (33 files)
+### `d18d9fa` — encoding repair (33 files)
 
 | Area | Files | Dependents checked | Verdict |
 |---|---|---|---|
@@ -206,12 +206,12 @@ missed.
 
 | Commit | Files | Note |
 |---|---|---|
-| `d199f6e` | `.gitattributes` (new) | `text=auto`. All 612 tracked text blobs verified LF-only **before** adding it, so it renormalises nothing. Mixed EOLs in 3 files were fixed in the worktree — invisible to git under `autocrlf`, which is *why* the attributes file is the actual fix |
-| `9c60c2a` | `docs/MOBILE_STATE.md`, `documentation.md` | Shape 6. §7 was the stale section; §6/§8 already had a freshness note, so that known-finding was itself stale |
-| `b0ae0ca` | `docs/ak2-corruption-sweep.md` (new), + tracked the two prompt docs | sweep report |
-| `026ea10` | `docs/QUEUED_PROMPTS.md` | status column added |
-| `728a2a8` | `docs/ak2-ats-band-distribution.md`, `ak2-ats-grading-set.md`, `ak2-ats-grading-key.json`, `scripts/ak2AtsGradingSet.mjs`, `scripts/verifyHarnesses.mjs` | generator excluded from `verify:harness` with a stated reason, per that runner's convention; it works on a **copy** of the database so the real one is untouched |
-| `990237e` | `docs/ak2-cache-batching-assessment.md`, `shared/anthropicModels.js`, `test/modelCallGuard.test.js` | guard widened + coverage test; 1h cache price flagged, **not** guessed |
+| `170728e` | `.gitattributes` (new) | `text=auto`. All 612 tracked text blobs verified LF-only **before** adding it, so it renormalises nothing. Mixed EOLs in 3 files were fixed in the worktree — invisible to git under `autocrlf`, which is *why* the attributes file is the actual fix |
+| `389923b` | `docs/MOBILE_STATE.md`, `documentation.md` | Shape 6. §7 was the stale section; §6/§8 already had a freshness note, so that known-finding was itself stale |
+| `deeadcb` | `docs/ak2-corruption-sweep.md` (new), + tracked the two prompt docs | sweep report |
+| `4b42420` | `docs/QUEUED_PROMPTS.md` | status column added |
+| `65d3135` | `docs/ak2-ats-band-distribution.md`, `ak2-ats-grading-set.md`, `ak2-ats-grading-key.json`, `scripts/ak2AtsGradingSet.mjs`, `scripts/verifyHarnesses.mjs` | generator excluded from `verify:harness` with a stated reason, per that runner's convention; it works on a **copy** of the database so the real one is untouched |
+| `9dba6ee` | `docs/ak2-cache-batching-assessment.md`, `shared/anthropicModels.js`, `test/modelCallGuard.test.js` | guard widened + coverage test; 1h cache price flagged, **not** guessed |
 
 ---
 

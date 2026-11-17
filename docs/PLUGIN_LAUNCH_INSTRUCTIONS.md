@@ -37,7 +37,7 @@
 
 **Before anything**
 1. **Place the four spec documents and `D86_UI_ADDENDUM.md`** into `draft/docs/` (they are in the outputs folder).
-2. **Review and give the go to push** `58f4a09` + the docs commit (no migration).
+2. **Review and give the go to push** `4e1e9b1` + the docs commit (no migration).
 3. **GitHub, `drafthq` org:** turn on **required two-factor authentication** (Settings → Authentication security) — *enable 2FA on your own account first.* **Add `yellela.s@jobsviadraft.com` as a verified secondary email** on your personal GitHub account.
 4. **Create the repo:** `drafthq/draft-plugin`, **Public**, no README/licence/gitignore (the agent pushes the first commit). Tell the agent the push is ready; approve the sign-in prompt.
 5. **Decide three things** and tell the agent: **the plugin name and the connector slug** (recommend a distinctive one, e.g. `draft-jobs`) · **the licence** (MIT recommended) · **the copyright holder** (your name or the company).

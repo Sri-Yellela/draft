@@ -4,7 +4,7 @@ Prompt: `docs/RECONCILE_AND_RESIDUAL.md` Part 1. Previous run: `docs/PART1_RECON
 (2026-09-09). **Read-only — nothing was changed by this audit.**
 
 Re-run because the board nearly doubled (1,266 → 2,610 active in production) and 35 commits landed
-since `339c9d1`, 13 of them today.
+since `d01addb`, 13 of them today.
 
 > **The headline: two of the five "most likely stale" claims are stale again, in the direction
 > nobody expected, and item 4's unjudged decision is now judgeable — with opposite answers for its
@@ -20,7 +20,7 @@ since `339c9d1`, 13 of them today.
 | migration high-water LOCAL | — | **108** | |
 | migration high-water PRODUCTION | 102/103 "reported local-only" | **108** | **match** |
 | contract version | — | **1.1.1**, 30 paths | |
-| commits since `339c9d1` | — | **35** | |
+| commits since `d01addb` | — | **35** | |
 
 ⛔ **Production's high-water was confirmed by a JSON key, not a 200** — per the prompt's own
 warning. `/api/version` returns `migrations.highestNumbered`. That warning earned itself again
@@ -36,8 +36,8 @@ stands except where today's evidence contradicts it. What changed since:
 
 | task | 09-09 status | now |
 |---|---|---|
-| **Y** | open | **Phase 1 probed + Phase 2 built** (`eecbe09`, `e71a602`). Sources still off by default. Phase 1 of `DETAIL_FETCH_ECONOMICS.md` still unrun |
-| **Z** | open | **DONE** — `f670b24`. The board never lost its badge; the harness had |
+| **Y** | open | **Phase 1 probed + Phase 2 built** (`4f6a499`, `e58fe55`). Sources still off by default. Phase 1 of `DETAIL_FETCH_ECONOMICS.md` still unrun |
+| **Z** | open | **DONE** — `b2db1ec`. The board never lost its badge; the harness had |
 | **CC1–CC5** | did not exist | **all DONE + deployed**, plus CC1b |
 | **AH-1/2/4, AF residual** | open | DONE |
 | **AB-1** THEIRSTACK | vestigial, owner action | **still outstanding** — see 3e |

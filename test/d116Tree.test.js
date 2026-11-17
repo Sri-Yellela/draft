@@ -87,7 +87,7 @@ test("D116 M1 · d116FamilyFieldStored — `family` is a stored column, seeded O
   assert.deepEqual(fam("docker"), { family: "backend", family_by: "curator-a" });
   assert.deepEqual(fam("python"), { family: null, family_by: "curator-a" });
   assert.equal(readNodeForEditor(db, "docker").family, "backend");
-  // 45n D179 (2b37211d) made "frontend" a real family — the unknown-family example moved to a key that is none (pin moved on purpose).
+  // 45n D179 (aa611006) made "frontend" a real family — the unknown-family example moved to a key that is none (pin moved on purpose).
   assert.throws(() => updateNode(db, "docker", { family: "not_a_family" }), (e) => e instanceof AtlasEditError && e.code === "bad_family");
   // The reviewed file: every family known, no slug twice.
   const file = readFamilyMapping();
@@ -271,7 +271,7 @@ test("D116 M7 · d116TreeRoleAndFamilyPages (data) — a role: its top skills, s
   const f = familyTree(db, "infra", 7);
   assert.equal(f.centre.postings, 40, "every posting asks for an infra skill");
   assert.deepEqual(bySlug(f).get("terraform").share, 40);
-  // 45n D179 (2b37211d): "frontend" is a family now; the unknown-family case uses a key that is none (pin moved on purpose).
+  // 45n D179 (aa611006): "frontend" is a family now; the unknown-family case uses a key that is none (pin moved on purpose).
   assert.equal(familyTree(db, "not_a_family", null), null);
   // The routes: public, 404 for an unknown, private when signed in.
   const anon = await serve(db);

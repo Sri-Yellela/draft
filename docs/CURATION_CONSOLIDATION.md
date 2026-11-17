@@ -85,7 +85,7 @@ CORRECTIONS this task made to the text below — all three found by measuring a 
     longer measuring fixtures. But 277 active rows still lack a map row (am3RestoreBoard restores
     scraped_jobs without it).
   · "1,266 active rows" / "960 reachable by NEITHER" → 2,460 active, 1,888 reachable by neither.
-  · "test baseline 2443" → 2,475 at eecbe09, 2,484 after this task.
+  · "test baseline 2443" → 2,475 at 4f6a499, 2,484 after this task.
   · Not a correction but load-bearing: basis.skills is 0 on BOTH active profiles, which caps what
     any membership rule can achieve.
 ```

@@ -8,7 +8,7 @@ code does, not legal advice and not contract terms.
 (`client/src/pages/marketing/PrivacyPage.jsx`). This register follows the code; where the two disagree, the row says
 so (⚠) and the owner decides the policy's words — the agent never rewrites legal text on its own.
 
-**Measured 2026-11-07 (45h)** from the code at `5823ec0` (`git grep` per vendor) and the policy page. Re-measure when
+**Measured 2026-11-07 (45h)** from the code at `3983e94` (`git grep` per vendor) and the policy page. Re-measure when
 a vendor is added or removed; a new outside call needs a row here AND a sentence in the policy before it ships.
 
 | Vendor | What it receives from draft | Why | Where in the code | Named in the policy | Data agreement / terms |
@@ -35,7 +35,7 @@ a vendor is added or removed; a new outside call needs a row here AND a sentence
 
 **Retired — nothing is sent any more:** Clearbit Logo API (shut down by its operator; named in the policy as
 retired) · Google Fonts (self-hosted since 2026-09-15; named as retired) · Groq / Gemini (A87, 10-05) · Jobo (D78 C) ·
-Apify (A108) · TheirStack (no code reference at `5823ec0`).
+Apify (A108) · TheirStack (no code reference at `3983e94`).
 
 **Owner, to decide:** (1) whether the policy names Google sign-in and BambooHR / Gem / Rippling (the two ⚠ rows) ·
 (2) record each ⚠ "not recorded" agreement (Railway, Anthropic, Resend, SerpApi, Adzuna, Cloudflare) — the date of

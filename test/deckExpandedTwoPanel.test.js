@@ -1,6 +1,6 @@
 // A40 (rebuilt 10-02) — the expanded card is TWO EQUAL PANELS: the full ATS report │ the card.
 // docs/BRAND_OUTLAY_AND_MOTION.md §"THE EXPANDED CARD — DECIDED 2026-10-01" is authoritative. This
-// REPLACES deckExpandedFlank.test.js, which pinned the first build (8c38dd2, da73ff9): three columns,
+// REPLACES deckExpandedFlank.test.js, which pinned the first build (5935ba5, 043acf1): three columns,
 // ATS │ card │ posting — the posting moved OUT of the card into a third column. That was the wrong design,
 // so those assertions were deleted rather than adjusted.
 //
@@ -59,7 +59,7 @@ test("⛔ ONE CLOCK, NO STAGGER: every movement reads --deck-t / --deck-ease, se
 
 test("⭐ the collapsed card is COMPACT: ONE signal line, no chip rows", () => {
   assert.doesNotMatch(deckSrc, /WhyChips|Why it's here|Not on your résumé yet/, "a chip row on the collapsed card");
-  // D129 / D124 (1884857, owner 11-01): the counts read "N of M skills" — term counts, never a score. ⭐ D145 (changed on
+  // D129 / D124 (edc601a, owner 11-01): the counts read "N of M skills" — term counts, never a score. ⭐ D145 (changed on
   // purpose): they are the "Why this job" headline now (lib/deckCardFacts.js); the folded card says the match, the title
   // and ONE info row — no signal line, no chip row.
   assert.match(read("client/src/lib/deckCardFacts.js"), /`\$\{mTotal\} of \$\{total\} skills`/);

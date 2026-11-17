@@ -160,7 +160,7 @@ test("D17 V4: nothing in production starts a model enrichment pass — no cron d
 
 test("D17 V6: no résumé classifier in draft — /api/smart-search and services/classifier.js stay deleted", () => {
   // The route sent 2,000 chars of the résumé to Haiku to pick a search query. Its only UI, the
-  // Smart Search button, was removed in a68c6c0 (2026-04-14); the route outlived it by six months.
+  // Smart Search button, was removed in d39a4b1 (2026-04-14); the route outlived it by six months.
   // The tools service still classifies INSIDE generate when no role family is sent — that is part of
   // résumé generation and pinned in resume-master's own ratchet.
   assert.equal(fs.existsSync("services/classifier.js"), false, "services/classifier.js is back");
@@ -186,7 +186,7 @@ const SCRIPT_ALLOWED = new Map([
   ["scripts/assistantEval.mjs", "T5 — the assistant.chat eval set (owner-approved assistant)"],
 ]);
 const SCRIPT_KNOWN_VIOLATIONS = new Map([
-  // V8 closed 10-05: scripts/a76LlmGradedCorpus.mjs is export → grade → import (A76, 291c906).
+  // V8 closed 10-05: scripts/a76LlmGradedCorpus.mjs is export → grade → import (A76, e1357e8).
   // V9 closed 10-05: scripts/al1ProviderQualityDiff.mjs deleted (pinned below).
   // V10 closed 10-05: scripts/al3SkillSynonyms.mjs is export → owner → import (test/a80SynonymTransfer).
   // V11 closed 10-05: scripts/al4LcaResolution.mjs is export → owner → import (test/a80LcaResolutionTransfer).

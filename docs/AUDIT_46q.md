@@ -27,16 +27,16 @@ Size: **S** < 1 h, no design · **M** a few hours or a small design choice · **
 
 | # | Screen | What | Why it matters | The fix | Size |
 |---|---|---|---|---|---|
-| F1 | Atlas → Today's question | The whole app went **blank** (`TypeError … reading 'level'`) — shot 21 | every signed-in person who opened it since D154 P6 (45n) lost the page | the practice card's route was **shadowed** by the learn router's `/progress` (lesson marks); moved to `/api/learn/practice-progress`, the card refuses an unknown shape; guard `learnRouteShadow` — `3e6887be` | S |
-| F2 | Tiny (T3), production | "rewrite this bullet…" answered *"assistant.chat fallback … has no passing evaluation … (G3)"* | T3 could never answer on production | an un-evaluated **default** fallback is dropped, not fatal — `16dcf30f` (needs the push) | S |
-| F3 | Every page | content crammed into a ~1,200 px centred column (Atlas 666 px free each side at 2560) | the owner's 11-16 spec | FULL WIDTH: the rule in BRAND.md, `styles/pageWidth.css`, 21 caps removed, guard `pageWidthGuard` — `c3a58c31` | M |
-| F4 | Landing | the job cards, the count and the sign-up band sat on the window's edge (x = 0) — shot 01 | the first thing a visitor sees looked broken | the page gutter in both landing modes; the guard reads a px fallback inside `var()` — `98fa9f21` | S |
-| F5 | Home (applications) | "Review all **2** →" under "**0** needs you" — shot 16 | two numbers for one thing on the same screen | Review all counts applications only (the 2 were the setup blockers) — `98fa9f21` | S |
-| F6 | Profile → Privacy · Admin → Atlas | still "Ask draft" (Tiny since 46n); the admin switch said "Open Ask draft to everyone" | retired name; the switch didn't say it means model spend | "Tiny"; "Let Tiny write for everyone (model calls)" — `98fa9f21` | S |
-| F7 | Home (applications) | "Nothing to show yet." on the table card's left edge | looked unfinished | padded inside the card — `98fa9f21` | S |
-| F·A224 | Account | "member since **12/31/1969**" when the account's created date is missing | an epoch date reads as a bug | no date → nothing — `50232bc6` | S |
-| F·A225 | Sign-up | the `<h1>` carries a `<style>` block (the type-set animation) — its CSS is the heading's text content | screen readers and anything reading the heading get CSS | the <style> moved beside the heading — `50232bc6` | S |
-| F·A226 | Tiny | the card's sub-line "draft's helper — no AI for anything draft alr…" is cut | the honest line about AI is the one that's cut | the line wraps — `50232bc6` | S |
+| F1 | Atlas → Today's question | The whole app went **blank** (`TypeError … reading 'level'`) — shot 21 | every signed-in person who opened it since D154 P6 (45n) lost the page | the practice card's route was **shadowed** by the learn router's `/progress` (lesson marks); moved to `/api/learn/practice-progress`, the card refuses an unknown shape; guard `learnRouteShadow` — `d45428bd` | S |
+| F2 | Tiny (T3), production | "rewrite this bullet…" answered *"assistant.chat fallback … has no passing evaluation … (G3)"* | T3 could never answer on production | an un-evaluated **default** fallback is dropped, not fatal — `974d00d0` (needs the push) | S |
+| F3 | Every page | content crammed into a ~1,200 px centred column (Atlas 666 px free each side at 2560) | the owner's 11-16 spec | FULL WIDTH: the rule in BRAND.md, `styles/pageWidth.css`, 21 caps removed, guard `pageWidthGuard` — `92db11bc` | M |
+| F4 | Landing | the job cards, the count and the sign-up band sat on the window's edge (x = 0) — shot 01 | the first thing a visitor sees looked broken | the page gutter in both landing modes; the guard reads a px fallback inside `var()` — `b25a84d6` | S |
+| F5 | Home (applications) | "Review all **2** →" under "**0** needs you" — shot 16 | two numbers for one thing on the same screen | Review all counts applications only (the 2 were the setup blockers) — `b25a84d6` | S |
+| F6 | Profile → Privacy · Admin → Atlas | still "Ask draft" (Tiny since 46n); the admin switch said "Open Ask draft to everyone" | retired name; the switch didn't say it means model spend | "Tiny"; "Let Tiny write for everyone (model calls)" — `b25a84d6` | S |
+| F7 | Home (applications) | "Nothing to show yet." on the table card's left edge | looked unfinished | padded inside the card — `b25a84d6` | S |
+| F·A224 | Account | "member since **12/31/1969**" when the account's created date is missing | an epoch date reads as a bug | no date → nothing — `76ee4ca9` | S |
+| F·A225 | Sign-up | the `<h1>` carries a `<style>` block (the type-set animation) — its CSS is the heading's text content | screen readers and anything reading the heading get CSS | the <style> moved beside the heading — `76ee4ca9` | S |
+| F·A226 | Tiny | the card's sub-line "draft's helper — no AI for anything draft alr…" is cut | the honest line about AI is the one that's cut | the line wraps — `76ee4ca9` | S |
 
 ## To act on — ranked (A rows in the WORKLOG)
 

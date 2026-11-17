@@ -191,7 +191,7 @@ submission, that platform is out of scope for E3; it stays on the desktop gated 
 
 ## 7 · Reversing the `/api/apply/session/*` retirement — recorded, not quiet
 
-`3d8e26a` (2026-08-25) made both routes answer **410**, with the replacement named: *"Portal
+`1f9c93f` (2026-08-25) made both routes answer **410**, with the replacement named: *"Portal
 sessions are no longer stored on the server. A portal that wants you signed in is handed to your
 own browser."* E3 reverses that decision. It is a legitimate reversal, and this is its record:
 
@@ -208,7 +208,7 @@ own browser."* E3 reverses that decision. It is a legitimate reversal, and this 
 
 ## 8 · The kill switch applies to this too
 
-`1bb2a29` made the apply kill switch reachable in a hurry. E3 runs are applications, so they obey
+`a45afea` made the apply kill switch reachable in a hurry. E3 runs are applications, so they obey
 it — **checked per run, before the cookies are decrypted**, not only at batch admission. A stopped
 switch must mean no profile is decrypted, which is a stronger and more testable statement than "no
 application is submitted".

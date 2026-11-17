@@ -4,7 +4,7 @@
 // hex stays 6-digit, every declared pair passes at the theme's OWN target, nothing outside themes/index.js
 // decides a theme, the pre-paint script resolves exactly what the app resolves (no flash), and — P1's proof
 // that building the module changed nothing — Paper Light and Charcoal Dark are pinned to the palettes as
-// they stood before the move (sha256 of the token objects, measured on f04c927).
+// they stood before the move (sha256 of the token objects, measured on 9d36794).
 import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
@@ -76,7 +76,7 @@ test("⛔ every declared pair passes at the theme's OWN target", () => {
 
 test("⭐ P1 changed nothing: Paper Light and Charcoal Dark are the pre-move palettes, value for value", () => {
   const h = (o) => crypto.createHash("sha256").update(JSON.stringify(o)).digest("hex");
-  // Measured 10-11 on f04c927, from styles/colorTokens.js C_LIGHT / C_DARK and styles/paper.js PAPER, before the move.
+  // Measured 10-11 on 9d36794, from styles/colorTokens.js C_LIGHT / C_DARK and styles/paper.js PAPER, before the move.
   // Keys ADDED since the move, each with its reason — the pin covers every value that existed before it, so
   // an addition is allowed and a change to an existing value is not.
   const ADDED_SINCE_P1 = new Set(["DOC_PAPER", "DOC_INK",   // D91 P2: the document surface (cover letter)

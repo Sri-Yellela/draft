@@ -82,7 +82,7 @@ const render = async (meta, openResume = true) => {
 
 test("d164NoActionLost · every action the posting and the deck card had before D145 is still reachable (T1's table)", () => {
   // T1's table is in the repo and names the baseline it measured against.
-  assert.match(actionsDoc, /485dcdb9/);
+  assert.match(actionsDoc, /529dad8c/);
   assert.match(actionsDoc, /## MISSING \(bugs for T2\)/);
   // [action, source, anchor] — one row per line of docs/D164_ACTIONS.md's tables.
   const CHECKLIST = [

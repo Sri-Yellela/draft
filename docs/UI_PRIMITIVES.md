@@ -2,7 +2,7 @@
 
 *2026-10-31 · read-only audit of `client/src/` and `extension/` · spec: WORKLOG D122 (P1) · rules: D60 no pills, A93 one implementation (CLAUDE.md). Paths are relative to `client/src/` unless they start `extension/`. Counts come from grep / awk over `*.jsx` / `*.js` / `*.css`. A `<button>` was classified by its own tag text (up to 8 lines), so a button styled by a spread, a parent selector or a computed className counts as "no class / inline style". The counts are approximate. Facts only: P2 decides what to change, after the owner has read this.*
 
-> Recorded at the time of the audit: the session's own fix to the Learn panel (`e23cff6`) added DepthButton's `wrap` variant. It is used at one call site (`LearnCircle.jsx`), and D121's `SponsorshipSignal.jsx` was being added as this was written.
+> Recorded at the time of the audit: the session's own fix to the Learn panel (`7e48205`) added DepthButton's `wrap` variant. It is used at one call site (`LearnCircle.jsx`), and D121's `SponsorshipSignal.jsx` was being added as this was written.
 
 ## 1 · The primitives at a glance
 

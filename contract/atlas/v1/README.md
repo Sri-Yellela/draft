@@ -2,7 +2,7 @@
 
 **Status: a proposal for the owner's (and the chat assistant's) review. Nothing calls it yet; no code moves
 until P1 is reviewed (D134: P2–P5 wait).** Written 2026-11-02 (session 44f) from the P0 audit,
-[`docs/ATLAS_BOUNDARY.md`](../../../docs/ATLAS_BOUNDARY.md), and from the code as it is at `c1bb6c7`.
+[`docs/ATLAS_BOUNDARY.md`](../../../docs/ATLAS_BOUNDARY.md), and from the code as it is at `2fcd674`.
 
 - `openapi.yaml` — the API, OpenAPI 3.1. ⛔ **Additive changes only within v1** (a new optional field, a
   new endpoint, a new enum value only where the field is marked `x-extensible-enum`). Removing or

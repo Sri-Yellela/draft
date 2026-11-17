@@ -304,7 +304,7 @@ test("d146TimelineBesideDesktop — the table, and the timeline card beside it a
   assert.ok(at(mainJsx, "<ApplicationTracker rows={shownRows}") < at(mainJsx, "<DraftHouseTree view={view}"), "the table, then the timeline");
   // D149 (11-03) changed this on purpose: the sketch's head is two lines — "Auto-apply", then the mode and run times.
   assert.match(panel, />Auto-apply<\/h3>/);
-  // 45n D182 (18d82c2c): the mode words left this line (the header's mode switch shows them); the run times stay,
+  // 45n D182 (bb297b05): the mode words left this line (the header's mode switch shows them); the run times stay,
   // as their own sentence (pins moved on purpose).
   assert.match(panel, /\{runsWord && <p className="dht-head__sub">\{runsWord\}<\/p>\}/);
   assert.match(panel, /`Runs at \$\{runTimes\.length > 1 \?/);

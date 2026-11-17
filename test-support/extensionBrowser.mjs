@@ -1,7 +1,7 @@
 /**
  * J2 · THE EXTENSION BROWSER HARNESS — the REAL extension, in a real Chrome, on the Workday-shaped fixture.
  * =========================================================================================================
- * Extracted from scripts/workdayStagesWalk.mjs (8d1fa87) so every lane of the extension run (D96 · D97 · D98) drives
+ * Extracted from scripts/workdayStagesWalk.mjs (f72be86) so every lane of the extension run (D96 · D97 · D98) drives
  * the same browser the same way. One call gives a lane:
  *
  *   · Chrome with the UNPACKED extension (a TEST build — see buildTestExtension), a resolver rule that maps Zoom's
@@ -107,7 +107,7 @@ export const DEFAULT_PAYLOAD = {
   field_map: { first_name: 'Ada', last_name: 'Example', email: 'ada@example.test' }, handler_map: {},
   custom_answers: { 'Why do you want to work at Zoom?': 'Video for everyone.' },
 };
-/** The walk's seed (8d1fa87): Ada, a profile, and the board's Zoom copy from ANOTHER ATS — the owner's case. */
+/** The walk's seed (f72be86): Ada, a profile, and the board's Zoom copy from ANOTHER ATS — the owner's case. */
 export function defaultSeed(db) {
   db.prepare("INSERT INTO users (id,username,password_hash,plan_tier) VALUES (1,'ada','x','PRO')").run();
   db.prepare("INSERT INTO domain_profiles (id,user_id,profile_name,role_family,domain,is_active) VALUES (10,1,'SWE','engineering','software',1)").run();

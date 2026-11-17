@@ -3,7 +3,7 @@
 Written BEFORE any code changed, as D27 requires. Every figure below is measured, not read off a
 comment.
 
-**Where the numbers come from.** The real `server.js` (branch `d29-filter-tags` = `main` `81a64bf`),
+**Where the numbers come from.** The real `server.js` (branch `d29-filter-tags` = `main` `1a1812d`),
 booted on port 3031 against a throwaway COPY of the local database (`data/resume_master.db`, the
 09-26 snapshot: 2,616 rows). The copy was put through today's US-only gate (`usEligibility`) first,
 so it holds what production's gate would admit — **1,866 active rows** — and a synthetic user with

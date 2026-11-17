@@ -85,7 +85,7 @@ test("d147FilterSentenceKept · the sentence that filters stays — its words st
   // is withdrawn; only the size stays here, the original's times the text size (A116).
   assert.doesNotMatch(fhCss, /--fh-sentence-family: var\(--font-display\)/);
   assert.match(fhCss, /\.fh\[data-fh-d147\] \{ --fh-sentence-size: calc\(min\(30px, 6\.4vw\) \* var\(--type-scale, 1\)\); \}/, "≈ 30px, following the text size (A116)");
-  // ⭐ D156 (1d) (changed on purpose): the marked look is the ORIGINAL one again (67be9da) — the quiet highlighter underline,
+  // ⭐ D156 (1d) (changed on purpose): the marked look is the ORIGINAL one again (7ebed68) — the quiet highlighter underline,
   // and a SET filter is the one orange box (no --tok-on-* overrides); D147's accent underline is withdrawn.
   const marked = fhCss.slice(at(fhCss, '[data-sentence="marked"] {'), at(fhCss, '[data-sentence="calm"] {'));
   assert.match(marked, /--tok-depth: inset 0 -\.16em 0 var\(--c-accent-quiet\);/, "the highlighter underline");

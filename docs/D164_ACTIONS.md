@@ -1,7 +1,7 @@
 # D164 T1 — every action the posting and the deck card had before D145, and where it lives now
 
-**Before** = `485dcdb9` (A115), the parent of `501851f3` (D145 Step 3, the first restyle commit that changed a
-screen — D145 Step 1, `61c2ddbe`, was a read-only audit). **Now** = `f56ca997` (local `main`, this branch's base),
+**Before** = `529dad8c` (A115), the parent of `3877b140` (D145 Step 3, the first restyle commit that changed a
+screen — D145 Step 1, `b71f7892`, was a read-only audit). **Now** = `42026160` (local `main`, this branch's base),
 before D164 T2. Line numbers are at those commits. `test/d164NoActionLost.test.js` is this table as a checklist
 (every row's "now" anchor must still be in the source).
 
@@ -11,7 +11,7 @@ card's long post, portalled into `DECK_POST_SLOT_ID`), **Deck** = `client/src/pa
 
 ## The posting (JobDetailPanel)
 
-| Action | Before (file:line @485dcdb9) | Now (file:line @f56ca997) |
+| Action | Before (file:line @529dad8c) | Now (file:line @42026160) |
 |---|---|---|
 | Pass | JDP:138 (`PassButton`, row A; square in row B :160) | JDP:156 `data-decision="pass"` — main row |
 | Save | JDP:139 (`SaveButton`) | JDP:162 `data-decision="save"` — main row |
@@ -41,7 +41,7 @@ card's long post, portalled into `DECK_POST_SLOT_ID`), **Deck** = `client/src/pa
 
 ## The deck card (DeckView) and the board's card (JobBubble)
 
-| Action | Before (file:line @485dcdb9) | Now (file:line @f56ca997) |
+| Action | Before (file:line @529dad8c) | Now (file:line @42026160) |
 |---|---|---|
 | Pass · Save · Draft (and X / S / D, swipe) | Deck:1044–1046 | Deck:1258–1260 |
 | Previous / next card | Deck:915, 919 (`StepButton`) | Deck:1224–1225 (`FlipButton`), J / K, wheel |

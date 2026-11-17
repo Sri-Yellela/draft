@@ -110,7 +110,7 @@ than one that merely passes. Suite: 2,334 pass, 0 fail. Verified against the liv
 | Migration high-water LOCAL | 103 | **103**, `103_seed_remaining_ats_companies`; 104 entries in the `MIGRATIONS` array, 6 legacy non-numeric ids in `schema_migrations` | ✔ |
 | Migration high-water PRODUCTION | "deployed by the owner — confirm" | **103. Confirmed.** | ✔ |
 | Contract version | — | `contract/mobile-api.v1.json` → **1.1.1** | |
-| git log since 339c9d1 | — | `54d43da` task V → `a0b0fcc` task W → `8abd5a4` task X | ✔ |
+| git log since d01addb | — | `2d2ca91` task V → `96bb533` task W → `feb6a48` task X | ✔ |
 
 Production migrations, asserted by JSON key (`columns`/`rows` present on the real handler) and not
 by status code, per the standing warning that the SPA catch-all answers 200 for any unknown path:
@@ -148,7 +148,7 @@ company list.
 | X — logos | done | **DONE** | production holds **1,333 / 1,333 duckduckgo** URLs. Zero clearbit, zero google-favicon |
 | X — no second provider | confirm | **DONE** | the only surviving clearbit/google strings are `RETIRED_LOGO_HOSTS` in `backfillCompanyLogos.js`, a *repair* list used to rewrite bad rows, plus comments. Nothing issues a request |
 | X — privacy policy | confirm | **ALREADY DONE** | `PrivacyPage.jsx:381-385` discloses "DuckDuckGo Icons" and states Clearbit is retired and receives nothing. No update needed |
-| **AC — health check** | **open, "deferred ~15 times"** | **LARGELY DONE AND DEPLOYED** | `GET /api/admin/db/pipeline-health` (`routes/adminDb.js:71`), landed in `a8bc438`, live in production, consumed by `client/src/pages/admin/DBInspector.jsx`, covered by `test/pipelineHealth.test.js` |
+| **AC — health check** | **open, "deferred ~15 times"** | **LARGELY DONE AND DEPLOYED** | `GET /api/admin/db/pipeline-health` (`routes/adminDb.js:71`), landed in `a88ea14`, live in production, consumed by `client/src/pages/admin/DBInspector.jsx`, covered by `test/pipelineHealth.test.js` |
 | **AF — kill switch** | **"a scan found NO such variable"** | **DONE, one real gap** | `fullAutoDisabled()` (`routes/apply.js:513`) reads `app_settings.apply_full_auto_disabled` first, `APPLY_FULL_AUTO_DISABLED` as boot default. The scan looked at env and the switch is in **config** |
 | AF-2 mid-flight | verify | **DONE** | `routes/apply.js:981` is inside the per-job worker and its own comment says "Re-checked per job, not just at admission … the kill switch can be flipped while a run is in progress". Admission gate is separately at `:1657` |
 | AF-3 cap interaction | verify | **DONE** | `routes/apply.js:431-437` already validates and reports when `APPLY_DAILY_QUEUE_CAP < APPLY_DAILY_APPROVAL_CAP` or `APPLY_DAILY_APPROVAL_CAP < APPLY_DAILY_CAP` makes a cap unreachable |
@@ -336,7 +336,7 @@ invisible, and eleven of thirteen rows fail that way.
 
 1. `NEXT_WORK.md` / this doc — test count **2326**, not 2301.
 2. **TASK AC is largely DONE and deployed.** `GET /api/admin/db/pipeline-health` landed in
-   `a8bc438`, is live in production, has a UI in `DBInspector.jsx` and a test in
+   `a88ea14`, is live in production, has a UI in `DBInspector.jsx` and a test in
    `pipelineHealth.test.js`. It satisfies AC items 1, 3 and 4 and the not-configured distinction.
    Its residual is narrow and specific: alert on `written`/coverage rather than `status` (item
    5.1), and go per-company-slug rather than per-source (item 5.2 / §0). Rebuilding it from the
@@ -613,10 +613,10 @@ Task Z's premise is wrong, and the way it is wrong is the finding.
 ['the ATS badge',   /\b7[0-9]\b/],        // searched document.body.innerText
 ```
 
-A search for a raw two-digit number. That was correct when it was written at **`ed13f45`
+A search for a raw two-digit number. That was correct when it was written at **`8c768ef`
 (2026-08-23)**, because the badge then rendered `ATS {score}` — literally "ATS 78".
 
-**`7494289` (2026-08-31)** replaced the number with a BAND label as part of the ATS-bands work:
+**`1ed3b89` (2026-08-31)** replaced the number with a BAND label as part of the ATS-bands work:
 
 ```diff
 -  if (score == null) return null;

@@ -242,7 +242,7 @@ async function main() {
       replay?.authenticated === false, JSON.stringify(replay));
 
     // ── 6 · the options page NAMES the identity — asserted on the rendered DOM ──────────────
-    // T31 (10-25, 50c27bc) retired the toolbar popup; its identity line (Signed in as …) lives in options.html's
+    // T31 (10-25, ed98eb6) retired the toolbar popup; its identity line (Signed in as …) lives in options.html's
     // #account-who now (extension/options.js showAccount).
     console.log('\n── 6 · the options page names the identity, in the rendered page ──');
     await site.bringToFront();

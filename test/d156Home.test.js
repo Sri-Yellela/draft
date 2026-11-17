@@ -15,7 +15,7 @@
 //       THE LONG POST (scroll down on it, a press, Enter, "Open the posting"), drawn in the deck's slot; no separate posting
 //       panel; a bubble's posting opens on the deck too; the folded card uses its space; the dock swapped (/d draft = the
 //       jobs first, the house = Home, the dashboard and applications).
-//   ⭐ (1d) the filtering sentence in its original font and style (67be9da, before D147's restyle).
+//   ⭐ (1d) the filtering sentence in its original font and style (7ebed68, before D147's restyle).
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -129,11 +129,11 @@ test("d156FoldedCardFillsSpace (pure): the title centred, the stats 2 × 2 (larg
   assert.match(face, /gridTemplateColumns: "1fr 1fr", gap: 8/);
   assert.match(face, /fontSize: ts\(landscape \? 22 : small \? 15 : 17\)/);
   assert.match(face, /data-deck-open-posting="" [^>]*\n\s+onClick=\{\(e\) => \{ e\.stopPropagation\(\); onOpenPost\?\.\(\); \}\}/);
-  // D179 (45l; brought to the code in 45o): the company NAME is a link to its page (b2c50d3); Open the posting still turns the card.
+  // D179 (45l; brought to the code in 45o): the company NAME is a link to its page (66fe3b1); Open the posting still turns the card.
   assert.doesNotMatch(face.replace(/<Link to=\{companyPath\(job\.company\)\}/g, ""), /<Link /, "Open the posting turns the card, it does not navigate");
 });
 
-test("d156FilterSentenceOriginalStyle (pure): the marked look and the sentence type restored from 67be9da", () => {
+test("d156FilterSentenceOriginalStyle (pure): the marked look and the sentence type restored from 7ebed68", () => {
   const fh = read("client/src/components/FullHouse.css");
   const marked = fh.slice(at(fh, '[data-sentence="marked"] {'), at(fh, "}", at(fh, '[data-sentence="marked"] {')));
   assert.match(marked, /--tok-pad: 0 \.08em; --tok-margin: 0; --tok-edge: transparent; --tok-fill: transparent; --tok-radius: 2px;\n  --tok-depth: inset 0 -\.16em 0 var\(--c-accent-quiet\);\n  --tok-hover-fill: var\(--c-accent-quiet\); --tok-hover-edge: transparent; --tok-hover-depth: inset 0 -\.16em 0 var\(--c-accent-ink\);\n  --tok-on-pad: 0 \.3em; --tok-on-margin: 0 \.04em;/);

@@ -166,7 +166,7 @@ rather than a change to the predicate.
 whenever a board goes seven days without a crawl. **The outcome cannot, once the brake is
 deployed.**
 
-⛔ **Deployment is the open half.** The brake is in `main` as of `bd95d20`; whether the running
+⛔ **Deployment is the open half.** The brake is in `main` as of `6233ea9`; whether the running
 production process has it is a deploy question this document cannot answer. Until it does,
 production is protected by uptime rather than by a guard — which is what it was protected by all
 along. Task T requirement 1 is the right place to settle it.
@@ -287,7 +287,7 @@ on the string would read `"0"` and `"false"` as permission.
 
 ### R3.7-9 · already fixed, verified against the live board
 
-Landed in `ac25de2` (G4), which found the reversion while doing something else. Confirmed here
+Landed in `1d32c0a` (G4), which found the reversion while doing something else. Confirmed here
 rather than taken on trust — run against the real 5-row database:
 
 ```

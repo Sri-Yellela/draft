@@ -64,7 +64,7 @@ The curator's tools (`/api/admin/atlas/…`) stay in Admin (D167's map, row 20).
 
 ## D178-2 status (11-07)
 
-- ✅ the circle's / wheel's part labels never cropped (`72b35d4`)
-- ✅ families count claims and proofs, never a flat "0 of N" (`72b35d4`)
+- ✅ the circle's / wheel's part labels never cropped (`d401fff`)
+- ✅ families count claims and proofs, never a flat "0 of N" (`d401fff`)
 - ⏸ the "search string" videos — 205 of 373 Learn items link to a search, 150 of them required for a lesson's ✓;
   hiding them changes what earns ✓, replacing them is content work — **the owner decides**

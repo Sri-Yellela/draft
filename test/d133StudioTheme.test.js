@@ -86,7 +86,7 @@ test("d133FourExistingThemesUnchanged: Paper, Charcoal and the Contrast pair are
     "CHART_NEUTRAL", "PASTEL_1", "PASTEL_2", "PASTEL_3", "PASTEL_4", "PASTEL_5", "PASTEL_6", "PASTEL_7", "PASTEL_8"]);   // 46u: + the Library's pastels (additions)   // ⭐ A228 (46r): + the skill map's chart neutral — another addition, no existing value changed
   const h = (t) => crypto.createHash("sha256").update(JSON.stringify({ tokens: Object.fromEntries(Object.entries(t.tokens).filter(([k]) => !D149_TILES.has(k))),
     substrate: t.substrate, label: t.label, scheme: t.scheme, contrast: t.contrast })).digest("hex");
-  // Measured 11-01 on 968d326 (before D133) and after it: identical.
+  // Measured 11-01 on cf630b0 (before D133) and after it: identical.
   assert.deepEqual(Object.fromEntries(["paper-light", "charcoal-dark", "contrast-light", "contrast-dark"].map(id => [id, h(THEMES[id])])), {
     "paper-light": "b0460711d9592670ab80ff36e1a440cf42d914d4d23c0c08d388b2401fbf5911",
     "charcoal-dark": "245e41bae8565047444098f2cb17a41b3821a94704f7e5bf421dc8b3b01d17f8",

@@ -6,7 +6,7 @@
 > monitor and are a separate defect from this one.
 
 **They are a separate defect, and the defect is the monitor.** Both sources were working. The
-critical was false, and `2e4429e` had just started delivering it to somebody every night.
+critical was false, and `536b941` had just started delivering it to somebody every night.
 
 ---
 
@@ -46,7 +46,7 @@ been writing it the whole time.
 ## 2 · Why this one mattered more than a wrong cell
 
 The route has been wrong about this since it was written, and it did not matter, because nothing
-read the route. `2e4429e` changed that four days ago: pipeline alerts are now delivered to admins
+read the route. `536b941` changed that four days ago: pipeline alerts are now delivered to admins
 and to an optional webhook. Its own header says what that makes of a false positive:
 
 > Sending the same six criticals daily produces the one outcome this whole codebase keeps
@@ -83,7 +83,7 @@ Three deliberate choices in that table:
   into `wrote_nothing` would have been the cheaper change and would have kept a critical on a source
   that is behaving exactly as configured.
 - **Refusals that do not add up to the fetch stay CRITICAL.** A run that fetched 23, refused 15 and
-  cannot say what became of the other 8 has lost rows silently. That is the `0de67c8` shape — the
+  cannot say what became of the other 8 has lost rows silently. That is the `d0ba45b` shape — the
   cap that discarded 43% of the crawl while every run recorded `ok` — and it is worse than a clean
   refusal, not better.
 - **The refused SHARE is a field, not an alert.** `rejectedShare` now sits on every source row. It is
@@ -122,7 +122,7 @@ broke out of their own background while every string assertion about them passed
 The other two pass in both directions on purpose: one guards the new `all_rejected` path from
 swallowing a case the old check got right, the other pins `rejectedShare`.
 
-Suite: **2596 passing, 0 failing** (2591 at `2e4429e`).
+Suite: **2596 passing, 0 failing** (2591 at `536b941`).
 
 **And against the real board, through the real route** — `createAdminDbRouter` over
 `data/resume_master.db`, read-only, no fixtures:

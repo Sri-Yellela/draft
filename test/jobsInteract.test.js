@@ -7,7 +7,7 @@ import { at } from "../test-support/sourceAnchors.js";
 /**
  * PATCH /api/jobs/interact — the star/dislike fallback that never once worked.
  *
- * It was added in a55151d selecting a `status` column user_jobs has never had, in any migration.
+ * It was added in cc37612 selecting a `status` column user_jobs has never had, in any migration.
  * Every call threw SqliteError("no such column: status") and returned 500, and JobCard's caller
  * wrapped it in `catch { console.warn(...) }` — so the star filled in optimistically, the write
  * failed, and the flag reverted on the next load with nothing said.

@@ -29,7 +29,7 @@ repo, the test suite, the migration tables, and production.
      catch-all answers 200 for any unknown path and has already "confirmed" a deployment that had
      not happened.
    - Contract version at contract/mobile-api.v1.json.
-   - git log since 339c9d1: what landed, in what order.
+   - git log since d01addb: what landed, in what order.
 
 2 · PER-TASK STATUS. For each, state DONE / PARTIAL / NOT DONE with the evidence, not the doc's
    claim. Tasks claimed complete: A, A2, B, C, D, E, F, G1-G4, H, I, Q, R, S, T, U, V, W, X.
@@ -287,7 +287,7 @@ Filed across several sessions, each too small for its own task.
 
 1. A VERSION ENDPOINT returning the deployed commit SHA. The deployed build has twice been
    identified by archaeology — inferring the commit from which features the API happens to serve
-   ("production does not serve approvalCap, so it predates abea2c9, committed 49 seconds after the
+   ("production does not serve approvalCap, so it predates 0147c9b, committed 49 seconds after the
    brake"). That works and should not be necessary.
 2. Drop import_extension_tokens from production — filed by task T, never done.
 3. The restored LOCAL board was rebased on restore and ALL ROWS EXPIRE TOGETHER ~7 days out. Check

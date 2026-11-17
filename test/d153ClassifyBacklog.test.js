@@ -214,7 +214,7 @@ test("a132ClassifyWritesChunked: at most writeChunk rows per transaction, a yiel
   assert.equal(unknown, s.shown - s.withFunction, "every shown posting without a kind of work is counted under its category");
 });
 
-// ⛔ A132 (production 10313b5: maxPageMs 2,420 with no writes — the READ): the page shrinks while a read is over budget and
+// ⛔ A132 (production acde66e: maxPageMs 2,420 with no writes — the READ): the page shrinks while a read is over budget and
 // grows back while reads are fast. A fake clock makes every read "slow" for the first pages, then fast.
 test("a132ClassifyPageAdapts: a slow read halves the page (floor MIN_PAGE_ROWS), fast reads grow it back", async () => {
   const { READ_BUDGET_MS, MIN_PAGE_ROWS } = await import("../services/jobs/classifyBacklog.js");
@@ -252,7 +252,7 @@ test("a132ClassifyStartsAtFloor: the first page is MIN_PAGE_ROWS and the page at
   assert.equal(s.active, db.prepare("SELECT COUNT(*) FROM scraped_jobs WHERE is_active = 1").pluck().get());
 });
 
-// ⛔ A193 (46j, production d8a5b7cd 11-12): the boot walk re-read 82,936 cold rows for 46 s after ready and wrote nothing.
+// ⛔ A193 (46j, production 7ab394d6 11-12): the boot walk re-read 82,936 cold rows for 46 s after ready and wrote nothing.
 test("a193BootWalkSkippedWhenRecent: a finished walk is remembered; a boot within the window skips (keeping the coverage), outside it walks", async () => {
   const db = board();
   const first = createClassifyBacklog(db, { pageRows: 5, log: quiet });

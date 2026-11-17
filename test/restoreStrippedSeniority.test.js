@@ -1,6 +1,6 @@
 // MIGRATION 109 — RESTORING THE SENIORITY ENRICHMENT STRIPPED, AND NOTHING ELSE.
 //
-// ccfef0f stopped enrichment overwriting normalized_title. 109 repairs what it already did. The
+// 8e161a9 stopped enrichment overwriting normalized_title. 109 repairs what it already did. The
 // scope is deliberately NARROWER than the audit that prompted it first recommended, and that
 // narrowing is the thing most worth pinning.
 //

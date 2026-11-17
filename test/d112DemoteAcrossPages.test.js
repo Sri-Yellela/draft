@@ -148,7 +148,7 @@ test("D112 item 6 · server.js: the board's order leads with the key; the count 
   const src = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
   const board = src.slice(at(src, "const boardEligInputs = "), at(src, "const responseBody = {"));
   assert.match(board, /buildOrderKeys\(sort, richFilters\.rank\.keys,\s*\{[^}]*ineligible: ineligibleOrderKey\(boardEligInputs\.defaults\), ghost: boardHasGhosts, skillTier: boardSkillTier \}\)/);
-  // ^ 45p D184 B-8 (789145a8): the order also takes skillTier after ghost (pin moved on purpose).
+  // ^ 45p D184 B-8 (0e4f5b0c): the order also takes skillTier after ghost (pin moved on purpose).
   assert.match(board, /const total = keptOrder \? keptOrder\.total : \(\(await readPool\.get\(`SELECT COUNT\(\*\) as n \$\{joinClause\} \$\{whereClause\}`, baseArgs\)\)/);   // A175: the kept order carries the same statement's total
   assert.match(board, /const eligInputs = boardEligInputs;/);
   assert.match(board, /const pageRows = ineligible\.size \?/, "sponsorship and degree are not stored: they stay demoted within the page");

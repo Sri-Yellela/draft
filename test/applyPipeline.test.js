@@ -137,7 +137,7 @@ test("coreGenerateResume is extracted and callable from generateResumeForApply",
   // must be passed to applyRoutes. The last is AL2's free base-resume scorer: with generation
   // deferred to approval, it is the only fit signal the approval screen has, so a wiring that
   // dropped it would leave every deferred preview with nothing to approve on.
-  // 46f (on purpose): A182 (1c36bf1d) passes an options object after the scorer (the run's free-text drafts) — the scorer
+  // 46f (on purpose): A182 (182287dd) passes an options object after the scorer (the run's free-text drafts) — the scorer
   // must still be passed, last of the positional arguments.
   assert.match(server, /applyRoutes\(app, db, requireAuth, buildAutofillPayload, generateResumeForApply, htmlToPdf, generateCoverLetterForApply,\s*\n\s*scoreBaseResumeForApply(?:\)|, \{)/);
   // The apply routes must accept all as parameters — plus, since D56, an optional options object last

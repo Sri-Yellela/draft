@@ -204,7 +204,7 @@ test("classifier spend is attributed — and since A80 V6 only the tools service
   // /api/standalone/generate) into the tools service; that spend comes back as a `classifier`
   // usage record, stored under the same purpose by recordToolsServiceUsage — asserted below. The
   // last draft caller, /api/smart-search, was deleted with services/classifier.js (D17, A80 V6): no
-  // UI had reached it since a68c6c0. So draft runs no classifier of its own.
+  // UI had reached it since d39a4b1. So draft runs no classifier of its own.
   assert.equal(fs.existsSync("services/classifier.js"), false, "draft's own model classifier is back");
   assert.doesNotMatch(server, /await classify\(anthropic,/, "server.js calls a model classifier again");
   assert.match(server, /eventSubtype,/);

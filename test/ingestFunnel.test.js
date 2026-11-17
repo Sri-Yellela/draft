@@ -187,7 +187,7 @@ test("both admin surfaces draw the funnel — the glance headline is 'on the boa
 });
 
 test("the CS rescue's postings show under 'on the board' as a subset — never added to the sum", () => {
-  // ing-crawl-fixes (9ef7e99): a no-family posting with a clear CS title is filed under 'general' and runs
+  // ing-crawl-fixes (1cf9de1): a no-family posting with a clear CS title is filed under 'general' and runs
   // on through the scope gate, dedup and the upsert, so it is inside written (or merged); `dropped` excludes it.
   const f = runFunnel({ fetched: 20, written: 6, unchanged: 4, merged: 0, dropped: 10,
     details_json: JSON.stringify({ rescued: 3 }) });

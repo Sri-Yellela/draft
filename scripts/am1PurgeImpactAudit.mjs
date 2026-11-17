@@ -273,7 +273,7 @@ if (!corpus) {
   console.log("  A probe that reads scraped_jobs at READ TIME is where a purge changes an answer with no");
   console.log("  error and no failing test. AH4's location fix was one of these and it silently reverted;");
   console.log("  it now agrees because SEED_LOCATIONS is a floor the corpus extends rather than");
-  console.log("  constitutes (landed in ac25de2).");
+  console.log("  constitutes (landed in 1d32c0a).");
   console.log("  The suggestion index is the remaining one, and it is NOT the same defect: an empty");
   console.log("  suggestion list is a degraded feature, not a false claim about the world. It offers");
   console.log("  nothing rather than asserting something untrue, so it needs a corpus, not a floor.");

@@ -1,6 +1,6 @@
 # resume-master — Chrome Extension Diagnosis (evidence-based)
 
-**Status:** OPEN. Diagnosed 2026-09-24 against commit `11728e4`. Nothing was changed in this
+**Status:** OPEN. Diagnosed 2026-09-24 against commit `e18cc2d`. Nothing was changed in this
 session — the tracked tree was untouched, deliberately, because five symptoms were reported and
 the first question was how many defects they actually are.
 
@@ -40,7 +40,7 @@ has moved to `jobsviadraft.com`. Measured 2026-09-24:
 
 ```
                           resumemaster.one    jobsviadraft.com
-/api/version  commit      11728e4             11728e4      <- SAME deployment
+/api/version  commit      e18cc2d             e18cc2d      <- SAME deployment
 /api/auth/me                 200                 200
 /api/import/job              401                 401       <- alive, auth-gating correctly
 ```
@@ -87,7 +87,7 @@ same  background.js   same  gated-handoff.js   same  extractor.js   same  popup.
 same  manifest.json   same  config.js          same  review-overlay.js
 ```
 
-**CONFIRMED byte-identical across all 7 source files.** In particular the `?origin=` fix (270949d,
+**CONFIRMED byte-identical across all 7 source files.** In particular the `?origin=` fix (d91083e,
 2026-08-28) predates the package, so the installed build *does* send it — see §3.
 
 ---

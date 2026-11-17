@@ -1,6 +1,6 @@
 # Draft House — the tree, mapped against the code (D113 UI)
 
-Rewritten 2026-10-31 for the tree as built (D113 UI U1–U10, `6c3a5f2`, pushed in 43t; the leftovers — Make it now,
+Rewritten 2026-10-31 for the tree as built (D113 UI U1–U10, `5c2239f`, pushed in 43t; the leftovers — Make it now,
 Withdraw / Add the date / Note why — after it, to the owner's own definition: the WORKLOG block "THE DRAFT HOUSE TREE'S
 LEFTOVERS, DEFINED", 10-31). The decision is the WORKLOG's **D113 UI — DECIDED** row; the sketch
 is `docs/sketches/draft-house-tree.html`; **where the two differ, the row wins.** This file replaces the D25 write-up

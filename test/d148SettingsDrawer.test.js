@@ -74,7 +74,7 @@ test("d148GroupsFoldToOneLineWithValue · each fold is ONE line with its current
   assert.equal(foldValues(S, { notify: { events: [{ key: "picks", email: false, push: false }] } }).tell, "off");
   // The line: the title, then the value; the open body hides it and shows the eyebrow + headline + Done.
   assert.match(drawer, /<b>\{title\}<\/b><span data-fold-value="">\{value\}<\/span>/);
-  // 45n D182 (18d82c2c): the open body's eyebrow (the title again) was removed — the headline leads it (pin moved on purpose).
+  // 45n D182 (bb297b05): the open body's eyebrow (the title again) was removed — the headline leads it (pin moved on purpose).
   assert.doesNotMatch(drawer, /dh-fold2__eyebrow/);
   assert.match(drawer, /<div className="dh-fold2__body" id=\{`dh-fb-\$\{id\}`\}>\s*<h3 className="dh-fold2__h">\{headline\}<\/h3>/);
   assert.match(css, /\.dh-fold2\[data-open="true"\] \.dh-fold2__top \{ display: none; \}/);

@@ -9,7 +9,7 @@ import { at } from "../test-support/sourceAnchors.js";
 /**
  * /api/apply/session — retired in 09 (410), REVERSED by D100 (owner 10-30) as a recorded deliberate reversal.
  *
- * WHAT THEY WERE. In the server-side-Playwright era (ebeb9ae) POST /save wrote a Playwright `storageState` — the
+ * WHAT THEY WERE. In the server-side-Playwright era (91c61eb) POST /save wrote a Playwright `storageState` — the
  * cookies of the candidate's LOGGED-IN session on an employer's portal — to data/sessions/<userId>_<domain>.json in
  * PLAINTEXT. That is why they were retired, and it is the thing the reversal must never bring back.
  *

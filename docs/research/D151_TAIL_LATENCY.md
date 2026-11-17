@@ -37,13 +37,13 @@ that can't fit the request path. Heavy work happens near-line; the request reads
 
 | Step | Pattern | Effect |
 |---|---|---|
-| `f5f26e3` / later `READ_SLOW_FULL` | measure first: the slow statement + its plan | found the real culprits |
+| `b585502` / later `READ_SLOW_FULL` | measure first: the slow statement + its plan | found the real culprits |
 | migration 228 · `job_captures(user_id, job_id)` | index the correlated lookup | no `SCAN jc` per posting |
-| `a3dc58a` ≈ 50 ms tag/level slices | background work sliced (Tail at Scale) | board 2.2–2.4 s → 1.3–1.4 s (1 user) |
-| `04c14a5` scoring in a worker thread | heavy work off the request path | → 1.0–1.2 s; scoring gone from the main thread |
+| `45d4ff6` ≈ 50 ms tag/level slices | background work sliced (Tail at Scale) | board 2.2–2.4 s → 1.3–1.4 s (1 user) |
+| `a64e7f4` scoring in a worker thread | heavy work off the request path | → 1.0–1.2 s; scoring gone from the main thread |
 | migration 229 + one capped read | build the ordering ahead (eager ordinals' idea) + *good enough* ("2,000+") | → **0.23–0.31 s** (1 user) |
-| `6bf8c0e` score gate as a driving IN-list | intersect from the most selective list | deck p95 11.1 → 6.1 s (20 users) |
-| `b2698b6` ★ / + / /d start from the person's rows | the same, for the person's own lists | **2.6× throughput**; facets p95 13.6 → 4.6 s |
+| `2f3a533` score gate as a driving IN-list | intersect from the most selective list | deck p95 11.1 → 6.1 s (20 users) |
+| `f1d8ff0` ★ / + / /d start from the person's rows | the same, for the person's own lists | **2.6× throughput**; facets p95 13.6 → 4.6 s |
 | ANALYZE (planner statistics) | tried | no effect here — not adopted |
 
 ## 3 · What remains, and the plan (in order)

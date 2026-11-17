@@ -1,6 +1,6 @@
 // AH-2 — DROPPING CREDENTIAL-SHAPED RESIDUE OF A DELETED FEATURE.
 //
-// The extension token copy/paste flow was removed in c818b9c. SQLite does not drop a table when
+// The extension token copy/paste flow was removed in ee2c3b0. SQLite does not drop a table when
 // its CREATE statement leaves the source, so production kept `import_extension_tokens`: 3 rows of
 // token hashes bound to users(id) that no code could expire, consume or rotate, because the code
 // that did was deleted. Filed by task T, restated by AH-2, never done.

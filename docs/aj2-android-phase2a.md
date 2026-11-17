@@ -2,14 +2,14 @@
 
 Run 2026-09-01/02. Desktop suite: **2050 → 2057 passing, 0 failing** (7 added with the matchScore fix).
 Android: **40 JVM unit tests + 13 instrumented tests, 0 failing**. Android commits `e35b6f8`,
-`d8e0611`, `01c1221`, `6cb7a91`, `2bbd242`. Desktop commits `8df2f6c`, `a0be58b`, `54eb06e`.
+`d8e0611`, `01c1221`, `6cb7a91`, `2bbd242`. Desktop commits `c6403cd`, `26e8938`, `c4ca0cf`.
 
 **All four steps** of `resume-master-android/PHASE_2A.md` are done and verified on a real emulator
 against the real local server.
 
 ---
 
-## The finding that outranks the rest: `Job.matchScore` was always null — FIXED `54eb06e`
+## The finding that outranks the rest: `Job.matchScore` was always null — FIXED `c4ca0cf`
 
 `services/jobs/mapJobRow.js` READ, before the fix:
 
@@ -32,7 +32,7 @@ mobile client implementing it exactly as specified rendered **"Not enough signal
 jobs**. Not theoretical — a screenshot in this run shows a card whose row has `ats_score = 43`
 rendering as "No signal", and the same card after the fix reading "Moderate".
 
-**Fixed in `54eb06e`** (desktop) and re-vendored in android `6cb7a91`. `mapJobRow` now reads
+**Fixed in `c4ca0cf`** (desktop) and re-vendored in android `6cb7a91`. `mapJobRow` now reads
 `j.ats_score ?? j.matchScore ?? null` — `??` and not `||`, because a score of 0 is a real score that
 bands as Weak while null means the scorer declined, and `||` cannot tell them apart.
 

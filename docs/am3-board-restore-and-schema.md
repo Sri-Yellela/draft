@@ -168,7 +168,7 @@ come from something created *outside* the migration system.
 Tables 60 vs 60, indexes 71 vs 72. Three differences, all explained, none of them dual-path drift.
 
 **1. `import_extension_tokens` — production only, 3 rows.**
-The extension token copy/paste flow, **removed** in `c818b9c`. SQLite does not drop a table when its
+The extension token copy/paste flow, **removed** in `ee2c3b0`. SQLite does not drop a table when its
 `CREATE` statement leaves the source, so production still carries it — with 3 stale token hashes
 bound to `users(id)` that no code will ever expire or consume. Worth a cleanup migration; it is
 credential-shaped residue of a deleted feature.
@@ -186,8 +186,8 @@ local: apply_mode TEXT NOT NULL DEFAULT 'SIMPLE'
 
 ⛔ **This is NOT dual-path drift.** Both paths agree: `scripts/migrations.js:13`/`:44` and
 `server.js:391`/`:422` all declare `DEFAULT 'SIMPLE'`, byte-identically. `'TAILORED'` was the
-*original* default (`a780d91`) and `b212ca6` changed it to `'SIMPLE'`. Production's tables were
-created before `b212ca6`, and **`CREATE TABLE IF NOT EXISTS` is a no-op against an existing table.**
+*original* default (`a780d91`) and `5fa77ef` changed it to `'SIMPLE'`. Production's tables were
+created before `5fa77ef`, and **`CREATE TABLE IF NOT EXISTS` is a no-op against an existing table.**
 
 That is the real finding, and it is a genuine hole — just not the one the task expected:
 
@@ -209,7 +209,7 @@ kind of unfounded reading task T exists to correct.
 
 **The `cleanup_log` claim that triggered this task is settled.** Both databases:
 `id, run_at, jobs_deleted, orphans_cleaned, details`. `ran_at` is present in neither. The original
-note was a query typo, as `b0129f4` already suspected.
+note was a query typo, as `02335b5` already suspected.
 
 `sqlite_sequence` appeared as a fourth "difference" in the first run. It is SQLite's own
 AUTOINCREMENT bookkeeping, present in any database with an AUTOINCREMENT column; the export does not
@@ -222,7 +222,7 @@ counting with the same predicate the DELETE uses, and retires rows instead of de
 scope is refused.
 
 The question was whether the running process is that code. There is no `/version` endpoint, so this
-was settled by ancestry — task Q (`abea2c9`) landed *after* the brake (`bd95d20`) and added
+was settled by ancestry — task Q (`0147c9b`) landed *after* the brake (`6233ea9`) and added
 `approvalCap` to `GET /api/apply/pending`:
 
 ```
@@ -230,12 +230,12 @@ GET /api/apply/pending -> keys: pending
 ⛔ approvalCap ABSENT.
 ```
 
-Production predates `abea2c9`. Strictly that does not place `bd95d20` outside the build — it is the
+Production predates `0147c9b`. Strictly that does not place `6233ea9` outside the build — it is the
 earlier commit — but the two were committed **49 seconds apart**:
 
 ```
-bd95d20  2026-09-06 14:47:50  task R — brake the deletion
-abea2c9  2026-09-06 14:48:39  task Q — approval cap
+6233ea9  2026-09-06 14:47:50  task R — brake the deletion
+0147c9b  2026-09-06 14:48:39  task Q — approval cap
 ```
 
 A deploy that picked up one but not the other would have had to land inside that window.

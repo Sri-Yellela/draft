@@ -39,13 +39,13 @@ test("D93 · the registry is complete: the ids are shared/'s, exactly one defaul
     }
   }
   assert.deepEqual(layoutDefaults(), LAYOUT_DEFAULTS);
-  // 45n D145 / D152 decision (10) (d85ed150): the Menu is RETIRED and `navigation` left the layout options — an
+  // 45n D145 / D152 decision (10) (ffd57262): the Menu is RETIRED and `navigation` left the layout options — an
   // off-default round trip now uses the text size; a stored navigation=menu reads as nothing (pins moved on purpose).
   assert.deepEqual(LAYOUT_DEFAULTS, { sentence: "marked", learning: "quiet", text: "default" }, "the recommendations are the defaults (D92)");
 });
 
 test("D93 · the stored value: flags only off the default, every pre-D93 value reads as the defaults, junk refused", () => {
-  // 45n D145 / D152 decision (10) (d85ed150): the Menu is RETIRED and `navigation` left the layout options — an
+  // 45n D145 / D152 decision (10) (ffd57262): the Menu is RETIRED and `navigation` left the layout options — an
   // off-default round trip now uses the text size; a stored navigation=menu reads as nothing (pins moved on purpose).
   assert.equal(formatStoredAppearance({ theme: "system", cues: false, sentence: "marked", learning: "quiet", text: "default" }), "system");
   assert.equal(formatStoredAppearance({ theme: "contrast-dark", cues: true, sentence: "calm", learning: "quiet", text: "largest" }), "contrast-dark;cues;sentence=calm;text=largest");
@@ -85,7 +85,7 @@ test("D93 · the server: refuses an unknown value · round-trips · a second dev
   try {
     // A new account: the defaults.
     assert.deepEqual((await s.call("GET", "/api/settings/appearance", null, 2)).json, { theme: null, cues: false, sentence: "marked", learning: "quiet", text: "default" });
-    // 45n D145 / D152 decision (10) (d85ed150): the Menu is RETIRED and `navigation` left the layout options — an
+    // 45n D145 / D152 decision (10) (ffd57262): the Menu is RETIRED and `navigation` left the layout options — an
     // off-default round trip now uses the text size; a stored navigation=menu reads as nothing (pins moved on purpose).
     // Unknown values are refused, and nothing is stored.
     assert.equal((await s.call("PUT", "/api/settings/appearance", { theme: "system", text: "boxed" })).status, 400);
@@ -116,7 +116,7 @@ test("D93 · the device: a layout applies LIVE (no reload); the account's layout
   try {
     const attrs = {}; const doc = { documentElement: { setAttribute: (k, v) => { attrs[k] = v; } } };
     store.set("draft-theme", "contrast-dark;cues;no-offer");
-    // 45n D145 / D152 decision (10) (d85ed150): the Menu is RETIRED and `navigation` left the layout options — an
+    // 45n D145 / D152 decision (10) (ffd57262): the Menu is RETIRED and `navigation` left the layout options — an
     // off-default round trip now uses the text size; a stored navigation=menu reads as nothing (pins moved on purpose).
     REG.setLayout({ text: "largest" }, { doc });
     assert.equal(store.get("draft-theme"), "contrast-dark;cues;no-offer;text=largest", "the other flags survive");
@@ -145,7 +145,7 @@ test("D93 · ⛔ no flash: the pre-paint script sets data-navigation and data-se
       { documentElement: { setAttribute: (k, v) => { attrs[k] = v; }, style: { setProperty() {} } } });
     return attrs;
   };
-  // 45n D145 / D152 decision (10) (d85ed150): `navigation` retired — the pre-paint script no longer sets data-navigation,
+  // 45n D145 / D152 decision (10) (ffd57262): `navigation` retired — the pre-paint script no longer sets data-navigation,
   // and a stored navigation=menu is ignored; text size and sentence carry the no-flash check (pins moved on purpose).
   assert.equal(run("")["data-navigation"], undefined);
   assert.equal(run("")["data-text-size"], "default");
@@ -180,7 +180,7 @@ test("D93 · the page: drawn from the registry; the preview carries its own attr
 test("D93 · Account no longer renders Appearance; the menu has Customise, and it routes", () => {
   assert.doesNotMatch(read("client/src/panels/AccountPanel.jsx"), /<AppearanceSettings|<ThemeSection|<AccessibilitySection|id="appearance"|import .*AppearanceSettings/);
   const app = read("client/src/App.jsx");
-  // 45o D180 P1 (b007d429) added "network" (with its comment) after customise (pin moved on purpose).
+  // 45o D180 P1 (4aed9e88) added "network" (with its comment) after customise (pin moved on purpose).
   // 46f (on purpose): + "feed", "messages" (with its comment) after network.
   assert.match(app, /"customise",\n(?:\s*\/\/.*\n)*(?:\s*"network",\n)?(?:\s*\/\/.*\n)*(?:\s*"feed", "messages",\n)?\s*\.\.\.ROUTE_ONLY_TABS\]/, "/app/customise is navigable");
   // ⭐ D167 (changed on purpose): Customise is Profile → Appearance now — /app/customise lands on /app/profile/appearance,

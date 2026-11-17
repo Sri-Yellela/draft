@@ -39,7 +39,7 @@ test("every nav tab is a real link, not a button", () => {
   // ⭐ D145: the tab row is the Dock / the Menu now (components/AppNav.jsx) — the same real links.
   const NAV = fs.readFileSync("client/src/components/AppNav.jsx", "utf8");
   // ⭐ D167 (owner 11-06, changed on purpose): the href is the section's own, or Interview's page (the dock's sixth place).
-  // 45o D180 P1 (b007d429): Network's place gets its own page the same way (pin moved on purpose).
+  // 45o D180 P1 (4aed9e88): Network's place gets its own page the same way (pin moved on purpose).
   // 46f: Feed and Messages' places get their own pages the same way (pin moved on purpose).
   assert.match(NAV, /const href = hrefForTab\?\.\(t\.id\) \|\| \(t\.id === "interview" \? INTERVIEW_PATH : t\.id === "network" \? NETWORK_PATH\s*: t\.id === "feed" \? FEED_PATH : t\.id === "messages" \? MESSAGES_PATH : undefined\);/);
   assert.match(NAV, /<a key=\{t\.id\} className="appnav-item" href=\{href\}/);
@@ -58,7 +58,7 @@ test("a modified click is left to the browser, a plain click still navigates in-
   assert.match(nav, /onGo\(t\.id, href\)/);
   // ⭐ D156 (3): a press also folds the expanded dock back to its icons. ⭐ D167 (owner 11-06, changed on purpose): and closes the peek; Interview's page
   // is navigated to directly while it is not a tab of its own.
-  // 45n D145 / D152 decision (10) (d85ed150): the Menu (setOpen) is retired — a press folds the dock and closes the peek (pin moved on purpose).
+  // 45n D145 / D152 decision (10) (ffd57262): the Menu (setOpen) is retired — a press folds the dock and closes the peek (pin moved on purpose).
   assert.match(NAV, /const go = useCallback\(\(id, href\) => \{\r?\n\s+setWide\(false\); closePeek\(\);/);
 });
 

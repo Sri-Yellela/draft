@@ -3,10 +3,10 @@
 > *"full suites are taking so much time everyday, we should schedule a full pruning of tests after auditing for redundancy
 > and necessity"* — the owner, 11-17.
 
-**Status (11-17, 46t): the owner picked R1 + R2 — BOTH BUILT (`3f3e9ad7`).** Measured after the build: the fast tier 769 files / 6,110 tests in **321 s**; the browser tier 64 files / 396 tests in 1,606 s (six batches); the whole suite **6,506 / 0 red in ≈ 32 min** (was ~70). ⚠ **R2 measured smaller than estimated:** one batch of the 14 fidelity probes took **693 s cold** against 12.2 min for the separate runs — the probes' own page work is the cost, not the vite / Chrome boots (the 72 % below was an estimate, and wrong); what R2 does give is the cache (with the client unchanged the 13 files run in **4 s**, 75 / 75) and no more rewritten `docs/fidelity-shots/*.png`. R3–R6 stay open for the owner. The audit as written:
+**Status (11-17, 46t): the owner picked R1 + R2 — BOTH BUILT (`ffcc90ec`).** Measured after the build: the fast tier 769 files / 6,110 tests in **321 s**; the browser tier 64 files / 396 tests in 1,606 s (six batches); the whole suite **6,506 / 0 red in ≈ 32 min** (was ~70). ⚠ **R2 measured smaller than estimated:** one batch of the 14 fidelity probes took **693 s cold** against 12.2 min for the separate runs — the probes' own page work is the cost, not the vite / Chrome boots (the 72 % below was an estimate, and wrong); what R2 does give is the cache (with the client unchanged the 13 files run in **4 s**, 75 / 75) and no more rewritten `docs/fidelity-shots/*.png`. R3–R6 stay open for the owner. The audit as written:
 
 **Original status: the audit — nothing is deleted or moved yet.** ⛔ Pruning starts after the owner's pick (§6). Every figure below is
-measured 11-17 on `e6ee0788` (46t): each of the 830 files run ALONE with the suite's own command (`node --test
+measured 11-17 on `f72ef9a1` (46t): each of the 830 files run ALONE with the suite's own command (`node --test
 --test-concurrency=1 --import ./test-support/isolateTrackingSink.mjs <file>`, `scripts/a232TimeFiles.mjs`); the static
 inventory is `scripts/a232TestInventory.mjs`. Raw data: `tmp/a232/timings.tsv`, `tmp/a232/inventory.json` (untracked).
 

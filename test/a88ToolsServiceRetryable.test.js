@@ -1,6 +1,6 @@
 // A88 · 1 — the tools service's 429 { retryable: true } is TRANSIENT, everywhere it is read.
 //
-// Found by D36 (70abb4b): services/toolsService.js inferred `permanent = res.status < 500` whenever
+// Found by D36 (42d5391): services/toolsService.js inferred `permanent = res.status < 500` whenever
 // the body carried no `permanent`, so the tools service's own rate-limit refusal — 429
 // { error: "limit_exceeded", retryable: true } — was filed permanent=yes, "retry will fail
 // identically", and the generate route told the user "Retrying will not help" beside a Retry button.

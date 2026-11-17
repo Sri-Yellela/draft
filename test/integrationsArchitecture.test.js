@@ -35,7 +35,7 @@ test("integrations backend centralizes connector status and storage", () => {
 });
 
 test("integrations page is routed and replaces scattered Apify menu input", () => {
-  // ⭐ D167 (45076cf): Integrations is no route of its own — it lives in Profile → Connections, and the old
+  // ⭐ D167 (5104dbf): Integrations is no route of its own — it lives in Profile → Connections, and the old
   // /app/integrations address lands there (the OAuth / Gmail return's query kept).
   const profilePage = fs.readFileSync("client/src/pages/profile/ProfilePage.jsx", "utf8");
   const profilePanels = fs.readFileSync("client/src/pages/profile/profilePanels.js", "utf8");

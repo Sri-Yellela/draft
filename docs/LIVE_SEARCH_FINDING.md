@@ -1,6 +1,6 @@
 # "LIVE SEARCH ONLY" — what it means, and whether §3C's slug harvest works
 
-**D4 · probed 2026-10-03 · nothing built.** Code at `131e721` (= production per `/api/version`).
+**D4 · probed 2026-10-03 · nothing built.** Code at `c13af09` (= production per `/api/version`).
 Real searches spent: **Adzuna 1 · SerpApi 3** (account now reads 3 of 250 used this month — all three are these).
 
 ⛔ **Evidence limits, up front.** No Railway CLI here, and logging in to the production admin API with
@@ -16,8 +16,8 @@ in § Owner actions.
 
 - **SerpApi DOES carry unwrapped ATS URLs** in `apply_options[].link` (the owner's call: Ashby, three Workday tenants, eightfold). This probe's "0 / 20, 0 new" read only `apply_options[0]` — the URL the plugin keeps — and two of three searches had no location. ⇒ **20 searches with `hl=en&gl=us`: 50 distinct pairs, 50 NEW** (`docs/SERPAPI_SLUG_YIELD.md`). The SerpApi half of the verdict below is **superseded**; the Adzuna half stands and is now the owner's decision: **Adzuna retired as a slug source.**
 - ⛔ **Google clusters similar postings** — one result's `apply_options` belong to different companies. Harvest is a POOL; never pair a slug with its job.
-- **§2 corrected: Adzuna's absence from the board is DELIBERATE**, not a defect — `4c4ce74` (2026-07-23) restricted `cacheJobs` to direct ATS sources, and `8b780e0` (same day) made every aggregator copy lose dedup to its ATS listing. Nothing recorded a reason; the excerpted descriptions would have been one. The defect is only the live-search route (§1).
-- `hl=en&gl=us`: the plugin has sent both since `462618f`; the owner's Spanish response came from a call without them. Now pinned by `test/serpapiLocale.test.js`.
+- **§2 corrected: Adzuna's absence from the board is DELIBERATE**, not a defect — `e3935b4` (2026-07-23) restricted `cacheJobs` to direct ATS sources, and `8303943` (same day) made every aggregator copy lose dedup to its ATS listing. Nothing recorded a reason; the excerpted descriptions would have been one. The defect is only the live-search route (§1).
+- `hl=en&gl=us`: the plugin has sent both since `e68a3f4`; the owner's Spanish response came from a call without them. Now pinned by `test/serpapiLocale.test.js`.
 - §3C is rewritten (`COMPANY_LIST_STRATEGY.md`); the corrections are in `CORRECTIONS_REGISTER.md`.
 
 ---
@@ -85,7 +85,7 @@ $ curl -X POST https://jobsviadraft.com/api/jobs/search -H 'Content-Type: applic
 ⛔ **So it is a dead branch hiding behind a healthy-looking grey label.** The landing page's search
 button (`UnifiedSearchBar` → `onSearch` → `handleSearch`) always gets a 401 from a route only a
 logged-in user can call, and a logged-in user never sees that page. (The `requireAuth` on the route
-dates from `2d93807`, 05-11.) The logged-in board's search is local (A72/A74: *"There is no live
+dates from `614f477`, 05-11.) The logged-in board's search is local (A72/A74: *"There is no live
 scraping any more"*, `UnifiedSearchBar.jsx:56-60`). `server.js:7944` removed the other fall-through
 to `searchJobs()`. ⚠ `jobQuery.js:560` says "searchJobs never writes": that's true of the function
 itself, but not of its one route, which does write.
@@ -211,7 +211,7 @@ way, the live plugin returns empty for the landing page's most likely input.
 | "unconfigured slug" list | ✅ | `services/companyList.js:38` `harvestedSuggestions` (job_captures minus company_ats_list, ranked by distinct people); shown in admin Company list (`client/src/panels/adminOps.jsx:568`) |
 | validator before enabling | ✅ partly | `companyList.js:60` `validateBoard` → `dead` (404/410) / `empty` / `live` + US-eligible count. ⛔ **No description-coverage check**, so it would pass a Ubisoft/Bosch/Adobe-shaped board. ⚠ A workday suggestion (tenant only) **can't be validated as-is**: the crawler needs `wd#\|tenant\|site` (`workday.js:10`). |
 | company list | ✅ **table** | `company_ats_list` (29 rows, 22 active locally: gh 10/9, lever 7/5, ashby 4/4, workable 3/2, recruitee 2/2, smartrecruiters 2/0, workday 1/0). Also seeded by migrations |
-| "URL seen" → "company added" | ✅ human-in-loop | `routes/companies.js` at `/api/admin/companies` (`server.js:7068`): POST probes (dry by default), and a second POST with `confirm:true` + matching `expectState` adds it; a 404 board is refused; audited (`admin_audit_log`). Built by A50 step 4 (`a21cd42`, 10-02, in production) |
+| "URL seen" → "company added" | ✅ human-in-loop | `routes/companies.js` at `/api/admin/companies` (`server.js:7068`): POST probes (dry by default), and a second POST with `confirm:true` + matching `expectState` adds it; a 404 board is refused; audited (`admin_audit_log`). Built by A50 step 4 (`8c69017`, 10-02, in production) |
 | aggregator result → any of the above | ⛔ **none** | `searchJobs` results never touch `job_captures`/`atsSlugOf`. No batch "run role-family searches and extract" job exists |
 | auto-enable | ⛔ none, correctly | always admin-confirmed |
 

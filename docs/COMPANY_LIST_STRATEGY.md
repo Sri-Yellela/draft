@@ -110,7 +110,7 @@ its board. Slow and broad finds companies; fast and narrow keeps them fresh.
    collides with §4's "never enable a source at 0% description coverage". US coverage is its weak
    side (UK/EU-first). And some redirects land on other aggregators (aiapply.co and similar):
    part of its inventory is second-hand. ⚠ Adzuna's rows also left the board **deliberately** on
-   2026-07-23 (`4c4ce74`, the crawl restricted to direct ATS sources) — not by a defect.
+   2026-07-23 (`e3935b4`, the crawl restricted to direct ATS sources) — not by a defect.
 2. ⭐ **SerpApi (`engine=google_jobs`) is the source.** `apply_options[].link` carries UNWRAPPED
    ATS URLs — `jobs.ashbyhq.com/coder/…`, `blueorigin.wd5.myworkdayjobs.com/blueorigin/…`. No
    redirect to follow: slug extraction is a string parse (`detectKnownAtsMatch`,

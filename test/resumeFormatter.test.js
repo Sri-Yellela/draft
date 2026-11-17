@@ -141,7 +141,7 @@ test("formatter emits HTML contract classes and tuned typography", () => {
   assert.match(html, /class="section-title"/);
   assert.match(html, /class="entry"/);
   assert.match(html, /class="bullets"/);
-  // The skills section stopped being a <table class="skills-table"> in 8412c9a, whose diff says
+  // The skills section stopped being a <table class="skills-table"> in 383a663, whose diff says
   // so outright: "CHANGE 7: skills section now renders as a bullet list instead of a table".
   // A deliberate design change that this assertion was never updated for. Asserting the contract
   // that exists — a labelled bullet, which is also the ATS-friendlier shape (tables extract

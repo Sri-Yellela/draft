@@ -8,7 +8,7 @@ import serpapiPlugin from "../services/jobs/sources/serpapi.js";
 // D4 addendum (10-03): a google_jobs call without hl/gl comes back localised to the caller's
 // guessed locale — the owner's came back as hl=es-419, locations "Estados Unidos", dates
 // "hace 18 horas". Every ingested location string would then be in the wrong language, which
-// silently defeats the US-only gate (A37). The plugin has sent hl=en&gl=us since 462618f; these
+// silently defeats the US-only gate (A37). The plugin has sent hl=en&gl=us since e68a3f4; these
 // pin it, and pin that no second call site appears without it.
 
 test("⛔ every google_jobs call is pinned to English and the US (hl=en, gl=us)", async () => {

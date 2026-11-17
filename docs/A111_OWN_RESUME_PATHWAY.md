@@ -11,7 +11,7 @@ vocabulary), D116 (Your map) and the 11-01 demonstration (`services/trialDemo.js
 
 ## ⛔ Constraints
 
-- **The deploy freeze holds** (testers are on `f177b99`+). Everything is LOCAL; nothing is pushed; production is not touched.
+- **The deploy freeze holds** (testers are on `94d9eba`+). Everything is LOCAL; nothing is pushed; production is not touched.
   Adding employers on production, switching the pathway on, and pushing are the owner's (O-rows below).
 - **Behind a switch, off by default:** app setting `trial_own_resume` (Admin → Trial, a toggle). Off → `/try` is exactly
   today's sample-only page and `POST /api/trial/resume {choice:"own"}` answers 409 `own_resume_off`.

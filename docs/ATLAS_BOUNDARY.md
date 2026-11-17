@@ -1,6 +1,6 @@
 # ATLAS_BOUNDARY — D134 P0, the boundary audit
 
-**Measured 2026-11-02 on `main` at `c1bb6c7` (session 44f). Nothing in the code is changed by this document.**
+**Measured 2026-11-02 on `main` at `2fcd674` (session 44f). Nothing in the code is changed by this document.**
 Every line reference was read from the tree at that commit; re-derive before trusting a number here once
 code moves (the P2 lint rule `d134NoCrossDbAccess` replaces this list as the source of truth).
 

@@ -164,7 +164,7 @@ test("TEST A QUESTION: which saved answer matches and why — or 'no match: it w
 test("Settings → Saved answers is reachable, and the panel has all four tools", () => {
   const app = fs.readFileSync("client/src/App.jsx", "utf8").replace(/\r\n/g, "\n");
   // (D93 added "customise" after it, with its comment line.)
-  // 45o D180 P1 (b007d429) added "network" (with its comment) after customise (pin moved on purpose).
+  // 45o D180 P1 (4aed9e88) added "network" (with its comment) after customise (pin moved on purpose).
   // 46f added "feed", "messages" (with its comment) after network (pin moved on purpose).
   assert.match(app, /"account",\n(?:\s*\/\/.*\n)*\s*"saved-answers",\n(?:\s*\/\/.*\n)*(?:\s*"customise",\n)?(?:\s*\/\/.*\n)*(?:\s*"network",\n)?(?:\s*\/\/.*\n)*(?:\s*"feed", "messages",\n)?\s*\.\.\.ROUTE_ONLY_TABS\]\)/, "saved-answers is navigable");
   // ⭐ D167 (changed on purpose): Saved answers is Profile → Saved answers — /app/saved-answers lands on /app/profile/answers.

@@ -1,4 +1,4 @@
-// scripts/walk46bSalary.mjs — ⭐ A168 (46b) · THE SALARY ANSWER, WALKED IN REAL CHROME (46a b152b94 built it; unit-tested only).
+// scripts/walk46bSalary.mjs — ⭐ A168 (46b) · THE SALARY ANSWER, WALKED IN REAL CHROME (46a 899fee4 built it; unit-tested only).
 // A FRESH throwaway database (no copy of the real one), the real server booted from this checkout with every key blanked and
 // the checkout's .env kept out (draft-harness-key-leak), one synthetic person (walk-sal). The walk:
 //   1. signs up, opens Auto settings → Salary in Chrome, picks "A named point on the range" → "Higher end", sets a floor,

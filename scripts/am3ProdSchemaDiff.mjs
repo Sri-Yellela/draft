@@ -192,7 +192,7 @@ const TABLE_NOTES = {
     "⛔ SHOULD NO LONGER EXIST. Dropped by migration 106. If this line ever prints again, the\n" +
     "       migration did not run in production — which is REAL DRIFT and the point of this\n" +
     "       harness, not a known difference to wave through. (It was the removed extension token\n" +
-    "       copy/paste flow from c818b9c: 3 token hashes no code could expire or consume.)",
+    "       copy/paste flow from ee2c3b0: 3 token hashes no code could expire or consume.)",
   provider_eval_jobs:
     "a deliberate SCRATCH table, created by scripts/providerEval/db.js with CREATE TABLE IF NOT\n" +
     "       EXISTS when that harness runs. Outside the migration system by design, dev-only, empty.",
@@ -259,8 +259,8 @@ if (!differing.length) {
   console.log("\n   ⛔ WHAT THE apply_mode DIFFERENCE IS, AND WHAT IT IS NOT.");
   console.log("     It is NOT dual-path drift. Both paths agree: scripts/migrations.js:13/:44 and");
   console.log("     server.js:391/:422 all declare DEFAULT 'SIMPLE', byte-identically. 'TAILORED'");
-  console.log("     was the ORIGINAL default (a780d91) and b212ca6 changed it to 'SIMPLE'.");
-  console.log("     Production's users/resumes tables were created BEFORE b212ca6, and");
+  console.log("     was the ORIGINAL default (a780d91) and 5fa77ef changed it to 'SIMPLE'.");
+  console.log("     Production's users/resumes tables were created BEFORE 5fa77ef, and");
   console.log("     `CREATE TABLE IF NOT EXISTS` IS A NO-OP AGAINST AN EXISTING TABLE — so editing");
   console.log("     a CREATE statement can never update a database that already has the table.");
   console.log("     That is the real hole: the dual path governs what a NEW database gets, and");
@@ -307,28 +307,28 @@ console.log(bar());
 console.log("   The repo half is not in question: server.js imports assessCleanupScope and calls it");
 console.log("   BEFORE the DELETE, counting with the same predicate the DELETE uses. The question is");
 console.log("   whether the RUNNING PROCESS is that code. There is no /version endpoint, so this is");
-console.log("   settled by ancestry: task Q (abea2c9) landed AFTER the brake (bd95d20) on main, and");
+console.log("   settled by ancestry: task Q (0147c9b) landed AFTER the brake (6233ea9) on main, and");
 console.log("   Q added `approvalCap` to GET /api/apply/pending. If production serves that field,");
-console.log("   it is running abea2c9 or later, which contains bd95d20.");
+console.log("   it is running 0147c9b or later, which contains 6233ea9.");
 {
   const pending = await get("/api/apply/pending");
   const cap = pending?.approvalCap;
   console.log("\n   GET /api/apply/pending -> keys: " + Object.keys(pending || {}).join(", "));
   if (cap && typeof cap.limit === "number") {
     console.log("   ✓ approvalCap present: " + JSON.stringify(cap));
-    console.log("   ⇒ TASK Q IS DEPLOYED, so bd95d20 is an ancestor of the running build and");
+    console.log("   ⇒ TASK Q IS DEPLOYED, so 6233ea9 is an ancestor of the running build and");
     console.log("     services/jobs/cleanupBrake.js IS on production's code path.");
     console.log("     Production is no longer protected by uptime alone.");
   } else {
     console.log("   ⛔ approvalCap ABSENT from the response.");
-    console.log("   ⇒ PRODUCTION PREDATES abea2c9, so task Q is not deployed.");
+    console.log("   ⇒ PRODUCTION PREDATES 0147c9b, so task Q is not deployed.");
     console.log("");
-    console.log("   Strictly, that alone does not place bd95d20 outside the build — bd95d20 is the");
+    console.log("   Strictly, that alone does not place 6233ea9 outside the build — 6233ea9 is the");
     console.log("   earlier commit. But the two were committed 49 SECONDS APART:");
-    console.log("     bd95d20  2026-09-06 14:47:50  task R — brake the deletion");
-    console.log("     abea2c9  2026-09-06 14:48:39  task Q — approval cap");
-    console.log("   and only three commits exist after bd95d20, all from the same day. A deploy that");
-    console.log("   picked up bd95d20 but not abea2c9 would have had to land inside that 49-second");
+    console.log("     6233ea9  2026-09-06 14:47:50  task R — brake the deletion");
+    console.log("     0147c9b  2026-09-06 14:48:39  task Q — approval cap");
+    console.log("   and only three commits exist after 6233ea9, all from the same day. A deploy that");
+    console.log("   picked up 6233ea9 but not 0147c9b would have had to land inside that 49-second");
     console.log("   window. So the brake is almost certainly NOT deployed either.");
     console.log("");
     console.log("   ⛔ VERDICT: THE BRAKE IS IN main AND IS NOT ON PRODUCTION'S CODE PATH.");

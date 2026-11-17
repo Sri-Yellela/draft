@@ -24,7 +24,7 @@ Three distinct regimes, and only the middle one is the system working as designe
 
 - **09-09 → 09-14, 25/day.** The pre-AE single-pass path (`runEnrichment`), one batch per night.
   Its run detail carries `batchId` and `gatedOut`; the drain's carries `passes` and `batchIds`.
-  Task AE (`1e1f91a`) replaced it, and the first drain nights are 09-15 and 09-16.
+  Task AE (`a519622`) replaced it, and the first drain nights are 09-15 and 09-16.
 - **09-15 / 09-16, 300 and 299 rows, $0.80 spent, 14 passes.** The drain working exactly as
   designed. The 300-row budget is not the constraint; it was reached.
 - **09-17 → now, 0 written, 25 failed, zero tokens, 10-second runs.**
@@ -123,7 +123,7 @@ small, and it would have turned five days of silent failure into one message.
 - ⛔ **Top up Anthropic and Jobo.** Owner action; no code can substitute. **Still outstanding on
   2026-09-21**, re-probed with one `max_tokens: 1` Haiku call: `HTTP 400 · "Your credit balance is
   too low"`, `req_011CfHKfbmcojNwhNTpwEFhe`. Four more nights of crawl on top of the 1,470.
-- ✅ **Deliver the alerts** — **DONE 2026-09-18, `2e4429e`.** Edge-triggered on
+- ✅ **Deliver the alerts** — **DONE 2026-09-18, `536b941`.** Edge-triggered on
   `severity|kind|subject`, admin notification plus an optional `PIPELINE_ALERT_WEBHOOK`, recovery
   messages included, never throws, runs last in the 04:00 tick.
 - **The backlog itself** (1,470) needs no new engineering. At 300 rows/night the drain clears it in

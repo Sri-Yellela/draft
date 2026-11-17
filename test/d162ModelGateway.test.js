@@ -62,7 +62,7 @@ function stubAnthropic({ failModels = [], failWith = "overloaded_error" } = {}) 
   };
 }
 
-// 45n D173 (1) tail (e398a3f0): cover_letter.write declares the posting untrusted, and callTask refuses it unfenced — the
+// 45n D173 (1) tail (a0b18362): cover_letter.write declares the posting untrusted, and callTask refuses it unfenced — the
 // fixture now sends its posting fenced, as the real call sites do (fixture moved on purpose; the refusal is the gateway's).
 const msgs = [{ role: "user", content: `Write a cover letter for Pat Example.\n${fenceUntrusted("posting", "Data Engineer at Northwind.")}` }];
 const passingMetrics = { sampleSize: 25, errorRate: 0, blindWinOrTieRate: 0.6, costPerCallUsd: 0.004, latencyP50Ms: 3000, latencyP95Ms: 9000 };

@@ -431,7 +431,7 @@ test("the per-company cap does not WASTE the day's budget", async () => {
   // took `LIMIT n` rows by priority and the budget refused whatever was over a company's share.
   // With Bosch offering 900 of the 1,200 SmartRecruiters rows, a 300-row day would fill its LIMIT
   // almost entirely with Bosch, fetch its 100, and REFUSE ~200 slots that Ubisoft and Adobe rows
-  // could have used. Budget silently discarded \u2014 the `0de67c8` shape one more time.
+  // could have used. Budget silently discarded \u2014 the `d0ba45b` shape one more time.
   //
   // Bosch's rows are the most recent here, so a recency-ordered LIMIT would take all six of them.
   const db = freshDb();

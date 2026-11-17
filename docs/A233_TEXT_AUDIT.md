@@ -9,7 +9,7 @@ the build order. ⛔ Nothing changes before the owner picks (D149 rule 3).
 
 **How it was measured:** a read-only sweep of `client/src` and `extension/` (11-17), every screen below; the worst lines
 spot-checked by hand against the files (`AtlasPanels.jsx:459`, `ProfilePanel.jsx:1541`, `IntegrationsPanel.jsx:357`,
-`AtlasPage.jsx:314`, `HowItWorksPage.jsx:14` — all as quoted). Word counts are approximate; line numbers are as of `a34905c4`.
+`AtlasPage.jsx:314`, `HowItWorksPage.jsx:14` — all as quoted). Word counts are approximate; line numbers are as of `b70f8cb8`.
 
 **Left out, as asked or by nature:** the Glossary (`AtlasPanels.jsx` GlossaryPanel / GlossaryView); admin pages
 (`panels/AdminPanel.jsx`, `panels/admin*.jsx`, `pages/admin/*`, `AdminLoginPage`, `AdminLayout`, `IngestFunnel`); the legal

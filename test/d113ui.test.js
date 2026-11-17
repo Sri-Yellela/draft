@@ -189,10 +189,10 @@ test("d113uiRunBranchCountsByReason — a run's card: picked, left out, and the 
   const { html, RunCard } = await loadUi();
   const out = html(RunCard, { run, lines });
   assert.match(out, /Picked 4, left out 38\./);
-  // 45n D182 (18d82c2c): the card no longer restates "Looked at N" — the run's own line above it says it (run.seen
+  // 45n D182 (bb297b05): the card no longer restates "Looked at N" — the run's own line above it says it (run.seen
   // above still carries the 214) (pin moved on purpose).
   assert.doesNotMatch(out, /Looked at 214 new postings/);
-  // 45n D182 (18d82c2c) also dropped the "left out: " prefix — the card's sentence above says it (pin moved on purpose).
+  // 45n D182 (bb297b05) also dropped the "left out: " prefix — the card's sentence above says it (pin moved on purpose).
   for (const l of lines) assert.match(out, new RegExp(`data-reason="${l.reason}"><b>${l.n}</b><span>${l.label.replace("'", "&#x27;")}`));
   assert.match(out, /Change filters/);
   assert.match(out, /See what was left out/);
@@ -353,7 +353,7 @@ test("d113uiFourThemes — every ring is a token in all four themes, seven disti
   for (const t of THEME_LIST) {
     const vals = RING_ORDER.map(r => t.tokens[RINGS[r].token]);
     for (const [i, v] of vals.entries()) assert.match(String(v), /^#[0-9a-fA-F]{6}$/, `${t.id} ${RING_ORDER[i]}`);
-    // 45l D181 (05a6a526, "colourways off"): the Plain pair points VIOLET at the one accent on purpose, so there
+    // 45l D181 (ce52a5a1, "colourways off"): the Plain pair points VIOLET at the one accent on purpose, so there
     // "Replied" (violet) shares the accent with "Needs you" — still told apart by the pulse (need pulses, reply does
     // not). Exempt for the Plain pair only, every other pair stays at seven; OWNER: confirm or give reply its own colour.
     const plainShare = /^plain-/.test(t.id) && t.tokens.VIOLET === t.tokens.ACCENT && RINGS.need.pulse && !RINGS.reply.pulse;
