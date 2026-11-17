@@ -168,6 +168,9 @@ export const CONTRAST_PAIRS = [
   ["ON_TILE", "TILE_TEAL", "normal"],
   ["ON_TILE", "TILE_SLATE", "normal"],
   ["ON_TILE", "TILE_ROSE", "normal"],
+  // ⭐ 46u · the Library's pastels (books, decks, question cards): their text is INK, never a muted grey.
+  ["INK", "PASTEL_1", "normal"], ["INK", "PASTEL_2", "normal"], ["INK", "PASTEL_3", "normal"], ["INK", "PASTEL_4", "normal"],
+  ["INK", "PASTEL_5", "normal"], ["INK", "PASTEL_6", "normal"], ["INK", "PASTEL_7", "normal"], ["INK", "PASTEL_8", "normal"],
 ];
 
 // Pairs that are FORBIDDEN, asserted to fail so nobody "fixes" the test by adding them above.

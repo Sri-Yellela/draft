@@ -206,6 +206,17 @@ const tokens = Object.freeze({
   TILE_SLATE:   "#374151",
   TILE_ROSE:    "#9D174D",
   ON_TILE:      "#FFFFFF",
+  // ⭐ 46u (owner 11-17, "assign random pastel colors … like they are on a book or book stack"; sketch A, books on a
+  // shelf) · THE LIBRARY'S PASTELS — a course, guide, pathway or deck takes one by a hash of its id
+  // (shared/pastel.js), so it keeps its colour on every visit. INK on each holds AA (CONTRAST_PAIRS).
+  PASTEL_1:     "#F7D9C4",
+  PASTEL_2:     "#D6E6F5",
+  PASTEL_3:     "#DCEFD8",
+  PASTEL_4:     "#EFDCF3",
+  PASTEL_5:     "#FBEFC6",
+  PASTEL_6:     "#D4EFEC",
+  PASTEL_7:     "#F6D6DC",
+  PASTEL_8:     "#E2E0F6",
   // ⛔ D91 · THE DOCUMENT SURFACE — never themed. A document an employer will read (the cover letter as it is
   // shown; the résumé carries its own) is black on white in EVERY theme: these two are the same in all four.
   DOC_PAPER:    "#FFFFFF",

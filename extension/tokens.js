@@ -85,6 +85,14 @@ export const C_LIGHT = Object.freeze({
   TILE_SLATE: "#374151",
   TILE_ROSE: "#9D174D",
   ON_TILE: "#FFFFFF",
+  PASTEL_1: "#F7D9C4",
+  PASTEL_2: "#D6E6F5",
+  PASTEL_3: "#DCEFD8",
+  PASTEL_4: "#EFDCF3",
+  PASTEL_5: "#FBEFC6",
+  PASTEL_6: "#D4EFEC",
+  PASTEL_7: "#F6D6DC",
+  PASTEL_8: "#E2E0F6",
 });
 
 export const C_DARK = Object.freeze({
@@ -167,6 +175,14 @@ export const C_DARK = Object.freeze({
   TILE_SLATE: "#374151",
   TILE_ROSE: "#9D174D",
   ON_TILE: "#FFFFFF",
+  PASTEL_1: "#5A4436",
+  PASTEL_2: "#344A5E",
+  PASTEL_3: "#3B5238",
+  PASTEL_4: "#4F3A56",
+  PASTEL_5: "#5A5130",
+  PASTEL_6: "#2F5350",
+  PASTEL_7: "#5A3A41",
+  PASTEL_8: "#403C5F",
 });
 
 // ⭐ T17: the registry's Contrast pair (client/src/themes/contrast-*.js), for the dock and its views.
@@ -250,6 +266,14 @@ export const C_CONTRAST_LIGHT = Object.freeze({
   TILE_SLATE: "#374151",
   TILE_ROSE: "#9D174D",
   ON_TILE: "#FFFFFF",
+  PASTEL_1: "#FBEDE2",
+  PASTEL_2: "#E5EFF9",
+  PASTEL_3: "#EAF6E8",
+  PASTEL_4: "#F4E7F7",
+  PASTEL_5: "#FDF6E1",
+  PASTEL_6: "#E7F6F5",
+  PASTEL_7: "#F9E4E8",
+  PASTEL_8: "#E7E6F8",
 });
 
 export const C_CONTRAST_DARK = Object.freeze({
@@ -332,6 +356,14 @@ export const C_CONTRAST_DARK = Object.freeze({
   TILE_SLATE: "#374151",
   TILE_ROSE: "#9D174D",
   ON_TILE: "#FFFFFF",
+  PASTEL_1: "#341A07",
+  PASTEL_2: "#0C1E30",
+  PASTEL_3: "#162A11",
+  PASTEL_4: "#270F2C",
+  PASTEL_5: "#382C04",
+  PASTEL_6: "#102B28",
+  PASTEL_7: "#310B12",
+  PASTEL_8: "#100D2E",
 });
 
 // ⭐ D133: the registry's Studio pair (client/src/themes/studio-*.js), so an account on Studio sees it in the dock too.
@@ -415,6 +447,14 @@ export const C_STUDIO_LIGHT = Object.freeze({
   TILE_SLATE: "#374151",
   TILE_ROSE: "#9D174D",
   ON_TILE: "#FFFFFF",
+  PASTEL_1: "#F7D9C4",
+  PASTEL_2: "#D6E6F5",
+  PASTEL_3: "#DCEFD8",
+  PASTEL_4: "#EFDCF3",
+  PASTEL_5: "#FBEFC6",
+  PASTEL_6: "#D4EFEC",
+  PASTEL_7: "#F6D6DC",
+  PASTEL_8: "#E2E0F6",
 });
 
 export const C_STUDIO_DARK = Object.freeze({
@@ -497,6 +537,14 @@ export const C_STUDIO_DARK = Object.freeze({
   TILE_SLATE: "#374151",
   TILE_ROSE: "#9D174D",
   ON_TILE: "#FFFFFF",
+  PASTEL_1: "#5A4436",
+  PASTEL_2: "#344A5E",
+  PASTEL_3: "#3B5238",
+  PASTEL_4: "#4F3A56",
+  PASTEL_5: "#5A5130",
+  PASTEL_6: "#2F5350",
+  PASTEL_7: "#5A3A41",
+  PASTEL_8: "#403C5F",
 });
 
 // ⭐ D144: the registry's Dusk pair (client/src/themes/dusk-*.js), so an account on Dusk sees it in the dock too.
@@ -580,6 +628,14 @@ export const C_DUSK_LIGHT = Object.freeze({
   TILE_SLATE: "#374151",
   TILE_ROSE: "#9D174D",
   ON_TILE: "#FFFFFF",
+  PASTEL_1: "#F7D9C4",
+  PASTEL_2: "#D6E6F5",
+  PASTEL_3: "#DCEFD8",
+  PASTEL_4: "#EFDCF3",
+  PASTEL_5: "#FBEFC6",
+  PASTEL_6: "#D4EFEC",
+  PASTEL_7: "#F6D6DC",
+  PASTEL_8: "#E2E0F6",
 });
 
 export const C_DUSK_DARK = Object.freeze({
@@ -662,6 +718,14 @@ export const C_DUSK_DARK = Object.freeze({
   TILE_SLATE: "#374151",
   TILE_ROSE: "#9D174D",
   ON_TILE: "#FFFFFF",
+  PASTEL_1: "#5A4436",
+  PASTEL_2: "#344A5E",
+  PASTEL_3: "#3B5238",
+  PASTEL_4: "#4F3A56",
+  PASTEL_5: "#5A5130",
+  PASTEL_6: "#2F5350",
+  PASTEL_7: "#5A3A41",
+  PASTEL_8: "#403C5F",
 });
 
 export const C_PLAIN_LIGHT = Object.freeze({
@@ -744,6 +808,14 @@ export const C_PLAIN_LIGHT = Object.freeze({
   TILE_SLATE: "#4B5563",
   TILE_ROSE: "#4B5563",
   ON_TILE: "#FFFFFF",
+  PASTEL_1: "#F7D9C4",
+  PASTEL_2: "#D6E6F5",
+  PASTEL_3: "#DCEFD8",
+  PASTEL_4: "#EFDCF3",
+  PASTEL_5: "#FBEFC6",
+  PASTEL_6: "#D4EFEC",
+  PASTEL_7: "#F6D6DC",
+  PASTEL_8: "#E2E0F6",
 });
 
 export const C_PLAIN_DARK = Object.freeze({
@@ -826,6 +898,14 @@ export const C_PLAIN_DARK = Object.freeze({
   TILE_SLATE: "#3A4048",
   TILE_ROSE: "#3A4048",
   ON_TILE: "#FFFFFF",
+  PASTEL_1: "#5A4436",
+  PASTEL_2: "#344A5E",
+  PASTEL_3: "#3B5238",
+  PASTEL_4: "#4F3A56",
+  PASTEL_5: "#5A5130",
+  PASTEL_6: "#2F5350",
+  PASTEL_7: "#5A3A41",
+  PASTEL_8: "#403C5F",
 });
 
 /** Every theme of the registry, by id: its scheme and its palette. */

@@ -136,6 +136,8 @@ export const HUE_KEYS = Object.freeze({
   VIOLET: "text", TEAL: "text", PAIR_KICKER: "text", PAIR_ACCENT: "text",
   VIOLET_QUIET: "fill", PAIR_MET_QUIET: "fill", PAIR_LIT: "fill", PAIR_MISSING_QUIET: "fill",
   PAIR_MATCHED_EDGE: "edge", PAIR_MISSING_EDGE: "edge", FH_ACCENT_EDGE: "brand",
+  // ⭐ 46u · the Library's pastels keep their hue, at the theme's quiet-fill lightness.
+  PASTEL_1: "fill", PASTEL_2: "fill", PASTEL_3: "fill", PASTEL_4: "fill", PASTEL_5: "fill", PASTEL_6: "fill", PASTEL_7: "fill", PASTEL_8: "fill",
 });
 // D48: one number, one colour — the header's ATS number IS the pair's kicker in every theme.
 const ALIASES = { PP_ATS_NUMBER: "PAIR_KICKER", PAIR_KICKER: "PP_ATS_NUMBER" };

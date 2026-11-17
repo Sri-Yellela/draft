@@ -85,7 +85,8 @@ test("D167 · d167AtlasHasOwnNav — the card: the eyebrow, the serif headline, 
   assert.deepEqual(ATLAS_NAV.map(g => [g.group, g.panels.map(p => p.label)]), [
     // ⭐ D172 (3) (changed on purpose): Your run, first in You, as the approved sketch draws it.
     // ⭐ D178 (changed on purpose, the nav regrouped): Overview is the signed-out front page; Your route is in Your map.
-    ["You", ["Your run", "Your map", "Your skills"]],
+    // ⭐ 46u (owner 11-17, changed on purpose): "move your map to the top in atlas and make it the default screen".
+    ["You", ["Your map", "Your run", "Your skills"]],
     // ⭐ D172 (2) (changed on purpose): the Library, first in Grow, as the approved sketch draws it.
     // ⭐ D178 (changed on purpose): Learn is the course's circle view, inside the Library.
     // ⭐ A154 (45o, on purpose): How it works — the D172 sketch's panel, second in Grow.

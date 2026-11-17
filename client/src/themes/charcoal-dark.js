@@ -132,6 +132,15 @@ const tokens = Object.freeze({
   TILE_SLATE:          "#374151",   // D149: the letter tile — the same as light (Paper Light says why)
   TILE_ROSE:           "#9D174D",   // D149: the letter tile — the same as light (Paper Light says why)
   ON_TILE:             "#FFFFFF",   // D149: the letter tile — the same as light (Paper Light says why)
+  // ⭐ 46u · the Library's pastels, deepened for a dark floor (the 46u sketch's dark set) — INK on each holds AA.
+  PASTEL_1:            "#5A4436",
+  PASTEL_2:            "#344A5E",
+  PASTEL_3:            "#3B5238",
+  PASTEL_4:            "#4F3A56",
+  PASTEL_5:            "#5A5130",
+  PASTEL_6:            "#2F5350",
+  PASTEL_7:            "#5A3A41",
+  PASTEL_8:            "#403C5F",
   DOC_PAPER:           "#FFFFFF",   // D91: a document is black on white in every theme
   DOC_INK:             "#1A1A1A",
 });

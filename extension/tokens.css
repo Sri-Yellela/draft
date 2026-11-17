@@ -86,6 +86,14 @@
   --c-tile-slate: #374151;
   --c-tile-rose: #9D174D;
   --c-on-tile: #FFFFFF;
+  --c-pastel-1: #F7D9C4;
+  --c-pastel-2: #D6E6F5;
+  --c-pastel-3: #DCEFD8;
+  --c-pastel-4: #EFDCF3;
+  --c-pastel-5: #FBEFC6;
+  --c-pastel-6: #D4EFEC;
+  --c-pastel-7: #F6D6DC;
+  --c-pastel-8: #E2E0F6;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -169,6 +177,14 @@
   --c-tile-slate: #374151;
   --c-tile-rose: #9D174D;
   --c-on-tile: #FFFFFF;
+  --c-pastel-1: #5A4436;
+  --c-pastel-2: #344A5E;
+  --c-pastel-3: #3B5238;
+  --c-pastel-4: #4F3A56;
+  --c-pastel-5: #5A5130;
+  --c-pastel-6: #2F5350;
+  --c-pastel-7: #5A3A41;
+  --c-pastel-8: #403C5F;
   }
 }
 

@@ -52,8 +52,14 @@ test("d172GuidesFromApprovedDecks: a deck — five slides, its check the LIVE ba
 
 test("d172SoonNeverClickableAsAvailable: a level with no decks is not a link; the routes are public and classified; no points", () => {
   const ui = read("client/src/pages/atlas/LibraryGuides.jsx");
-  assert.match(ui, /\{g\.written \? \(\n\s*<Link to=\{`\$\{base\}\/library\/\$\{g\.id\}`\}/);
-  assert.match(ui, /<div className="lib-rung__link lib-rung__link--none" aria-disabled="true">[\s\S]{0,200}Not written yet/);
+  // ⭐ 46u (owner's pick A, changed on purpose): the ladder is books on a shelf — a written guide's spine is a link, an
+  // unwritten one has no `to` (BookSpine draws it as a disabled div) and says it is not written.
+  const ladder = ui.slice(at(ui, "export function GuideLadder("), at(ui, "export function PathwaysPlan("));
+  assert.match(ladder, /\(g\.written\s*\? <BookSpine [\s\S]{0,500}?to=\{`\$\{base\}\/library\/\$\{g\.id\}`\}[\s\S]{0,80}?\/>\s*: <BookSpine /);
+  const unwritten = ladder.slice(at(ladder, ": <BookSpine"));
+  const tag = unwritten.slice(0, at(unwritten, "/>"));
+  assert.ok(tag.includes('foot="Not written yet"') && !/\bto=/.test(tag), "an unwritten guide: no link, 'Not written yet'");
+  assert.match(ui, /: <div className=\{`\$\{cls\} lib-book__spine--none`\} aria-disabled="true"/);
   const route = read("routes/learn.js");
   assert.match(route, /router\.post\("\/deck\/:id\/answer"[\s\S]{0,400}surface: "deck"/);
   const from = at(route, 'router.post("/deck/:id/answer"');

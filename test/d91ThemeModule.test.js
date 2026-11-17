@@ -81,7 +81,8 @@ test("⭐ P1 changed nothing: Paper Light and Charcoal Dark are the pre-move pal
   // an addition is allowed and a change to an existing value is not.
   const ADDED_SINCE_P1 = new Set(["DOC_PAPER", "DOC_INK",   // D91 P2: the document surface (cover letter)
     "TILE_BLUE", "TILE_GREEN", "TILE_PURPLE", "TILE_ORANGE", "TILE_TEAL", "TILE_SLATE", "TILE_ROSE", "ON_TILE",   // D149 (owner 11-04, "go bold"): the company letter tile
-    "CHART_NEUTRAL"]);   // A228 (46r): the skill map's "not yet" bars beside the accent (no neutral passed the dataviz validator in every theme)
+    "CHART_NEUTRAL",   // A228 (46r): the skill map's "not yet" bars beside the accent (no neutral passed the dataviz validator in every theme)
+    "PASTEL_1", "PASTEL_2", "PASTEL_3", "PASTEL_4", "PASTEL_5", "PASTEL_6", "PASTEL_7", "PASTEL_8"]);   // 46u (owner 11-17): the Library's pastels
   const pre = (t) => Object.fromEntries(Object.entries(t).filter(([k]) => !ADDED_SINCE_P1.has(k)));
   assert.equal(h(pre(THEMES["paper-light"].tokens)), "84bef674ad453c97adff47f2829456aa701083fc038ebaec204b1e14af263ccc", "Paper Light's tokens moved");
   assert.equal(h(pre(THEMES["charcoal-dark"].tokens)), "20dadd282f307ec9437e74766aab7e025cfee6089e348775c074f1170dd108c2", "Charcoal Dark's tokens moved");

@@ -50,7 +50,8 @@ test("d178EveryOldAddressRedirects: today, every old address still resolves to i
   assert.equal(panelFor("overview"), "overview");
   const page = read("client/src/pages/atlas/AtlasPage.jsx");
   assert.ok(page.includes('{learning && <Navigate replace to={`${base}/library/silicon-to-software?view=circle${location.hash || ""}`} />}'), "Learn's redirect keeps #step-<id>");
-  assert.ok(page.includes('const panel = panelFor(slug, q) === "overview" && signedIn ? "your-run" : panelFor(slug, q);'), "signed in, Atlas opens on Your run");
+  // ⭐ 46u (owner 11-17, changed on purpose): signed in, Atlas opens on Your map (D178 opened Your run).
+  assert.ok(page.includes('const panel = panelFor(slug, q) === "overview" && signedIn ? "your-map" : panelFor(slug, q);'), "signed in, Atlas opens on Your map");
   const route = /^atlas(?:\/(?:family|library))?(?:\/[^/]+)?$/;
   assert.ok(read("client/src/App.jsx").includes(String.raw`const atlasRoute = /^atlas(?:\/(?:family|library))?(?:\/[^/]+)?$/.test(routeKey);`), "App.jsx's route rule is the one tested here");
   for (const a of ["atlas", "atlas/your-route", "atlas/learn", "atlas/family/data", "atlas/library/sw-f-01", "atlas/kafka"]) assert.match(a, route, `/app/${a} is not bounced`);

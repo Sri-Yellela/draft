@@ -25,6 +25,7 @@ import {
   stepState, checkpointId, circleState, circleLayout, pointAt, chordPath, routePath, arcPath, GEO, circleViewBox, partLabelLines, LABEL, needsMap, goBackTo, routeStart, routeClosure,
   routesFor, pieceForConcept, whereLine, pieceOf, barLine, pasteVerdict, wordCount, EXPLAIN_MIN_WORDS,
 } from "./learnModel.js";
+import { pastelVar } from "../../../../shared/pastel.js";   // ⭐ 46u: a checkpoint is a card in its own pastel
 import "./LearnCircle.css";
 
 export const KIND_ORDER = ["Video", "Playlist", "Article", "Guide", "Book", "Course", "Build", "Project", "Sandbox", "Lab", "Practice", "Exercise", "Game", "Atlas"];
@@ -114,9 +115,10 @@ function Explain({ id, question, saved, signedIn, onExplain }) {
   const [pasted, setPasted] = useState(0);
   const [say, setSay] = useState("");
   const words = wordCount(text);
-  if (!signedIn) return <li className="lrc__ck" data-learn-checkpoint={id}><span>{question}</span></li>;
+  const tone = { "--book-c": pastelVar(id) };
+  if (!signedIn) return <li className="lrc__ck" data-learn-checkpoint={id} style={tone}><span>{question}</span></li>;
   return (
-    <li className="lrc__ck" data-learn-checkpoint={id}>
+    <li className="lrc__ck" data-learn-checkpoint={id} style={tone}>
       <label className="lrc__ck-q" htmlFor={`exp-${id}`}>{question}</label>
       <textarea id={`exp-${id}`} className="lrc__ck-box" rows={3} value={text} data-learn-explain={id}
         placeholder="Explain it in your own words, as if teaching a friend (25 words or more)"

@@ -10,6 +10,8 @@
 // API: GET /api/your-skills/prove · POST /api/your-skills/checks (+ /:id/answer) · POST /api/your-skills/proof.
 import { useEffect, useState } from "react";
 import { api } from "../lib/api.js";
+import CardPile from "./CardPile.jsx";   // 46u: draft's card for the question
+import { pastelVar } from "../../../shared/pastel.js";
 import "./SkillCheck.css";
 
 export const CHECK_MODES = Object.freeze([
@@ -115,15 +117,19 @@ export default function SkillCheck({ skill, atlasBase = "/app/atlas", onChange =
 
       {!opts && !error && <p className="skc__quiet">Loading…</p>}
 
+      {/* ⭐ 46u (owner 11-17, "use our card design for … trivia"): the question is draft's card in the skill's pastel, the
+          questions still to come fanned behind it; answering throws it off for the next. */}
       {check && (
-        <div data-skill-question={check.question.id}>
-          <p className="skc__stem">{check.question.stem}</p>
-          <div className="skc__opts">
-            {check.question.choices.map((c, i) => (
-              <button key={i} type="button" className="skc__opt dbx-depth" disabled={busy} onClick={() => answer(i)}>{c}</button>
-            ))}
+        <CardPile count={check.of} at={check.number - 1} color={pastelVar(skill)} renderFace={(k) => k !== check.number - 1 ? null : (
+          <div data-skill-question={check.question.id}>
+            <p className="skc__stem">{check.question.stem}</p>
+            <div className="skc__opts">
+              {check.question.choices.map((c, i) => (
+                <button key={i} type="button" className="skc__opt dbx-depth" disabled={busy} onClick={() => answer(i)}>{c}</button>
+              ))}
+            </div>
           </div>
-        </div>
+        )} />
       )}
 
       {feedback && !summary && (

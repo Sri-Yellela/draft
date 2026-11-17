@@ -92,8 +92,10 @@
 .lrc__tag { margin-left: 6px; }
 .lrc__src { display: block; font-size: 12.5px; color: var(--c-ink-muted); }
 .lrc__note { display: block; font-size: 12.5px; color: var(--c-ink-muted); line-height: 1.5; }
-.lrc__ck { display: grid; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--c-border); font-size: 14px; }
-.lrc__ck-q { color: var(--c-ink); }
+/* 46u (owner 11-17, "use our card design for … trivia"): a checkpoint is draft's card in its pastel — INK only on it (AA). */
+.lrc__ck { display: grid; gap: 8px; padding: 14px 16px; margin: 0 0 10px; border-radius: 18px; background: var(--book-c, var(--c-surface)); box-shadow: var(--c-shadow-glass);
+  font-size: 14px; list-style: none; --c-ink-muted: var(--c-ink); --c-ink-faint: var(--c-ink); }
+.lrc__ck-q { color: var(--c-ink); font: 400 19px/1.25 var(--font-display); }
 .lrc__ck-box { box-sizing: border-box; width: 100%; min-height: 64px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--c-border-control); background: var(--c-surface-solid); color: var(--c-ink); font: inherit; font-size: 13.5px; resize: vertical; }
 .lrc__ck-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
 .lrc__build { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }

@@ -11,9 +11,10 @@
 
 export const ATLAS_NAV = Object.freeze([
   { group: "You", panels: [
+    // ⭐ 46u (owner 11-17: "move your map to the top in atlas and make it the default screen"): Your map first.
+    { id: "your-map", label: "Your map" },
     // ⭐ D172 (3): Your run — your level, points from proof, streak and today's quests.
     { id: "your-run", label: "Your run" },
-    { id: "your-map", label: "Your map" },
     { id: "your-skills", label: "Your skills" },
   ] },
   { group: "Grow", panels: [
@@ -49,7 +50,7 @@ export const PANEL_IDS = Object.freeze(ATLAS_NAV.flatMap(g => g.panels.map(p => 
 export const PANEL_LABEL = Object.freeze(Object.fromEntries([...ATLAS_NAV, COMPETE_NAV].flatMap(g => g.panels.map(p => [p.id, p.label]))));
 /** Older reserved addresses that now open a panel. */
 // ⭐ D178 (the nav regrouped, owner 11-07): Your route is folded into Your map (the map IS the route drawn) — its address
-// opens Your map. Overview is Atlas's signed-OUT front page (signed in, the mount opens Your run); Learn's address
+// opens Your map. Overview is Atlas's signed-OUT front page (signed in, the mount opens Your map — 46u; Your run before); Learn's address
 // redirects to the course's circle view (AtlasPage). Both stay reserved slugs, so no node can take them.
 export const PANEL_ALIASES = Object.freeze({ check: "your-skills", "your-route": "your-map" });
 export const RESERVED_PANELS = Object.freeze(["overview", "learn"]);

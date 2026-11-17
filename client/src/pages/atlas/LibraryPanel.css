@@ -1,9 +1,27 @@
 /* ⭐ D172 (2) · the Library and a course page (atlas-redesign-sketch.html). Theme tokens only; no capsules (D60). */
-.lib-shelf { list-style: none; margin: 18px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-.lib-cover { margin: 0; }
-.lib-cover__link { display: flex; flex-direction: column; gap: 6px; padding: 16px; border-radius: 12px; text-decoration: none;
-  background: var(--c-surface-tint); border: 1px solid var(--c-border); color: var(--c-ink); min-height: 220px; }
-.lib-cover__link:hover, .lib-cover__link:focus-visible { border-color: var(--c-accent); }
+/* ⭐ 46u (owner's pick A, 11-17) · BOOKS ON A SHELF: spines stand on a shelf line, each in its pastel (--book-c, a hash of
+   its id), the title running up the spine; a course wider, an unwritten guide faint and thin; a book lifts on hover (none
+   with reduced motion). On a phone the shelf scrolls sideways inside itself, never the page. On a pastel only INK is
+   held at AA, so every word on a spine is INK. */
+.lib-books { list-style: none; margin: 12px 0 0; padding: 14px 6px 0; display: flex; align-items: flex-end; gap: 6px;
+  overflow-x: auto; overscroll-behavior-x: contain; border-bottom: 10px solid var(--c-surface-2); min-width: 0; max-width: 100%; }
+.lib-book { margin: 0; flex: none; }
+.lib-book__spine { all: unset; box-sizing: border-box; cursor: pointer; width: 66px; height: calc(220px + var(--book-rank, 0) * 16px);
+  display: flex; flex-direction: column; justify-content: space-between; align-items: center; gap: 8px; padding: 14px 6px 10px;
+  border-radius: 6px 6px 2px 2px; background: var(--book-c, var(--c-surface-2)); color: var(--c-ink);
+  box-shadow: inset -6px 0 0 var(--c-hover), inset 0 0 0 1px var(--c-hover); transition: transform 180ms ease; }
+.lib-book__spine--wide { width: 86px; height: 256px; }
+.lib-book__spine--thin { width: 52px; }
+.lib-book__spine--none { cursor: default; opacity: 0.55; }
+a.lib-book__spine:hover, button.lib-book__spine:hover, a.lib-book__spine:focus-visible, button.lib-book__spine:focus-visible { transform: translateY(-10px); }
+.lib-book__spine:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 3px; }
+.lib-book__kind, .lib-book__state { font: 700 11px/1.2 var(--font-body); text-align: center; color: var(--c-ink); overflow-wrap: anywhere; }
+.lib-book__title { writing-mode: vertical-rl; transform: rotate(180deg); font: 400 var(--book-fs, 21px)/1.05 var(--font-display); text-align: left;
+  flex: 1 1 auto; min-height: 0; max-width: 100%; overflow: hidden; word-break: keep-all; overflow-wrap: normal; hyphens: none; }
+.lib-book__foot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.lib-book__foot .lib-cover__art { width: 46px; height: 36px; }
+@media (prefers-reduced-motion: reduce) { .lib-book__spine { transition: none; } a.lib-book__spine:hover, button.lib-book__spine:hover,
+  a.lib-book__spine:focus-visible, button.lib-book__spine:focus-visible { transform: none; } }
 .lib-cover__art { width: 100%; height: 96px; }
 .lib-art__body { fill: var(--c-surface); stroke: var(--c-accent); stroke-width: 2; }
 .lib-art__core { fill: var(--c-accent); opacity: 0.35; }
@@ -20,9 +38,6 @@
 .lib-pattern__where { margin: 0 0 8px; padding-left: 20px; list-style: disc; }
 .lib-pattern .lib-lesson__t { font: 700 19px/1.25 var(--font-body); margin: 4px 0 2px; }
 .lib-art__glyph { fill: var(--c-accent-ink); font: 700 13px/1 var(--font-body); }
-.lib-cover__title { font-family: var(--font-display); font-size: 21px; line-height: 1.15; }
-.lib-cover__meta { font-size: 13px; color: var(--c-ink-muted); }
-.lib-cover__go { margin-top: auto; font-weight: 700; font-size: 14px; color: var(--c-accent-ink); }
 
 .lib-course { max-width: 860px; }
 .lib-module { border: 1px solid var(--c-border); border-radius: 12px; margin: 12px 0; background: var(--c-surface); }
@@ -44,27 +59,25 @@
 
 /* D172 (2b) · the ladder of guides, a guide's page, the deck viewer. */
 .lib-ladder { margin: 18px 0 8px; }
-.lib-ladder__rungs { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
-.lib-rung { margin: 0; }
-.lib-rung__link { display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 12px; border: 1px solid var(--c-border);
-  background: var(--c-surface); color: var(--c-ink); text-decoration: none; height: 100%; box-sizing: border-box; }
-a.lib-rung__link:hover, a.lib-rung__link:focus-visible { border-color: var(--c-accent); }
-.lib-rung__link--none { opacity: 0.6; }
-.lib-rung__level { font-size: 12px; font-weight: 700; color: var(--c-accent-ink); }
-.lib-rung__name { font-family: var(--font-display); font-size: 20px; line-height: 1.15; }
-.lib-rung__list { font-size: 13px; color: var(--c-ink-muted); }
-.lib-rung__meta { margin-top: auto; font-size: 13px; font-weight: 600; color: var(--c-ink-muted); }
 .lib-lessons--plain { padding: 0; }
+/* 46u: a guide's decks, each a small card in the colour its slides carry */
+.lib-lessons--decks { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.lib-lesson--deck { border: 0; padding: 16px; border-radius: 18px; background: var(--book-c, var(--c-surface)); box-shadow: var(--c-shadow-glass);
+  --c-ink-muted: var(--c-ink); }
 .lib-deck { max-width: 760px; }
-.lib-slide { border: 1px solid var(--c-border); border-radius: 14px; background: var(--c-surface); padding: 22px 24px; margin: 10px 0 14px; min-height: 280px; }
-.lib-slide__tag { margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--c-accent-ink); }
+/* 46u: the slide is the inside of draft's card (components/CardPile) — the card draws the colour, corner and shadow. */
+.lib-slide { display: flex; flex-direction: column; gap: 4px; }
+.lib-slide__top { margin: 0 0 6px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; font-size: 13px; font-weight: 700; }
+.lib-slide__tag { text-transform: uppercase; letter-spacing: 0.06em; font-size: 12px; }
+.lib-slide__crumb { font-weight: 600; }
 .lib-slide__title { margin: 0 0 12px; }
 .lib-slide__points { margin: 0; padding-left: 20px; display: grid; gap: 10px; line-height: 1.5; color: var(--c-ink); }
 .lib-deck__nav { display: flex; align-items: center; gap: 14px; }
 .lib-check__stem { font-weight: 600; color: var(--c-ink); line-height: 1.5; }
 .lib-check__choices { margin: 10px 0; padding-left: 20px; display: grid; gap: 8px; }
 .lib-check__choice { all: unset; box-sizing: border-box; cursor: pointer; display: block; width: 100%; padding: 10px 12px; border-radius: 10px;
-  border: 1px solid var(--c-border); color: var(--c-ink); }
+  border: 2px solid transparent; color: var(--c-ink); background: var(--c-surface-solid); box-shadow: var(--c-depth-rest); }
+.lib-check__choice:disabled { cursor: default; }
 .lib-check__choice:focus-visible, .lib-check__choice:hover:not(:disabled) { border-color: var(--c-accent); }
 .lib-check__choice[data-choice-state="right"] { border-color: var(--c-success); }
 .lib-check__choice[data-choice-state="wrong"] { border-color: var(--c-danger); }
@@ -73,7 +86,7 @@ a.lib-rung__link:hover, a.lib-rung__link:focus-visible { border-color: var(--c-a
 /* D178-3 · the course page: Idea A's head, Idea C's half ring + the lesson deck (the deck gesture: lib/deckWheel.js). */
 .lib-chead { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 20px; align-items: center; padding: 18px; margin-bottom: 14px;
   border: 1px solid var(--c-border); border-radius: 16px; background: var(--c-surface); }
-.lib-chead__cover { border-radius: 12px; background: var(--c-surface-tint); padding: 10px; }
+.lib-chead__cover { border-radius: 12px; background: var(--book-c, var(--c-surface-tint)); padding: 10px; }
 .lib-chead__body .atl__title { margin: 2px 0 4px; }
 .lib-chead__bar { height: 8px; border-radius: 4px; background: var(--c-border); overflow: hidden; margin: 10px 0 4px; }
 .lib-chead__bar i { display: block; height: 100%; background: var(--c-success); }
@@ -100,27 +113,19 @@ a.lib-rung__link:hover, a.lib-rung__link:focus-visible { border-color: var(--c-a
   border: 1px solid var(--c-border); background: var(--c-surface); color: var(--c-ink); font-size: 18px; }
 .lib-ldeck__btn:disabled { opacity: 0.35; cursor: default; }
 .lib-ldeck__btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
-.lib-ldeck__row { list-style: none; margin: 0; padding: 18px 0 8px; position: relative; min-height: 360px; overflow: hidden; }
-.lib-lcard { position: absolute; left: 50%; top: 18px; width: min(380px, 78%); box-sizing: border-box; padding: 18px; border-radius: 14px;
-  border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink);
-  transform: translateX(calc(-50% + var(--off) * 74%)) scale(calc(1 - min(abs(var(--off)), 2) * 0.12));
-  opacity: calc(1 - min(abs(var(--off)), 2) * 0.32); z-index: calc(10 - abs(var(--off))); transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s; cursor: pointer; }
-.lib-lcard.is-front { cursor: default; box-shadow: 0 10px 30px -18px var(--c-border-strong); }
+/* 46u: the lesson card is the inside of draft's card (components/CardPile) — the pile draws colour, corner, shadow, the fan. */
+.lib-lcard { display: flex; flex-direction: column; gap: 2px; }
+.lib-lcard__top { margin: 0 0 4px; display: flex; justify-content: space-between; gap: 10px; }
+.lib-lcard__num { font: 700 13px/1.2 var(--font-body); font-variant-numeric: tabular-nums; }
 .lib-lcard__state { margin: 0 0 4px; font: 700 12px/1.2 var(--font-body); color: var(--c-ink-muted); }
-.lib-lcard__state--checked { color: var(--c-success); }
-.lib-lcard__state--started { color: var(--c-accent-ink); }
-.lib-lcard__t { margin: 0 0 8px; font: 400 24px/1.15 var(--font-display); }
+.lib-lcard__t { margin: 0 0 8px; font: 400 30px/1.1 var(--font-display); text-wrap: balance; }
 .lib-lcard__goal { margin: 0 0 8px; color: var(--c-ink-muted); line-height: 1.45; }
 .lib-lcard__rel { margin: 6px 0 0; font-size: 13px; color: var(--c-ink-muted); }
 .lib-lcard__acts { display: flex; gap: 14px; align-items: center; margin-top: 12px; }
-@media (prefers-reduced-motion: reduce) { .lib-lcard { transition: none; } }
 @media (max-width: 640px) {
   .lib-chead { grid-template-columns: 1fr; }
   .lib-chead__cover { max-width: 160px; }
-  .lib-lcard { width: 88%; }
-  .lib-ldeck__row { min-height: 420px; }
 }
-.lib-lcard__peek { margin: 0; font-size: 13px; color: var(--c-ink-muted); }
 
 /* ⭐ A155 (45o): how you earn ✓ on the lesson card; the course's marks; guided routes in the Modules view; a whole module's
    arc lighting once (none with reduced motion). Depth boxes only — never capsules (D60). */
@@ -134,8 +139,6 @@ a.lib-rung__link:hover, a.lib-rung__link:focus-visible { border-color: var(--c-a
 @keyframes lib-whole-light { from { opacity: 0.22; stroke-width: 4.5; } 60% { opacity: 1; stroke-width: 7; } to { opacity: 1; stroke-width: 4.5; } }
 .lib-half__tick.is-new-whole { animation: lib-whole-light 900ms ease-out both; }
 @media (prefers-reduced-motion: reduce) { .lib-half__tick.is-new-whole { animation: none; } }
-/* A154 (45o): a pathway's cover is a button (it opens the plan below), drawn like a course's link. */
-button.lib-cover__link { width: 100%; border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 
 /* the view tabs (moved here from RoleReadiness.css with A228, 46r: the readiness dial is retired, the course's views stay) */
 .rr-tabs { display: inline-flex; gap: 2px; padding: 3px; margin: 0 0 14px; border-radius: 14px; background: var(--c-surface-solid); }

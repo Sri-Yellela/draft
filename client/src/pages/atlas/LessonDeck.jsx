@@ -9,6 +9,8 @@ import { Link, useNavigate } from "react-router-dom";
 import DepthButton from "../../components/DepthButton.jsx";
 import { deckWheelHandler } from "../../lib/deckWheel.js";
 import { HALF, halfRingLayout, lessonState, lessonStateLine, linkLine, earnChecklist, wholeModules } from "./libraryModel.js";
+import CardPile from "../../components/CardPile.jsx";   // ⭐ 46u: the lessons on draft's card, in the module's pastel
+import { pastelVar } from "../../../../shared/pastel.js";
 
 export function HalfRing({ course, marks, progress, module, onModule }) {
   const ticks = useMemo(() => halfRingLayout(course), [course]);
@@ -63,7 +65,10 @@ export function HalfRing({ course, marks, progress, module, onModule }) {
   );
 }
 
-export function LessonDeck({ base, lessons, marks, circle, titles }) {
+// ⭐ 46u (owner 11-17: "use our card design for these decks in each course"): the module's lessons are draft's card
+// (components/CardPile) in the module's pastel (`colorId`, stable), the lessons still ahead fanned behind it; the wheel,
+// a swipe or ← → turns one card, Next throws the front off.
+export function LessonDeck({ base, lessons, marks, circle, titles, colorId = "lessons" }) {
   const navigate = useNavigate();
   const [i, setI] = useState(0);
   const ref = useRef(null);
@@ -78,6 +83,39 @@ export function LessonDeck({ base, lessons, marks, circle, titles }) {
   }, [i, lessons.length]);
   if (!lessons.length) return null;
   const go = (d) => setI(x => Math.max(0, Math.min(lessons.length - 1, x + d)));
+  const face = (k) => {
+    const l = lessons[k];
+    if (!l) return null;
+    const st = lessonState(l, marks), line = lessonStateLine(st);
+    const piece = circle?.pieces?.[l.id] || {};
+    const builds = (piece.needs || []).map(x => titles.get(x.id)).filter(Boolean);
+    const opens = (piece.opens || []).map(x => titles.get(x.id ?? x)).filter(Boolean);
+    const href = `${base}/learn#step-${encodeURIComponent(l.id)}`;
+    return (
+      <div className="lib-lcard" data-lesson-card={l.id} data-card-offset={k - i} data-lesson-state={line.state}>
+        <p className="lib-lcard__top"><span className={`lib-lcard__state lib-lcard__state--${line.state}`}>{line.text}</span><span className="lib-lcard__num">{k + 1} / {lessons.length}</span></p>
+        <h3 className="lib-lcard__t">{l.title}</h3>
+        {l.goal && <p className="lib-lcard__goal">{l.goal}</p>}
+        {/* ⭐ A155 (45o, the D178 picks): how you earn ✓ — the one rule's own counts. */}
+        {earnChecklist(st).length > 0 && (
+          <ul className="lib-earn" aria-label="How you earn the check" data-lesson-earn="">
+            {earnChecklist(st).map(r => <li key={r.key} className={r.done ? "is-done" : ""} data-earn={r.key}>{r.done ? "✓ " : ""}{r.text}</li>)}
+          </ul>
+        )}
+        <ul className="lib-links">
+          {l.links.filter(x => !x.optional).slice(0, 4).map(x => (
+            <li key={x.id}>{x.url ? <a href={x.url} target="_blank" rel="noopener noreferrer">{linkLine(x)}</a> : <span>{linkLine(x)}</span>}</li>
+          ))}
+        </ul>
+        {builds.length > 0 && <p className="lib-lcard__rel"><b>Builds on</b> {builds.slice(0, 4).join(" · ")}{builds.length > 4 ? ` · +${builds.length - 4} more` : ""}</p>}
+        {opens.length > 0 && <p className="lib-lcard__rel"><b>Opens</b> {opens.slice(0, 4).join(" · ")}{opens.length > 4 ? ` · +${opens.length - 4} more` : ""}</p>}
+        <div className="lib-lcard__acts">
+          <span data-lesson-open=""><DepthButton primary onClick={() => navigate(href)}>Open</DepthButton></span>
+          <Link className="atl__link" to={href}>Check · {l.checks.length} question{l.checks.length === 1 ? "" : "s"}</Link>
+        </div>
+      </div>
+    );
+  };
   return (
     <div className="lib-ldeck" ref={ref} tabIndex={0} data-lesson-deck="" aria-roledescription="deck"
       aria-label={`Lessons: ${i + 1} of ${lessons.length}. The left and right arrows turn the deck.`}
@@ -89,46 +127,7 @@ export function LessonDeck({ base, lessons, marks, circle, titles }) {
         <button type="button" className="lib-ldeck__btn" aria-label="Previous lesson" disabled={i === 0} onClick={() => go(-1)}>‹</button>
         <button type="button" className="lib-ldeck__btn" aria-label="Next lesson" disabled={i === lessons.length - 1} onClick={() => go(1)}>›</button>
       </div>
-      <ol className="lib-ldeck__row">
-        {lessons.map((l, k) => {
-          const off = k - i;
-          if (Math.abs(off) > 2) return null;
-          const st = lessonState(l, marks), line = lessonStateLine(st);
-          const piece = circle?.pieces?.[l.id] || {};
-          const builds = (piece.needs || []).map(x => titles.get(x.id)).filter(Boolean);
-          const opens = (piece.opens || []).map(x => titles.get(x.id ?? x)).filter(Boolean);
-          const href = `${base}/learn#step-${encodeURIComponent(l.id)}`;
-          return (
-            <li key={l.id} className={`lib-lcard${off === 0 ? " is-front" : ""}`} data-lesson-card={l.id} data-card-offset={off} data-lesson-state={line.state}
-              style={{ "--off": off }} aria-hidden={off !== 0} onClick={() => off !== 0 && setI(k)}>
-              <p className={`lib-lcard__state lib-lcard__state--${line.state}`}>{off === 0 ? line.text : `Lesson ${k + 1}`}</p>
-              {off === 0 ? <h3 className="lib-lcard__t">{l.title}</h3> : <p className="lib-lcard__peek">{line.text}</p>}
-              {off === 0 && (
-                <>
-                  {l.goal && <p className="lib-lcard__goal">{l.goal}</p>}
-                  {/* ⭐ A155 (45o, the D178 picks): how you earn ✓ — the one rule's own counts. */}
-                  {earnChecklist(st).length > 0 && (
-                    <ul className="lib-earn" aria-label="How you earn the check" data-lesson-earn="">
-                      {earnChecklist(st).map(r => <li key={r.key} className={r.done ? "is-done" : ""} data-earn={r.key}>{r.done ? "✓ " : ""}{r.text}</li>)}
-                    </ul>
-                  )}
-                  <ul className="lib-links">
-                    {l.links.filter(x => !x.optional).slice(0, 4).map(x => (
-                      <li key={x.id}>{x.url ? <a href={x.url} target="_blank" rel="noopener noreferrer">{linkLine(x)}</a> : <span>{linkLine(x)}</span>}</li>
-                    ))}
-                  </ul>
-                  {builds.length > 0 && <p className="lib-lcard__rel"><b>Builds on</b> {builds.slice(0, 4).join(" · ")}{builds.length > 4 ? ` · +${builds.length - 4} more` : ""}</p>}
-                  {opens.length > 0 && <p className="lib-lcard__rel"><b>Opens</b> {opens.slice(0, 4).join(" · ")}{opens.length > 4 ? ` · +${opens.length - 4} more` : ""}</p>}
-                  <div className="lib-lcard__acts">
-                    <span data-lesson-open=""><DepthButton primary onClick={() => navigate(href)}>Open</DepthButton></span>
-                    <Link className="atl__link" to={href}>Check · {l.checks.length} question{l.checks.length === 1 ? "" : "s"}</Link>
-                  </div>
-                </>
-              )}
-            </li>
-          );
-        })}
-      </ol>
+      <CardPile count={lessons.length} at={i} color={pastelVar(colorId)} renderFace={face} />
     </div>
   );
 }

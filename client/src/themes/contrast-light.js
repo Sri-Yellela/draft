@@ -120,6 +120,14 @@ const tokens = Object.freeze({
   TILE_SLATE:          "#374151",   // §3 (the sketch)
   TILE_ROSE:           "#9D174D",   // §3 (the sketch)
   ON_TILE:             "#FFFFFF",   // §3 (the sketch)
+  PASTEL_1:            "#FBEDE2",   // orange quiet fill (hue 25°)
+  PASTEL_2:            "#E5EFF9",   // blue quiet fill (hue 209°)
+  PASTEL_3:            "#EAF6E8",   // green quiet fill (hue 110°)
+  PASTEL_4:            "#F4E7F7",   // violet quiet fill (hue 290°)
+  PASTEL_5:            "#FDF6E1",   // amber quiet fill (hue 46°)
+  PASTEL_6:            "#E7F6F5",   // teal quiet fill (hue 173°)
+  PASTEL_7:            "#F9E4E8",   // red quiet fill (hue 349°)
+  PASTEL_8:            "#E7E6F8",   // violet quiet fill (hue 245°)
   DOC_PAPER:           "#FFFFFF",   // the document surface — never themed
   DOC_INK:             "#1A1A1A",   // the document surface — never themed
 });

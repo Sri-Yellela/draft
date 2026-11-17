@@ -118,6 +118,14 @@ const tokens = Object.freeze({
   TILE_SLATE:          "#3A4048",   // colourways off (D181): one neutral
   TILE_ROSE:           "#3A4048",   // colourways off (D181): one neutral
   ON_TILE:             "#FFFFFF",
+  PASTEL_1:            "#5A4436",
+  PASTEL_2:            "#344A5E",
+  PASTEL_3:            "#3B5238",
+  PASTEL_4:            "#4F3A56",
+  PASTEL_5:            "#5A5130",
+  PASTEL_6:            "#2F5350",
+  PASTEL_7:            "#5A3A41",
+  PASTEL_8:            "#403C5F",
   DOC_PAPER:           "#FFFFFF",
   DOC_INK:             "#1A1A1A",
 });

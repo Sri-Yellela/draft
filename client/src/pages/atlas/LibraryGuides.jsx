@@ -8,6 +8,8 @@ import { Link } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import DepthButton from "../../components/DepthButton.jsx";
 import { slideLabel } from "./libraryModel.js";
+import CardPile from "../../components/CardPile.jsx";   // 46u: draft's card for the slides
+import { pastelIndex, pastelVar } from "../../../../shared/pastel.js";
 import "./LibraryPanel.css";
 
 export function useGuides() {
@@ -16,31 +18,46 @@ export function useGuides() {
   return g;
 }
 
-/** The ladder, on the Library page. */
+/**
+ * ⭐ 46u (owner's pick 11-17: "A", books on a shelf) · ONE BOOK ON THE SHELF — a spine in the item's pastel (stable per
+ * id, shared/pastel.js), the kind at the head, the title running up the spine (serif), its drawing and state at the foot.
+ * A course's spine is wider (it holds more); an unwritten guide is faint and thin and never a link. `rank` varies the
+ * height a little, as books do. One of: `to` (a link), `onClick` (a button), neither (not available).
+ */
+// A long title runs smaller, so it breaks only between words and stays on its spine (46u walk: "Softwar|e engine|ering").
+export const spineFont = (title) => { const n = String(title || "").length; return n <= 12 ? 21 : n <= 20 ? 18 : 16; };
+
+export function BookSpine({ id, kind, title, foot, label, to, onClick, size = "", rank = 0, art = null, ...data }) {
+  const cls = `lib-book__spine${size ? ` lib-book__spine--${size}` : ""}`;
+  const body = (
+    <>
+      <span className="lib-book__kind">{kind}</span>
+      <span className="lib-book__title">{title}</span>
+      <span className="lib-book__foot">{art}<span className="lib-book__state">{foot}</span></span>
+    </>
+  );
+  return (
+    <li className="lib-book" style={{ "--book-c": pastelVar(id), "--book-rank": rank % 3, "--book-fs": `${spineFont(title)}px` }} data-pastel={pastelIndex(id)} {...data}>
+      {to ? <Link to={to} className={cls} aria-label={label} title={label}>{body}</Link>
+        : onClick ? <button type="button" className={cls} onClick={onClick} aria-label={label} title={label}>{body}</button>
+          : <div className={`${cls} lib-book__spine--none`} aria-disabled="true" title={label}>{body}</div>}
+    </li>
+  );
+}
+
+/** The ladder, on the Library page — the guides by level, as books (46u). */
 export function GuideLadder({ base, guides }) {
   if (!guides?.length) return null;
   return (
     <section className="lib-ladder" aria-labelledby="lib-ladder-h" data-guide-ladder="">
       <h2 className="atl__h2" id="lib-ladder-h">Guides, by level</h2>
-      <ol className="lib-ladder__rungs">
-        {guides.map(g => (
-          <li key={g.id} className="lib-rung" data-guide={g.id} data-guide-written={g.written ? "" : undefined}>
-            {g.written ? (
-              <Link to={`${base}/library/${g.id}`} className="lib-rung__link">
-                <span className="lib-rung__level">Level {g.level}</span>
-                <span className="lib-rung__name">{g.name}</span>
-                <span className="lib-rung__list">{g.lessons.slice(0, 4).map(l => l.title).join(" · ")}{g.lessons.length > 4 ? " …" : ""}</span>
-                <span className="lib-rung__meta">{g.lessons.length} decks · open →</span>
-              </Link>
-            ) : (
-              <div className="lib-rung__link lib-rung__link--none" aria-disabled="true">
-                <span className="lib-rung__level">Level {g.level}</span>
-                <span className="lib-rung__name">{g.name}</span>
-                <span className="lib-rung__meta">Not written yet</span>
-              </div>
-            )}
-          </li>
-        ))}
+      <ol className="lib-books">
+        {guides.map((g, i) => (g.written
+          ? <BookSpine key={g.id} id={g.id} rank={i} kind={`Level ${g.level}`} title={g.name} foot={`${g.lessons.length} decks`}
+              label={`Level ${g.level}, ${g.name}: ${g.lessons.length} decks — ${g.lessons.slice(0, 4).map(l => l.title).join(", ")}${g.lessons.length > 4 ? " …" : ""}`}
+              to={`${base}/library/${g.id}`} data-guide={g.id} data-guide-written="" />
+          : <BookSpine key={g.id} id={g.id} rank={i} size="thin" kind={`Level ${g.level}`} title={g.name} foot="Not written yet"
+              label={`Level ${g.level}, ${g.name}: not written yet`} data-guide={g.id} />))}
       </ol>
     </section>
   );
@@ -118,9 +135,10 @@ export function GuidePage({ base, guide }) {
         <h1 className="atl__title">{guide.name}</h1>
         <p className="atl__lede">Each deck is five slides: what it is, the core ideas, the trade-offs, what you'll see at work, and a question.</p>
       </header>
-      <ol className="lib-lessons lib-lessons--plain">
+      {/* ⭐ 46u: each deck in its own pastel — the colour its slides carry. */}
+      <ol className="lib-lessons lib-lessons--plain lib-lessons--decks">
         {guide.lessons.map((l, i) => (
-          <li key={l.id} className="lib-lesson" data-deck={l.id}>
+          <li key={l.id} className="lib-lesson lib-lesson--deck" data-deck={l.id} style={{ "--book-c": pastelVar(l.id) }}>
             <div className="lib-lesson__main">
               <Link to={`${base}/library/${l.id}`} className="lib-lesson__t">{i + 1}. {l.title}</Link>
               <span className="atl__quiet">{l.slides} slides{l.skills.length ? ` · ${l.skills.join(", ")}` : ""}</span>
@@ -153,20 +171,21 @@ export function DeckPage({ base, id }) {
     try { setAnswer({ chosen, ...(await api(`/api/learn/deck/${encodeURIComponent(deck.id)}/answer`, { method: "POST", body: JSON.stringify({ chosen }) })) }); }
     catch (e) { setAnswer({ chosen, error: e.message || "That answer was not saved." }); }
   }
-  return (
-    <article className="lib-deck" data-deck-view={deck.id} data-slide={i + 1}>
-      <p className="atl__kicker">{deck.guide ? <Link to={`${base}/library/${deck.guide.id}`} className="atl__link">{deck.guide.name}</Link> : "Library"} · {deck.title}</p>
-      <div className="lib-slide" data-slide-tag={s.tag}>
-        <p className="lib-slide__tag">{slideLabel(i, deck.slides.length, s.tag)}</p>
-        <h1 className="atl__title lib-slide__title">{s.title}</h1>
-        {!last && <ul className="lib-slide__points">{s.points.map((p, k) => <li key={k}>{p}</li>)}</ul>}
-        {last && (deck.check.question ? (
+  // ⭐ 46u: the slide is draft's card in the deck's pastel (stable per deck id), the slides still to read fanned behind.
+  const face = (k) => {
+    const sk = deck.slides[k], isLast = k === deck.slides.length - 1;
+    return (
+      <div className="lib-slide" data-slide-tag={sk.tag}>
+        <p className="lib-slide__top"><span className="lib-slide__tag">{slideLabel(k, deck.slides.length, sk.tag)}</span><span className="lib-slide__crumb">{deck.guide?.name || "Library"} · {deck.title}</span></p>
+        <h1 className="atl__title lib-slide__title">{sk.title}</h1>
+        {!isLast && <ul className="lib-slide__points">{sk.points.map((p, j) => <li key={j}>{p}</li>)}</ul>}
+        {isLast && (deck.check.question ? (
           <div className="lib-check" data-deck-check="">
             <p className="lib-check__stem">{deck.check.question.stem}</p>
             <ol className="lib-check__choices">
-              {deck.check.question.choices.map((c, k) => (
-                <li key={k}><button type="button" className="lib-check__choice" disabled={!!answer} aria-pressed={answer?.chosen === k}
-                  data-choice-state={answer ? (k === answer.answer ? "right" : k === answer.chosen ? "wrong" : "") : ""} onClick={() => choose(k)}>{c}</button></li>
+              {deck.check.question.choices.map((c, j) => (
+                <li key={j}><button type="button" className="lib-check__choice" disabled={!!answer} aria-pressed={answer?.chosen === j}
+                  data-choice-state={answer ? (j === answer.answer ? "right" : j === answer.chosen ? "wrong" : "") : ""} onClick={() => choose(j)}>{c}</button></li>
               ))}
             </ol>
             {answer && !answer.error && <p className="lib-check__why" role="status">{answer.correct ? "Right." : "Not quite."} {Array.isArray(answer.why) ? answer.why[answer.answer] : answer.why || ""}</p>}
@@ -174,6 +193,12 @@ export function DeckPage({ base, id }) {
           </div>
         ) : <p className="atl__quiet" data-deck-check-waiting="">This deck's question is waiting for review — it appears here once it's approved.</p>)}
       </div>
+    );
+  };
+  return (
+    <article className="lib-deck" data-deck-view={deck.id} data-slide={i + 1} data-pastel={pastelIndex(deck.id)}>
+      <p className="atl__kicker">{deck.guide ? <Link to={`${base}/library/${deck.guide.id}`} className="atl__link">{deck.guide.name}</Link> : "Library"} · {deck.title}</p>
+      <CardPile count={deck.slides.length} at={i} color={pastelVar(deck.id)} flipKey={last && answer ? "answered" : null} renderFace={face} />
       <div className="lib-deck__nav">
         <DepthButton disabled={i === 0} onClick={() => setI(i - 1)}>← Back</DepthButton>
         <span className="atl__quiet" aria-live="polite">{i + 1} of {deck.slides.length}</span>

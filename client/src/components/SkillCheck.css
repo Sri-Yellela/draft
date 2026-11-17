@@ -5,7 +5,7 @@
 .skc__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 0 0 8px; }
 .skc__title { margin: 0; font-weight: 600; font-size: 14.5px; }
 .skc__clock { font-variant-numeric: tabular-nums; color: var(--c-accent-ink); font-weight: 600; font-size: 14px; }
-.skc__stem { margin: 0 0 10px; color: var(--c-ink); font-size: 14.5px; line-height: 1.5; }
+.skc__stem { margin: 0 0 10px; color: var(--c-ink); font: 400 21px/1.25 var(--font-display); text-wrap: balance; }   /* 46u: the card's serif title */
 .skc__opts { display: grid; gap: 6px; }
 .skc__opt { all: unset; box-sizing: border-box; cursor: pointer; padding: 10px 12px; font-size: 14px; line-height: 1.4;
   background: var(--c-surface); color: var(--c-ink); border-radius: 12px; }

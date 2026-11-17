@@ -119,6 +119,8 @@ export const SHARED = Object.freeze({
   "components/AtlasTerm.css":           { what: "its look, and the learning-links layout option's styles", owner: "components/AtlasTerm.jsx" },
   "components/DecisionButtons.jsx":     { what: "Pass · Save · Draft — every card and the posting panel" },
   "components/DecisionToast.jsx":       { what: "the undo toast after a decision — deck and board" },
+  "components/CardPile.jsx":            { what: "46u · draft's card for reading — the jobs deck's look in an item's pastel, the next cards fanned behind; guide decks, a course's lessons, the questions" },
+  "components/CardPile.css":            { what: "46u · the reading card's look", owner: "components/CardPile.jsx" },
   "components/ResumeList.jsx":          { what: "THE résumé list (D62) — the posting match's History (D152 (8)) and Settings" },
   "components/ResumeList.css":          { what: "its look — the list's classes only (A93)", owner: "components/ResumeList.jsx" },
   // ── controls and surfaces ──

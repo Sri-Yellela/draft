@@ -400,8 +400,8 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   }, [signedIn]);
   // ⭐ A154: /atlas/bar/<code> is a shared Beat-the-bar score (a node slug never holds a "/").
   const barCode = slug && slug.startsWith("bar/") ? slug.slice("bar/".length) : null;
-  // ⭐ D178: signed in, Atlas opens on Your run (Overview is the signed-out front page).
-  const panel = panelFor(slug, q) === "overview" && signedIn ? "your-run" : panelFor(slug, q);
+  // ⭐ 46u (owner 11-17): signed in, Atlas opens on Your map (D178 opened Your run; Overview is the signed-out front page).
+  const panel = panelFor(slug, q) === "overview" && signedIn ? "your-map" : panelFor(slug, q);
   const panelOnly = !slug ? !q : (isPanelSlug(slug) && !learning && !checking);
   const body = (
     <main className={`atl atl--panels${wide ? " atl--wide" : ""}`} data-atlas-page={learning ? "learn" : checking ? "check" : familyKey ? "family" : courseId ? "course" : panelOnly ? "panel" : slug ? "node" : "search"}

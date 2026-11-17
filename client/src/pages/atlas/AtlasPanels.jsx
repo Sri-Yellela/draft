@@ -21,6 +21,8 @@ import YourSkillsPanel from "./YourSkillsPanel.jsx";   // D169
 import { ExploreByRole, Recent, directionLine, useAtlasMe } from "./YourMap.jsx";
 import { KIND_LABEL } from "./atlasModel.js";
 import { overviewStats, panelHref, learnStepHref } from "./atlasPanels.js";
+import CardPile from "../../components/CardPile.jsx";   // ⭐ 46u: the question on draft's card
+import { pastelVar } from "../../../../shared/pastel.js";
 import "./AtlasPanels.css";
 import { loginHref } from "../../lib/signInReturn.js";   // A138: back to this page after sign-in
 
@@ -248,36 +250,41 @@ export function TodaysQuestionPanel({ base }) {
       {t && <DailyReminderRow />}
       {t && <PracticeProgressCard day={day} refresh={r ? 1 : 0} />}
       {t && <StackExposureCard />}
+      {/* ⭐ 46u (owner 11-17: "use our card design for … trivia"): the question is draft's card in its skill's pastel, two more
+          behind it; answering flips it to the answer and why. */}
       {q && (
-        <div className="atl-dq" data-daily-question={q.id}>
-          <p className="atl__quiet">{(q.skills || []).map(s => String(s).replace(/-/g, " ")).join(" · ")}</p>
-          <h3 className="atl__h2">{q.stem}</h3>
-          {q.type === "match" && <MatchAnswer q={q} r={r} busy={busy} onAnswer={(resp) => answer(null, resp)} />}
-          {q.type === "order" && <OrderAnswer q={q} r={r} busy={busy} onAnswer={(resp) => answer(null, resp)} />}
-          {Array.isArray(q.choices) && <div className="atl-dq__choices" role="group" aria-label="Choices">
-            {q.choices.map((c, i) => (
-              <button key={i} type="button" className="atl-dq__choice" disabled={!!r || busy} onClick={() => answer(i)}
-                data-state={r ? (i === r.correctIndex ? "right" : i === r.chosen ? "wrong" : "") : ""}>{c}</button>
-            ))}
-          </div>}
-          {r && Array.isArray(q.choices) && (
-            <div className="atl-dq__why" data-daily-why="" role="status">
-              <p><b>{r.correct ? "Right." : "Not quite."}</b> {r.why.chosen}</p>
-              {!r.correct && r.why.right && <p><b>The stronger move:</b> {r.why.rightChoice} — {r.why.right}</p>}
-              {r.lessons?.length > 0 && <p>Go to lesson: {r.lessons.map((l, i) => <span key={l.path}>{i ? " · " : ""}<Link className="atl__link" to={learnStepHref(base, l.stepId)}>{l.label}</Link></span>)}</p>}
-              {r.decks?.length > 0 && <p data-daily-decks="">Mini-lesson: {r.decks.map((d, i) => <span key={d.id}>{i ? " · " : ""}<Link className="atl__link" to={`${base}/library/${d.id}`}>{d.title}</Link></span>)}</p>}
-              <p className="atl__quiet">Come back tomorrow for the next one.</p>
+        <CardPile className="atl-dq-pile" color={pastelVar(q.skills?.[0] || q.id)} backColors={[pastelVar(`${q.id}:next`), pastelVar(`${q.id}:after`)]}
+          flipKey={r ? "answered" : null} renderFace={() => (
+            <div className="atl-dq" data-daily-question={q.id}>
+              <p className="atl__quiet">{(q.skills || []).map(s => String(s).replace(/-/g, " ")).join(" · ")}</p>
+              <h3 className="atl__h2">{q.stem}</h3>
+              {q.type === "match" && <MatchAnswer q={q} r={r} busy={busy} onAnswer={(resp) => answer(null, resp)} />}
+              {q.type === "order" && <OrderAnswer q={q} r={r} busy={busy} onAnswer={(resp) => answer(null, resp)} />}
+              {Array.isArray(q.choices) && <div className="atl-dq__choices" role="group" aria-label="Choices">
+                {q.choices.map((c, i) => (
+                  <button key={i} type="button" className="atl-dq__choice" disabled={!!r || busy} onClick={() => answer(i)}
+                    data-state={r ? (i === r.correctIndex ? "right" : i === r.chosen ? "wrong" : "") : ""}>{c}</button>
+                ))}
+              </div>}
+              {r && Array.isArray(q.choices) && (
+                <div className="atl-dq__why" data-daily-why="" role="status">
+                  <p><b>{r.correct ? "Right." : "Not quite."}</b> {r.why.chosen}</p>
+                  {!r.correct && r.why.right && <p><b>The stronger move:</b> {r.why.rightChoice} — {r.why.right}</p>}
+                  {r.lessons?.length > 0 && <p>Go to lesson: {r.lessons.map((l, i) => <span key={l.path}>{i ? " · " : ""}<Link className="atl__link" to={learnStepHref(base, l.stepId)}>{l.label}</Link></span>)}</p>}
+                  {r.decks?.length > 0 && <p data-daily-decks="">Mini-lesson: {r.decks.map((d, i) => <span key={d.id}>{i ? " · " : ""}<Link className="atl__link" to={`${base}/library/${d.id}`}>{d.title}</Link></span>)}</p>}
+                  <p className="atl__quiet">Come back tomorrow for the next one.</p>
+                </div>
+              )}
+              {r && !Array.isArray(q.choices) && (
+                <div className="atl-dq__why" data-daily-why="" role="status">
+                  <p><b>{r.correct ? "Right." : `${(r.parts || []).filter(Boolean).length} of ${(r.parts || []).length} in place.`}</b>{typeof r.why === "string" ? ` ${r.why}` : ""}</p>
+                  {r.lessons?.length > 0 && <p>Go to lesson: {r.lessons.map((l, i) => <span key={l.path}>{i ? " · " : ""}<Link className="atl__link" to={learnStepHref(base, l.stepId)}>{l.label}</Link></span>)}</p>}
+                  {r.decks?.length > 0 && <p data-daily-decks="">Mini-lesson: {r.decks.map((d, i) => <span key={d.id}>{i ? " · " : ""}<Link className="atl__link" to={`${base}/library/${d.id}`}>{d.title}</Link></span>)}</p>}
+                  <p className="atl__quiet">Come back tomorrow for the next one.</p>
+                </div>
+              )}
             </div>
-          )}
-          {r && !Array.isArray(q.choices) && (
-            <div className="atl-dq__why" data-daily-why="" role="status">
-              <p><b>{r.correct ? "Right." : `${(r.parts || []).filter(Boolean).length} of ${(r.parts || []).length} in place.`}</b>{typeof r.why === "string" ? ` ${r.why}` : ""}</p>
-              {r.lessons?.length > 0 && <p>Go to lesson: {r.lessons.map((l, i) => <span key={l.path}>{i ? " · " : ""}<Link className="atl__link" to={learnStepHref(base, l.stepId)}>{l.label}</Link></span>)}</p>}
-              {r.decks?.length > 0 && <p data-daily-decks="">Mini-lesson: {r.decks.map((d, i) => <span key={d.id}>{i ? " · " : ""}<Link className="atl__link" to={`${base}/library/${d.id}`}>{d.title}</Link></span>)}</p>}
-              <p className="atl__quiet">Come back tomorrow for the next one.</p>
-            </div>
-          )}
-        </div>
+        )} />
       )}
     </div>
   );

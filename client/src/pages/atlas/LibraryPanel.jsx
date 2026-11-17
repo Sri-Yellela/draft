@@ -11,10 +11,11 @@ import { api } from "../../lib/api.js";
 import DepthButton from "../../components/DepthButton.jsx";   // A155: the guided routes
 import { courseProgress, firstOpenModule, lessonState, linkLine, wholeModules, coursePieces } from "./libraryModel.js";
 import { routesFor } from "./learnModel.js";   // A155: the circle's guided routes, in the Modules view too
-import { GuideLadder, PathwaysPlan, useGuides } from "./LibraryGuides.jsx";
+import { BookSpine, GuideLadder, PathwaysPlan, useGuides } from "./LibraryGuides.jsx";
 import { HalfRing, LessonDeck } from "./LessonDeck.jsx";
 import { learnStepHref } from "./atlasPanels.js";
 import { artForPathway } from "./PathwayArt.jsx";   // A154: a drawing per pathway
+import { pastelVar } from "../../../../shared/pastel.js";   // 46u: a course keeps its colour
 import "./LibraryPanel.css";
 
 // ⭐ D178: the LeetCode pattern atlas is its own course (kind "patterns": no earned progress — a pattern has no check yet).
@@ -62,19 +63,15 @@ function PathwayShelf({ onPick }) {
   return (
     <>
       <h2 className="atl__h2">Pathways</h2>
-      <ul className="lib-shelf" data-pathway-shelf="">
-        {plan.pathways.map(p => {
+      {/* ⭐ 46u: the pathways as books on the shelf; pressing one opens its plan below. */}
+      <ul className="lib-books" data-pathway-shelf="">
+        {plan.pathways.map((p, i) => {
           const Art = artForPathway(p.id);
           const n = p.stages.reduce((a, s) => a + s.topics.length, 0), w = p.stages.reduce((a, s) => a + s.topics.filter(t => t.deck).length, 0);
+          const name = String(p.title).split(" — ")[0];
           return (
-            <li key={p.id} className="lib-cover" data-pathway-cover={p.id}>
-              <button type="button" className="lib-cover__link" onClick={() => onPick(p.id)}>
-                <Art />
-                <span className="lib-cover__title">{String(p.title).split(" — ")[0]}</span>
-                <span className="lib-cover__meta">{p.stages.length} stages · {w} of {n} decks written</span>
-                <span className="lib-cover__go">See the pathway →</span>
-              </button>
-            </li>
+            <BookSpine key={p.id} id={`pathway-${p.id}`} rank={i} kind="Pathway" title={name} foot={`${w} of ${n}`} art={<Art />}
+              label={`${name}: ${p.stages.length} stages, ${w} of ${n} decks written — see the pathway`} onClick={() => onPick(p.id)} data-pathway-cover={p.id} />
           );
         })}
       </ul>
@@ -111,18 +108,14 @@ export function LibraryShelf({ base, signedIn = false }) {
       {/* ⭐ D172 (2b): the ladder of guides (approved decks), above the shelf of courses. */}
       <GuideLadder base={base} guides={guides} />
       <h2 className="atl__h2">Courses</h2>
-      <ul className="lib-shelf" data-library-shelf="">
+      {/* ⭐ 46u (owner's pick, A): the courses as books — wider spines, they hold more. */}
+      <ul className="lib-books" data-library-shelf="">
         {COURSES.map((c, i) => (i === 0
-          ? <li key={c.id} className="lib-cover" data-course={c.id}>
-              <Link to={`${base}/library/${c.id}`} className="lib-cover__link">
-                <ChipArt />
-                <span className="lib-cover__title">{c.title}</span>
-                {course && <span className="lib-cover__meta">{course.counts.modules} modules · {course.counts.lessons} lessons</span>}
-                {signedIn && p && <span className="lib-cover__meta" data-course-progress={p.pct}>{p.pct}% done</span>}
-                <span className="lib-cover__go">{signedIn && p?.done ? "Continue →" : "Open →"}</span>
-              </Link>
-            </li>
-          : <CourseCover key={c.id} base={base} c={c} />))}
+          ? <BookSpine key={c.id} id={c.id} rank={i} size="wide" kind="Course" title={c.title} art={<ChipArt />}
+              foot={signedIn && p ? <span data-course-progress={p.pct}>{p.pct}% done</span> : course ? `${course.counts.modules} modules` : ""}
+              label={`${c.title}${course ? `: ${course.counts.modules} modules, ${course.counts.lessons} lessons` : ""}${signedIn && p ? `, ${p.pct}% done` : ""} — ${signedIn && p?.done ? "continue" : "open"}`}
+              to={`${base}/library/${c.id}`} data-course={c.id} />
+          : <CourseCover key={c.id} base={base} c={c} rank={i} />))}
       </ul>
       <PathwayShelf onPick={(id) => setWantPathway({ id, at: Date.now() })} />
       {/* ⭐ D155 Part C: the whole approved plan — every pathway's stages and topics, written or planned. */}
@@ -132,18 +125,13 @@ export function LibraryShelf({ base, signedIn = false }) {
 }
 
 /** ⭐ D178 · a further course's cover — its own counts; progress only where the course has earned progress. */
-function CourseCover({ base, c }) {
+function CourseCover({ base, c, rank = 0 }) {
   const { course } = useCourse(c.id, false);
   const Art = ART[c.art] || ChipArt;
+  const unit = c.kind === "patterns" ? "patterns" : "lessons";
   return (
-    <li className="lib-cover" data-course={c.id}>
-      <Link to={`${base}/library/${c.id}`} className="lib-cover__link">
-        <Art />
-        <span className="lib-cover__title">{c.title}</span>
-        {course && <span className="lib-cover__meta">{course.counts.modules} modules · {course.counts.lessons} {c.kind === "patterns" ? "patterns" : "lessons"}</span>}
-        <span className="lib-cover__go">Open →</span>
-      </Link>
-    </li>
+    <BookSpine id={c.id} rank={rank} size="wide" kind="Course" title={c.title} art={<Art />} foot={course ? `${course.counts.modules} modules` : ""}
+      label={`${c.title}${course ? `: ${course.counts.modules} modules, ${course.counts.lessons} ${unit}` : ""} — open`} to={`${base}/library/${c.id}`} data-course={c.id} />
   );
 }
 
@@ -161,7 +149,7 @@ export function PatternCoursePage({ base, id }) {
   return (
     <article className="lib-course" data-course-page={course.id}>
       <header className="lib-chead">
-        <div className="lib-chead__cover" aria-hidden="true"><PatternsArt /></div>
+        <div className="lib-chead__cover" aria-hidden="true" style={{ "--book-c": pastelVar(course.id) }}><PatternsArt /></div>
         <div className="lib-chead__body">
           <p className="atl__kicker">Course · {course.counts.modules} modules · {course.counts.lessons} patterns</p>
           <h1 className="atl__title">{course.title}</h1>
@@ -237,7 +225,7 @@ export function CoursePage({ base, id, signedIn = false }) {
     <article className="lib-course" data-course-page={course.id}>
       {/* ⭐ D178-3 (owner's pick: Idea A's head) — the cover, the title, the course's lit count. */}
       <header className="lib-chead">
-        <div className="lib-chead__cover" aria-hidden="true"><ChipArt /></div>
+        <div className="lib-chead__cover" aria-hidden="true" style={{ "--book-c": pastelVar(course.id) }}><ChipArt /></div>
         <div className="lib-chead__body">
           <p className="atl__kicker">Course · {course.counts.modules} modules · {course.counts.lessons} lessons</p>
           <h1 className="atl__title">{course.title}</h1>
@@ -257,7 +245,7 @@ export function CoursePage({ base, id, signedIn = false }) {
       {sel != null && (
         <section className="lib-modsel" aria-labelledby="lib-modsel-h" data-module-selected={sel}>
           <h2 className="atl__h2" id="lib-modsel-h">Module {sel} · {course.modules.find(m => m.n === sel)?.title} — {course.modules.find(m => m.n === sel)?.lessons.length} lessons</h2>
-          <LessonDeck base={base} lessons={course.modules.find(m => m.n === sel)?.lessons || []} marks={marks} circle={circle} titles={titles} />
+          <LessonDeck base={base} lessons={course.modules.find(m => m.n === sel)?.lessons || []} marks={marks} circle={circle} titles={titles} colorId={`${course.id}:module-${sel}`} />
         </section>
       )}
       <p className="atl__quiet"><Link to={`${base}/library/${course.id}?view=circle`} className="atl__link" data-course-circle="">The whole course as a circle →</Link></p>
