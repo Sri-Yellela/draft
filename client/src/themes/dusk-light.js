@@ -48,6 +48,7 @@ const tokens = Object.freeze({
   DANGER_QUIET:        "#F5D9D3",
   INFO:                "#625B55",   // answer 4: ordinary bars grey (deepened from the sketch's #8A817A to hold 4.5:1 as text on its quiet tint)
   INFO_QUIET:          "#D7E4F0",
+  CHART_NEUTRAL:       "#6B7280",
   VIOLET:              "#644BD2",   // theme-dusk-v2.html (D149); the sketch's #6E55E8, moved the smallest step that holds AA
   VIOLET_QUIET:        "#E6DCF2",
   TEAL:                "#0E6470",

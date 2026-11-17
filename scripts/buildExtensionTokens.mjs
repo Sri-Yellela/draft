@@ -82,7 +82,8 @@ export async function renderExtensionTokens() {
   // D48: nor do the posting panel's (PP_*) — the extension draws no posting panel. ⭐ D63: except the ATS
   // NUMBER, which the popup's job card now draws in the same number box (D50), so it is one colour everywhere.
   // D91: nor the document surface (DOC_*) — the extension shows no document.
-  const names = Object.keys(C_LIGHT).filter((n) => !n.startsWith("PAIR_") && !n.startsWith("FH_") && (!n.startsWith("PP_") || n === "PP_ATS_NUMBER") && !n.startsWith("DOC_"));
+  // A228: nor the charts' neutral (CHART_*) — the extension draws no chart.
+  const names = Object.keys(C_LIGHT).filter((n) => !n.startsWith("PAIR_") && !n.startsWith("FH_") && (!n.startsWith("PP_") || n === "PP_ATS_NUMBER") && !n.startsWith("DOC_") && !n.startsWith("CHART_"));
   const missing = names.filter((n) => !(n in C_DARK));
   if (missing.length) throw new Error(`colorTokens.js: C_DARK lacks ${missing.join(", ")}`);
 

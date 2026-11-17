@@ -53,6 +53,7 @@ const tokens = Object.freeze({
   DANGER_QUIET:        "#3B1C18",
   INFO:                "#7BB4EA",
   INFO_QUIET:          "#15263A",
+  CHART_NEUTRAL:       "#6B7280",   // A228: a chart's "not yet" bars beside the accent — dataviz validator: normal-vision ΔE ≥ 15 and ≥ 3:1 on the surface in every theme
   VIOLET:              "#BCA2F0",
   VIOLET_QUIET:        "#2B2142",
   TEAL:                "#62C5D1",

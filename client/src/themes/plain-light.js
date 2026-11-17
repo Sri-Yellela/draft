@@ -47,6 +47,7 @@ const tokens = Object.freeze({
   DANGER_QUIET:        "#F5D9D3",
   INFO:                "#4B5563",   // colourways off (D181): one neutral
   INFO_QUIET:          "#D7E4F0",
+  CHART_NEUTRAL:       "#6B7280",
   VIOLET:              "#1D4ED8",   // colourways off (D181): the one accent
   VIOLET_QUIET:        "#EEF2FF",   // colourways off (D181): the one accent
   TEAL:                "#1D4ED8",   // colourways off (D181): the one accent

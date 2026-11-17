@@ -72,6 +72,7 @@ const tokens = Object.freeze({
   DANGER_QUIET:  "#F5D9D3",
   INFO:          "#1E5E94",
   INFO_QUIET:    "#D7E4F0",
+  CHART_NEUTRAL: "#6B7280",   // A228: a chart's "not yet" bars beside the accent — dataviz validator: normal-vision ΔE ≥ 15 and ≥ 3:1 on the surface in every theme
 
   // ── Two categorical tones for things that are neither a state nor the brand: competencies in
   //    the ATS report, the cover-letter action, a foreign-key column, a company avatar. Same rule

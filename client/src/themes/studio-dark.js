@@ -49,6 +49,7 @@ const tokens = Object.freeze({
   DANGER_QUIET:        "#3B1C18",
   INFO:                "#6FA8E8",   // --bar
   INFO_QUIET:          "#15263A",
+  CHART_NEUTRAL:       "#6B7280",
   VIOLET:              "#BCA2F0",
   VIOLET_QUIET:        "#2B2142",
   TEAL:                "#62C5D1",

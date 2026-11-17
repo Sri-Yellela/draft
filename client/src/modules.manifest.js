@@ -67,12 +67,15 @@ export const MODULES = Object.freeze({
   // ⭐ D167 · Atlas's own navigation: components/PlaceNav.jsx (the card of panels — the one implementation, A136), AtlasPanels.jsx
   // (the panels), atlasPanels.js (which panel an address belongs to; docs/D167_ATLAS_MAP.md maps every older surface to its
   // panel); AtlasPanels.css is the panels' look.
-  atlas: { why: "the Atlas pages (D105) — search, one node's page, its neighbourhood graph; Learn, the owner's path (D115); Your map, the tree (D116); its own navigation of panels (D167)", css: ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/LearnCircle.css", "pages/atlas/AtlasTree.css", "pages/atlas/AtlasPanels.css", "pages/atlas/LibraryPanel.css", "pages/atlas/YourRun.css", "pages/atlas/TrackBoard.css", "pages/atlas/RoleReadiness.css", "pages/atlas/CompetePanels.css"],
-    members: ["App.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/atlasModel.js", "pages/atlas/LearnView.jsx", "pages/atlas/learnModel.js", "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/YourCourse.jsx", "pages/atlas/LibraryPanel.jsx", "pages/atlas/PathwayArt.jsx", "pages/atlas/libraryModel.js", "pages/atlas/YourRun.jsx", "pages/atlas/yourRunModel.js", "pages/atlas/TrackBoard.jsx", "pages/atlas/trackModel.js", "pages/atlas/LibraryGuides.jsx", "pages/atlas/RoleReadiness.jsx", "pages/atlas/roleReadinessModel.js", "pages/atlas/LessonDeck.jsx", "pages/atlas/CompareRoles.jsx",
+  atlas: { why: "the Atlas pages (D105) — search, one node's page, its neighbourhood graph; Learn, the owner's path (D115); Your map, the tree (D116); its own navigation of panels (D167)", css: ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/LearnCircle.css", "pages/atlas/AtlasTree.css", "pages/atlas/AtlasPanels.css", "pages/atlas/LibraryPanel.css", "pages/atlas/YourRun.css", "pages/atlas/TrackBoard.css", "pages/atlas/CompetePanels.css", "pages/atlas/SkillMap.css"],
+    members: ["App.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/atlasModel.js", "pages/atlas/LearnView.jsx", "pages/atlas/learnModel.js", "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/LibraryPanel.jsx", "pages/atlas/PathwayArt.jsx", "pages/atlas/libraryModel.js", "pages/atlas/YourRun.jsx", "pages/atlas/yourRunModel.js", "pages/atlas/TrackBoard.jsx", "pages/atlas/trackModel.js", "pages/atlas/LibraryGuides.jsx", "pages/atlas/LessonDeck.jsx",
       "pages/atlas/AtlasTree.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js", "pages/atlas/YourMap.jsx",
       "pages/atlas/Navigator.jsx", "pages/atlas/ReadinessCheck.jsx",
       "pages/atlas/AtlasPanels.jsx", "pages/atlas/atlasPanels.js",
-      "pages/atlas/CompetePanels.jsx", "pages/atlas/competeModel.js"] },
+      "pages/atlas/CompetePanels.jsx", "pages/atlas/competeModel.js",
+      // ⭐ A228 (46r): Your map is the skill map — the page, its four graphics (one piece each) and its pure model.
+      "pages/atlas/SkillMap.jsx", "pages/atlas/SkillMapBits.jsx", "pages/atlas/JobsHistogram.jsx", "pages/atlas/SkillTreemap.jsx",
+      "pages/atlas/LearnNextChart.jsx", "pages/atlas/MoveRolesScatter.jsx", "pages/atlas/skillMapModel.js"] },
   // ⭐ D167 (owner 11-06) · Profile and Interview, each a place with its own navigation (components/PlaceNav.jsx), like Atlas.
   profile: { why: "Profile (D167) — About you, résumés, saved answers, auto-apply, connections, appearance, notifications, privacy, account",
     // ⭐ D183 P1: Your profile — the page from the résumé, its visibility, Behind your profile.

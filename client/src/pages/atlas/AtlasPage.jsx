@@ -20,7 +20,8 @@ import { Footer } from "../../components/Footer.jsx";
 import DepthButton from "../../components/DepthButton.jsx";
 import { BRAND } from "../../../../shared/brand.js";
 import AtlasGraph from "./AtlasGraph.jsx";
-import YourMap, { RoleMap, FamilyMap } from "./YourMap.jsx";
+import { RoleMap, FamilyMap } from "./YourMap.jsx";
+import SkillMap from "./SkillMap.jsx";   // ⭐ A228: Your map
 import PlaceNav from "../../components/PlaceNav.jsx";
 import { OverviewPanel, YourSkillsSlot, YourRoutePanel, TodaysQuestionPanel, HowItWorksPanel, AuditPanel, RolesPanel, MarketPanel, GlossaryPanel,
   PanelHead } from "./AtlasPanels.jsx";
@@ -417,18 +418,20 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
       {learning && <Navigate replace to={`${base}/library/silicon-to-software?view=circle${location.hash || ""}`} />}
       {panel === "your-map" && !familyKey && (
         <div className="atl-pan" data-atlas-panel-body="your-map">
-          {/* ⭐ D172 (4): the map as a track board first — from you to your goal; the market tree below, on demand. */}
-          {signedIn && <PanelHead eyebrow="Your map" title="A clear picture of where you are"
-            lead="From what you have to where you're going." />}
-          <TrackBoard base={base} signedIn={signedIn} />
-          {/* ⭐ D178: Your route folded in — the aim, the route in order, the roles to apply to meanwhile (D143's navigator). */}
-          {signedIn && <section className="atl__section" data-atlas-route-in-map=""><YourRoutePanel base={base} signedIn={signedIn} /></section>}
-          <details className="atl-more" data-atlas-market-tree="" open={!signedIn}>
-            <summary className="atl__link">See the whole market around you</summary>
-            <PanelHead eyebrow="Your map" title="Your skills, against the market"
-              lead="What you have, what sits next to it, and what your target asks for. Larger gaps open more roles." />
-            <YourMap base={base} parts={{ navigator: false, explore: false, families: true, recent: false }} />
-          </details>
+          {/* ⭐ A228 (46r, owner 11-16 "Build it"): Your map IS the skill map — the jobs you can apply for today, how close
+              you are to the rest, what the role's jobs want, Learn next and the jobs you could move to (SkillMap.jsx).
+              It retires the market tree (the five sections, the families list), Your skills' ring map, For a role and
+              Compare roles. */}
+          <PanelHead eyebrow="Your map" title="Your skill map" />
+          <SkillMap base={base} signedIn={signedIn} />
+          {/* ⭐ D172 (4) / D178: the track board and the route (D143's navigator) stay — below the page, closed. */}
+          {signedIn && (
+            <details className="atl-more skm-route-more" data-atlas-route-steps="">
+              <summary className="atl__link">Your route, step by step</summary>
+              <TrackBoard base={base} signedIn={signedIn} />
+              <section className="atl__section" data-atlas-route-in-map=""><YourRoutePanel base={base} signedIn={signedIn} /></section>
+            </details>
+          )}
         </div>
       )}
       {panel === "your-skills" && <YourSkillsSlot signedIn={signedIn} base={base} />}
