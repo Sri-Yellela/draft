@@ -5,10 +5,9 @@
 // machine with no Chrome.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { probe as fidelityProbe } from "../test-support/fidelityProbe.mjs";
 
-const probe = (screen) => JSON.parse(execFileSync(process.execPath, ["scripts/fidelityShots.mjs", "--styles", screen],
-  { encoding: "utf8", timeout: 180000, stdio: ["ignore", "pipe", "ignore"] }).trim().split("\n").pop());
+const probe = (screen) => fidelityProbe(screen);
 
 const CARD = "rgb(38, 38, 38)", RAISE = "rgb(46, 46, 46)", INK = "rgb(255, 255, 255)", BODY = "rgb(163, 163, 163)";
 const ACCENT = "rgb(251, 211, 196)", ON_ACCENT = "rgb(27, 27, 27)";

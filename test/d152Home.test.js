@@ -4,8 +4,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { execFileSync } from "node:child_process";
 import { at } from "../test-support/sourceAnchors.js";
+import { probe as fidelityProbe } from "../test-support/fidelityProbe.mjs";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const APP = read("client/src/App.jsx");
@@ -54,8 +54,7 @@ test("d152DockHomeEntry: one Home entry in place of the Daily Deck and Full Hous
 });
 
 test("d152DockLeftWithLogo / d153DockPushes / d152DockSlidesFromLeftEdge (real Chrome, 1280 and 390)", { timeout: 200000 }, (t) => {
-  const out = JSON.parse(execFileSync(process.execPath, ["scripts/fidelityShots.mjs", "--styles", "home"],
-    { encoding: "utf8", timeout: 180000, stdio: ["ignore", "pipe", "ignore"] }).trim().split("\n").pop());
+  const out = fidelityProbe("home");
   if (out.skipped) { t.skip(out.skipped); return; }
   for (const [size, d] of Object.entries(out)) {
     assert.equal(d.title, false, `${size}: no page title`);
