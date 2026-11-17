@@ -66,30 +66,6 @@ export function roleReadiness(db, userId, role) {
     line: `${r.ready}% ready for ${f.role.name}${r.waiting ? ` · +${r.waiting}% waiting in skills you've claimed` : ""}` };
 }
 
-/**
- * ⭐ D178-3 (Idea E) · COMPARE ROLES: up to four roles' readiness side by side, the grid of which skills each asks for (its
- * share of that role's postings), and the skill that lifts the most roles at once ("Proving Python lifts all four roles").
- * Pure over roleReadiness results. @returns { roles, grid: [{ slug, name, state, shares: { roleSlug: share } }], lifts }
- */
-export function compareFrom(readings = []) {
-  const ok = readings.filter(r => r?.found && !r.thin);
-  const bySkill = new Map();
-  for (const r of ok) for (const t of ["must", "common", "nice"]) for (const s of r.tiers[t].skills) {
-    const e = bySkill.get(s.slug) || { slug: s.slug, name: s.name, state: s.state, shares: {}, adds: 0 };
-    e.shares[r.role.slug] = s.share;
-    if (s.state !== "proven") e.adds += (r.moves.find(m => m.slug === s.slug)?.adds || 0);
-    bySkill.set(s.slug, e);
-  }
-  const grid = [...bySkill.values()].sort((a, b) => Object.keys(b.shares).length - Object.keys(a.shares).length
-    || Object.values(b.shares).reduce((x, y) => x + y, 0) - Object.values(a.shares).reduce((x, y) => x + y, 0)).slice(0, 14);
-  const lifts = [...bySkill.values()].filter(e => e.state !== "proven")
-    .sort((a, b) => Object.keys(b.shares).length - Object.keys(a.shares).length || b.adds - a.adds)[0] || null;
-  return { roles: readings, grid, lifts: lifts && Object.keys(lifts.shares).length > 1
-    ? { slug: lifts.slug, name: lifts.name, roles: Object.keys(lifts.shares).length, of: ok.length, state: lifts.state } : null };
-}
-export function compareRoles(db, userId, roles = []) {
-  return compareFrom([...new Set(roles.map(r => String(r || "").trim()).filter(Boolean))].slice(0, 4).map(r => roleReadiness(db, userId, r)));
-}
 
 /**
  * ⭐ D179 P6 (45l) · READINESS FOR A SUBCATEGORY — each subcategory of the approved taxonomy is a role here. Its demand is

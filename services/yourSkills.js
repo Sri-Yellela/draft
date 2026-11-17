@@ -22,7 +22,7 @@
 
 import { prepared } from "./stmtCache.js";   // A195 leftover (b): fixed SQL prepared once per database
 import { resolveTerms, aliasesOf, termOf, readNode, headingStrippedNames } from "./atlas/atlasStore.js";
-import { atlasIndex, computeYourMap } from "./atlas/atlasMe.js";
+import { atlasIndex } from "./atlas/atlasMe.js";
 import { nodeLearnStates } from "./atlas/atlasTree.js";
 import { learnStepForNode, learnStepPath } from "./learn/learnLinks.js";
 import { questions, servedQuestion, recordAnswer } from "./learn/learnQuestions.js";
@@ -445,30 +445,3 @@ export function gatedDomainProfile(db, { userId, domainProfile, resumeText = nul
   return allowed.length === tools.length ? domainProfile : { ...domainProfile, selected_tools: JSON.stringify(allowed) };
 }
 
-// ── the map ────────────────────────────────────────────────────────────────────────────────────
-
-/**
- * ⭐ THE MAP — the same skills against the market, from D116's map (GET /api/atlas/me's reader, nothing recomputed):
- * have (each with its state and postings), near (used_with neighbours), opens (roles the skills open, by coverage), gaps
- * (what the target's next level asks for). A claimed, unchecked skill COUNTS here (P2).
- */
-export function yourSkillsMap(db, userId) {
-  const list = listYourSkills(db, userId);
-  const me = safe(() => computeYourMap(db, userId), { map: false, reason: "unavailable" });
-  const idx = safe(() => atlasIndex(db), null);
-  const postingsOf = new Map((idx?.nodes || []).map(n => [n.slug, n.postings || 0]));
-  const have = list.skills.filter(s => s.node).map(s => ({ slug: s.node.slug, name: s.node.name, state: s.state, postings: postingsOf.get(s.node.slug) || 0 }))
-    .sort((a, b) => b.postings - a.postings || a.name.localeCompare(b.name));
-  const pick = (sec, f) => (sec?.items || []).map(f);
-  return {
-    map: !!me.map, reason: me.map ? null : (me.reason || null),
-    target: me.targetRoles?.[0] || null,
-    board: me.board || null,
-    have,
-    held: list.skills.filter(s => s.held).map(s => ({ name: s.name })),
-    near: pick(me.adjacent, i => ({ slug: i.slug, name: i.name, postings: i.postings, line: i.line })),
-    opens: pick(me.branches, i => ({ slug: i.slug, name: i.name, postings: i.postings, covered: i.covered, of: i.of, line: i.line })),
-    gaps: pick(me.nextLevel, i => ({ slug: i.slug, name: i.name, postings: i.postings, line: i.line })),
-    gapsReason: me.nextLevel?.reason || null,
-  };
-}

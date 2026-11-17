@@ -85,7 +85,7 @@ import { servedLearnContent } from "../services/learn/learnContent.js";
 import { learnSourceSummary } from "../services/atlas/learnSources.js";
 import { yourRun, setAtlasPrefs } from "../services/atlas/points.js";
 import { podRank, liveCount } from "../services/atlas/league.js";   // A154 (45s): each behind its own switch
-import { roleReadiness, compareRoles, subcategoryReadiness, setSubcategoryDeps } from "../services/atlas/roleReadiness.js";
+import { roleReadiness, subcategoryReadiness, setSubcategoryDeps } from "../services/atlas/roleReadiness.js";
 import { taxonomy } from "../services/jobs/taxonomyClassify.js";
 import { atlasLinksFor } from "../services/jobs/publicJobPage.js";
 // ⭐ D179 P6 (45l): the subcategory readings read the taxonomy and the Atlas link lookup.
@@ -200,14 +200,6 @@ export function createAtlasRouter(db) {
   // top skills with nothing marked as had. Private either way (it can carry the reader's skills), never cached shared.
   // ⭐ D178-3 · readiness for a role: the share of its demand you have PROVEN (claims shown apart). Signed in; private.
   // No role named → the person's aim on Your route (D143).
-  // ⭐ D178-3 (Idea E) · compare up to four roles: ?roles=a|b|c|d (titles or slugs). Signed in; private.
-  router.get("/readiness/compare", (req, res) => {
-    res.set("Cache-Control", "private, no-store");
-    if (req.user?.id == null) return res.status(401).json({ error: "sign_in" });
-    const roles = String(req.query.roles ?? "").slice(0, 400).split("|").map(s => s.trim()).filter(Boolean);
-    if (!roles.length) return res.status(400).json({ error: "roles_required", message: "Name up to four roles to compare." });
-    res.json(compareRoles(db, req.user.id, roles));
-  });
   // ⭐ A228 (46r) · THE SKILL MAP: for the person and a role (?role=<id or slug>; default the aim, else the current role,
   // else the biggest), the jobs they can apply for, how close they are to the rest, what the role asks, Learn next and the
   // roles they could move to — counted from the live rows, no model (services/atlas/skillMap.js). Signed in; private.
@@ -228,18 +220,6 @@ export function createAtlasRouter(db) {
     const r = /^sub:/.test(role) ? subcategoryReadiness(db, req.user.id, role.slice(4)) : roleReadiness(db, req.user.id, role);
     if (!r.found) return res.status(404).json(r);
     res.json(r);
-  });
-  // ⭐ D179 P6 · the taxonomy's subcategories that have enough live postings to read readiness for — the For a role picker.
-  router.get("/subcategory-roles", (_req, res) => {
-    let tax = null; try { tax = taxonomy(); } catch { return res.json({ roles: [] }); }
-    let counts = new Map();
-    try {
-      counts = new Map(db.prepare(`SELECT jt.subcategory AS s, COUNT(*) AS n FROM scraped_jobs sj JOIN job_taxonomy jt ON jt.job_id = sj.job_id
-        WHERE sj.is_active = 1 AND sj.duplicate_of IS NULL AND jt.subcategory IS NOT NULL GROUP BY jt.subcategory`).all().map(r => [r.s, r.n]));
-    } catch { counts = new Map(); }
-    const roles = tax.categories.filter(c => !c.held).flatMap(c => c.subs.filter(s => !s.general && (counts.get(s.id) || 0) >= 30)
-      .map(s => ({ value: `sub:${s.id}`, name: s.name, category: c.name, postings: counts.get(s.id) })));
-    res.set("Cache-Control", "private, max-age=300").json({ roles });
   });
   router.get("/role-fit", (req, res) => {
     const role = String(req.query.role ?? "").slice(0, 120) || null;
