@@ -165,6 +165,21 @@ function MovePanel({ m, onRole, onAim, aiming }) {
   );
 }
 
+/** ⭐ 46u · no map to draw: no role is read from the board's jobs yet (no_roles), or the asked role isn't one (unknown_role). */
+export function SkillMapEmpty({ base = "/app/atlas", reason = "no_roles", onBack = null }) {
+  const unknown = reason === "unknown_role";
+  return (
+    <div className="skm-empty" data-skm-empty={reason}>
+      <p className="skm-empty__t">{unknown ? "That role isn't on the map" : "Your map is on its way"}</p>
+      <p className="skm-empty__s">{unknown ? "Pick another role, or go back to the one you're aiming for." : "It appears once draft has read enough jobs to know what each role asks for. Meanwhile, start with a guide."}</p>
+      <p className="skm-empty__acts">
+        {unknown && onBack ? <DepthButton primary onClick={onBack}>Back to your role</DepthButton>
+          : <Link to={`${base}/library`} className="atl__link">Open the Library</Link>}
+      </p>
+    </div>
+  );
+}
+
 /** The page drawn from GET /api/atlas/skill-map's answer — pure apart from its callbacks (tests render it). */
 export function SkillMapView({ m, base = "/app/atlas", view = "map", setView = () => {}, onRole = () => {}, onAim = () => {}, aiming = false }) {
   return (
@@ -191,10 +206,12 @@ export default function SkillMap({ base = "/app/atlas", signedIn = true }) {
     setState(s => ({ status: "loading", m: s.m }));
     api(`/api/atlas/skill-map${role ? `?role=${encodeURIComponent(role)}` : ""}`)
       .then(m => live && setState({ status: "done", m }))
-      .catch(e => live && setState({ status: "error", m: null, error: e.message }));
+      .catch(e => live && setState({ status: "error", m: null, error: e.message, reason: e.status === 404 ? (e.payload?.reason || "no_roles") : null }));
     return () => { live = false; };
   }, [role, signedIn, n]);
   if (!signedIn) return <p className="atl__quiet" data-skm-sign-in="">Sign in with a résumé to see how many jobs you can apply for today. <Link to={loginHref()} className="atl__link">Sign in</Link></p>;
+  // ⭐ 46u: Your map is Atlas's first screen now — "no map yet" is a page of its own, never a raw "Request failed (404)".
+  if (state.reason || (state.m && !state.m.role)) return <SkillMapEmpty base={base} reason={state.reason || "no_roles"} onBack={role ? () => setRole(null) : null} />;
   if (!state.m) return <p className="atl__quiet" role="status">{state.status === "error" ? `Your map could not be read: ${state.error}` : "Opening…"}</p>;
   // "Aim for this" sets the aim through the navigator's own endpoint (D143), and the map follows it.
   const onAim = async (slug) => {

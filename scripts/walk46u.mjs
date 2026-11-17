@@ -75,12 +75,15 @@ try {
       errors.length = 0;
       await page.goto(`${BASE}/app/atlas`, { waitUntil: "networkidle2", timeout: 120000 });
       await page.waitForSelector("[data-atlas-panel]", { timeout: 60000 });
+      await page.waitForFunction(() => !/Opening…/.test(document.querySelector('[data-atlas-panel-body="your-map"]')?.innerText || ""), { timeout: 60000 }).catch(() => {});
       const nav = await page.evaluate(() => ({ panel: document.querySelector("[data-atlas-panel]")?.getAttribute("data-atlas-panel"),
         body: !!document.querySelector('[data-atlas-panel-body="your-map"]'),
+        drawn: !!document.querySelector("[data-skill-map], [data-skm-empty]"),
+        raw: /could not be read|Request failed/.test(document.querySelector('[data-atlas-panel-body="your-map"]')?.innerText || ""),
         first: [...document.querySelectorAll("a[data-place-item]")].map(a => a.getAttribute("data-place-item")).slice(0, 3),
         current: document.querySelector("a[data-place-item][aria-current]")?.getAttribute("data-place-item") || null }));
       await shot("atlas");
-      say(`default ${theme} ${w}`, nav.panel === "your-map" && nav.body && nav.first.join() === "your-map,your-run,your-skills" && !(await hscroll()) && !errors.length, JSON.stringify({ ...nav, errors: errors.slice(0, 2) }));
+      say(`default ${theme} ${w}`, nav.panel === "your-map" && nav.body && nav.drawn && !nav.raw && nav.first.join() === "your-map,your-run,your-skills" && !(await hscroll()) && !errors.length, JSON.stringify({ ...nav, errors: errors.slice(0, 2) }));
 
       // 2 · the Library: books on a shelf
       errors.length = 0;
