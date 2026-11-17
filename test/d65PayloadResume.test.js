@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
-import { payloadResumeParse, parseBasis, skillsOfStructured, claimedSkillsOf, PARSE_FAILED_MESSAGE } from "../services/payloadResume.js";
+import { payloadResumeParse, parseBasis, skillsOfStructured, claimedSkillsOf, PARSE_FAILED_MESSAGE, stripGluedHeading } from "../services/payloadResume.js";
 import { buildPacketEntries } from "../services/applyGatePacket.js";
 import { buildStructuredResume } from "../services/resumeFormatter.js";
 import { at } from "../test-support/sourceAnchors.js";
@@ -152,4 +152,15 @@ test("D65 · the packet reads the résumé it CARRIES — at build, and again wh
 test("D65 · migration 138 is byte-identical in both runners", () => {
   const block = (f) => { const s = fs.readFileSync(f, "utf8"); const i = at(s, 'id: "138_resume_parse"'); return s.slice(i, at(s, "`,", i)); };
   assert.equal(block("server.js"), block("scripts/migrations.js"));
+});
+
+test("a229GluedHeading (46s, found on production): a skills line with a bold heading and no colon keeps its heading out of the first skill", () => {
+  const glued = { "Languages Java": "Java", "Backend & APIs Spring Boot": "Spring Boot", "Distributed Systems Event-driven architecture": "Event-driven architecture",
+    "Cloud & DevOps (AWS) AWS Lambda": "AWS Lambda", "Cloud (GCP) GCP Pub/Sub": "GCP Pub/Sub", "Databases PostgreSQL": "PostgreSQL",
+    "Observability Prometheus": "Prometheus", "Testing & Tooling JUnit": "JUnit", "Frontend React": "React" };
+  for (const [a, b] of Object.entries(glued)) assert.equal(stripGluedHeading(a), b, a);
+  for (const keep of ["Cloud Computing", "Data Engineering", "Machine Learning", "Infrastructure as Code", "Testing Library", "Languages", "Python"])
+    assert.equal(stripGluedHeading(keep), keep, `${keep} is a skill, not a heading`);
+  const structured = { sections: [{ type: "skills", rows: [{ label: "", values: "Languages Java, Kotlin, Python" }, { label: "Cloud", values: "Cloud Run, GKE" }] }] };
+  assert.deepEqual(skillsOfStructured(structured), ["Java", "Kotlin", "Python", "Cloud Run", "GKE"], "only an UNLABELLED row's first value is split");
 });

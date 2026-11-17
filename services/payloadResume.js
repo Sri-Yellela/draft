@@ -33,13 +33,34 @@ export function parseReadSomething(structured) {
     (s?.type === "entries" && (s.entries || []).length) || (s?.type === "skills" && (s.rows || []).length));
 }
 
+// ⭐ A229 (46s, found on production): a skills line written as a bold heading with NO colon ("Languages Java, Kotlin")
+// parses with an empty label, so the heading was glued to the first skill ("Languages Java") — on Profile, in packets,
+// and against Atlas. Only these known section headings are split off (a skill that merely starts with a word like
+// "Data" is never cut); an optional parenthetical after the heading goes with it ("Cloud & DevOps (AWS) AWS Lambda").
+// Unambiguous headings split with or without a parenthetical; words that also START real skill names ("Cloud Computing",
+// "Infrastructure as Code", "Testing Library") split only when a parenthetical follows them ("Cloud (GCP) GCP Pub/Sub").
+const SKILL_HEADINGS = ["programming languages", "languages", "frameworks & libraries", "frameworks and libraries", "frameworks", "libraries",
+  "testing & tooling", "testing and tooling", "tools & platforms", "databases", "cloud & devops", "cloud and devops", "frontend", "front-end",
+  "backend & apis", "backend and apis", "backend", "back-end", "observability", "distributed systems", "data processing", "platforms",
+  "technologies", "technical skills", "methodologies"];
+const PAREN_ONLY_HEADINGS = ["cloud", "devops", "tools", "tooling", "testing", "infrastructure", "monitoring", "mobile", "apis", "data"];
+const esc = (h) => h.replace(/[.*+?^${}()|[\]\\&]/g, "\\$&");
+const HEADING_RE = new RegExp(`^(?:(${SKILL_HEADINGS.map(esc).join("|")})(\\s*\\([^)]*\\))?|(${PAREN_ONLY_HEADINGS.map(esc).join("|")})(\\s*\\([^)]*\\)))\\s+(\\S.*)$`, "i");
+/** "Languages Java" → "Java" when the row has no label of its own. Pure. */
+export function stripGluedHeading(first) {
+  const m = HEADING_RE.exec(String(first || "").trim());
+  return m ? m[5].trim() : String(first || "").trim();
+}
+
 /** The résumé's skills, from its SKILLS section(s): "Languages: Java, Python" → ["Java", "Python"]. */
 export function skillsOfStructured(structured) {
   const out = [];
   for (const s of structured?.sections || []) {
     if (s?.type !== "skills") continue;
     for (const r of s.rows || []) {
-      for (const v of String(r?.values || "").split(/\s*(?:,|;|\||•|·)\s*/)) {
+      const parts = String(r?.values || "").split(/\s*(?:,|;|\||•|·)\s*/);
+      if (!String(r?.label || "").trim() && parts.length) parts[0] = stripGluedHeading(parts[0]);   // A229
+      for (const v of parts) {
         const t = v.replace(/^[-–—\s]+|[.\s]+$/g, "").trim();
         if (t && t.length <= 60 && !out.some(x => x.toLowerCase() === t.toLowerCase())) out.push(t);
       }
