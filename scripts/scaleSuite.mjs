@@ -172,7 +172,7 @@ try {
     ["posting", (h, k, s) => { const ids = s?.jobIds || jobIds; return fetch(`${base}/api/jobs/by-id/${encodeURIComponent(ids[k % ids.length])}`, { headers: h }); }],
     ["tracker", (h) => fetch(`${base}/api/applications/history`, { headers: h })],
     ["tracker (held)", (h) => fetch(`${base}/api/apply/review`, { headers: h })],
-    ["Your map", (h) => fetch(`${base}/api/your-skills/map`, { headers: h })],
+    ["Your map", (h) => fetch(`${base}/api/atlas/skill-map`, { headers: h })],   // ⭐ A230 (46t): the live map (A228); the Your skills ring map endpoint is deleted
     ["résumé check", (h, k, s) => fetch(`${base}/api/jobs/${encodeURIComponent((s?.jobIds || jobIds)[k % (s?.jobIds || jobIds).length])}/keywords`, { method: "POST", headers: h, body: JSON.stringify({ resumeText: s?.resumeText || FALLBACK_RESUME }) })],
   ];
   // ⭐ 46g: SCALE_SKIP="résumé check" leaves a screen out (an experiment: which screen's writes drop the others' kept caches).

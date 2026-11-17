@@ -18,7 +18,7 @@ import { generateRequest } from "../services/toolsServiceRequests.js";
 import { termGuard } from "../services/byom/resumePatch.js";
 import {
   YOUR_SKILLS, PROFILE_SKILLS_LINE, listYourSkills, addSkill, removeSkill, curatorHolds, startQuickCheck, answerQuickCheck,
-  addSkillProof, proveOptions, resumeClaims, gateClaimsForResume, gatedDomainProfile, yourSkillsMap, textNamesTerm, quickSummary,
+  addSkillProof, proveOptions, resumeClaims, gateClaimsForResume, gatedDomainProfile, textNamesTerm, quickSummary,
 } from "../services/yourSkills.js";
 import { at } from "../test-support/sourceAnchors.js";
 
@@ -111,14 +111,9 @@ test("D169 · d169SkillsPanelInAtlasListAndMap — one panel, List and Map of th
   assert.match(html, /Add a skill, for example Terraform/);
   const shell = u.panel({ signedIn: true });
   // ⭐ A228 (46r, moved on purpose): the panel's ring MAP view is retired — Your map (the skill map) draws the skills against
-  // the market; the panel is the list alone. The server's map reading (GET /api/your-skills/map) stays, below.
+  // the market; the panel is the list alone. ⭐ A230 (46t): the server's map reading (GET /api/your-skills/map) had no caller left — deleted.
   assert.doesNotMatch(shell, />Map</);
   assert.match(shell, /What you can show/);
-  // The server's map reads the same list (each have-node carries the list's state).
-  const m = yourSkillsMap(db, 1);
-  assert.deepEqual(m.have.map(h => h.name).sort(), ["Kafka", "Python", "SQL", "dbt"].sort());
-  assert.equal(m.have.find(h => h.name === "Kafka").state, "claimed", "a claimed, unchecked skill COUNTS on the map");
-  for (const k of ["near", "opens", "gaps"]) assert.ok(Array.isArray(m[k]), k);
   // ⛔ D60 / D152 (7b): no capsules, no chips in the panel's look.
   for (const f of ["client/src/pages/atlas/YourSkillsPanel.css", "client/src/components/SkillCheck.css"]) {
     const css = read(f);
