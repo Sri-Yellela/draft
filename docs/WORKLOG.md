@@ -173,7 +173,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 4. **Then (carried):** A232 R3–R6 stay the owner's (R1 + R2 built 46t); the whole suite on the 46t tree is in ▶▶▶ 46t PROGRESS.
 
 ### 👤👤👤 OWNER — YOUR STEPS FOR 46u
-1. ☐ Pick the Library treatment (books on a shelf / a stack / folders) when the sketch is ready.
+1. ☐ Pick the Library treatment — **the sketch is ready (46t, 11-17): https://claude.ai/artifact/EVGbW7AoRqqwKTnRtiGfUD** (private): A books on a shelf · B a stack of covers · C folders, each over the real Library content; a guide deck (Git, Foundations 4 of 8) and Today's question on draft's card; per-item pastels by an id hash, eight per theme (Plain Light / Dusk Dark).
 2. ☐ Watch demo take 2 (`C:\Users\duggi\Videos\draft-demo-2026-11-17-v2.mp4`).
 
 ### ⛔⛔⛔ NEW SESSION (46t) STARTS HERE (owner 11-17, end of 46s — the owner's words below are the spec)
