@@ -70,7 +70,7 @@ function PathwayShelf({ onPick }) {
           const n = p.stages.reduce((a, s) => a + s.topics.length, 0), w = p.stages.reduce((a, s) => a + s.topics.filter(t => t.deck).length, 0);
           const name = String(p.title).split(" — ")[0];
           return (
-            <BookSpine key={p.id} id={`pathway-${p.id}`} rank={i} kind="Pathway" title={name} foot={`${w} of ${n}`} art={<Art />}
+            <BookSpine key={p.id} id={`pathway-${p.id}`} last={i === plan.pathways.length - 1} kind="Pathway" title={name} foot={`${w} of ${n}`} art={<Art />}
               label={`${name}: ${p.stages.length} stages, ${w} of ${n} decks written — see the pathway`} onClick={() => onPick(p.id)} data-pathway-cover={p.id} />
           );
         })}
@@ -111,11 +111,11 @@ export function LibraryShelf({ base, signedIn = false }) {
       {/* ⭐ 46u (owner's pick, A): the courses as books — wider spines, they hold more. */}
       <ul className="lib-books" data-library-shelf="">
         {COURSES.map((c, i) => (i === 0
-          ? <BookSpine key={c.id} id={c.id} rank={i} size="wide" kind="Course" title={c.title} art={<ChipArt />}
+          ? <BookSpine key={c.id} id={c.id} last={i === COURSES.length - 1} size="wide" kind="Course" title={c.title} art={<ChipArt />}
               foot={signedIn && p ? <span data-course-progress={p.pct}>{p.pct}% done</span> : course ? `${course.counts.modules} modules` : ""}
               label={`${c.title}${course ? `: ${course.counts.modules} modules, ${course.counts.lessons} lessons` : ""}${signedIn && p ? `, ${p.pct}% done` : ""} — ${signedIn && p?.done ? "continue" : "open"}`}
               to={`${base}/library/${c.id}`} data-course={c.id} />
-          : <CourseCover key={c.id} base={base} c={c} rank={i} />))}
+          : <CourseCover key={c.id} base={base} c={c} last={i === COURSES.length - 1} />))}
       </ul>
       <PathwayShelf onPick={(id) => setWantPathway({ id, at: Date.now() })} />
       {/* ⭐ D155 Part C: the whole approved plan — every pathway's stages and topics, written or planned. */}
@@ -125,12 +125,12 @@ export function LibraryShelf({ base, signedIn = false }) {
 }
 
 /** ⭐ D178 · a further course's cover — its own counts; progress only where the course has earned progress. */
-function CourseCover({ base, c, rank = 0 }) {
+function CourseCover({ base, c, last = false }) {
   const { course } = useCourse(c.id, false);
   const Art = ART[c.art] || ChipArt;
   const unit = c.kind === "patterns" ? "patterns" : "lessons";
   return (
-    <BookSpine id={c.id} rank={rank} size="wide" kind="Course" title={c.title} art={<Art />} foot={course ? `${course.counts.modules} modules` : ""}
+    <BookSpine id={c.id} last={last} size="wide" kind="Course" title={c.title} art={<Art />} foot={course ? `${course.counts.modules} modules` : ""}
       label={`${c.title}${course ? `: ${course.counts.modules} modules, ${course.counts.lessons} ${unit}` : ""} — open`} to={`${base}/library/${c.id}`} data-course={c.id} />
   );
 }

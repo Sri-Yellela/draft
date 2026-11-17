@@ -27,8 +27,25 @@ export function useGuides() {
 // A long title runs smaller, so it breaks only between words and stays on its spine (46u walk: "Softwar|e engine|ering").
 export const spineFont = (title) => { const n = String(title || "").length; return n <= 12 ? 21 : n <= 20 ? 18 : 16; };
 
-export function BookSpine({ id, kind, title, foot, label, to, onClick, size = "", rank = 0, art = null, ...data }) {
+/**
+ * ⭐ 46u (owner 11-17, on the first build: "not at all like the sketch and just looks like blocks — the sketch had them
+ * different sizes, leaned in various angles") · A BOOK'S SHAPE ON THE SHELF, stable per id (shared/pastel.js's hash, so a
+ * book keeps its size and lean on every visit): its height and width vary as books do; about one in three leans against
+ * its neighbour (a few degrees, either way), and the last book on a shelf leans on the one before it. A lean takes the room
+ * it needs beside it (tan · height), so a leaning book never covers its neighbour's title. Pure.
+ */
+export function bookShape(id, size = "", last = false) {
+  const h = pastelIndex(`${id}:h`) - 1, w = pastelIndex(`${id}:w`) - 1, l = pastelIndex(`${id}:l`);
+  const height = size === "wide" ? 244 + h * 7 : size === "thin" ? 176 + h * 6 : 196 + h * 9;
+  const width = size === "wide" ? 84 + (w % 3) * 6 : size === "thin" ? 52 + (w % 2) * 4 : 58 + (w % 4) * 5;
+  const lean = last ? 7 : l === 1 ? -4 : l === 2 ? 5 : l === 3 ? -2 : 0;
+  const room = Math.round(Math.abs(Math.tan((lean * Math.PI) / 180)) * height) + (lean ? 4 : 0);
+  return { height, width, lean, before: lean < 0 ? room : 0, after: lean > 0 ? room : 0 };
+}
+
+export function BookSpine({ id, kind, title, foot, label, to, onClick, size = "", last = false, art = null, ...data }) {
   const cls = `lib-book__spine${size ? ` lib-book__spine--${size}` : ""}`;
+  const shape = bookShape(id, size, last);
   const body = (
     <>
       <span className="lib-book__kind">{kind}</span>
@@ -37,7 +54,9 @@ export function BookSpine({ id, kind, title, foot, label, to, onClick, size = ""
     </>
   );
   return (
-    <li className="lib-book" style={{ "--book-c": pastelVar(id), "--book-rank": rank % 3, "--book-fs": `${spineFont(title)}px` }} data-pastel={pastelIndex(id)} {...data}>
+    <li className={`lib-book${shape.lean ? " lib-book--lean" : ""}`} data-pastel={pastelIndex(id)} data-lean={shape.lean || undefined} {...data}
+      style={{ "--book-c": pastelVar(id), "--book-fs": `${spineFont(title)}px`, "--book-h": `${shape.height}px`, "--book-w": `${shape.width}px`,
+        "--book-lean": `${shape.lean}deg`, "--book-origin": shape.lean < 0 ? "bottom right" : "bottom left", marginLeft: shape.before, marginRight: shape.after }}>
       {to ? <Link to={to} className={cls} aria-label={label} title={label}>{body}</Link>
         : onClick ? <button type="button" className={cls} onClick={onClick} aria-label={label} title={label}>{body}</button>
           : <div className={`${cls} lib-book__spine--none`} aria-disabled="true" title={label}>{body}</div>}
@@ -53,10 +72,10 @@ export function GuideLadder({ base, guides }) {
       <h2 className="atl__h2" id="lib-ladder-h">Guides, by level</h2>
       <ol className="lib-books">
         {guides.map((g, i) => (g.written
-          ? <BookSpine key={g.id} id={g.id} rank={i} kind={`Level ${g.level}`} title={g.name} foot={`${g.lessons.length} decks`}
+          ? <BookSpine key={g.id} id={g.id} last={i === guides.length - 1} kind={`Level ${g.level}`} title={g.name} foot={`${g.lessons.length} decks`}
               label={`Level ${g.level}, ${g.name}: ${g.lessons.length} decks — ${g.lessons.slice(0, 4).map(l => l.title).join(", ")}${g.lessons.length > 4 ? " …" : ""}`}
               to={`${base}/library/${g.id}`} data-guide={g.id} data-guide-written="" />
-          : <BookSpine key={g.id} id={g.id} rank={i} size="thin" kind={`Level ${g.level}`} title={g.name} foot="Not written yet"
+          : <BookSpine key={g.id} id={g.id} last={i === guides.length - 1} size="thin" kind={`Level ${g.level}`} title={g.name} foot="Not written yet"
               label={`Level ${g.level}, ${g.name}: not written yet`} data-guide={g.id} />))}
       </ol>
     </section>
