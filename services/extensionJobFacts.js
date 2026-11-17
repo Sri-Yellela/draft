@@ -77,7 +77,7 @@ export function jobFactsForExtension(db, userId, jobId, { score = null, yourSkil
       .pluck().get(userId, id, ...EXTENSION_SUBMIT_REASONS, Math.floor(PACKET_STALE_MS / 1000))) || 0;
   const slug = companySlug(row.company || "") || null;
   const page = slug ? tryRead(() => publicCompany(db, slug)) : null;
-  const match = page && typeof yourSkillStates === "function" ? tryRead(() => companyMatchFor(db, slug, userId, { yourSkillStates, top: 8 })) : null;
+  const match = page && typeof yourSkillStates === "function" ? tryRead(() => companyMatchFor(db, slug, userId, { yourSkillStates })) : null;
   return {
     job: {
       category: tax?.category || null, subcategory: tax?.subcategory || null, level: row.experience_level || null,

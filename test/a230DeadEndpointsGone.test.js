@@ -29,3 +29,12 @@ test("A230: nothing in the client, the extension or the scripts asks for them", 
     for (const p of DEAD) assert.ok(!s.includes(p), `${f} still names ${p}`);
   }
 });
+
+// ⭐ 46t (carried from 46r): "you've proven N of their top M" — ONE cut for the company page and the extension's facts.
+test("one top-M cut: the extension's posting facts use the company page's COMPANY_MATCH_TOP", async () => {
+  const { COMPANY_MATCH_TOP } = await import("../services/companies/publicCompany.js");
+  assert.equal(COMPANY_MATCH_TOP, 12);
+  const ext = read("services/extensionJobFacts.js");
+  assert.match(ext, /companyMatchFor\(db, slug, userId, \{ yourSkillStates \}\)/);
+  assert.doesNotMatch(ext, /top: \d+/);
+});
