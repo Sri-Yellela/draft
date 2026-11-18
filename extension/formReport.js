@@ -30,7 +30,7 @@ export const CONTEXT_MENUS = Object.freeze([
   }),
   Object.freeze({ id: MENU_FILL_PAGE, title: 'Fill this application with draft', contexts: Object.freeze(['page']) }),
   Object.freeze({ id: MENU_ATS_PAGE, title: "Show draft's ATS report", contexts: Object.freeze(['page']) }),
-  Object.freeze({ id: MENU_ASK, title: 'Ask Tiny…', contexts: Object.freeze(['page', 'action']) }),
+  Object.freeze({ id: MENU_ASK, title: 'Ask draft…', contexts: Object.freeze(['page', 'action']) }),
 ]);
 
 /** The link a "Save link" click may send: an http(s) URL, or null. Nothing else leaves. */

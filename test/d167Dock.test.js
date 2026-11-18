@@ -69,8 +69,8 @@ test("d167NoDescriptionsUnderNames (pure): no plain line in the dock or the Menu
 });
 
 test("d167DraftMarkDrawsOut (pure): the whole wordmark set once; raft uncovered by clip-path while the mark slides; reduced motion instant", () => {
-  assert.match(MARK, /\/d\{drawOut && <span data-draft-raft="">raft<\/span>\}/);
-  assert.match(NAV, /<DraftMark drawOut \/>/);
+  assert.match(MARK, /\{slash\}d\{drawOut && <span data-draft-raft="">raft<\/span>\}/);   // 46v 0c: the slash may be its own span (the logo colourway) — changed on purpose
+  assert.match(NAV, /<DraftMark drawOut logo \/>/);
   assert.match(CSS, /\.appnav-ico--mark \[data-draft-mark\] \{\n  display: inline-block; white-space: nowrap; line-height: var\(--appnav-ico\);\n  transform: translateX\(calc\(var\(--appnav-raft-w, 0px\) \/ 2\)\); transition: transform \.38s cubic-bezier\(\.22, 1, \.36, 1\);/);
   assert.match(CSS, /\.appnav-ico--mark \[data-draft-raft\] \{\n  display: inline-block; clip-path: inset\(-\.3em 100% -\.3em 0\); transition: clip-path \.38s cubic-bezier\(\.22, 1, \.36, 1\);/);
   assert.match(CSS, /\[data-open="true"\] \.appnav-ico--mark \[data-draft-raft\] \{ clip-path: inset\(-\.3em -\.3em -\.3em -\.3em\); \}/);

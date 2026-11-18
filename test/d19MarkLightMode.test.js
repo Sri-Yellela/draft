@@ -54,7 +54,10 @@ test("D19: nothing outside StampLogo and the token file paints the mark — no p
   const themeFiles = [...read("client/src/themes/index.js").matchAll(/^import \w+ from "\.\/([\w-]+\.js)";$/gm)]
     .map((m) => `client/src/themes/${m[1]}`);
   assert.ok(themeFiles.length >= 4, "the registry scan found the theme files");
-  const allowed = new Set(["client/src/components/StampLogo.jsx", "client/src/styles/colorTokens.js", ...themeFiles]);
+  // ⭐ 46v 0c (owner 11-18: "change the font colorway of the draft on the menu to mimic the logo"): DraftMark's `logo` paints
+  // the dock's typed "/draft" in the same two tokens — the dock draws the word out letter by letter, which StampLogo's
+  // artwork mask cannot. Changed on purpose; still only the tokens, never a per-theme branch.
+  const allowed = new Set(["client/src/components/StampLogo.jsx", "client/src/components/DraftMark.jsx", "client/src/styles/colorTokens.js", ...themeFiles]);
   // (--c-logo-shadow is a COMPANY logo's shadow on the job card, not the mark.)
   const hits = files.filter(f => !allowed.has(f) && /--c-logo-(slash|word)\b|LOGO_SLASH|LOGO_WORD|-slash\.png|-letters\.png/.test(read(f)));
   assert.deepEqual(hits, [], "a surface special-cases the mark's colours");

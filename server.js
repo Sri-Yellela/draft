@@ -17261,11 +17261,11 @@ app.get("/api/assistant/status", requireAuth, (req, res) => {
 });
 app.post("/api/assistant/ask", requireAuth, async (req, res) => {
   res.set("Cache-Control", "private, no-store");
-  if (!assistantAvailable(db, { isAdmin: assistantAdmin(req) })) return res.status(404).json({ error: "not_available", message: "Tiny can't write new words on your account yet." });
+  if (!assistantAvailable(db, { isAdmin: assistantAdmin(req) })) return res.status(404).json({ error: "not_available", message: "Ask draft can't write new words on your account yet." });
   try { res.json(await assistantAsk(db, { userId: req.user.id, question: req.body?.question, callTask, anthropic, dataClass: DATA_CLASS.CANDIDATE })); }
   catch (e) {
     if (!e.status) console.error("[assistant]", e.message);
-    res.status(e.status || 500).json({ error: e.code || "ask_failed", message: e.status ? e.message : "Tiny couldn't answer just now. Try again." });
+    res.status(e.status || 500).json({ error: e.code || "ask_failed", message: e.status ? e.message : "Ask draft couldn't answer just now. Try again." });
   }
 });
 // ⭐ D190 T2 · Ask draft's answers from draft's own data — open to every signed-in person (no model is called, so the
@@ -17273,9 +17273,9 @@ app.post("/api/assistant/ask", requireAuth, async (req, res) => {
 app.post("/api/assistant/lookup", requireAuth, (req, res) => {
   res.set("Cache-Control", "private, no-store");
   const intent = String(req.body?.intent || "");
-  if (!ASSISTANT_LOOKUP_INTENTS.includes(intent)) return res.status(400).json({ error: "bad_intent", message: "That isn't something Tiny can look up." });
+  if (!ASSISTANT_LOOKUP_INTENTS.includes(intent)) return res.status(400).json({ error: "bad_intent", message: "That isn't something Ask draft can look up." });
   try { res.json({ found: true, ...(assistantLookup(db, req.user.id, { intent, args: req.body?.args || {}, question: req.body?.question || "" }) || { found: false }) }); }
-  catch (e) { console.error("[assistant lookup]", e.message); res.status(500).json({ error: "lookup_failed", message: "Tiny couldn't read that just now." }); }
+  catch (e) { console.error("[assistant lookup]", e.message); res.status(500).json({ error: "lookup_failed", message: "Ask draft couldn't read that just now." }); }
 });
 app.post("/api/assistant/actions/:id/confirm", requireAuth, (req, res) => {
   try { res.json(decideAssistantAction(db, req.user.id, req.params.id, { confirm: true })); }

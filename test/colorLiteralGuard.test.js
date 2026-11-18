@@ -110,7 +110,8 @@ const PERMANENT = {
   // like a logo it is the same orange fox in every theme, and it is drawn once here and mirrored byte-identical into the
   // extension and the PDF-tools site (which has no draft tokens at all), so its colours cannot be draft's tokens. The number
   // is EXACT: one more literal (or one fewer) fails, so the file cannot become a place where theme colour hides.
-  "shared/tinyMascot.js": 13,
+  // ⭐ 46v 0c (owner 11-18): the fox is retired; the assistant's face is draft's "/d" in the theme's logo tokens — no
+  // literal left, so the entry went with it (as DockPortal's did).
 };
 
 /** Not yet migrated. EMPTY since UI step 2b (09-30) — kept as the place a new exception would be argued. */

@@ -131,7 +131,7 @@ export function createDraftHandlers({ navigate, api, action, counts = () => null
     return { text: `The board now shows ${bits.length ? `${bits.join(" ")} ` : ""}jobs${placeName ? ` in ${placeName}` : ""}.${where}`, undo: before ? () => { set(before); return { text: "The filters are back as they were." }; } : null };
   }
   return {
-    help: () => ({ text: "I'm Tiny. I act on draft without AI: “draft this job”, “save this”, “pass”, “cancel that draft”, “open my profile”, “go to Atlas”, “show me senior remote jobs in Boston”, “find data analyst jobs”, “open my held questions” — and I answer from your own data: “how many need me?”, “what's my match?”, “which keywords am I missing?”, “does Kestrel sponsor?”, “what skills have I proven?”, or anything Atlas and draft's help cover." }),
+    help: () => ({ text: "I act on draft without AI: “draft this job”, “save this”, “pass”, “cancel that draft”, “open my profile”, “go to Atlas”, “show me senior remote jobs in Boston”, “find data analyst jobs”, “open my held questions” — and I answer from your own data: “how many need me?”, “what's my match?”, “which keywords am I missing?”, “does Kestrel sponsor?”, “what skills have I proven?”, or anything Atlas and draft's help cover." }),
     undo: async () => {
       const last = undoStack.pop();
       if (!last) return { text: "There's nothing to undo from here." };

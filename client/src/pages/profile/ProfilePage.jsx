@@ -140,14 +140,14 @@ function AssistantPrivacy() {
   const flip = async () => { try { const r = await api("/api/assistant/settings", { method: "PUT", body: JSON.stringify({ improveAtlas: !improve }) }); setImprove(r.improveAtlas); } catch { /* unchanged */ } };
   return (
     <section className="pf__card" data-assistant-privacy="">
-      <h3>Tiny</h3>
+      <h3>Ask draft</h3>
       {improve !== null && (
         <label style={{ display: "flex", gap: 8, alignItems: "flex-start" }} data-assistant-improve="">
           <input type="checkbox" checked={improve} onChange={flip} />
           Use my questions to improve Atlas. They are stored without your name or contact details, and never linked to you.
         </label>
       )}
-      <p>What Tiny did for you (each one only after you pressed Confirm):</p>
+      <p>What Ask draft did for you (each one only after you pressed Confirm):</p>
       {log?.length === 0 && <p data-assistant-log-empty="">Nothing yet.</p>}
       {log?.length > 0 && (
         <ul data-assistant-log="">

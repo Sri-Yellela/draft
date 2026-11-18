@@ -438,7 +438,7 @@ const SCREENS = {
       const mark = () => q(() => {
         const m = document.querySelector("[data-nav-dock] [data-draft-mark]"), r = m?.getBoundingClientRect(), cs = m && getComputedStyle(m);
         const raft = document.querySelector("[data-nav-dock] [data-draft-raft]");
-        const range = document.createRange(); if (m) { range.setStart(m.firstChild, 0); range.setEnd(m.firstChild, 2); }
+        const range = document.createRange(); if (m) { range.setStartBefore(m.firstChild); if (raft) range.setEndBefore(raft); else range.setEndAfter(m.lastChild); }   // 46v 0c: "/d" up to "raft" (the slash may be its own span)
         const d = m ? range.getBoundingClientRect() : null;
         return m && { width: r.width, height: r.height, fontSize: cs.fontSize, text: m.textContent, transform: cs.transform,
           slashD: { left: d.left, right: d.right }, raftClip: getComputedStyle(raft).clipPath, raftWidth: raft.offsetWidth };

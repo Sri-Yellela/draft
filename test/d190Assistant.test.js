@@ -289,7 +289,7 @@ test("46n · Tiny's fox is drawn once: shared/tinyMascot.js mirrored byte-identi
   const mine = read("shared/tinyMascot.js");
   assert.equal(read("extension/tinyMascot.js"), mine, "change both copies of the mascot (extension/tinyMascot.js)");
   const { tinySvg, TINY_NAME } = await import("../shared/tinyMascot.js");
-  assert.equal(TINY_NAME, "Tiny");
+  assert.equal(TINY_NAME, "draft");   // 46v 0c (owner 11-18): Tiny retired — changed on purpose
   assert.match(tinySvg({ size: 30 }), /^<svg [^>]*width="30" height="30" aria-hidden="true" focusable="false">/, "decorative without a title");
   assert.match(tinySvg({ title: "Tiny" }), /role="img"[^>]*><title>Tiny<\/title>/);
   assert.doesNotMatch(mine, /\bfetch\(|XMLHttpRequest|\bimport\s|document\.|window\./, "pure: a string, no DOM");

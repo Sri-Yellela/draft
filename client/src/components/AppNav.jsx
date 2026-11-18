@@ -215,7 +215,7 @@ function NavItems({ tabs, activeTab, hrefForTab, onGo, dock = false, network = f
           e.preventDefault();
           onGo(t.id, href);
         }}>
-        {dock && jobs && <span className="appnav-ico appnav-ico--mark" data-nav-icon={t.id}><DraftMark drawOut /><Badge n={t.badge} label={t.badgeLabel} /></span>}
+        {dock && jobs && <span className="appnav-ico appnav-ico--mark" data-nav-icon={t.id}><DraftMark drawOut logo /><Badge n={t.badge} label={t.badgeLabel} /></span>}
         {dock && !jobs && Icon && <span className="appnav-ico" data-nav-icon={t.id}><Icon /><Badge n={t.badge} label={t.badgeLabel} /></span>}
         {!(dock && jobs) && (
           <span className="appnav-words">
@@ -524,7 +524,7 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
         </p>
       )}
       {<>
-        {!app && !turns.length && <p className="appnav-ask__say" data-ask-intro="">Hi, I'm {TINY_NAME}. Tell me what to do — “show me senior remote jobs in Boston”, “find data analyst jobs”, “draft this job”, “open my profile”, “how many need me?” — or ask about a skill, a role or how draft works. Anything draft already holds is done without AI.</p>}
+        {!app && !turns.length && <p className="appnav-ask__say" data-ask-intro="">Tell me what to do — “show me senior remote jobs in Boston”, “find data analyst jobs”, “draft this job”, “open my profile”, “how many need me?” — or ask about a skill, a role or how draft works. Anything draft already holds is done without AI.</p>}
         <div className="appnav-ask__turns" data-ask-turns="" aria-live="polite">
           {turns.map((t, i) => (
             <div key={i} className="appnav-ask__turn" data-ask-turn={t.who} data-ask-tier={t.tier || undefined} data-ask-intent={t.intent || undefined}>

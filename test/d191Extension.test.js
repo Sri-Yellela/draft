@@ -171,7 +171,7 @@ test("D191 (2e) / (3) / P5 · the extension's panel runs the SITE's engine, mirr
   const m = JSON.parse(norm("extension/manifest.json"));
   assert.ok(m.commands["open-ask-draft"] && !m.commands["open-ask-draft"].suggested_key, "a shortcut the person binds (no new default key)");
   const { CONTEXT_MENUS, MENU_ASK } = await import("../extension/formReport.js");
-  assert.ok(CONTEXT_MENUS.some(i => i.id === MENU_ASK && i.title === "Ask Tiny…"), "46n: the panel's chat is Tiny");
+  assert.ok(CONTEXT_MENUS.some(i => i.id === MENU_ASK && i.title === "Ask draft…"), "46v 0c (owner 11-18): Tiny retired — the menu asks draft");
   // the board takes the panel's search by address, once
   const bs = norm("client/src/lib/boardSearch.js");
   assert.match(bs, /export const SEARCH_PARAM = "search";/);
@@ -184,19 +184,21 @@ test("46n · the card asks the H-1B record by the posting's own company string f
   assert.match(src, /sponsorshipFactFor\(db, key\); if \(f\) \{ sponsorship = /);
 });
 
-test("46n · the panel's chat is Tiny, with the fox: the same name and face as on draft and the PDF-tools site; no 'Ask draft' left on screen", () => {
+// ⭐ 46v 0c (owner 11-18: "drop 'tiny'"), changed ON PURPOSE: the fox and the name Tiny are retired — the chat wears draft's
+// short logo "/d" and is called draft; this pinned the opposite (no "Ask draft" left on screen).
+test("46v · the panel's chat wears draft's short logo and name: the same as on draft; no 'Tiny' left on screen", () => {
   const html = read("extension/ask.html");
-  assert.match(html, /<title>Tiny — draft<\/title>/);
+  assert.match(html, /<title>Ask draft<\/title>/);
   assert.match(html, /<span class="tiny-face" id="ask-tiny-face" aria-hidden="true"><\/span>/);
-  assert.match(html, /<h2 id="ask-tiny-name">Tiny<\/h2>/);
-  assert.match(html, /aria-label="Tell Tiny what to do"/);
-  assert.doesNotMatch(html.replace(/<!--[\s\S]*?-->/g, ""), /Ask draft/, "nothing the person sees says Ask draft");
+  assert.match(html, /<h2 id="ask-tiny-name">draft<\/h2>/);
+  assert.match(html, /aria-label="Tell draft what to do"/);
+  assert.doesNotMatch(html.replace(/<!--[\s\S]*?-->/g, ""), /Tiny/, "nothing the person sees says Tiny");
   assert.match(html, /\.tiny-face \{[^}]*width: 32px; height: 32px; border-radius: 50%;/, "the fox's well is a perfect circle (D60)");
   const ask = read("extension/ask.js");
   assert.match(ask, /import \{ tinySvg, TINY_NAME \} from '\.\/tinyMascot\.js';/);
   assert.match(ask, /\$\('ask-tiny-face'\)\.innerHTML = tinySvg\(\{ size: 26 \}\);/);
   assert.equal(read("extension/tinyMascot.js"), read("shared/tinyMascot.js"), "change both copies of the mascot");
-  assert.match(JSON.parse(read("extension/manifest.json")).commands["open-ask-draft"].description, /Tiny$/);
+  assert.match(JSON.parse(read("extension/manifest.json")).commands["open-ask-draft"].description, /Ask draft$/);
 });
 
 test("A211 (b) · the home view counts the applications waiting to be sent from this browser; the press and the panel offer the runner", async () => {

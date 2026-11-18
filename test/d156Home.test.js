@@ -153,7 +153,7 @@ test("d156DockIconsSameSizeThemeAccent / d156ShortLogoInDock (pure): 30 px icons
   // D180 P1 (45o, on purpose): + network (drawn only while the network switch is on).
   // 46f (on purpose): + Feed and Messages' icons, their own places under the network switch.
   assert.match(NAV, /const ICONS = \{ atlas: \(\) => <GlobeIcon \/>, "auto-apply" ?: \(\) => <HouseIcon \/>, interview: \(\) => <MicIcon \/>, network: \(\) => <PeopleIcon \/>, feed: \(\) => <FeedIcon \/>, messages: \(\) => <EnvelopeIcon \/> \};/);
-  assert.match(NAV, /<DraftMark drawOut \/>/);
+  assert.match(NAV, /<DraftMark drawOut logo \/>/);   // 46v 0c: in the logo's colourway — changed on purpose
   // D180 P1 (45o, on purpose): + network. 46f (on purpose): + feed, messages.
   assert.match(NAV, /export const DOCK_NAMES = Object\.freeze\(\{ today: "draft", "auto-apply" ?: "Home", atlas: "Atlas", interview: "Interview", network: "Network", feed: "Feed", messages: "Messages" \}\);/, "slash for short, draft for long — the jobs");
   assert.match(NAV, /\{url \? <img src=\{url\} alt="" \/> : <span className="appnav-initials" aria-hidden="true">\{initialsOf\(profile\.name\)\}<\/span>\}/);

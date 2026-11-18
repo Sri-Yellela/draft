@@ -85,8 +85,8 @@ export function relayFor({ identity = null, ctx = null, auto = null, away = null
     // "Open draft" link reaches the board); 46p's real-extension walk found the third button silently dropped
     actions: waiting
       ? [{ id: 'open-runner', label: 'Open the runner — fill them here, then one press sends them', word: 'Runner', primary: true },
-        { id: 'open-ask', label: "Open draft's panel — your day, search, Tiny", word: 'Open' }]
-      : [{ id: 'open-ask', label: "Open draft's panel — your day, search, Tiny", word: 'Open', primary: true }, { id: 'open-draft', label: 'Open your matches in draft', word: 'Matches' }] });
+        { id: 'open-ask', label: "Open draft's panel — your day, search, Ask draft", word: 'Open' }]
+      : [{ id: 'open-ask', label: "Open draft's panel — your day, search, Ask draft", word: 'Open', primary: true }, { id: 'open-draft', label: 'Open your matches in draft', word: 'Matches' }] });
   return out;
 }
 
