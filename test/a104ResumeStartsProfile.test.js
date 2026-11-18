@@ -118,7 +118,7 @@ test("A104 UI · a new account's board and deck ask for the résumé; the wizard
   // and the deck hands the new profile to the shared active id so the board's profile read re-runs.
   assert.doesNotMatch(jobs, /<StartFromResume/);
   assert.match(jobs, /title: "Your jobs show here once your résumé is in"/);
-  assert.match(deck, /s\.reason === "no_profile" && \(\s*<StartFromResume onDone=\{\(r\) => \{ fetchDeck\(\); if \(r\?\.profile\?\.id\) setActiveProfileId\?\.\(r\.profile\.id\); \}\}/);
+  assert.match(deck, /s\.reason === "no_profile"\s*\?\s*<StartFromResume onDone=\{\(r\) => \{ fetchDeck\(\); if \(r\?\.profile\?\.id\) setActiveProfileId\?\.\(r\.profile\.id\); \}\}/);
   assert.match(deck, /const setActiveProfileId = useJobBoard\(\)\?\.setActiveProfileId;/);
   // One file reader, not two (A93).
   assert.match(profiles, /import \{ parseResumeFile \} from "\.\.\/lib\/parseResumeFile\.js";/);

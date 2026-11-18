@@ -54,6 +54,7 @@ import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
 import { DECISIONS, counts, deckReducer, fanOrder, initialDeck, isFinished, stepTarget } from "../lib/deckState.js";
 import { DECISION_SURFACES, DECISION_TOAST_MS, DECISION_VERB, commitDecision, undoDecision } from "../lib/jobDecisions.js";
 import DecisionToast from "../components/DecisionToast.jsx";
+import { NoteCard } from "../components/TextBlocks.jsx";   // A233: the empties as note cards
 import { EXPAND_CLOCK, HOME_CARD, HOME_FAN, HOME_FAN_WIDE, HOME_WIDE, cardSize, fanTransform, geometryFor, homeCardSize, homeDeckColumn, homeFanTransform, homeLandscape, orientationFor } from "../lib/fanGeometry.js";
 import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
 import { readDeckOrder } from "../lib/deckOrder.js";
@@ -673,9 +674,9 @@ function EndOfDeck({ s, tally, needsReview, onUndo }) {
 
       <motion.p {...line(3)} style={{ fontSize: ts(15), color: C.INK_MUTED, lineHeight: 1.6, margin: "0 0 22px" }}>
         {tally.drafted > 0
-          ? <>Nothing has been sent. {tally.drafted === 1 ? "That draft waits" : "Each draft waits"} for your review{needsReview > 0 ? <> — <strong style={{ color: C.INK }}>{needsReview}</strong> {needsReview === 1 ? "thing needs" : "things need"} you in the queue now</> : null}.</>
+          ? <>Nothing has been sent. {tally.drafted === 1 ? "That draft waits" : "Each draft waits"} for your review{needsReview > 0 ? <> (<strong style={{ color: C.INK }}>{needsReview}</strong> {needsReview === 1 ? "needs" : "need"} you now)</> : null}.</>
           : <>You drafted nothing today, which is a fine answer when nothing fits.</>}
-        {" "}That is it until tomorrow: the next draft is dealt in {untilTomorrow()}.
+        {" "}That's it until tomorrow: your next picks arrive in {untilTomorrow()}.
       </motion.p>
 
       <motion.div {...line(4)} style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
@@ -1222,27 +1223,25 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
           const copy = {
             // A104: the résumé sets the first profile up — one upload, and the deck is dealt.
             no_profile: ["Start with your résumé.",
-              "Today's draft is dealt from jobs ranked against your résumé. Upload it and draft reads the roles you want and the skills you have, sets up your first job profile, and deals your first draft straight away.",
+              "Upload it and draft reads the roles you want and the skills you have, then picks your first jobs straight away.",
               []],
-            no_resume: ["Add your résumé to get today's draft.",
-              "Fit is judged against your résumé, so there is nothing to rank until it's there. It takes a minute, and nothing is sent anywhere.",
+            no_resume: ["Add your résumé to get today's picks.",
+              "draft judges fit against your résumé. It takes a minute, and nothing is sent anywhere.",
               [["/app/job-profiles", "Add your résumé →"], ["/app/jobs", "Every job"]]],
             empty: ["Nothing strong enough today.",
-              "Today's draft only deals Strong and Moderate matches you haven't decided yet, and there are none right now. A thin résumé makes most jobs read as weak — adding detail changes this more than anything else.",
+              "Today's picks are good and close fits you haven't decided on, and there are none right now. More detail in your résumé changes this most.",
               [["/app/jobs", "All jobs →"], ["/app/job-profiles", "Improve your profile →"]]],
           }[s.reason] || null;
           const [title, body, links] = copy || [null, null, []];
           return (
-            <div style={{ ...glass({ radius: 28 }), padding: "40px 36px" }} data-deck-empty={s.reason || "empty"}>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: ts(34), color: C.INK, marginBottom: 10 }}>{title || "Nothing strong enough today."}</div>
-              <p style={{ fontSize: ts(15), color: C.INK_MUTED, lineHeight: 1.6, margin: "0 0 22px" }}>{body}</p>
-              <div style={{ display: "flex", gap: 18, fontWeight: 800, fontSize: ts(14.5), flexWrap: "wrap" }}>
-                {links.map(([to, label]) => <Link key={to} to={to} style={{ color: C.ACCENT_INK }}>{label}</Link>)}
-              </div>
-              {s.reason === "no_profile" && (
-                <StartFromResume onDone={(r) => { fetchDeck(); if (r?.profile?.id) setActiveProfileId?.(r.profile.id); }} onManual={() => navigate("/app/job-profiles")} />
-              )}
-            </div>
+            // ⭐ A233: each empty is a note card — its title, one line, the way forward (a new account: the upload).
+            <NoteCard id={`deck-empty-${s.reason || "empty"}`} title={title || "Nothing strong enough today."} data-deck-empty={s.reason || "empty"}
+              style={{ maxWidth: "none" }}
+              actions={s.reason === "no_profile"
+                ? <StartFromResume onDone={(r) => { fetchDeck(); if (r?.profile?.id) setActiveProfileId?.(r.profile.id); }} onManual={() => navigate("/app/job-profiles")} />
+                : links.map(([to, label]) => <Link key={to} to={to} style={{ fontWeight: 800 }}>{label}</Link>)}>
+              {body}
+            </NoteCard>
           );
         })()}
 

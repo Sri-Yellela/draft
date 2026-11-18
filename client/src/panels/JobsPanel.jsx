@@ -895,8 +895,8 @@ function FiltersPanel({
             <span style={{ fontSize:ts(12), fontWeight:600 }}>Hide roles that require clearance or citizenship</span>
           </button>
           <div style={{ fontSize:ts(10), color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
-            Hides postings that state U.S. citizenship, U.S.-person (export control), a security clearance or a
-            polygraph. Read from the posting's own words — postings we have not read yet stay on the board.
+            Hides jobs that ask for U.S. citizenship, U.S.-person status, a security clearance or a polygraph,
+            read from the job's own words. Jobs we haven't read yet stay.
           </div>
         </div>
 
@@ -945,8 +945,8 @@ function FiltersPanel({
             <span style={{ fontSize:ts(12), fontWeight:600 }}>Hide likely not hiring</span>
           </button>
           <div style={{ fontSize:ts(10), color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
-            Leaves out postings with strong signs of no current opening — a talent-pool title, many reposts, months
-            open, no replies to people who applied. Each one shows its reasons; off, they stay at the end of the board.
+            Leaves out jobs that look like no one is hiring: a talent-pool title, many reposts, months open.
+            Each one shows its reasons; turned off, they stay at the end of the board.
           </div>
         </div>
 
@@ -976,8 +976,8 @@ function FiltersPanel({
             })}
           </div>
           <div style={{ fontSize:ts(10), color:theme.textDim, marginTop:4 }}>
-            The employer's industry, not the kind of work — pick the kind of work in the sentence above.
-            Companies with no sector on file are kept, after the ones we know.
+            The employer's industry, not the kind of work (pick that in the sentence above). Companies
+            whose industry we don't know are kept, after the rest.
           </div>
         </div>
 
@@ -4577,8 +4577,8 @@ export function ImportedEmptyState({ theme }) {
     <div data-imported-empty="" style={{ padding:"28px 16px", color:theme.textMuted, fontSize:ts(14), lineHeight:1.6, maxWidth:560 }}>
       <p style={{ margin:"0 0 8px", color:theme.text, fontWeight:700 }}>No imported jobs yet.</p>
       <p style={{ margin:0 }}>
-        Open any job posting in Chrome and capture it with the draft extension (⌃⇧K). It lands on your
-        board — in ALL, and here. Use <strong>Import jobs</strong> above to set the extension up.
+        Open any job in Chrome and save it with the draft extension (⌃⇧K). It lands on your board, in
+        All jobs and here. Use <strong>Import jobs</strong> above to set the extension up.
       </p>
     </div>
   );
@@ -4809,7 +4809,7 @@ function BoardEmptyState({ theme }) {
   const { theme: t } = useTheme();
   return (
     <EmptyState theme={theme || t} title="No jobs on the board yet"
-      body="Nothing in the pool matches the board right now. Add any posting with the extension — it lands under +." />
+      body="Nothing on the board matches right now. Add any job with the extension; it lands under +." />
   );
 }
 
@@ -4917,8 +4917,8 @@ function FilteredEmptyState({ theme, count, onClearFilters }) {
         Your filters exclude all jobs
       </div>
       <div style={{ fontSize:ts(12), textAlign:"center", color:th.textDim, maxWidth:360, lineHeight:1.8 }}>
-        {count} filter{count === 1 ? " is" : "s are"} active on this board and nothing matches all
-        of them. The postings are still there — widen or clear the filters to see them.
+        Nothing matches all {count} filter{count === 1 ? "" : "s"}. The jobs are still there; widen or
+        clear the filters to see them.
       </div>
       {onClearFilters && (
         <button type="button" onClick={onClearFilters}
@@ -4975,29 +4975,21 @@ function RoleScopedEmptyState({ profileName }) {
 }
 
 function SetupGateNotice({ theme, title, body, actionLabel, onAction, children = null }) {
+  // ⭐ A233: a set-up gate is a note card — its title, one line, its one action.
   return (
     <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center",
                   padding:32, background:theme.bg }}>
-      <div style={{ width:"min(92vw, 520px)", border:`1px solid ${theme.border}`,
-                    background:theme.surface, borderRadius:8, padding:24,
-                    boxShadow:C.SHADOW_SM }}>
-        <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                      fontSize:ts(29),
-                      color:theme.text, marginBottom:8 }}>
-          {title}
-        </div>
-        <div style={{ fontSize:ts(13), lineHeight:1.6, color:theme.textMuted, marginBottom:18 }}>
-          {body}
-        </div>
-        {children || (actionLabel && (
+      <NoteCard id={`board-gate-${String(title || "").slice(0, 24)}`} title={title} style={{ width:"min(92vw, 520px)" }}
+        actions={children || (actionLabel && (
           <button className="dbx-depth" onClick={onAction}
             style={{ border:"none", padding:"10px 16px",
                      background:theme.accent, color:C.ON_ACCENT, fontWeight:800,
                      cursor:"pointer", fontFamily:"inherit"}}>
             {actionLabel}
           </button>
-        ))}
-      </div>
+        ))}>
+        {body}
+      </NoteCard>
     </div>
   );
 }

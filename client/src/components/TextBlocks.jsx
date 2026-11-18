@@ -9,9 +9,9 @@ import "./TextBlocks.css";
 import { pastelVar } from "../../../shared/pastel.js";
 
 /** An explanation or an empty state as a note card. `id` picks its pastel; `actions` are buttons or links. */
-export function NoteCard({ id = "note", title, children = null, actions = null, className = "", ...data }) {
+export function NoteCard({ id = "note", title, children = null, actions = null, className = "", style = null, ...data }) {
   return (
-    <div className={`tb-note${className ? ` ${className}` : ""}`} style={{ "--tb-c": pastelVar(id) }} data-note-card={id} {...data}>
+    <div className={`tb-note${className ? ` ${className}` : ""}`} style={{ "--tb-c": pastelVar(id), ...(style || {}) }} data-note-card={id} {...data}>
       {title && <p className="tb-note__t">{title}</p>}
       {children && <div className="tb-note__s">{children}</div>}
       {actions && <div className="tb-note__acts">{actions}</div>}

@@ -285,7 +285,7 @@ test("D35 ⑤ the LOCATION panel cannot clear the United States floor — it nar
   const { BoardHeadline, html, WordPanel } = await loadUi();
   assert.equal(slot(BoardHeadline({ params: {}, onToggle() {} }), "location").props["aria-pressed"], true);
   const out = html(WordPanel, { open: "location", params: {}, facets: FACETS, facetsStatus: "ready" });
-  assert.match(out, /The United States is the floor — it can be narrowed, never cleared\./);
+  assert.match(out, /You can narrow the United States, not clear it\./   /* A233 (46u): plain words, on purpose */);
 });
 
 // ═══ 6 · zero is dimmed, not selectable, never hidden ═════════════════════════════════════════════
@@ -456,16 +456,16 @@ test("D35 §3 → D40: the CONDENSED BAR — FOUR views with counts, the search,
 });
 
 test("D35 §5: the PANEL COPY — its figures LIVE from facets, never the row's literal numbers", async () => {
-  assert.equal(panelNote("where", {}, FACETS), "47.5% coverage — postings with no workplace on file are kept, not hidden.");
-  assert.equal(panelNote("level", {}, FACETS), "3 postings have no level on file — kept, not hidden.");
-  assert.equal(panelNote(BOARD_PANEL.MORE, {}, FACETS), "Employment type is at 7.8% coverage and cannot carry a filter yet.");
-  assert.equal(unscoredText(FACETS), "37 jobs have no ATS score yet, so they sort last whatever you pick. Newest shows everything.");
+  assert.equal(panelNote("where", {}, FACETS), "47.5% of jobs say where you would work; the rest are kept, not hidden.");
+  assert.equal(panelNote("level", {}, FACETS), "3 jobs don't say their level; kept, not hidden.");
+  assert.equal(panelNote(BOARD_PANEL.MORE, {}, FACETS), "Only 7.8% of jobs say their employment type, too few to filter on yet.");
+  assert.equal(unscoredText(FACETS), "37 jobs haven't been scored yet, so they sort last whatever you pick. Newest shows everything.");
   // A different board says different numbers: the copy is measured, not written down.
   const other = { ...FACETS, total: 200, unscored: 1, coverage: { level: 199, where: 50, employment: 2 } };
-  assert.equal(panelNote("where", {}, other), "25% coverage — postings with no workplace on file are kept, not hidden.");
-  assert.equal(panelNote("level", {}, other), "1 posting has no level on file — kept, not hidden.");
-  assert.equal(panelNote(BOARD_PANEL.MORE, {}, other), "Employment type is at 1% coverage and cannot carry a filter yet.");
-  assert.equal(unscoredText(other), "1 job has no ATS score yet, so it sorts last whatever you pick. Newest shows everything.");
+  assert.equal(panelNote("where", {}, other), "25% of jobs say where you would work; the rest are kept, not hidden.");
+  assert.equal(panelNote("level", {}, other), "1 job doesn't say their level; kept, not hidden.");
+  assert.equal(panelNote(BOARD_PANEL.MORE, {}, other), "Only 1% of jobs say their employment type, too few to filter on yet.");
+  assert.equal(unscoredText(other), "1 job hasn't been scored yet, so it sorts last whatever you pick. Newest shows everything.");
   // No answer: the coverage lines say nothing rather than a guessed number.
   assert.equal(panelNote("where", {}, null), null);
   assert.equal(panelNote("level", {}, null), null);
@@ -485,7 +485,7 @@ test("D35 §5: the PANEL COPY — its figures LIVE from facets, never the row's 
   assert.match(html(AddOptions, { params: {} }), /data-add="employment" aria-disabled="true"/);
   // The sort panel keeps its line, with Newest in bold, and only when Best fit is offered.
   const sp = html(SortPanel, { value: "", atsAvailable: true, facets: FACETS, facetsStatus: "ready" });
-  assert.match(sp, /37 jobs have no ATS score yet, so they sort last whatever you pick\. <b>Newest<\/b> shows everything\./);
+  assert.match(sp, /37 jobs haven(?:'|&#x27;)t been scored yet, so they sort last whatever you pick\. <b>Newest<\/b> shows everything\./);
   assert.doesNotMatch(html(SortPanel, { value: "", atsAvailable: false, facets: FACETS, facetsStatus: "ready" }), /no ATS score/);
   assert.equal(isWordPanel("sort"), false, "the sort panel is the bar's, not the sentence's");
 });

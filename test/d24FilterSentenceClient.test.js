@@ -272,7 +272,7 @@ test("D26/D28: the board's bar is the search input only; a search never touches 
 test("D24 → D35: the SORT PANEL renders every order with its note, the chosen order's TIE-BREAK, and the unscored line", async () => {
   const best = SORT_PANEL.find(o => o.unscoredLast);
   assert.equal(tieBreakText(best), "Ties broken by: newest first, then company A–Z");
-  assert.equal(unscoredText(FACETS), "37 jobs have no ATS score yet, so they sort last whatever you pick. Newest shows everything.");
+  assert.equal(unscoredText(FACETS), "37 jobs haven't been scored yet, so they sort last whatever you pick. Newest shows everything.");
   const { html, SortPanel } = await loadUi();
   for (const o of SORT_PANEL) {
     const out = html(SortPanel, { value: o.value, atsAvailable: true, facets: FACETS, facetsStatus: "ready" });
@@ -282,13 +282,13 @@ test("D24 → D35: the SORT PANEL renders every order with its note, the chosen 
     assert.match(out, new RegExp(`role="radio" aria-checked="true" class="fh-op" data-sort="${o.value}"`));
   }
   const out = html(SortPanel, { value: "dateDesc", atsAvailable: true, facets: FACETS, facetsStatus: "ready" });
-  assert.match(out, /37 jobs have no ATS score yet, so they sort last whatever you pick\. <b>Newest<\/b> shows everything\./);
+  assert.match(out, /37 jobs haven(?:'|&#x27;)t been scored yet, so they sort last whatever you pick\. <b>Newest<\/b> shows everything\./);
   const noFit = html(SortPanel, { value: "dateDesc", atsAvailable: false, facets: FACETS, facetsStatus: "ready" });
   assert.ok(!noFit.includes(`>${best.short}<`), "Best fit offered without a résumé");
   assert.deepEqual(sortRows(false).map(r => r.value),
     [DEFAULT_SORT, ...SORT_PANEL.filter(o => !o.unscoredLast).map(o => o.value)]);
   const unknown = html(SortPanel, { value: "dateDesc", facets: null, facetsStatus: "unavailable" });
-  assert.match(unknown, /Jobs with no ATS score yet sort last whatever you pick\. <b>Newest<\/b> shows everything\./);
+  assert.match(unknown, /Jobs not scored yet sort last whatever you pick\. <b>Newest<\/b> shows everything\./);
 });
 
 test("D24: the DEFAULT board request carries NO sort param — the curated order; Newest is explicit", async () => {

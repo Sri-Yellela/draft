@@ -247,32 +247,32 @@ export function panelNote(panel, params, facets) {
   if (split) return split;
   // D153 (2): a place's number is the postings that LIST it — one that lists two cities counts in both — and a remote
   // role with no city is counted once, under Remote (US).
-  if (panel === "location") return `The United States is the floor — it can be narrowed, never cleared. Each number is the postings that list that place; remote roles with no city are under ${LOCATION_REMOTE.label}.`;
+  if (panel === "location") return `You can narrow the United States, not clear it. Each number counts the jobs that list that place; remote jobs with no city are under ${LOCATION_REMOTE.label}.`;
   if (panel === "where") {
     const p = coverageShare(facets, "where");
-    return p == null ? null : `${p}% coverage — postings with no workplace on file are kept, not hidden.`;
+    return p == null ? null : `${p}% of jobs say where you would work; the rest are kept, not hidden.`;
   }
   if (panel === "level") {
     const known = facets?.coverage?.level;
     if (!usable || !Number.isFinite(known)) return null;
     const n = Math.max(0, facets.total - known);
-    return n ? `${plural(n, "posting has", "postings have")} no level on file — kept, not hidden.` : null;
+    return n ? `${plural(n, "job doesn't", "jobs don't")} say their level; kept, not hidden.` : null;
   }
   if (panel === "domain") {
     const clause = SENTENCE_CLAUSES.find(c => c.key === "domain");
     const n = unclassifiedCount(clause, params, facets);
-    return n ? `${plural(n, "posting has", "postings have")} no kind of work on file — kept, not hidden.` : null;
+    return n ? `${plural(n, "job doesn't", "jobs don't")} say what kind of work; kept, not hidden.` : null;
   }
   if (panel === "fit") {
     return usable && Number.isFinite(facets.unscored) && facets.unscored > 0
-      ? `${plural(facets.unscored, "job has", "jobs have")} no ATS score yet — no fit band can show ${facets.unscored === 1 ? "it" : "them"}.`
+      ? `${plural(facets.unscored, "job hasn't", "jobs haven't")} been scored against your résumé yet, so no fit can show ${facets.unscored === 1 ? "it" : "them"}.`
       : null;
   }
   if (panel === BOARD_PANEL.MORE) {
     const p = coverageShare(facets, "employment");
     return p == null
-      ? "Employment type is not on file for enough postings to carry a filter yet."
-      : `Employment type is at ${p}% coverage and cannot carry a filter yet.`;
+      ? "Too few jobs say their employment type to filter on it yet."
+      : `Only ${p}% of jobs say their employment type, too few to filter on yet.`;
   }
   return null;
 }
@@ -371,8 +371,8 @@ export const tieBreakText = (row) => (row.tieBreak?.length ? `Ties broken by: ${
 export function unscoredParts(facets) {
   const newest = SORT_PANEL.find(o => !o.unscoredLast && /everything/i.test(o.subtitle))?.short ?? null;
   const lead = facetsUsable(facets) && Number.isFinite(facets.unscored)
-    ? `${plural(facets.unscored, "job has", "jobs have")} no ATS score yet, so ${facets.unscored === 1 ? "it sorts" : "they sort"} last whatever you pick.`
-    : "Jobs with no ATS score yet sort last whatever you pick.";
+    ? `${plural(facets.unscored, "job hasn't", "jobs haven't")} been scored yet, so ${facets.unscored === 1 ? "it sorts" : "they sort"} last whatever you pick.`
+    : "Jobs not scored yet sort last whatever you pick.";
   return { lead, newest };
 }
 export function unscoredText(facets) {
