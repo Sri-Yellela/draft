@@ -2,7 +2,9 @@
 //
 // Since D11 there is no IMPORT button on Full House: the extension is how a job from anywhere gets
 // onto your board. So this page has to do two jobs — explain what the extension does, honestly, and
-// install it. Every claim below is one extension/submission/STORE_LISTING.md makes and cites code
+// install it. ⭐ 46v 0d (owner 11-18: "yes do the other pages too"): the landing's treatment — the frame
+// (components/MarketingFrame.jsx), the setup as numbered note cards, the three facts as a ✓ list (A233).
+// Every claim below is one extension/submission/STORE_LISTING.md makes and cites code
 // for (single purpose, activeTab, no job-site content script — only D99's bridge on our own site — the one host). If the extension changes, this
 // page and that listing change together.
 //
@@ -10,14 +12,14 @@
 // not supplied the store item — WORKLOG O55) the page says so and offers nothing to click.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import ScrollDock from "../../components/ScrollDock.jsx";
-import { Footer } from "../../components/Footer.jsx";
+import { MarketingFrame, MkSection, MkSteps } from "../../components/MarketingFrame.jsx";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
+import { NoteCard, Promises } from "../../components/TextBlocks.jsx";
 import { DraftMark } from "../../components/DraftMark.jsx";
 import { EXTENSION_STORE_URL } from "../../../../shared/extension.js";
 import { CANONICAL_HOST, PRIVACY_POLICY_PATH } from "../../../../shared/brand.js";
 import { api } from "../../lib/api.js";
 import { useExtensionStatus } from "../../components/ExtensionPrompt.jsx";
-import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const STEPS = [
   { title: "Add it to Chrome",
@@ -39,16 +41,14 @@ const FACTS = [
 export function ExtensionInstallButton({ compact = false }) {
   if (!EXTENSION_STORE_URL) {
     return (
-      <p data-extension-unavailable="" style={{ fontSize: ts(14), color: "var(--color-text-muted)", margin: 0 }}>
+      <p data-extension-unavailable="" className="mk-quiet">
         The Chrome Web Store link isn't published yet. It will be here.
       </p>
     );
   }
   return (
     <a href={EXTENSION_STORE_URL} target="_blank" rel="noopener noreferrer" data-extension-install=""
-       className="rm-btn rm-btn-primary"
-       style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none",
-                padding: compact ? "8px 16px" : "12px 22px", fontSize: ts(compact ? 13 : 15) }}>
+       className="mk-btn mk-btn--primary" style={{ gap: 8, ...(compact ? { minHeight: 38, fontSize: ts(13) } : null) }}>
       <DraftMark style={{ fontSize: ts(compact ? 14 : 17) }}/> Add to Chrome
     </a>
   );
@@ -82,37 +82,34 @@ function agoWords(ms) {
   return days === 1 ? "yesterday" : `${days} days ago`;
 }
 
-const card = { border: "1px solid var(--color-border)", borderRadius: 14, padding: 18, marginBottom: 32 };
 
 export function ExtensionStateCard({ status }) {
   if (status.state === "connected") {
     const seen = agoWords(status.lastSeenAt ? status.lastSeenAt * 1000 : null);
     return (
-      <div data-extension-state="connected" style={card}>
-        <div style={{ fontSize: ts(16), fontWeight: 800, marginBottom: 6 }}>Your extension is connected</div>
-        <p style={{ fontSize: ts(14), color: "var(--color-text-muted)", lineHeight: 1.6, margin: "0 0 12px" }}>
+      <NoteCard id="ext-connected" title="Your extension is connected" data-extension-state="connected">
+        <p style={{ margin: "0 0 8px" }}>
           {seen ? `Last used ${seen}. ` : ""}Here's what to do with it:
         </p>
-        <ul style={{ fontSize: ts(14), lineHeight: 1.7, margin: 0, paddingLeft: 20 }}>
+        <ul style={{ lineHeight: 1.7, margin: 0, paddingLeft: 20 }}>
           <li><strong>On a job posting</strong> — click the draft icon, or press Ctrl+Shift+K. It says exactly where the job went.</li>
           <li><strong>On an application you drafted</strong> — press Ctrl+Shift+Y to fill it, check every answer, and submit it yourself.</li>
           <li><strong>Not sure which?</strong> — open it and press <em>Read this page</em>; it picks the action that fits.</li>
         </ul>
-      </div>
+      </NoteCard>
     );
   }
   if (status.state === "not_connected") {
     return (
-      <div data-extension-state="not_connected" style={card}>
-        <div style={{ fontSize: ts(16), fontWeight: 800, marginBottom: 6 }}>Your extension isn't connected</div>
-        <p style={{ fontSize: ts(14), color: "var(--color-text-muted)", lineHeight: 1.6, margin: 0 }}>
+      <NoteCard id="ext-not-connected" title="Your extension isn't connected" data-extension-state="not_connected">
+        <p style={{ margin: 0 }}>
           It has been used on this account, but it holds no live key right now. Click the draft icon in your
           browser's toolbar while you're signed in here and it connects by itself — or press <em>Sign in</em> inside it.
         </p>
-        <p style={{ fontSize: ts(13), color: "var(--color-text-muted)", margin: "12px 0 0" }}>
+        <p style={{ margin: "12px 0 0" }}>
           Setting it up on a different browser? <ExtensionInstallButton compact/>
         </p>
-      </div>
+      </NoteCard>
     );
   }
   return null;
@@ -123,7 +120,7 @@ export function ExtensionStateCard({ status }) {
 // own card. One line points there.
 export function ImportsPointer() {
   return (
-    <p data-imports-pointer="" style={{ fontSize: ts(14), color: "var(--color-text-muted)", margin: "0 0 48px" }}>
+    <p data-imports-pointer="" className="mk-quiet">
       Jobs you capture are on your board — open the <Link to="/app/jobs?view=imported">Imported view on /draft</Link> to see them.
     </p>
   );
@@ -137,67 +134,25 @@ export function ExtensionPage() {
   const known = signedIn === false || !!status;
   const offerInstall = signedIn === false || status?.state === "not_installed";
   return (
-    <div className="scroll-dock-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
-                  background: "transparent", color: "var(--color-text)",
-                  fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <ScrollDock variant="marketing" />
-      <main style={{ flex: 1, width: "100%", maxWidth: 800, margin: "0 auto", padding: "64px 24px", boxSizing: "border-box" }}>
-        <h1 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 400,
-                      color: "var(--color-text)", marginBottom: 16, lineHeight: 1.1,
-                      fontFamily: "var(--font-display)" }}>
-          Add any job to your board
-        </h1>
-        <p style={{ fontSize: ts(16), color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 28, maxWidth: 560 }}>
-          The draft browser extension is how a job you find anywhere gets onto your jobs board. Capture the
-          posting you're viewing, and later fill the application — you review every answer and submit
-          it yourself.
-        </p>
-        {known && offerInstall && (
-          <div style={{ marginBottom: 56 }}>
-            <ExtensionInstallButton/>
-            {signedIn && (
-              <p style={{ fontSize: ts(13), color: "var(--color-text-muted)", margin: "10px 0 0" }}>
-                Already installed it? Click it once while you're signed in here and it connects.
-              </p>
-            )}
-          </div>
-        )}
-        {status && <ExtensionStateCard status={status}/>}
-        {status?.state === "connected" && <ImportsPointer/>}
-
-        {/* D33: the install-and-set-up steps are for someone setting it up — not for a connected user. */}
-        {status?.state !== "connected" && (
-        <ol style={{ listStyle: "none", padding: 0, margin: "0 0 56px", display: "flex", flexDirection: "column", gap: 28 }}>
-          {STEPS.map((s, i) => (
-            <li key={s.title} style={{ display: "flex", gap: 20 }}>
-              <div aria-hidden="true" style={{ width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-                             background: "var(--color-primary-muted)", border: "2px solid var(--color-primary)",
-                             display: "flex", alignItems: "center", justifyContent: "center",
-                             fontSize: ts(16), fontWeight: 900, color: "var(--color-primary-text)" }}>
-                {i + 1}
-              </div>
-              <div style={{ paddingTop: 4, minWidth: 0 }}>
-                <h2 style={{ fontSize: ts(18), fontWeight: 800, color: "var(--color-text)", margin: "0 0 6px" }}>{s.title}</h2>
-                <p style={{ fontSize: ts(14), color: "var(--color-text-muted)", lineHeight: 1.7, margin: 0, maxWidth: 560 }}>{s.body}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-        )}
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
-          {FACTS.map(([h, b]) => (
-            <div key={h} style={{ border: "1px solid var(--color-border)", borderRadius: 14, padding: 18 }}>
-              <div style={{ fontSize: ts(14), fontWeight: 800, marginBottom: 6 }}>{h}</div>
-              <div style={{ fontSize: ts(13), color: "var(--color-text-muted)", lineHeight: 1.6 }}>{b}</div>
-            </div>
-          ))}
+    <MarketingFrame eyebrow="The extension" title="Add any job to your board"
+      lede="The draft browser extension is how a job you find anywhere gets onto your jobs board. Capture the posting you're viewing, and later fill the application — you review every answer and submit it yourself."
+>
+      {known && offerInstall && (
+        <div className="mk-ctas" data-extension-offer="">
+          <ExtensionInstallButton/>
+          {signedIn && <p className="mk-quiet" style={{ alignSelf: "center" }}>Already installed it? Click it once while you're signed in here and it connects.</p>}
         </div>
-        <p style={{ fontSize: ts(13), color: "var(--color-text-muted)", margin: 0 }}>
-          What it stores and sends is set out in the <Link to={PRIVACY_POLICY_PATH}>privacy policy</Link>.
-        </p>
-      </main>
-      <Footer/>
-    </div>
+      )}
+      {status && <div className="mk-measure"><ExtensionStateCard status={status}/></div>}
+      {status?.state === "connected" && <ImportsPointer/>}
+      {/* D33: the install-and-set-up steps are for someone setting it up — not for a connected user. */}
+      {status?.state !== "connected" && (
+      <MkSteps data-extension-setup="" items={STEPS.map((s, i) => ({ key: s.title, body: <NoteCard id={`ext-step-${i + 1}`} title={s.title}>{s.body}</NoteCard> }))} />
+      )}
+      <MkSection id="ext-facts" title="What it does, and never does" className="mk-sec--rule">
+        <Promises className="mk-measure" items={FACTS.map(([h, b]) => ({ ok: true, text: <><strong>{h}.</strong> {b}</> }))} />
+        <p className="mk-quiet">What it stores and sends is set out in the <Link to={PRIVACY_POLICY_PATH}>privacy policy</Link>.</p>
+      </MkSection>
+    </MarketingFrame>
   );
 }

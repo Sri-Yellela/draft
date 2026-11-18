@@ -1,8 +1,8 @@
-// client/src/pages/marketing/PricingPage.jsx
-import { Link } from "react-router-dom";
-import ScrollDock from "../../components/ScrollDock.jsx";
-import { Footer } from "../../components/Footer.jsx";
-import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
+// client/src/pages/marketing/PricingPage.jsx — ⭐ 46v 0d (owner 11-18: "yes do the other pages too"): the landing's
+// treatment — the frame (components/MarketingFrame.jsx), the plans as three cards, each plan's list as ✓ items (A233).
+// Routed only while monetisation is on (App.jsx).
+import { MarketingFrame, MkLink, MkPlan } from "../../components/MarketingFrame.jsx";
+import { Promises } from "../../components/TextBlocks.jsx";
 
 const TIERS = [
   {
@@ -57,94 +57,19 @@ const TIERS = [
 
 export function PricingPage() {
   return (
-    <div className="scroll-dock-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
-                  background: "transparent", color: "var(--color-text)",
-                  fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <ScrollDock variant="marketing" />
-      <main style={{ flex: 1, width: "100%", boxSizing: "border-box", margin: 0, padding: "64px var(--page-gutter)" }}>
-        <h1 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 400,
-                      color: "var(--color-text)", marginBottom: 12, lineHeight: 1.1, textAlign: "center",
-                      fontFamily: "var(--font-display)" }}>
-          Simple pricing. No surprises.
-        </h1>
-        <p style={{ fontSize: ts(16), color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 48,
-                     textAlign: "center" }}>
-          Start with your jobs board and today's picks. Ask for an upgrade from Plans when you need more tools.
-        </p>
-
-        <div style={{ display: "flex", gap: 20, flexWrap: "wrap", justifyContent: "center" }}>
-          {TIERS.map((t, i) => (
-            <div key={i} style={{
-              flex: "1 1 260px", maxWidth: 300,
-              background: t.recommended ? "var(--color-primary-muted)" : "var(--color-surface)",
-              border: `2px solid ${t.recommended ? "var(--color-primary)" : "var(--color-border)"}`,
-              borderRadius: 20, padding: "28px 24px",
-              display: "flex", flexDirection: "column",
-              opacity: t.comingSoon ? 0.6 : 1,
-              position: "relative",
-            }}>
-              {t.badge && (
-                <div style={{
-                  position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)",
-                  background: t.recommended ? "var(--color-primary)" : "var(--color-surface-offset)",
-                  // --color-primary-text IS the accent colour (theme.jsx maps it to accentText),
-                  // so on a --color-primary fill it painted orange on orange and the badge read as
-                  // empty. --color-on-primary is the token that exists for exactly this pairing,
-                  // and is what every other primary-filled control in the app already uses.
-                  color: t.recommended ? "var(--color-on-primary)" : "var(--color-text-muted)",
-                  fontSize: ts(11), fontWeight: 700, padding: "3px 12px", borderRadius: 6,
-                  border: "1px solid var(--color-border)", whiteSpace: "nowrap",
-                }}>
-                  {t.badge}
-                </div>
-              )}
-              <div style={{ fontSize: ts(15), fontWeight: 800, color: "var(--color-text)", marginBottom: 8 }}>
-                {t.name}
-              </div>
-              <div style={{ marginBottom: 20 }}>
-                <span style={{ fontSize: ts(36), fontWeight: 900, color: "var(--color-text)", letterSpacing: "-1px" }}>
-                  {t.price}
-                </span>
-                <span style={{ fontSize: ts(13), color: "var(--color-text-muted)" }}>{t.period}</span>
-              </div>
-              <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px 0", flex: 1 }}>
-                {t.features.map((f, j) => (
-                  <li key={j} style={{ display: "flex", gap: 8, fontSize: ts(13), color: "var(--color-text-muted)",
-                                        lineHeight: 1.6, marginBottom: 8 }}>
-                    <span style={{ color: "var(--c-success)", flexShrink: 0 }}>✓</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              {t.comingSoon ? (
-                <div style={{ padding: "10px 0", textAlign: "center", fontSize: ts(13),
-                               color: "var(--color-text-faint)", fontWeight: 600 }}>
-                  Coming soon
-                </div>
-              ) : (
-                <Link className="dbx-depth" to={t.ctaLink} style={{
-                  display: "block", textAlign: "center", padding: "11px 0",
-                  textDecoration: "none", fontWeight: 700, fontSize: ts(14),
-                  background: t.recommended ? "var(--color-primary)" : "transparent",
-                  // Same defect, and worse here because it is the call to action on the card the
-                  // page is steering people to. Unrecommended cards keep the accent-on-transparent
-                  // pairing, which is legible; only the filled one needs the contrasting token.
-                  color: t.recommended ? "var(--color-on-primary)" : "var(--color-primary-text)",
-                  border: "1.5px solid var(--color-primary)",
-                }}>
-                  {t.cta}
-                </Link>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <p style={{ textAlign: "center", fontSize: ts(13), color: "var(--color-text-faint)",
-                     marginTop: 32, lineHeight: 1.6 }}>
-          Upgrade requests are handled through Plans and granted by an admin while paid upgrades are being prepared.
-        </p>
-      </main>
-      <Footer/>
-    </div>
+    <MarketingFrame eyebrow="Pricing" title="Simple pricing. No surprises."
+      lede="Start with your jobs board and today's picks. Ask for an upgrade from Plans when you need more tools.">
+      <div className="mk-plans" data-plans="">
+        {TIERS.map((t) => (
+          <MkPlan key={t.name} name={t.name} price={`${t.price}${t.period}`} badge={t.badge} recommended={t.recommended} data-plan={t.name}>
+            <Promises items={t.features.map((f) => ({ ok: true, text: f }))} />
+            {t.comingSoon
+              ? <p className="mk-quiet">Coming soon</p>
+              : <div><MkLink primary={t.recommended} to={t.ctaLink}>{t.cta}</MkLink></div>}
+          </MkPlan>
+        ))}
+      </div>
+      <p className="mk-quiet">Upgrade requests are handled through Plans and granted by an admin while paid upgrades are being prepared.</p>
+    </MarketingFrame>
   );
 }

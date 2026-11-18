@@ -12,7 +12,7 @@
 // The old search bar, job grid and find → fit → apply line left with this; every open job is one link away (/jobs).
 // Auth is passed as a prop from App.jsx — the landing is only ever rendered signed out.
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { StampLogo } from "../components/StampLogo.jsx";
 import { HomeCardStill, HomeCardBackStill, CardBackDefs, ActionButton } from "../panels/DeckView.jsx";
@@ -20,6 +20,7 @@ import { BookShelf, BookSpine } from "../components/BookShelf.jsx";
 import { NoteCard, Facts, Promises } from "../components/TextBlocks.jsx";
 import { HOME_CARD } from "../lib/fanGeometry.js";
 import { api } from "../lib/api.js";
+import { MkLink } from "../components/MarketingFrame.jsx";   // the frame's button, shared with the marketing pages
 import { openPosting } from "../lib/openPosting.js";
 import "./LandingPage.css";
 
@@ -128,8 +129,8 @@ export default function LandingPage() {
           <h1 id="lp2-h1" className="lp2-h1">{PICKS_A_DAY} jobs that fit you, every morning</h1>
           <p className="lp2-lede">draft reads every job against your résumé and deals you the best ones. Draft a job and it tailors your résumé and fills the employer's form, then waits for you.</p>
           <div className="lp2-ctas">
-            <Link className="lp2-btn lp2-btn--primary" to="/register">Sign up free</Link>
-            <Link className="lp2-btn" to="/tools/ats">Check a résumé, no account</Link>
+            <MkLink primary to="/register">Sign up free</MkLink>
+            <MkLink to="/tools/ats">Check a résumé, no account</MkLink>
           </div>
         </div>
         <HeroDeck jobs={jobs} />
@@ -147,7 +148,7 @@ export default function LandingPage() {
           ))}
         </BookShelf>
         <NoteCard id={book.id} title={book.title} data-landing-book-open={book.id}
-          actions={<Link className="lp2-btn" to={book.to}>{book.cta}</Link>}>
+          actions={<MkLink to={book.to}>{book.cta}</MkLink>}>
           {book.say}
         </NoteCard>
       </section>
@@ -158,8 +159,8 @@ export default function LandingPage() {
         <Facts items={FIGURES} />
         <Promises items={PROMISE_ITEMS} />
         <div className="lp2-ctas">
-          <Link className="lp2-btn lp2-btn--primary" to="/register">Sign up free</Link>
-          <Link className="lp2-btn" to="/jobs">See every open job</Link>
+          <MkLink primary to="/register">Sign up free</MkLink>
+          <MkLink to="/jobs">See every open job</MkLink>
         </div>
       </section>
     </div>

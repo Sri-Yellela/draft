@@ -1,7 +1,9 @@
 // client/src/pages/marketing/FeaturesPage.jsx
 //
-// What each tool is for — the detail behind the landing page's find → fit → apply line
-// (components/FindFitApply.jsx; docs/BRAND_OUTLAY_AND_MOTION.md §The tools, and what each is for).
+// What each tool is for. ⭐ 46v 0d (owner 11-18: "yes do the other pages too"): the landing's treatment — the frame
+// (components/MarketingFrame.jsx); every tool a book on one shelf (components/BookShelf.jsx), its head naming the station
+// (/find · /fit · /apply); pressing a book brings its note card into view below, where each station lists its tools.
+// (The landing's find → fit → apply line, components/FindFitApply.jsx, left with the old landing in 46v.)
 //
 // ⛔ NOT A FEATURE GRID (10-01). It was five emoji cards ("Generate · ATS Keyword Analysis · Job
 // Discovery · Apply Automation · A+ Resume") under "Everything you need to land the interview", and
@@ -17,13 +19,10 @@
 // THE LEVER. The tier names are kept and shown only when monetisation is on — with it off, every tool
 // is available to every account, so a tier label would not merely be a commercial claim, it would be
 // false. (Kept rather than deleted so they are not rewritten from memory when the lever turns.)
-import { Link } from "react-router-dom";
-import ScrollDock from "../../components/ScrollDock.jsx";
-import { Footer } from "../../components/Footer.jsx";
+import { MarketingFrame, MkSection, MkLink } from "../../components/MarketingFrame.jsx";
+import { BookShelf, BookSpine } from "../../components/BookShelf.jsx";
+import { NoteCard } from "../../components/TextBlocks.jsx";
 import { useMonetisationEnabled } from "../../lib/monetisation.jsx";
-import { C } from "../../styles/colorTokens.js";
-import { glass } from "../../styles/glass.js";
-import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export const TOOLS = [
   {
@@ -63,65 +62,49 @@ export const TOOLS = [
   },
 ];
 
+const toolId = (t) => `tool-${t.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
+const bringIntoView = (id) => () => {
+  const el = typeof document === "undefined" ? null : document.getElementById(id);
+  if (!el) return;
+  const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  el.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "center" });
+  el.focus?.({ preventScroll: true });
+};
+
 export function FeaturesPage() {
   const monetisationEnabled = useMonetisationEnabled();
+  const all = TOOLS.flatMap((station) => station.tools.map((t) => ({ ...t, verb: station.verb })));
   return (
-    <div className="scroll-dock-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
-                  background: "transparent", color: C.INK, fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <ScrollDock variant="marketing" />
-      <main style={{ flex: 1, width: "100%", margin: 0, padding: "64px var(--page-gutter) 80px", boxSizing: "border-box" }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "clamp(40px, 6vw, 68px)", lineHeight: 1,
-                     letterSpacing: "-0.01em", margin: "0 0 16px" }}>
-          What each tool is for
-        </h1>
-        <p style={{ fontSize: ts(17), color: C.INK_MUTED, lineHeight: 1.55, margin: "0 0 56px", maxWidth: 620 }}>
-          Everything here is one line — <strong style={{ color: C.INK }}>find</strong>, <strong style={{ color: C.INK }}>fit</strong>,{" "}
-          <strong style={{ color: C.INK }}>apply</strong> — and every tool is a stop on it. Each is described by what it
-          does for you, and by the one thing it will not do.
-        </p>
-
-        {TOOLS.map(station => (
-          <section key={station.verb} aria-labelledby={`station-${station.verb}`} style={{ marginBottom: 56 }}>
-            <h2 id={`station-${station.verb}`} style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "clamp(34px, 4.4vw, 50px)",
-                                                        lineHeight: 1, margin: "0 0 8px" }}>
-              <span style={{ color: C.ACCENT_INK }}>/</span>{station.verb}
-            </h2>
-            <p style={{ fontSize: ts(16), color: C.INK_MUTED, margin: "0 0 20px", lineHeight: 1.5 }}>{station.line}</p>
-            <div style={{ display: "grid", gap: 14 }}>
-              {station.tools.map(t => (
-                <article key={t.name} data-tool={t.name} style={{ ...glass({ radius: 18 }), padding: "20px 22px" }}>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-                    <h3 style={{ fontSize: ts(18), fontWeight: 800, margin: 0 }}>{t.name}</h3>
-                    {monetisationEnabled && t.tier && (
-                      <span style={{ fontSize: ts(11), fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
-                                     color: C.ACCENT_INK, background: C.ACCENT_QUIET, padding: "2px 8px", borderRadius: 6 }}>{t.tier}</span>
-                    )}
-                  </div>
-                  <p style={{ fontSize: ts(15), lineHeight: 1.6, margin: "0 0 8px" }}>{t.does}</p>
-                  <p style={{ fontSize: ts(14), lineHeight: 1.6, margin: 0, color: C.INK_MUTED }}>
-                    <strong style={{ color: C.INK }}>It won't: </strong>{t.wont}
-                  </p>
-                  <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", marginTop: 12, fontSize: ts(13.5) }}>
-                    {t.to
-                      ? <Link to={t.to} style={{ fontWeight: 800, color: C.ACCENT_INK }}>{t.cta} →</Link>
-                      : <span style={{ color: C.INK_FAINT }}>{t.where}</span>}
-                    {t.limit && <span style={{ color: C.INK_FAINT }}>{t.limit}</span>}
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        ))}
-
-        <div style={{ textAlign: "center", marginTop: 24 }}>
-          <Link className="dbx-depth" to="/register" style={{ display: "inline-block", background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`,
-                                        padding: "13px 26px", fontWeight: 800, fontSize: ts(15), textDecoration: "none",
-                                        boxShadow: C.SHADOW_GLASS }}>
-            Get today's draft
-          </Link>
-        </div>
-      </main>
-      <Footer/>
-    </div>
+    <MarketingFrame eyebrow="Features" title="What each tool is for"
+      lede="Everything here is one line — find, fit, apply — and every tool is a stop on it. Each is described by what it does for you, and by the one thing it will not do."
+      actions={<MkLink primary to="/register">Get today's draft</MkLink>}>
+      <MkSection id="features-shelf" lede="Pick a book to read about it." data-features-shelf="">
+        <BookShelf>
+          {all.map((t, i) => (
+            <BookSpine key={t.name} id={toolId(t)} last={i === all.length - 1} kind={`/${t.verb}`} title={t.name}
+              foot={monetisationEnabled && t.tier ? t.tier : (t.to ? "try it" : "")} label={`${t.name}: ${t.does}`}
+              onClick={bringIntoView(toolId(t))} data-features-book={t.name} />
+          ))}
+        </BookShelf>
+      </MkSection>
+      {TOOLS.map(station => (
+        <MkSection key={station.verb} id={`station-${station.verb}`} title={`/${station.verb}`} lede={station.line} className="mk-sec--rule">
+          <div className="mk-stack">
+            {station.tools.map(t => (
+              <div key={t.name} id={toolId(t)} tabIndex={-1} data-tool={t.name}>
+                <NoteCard id={toolId(t)} title={<>{t.name}{monetisationEnabled && t.tier && (
+                    <span className="mk-eyebrow" style={{ marginLeft: 10 }}>{t.tier}</span>
+                  )}</>}
+                  actions={t.to ? <MkLink to={t.to}>{t.cta}</MkLink> : null}>
+                  <p style={{ margin: 0 }}>{t.does}</p>
+                  <p style={{ margin: "6px 0 0" }}><strong>It won't: </strong>{t.wont}</p>
+                  {(t.to ? t.limit : t.where) && <p style={{ margin: "6px 0 0", opacity: 0.8 }}>{t.to ? t.limit : t.where}</p>}
+                </NoteCard>
+              </div>
+            ))}
+          </div>
+        </MkSection>
+      ))}
+    </MarketingFrame>
   );
 }

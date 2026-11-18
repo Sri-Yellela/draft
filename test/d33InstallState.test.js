@@ -86,7 +86,7 @@ test("the /extension page offers the install ONLY to the signed-out and to not_i
   assert.doesNotMatch(connected, /ExtensionInstallButton|Add to Chrome|Get the extension/);
   assert.match(connected, /Ctrl\+Shift\+K/);
   // …and the install-and-set-up steps ("Add it to Chrome") are not shown to a connected user.
-  assert.match(page, /\{status\?\.state !== "connected" && \(\s*<ol/);
+  assert.match(page, /\{status\?\.state !== "connected" && \(\s*<MkSteps/);   // 46v: the steps are the frame's MkSteps (an <ol>) — changed on purpose
   // ⛔ D40 (owner, 10-06): the page stops listing captures — it points at the + view instead.
   assert.doesNotMatch(page, /RecentCaptures|data-recent-captures/);
   assert.match(page, /\/app\/jobs\?view=imported/);

@@ -1,9 +1,10 @@
-// client/src/pages/marketing/ContactPage.jsx
+// client/src/pages/marketing/ContactPage.jsx — ⭐ 46v 0d (owner 11-18: "yes do the other pages too, drop the 24 hours
+// line"): the landing's treatment — the frame (components/MarketingFrame.jsx), the form in the frame's fields, the sent
+// state a note card. ⛔ No promise of a reply time (the owner dropped "We typically respond within 24 hours").
 import { useState } from "react";
-import ScrollDock from "../../components/ScrollDock.jsx";
-import { Footer } from "../../components/Footer.jsx";
+import { MarketingFrame } from "../../components/MarketingFrame.jsx";
+import { NoteCard } from "../../components/TextBlocks.jsx";
 import { api } from "../../lib/api.js";
-import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export function ContactPage() {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
@@ -23,68 +24,34 @@ export function ContactPage() {
     }
   };
 
-  const inputStyle = {
-    width: "100%", padding: "10px 14px", borderRadius: 10,
-    border: "1px solid var(--color-border)", background: "var(--color-surface)",
-    color: "var(--color-text)", fontSize: ts(14), fontFamily: "'DM Sans', system-ui",
-    outline: "none", boxSizing: "border-box",
-  };
-
   return (
-    <div className="scroll-dock-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
-                  background: "transparent", color: "var(--color-text)",
-                  fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <ScrollDock variant="marketing" />
-      <main style={{ flex: 1, maxWidth: 560, margin: "0 auto", padding: "64px 24px" }}>
-        <h1 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 400,
-                      color: "var(--color-text)", marginBottom: 12, lineHeight: 1.1,
-                      fontFamily: "var(--font-display)" }}>
-          Get in touch
-        </h1>
-        <p style={{ fontSize: ts(15), color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 40 }}>
-          We typically respond within 24 hours.
-        </p>
-
-        {status === "ok" ? (
-          <div style={{ padding: "24px 28px", background: "var(--c-success-quiet)",
-                         border: "1px solid var(--c-success)", borderRadius: 16,
-                         color: "var(--c-success)", fontSize: ts(15), fontWeight: 600 }}>
-            ✓ Message sent. We'll be in touch soon.
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <input style={inputStyle} placeholder="Name *" value={form.name}
-              onChange={e => set("name", e.target.value)} required/>
-            <input style={inputStyle} placeholder="Email *" type="email" value={form.email}
-              onChange={e => set("email", e.target.value)} required/>
-            <select style={{ ...inputStyle, appearance: "none" }}
-              value={form.subject} onChange={e => set("subject", e.target.value)}>
-              <option value="">Subject — select one</option>
-              <option value="General inquiry">General inquiry</option>
-              <option value="Bug report">Bug report</option>
-              <option value="Feature request">Feature request</option>
-              <option value="Pricing">Pricing</option>
-              <option value="Partnership">Partnership</option>
-            </select>
-            <textarea style={{ ...inputStyle, minHeight: 160, resize: "vertical", lineHeight: 1.6 }}
-              placeholder="Message *" value={form.message}
-              onChange={e => set("message", e.target.value)} required/>
-            {status === "error" && (
-              <div style={{ color: "var(--color-destructive)", fontSize: ts(13) }}>
-                Something went wrong — please try again.
-              </div>
-            )}
-            <button className="dbx-depth" type="submit" disabled={status === "sending"}
-              style={{ padding: "12px 0", border: "none",
-                        background: "var(--color-primary)", color: "var(--color-on-primary)",
-                        fontWeight: 800, fontSize: ts(14), cursor: "pointer",
-                        opacity: status === "sending" ? 0.7 : 1 }}>
-              {status === "sending" ? "Sending…" : "Send message"}
-            </button>
-          </form>
-        )}
-      </main>
-      <Footer/>
-    </div>
+    <MarketingFrame eyebrow="Contact" title="Get in touch"
+      lede="A question about your account, a bug, or an idea for draft — write to us here.">
+      {status === "ok" ? (
+        <NoteCard id="contact-sent" title="Message sent" data-contact-sent="">We'll be in touch soon.</NoteCard>
+      ) : (
+        <form className="mk-form" onSubmit={handleSubmit} data-contact-form="">
+          <input id="contact-name" className="mk-field" aria-label="Name" placeholder="Name *" value={form.name}
+            onChange={e => set("name", e.target.value)} required/>
+          <input id="contact-email" className="mk-field" aria-label="Email" placeholder="Email *" type="email" value={form.email}
+            onChange={e => set("email", e.target.value)} required/>
+          <select id="contact-subject" className="mk-field" aria-label="Subject"
+            value={form.subject} onChange={e => set("subject", e.target.value)}>
+            <option value="">Subject — select one</option>
+            <option value="General inquiry">General inquiry</option>
+            <option value="Bug report">Bug report</option>
+            <option value="Feature request">Feature request</option>
+            <option value="Pricing">Pricing</option>
+            <option value="Partnership">Partnership</option>
+          </select>
+          <textarea id="contact-message" className="mk-field" aria-label="Message" placeholder="Message *" value={form.message}
+            onChange={e => set("message", e.target.value)} required/>
+          {status === "error" && <p className="mk-error" role="alert">Something went wrong — please try again.</p>}
+          <div><button className="mk-btn mk-btn--primary" type="submit" disabled={status === "sending"}>
+            {status === "sending" ? "Sending…" : "Send message"}
+          </button></div>
+        </form>
+      )}
+    </MarketingFrame>
   );
 }

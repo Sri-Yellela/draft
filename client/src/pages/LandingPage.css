@@ -8,11 +8,6 @@
 .lp2-h1 { margin: 0; font: 400 clamp(38px, 5.4vw, 64px)/1.02 var(--font-display); letter-spacing: -0.015em; text-wrap: balance; }
 .lp2-lede { margin: 0; font-size: 17px; line-height: 1.6; color: var(--c-ink-muted); max-width: 52ch; }
 .lp2-ctas { display: flex; gap: 10px; flex-wrap: wrap; }
-.lp2-btn { display: inline-flex; align-items: center; min-height: 46px; padding: 0 18px; border-radius: 12px; text-decoration: none;
-  font: 600 15px/1 var(--font-body); color: var(--c-ink); background: var(--c-surface-2); box-shadow: var(--c-depth-rest); }
-.lp2-btn:hover { box-shadow: var(--c-depth-hover); }
-.lp2-btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 3px; }
-.lp2-btn--primary { background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent); }
 
 /* the deck: the site's card, two backs fanned behind it, the deck's own buttons under it */
 .lp2-deck { display: grid; gap: 22px; justify-items: center; justify-content: center; min-width: 0; }

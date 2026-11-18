@@ -24,13 +24,9 @@ const MIN_PX = 640;
 /** file → [{ key: a substring of the offending rule / style object, why }] */
 export const ALLOW = {
   // prose-only pages: the column IS the reading measure (BRAND § FULL WIDTH, "a prose-only page")
-  "client/src/pages/marketing/AboutPage.jsx": [{ key: "maxWidth: 720", why: "prose page — the reading measure" }],
-  "client/src/pages/marketing/FAQPage.jsx": [{ key: "maxWidth: 720", why: "prose page — the reading measure" }],
   "client/src/pages/marketing/PrivacyPage.jsx": [{ key: "maxWidth: 720", why: "prose page — the reading measure" }],
   "client/src/pages/marketing/TermsPage.jsx": [{ key: "maxWidth: 720", why: "prose page — the reading measure" }],
-  "client/src/pages/marketing/HowItWorksPage.jsx": [{ key: "maxWidth: 800", why: "prose page — the reading measure" }],
   "client/src/pages/marketing/ConnectorDocsPage.jsx": [{ key: "maxWidth: 820", why: "prose page (docs) — the reading measure" }],
-  "client/src/pages/marketing/ExtensionPage.jsx": [{ key: "maxWidth: 800", why: "prose page — the reading measure" }],
   "client/src/pages/tools/ApplyToolPage.jsx": [{ key: "maxWidth: 720", why: "a one-column tool form read top to bottom" }],
   "client/src/pages/tools/ATSToolPage.jsx": [{ key: "maxWidth: 720", why: "a one-column tool form read top to bottom" }],
   "client/src/pages/tools/GenerateToolPage.jsx": [{ key: "maxWidth: 720", why: "a one-column tool form read top to bottom" }],

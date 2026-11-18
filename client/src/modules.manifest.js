@@ -119,6 +119,8 @@ export const SHARED = Object.freeze({
   "components/AtlasTerm.css":           { what: "its look, and the learning-links layout option's styles", owner: "components/AtlasTerm.jsx" },
   "components/DecisionButtons.jsx":     { what: "Pass · Save · Draft — every card and the posting panel" },
   "components/DecisionToast.jsx":       { what: "the undo toast after a decision — deck and board" },
+  "components/MarketingFrame.jsx":      { what: "46v · the marketing pages' one frame — the dock, a serif head, full-width sections, the footer; its button (MkLink) is the landing's too" },
+  "components/MarketingFrame.css":      { what: "46v · its look", owner: "components/MarketingFrame.jsx" },
   "components/BookShelf.jsx":           { what: "46u / 46v · books on a shelf — a spine in its pastel, the title up it, leaning as books do; the Library's guides, courses and pathways, and the landing's feature shelf" },
   "components/BookShelf.css":           { what: "46v · the book and the shelf's look (moved from LibraryPanel.css)", owner: "components/BookShelf.jsx" },
   "components/CardPile.jsx":            { what: "46u · draft's card for reading — the jobs deck's look in an item's pastel, the next cards fanned behind; guide decks, a course's lessons, the questions" },
