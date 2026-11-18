@@ -17,66 +17,7 @@ import { usePhase1 } from "../lib/monetisation.jsx";
 import OtpVerify from "./OtpVerify.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
-// ── AtomEmblem — keep this exported, TopBar imports it ────────
-function tiltedEllipsePath(cx, cy, rx, ry, angleDeg) {
-  const a = angleDeg * Math.PI / 180;
-  const cos = Math.cos(a); const sin = Math.sin(a);
-  const x1 = cx + rx * cos; const y1 = cy + rx * sin;
-  const x2 = cx - rx * cos; const y2 = cy - rx * sin;
-  return [`M ${x1} ${y1}`,`A ${rx} ${ry} ${angleDeg} 0 1 ${x2} ${y2}`,`A ${rx} ${ry} ${angleDeg} 0 1 ${x1} ${y1}`].join(" ");
-}
-
-export function AtomEmblem({ size = 120, textSize = 8.5, orbitSize = 28 }) {
-  const { theme } = useTheme();
-  const cx = size / 2; const cy = size / 2;
-  const tr = size * 0.38; const rx = orbitSize * 0.92; const ry = orbitSize * 0.36;
-  const nr = size * 0.09; const er = size * 0.048;
-  const orbits = [
-    { id:`orb0-${size}`, tilt:0,   begin:"0s" },
-    { id:`orb1-${size}`, tilt:60,  begin:"-1.13s" },
-    { id:`orb2-${size}`, tilt:120, begin:"-2.27s" },
-  ];
-  return (
-    <div style={{ position:"relative", width:size, height:size, display:"flex", alignItems:"center", justifyContent:"center" }}>
-      <style>{`
-        @keyframes spinTextRing-${size} { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes nucleusPulse-${size} { 0%,100% { opacity:1; transform:translate(-50%,-50%) scale(1); } 50% { opacity:.8; transform:translate(-50%,-50%) scale(1.18); } }
-        .atm-text-${size} { animation: spinTextRing-${size} 14s linear infinite; transform-origin: ${cx}px ${cy}px; }
-        .atm-nucleus-${size} { animation: nucleusPulse-${size} 2.6s ease-in-out infinite; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
-      `}</style>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ position:"absolute", inset:0, overflow:"visible" }}>
-        <defs>
-          <path id={`tp-${size}`} d={`M ${cx},${cy} m -${tr},0 a ${tr},${tr} 0 1,1 ${tr*2},0 a ${tr},${tr} 0 1,1 -${tr*2},0`}/>
-          <filter id={`glow-${size}`} x="-80%" y="-80%" width="260%" height="260%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-          {orbits.map(o => <path key={o.id} id={o.id} d={tiltedEllipsePath(cx,cy,rx,ry,o.tilt)} fill="none"/>)}
-        </defs>
-        {orbits.map(o => (
-          <ellipse key={`guide-${o.id}`} cx={cx} cy={cy} rx={rx} ry={ry}
-            fill="none" stroke={theme.accent} strokeWidth={0.7} strokeOpacity={0.3}
-            transform={`rotate(${o.tilt} ${cx} ${cy})`}/>
-        ))}
-        <g className={`atm-text-${size}`}>
-          <text style={{ fontSize:textSize, fontWeight:700, fill:theme.text, letterSpacing:1.0 }}>
-            <textPath href={`#tp-${size}`}>APPLY • TRACK • LAND • APPLY • TRACK • LAND • </textPath>
-          </text>
-        </g>
-        {orbits.map(o => (
-          <circle key={`e-${o.id}`} r={er} fill={theme.accent} filter={`url(#glow-${size})`}>
-            <animateMotion dur="3.4s" repeatCount="indefinite" begin={o.begin}>
-              <mpath href={`#${o.id}`}/>
-            </animateMotion>
-          </circle>
-        ))}
-        <circle cx={cx} cy={cy} r={nr} fill={theme.accent} opacity={0.9} filter={`url(#glow-${size})`}/>
-      </svg>
-      <div className={`atm-nucleus-${size}`}
-        style={{ width:nr*2, height:nr*2, borderRadius:"50%", background:theme.accent, opacity:0.85 }}/>
-    </div>
-  );
-}
+// 46v: AtomEmblem (the spinning "APPLY • TRACK • LAND" ring) is gone — nothing imported it any more; the plan retired the ring.
 
 // ── The slash as the signup's progress (queue 30) ─────────────
 // Brand as instrumentation: the mark's own "/" fills as the steps advance — a third at step 1, two
