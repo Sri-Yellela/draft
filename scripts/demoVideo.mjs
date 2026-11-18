@@ -2,7 +2,8 @@
 /**
  * ⭐ 46q · THE DEMO VIDEO, ONE COMMAND (owner 11-16: "a new demo run video for yc to update the older one"; the brief:
  * ≤ 180 s, production, "good enough" resolution, short burned-in captions naming each step, no voice). It walks the
- * product as it is now — the board and today's picks, a posting, Draft, Home (the applications), Tiny, Atlas, Profile —
+ * product as it is now — ⭐ 46v: the signed-out landing first (a private window, no account), then the signed-in walk: today's
+ * picks, a posting, Draft, Applications and what never goes automatically, Ask draft, Atlas and its learning —
  * in a real Chrome on an ALREADY SIGNED-IN profile (the owner signs in once; this script never sees a password), records
  * the tab with puppeteer's screencast (ffmpeg) and writes an mp4.
  *
@@ -11,7 +12,7 @@
  *
  * ⛔ IT REFUSES TO SEND ANYTHING (D36: the person sends). Every request that is not a GET is ABORTED unless it is on the
  * allow-list below — one Draft (POST /api/apply/runs: it makes a run that waits for review), the posting's "visited"
- * mark, Tiny's lookups, telemetry. Approve, send, submit, run-now, handoff, answers, settings: all aborted and counted;
+ * mark, Ask draft's lookups, telemetry. Approve, send, submit, run-now, handoff, answers, settings: all aborted and counted;
  * the script prints every aborted write and exits 1 if any was a send / approve / submit path. --no-draft aborts the
  * Draft too. ⛔ Only https://jobsviadraft.com or this computer's loopback.
  */
@@ -51,7 +52,7 @@ if (fs.existsSync(OUT)) { console.error(`REFUSING: ${OUT} exists — the old vid
 export const ALLOWED_WRITES = [
   { method: "POST", re: /^\/api\/apply\/runs$/, why: "Draft — a run that waits for the person's review (Ask me first)" },
   { method: "PATCH", re: /^\/api\/jobs\/[^/]+\/visited$/, why: "the posting was opened" },
-  { method: "POST", re: /^\/api\/assistant\/lookup$/, why: "Tiny's T2 answers (no model)" },
+  { method: "POST", re: /^\/api\/assistant\/lookup$/, why: "Ask draft's T2 answers (no model)" },
   { method: "POST", re: /^\/api\/(events|telemetry|track|analytics|client-errors?)(\/|$)/, why: "telemetry" },
 ];
 export const NEVER = /approve|submit|send|run-now|release|handoff|confirm|\/answers|mark-applied|sent\b/i;
@@ -60,11 +61,12 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const aborted = [], allowed = [];
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, userDataDir: PROFILE,
   args: ["--no-first-run", `--window-size=${VW},${VH}`, "--disable-features=HttpsFirstBalancedModeAutoEnable"], defaultViewport: { width: VW, height: VH, deviceScaleFactor: 1 } });
-const page = await browser.newPage();
-await page.setRequestInterception(true);
-if (THEME) await page.evaluateOnNewDocument((t) => { try { localStorage.setItem("draft-theme", t); } catch { /* blocked */ } }, THEME);
+let page = null;
+async function preparePage(pg) {
+await pg.setRequestInterception(true);
+if (THEME) await pg.evaluateOnNewDocument((t) => { try { localStorage.setItem("draft-theme", t); } catch { /* blocked */ } }, THEME);
 // a visible pointer for the recording (a headless screencast draws none): a dot that follows the mouse
-await page.evaluateOnNewDocument(() => {
+await pg.evaluateOnNewDocument(() => {
   addEventListener("DOMContentLoaded", () => {
     const d = document.createElement("div"); d.id = "demo-pointer";
     d.style.cssText = "position:fixed;left:-40px;top:-40px;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:rgba(20,20,20,.55);border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.35);z-index:2147483646;pointer-events:none;transition:left .06s linear,top .06s linear";
@@ -72,7 +74,7 @@ await page.evaluateOnNewDocument(() => {
     addEventListener("pointermove", (e) => { d.style.left = e.clientX + "px"; d.style.top = e.clientY + "px"; }, { passive: true });
   });
 });
-page.on("request", (req) => {
+pg.on("request", (req) => {
   const u = new URL(req.url()), m = req.method();
   if (THEME && m === "GET" && u.origin === host.origin && u.pathname === "/api/settings/appearance")
     return req.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ theme: THEME, cues: false }) });
@@ -83,6 +85,15 @@ page.on("request", (req) => {
   if (ok) { allowed.push(`${m} ${u.pathname}`); return req.continue(); }
   aborted.push(`${m} ${u.pathname}`); return req.abort("blockedbyclient");
 });
+}
+// ⭐ 46v: the signed-out landing is recorded first, in a PRIVATE window of the same browser (no account, no cookie — the
+// profile is never signed out); the signed-in walk follows in the profile's own window. The two parts are joined.
+const guest = await (await browser.createBrowserContext()).newPage();
+await guest.setViewport({ width: VW, height: VH, deviceScaleFactor: 1 });
+await preparePage(guest);
+const signedInPage = await browser.newPage();
+await preparePage(signedInPage);
+page = signedInPage;
 
 const CAPTION_CSS = `#demo-cap{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:2147483647;max-width:min(1100px,86vw);
   padding:12px 22px;border-radius:12px;background:rgba(14,14,16,.86);color:#fff;font:500 22px/1.35 "Inter Tight","DM Sans",system-ui,sans-serif;
@@ -117,20 +128,26 @@ const enterIn = async (sel) => { const el = await page.$(sel); if (await el?.eva
 
 /** The script: [id, caption, narration]. The narration says how draft works; the caption names the step. */
 export const LINES = {
-  intro: ["draft reads employers' own career pages every day, and ranks every job against your résumé",
-    "This is draft. Every day it reads open jobs straight from employers' career pages, on Greenhouse, Lever, Ashby and Workday, and scores each one against your résumé the way an applicant tracking system would. These are today's picks."],
-  board: ["The whole board, every job with your match",
-    "Below them is the whole board, every job with your match."],
+  landing: ["draft: up to ten jobs a day that fit you, from employers' own career pages",
+    "This is draft. Every day it reads open jobs straight from employers' own career pages, on Greenhouse, Lever, Ashby and Workday, and deals you the ones that fit your résumé, as cards."],
+  shelf: ["Everything else, on one shelf",
+    "Everything else sits on one shelf: your applications, Atlas, interview practice, the browser extension, and Ask draft."],
+  promises: ["What draft does — and never does",
+    "And it says plainly what it never does: send an application before you approve it, guess an eligibility answer, or train on your résumé."],
+  intro: ["Today's picks, each scored against your résumé",
+    "Signed in, these are your picks for today, each one scored against your résumé the way an applicant tracking system would."],
   posting: ["Open a job: pay, workstyle, sponsorship and your match, at a glance",
     "Open one: the pay, the workstyle, visa sponsorship, and how your résumé scores against it."],
   draft: ["Draft: a tailored résumé and a filled form — nothing is sent until you say so",
-    "Press Draft, and draft tailors your résumé to this one job, never inventing experience, then fills in the employer's form and stops. Nothing is sent without you."],
-  home: ["Home: every application, and what each one needs from you",
-    "Home is every application in one place, and what each one needs from you."],
+    "Press Draft, and draft tailors your résumé to this one job, without inflating your years or your level, then fills in the employer's form and stops. Nothing is sent without you."],
+  home: ["Applications: every one, and what each needs from you",
+    "Applications holds every one in one place, and what each one needs from you."],
   review: ["Review, answer what only you can, and send it yourself",
     "Check the résumé and the answers, fill in what only you can, and send it yourself."],
-  tiny: ["Tiny: ask in plain words — it sets the filters and answers from your own data",
-    "Tiny lives on every page. Ask in plain words: it sets the board's filters, or counts what needs you, from your own data."],
+  never: ["Ask me first: nothing goes until you approve — and these never go on their own",
+    "In Ask me first, nothing is sent until you approve it. And some things never go out on their own: a human check, an eligibility question you haven't answered, a job past your limits."],
+  tiny: ["Ask draft: the /d on every page — plain words, from your own data",
+    "Ask draft lives on every page, behind the slash d. Ask in plain words: it sets the board's filters, or counts what needs you, from your own data."],
   atlas: ["Atlas: how many jobs you can apply for today — counted, never a model's guess",
     "Now Atlas: where you stand in the market. The big number is counted from live postings and your résumé, never a model's guess: the jobs you can apply for today, split by level."],
   histogram: ["Every open job for your aim, by how much of it you already have",
@@ -183,6 +200,32 @@ await go("/app");
 const me = await page.evaluate(async () => (await fetch("/api/auth/me")).json()).catch(() => ({}));
 if (!me.authenticated) { console.error("REFUSING: the profile is signed out — sign in once in that profile, then run again"); await browser.close(); process.exit(3); }
 
+// ⭐ 46v · PART 1, signed out: the landing — the deck dealing, the shelf, what draft never does
+const LWEBM = OUT.replace(/\.mp4$/i, "") + ".landing.webm";
+page = guest;
+await go("/");
+const lrec = await page.screencast({ path: LWEBM });
+const l0 = Date.now();
+const lspoken = [];
+const lbeat = async (id, fn = async () => {}, { min = 0, tail = 350 } = {}) => {
+  const s = Date.now(); await caption(LINES[id][0]);
+  if (clip[id]) lspoken.push({ id, at: s - l0 });
+  try { await fn(); } finally { const need = Math.max(clip[id]?.ms ?? 3800, min) + tail - (Date.now() - s); if (need > 0) await sleep(need); }
+};
+const lsteps = [];
+try {
+  await lbeat("landing", async () => { await page.mouse.move(8, 8); await sleep(1200); });
+  await lbeat("shelf", async () => { await scrollToSel("[data-landing-shelf]"); await hover("[data-landing-book] button", { nth: 1, hold: 900 });
+    await page.evaluate(() => document.querySelectorAll("[data-landing-book] button")[1]?.click()); await sleep(1300);
+    await hover("[data-landing-book] button", { nth: 2, hold: 700 }); await page.evaluate(() => document.querySelectorAll("[data-landing-book] button")[2]?.click()); await sleep(1100); });
+  await lbeat("promises", async () => { await scrollToSel("[data-landing-promises]"); await sleep(600); await hover("[data-landing-promises] .tb-prom__i", { nth: 2, hold: 1600 }); });
+  lsteps.push({ name: "landing", ok: true });
+} catch (e) { lsteps.push({ name: "landing", ok: false, error: e.message.slice(0, 160) }); }
+await lrec.stop().catch(() => {});
+const landingMs = Date.now() - l0;
+await guest.close().catch(() => {});
+page = signedInPage;
+
 const WEBM = OUT.replace(/\.mp4$/i, "") + ".webm";
 const rec = await page.screencast({ path: WEBM });
 const t0 = Date.now();
@@ -201,8 +244,7 @@ const roleBtns = () => page.evaluate(() => [...document.querySelectorAll("[data-
 try {
   await step("today", async () => {
     await go("/app/today");
-    await beat("intro", async () => { await sleep(3200); for (let i = 0; i < 3; i++) { await clickText(/^›$/); await sleep(1600); } });
-    await beat("board", async () => { await smoothScroll(650, 1800); await sleep(900); await smoothScroll(-650, 1200); });
+    await beat("intro", async () => { await sleep(2400); for (let i = 0; i < 2; i++) { await clickText(/^›$/); await sleep(1400); } });
   });
   await step("posting", async () => {
     await beat("posting", async () => {
@@ -221,11 +263,20 @@ try {
     await go("/app/auto-apply");
     await beat("home");
     await beat("review", async () => { await page.evaluate(() => document.querySelector("[data-tracker-table] tbody tr")?.click()); });
+    // ⭐ 46v: Settings → Which jobs — the "Never sent automatically" list (reading: the drawer and a fold open, nothing saved)
+    await beat("never", async () => {
+      await go("/app/auto-apply");
+      if (!(await page.$("[data-settings-open]"))) return;
+      await page.click("[data-settings-open]"); await sleep(900);
+      await page.click('[data-fold-top="jobs"]').catch(() => {}); await sleep(700);
+      await page.evaluate(() => document.querySelector("[data-never-sent]")?.scrollIntoView({ block: "center", behavior: "smooth" })); await sleep(900);
+      await hover("[data-never-sent] li", { nth: 2, hold: 1800 });
+    });
   });
   await step("tiny", async () => {
     await go("/app/today"); await sleep(400);
     await beat("tiny", async () => {
-      // Tiny's open card survives a reload — press the fox only when it is shut (a press on an open one closes it)
+      // the card's open state survives a reload — press the /d only when it is shut (a press on an open one closes it)
       if (!(await page.$("[data-ask-draft][data-open='true']"))) await page.click("[data-tiny-launch]");
       const INPUT = "[data-ask-draft][data-open='true'] [data-ask-input]";
       await page.waitForSelector(INPUT, { visible: true, timeout: 10000 }); await sleep(500);
@@ -243,10 +294,6 @@ try {
     await beat("histogram", async () => { for (const n of [3, 6, 8]) await hover("[data-skm-histogram] [data-tip]", { nth: n, hold: 1600 }); });
     await scrollToSel("[data-skm-section=wants]");
     await beat("map", async () => { await hover("[data-skm-tile] rect", { nth: 0, hold: 2200 }); });
-    await beat("states", async () => {
-      await hover("[data-skm-tile][data-state=claimed] rect", { hold: 1900 }) || await hover("[data-skm-tile][data-state=proven] rect", { hold: 1900 });
-      await hover("[data-skm-tile][data-state=missing] rect", { hold: 1900 });
-    });
     await beat("role", async () => {
       if (await roleBtns() < 2) return;
       await page.evaluate(() => { const b = [...document.querySelectorAll("[data-skm-role-btn]")].map(s => s.closest("button")).filter(Boolean); (b.find(x => x.getAttribute("aria-pressed") !== "true") || null)?.click(); });
@@ -256,8 +303,6 @@ try {
     await page.evaluate(() => [...document.querySelectorAll("[data-skm-role-btn]")].map(s => s.closest("button")).find(b => /your aim/i.test(b?.textContent || ""))?.click()); await sleep(1200);
     await scrollToSel("[data-skm-section=learn]");
     await beat("learn", async () => { await hover("[data-skm-point]", { nth: 1, hold: 1900 }); await hover("[data-skm-step]", { nth: 0, hold: 2000 }); });
-    await scrollToSel("[data-skm-section=move]");
-    await beat("move", async () => { await hover("[data-skm-role]", { nth: 1, hold: 2200 }); await hover("[data-skm-card]", { nth: 0, hold: 2000 }); });
     await page.mouse.move(8, 8);
   });
   // ⭐ 46t (owner 11-17: "none of the courses and learning material is covered. distribute to accommodate"): Your run, the
@@ -274,8 +319,6 @@ try {
       for (const n of [4, 30, 70]) await hover("[data-learn-piece]", { nth: n, hold: 1700 });
       await hover("[data-resource-tile]", { nth: 0, hold: 1800 });
     });
-    await go("/app/atlas/library/sw-f-04");
-    await beat("deck", async () => { await sleep(900); for (let i = 0; i < 2; i++) { await clickText(/^Next/); await sleep(1300); } });
     await go("/app/atlas/todays-question");
     await beat("question", async () => { await hover("[data-daily-question]", { hold: 2200 }); });
     await page.mouse.move(8, 8);
@@ -287,10 +330,16 @@ try {
   await rec.stop().catch(() => {});
   await browser.close();
 }
-const seconds = Math.round((Date.now() - t0) / 1000);
+const seconds = Math.round((Date.now() - t0 + landingMs) / 1000);
 const SILENT = OUT.replace(/\.mp4$/i, "") + ".silent.mp4";
-execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", WEBM, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium", "-crf", "22", "-movflags", "+faststart", "-t", String(MAX_SECONDS), spoken.length ? SILENT : OUT], { stdio: "inherit" });
-fs.rmSync(WEBM, { force: true });
+// the two parts, one after the other (each scaled to the same size, constant frame rate), cut at MAX_SECONDS
+execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", LWEBM, "-i", WEBM, "-filter_complex",
+  `[0:v]scale=${VW}:${VH},fps=25,setsar=1[a];[1:v]scale=${VW}:${VH},fps=25,setsar=1[b];[a][b]concat=n=2:v=1:a=0[v]`, "-map", "[v]",
+  "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium", "-crf", "22", "-movflags", "+faststart", "-t", String(MAX_SECONDS), spoken.length || lspoken.length ? SILENT : OUT], { stdio: "inherit" });
+fs.rmSync(WEBM, { force: true }); fs.rmSync(LWEBM, { force: true });
+spoken.unshift(...lspoken.map((s) => ({ ...s, landing: true })));
+for (const s of spoken) if (!s.landing) s.at += landingMs;
+steps.unshift(...lsteps);
 if (spoken.length) {
   // each line laid at the moment its beat began, mixed (no normalising, so a lone line keeps its loudness), muxed in
   const ins = spoken.flatMap(s => ["-i", clip[s.id].f]);
@@ -299,6 +348,6 @@ if (spoken.length) {
   fs.rmSync(SILENT, { force: true });
 }
 const bad = aborted.filter(a => NEVER.test(a));
-console.log(JSON.stringify({ out: OUT, seconds, size: `${VW}x${VH}`, voice: VOICE, steps, spoken, allowedWrites: allowed, abortedWrites: aborted }, null, 1));
+console.log(JSON.stringify({ out: OUT, seconds, landingSeconds: Math.round(landingMs / 1000), size: `${VW}x${VH}`, voice: VOICE, steps, spoken, allowedWrites: allowed, abortedWrites: aborted }, null, 1));
 if (seconds > MAX_SECONDS) console.error(`⚠ the walk took ${seconds} s — the mp4 is cut at ${MAX_SECONDS} s`);
 if (bad.length) { console.error(`⛔ the page tried ${bad.length} send / approve / submit request(s) — aborted, but look at why: ${bad.join(", ")}`); process.exit(1); }
