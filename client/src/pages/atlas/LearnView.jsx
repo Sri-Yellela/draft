@@ -94,7 +94,7 @@ export default function LearnView({ signedIn = false }) {
 
   return (
     <div className="lrn" data-learn="">
-      <p className="atl__lede"><b>{pieces.length} pieces</b> on one circle. Start anywhere. Go back to understand, go forward to grow, or go all the way round.</p>
+      <p className="atl__lede"><b>{pieces.length} lessons</b> on one circle. Start anywhere.</p>
       <section aria-label="The circle" data-learn-panel="circle">
         <LearnCircle key={entry || "start"} learn={learn} pieces={pieces} circle={circle} earned={earned} signedIn={signedIn} initialSel={entry || next?.id}
           myRoute={myRoute} notice={notice} onWantMyRoute={wantMyRoute} onOpen={onOpen} onExplain={onExplain} onBuild={onBuild} />
@@ -102,8 +102,8 @@ export default function LearnView({ signedIn = false }) {
 
       <footer className="lrn__foot">
         <p className="atl__quiet" data-learn-saved={saved}>{saved === "account"
-          ? `Progress is earned and saved to your account: what you open from here, explain in your own words and link as built.${earned.ticked ? ` The ${earned.ticked} item${earned.ticked === 1 ? "" : "s"} you ticked before are kept, and no longer count.` : ""}`
-          : saved === "browser" ? "Sign in and draft records what you open, explain and build — progress is earned, never ticked." : "Progress could not be saved just now."}</p>
+          ? `Saved to your account: a lesson counts when you open it, explain it or build it.${earned.ticked ? ` The ${earned.ticked} item${earned.ticked === 1 ? "" : "s"} you ticked before are kept but don't count.` : ""}`
+          : saved === "browser" ? "Sign in to keep your progress. A lesson counts when you open it, explain it or build it." : "Progress could not be saved just now."}</p>
         {c.linksNote && <p className="atl__quiet">{c.linksNote}</p>}
       </footer>
     </div>

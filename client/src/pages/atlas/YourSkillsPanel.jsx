@@ -96,7 +96,7 @@ export default function YourSkillsPanel({ signedIn = true, base = "/app/atlas", 
   return (
     <section className="ysk" data-your-skills="">
       <h2 className="ysk__h2">What you can show</h2>
-      <p className="ysk__lead">Each skill is matched to the Atlas. A skill that isn't on your résumé goes into a tailored résumé only once it's proven.</p>
+      <p className="ysk__lead">A skill that isn't on your résumé goes into a tailored résumé only once you've shown it.</p>
       <SkillsList list={list} base={base} openKey={openKey} onOpen={setOpenKey} onChanged={() => load()} />
       {error && <p className="ysk__quiet" role="alert">{error}</p>}
     </section>

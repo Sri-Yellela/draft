@@ -74,7 +74,7 @@ function AtlasSearch({ base, q }) {
       <header className="atl__head">
         <p className="atl__kicker">The Atlas</p>
         <h1 className="atl__title">Roles, skills, tools and stacks — and how they connect</h1>
-        <p className="atl__lede">Look one up to see what it is, what the board asks for alongside it, how it links to the rest, and where to learn it.</p>
+        <p className="atl__lede">Look one up: what it is, what jobs ask for with it, and where to learn it.</p>
       </header>
       <SearchBox base={base} initial={q} />
       {state.status === "loading" && <p className="atl__quiet" role="status">Looking up “{q}”…</p>}

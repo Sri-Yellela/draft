@@ -11,6 +11,7 @@ import { slideLabel } from "./libraryModel.js";
 import CardPile from "../../components/CardPile.jsx";   // 46u: draft's card for the slides
 import { pastelIndex, pastelVar } from "../../../../shared/pastel.js";
 import "./LibraryPanel.css";
+import { Facts } from "../../components/TextBlocks.jsx";   // A233: meta lines as figures
 
 export function useGuides() {
   const [g, setG] = useState(null);
@@ -150,9 +151,10 @@ export function GuidePage({ base, guide }) {
   return (
     <article className="lib-course" data-guide-page={guide.id}>
       <header className="atl__head">
-        <p className="atl__kicker">Guide · Level {guide.level} · {guide.lessons.length} decks</p>
+        <p className="atl__kicker">Guide · Level {guide.level}</p>
         <h1 className="atl__title">{guide.name}</h1>
-        <p className="atl__lede">Each deck is five slides: what it is, the core ideas, the trade-offs, what you'll see at work, and a question.</p>
+        <p className="atl__lede">Each deck is five slides, ending with a question.</p>
+        <Facts items={[{ value: guide.lessons.length, label: "decks" }, { value: 5, label: "slides each" }]} />
       </header>
       {/* ⭐ 46u: each deck in its own pastel — the colour its slides carry. */}
       <ol className="lib-lessons lib-lessons--plain lib-lessons--decks">

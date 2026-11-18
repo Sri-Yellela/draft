@@ -17,6 +17,7 @@ import { learnStepHref } from "./atlasPanels.js";
 import { artForPathway } from "./PathwayArt.jsx";   // A154: a drawing per pathway
 import { pastelVar } from "../../../../shared/pastel.js";   // 46u: a course keeps its colour
 import "./LibraryPanel.css";
+import { Facts } from "../../components/TextBlocks.jsx";   // A233: meta lines as figures
 
 // ⭐ D178: the LeetCode pattern atlas is its own course (kind "patterns": no earned progress — a pattern has no check yet).
 export const COURSES = Object.freeze([
@@ -151,9 +152,10 @@ export function PatternCoursePage({ base, id }) {
       <header className="lib-chead">
         <div className="lib-chead__cover" aria-hidden="true" style={{ "--book-c": pastelVar(course.id) }}><PatternsArt /></div>
         <div className="lib-chead__body">
-          <p className="atl__kicker">Course · {course.counts.modules} modules · {course.counts.lessons} patterns</p>
+          <p className="atl__kicker">Course</p>
           <h1 className="atl__title">{course.title}</h1>
           <p className="atl__lede">{course.intro}</p>
+          <Facts items={[{ value: course.counts.modules, label: "modules" }, { value: course.counts.lessons, label: "patterns" }]} />
           <p className="atl__quiet" data-course-no-progress="">Nothing is counted here yet: a pattern has no check of its own. Practise on LeetCode; the step that teaches each pattern is where you earn it.</p>
         </div>
       </header>
@@ -227,11 +229,12 @@ export function CoursePage({ base, id, signedIn = false }) {
       <header className="lib-chead">
         <div className="lib-chead__cover" aria-hidden="true" style={{ "--book-c": pastelVar(course.id) }}><ChipArt /></div>
         <div className="lib-chead__body">
-          <p className="atl__kicker">Course · {course.counts.modules} modules · {course.counts.lessons} lessons</p>
+          <p className="atl__kicker">Course</p>
           <h1 className="atl__title">{course.title}</h1>
           <p className="atl__lede">Each lesson: the best material we found, and a quick check in your own words.</p>
           <div className="lib-chead__bar" role="img" aria-label={`${progress.done} of ${progress.total} lessons done`}><i style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }} /></div>
-          <p className="atl__quiet" data-course-lit="">{progress.done} of {progress.total} done{signedIn ? "" : " · sign in to keep your progress"}</p>
+          <Facts data-course-lit="" items={[{ value: course.counts.modules, label: "modules" }, { value: course.counts.lessons, label: "lessons" },
+            { value: `${progress.done} of ${progress.total}`, label: signedIn ? "done" : "done · sign in to keep your progress" }]} />
         </div>
       </header>
       <div className="rr-tabs lib-views" role="tablist" aria-label="View the course" data-course-views="">

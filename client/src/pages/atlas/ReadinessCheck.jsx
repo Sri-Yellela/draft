@@ -66,8 +66,7 @@ export default function ReadinessCheck({ signedIn = true }) {
     <section className="atl-check" ref={top} data-readiness="">
       <header className="atl__head">
         <h1 className="atl__title">Check where you stand</h1>
-        <p className="atl__lede">A short check on a skill you claim: harder when you're right, easier when you're not. It's for you —
-          where you stand today, not a grade or a certificate.</p>
+        <p className="atl__lede">A short check on a skill you claim, harder as you get it right. Where you stand today — not a grade or a certificate.</p>
       </header>
 
       {check && (
