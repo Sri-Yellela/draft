@@ -1226,7 +1226,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
               "Upload it and draft reads the roles you want and the skills you have, then picks your first jobs straight away.",
               []],
             no_resume: ["Add your résumé to get today's picks.",
-              "draft judges fit against your résumé. It takes a minute, and nothing is sent anywhere.",
+              "draft judges fit against your résumé. It takes a minute, and nothing is sent to an employer.",
               [["/app/job-profiles", "Add your résumé →"], ["/app/jobs", "Every job"]]],
             empty: ["Nothing strong enough today.",
               "Today's picks are good and close fits you haven't decided on, and there are none right now. More detail in your résumé changes this most.",

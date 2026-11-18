@@ -7,13 +7,13 @@ import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follo
 
 const FAQS = [
   { q: "Is my resume data private?", a: "Yes. Your resume and job data stay on your account and are never used to train AI models." },
-  { q: "Does the extension scrape my LinkedIn profile?", a: "No. The extension only reads the visible job description text on job listing pages, and only when you explicitly click 'Capture job'. It never accesses your LinkedIn profile or any private data." },
-  { q: `Does ${BRAND} auto-apply to jobs on my behalf?`, a: `Not without you. When you Draft a job, ${BRAND} opens the employer's own application, fills it from your profile and stops before sending — it waits for your review, and nothing is sent until you approve it. Or open the posting from the company name and apply yourself; record it, and it moves to Submitted once it is verified.` },
-  { q: "Where do job listings come from?", a: "Job listings are sourced from Adzuna and Indeed via their official publisher APIs. We do not scrape any job boards." },
+  { q: "Does the extension scrape my LinkedIn profile?", a: "No. It never reads your LinkedIn profile, and on LinkedIn, Indeed and Glassdoor it only acts when you press it. Elsewhere it reads a job page's visible text when you save the job or fill its form — and, if you agree once, it can read and prepare application forms on the job sites it knows. Saving and filling on their own stay off unless you switch them on, site by site." },
+  { q: `Does ${BRAND} auto-apply to jobs on my behalf?`, a: `Only if you choose. In Ask me first — the default — ${BRAND} fills the employer's own application from your profile and waits: nothing is sent until you approve it. In Apply for me, which you switch on, ${BRAND} sends applications that match your filters, times and daily limit without asking each time; you can pause everything at any moment. Or open the job from the company name and apply yourself.` },
+  { q: "Where do job listings come from?", a: "From employers themselves: the applicant-tracking systems they post jobs on (Greenhouse, Lever, Ashby, Workday, SmartRecruiters and others), their public careers pages, which draft reads directly, and Google Jobs and Adzuna. Every job links to the employer's own application." },
   { q: `What LinkedIn data does ${BRAND} access?`, a: "Only your name and email address, and only when you explicitly click 'Import from LinkedIn' and approve the consent screen. We do not access your connections, work history, or any other LinkedIn data." },
-  { q: "Does this work for non-tech roles?", a: `Yes. ${BRAND} supports professional roles across engineering, product, finance, marketing, HR, healthcare, legal, and more.` },
-  { q: "What is an ATS score?", a: "An ATS score estimates how well your resume matches a pasted job description based on keywords, skills, and language." },
-  { q: "Can I use my own resume?", a: "Yes. You upload your base resume once. Generate and A+ Resume use it as the foundation for resume tools." },
+  { q: "Does this work for non-tech roles?", a: `Yes, for professional roles: software and data, engineering, management, business and finance, science, legal, design and media, sales and marketing. Healthcare, education and office roles are not on the board yet.` },
+  { q: "How does draft judge fit?", a: "It compares your résumé's wording with the job's — skills, keywords and language — and shows how close they are as a band, never a made-up score. It runs on draft's own rules, not an AI model." },
+  { q: "Can I use my own resume?", a: "Yes. You upload your résumé once; when you Draft a job, draft tailors a copy of it for that job, and you read it before anything is sent." },
 ];
 
 function FAQItem({ q, a }) {

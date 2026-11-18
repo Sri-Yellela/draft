@@ -48,7 +48,7 @@ export default function SignupAtsHook({ onKeep }) {
       </div>
       <p style={{ fontSize: ts(13.5), color: C.INK_MUTED, lineHeight: 1.55, margin: "8px 0 14px" }}>
         Your résumé and one posting, read the way an applicant-tracking system reads them. Free, no account,
-        and nothing is sent anywhere.
+        and nothing is kept.
       </p>
       {!result ? (
         <form onSubmit={score} style={{ display: "grid", gap: 10 }}>

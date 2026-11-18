@@ -11,11 +11,11 @@ const SECTIONS = [
   },
   {
     title: "What We Built",
-    body: `${BRAND} is an AI-powered job application platform that reads job descriptions the way recruiters do, rewrites your resume to match, and automates the application — so you can focus on preparing for the interview, not filling out forms.`,
+    body: `${BRAND} finds the jobs that fit you, tailors your résumé to each one and fills in the employer's own application — then waits for you, unless you have told it to apply for you. Fit and the ATS check run on ${BRAND}'s own rules, not an AI model. You spend your time preparing for interviews, not filling in forms.`,
   },
   {
     title: "Our Approach",
-    body: "We believe resumes should be authentic and strategic. Every resume we generate is grounded in your real experience. We do not fabricate credentials — we surface what you have in the language the hiring system understands.",
+    body: "Résumés should be honest and strategic. Every résumé we tailor starts from your real experience and puts it in the language the hiring system reads. It will not inflate your years or your seniority, but it can add detail you never stated — so you read every one before anything is sent.",
   },
 ];
 

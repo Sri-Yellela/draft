@@ -31,9 +31,9 @@ const STEPS = [
 ];
 
 const FACTS = [
-  ["Only when you ask", "It reads a page only when you click it or press a shortcut, and only the tab you're on. Nothing runs in the background or when a job page loads."],
-  ["Talks to draft only", `The one site it holds a permission for is ${CANONICAL_HOST}. What it captures goes to your draft account and nowhere else.`],
-  ["You submit", "It fills and shows you the answers. It never presses submit for you."],
+  ["You choose what it reads", "Every read starts with your click or a shortcut — unless you agree once to let it read and prepare application forms on the job sites it knows. Saving and filling on their own stay off until you switch them on, site by site, and never run on LinkedIn, Indeed or Glassdoor."],
+  ["Talks to draft only", `What it reads goes to your draft account at ${CANONICAL_HOST} and nowhere else. It asks Chrome before it reads a new site.`],
+  ["You press submit", "It fills and shows you every answer. It submits only when you press Submit application in its panel — never on its own."],
 ];
 
 export function ExtensionInstallButton({ compact = false }) {

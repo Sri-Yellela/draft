@@ -46,7 +46,7 @@ const TIERS = [
     comingSoon: false,
     features: [
       "Everything in Plus",
-      "A+ Resume tool on expanded job cards",
+      "The A+ résumé when you Draft a job",
       "A+ resume workflow",
       "Admin-approved access changes",
     ],

@@ -39,7 +39,7 @@ test("⛔ tailoring states what the guard ACTUALLY does — it does not promise 
 
 test("the review queue says what it does, with its real exception — not the ditched slogan", () => {
   assert.doesNotMatch(entry("Your review queue"), /Nothing is submitted until you approve it/, "the slogan, ditched 10-01");
-  assert.match(entry("Your review queue"), /Only a full-auto run, which you switch on, submits\./);
+  assert.match(entry("Your review queue"), /Only Apply for me, which you switch on, sends without asking/);   // A233 / 46v: the mode's name now (was 'a full-auto run') — changed on purpose
 });
 
 test("tier names show only when the monetisation lever is on", () => {

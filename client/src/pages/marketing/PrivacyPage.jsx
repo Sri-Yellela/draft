@@ -617,11 +617,11 @@ export function PrivacyPage() {
           <H3>Applying for You (the apply service)</H3>
           <P>
             If you choose to, draft can fill in and send applications for you on employer portals,
-            including ones that require you to be signed in. You choose the mode: <Strong>SEMI</Strong> (the
+            including ones that require you to be signed in. You choose the mode: <Strong>Ask me first</Strong> (the
             default — draft fills the application and waits for you to approve the answers it will send) or{' '}
-            <Strong>FULL AUTO</Strong> (draft sends applications that match the filters, times and daily limit
+            <Strong>Apply for me</Strong> (draft sends applications that match the filters, times and daily limit
             you set, without asking each time). Every application records whether you approved it or your
-            FULL AUTO setting sent it.
+            Apply for me setting sent it.
           </P>
           <UL>
             <LI>
@@ -671,7 +671,7 @@ export function PrivacyPage() {
             résumé for the job is written only after you tap Apply. Links are signed, work once and expire at your
             next run time; anyone who has the email can use its links, so treat it like your other account email.
             If the application stops on a question only you can answer, draft sends you a message with that
-            question and a link to answer it. With <Strong>Apply for me</Strong> (FULL AUTO), the picks are sent
+            question and a link to answer it. With <Strong>Apply for me</Strong>, the picks are sent
             without asking and you get one summary after each run. For each run we keep what it looked at, what it
             picked and how many it left out for each reason; the list of left-out postings is deleted after 14
             days.

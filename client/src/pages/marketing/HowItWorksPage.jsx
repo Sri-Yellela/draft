@@ -15,12 +15,12 @@ const STEPS = (monetisationEnabled) => [
     body: "Each morning draft picks the jobs that fit you best. Draft the ones you want and pass the rest." },
   { n: 3, title: monetisationEnabled ? "Use unlocked tools" : "Use the tools",
     body: monetisationEnabled
-      ? "Plus adds Generate on expanded job cards. Pro adds A+ Resume for deeper JD-driven resume generation."
-      : "Generate sits on expanded job cards. A+ Resume goes deeper on the job description." },
+      ? "Plus tailors your résumé when you Draft a job. Pro uses the A+ résumé, a deeper rewrite from the job description."
+      : "When you Draft a job, draft tailors your résumé for it." },
   { n: 4, title: "See how well you fit",
     body: "See which of the job's words your résumé already covers, and which it is missing." },
   { n: 5, title: "Apply",
-    body: "draft fills the form and waits for you. Nothing is sent until you approve it." },
+    body: "draft fills the employer's form and waits for you — nothing is sent until you approve it. Or switch on Apply for me and draft sends within the limits you set." },
 ];
 
 export function HowItWorksPage() {
@@ -46,7 +46,7 @@ export function HowItWorksPage() {
           {steps.map((s, i) => (
             <div key={i} style={{ display: "flex", gap: 24, paddingBottom: 40, position: "relative" }}>
               {/* Connector line */}
-              {i < STEPS.length - 1 && (
+              {i < steps.length - 1 && (
                 <div style={{ position: "absolute", left: 23, top: 52, width: 2, bottom: 0,
                                background: "var(--color-border)" }}/>
               )}

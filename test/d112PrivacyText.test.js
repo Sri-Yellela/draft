@@ -31,8 +31,8 @@ test("D112 · the inbox period in the policy is the sweep's default", () => {
   assert.match(prose, /no AI model reads your mail/);
 });
 
-test("D112 · the apply service: SEMI default, sealed sessions draft cannot read, the never list", () => {
-  assert.match(prose, /SEMI \(the default/);
+test("D112 · the apply service: Ask me first default (46v: was SEMI), sealed sessions draft cannot read, the never list", () => {
+  assert.match(prose, /Ask me first \(the default/);   // 46v: the mode's name now — changed on purpose
   assert.match(prose, /draft's own servers store it only in that sealed form and cannot read it/);
   assert.match(prose, /your own email address/);
   assert.match(prose, /never answers a CAPTCHA or other human check, and never guesses an eligibility answer/);

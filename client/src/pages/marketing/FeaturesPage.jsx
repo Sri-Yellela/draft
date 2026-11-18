@@ -47,7 +47,7 @@ export const TOOLS = [
         wont: "It will not inflate your years or your seniority past what you told it. It can still add detail you never stated, so read every draft before you approve it.",
         to: "/tools/generate", cta: "Tailor a résumé", limit: "2 resumes a month (sign in required)" },
       { name: "A+ résumé", tier: "Pro", does: "A deeper rewrite driven by the posting, for the roles you care most about.",
-        wont: "The same guard and the same rule: you read it before anything is sent.", where: "Inside a job's card, once you sign in" },
+        wont: "The same guard and the same rule: you read it before anything is sent.", where: "When you Draft a job, on Pro" },
     ],
   },
   {
@@ -55,10 +55,10 @@ export const TOOLS = [
     line: "The tedious part, done for you. The decision stays yours.",
     tools: [
       { name: "Your review queue", does: "Draft an application, see exactly what was filled in and which résumé was used, then approve it or don't.",
-        wont: "A review run does not submit by itself: each filled application waits for you. Only a full-auto run, which you switch on, submits.",
+        wont: "In Ask me first, each filled application waits for you. Only Apply for me, which you switch on, sends without asking — within your limits.",
         to: "/tools/apply", cta: "Try an application run", limit: "2 runs a month (sign in required)" },
       { name: "The browser extension", does: "Capture a job from any page, and fill the application form you signed in to reach.",
-        wont: "It fills; you submit. It never presses the final button for you.", where: "Chrome, from the extension store" },
+        wont: "It submits only when you press Submit application in its panel — never on its own.", where: "Chrome, from the extension store" },
     ],
   },
 ];
