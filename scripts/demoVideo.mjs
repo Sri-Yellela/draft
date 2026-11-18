@@ -291,14 +291,9 @@ try {
   await step("atlas", async () => {
     await go("/app/atlas/your-map"); await sleep(700);
     await beat("atlas", async () => { await hover("[data-skm-applicable]", { hold: 2600 }); await hover("[data-skm-levels] > div", { nth: 1, hold: 2200 }); });
-    await beat("histogram", async () => { for (const n of [3, 6, 8]) await hover("[data-skm-histogram] [data-tip]", { nth: n, hold: 1600 }); });
+    // 46v: the histogram and the role switch left the take to make room for the landing (≤ 180 s)
     await scrollToSel("[data-skm-section=wants]");
     await beat("map", async () => { await hover("[data-skm-tile] rect", { nth: 0, hold: 2200 }); });
-    await beat("role", async () => {
-      if (await roleBtns() < 2) return;
-      await page.evaluate(() => { const b = [...document.querySelectorAll("[data-skm-role-btn]")].map(s => s.closest("button")).filter(Boolean); (b.find(x => x.getAttribute("aria-pressed") !== "true") || null)?.click(); });
-      await sleep(2200); await hover("[data-skm-tile] rect", { nth: 0, hold: 1800 });
-    });
     // back to the aim, so Learn next and the moves read for the job the person is aiming at
     await page.evaluate(() => [...document.querySelectorAll("[data-skm-role-btn]")].map(s => s.closest("button")).find(b => /your aim/i.test(b?.textContent || ""))?.click()); await sleep(1200);
     await scrollToSel("[data-skm-section=learn]");
