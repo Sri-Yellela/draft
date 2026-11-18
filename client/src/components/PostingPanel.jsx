@@ -25,6 +25,7 @@ import { applyLine } from "../../../shared/postingLevel.js";
 import { usePairLink } from "../lib/pairLink.js";
 import { useAtlasTerms } from "../lib/atlasLinks.js";
 import { AtlasText } from "./AtlasTerm.jsx";
+import { Facts } from "./TextBlocks.jsx";
 import { SponsorshipBlock } from "./SponsorshipSignal.jsx";
 import "../styles/inkPair.css";
 import "./PostingPanel.css";
@@ -230,17 +231,28 @@ export function PostingSponsorship({ fact }) {
     if (last && last.source?.name === part.source?.name) last.texts.push(part.text);
     else groups.push({ source: part.source || {}, texts: [part.text] });
   }
+  // ⭐ A233 (46v, owner's pick: a line that is mostly numbers → figures): the counts as Facts in plain words (LCA →
+  // visa filings, certified → approved, FY → the year), then each source and its date once, small, underneath.
+  const n = (v) => (Number.isFinite(Number(v)) ? Number(v).toLocaleString("en-US") : null);
+  const figures = fact.fiscalYear != null ? parts.map((part) => (
+    part.kind === "lca" ? { value: n(fact.filings ?? 0), label: `approved in ${fact.fiscalYear}` }
+      : part.kind === "wage" ? { value: String(part.text || "").replace(/^median\s+/, ""), label: "median pay" }
+      : part.kind === "uscis" && fact.uscis ? { value: n(fact.uscis.approvals), label: `H-1B approvals in ${fact.uscis.fiscalYear} (USCIS)` }
+      : null)).filter(Boolean) : [];
   return (
-    <p className="posting__details" data-posting-sponsorship="">
-      <span className="posting__details-k">Visa filings</span>{" "}
-      {groups.map((g, i) => (
-        <span key={i} data-sponsorship-source={g.source.name || ""}>
-          {i ? " · " : ""}{g.texts.join(" · ")} ·{" "}
-          {g.source.url ? <a href={g.source.url} target="_blank" rel="noopener noreferrer">{g.source.name}</a> : g.source.name}
-          {g.source.through ? `, through ${g.source.through}` : g.source.asOf ? `, file dated ${g.source.asOf}` : ""}
-        </span>
-      ))}
-    </p>
+    <div className="posting__details" data-posting-sponsorship="">
+      <span className="posting__details-k">Visa filings</span>
+      {figures.length ? <Facts items={figures} data-sponsorship-facts="" /> : <span> {fact.text}</span>}
+      <p className="posting__details-src" data-sponsorship-sources="">
+        {groups.map((g, i) => (
+          <span key={i} data-sponsorship-source={g.source.name || ""}>
+            {i ? " · " : "Source: "}
+            {g.source.url ? <a href={g.source.url} target="_blank" rel="noopener noreferrer">{g.source.name}</a> : g.source.name}
+            {g.source.through ? `, through ${g.source.through}` : g.source.asOf ? `, file dated ${g.source.asOf}` : ""}
+          </span>
+        ))}
+      </p>
+    </div>
   );
 }
 

@@ -74,6 +74,9 @@
 }
 .posting__details { margin: 8px 0 0; font-family: var(--font-body); font-size: 11px; line-height: 1.45; color: var(--c-pair-ink-faint); }
 .posting__details-k { font-weight: 700; }
+/* A233 (46v): the visa filings' figures, then their sources small underneath */
+.posting__details [data-sponsorship-facts] { margin-top: 6px; }
+.posting__details-src { margin: 6px 0 0; font-size: 11px; color: var(--c-pair-ink-faint); }
 /* The Experience cell tints when the scorer judged the requirement met (.dk.hi). */
 .posting__cell[data-met="true"] { background: var(--c-pair-met-quiet); }
 .posting__cell[data-met="true"] dd { color: var(--c-pair-matched); }
