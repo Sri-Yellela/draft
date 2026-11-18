@@ -81,7 +81,7 @@ export function describeCapture(db, { jobId, action, title = null, company = nul
     message = `Added to the board: ${label} — it is in ALL, and in your imports.`;
   }
   // The board is scoped to the ACTIVE job profile; with none, it cannot show anything yet.
-  if (noActiveProfile) message += " You have no active job profile yet, so the board cannot show it — create one on Full House.";
+  if (noActiveProfile) message += " You have no active job profile yet, so the board cannot show it — create one on your jobs board.";
   return {
     outcome, matchedExisting, alreadyCaptured: matchedExisting && !!alreadyCaptured, onBoard: state === "on_board",
     reason: state === "held" ? reason : null,

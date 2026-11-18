@@ -78,8 +78,8 @@ export function awayWords(family) {
     points: Object.freeze([
       `Chrome asks once to let draft read cookies — only ${family.name}'s (${list}), only now. Never another site's.`,
       "They are locked on this computer with a key only draft's form filler holds. draft's servers store them but cannot open them. Your password is never read.",
-      'Your mode in Draft House decides the rest: with Ask me first, each application waits for your approval; with Apply for me, draft sends it as you told it to.',
-      'Disconnect here or in Draft House → Portals at any time: the key is destroyed and the stored sign-in can never be opened again.',
+      'Your mode in Applications decides the rest: with Ask me first, each application waits for your approval; with Apply for me, draft sends it as you told it to.',
+      'Disconnect here or in Applications → Settings → Accounts on job sites at any time: the key is destroyed and the stored sign-in can never be opened again.',
     ]),
     promise: 'Nothing is read on any other site, and your sign-in never leaves this computer unsealed.',
     allow: 'Allow and connect',

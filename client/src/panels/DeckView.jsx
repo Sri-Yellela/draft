@@ -686,7 +686,7 @@ function EndOfDeck({ s, tally, needsReview, onUndo }) {
             Review your drafts →
           </Link>
         )}
-        <Link to="/app/jobs" onClick={transitionClick(navigate, "/app/jobs")} style={{ ...glass({ radius: 14 }), padding: "12px 20px", fontWeight: 800, color: C.INK, textDecoration: "none" }}>Full House</Link>
+        <Link to="/app/jobs" onClick={transitionClick(navigate, "/app/jobs")} style={{ ...glass({ radius: 14 }), padding: "12px 20px", fontWeight: 800, color: C.INK, textDecoration: "none" }}>Your jobs</Link>
         {onUndo && (
           <button type="button" onClick={onUndo} style={{ background: "transparent", border: "none", color: C.ACCENT_INK, fontWeight: 800, cursor: "pointer" }}>
             Undo the last one <span style={kbd}>U</span>

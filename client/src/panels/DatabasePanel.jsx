@@ -1071,7 +1071,7 @@ function SavedJobsPane({ jobs, generated, genLoading, applyMode, planTier, hasRe
       <div style={{ fontSize:ts(40) }}>★</div>
       <div style={{ fontWeight:700, color:theme.textMuted, fontSize:ts(14) }}>No saved jobs yet</div>
       <div style={{ fontSize:ts(12), color:theme.textDim, textAlign:"center", maxWidth:300, lineHeight:1.8 }}>
-        Save jobs on the Daily Deck or Full House and they appear here. Generate and A+ Resume access is controlled by your plan.
+        Save jobs on the Daily Deck or your jobs board and they appear here. Generate and A+ Resume access is controlled by your plan.
       </div>
       <button className="rm-btn rm-btn-secondary rm-btn-sm" onClick={onRefresh}>↻ Refresh</button>
     </div>

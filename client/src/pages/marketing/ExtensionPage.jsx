@@ -25,7 +25,7 @@ const STEPS = [
   { title: "Sign it in once",
     body: "Open it while you're signed in to draft. It gets a key of its own — not your password, not your browser session — and you can disconnect it at any time." },
   { title: "Capture a job",
-    body: "On any job posting — LinkedIn, Indeed, an employer's own careers page — click the extension, or press Ctrl+Shift+K. The job lands on your board on Full House — under +, the jobs you imported." },
+    body: "On any job posting — LinkedIn, Indeed, an employer's own careers page — click the extension, or press Ctrl+Shift+K. The job lands on your jobs board — under +, the jobs you imported." },
   { title: "Fill an application, then check it",
     body: "On an application form you've opened and signed in to, press Ctrl+Shift+Y. It fills in answers you've already given us and shows you every one. You submit it yourself." },
 ];
@@ -148,7 +148,7 @@ export function ExtensionPage() {
           Add any job to your board
         </h1>
         <p style={{ fontSize: ts(16), color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 28, maxWidth: 560 }}>
-          The draft browser extension is how a job you find anywhere gets onto Full House. Capture the
+          The draft browser extension is how a job you find anywhere gets onto your jobs board. Capture the
           posting you're viewing, and later fill the application — you review every answer and submit
           it yourself.
         </p>

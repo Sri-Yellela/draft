@@ -35,7 +35,7 @@ export function captureResultFrom(status, json, serverUrl) {
     // ⛔ Never silence as success: the server answered 2xx without saying where the job went.
     return fail(body.message
       ? `draft answered: ${body.message}`
-      : 'draft answered without saying where this job went — check ★ Saved on Full House.');
+      : 'draft answered without saying where this job went — check ★ Saved on your jobs board.');
   }
   return {
     success: true,
