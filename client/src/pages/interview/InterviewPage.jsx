@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PlaceNav, { PlaceHead } from "../../components/PlaceNav.jsx";
+import { NoteCard } from "../../components/TextBlocks.jsx";
 import { api } from "../../lib/api.js";
 import { INTERVIEW_GROUPS, interviewPath, TRACKS, bankCounts, whenWords, upcomingHeadline } from "./interviewModel.js";
 import "./InterviewPage.css";
@@ -77,11 +78,11 @@ function Guides() {
     <>
       <PlaceHead eyebrow="Company guides" title="Guides are coming"
         lead="How each company interviews, by level: the stages, what people were asked, and where it came from." />
-      <div className="iv__card" data-coming="guides">
-        <p className="iv__p">They will be grown from debriefs people choose to share, with their sources and when they were checked. Until then, every interview's Prepare reads its posting: the skills it asks for against yours, and the rounds it
-          likely has.</p>
-        <div className="iv__row"><Link className="iv__btn" to={interviewPath("upcoming")}>Your interviews</Link></div>
-      </div>
+      {/* ⭐ A233 (46v): the explanation as a note card — two lines and its action. */}
+      <NoteCard id="iv-guides-coming" title="Built from shared debriefs, with sources" data-coming="guides"
+        actions={<Link className="iv__btn" to={interviewPath("upcoming")}>Your interviews</Link>}>
+        Until then, each interview's Prepare reads its job: the skills it asks for against yours, and the rounds it likely has.
+      </NoteCard>
     </>
   );
 }

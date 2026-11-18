@@ -232,7 +232,7 @@ function CompanyOverrides({ question, overrides, onChange, theme, needsOwnWords 
       </span>
       <PHint theme={theme}>
         {needsOwnWords
-          ? "Required for this question. Without one, the run holds and asks you — the generic answer above is only ever offered back to you as a draft."
+          ? "Required for this question. Without one, draft stops and asks you — the general answer above is only ever offered back to you as a draft."
           : "Optional. A company listed here uses its own answer instead of the template."}
       </PHint>
       {mine.length === 0 ? null : (
@@ -330,7 +330,7 @@ function CustomAnswerRow({ question, answer, overrides, onRename, onAnswer, onDe
       {ownWords ? (
         <PHint theme={theme}>
           This asks why you want a specific employer, so it is answered in your voice. The text above
-          is never submitted — a run holds and offers it back as a draft, and only the per-company
+          is never sent — draft stops and offers it back as a draft, and only the per-company
           answer below is sent.
         </PHint>
       ) : null}
@@ -656,11 +656,11 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
           yearsExperience: signalsForm.yearsExperience === "" ? null : Number(signalsForm.yearsExperience),
         }),
       });
-      setSignalStatus("Saved extracted signals");
+      setSignalStatus("Saved what we read from your résumé");
       setTimeout(() => setSignalStatus(""), 2500);
       await loadProfileAssets(activeProfileId);
     } catch (e) {
-      setSignalStatus(e.message || "Could not save signals");
+      setSignalStatus(e.message || "Could not save what we read from your résumé");
     }
   };
 
@@ -693,7 +693,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
       setTimeout(() => setSignalStatus(""), 2500);
       await loadProfileAssets(activeProfileId);
     } catch (e) {
-      setSignalStatus(e.message || "Could not refresh signals");
+      setSignalStatus(e.message || "Could not read your résumé again");
     }
   };
 
@@ -742,7 +742,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
       }));
       emitProfileSuggestionsUpdated(activeProfileId, next || null);
       setEnhancementStatus(prev => ({ ...prev, ...(next?.enhancement || {}) }));
-      setSuggestionStatus("Updated enhancement skill selections");
+      setSuggestionStatus("Updated the skills to add");
       setTimeout(() => setSuggestionStatus(""), 2500);
     } catch (e) {
       setSuggestionStatus(e.message || "Could not update suggested skills");
@@ -1252,7 +1252,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
                 <textarea className="rm-input" rows={3} value={profileForm.target_titles}
                   onChange={e => setProfileForm(f => ({ ...f, target_titles: e.target.value }))}
                   placeholder="Software Engineer, Backend Engineer, Platform Engineer"/>
-                <PHint theme={theme}>Comma-separated. These titles shape search query variants and profile fit.</PHint>
+                <PHint theme={theme}>Comma-separated. draft searches for jobs with these titles and matches you on them.</PHint>
               </PRow>
               <PRow label="Keywords" theme={theme}>
                 <textarea className="rm-input" rows={3} value={profileForm.selected_keywords}
@@ -1315,7 +1315,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
               <textarea className="rm-input" rows={10} value={resumeDraft}
                 onChange={e => setResumeDraft(e.target.value)}
                 placeholder="Upload a profile-specific PDF or paste resume text here."/>
-              <PHint theme={theme}>This base resume belongs only to the selected profile and drives profile-specific ATS/search behavior.</PHint>
+              <PHint theme={theme}>This résumé is for this job profile only: draft searches and judges fit for it from this one.</PHint>
             </PRow>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, marginBottom:16, flexWrap:"wrap" }}>
               <div style={{ fontSize:ts(12), color:theme.textMuted }}>
@@ -1513,7 +1513,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
                 ))}
               </div>
               <PHint theme={theme}>
-                Structured ATS facts stay separate from skill suggestions. They should be edited in the profile facts fields above.
+                Facts such as your years of experience are edited in the fields above, not here.
               </PHint>
             </div>
             {(suggestedSignals.structuredFacts || []).length > 0 && (

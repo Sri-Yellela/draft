@@ -632,8 +632,8 @@ export default function DomainProfileWizard({
                 {isOtherProfile
                   ? "This creates a search profile and sends your role details for support review."
                   : isEditMode
-                    ? "Update the name for this search focus. Changes stay scoped to this job profile."
-                    : "Give it a name that identifies this search focus. You can rename it any time."}
+                    ? "Rename this job profile. Your other profiles stay as they are."
+                    : "Give this job profile a name you will recognise. You can rename it any time."}
               </div>
               <input
                 value={profileName}

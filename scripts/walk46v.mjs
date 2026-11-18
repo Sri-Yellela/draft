@@ -101,6 +101,11 @@ try {
       const card = await page.evaluate(() => ({ title: document.querySelector("#appnav-ask h2")?.textContent, open: document.querySelector("#appnav-ask")?.getAttribute("data-open") }));
       say(`${tag} card`, card.open === "true" && card.title === "draft", `open ${card.open} · title "${card.title}"`);
       await page.screenshot({ path: path.join(SHOTS, `walk46v-ask-${theme}-${w}.png`) });
+      // A233 (46v): Interview → Company guides — the explanation as a note card
+      await page.goto(`${BASE}/app/interview/guides`, { waitUntil: "networkidle2", timeout: 120000 });
+      const ivNote = await page.waitForSelector('[data-coming="guides"][data-note-card]', { timeout: 30000 }).then(() => true).catch(() => false);
+      say(`${tag} interview note card`, ivNote, ivNote ? "a note card with its action" : "no note card on /app/interview/guides");
+      if (ivNote) await page.screenshot({ path: path.join(SHOTS, `walk46v-ivguides-${theme}-${w}.png`) });
       // A233 (46v): Applications → Settings — "Never sent automatically" and Stop everything as ✓ / ✕ lists
       if (w === 1440) {
         await page.goto(`${BASE}/app/auto-apply`, { waitUntil: "networkidle2", timeout: 120000 });

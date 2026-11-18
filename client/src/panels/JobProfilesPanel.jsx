@@ -336,7 +336,7 @@ export function JobProfilesPanel() {
           }}
           onDismiss={closeWizard}
           bannerText={wizardMode === "edit"
-            ? "Use the same guided selector UI from registration. Updates stay scoped to this job profile."
+            ? "Change the roles and skills for this job profile. Your other profiles stay as they are."
             : "Use the guided selector UI from registration to create another profile."}
         />
       )}

@@ -121,7 +121,7 @@ export default function CustomisePanel() {
             </SettingsSection>
           ))}
           <DeckSection geometry={geometry} order={order} size={size} onLayout={chooseLayout} onOrder={chooseOrder} onGeometry={chooseGeometry} onSize={chooseSize} />
-          <SettingsSection title="Reset" subtitle="Back to how draft ships: follow your system's light / dark setting, shape cues off, the recommended layout, and the standard deck of 10, best bets first.">
+          <SettingsSection title="Reset" subtitle="Back to the defaults: your system's light or dark setting, shapes off, the recommended layout, and ten picks a day, best first.">
             <div><DepthButton onClick={reset} data-customise-reset="">Reset to defaults</DepthButton></div>
           </SettingsSection>
         </div>

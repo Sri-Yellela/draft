@@ -189,7 +189,7 @@ export function AccountPanel({ onSignedOut, only = null }) {
 
         {has("merge") && <MergeSection account={account} busy={busy} run={run} post={post} say={say} />}
 
-        {has("data") && <SettingsSection title="Your data" subtitle="A copy of everything Draft keeps for you, as JSON.">
+        {has("data") && <SettingsSection title="Your data" subtitle="A copy of everything draft keeps for you, as JSON.">
           <div style={row}>
             <button style={btnQuiet} disabled={!!busy} onClick={() => run("export", async () => {
               const r = await fetch("/api/account/export", { credentials: "include", headers: authHeaders() });
