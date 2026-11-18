@@ -37,9 +37,9 @@ export const MODULES = Object.freeze({
     // (the preview must be the real look, not a copy of it), so it is a member.
     members: ["App.jsx", "components/BoardBar.jsx", "components/BoardHeadline.jsx", "components/SortPanel.jsx", "components/WordPanel.jsx",
       "components/CustomisePreview.jsx"] },
-  searchBar: { why: "the search bar and its suggest — the landing page's, and the board's well (BoardBar)",
+  searchBar: { why: "the search suggest and its look — the board's well (BoardBar), the open board, the dock (46v: the landing's bar is gone)",
     css: ["components/UnifiedSearchBar.css"],
-    members: ["components/UnifiedSearchBar.jsx", "components/UsbSelect.jsx", "components/UsbSuggest.jsx", "components/BoardBar.jsx", "pages/LandingPage.jsx",
+    members: ["components/UsbSuggest.jsx", "components/BoardBar.jsx",
       "pages/jobs/PublicBoardPage.jsx",   // D179 P3: the open board's one search box
       "components/AppNav.jsx"] },   // 45n: the dock's search (DockSearch) is the SAME suggest, built once
   // ⭐ D93 · the Customise page — Appearance (moved off Account) and the layout options, with its live preview.
@@ -56,7 +56,7 @@ export const MODULES = Object.freeze({
       // Profile → Connections its portals (PortalAccounts) and the Inbox's Gmail control — a decided reuse: the same
       // settings in two places must be one implementation, not a copy.
       "pages/profile/ProfilePage.jsx"] },
-  landing: { why: "the landing page", members: ["pages/LandingPage.jsx", "components/FindFitApply.jsx"] },
+  landing: { why: "the landing page (46v: A's hero, the shelf, C)", members: ["pages/LandingPage.jsx"] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminGateway.jsx", "panels/adminFlags.jsx","panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "panels/adminReports.jsx", "panels/adminCompanyRecords.jsx", "panels/adminNetwork.jsx", "panels/adminRuns.jsx", "panels/adminPhase1.jsx", "panels/adminDiagnostics.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.
@@ -119,6 +119,8 @@ export const SHARED = Object.freeze({
   "components/AtlasTerm.css":           { what: "its look, and the learning-links layout option's styles", owner: "components/AtlasTerm.jsx" },
   "components/DecisionButtons.jsx":     { what: "Pass · Save · Draft — every card and the posting panel" },
   "components/DecisionToast.jsx":       { what: "the undo toast after a decision — deck and board" },
+  "components/BookShelf.jsx":           { what: "46u / 46v · books on a shelf — a spine in its pastel, the title up it, leaning as books do; the Library's guides, courses and pathways, and the landing's feature shelf" },
+  "components/BookShelf.css":           { what: "46v · the book and the shelf's look (moved from LibraryPanel.css)", owner: "components/BookShelf.jsx" },
   "components/CardPile.jsx":            { what: "46u · draft's card for reading — the jobs deck's look in an item's pastel, the next cards fanned behind; guide decks, a course's lessons, the questions" },
   "components/CardPile.css":            { what: "46u · the reading card's look", owner: "components/CardPile.jsx" },
   "components/TextBlocks.jsx":          { what: "A233 · lines of text, designed — NoteCard (explanations, empty states), Facts (figures), Promises (✓ / ✕)" },
@@ -217,9 +219,7 @@ export const SHARED = Object.freeze({
   "components/SortPanel.jsx":           { what: "the sort panel", module: "fullHouseHeader" },
   "components/WordPanel.jsx":           { what: "a sentence word's panel", module: "fullHouseHeader" },
   "components/FullHouse.css":           { what: "the Full House header's look", owner: "components/BoardHeadline.jsx" },
-  "components/UnifiedSearchBar.jsx":    { what: "the landing search bar", module: "searchBar" },
-  "components/UnifiedSearchBar.css":    { what: "its look", owner: "components/UnifiedSearchBar.jsx" },
-  "components/UsbSelect.jsx":           { what: "the search bar's select", module: "searchBar" },
+  "components/UnifiedSearchBar.css":    { what: "the search well's look (the board's bar, the open board)", owner: "components/BoardBar.jsx" },
   "components/UsbSuggest.jsx":          { what: "the search bar's suggest", module: "searchBar" },
   "components/DraftHouseTree.jsx":      { what: "Draft House's auto-apply timeline — D113's runs by day, bubbles ringed by stage, pulsing for the live ones; a bubble opens its row (D146)", module: "draftHouse" },
   "components/ApplicationTracker.jsx":  { what: "D146 · the one tracker's table — counts, filters, sortable plain rows, a row that opens in place (RowOpen)", module: "draftHouse" },
@@ -234,7 +234,6 @@ export const SHARED = Object.freeze({
   "components/ApplicationInbox.jsx":    { what: "The Table's Inbox — replies from job sites, forwarded or read through a Gmail connection, filed by rule (D103, D112)", module: "draftHouse" },
   "components/ApplicationHistory.css":  { what: "its look", owner: "components/ApplicationHistory.jsx" },
   "components/PendingApplications.jsx": { what: "The Table's pending list", module: "draftHouse" },
-  "components/FindFitApply.jsx":        { what: "the landing page's find → fit → apply", module: "landing" },
   // ── state ──
   "contexts/AppScrollContext.jsx":      { what: "the app's scroll container" },
   "contexts/AutoApplyContext.jsx":      { what: "the apply line's state, shared by board and Draft House" },
@@ -331,6 +330,7 @@ export const COMPOSITIONS = Object.freeze([
   { from: "panels/JobsPanel.jsx", to: "panels/SandboxPanel.jsx", why: "the board's panel dock mounts the PDF panel beside the posting" },
   { from: "panels/AutoApplyPanel.jsx", to: "panels/JobWorkspacePanel.jsx", why: "D102 P5: on a wide screen Draft House shows an opened application beside its list" },
   { from: "panels/DatabasePanel.jsx", to: "panels/JobWorkspacePanel.jsx", why: "D102 P5: on a wide screen The Table shows an opened application beside History" },
+  { from: "pages/LandingPage.jsx", to: "panels/DeckView.jsx", why: "46v (owner 11-18: \"use the same card as we use inside the site\"): the landing's hero deals the deck's own home card (HomeCardStill) and its buttons, no decisions" },
   { from: "pages/jobs/PublicBoardPage.jsx", to: "panels/DeckView.jsx", why: "D179 (f): the signed-out /jobs draws the deck's own card (CardFace), no decisions" },
   { from: "pages/profile/ProfilePage.jsx", to: "panels/ProfilePanel.jsx", why: "D167: About you / Your résumés / Saved answers are the Profile page's own parts (`section`)" },
   { from: "pages/profile/YourProfile.jsx", to: "panels/ProfilePanel.jsx", why: "D183 P2: Your profile listens for the base-résumé save / upload that ProfilePanel fires (RESUME_REPLACED_EVENT) to show What changed" },

@@ -134,7 +134,7 @@ function SlashProgress({ drafted, size, big = false }) {
 
 // ⭐ D145: raised neutral buttons, Draft in the accent with its glow; no key hints on them (the keys stay, said by
 // aria-keyshortcuts and the "?" legend).
-function ActionButton({ label, onClick, primary, disabled, ariaKeys, compact }) {
+export function ActionButton({ label, onClick, primary, disabled, ariaKeys, compact }) {
   const [hov, setHov] = useState(false);
   const base = primary
     ? { background: hov ? C.ACCENT_HOVER : C.ACCENT, color: C.ON_ACCENT, border: "none", boxShadow: C.DEPTH_ACCENT }
@@ -412,7 +412,7 @@ export function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onEx
 // landscape card filling the right column as larger cells (22 px values); and "Open the posting", which turns the card
 // into the long post IN PLACE (no reason line, no "Why this job", no separate posting panel — D156 (1c)).
 const SR_ONLY = { position: "absolute", width: 1, height: 1, margin: -1, padding: 0, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0 };
-function HomeCardFace({ card, headingRef, isFront, onSignal, onOpenPost, size, landscape }) {
+function HomeCardFace({ card, headingRef, isFront, onSignal, onOpenPost, size, landscape, bare = false }) {   // 46v: bare = no match corner (the landing)
   const { job } = card;
   const facts = cardFacts(card);
   const titleId = `deck-title-${job.id}`;
@@ -428,7 +428,7 @@ function HomeCardFace({ card, headingRef, isFront, onSignal, onOpenPost, size, l
           {job.location && <div data-deck-location="" style={{ fontSize: ts(small ? 12 : 13), color: C.INK_MUTED, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.location}</div>}
         </div>
       </div>
-      {facts.match && (
+      {facts.match && !bare && (
         <button type="button" data-deck-signal-row="" data-deck-signal="" data-deck-match={facts.match.numeric ? "number" : "band"}
           {...(facts.match.numeric ? { "data-deck-score": parseInt(facts.match.value, 10) } : null)}
           onClick={isFront ? (e) => { e.stopPropagation(); onSignal?.(); } : undefined}
@@ -500,6 +500,31 @@ function HomeCardFace({ card, headingRef, isFront, onSignal, onOpenPost, size, l
     </div>
   );
 }
+
+/**
+ * ⭐ 46v (owner 11-18, the landing: "use the same card as we use inside the site … remove text on it like the ats match")
+ * · HOME'S CARD, STILL — the deck's own frame and face (FanCard's home article: opaque glass, radius 26, SHADOW_GLASS, no
+ * rim) for a page that shows cards without dealing them. A card with no score and no band shows no match (cardFacts).
+ * `onOpenPost` is what its "Open the posting" does there. The back is the deck's CardBack. Nothing here decides a card.
+ */
+export function HomeCardStill({ card, size = HOME_CARD, onOpenPost = null, ...data }) {
+  return (
+    <article data-deck-card-still="" {...data}
+      style={{ position: "relative", width: size.width, height: size.height, borderRadius: 26, overflow: "hidden",
+               ...glass({ radius: 26 }), backgroundColor: C.SURFACE_SOLID, backdropFilter: "none", WebkitBackdropFilter: "none",
+               border: "none", boxShadow: C.SHADOW_GLASS }}>
+      <HomeCardFace card={card} bare isFront={false} onOpenPost={onOpenPost} size={size} landscape={false} />
+    </article>
+  );
+}
+export function HomeCardBackStill({ job, size = HOME_CARD }) {
+  return (
+    <div aria-hidden="true" data-deck-back-still="" style={{ width: size.width, height: size.height, borderRadius: 26, overflow: "hidden", boxShadow: C.SHADOW_GLASS }}>
+      <CardBack company={job?.company} iconUrl={job?.companyIconUrl} radius={26} />
+    </div>
+  );
+}
+export { CardBackDefs };
 
 // The expanded card's type — version A's (the D145 row: the accent eyebrow 14, the large tight headline 46 / 500 /
 // −0.035 em (36 on phones), the lead in body grey 19, the stat cards' value 34 in the accent).

@@ -62,7 +62,6 @@ const dbPanel    = read("client/src/panels/DatabasePanel.jsx");
 test("THE FLOATING PILL IS GONE, AND SO IS EVERYTHING THAT ONLY DROVE IT", () => {
   const appCode = code("client/src/App.jsx");
   const barCode = code("client/src/components/TopBar.jsx");
-  const usbCode = code("client/src/components/UnifiedSearchBar.jsx");
 
   // The container itself.
   assert.ok(!/pillIsTheSearchSurface/.test(barCode), "the pill's gate is back");
@@ -93,8 +92,6 @@ test("THE FLOATING PILL IS GONE, AND SO IS EVERYTHING THAT ONLY DROVE IT", () =>
 
   // The `hidden` prop, which existed so the caller could keep ONE of two surfaces in the layout
   // while paying nothing for the other. There is nothing to hide from any more.
-  assert.ok(!/hidden = false/.test(usbCode), "UnifiedSearchBar's `hidden` prop is back");
-  assert.ok(!/visibility: 'hidden'/.test(usbCode), "the visibility swap is back");
 });
 
 test("EVERY CONTROL THE PILL CARRIED IS STILL REACHABLE", () => {
@@ -225,7 +222,7 @@ test("no surface on the scale carries a literal any more", () => {
   // put a dropdown from a covered control above the thing covering it.
   assert.match(dockPortal, /tier = Z\.POPOVER/, "DockPortal's default tier is no longer POPOVER");
   assert.match(dockPortal, /zIndex: tier,/, "DockPortal ignores its caller's tier again");
-  for (const f of ["client/src/components/UsbSelect.jsx", "client/src/components/UsbSuggest.jsx"]) {
+  for (const f of ["client/src/components/UsbSuggest.jsx"]) {   // 46v: UsbSelect left with the old landing
     assert.match(read(f), /tier=\{Z\.SEARCH_DROPDOWN\}/,
       `${f} is back at the menu tier — it belongs to the search surface`);
   }
@@ -306,26 +303,3 @@ test("DatabasePanel's duplicate outside-click handler is gone", () => {
 
 // ── Behaviour must not change ──────────────────────────────────────────────────────────────────
 
-test("A74 (owner, 10-03): ONE click, ONE search — the 5-second double-click is gone", () => {
-  const usb = read("client/src/components/UnifiedSearchBar.jsx");
-  assert.doesNotMatch(code("client/src/components/UnifiedSearchBar.jsx"), /DCLICK_MS|clicks\.current|Click again within/,
-    "the double-click is back");
-  assert.match(usb, /if \(onLocalFilter\) \{ onLocalFilter\(params\); return; \}/);
-  assert.match(usb, /onSearch\?\.\(params\)/);
-
-  // The two assertions that used to stand here pinned `onSearch={() => {}}` and
-  // `onLocalFilter={() => {}}` in App.jsx, on the correct reasoning at the time that U2 was
-  // visibility and layering only and must not disturb the handlers. What that froze, though, was a
-  // pair of NO-OPS: measured on the real board, typing a keyword, both Search clicks and all three
-  // selects produced zero /api/jobs requests between them. So the shape is now asserted the other
-  // way round — the handlers must be real, and must both route through the one channel the board
-  // reads (applyBarFilters), with `live` distinguishing the second click from the first.
-  assert.ok(!/onSearch=\{\(\) => \{\}\}/.test(app),
-    "the search bar's onSearch is a no-op again — every control on the bar is inert");
-  assert.ok(!/onLocalFilter=\{\(\) => \{\}\}/.test(app),
-    "the search bar's onLocalFilter is a no-op again — every control on the bar is inert");
-  // D35: the board's field is BoardBar's BoardSearch — Enter is the one press, and it publishes query only.
-  assert.match(app, /onSubmit=\{params => applyBarFilters\(params, \{ fields: \["query"\] \}\)\}/);
-  assert.doesNotMatch(app, /onSearch=\{params => applyBarFilters\(params, \{ live: true \}\)\}/);
-  assert.match(read("client/src/components/BoardBar.jsx"), /if \(e\.defaultPrevented\) return;\s+if \(e\.key === "Enter"\) submit\(\);/);
-});

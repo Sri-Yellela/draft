@@ -21,7 +21,6 @@ import { EXPERIENCE_LEVELS, DOMAINS, values } from "../shared/jobFilterOptions.j
 import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8");
-const usb     = read("client/src/components/UnifiedSearchBar.jsx");
 const app     = read("client/src/App.jsx");
 const context = read("client/src/contexts/JobBoardContext.jsx");
 const panel   = read("client/src/panels/JobsPanel.jsx");
@@ -30,33 +29,8 @@ const server  = read("server.js");
 const stripComments = (t) => t
   .replace(/\/\*[\s\S]*?\*\//g, "")
   .replace(/^\s*\/\/.*$/gm, "");
-
-test("every field the bar publishes is destructured and mapped by the board", () => {
-  // The published shape, read out of the bar rather than listed here, so a sixth field is covered
-  // the day it is added.
-  const m = stripComments(usb).match(/const params = \{([^}]+)\}/);
-  assert.ok(m, "UnifiedSearchBar no longer builds a `params` object on click");
-  const published = m[1]
-    .split(",")
-    .map((f) => f.split(":")[0].trim())
-    .filter(Boolean);
-  assert.deepEqual(
-    [...published].sort(),
-    ["domain", "experience", "location", "query", "status"],
-    "the bar's published field set changed — the mapping effect in JobsPanel must change with it",
-  );
-
-  // Each one has to be destructured by the effect that applies barFilters to the board. A field
-  // that is published and never read is the same dead control in a new place.
-  const a = panel.indexOf("const { query = \"\", location = \"\", experience = \"\", domain = \"\", status = \"\" } = bf");
-  assert.notEqual(a, -1, "JobsPanel's bar-filter mapping effect moved or changed shape");
-  for (const field of published) {
-    assert.ok(
-      new RegExp(`\\b${field}\\b`).test(panel.slice(a, a + 1400)),
-      `the bar publishes \`${field}\` and the board's mapping effect never reads it`,
-    );
-  }
-});
+// 46v: the landing's UnifiedSearchBar (and UsbSelect) were deleted with the old landing (owner 11-18: A + the shelf + C);
+// the tests that read them went with them. What they guarded on the server, the board and UsbSuggest stays below.
 
 test("the bar's handlers are real functions that reach the board's one channel", () => {
   // Not "are they present" — they were always present. They were `() => {}`.
@@ -100,44 +74,6 @@ test("the live half of the double-click is keyed on a counter, not a boolean or 
   assert.match(panel, /\}, \[liveSearchTick\]\);/);
   // And it must not fire on mount — an aggregator search nobody asked for, on every board load.
   assert.match(panel, /if \(!liveSearchReady\.current\) \{ liveSearchReady\.current = true; return; \}/);
-});
-
-test("the bar's select values are vocabularies the database actually stores", () => {
-  // Both lists were unmatchable on their face, and it did not show while they were wired to
-  // nothing. EXP_OPTIONS held 'entry level' / 'mid level' / 'staff' / 'director' against a column
-  // whose values are intern/entry/mid/senior/lead/executive; DOMAIN_OPTIONS held 'ai ml' against a
-  // classifier that writes 'ai_ml'.
-  //
-  // X1 MOVED WHERE THIS IS CHECKED, AND THIS TEST NOW GUARDS THE MOVE. Reading the values back out
-  // of literal arrays in UnifiedSearchBar.jsx required those arrays to BE literals, which is the
-  // duplication that let the bar and the drawer disagree in the first place. The join itself — every
-  // option against what the writers can store, in both directions, for all ten dimensions — lives
-  // in test/filterOptionContract.test.js. What is left here is the thing specific to this file: the
-  // bar's three selects must render from the shared contract and not from a copy.
-  assert.match(usb, /import \{ EXPERIENCE_LEVELS, DOMAINS, BOARD_STATUS \} from '\.\.\/\.\.\/\.\.\/shared\/jobFilterOptions\.js'/,
-    "the search bar no longer reads the shared filter contract");
-  assert.match(usb, /const EXP_OPTIONS\s+= toSelect\(EXPERIENCE_LEVELS, 'Any Level'\);/);
-  assert.match(usb, /const DOMAIN_OPTIONS = toSelect\(DOMAINS, 'Any Domain'\);/);
-  assert.match(usb, /const STATUS_OPTIONS = BOARD_STATUS\.options\.map/);
-
-  // The values themselves, asserted against the contract rather than against a restatement — this
-  // is the assertion that would have failed on 'mid level', and it still would.
-  assert.deepEqual(values(EXPERIENCE_LEVELS), ["intern", "entry", "mid", "senior", "lead", "executive"]);
-  assert.ok(values(DOMAINS).includes("ai_ml"), "the Domain select lost the classifier's spelling");
-  assert.ok(!values(DOMAINS).includes("ai ml"), "'ai ml' is back — it can never match a row");
-
-  // classifyJob.js's DOMAIN_PATTERNS is the source of truth for bucket_domain, so read it rather
-  // than restating it — an option the classifier cannot emit is a control that returns nothing.
-  const classify = read("services/jobs/classifyJob.js");
-  const emittable = new Set(
-    [...classify.matchAll(/\{ domain: '([^']+)'/g)].map((m) => m[1]),
-  );
-  assert.ok(emittable.size >= 8, "DOMAIN_PATTERNS moved or shrank unexpectedly");
-  for (const v of values(DOMAINS)) {
-    assert.ok(emittable.has(v), `the Domain select offers '${v}', which detectDomain can never emit`);
-  }
-  // 'general' is detectDomain's "matched nothing" fallback and must not be offered as a choice.
-  assert.ok(!values(DOMAINS).includes("general"));
 });
 
 test("Status fans out to three separate dimensions, each reset when it is not selected", () => {

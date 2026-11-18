@@ -185,13 +185,13 @@ test("the shell, the public pages and the shared surfaces are literal-free", () 
     "client/src/components/Footer.jsx", "client/src/components/ScrollDock.jsx",
     "client/src/components/AuthScreen.jsx",
     "client/src/components/PanelShell.jsx", "client/src/components/ui/PanelControls.jsx",
-    "client/src/components/UsbSelect.jsx", "client/src/components/UsbSuggest.jsx",
+    "client/src/components/UsbSuggest.jsx",   // 46v: UsbSelect left with the landing's bar
     "client/src/pages/tools/ATSToolPage.jsx", "client/src/pages/tools/GenerateToolPage.jsx",
     "client/src/pages/tools/ApplyToolPage.jsx", "client/src/pages/NotFoundPage.jsx",
     "client/src/pages/BlogPage.jsx", "client/src/pages/ProductsPage.jsx",
     "client/src/pages/marketing/PricingPage.jsx", "client/src/pages/marketing/ContactPage.jsx",
     "client/src/pages/marketing/FeaturesPage.jsx", "client/src/pages/AdminLoginPage.jsx",
-    "client/src/components/InlineLoginPopover.jsx", "client/src/components/FindFitApply.jsx",   // was BelowFoldContent (queue 31)
+    "client/src/components/InlineLoginPopover.jsx", "client/src/components/BookShelf.jsx",   // 46v: FindFitApply left with the old landing
     "client/src/components/ProfileSelectorDropdown.jsx",
     "client/src/components/AdminLayout.jsx",
     "client/src/components/ui/TileCard.jsx", "client/src/components/ui/DateCalendar.jsx",

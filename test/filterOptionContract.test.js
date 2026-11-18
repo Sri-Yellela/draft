@@ -313,11 +313,7 @@ test("NO UI SITE HOLDS A LITERAL OPTION LIST ANY MORE", () => {
   // The requirement this file exists to enforce. Every one of these sites had its own copy; a copy
   // is what lets 'mid level' and 'mid' coexist without anything failing.
   const sites = {
-    "client/src/components/UnifiedSearchBar.jsx": [
-      /const EXP_OPTIONS\s*=\s*toSelect\(EXPERIENCE_LEVELS/,
-      /const DOMAIN_OPTIONS\s*=\s*toSelect\(DOMAINS/,
-      /const STATUS_OPTIONS\s*=\s*BOARD_STATUS\.options/,
-    ],
+    // 46v: UnifiedSearchBar.jsx left with the old landing — its entry went with it.
     "client/src/panels/JobsPanel.jsx": [
       /const EMP_TYPE_OPTIONS\s*=\s*EMPLOYMENT_TYPES\.options;/,
       /const WORK_MODEL_OPTIONS\s*=\s*WORK_MODELS\.options;/,
@@ -355,11 +351,6 @@ test("NO UI SITE HOLDS A LITERAL OPTION LIST ANY MORE", () => {
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/^\s*(?:\/\/|\*).*$/gm, "");
 
-  const usb = strip(read("client/src/components/UnifiedSearchBar.jsx"));
-  for (const dead of ["'intern'", "'ai_ml'", "'healthtech'", "'starred'"]) {
-    assert.ok(!usb.includes(dead),
-      `UnifiedSearchBar still holds the literal ${dead} — it must come from the contract`);
-  }
   const panel = strip(read("client/src/panels/JobsPanel.jsx"));
   for (const dead of ['value:"remote"', 'value:"greenhouse"', 'value:"direct"',
                        'value="1w"', 'value="full-time"']) {

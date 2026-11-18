@@ -1,0 +1,28 @@
+/* client/src/components/BookShelf.css — the book and the shelf (components/BookShelf.jsx). Moved from
+   pages/atlas/LibraryPanel.css in 46v. Theme tokens only; no capsules (D60). */
+/* ⭐ 46u (owner's pick A, 11-17) · BOOKS ON A SHELF: spines stand on a shelf line, each in its pastel (--book-c, a hash of
+   its id), the title running up the spine; a course wider, an unwritten guide faint and thin; a book lifts on hover (none
+   with reduced motion). On a phone the shelf scrolls sideways inside itself, never the page. On a pastel only INK is
+   held at AA, so every word on a spine is INK. */
+.lib-books { list-style: none; margin: 12px 0 0; padding: 26px 10px 0; display: flex; align-items: flex-end; gap: 4px;
+  overflow-x: auto; overscroll-behavior-x: contain; border-bottom: 10px solid var(--c-surface-2); min-width: 0; max-width: 100%; }
+.lib-book { margin: 0; flex: none; }
+/* 46u: a leaning book pivots on its bottom corner against its neighbour; the room beside it is its margin (bookShape) */
+.lib-book--lean { transform: rotate(var(--book-lean, 0deg)); transform-origin: var(--book-origin, bottom left); }
+.lib-book__spine { all: unset; box-sizing: border-box; cursor: pointer; width: var(--book-w, 62px); height: var(--book-h, 210px); position: relative;
+  display: flex; flex-direction: column; justify-content: space-between; align-items: center; gap: 8px; padding: 14px 3px 10px;
+  border-radius: 6px 6px 2px 2px; background: var(--book-c, var(--c-surface-2)); color: var(--c-ink);
+  box-shadow: inset -6px 0 0 var(--c-hover), inset 0 0 0 1px var(--c-hover), 0 2px 4px var(--c-hover); transition: transform 180ms ease; }
+/* a real spine's bands: two thin rules near the head and the foot */
+.lib-book__spine::before, .lib-book__spine::after { content: ""; position: absolute; left: 0; right: 6px; height: 3px; background: var(--c-hover); }
+.lib-book__spine::before { top: 30px; }
+.lib-book__spine::after { bottom: 30px; }
+.lib-book__spine--none { cursor: default; opacity: 0.55; }
+a.lib-book__spine:hover, button.lib-book__spine:hover, a.lib-book__spine:focus-visible, button.lib-book__spine:focus-visible { transform: translateY(-10px); }
+.lib-book__spine:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 3px; }
+.lib-book__kind, .lib-book__state { font: 700 10px/1.2 var(--font-body); text-align: center; color: var(--c-ink); word-break: keep-all; overflow-wrap: normal; }
+.lib-book__title { writing-mode: vertical-rl; transform: rotate(180deg); font: 400 var(--book-fs, 21px)/1.05 var(--font-display); text-align: left;
+  flex: 1 1 auto; min-height: 0; max-width: 100%; overflow: hidden; word-break: keep-all; overflow-wrap: normal; hyphens: none; }
+.lib-book__foot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+@media (prefers-reduced-motion: reduce) { .lib-book__spine { transition: none; } a.lib-book__spine:hover, button.lib-book__spine:hover,
+  a.lib-book__spine:focus-visible, button.lib-book__spine:focus-visible { transform: none; } }

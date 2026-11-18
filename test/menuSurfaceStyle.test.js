@@ -107,8 +107,6 @@ test("jobs surface has compact profile selector and profile menu supports deleti
   // assertion above (that JobsPanel must NOT re-grow a third one) is what keeps that from doubling.
   assert.doesNotMatch(topBar, /placeholder="Filter jobs/,
     "the retired pill's local search input is back in the top bar");
-  assert.match(fs.readFileSync("client/src/components/UnifiedSearchBar.jsx", "utf8"),
-    /placeholder="Job title or keywords"/, "nothing writes localSearch any more");
   assert.match(topBar, /method: "DELETE"/);
   assert.doesNotMatch(topBar, />\s*Delete\s*<\/button>/);
   assert.match(profileSelector, /onDelete\?\.\(profile\.id\)/);

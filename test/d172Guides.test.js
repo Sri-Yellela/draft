@@ -59,7 +59,8 @@ test("d172SoonNeverClickableAsAvailable: a level with no decks is not a link; th
   const unwritten = ladder.slice(at(ladder, ": <BookSpine"));
   const tag = unwritten.slice(0, at(unwritten, "/>"));
   assert.ok(tag.includes('foot="Not written yet"') && !/\bto=/.test(tag), "an unwritten guide: no link, 'Not written yet'");
-  assert.match(ui, /: <div className=\{`\$\{cls\} lib-book__spine--none`\} aria-disabled="true"/);
+  // 46v: BookSpine moved to components/BookShelf.jsx (the landing's shelf wears it too) — changed on purpose
+  assert.match(read("client/src/components/BookShelf.jsx"), /: <div className=\{`\$\{cls\} lib-book__spine--none`\} aria-disabled="true"/);
   const route = read("routes/learn.js");
   assert.match(route, /router\.post\("\/deck\/:id\/answer"[\s\S]{0,400}surface: "deck"/);
   const from = at(route, 'router.post("/deck/:id/answer"');

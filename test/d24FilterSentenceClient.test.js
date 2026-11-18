@@ -258,8 +258,6 @@ test("D26/D28: the board's bar is the search input only; a search never touches 
   assert.match(app, /applyBarFilters\(params, \{ fields: \["query"\] \}\)/);
   assert.match(read("client/src/components/BoardBar.jsx"), /const commit = \(query\) => \{ committed\.current = query\.trim\(\); onSubmit\?\.\(\{ query \}\); \};\s+const submit = \(\) => commit\(q\);/, // changed on purpose (11-06): every search goes through commit(), still { query } only
     "the board's search publishes more than the keyword");
-  const bar = read("client/src/components/UnifiedSearchBar.jsx");
-  assert.match(bar, /\{fields === 'all' && \(<>/, "location and the three selects render only on the landing page");
   const panel = strip(read("client/src/panels/JobsPanel.jsx"));
   assert.match(panel, /if \(has\("query"\)\) setLocalSearch\(query\);/);
   assert.match(panel, /if \(has\("status"\)\) \{/, "a search without a status must not reset ageFilter or the tab");

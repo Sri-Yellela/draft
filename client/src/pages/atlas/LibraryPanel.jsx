@@ -11,7 +11,7 @@ import { api } from "../../lib/api.js";
 import DepthButton from "../../components/DepthButton.jsx";   // A155: the guided routes
 import { courseProgress, firstOpenModule, lessonState, linkLine, wholeModules, coursePieces } from "./libraryModel.js";
 import { routesFor } from "./learnModel.js";   // A155: the circle's guided routes, in the Modules view too
-import { BookSpine, GuideLadder, PathwaysPlan, useGuides } from "./LibraryGuides.jsx";
+import { BookSpine, GuideLadder, PathwaysPlan, useGuides, BookShelf } from "./LibraryGuides.jsx";
 import { HalfRing, LessonDeck } from "./LessonDeck.jsx";
 import { learnStepHref } from "./atlasPanels.js";
 import { artForPathway } from "./PathwayArt.jsx";   // A154: a drawing per pathway
@@ -65,7 +65,7 @@ function PathwayShelf({ onPick }) {
     <>
       <h2 className="atl__h2">Pathways</h2>
       {/* ⭐ 46u: the pathways as books on the shelf; pressing one opens its plan below. */}
-      <ul className="lib-books" data-pathway-shelf="">
+      <BookShelf data-pathway-shelf="">
         {plan.pathways.map((p, i) => {
           const Art = artForPathway(p.id);
           const n = p.stages.reduce((a, s) => a + s.topics.length, 0), w = p.stages.reduce((a, s) => a + s.topics.filter(t => t.deck).length, 0);
@@ -75,7 +75,7 @@ function PathwayShelf({ onPick }) {
               label={`${name}: ${p.stages.length} stages, ${w} of ${n} decks written — see the pathway`} onClick={() => onPick(p.id)} data-pathway-cover={p.id} />
           );
         })}
-      </ul>
+      </BookShelf>
     </>
   );
 }
@@ -110,14 +110,14 @@ export function LibraryShelf({ base, signedIn = false }) {
       <GuideLadder base={base} guides={guides} />
       <h2 className="atl__h2">Courses</h2>
       {/* ⭐ 46u (owner's pick, A): the courses as books — wider spines, they hold more. */}
-      <ul className="lib-books" data-library-shelf="">
+      <BookShelf data-library-shelf="">
         {COURSES.map((c, i) => (i === 0
           ? <BookSpine key={c.id} id={c.id} last={i === COURSES.length - 1} size="wide" kind="Course" title={c.title} art={<ChipArt />}
               foot={signedIn && p ? <span data-course-progress={p.pct}>{p.pct}% done</span> : course ? `${course.counts.modules} modules` : ""}
               label={`${c.title}${course ? `: ${course.counts.modules} modules, ${course.counts.lessons} lessons` : ""}${signedIn && p ? `, ${p.pct}% done` : ""} — ${signedIn && p?.done ? "continue" : "open"}`}
               to={`${base}/library/${c.id}`} data-course={c.id} />
           : <CourseCover key={c.id} base={base} c={c} last={i === COURSES.length - 1} />))}
-      </ul>
+      </BookShelf>
       <PathwayShelf onPick={(id) => setWantPathway({ id, at: Date.now() })} />
       {/* ⭐ D155 Part C: the whole approved plan — every pathway's stages and topics, written or planned. */}
       <PathwaysPlan base={base} want={wantPathway} />

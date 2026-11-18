@@ -11,7 +11,7 @@ import { LEGACY_BRAND } from "../shared/brand.js";
 
 const read = (p) => fs.readFileSync(p, "utf8");
 const topBar = read("client/src/components/TopBar.jsx");
-const usb    = read("client/src/components/UnifiedSearchBar.jsx");
+// 46v: the landing's UnifiedSearchBar is deleted (owner 11-18: the landing is A + the shelf + C); its checks here went with it.
 
 const stripComments = (t) => t
   .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
@@ -180,22 +180,6 @@ test("⛔ THERE IS ONE MARK, AND EVERY SURFACE CALLS IT", () => {
   assert.match(stamp, /aria-label=\{WORDMARK\}/, "the mark's name must come from shared/brand.js");
 });
 
-test("the actions row's vertical rhythm matches the bar's horizontal spacing", () => {
-  // Measured before W6 at 1440x900: 21px above the row and 0px between it and the search field —
-  // pressed against the input with all the air on the wrong side. The row's own padding was
-  // "8px 12px 0", which added above and contributed nothing below. After: 21px above, 21px below,
-  // against 20px card padding on the left and right.
-  //
-  // Y4 emptied this row of TABS — they are in the top bar now — but the row itself survives as the
-  // board's ACTIONS row, and the rhythm is a property of the row, not of what is in it. It is also
-  // now `justify-content: space-between`, because with the tabs gone, right-aligning everything left
-  // the whole left half of a 920px card empty.
-  assert.ok(!/padding: "8px 12px 0", alignItems: "center"/.test(usb),
-    "the row is top-heavy again");
-  assert.match(usb, /padding: "0 12px 10px", marginBottom: 10,/);
-  assert.match(usb, /justifyContent: "space-between",/);
-});
-
 test("the tab row moved into the top bar, whole, and from appTabs — ⭐ D145: and from there into the Dock / the Menu", () => {
   // Y4. The app's primary navigation was a slot on the search bar, so it appeared and disappeared
   // with a control that is only meaningful on the Jobs board. ⭐ D145 Step 3 (owner 11-03, changed on purpose): the bar's
@@ -218,10 +202,6 @@ test("the tab row moved into the top bar, whole, and from appTabs — ⭐ D145: 
   const css = read("client/src/components/AppNav.css");
   assert.doesNotMatch(css, /text-transform: uppercase|border-radius: 999px/);
 
-  // ...and the search bar no longer renders tabs at all, so there is exactly one tab list.
-  assert.ok(!/onTabChange\?\.\(t\.id\)/.test(usb), "the search bar still renders a tab row");
-  assert.ok(!/tabs,\s*\n\s*activeTab,\s*\n\s*onTabChange,/.test(usb),
-    "the search bar still takes tab props");
 });
 
 test("the AUTO APPLY needs-review count survived the move", () => {

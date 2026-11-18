@@ -33,6 +33,8 @@ function db0(rows) {
 }
 
 test.beforeEach(() => clearSuggestionCache());
+// 46v: the landing's UnifiedSearchBar (and UsbSelect) were deleted with the old landing (owner 11-18: A + the shelf + C);
+// the tests that read them went with them. What they guarded on the server, the board and UsbSuggest stays below.
 
 test('typing "s" suggests Software Engineer, and it leads because it is the most common', () => {
   const db = db0([
@@ -190,7 +192,6 @@ test("the endpoint is additive, auth-gated, and never errors at the user", () =>
 // field worse than having no suggestions at all.
 
 const suggestUi = fs.readFileSync("client/src/components/UsbSuggest.jsx", "utf8");
-const barUi     = fs.readFileSync("client/src/components/UnifiedSearchBar.jsx", "utf8");
 
 test("Tab accepts the highlighted suggestion, and ONLY when one is highlighted", () => {
   // The requirement is explicit that Tab must not steal focus when nothing is highlighted. `active`
@@ -205,14 +206,6 @@ test("Escape dismisses without altering the typed text", () => {
   const block = esc.slice(0, at(esc, "\n    }"));
   assert.match(block, /dismiss\(\)/);
   assert.ok(!/onChange|accept\(/.test(block), "Escape changes the value — it must only close the list");
-});
-
-test("Enter still runs the search when the user is ignoring the list", () => {
-  // The bar's Enter handler is what triggers a search. Intercepting Enter unconditionally would
-  // make the list swallow it, so it is only taken when a row is actually highlighted...
-  assert.match(suggestUi, /if \(active >= 0 && items\[active\]\) \{ e\.preventDefault\(\); accept\(items\[active\]\); \}\s*\n\s*else dismiss\(\);/);
-  // ...and the bar chains its own handler behind, guarded on defaultPrevented.
-  assert.match(barUi, /sugg\.onKeyDown\(e\); if \(!e\.defaultPrevented && e\.key === 'Enter'\) handleClick\(\)/);
 });
 
 test("input is debounced and stale responses cannot overwrite fresh ones", () => {
@@ -240,19 +233,6 @@ test("the list is portalled, because .usb__bar clips it", () => {
     "if .usb__bar no longer clips, revisit the portal — but do not assume it does not");
   assert.match(suggestUi, /import \{ DockPortal \} from "\.\/DockPortal\.jsx"/);
   assert.match(suggestUi, /<DockPortal/);
-});
-
-test("accepting a suggestion only fills the box — search behaviour is unchanged", () => {
-  // A74: one click, one search — and it is the bar's, not the typeahead's.
-  assert.match(barUi, /function handleClick\(\) \{/);
-  // UsbSuggest reaches nothing but the caller's own setter.
-  assert.ok(!/api\("\/api\/jobs\?|onSearch|onLocalFilter/.test(suggestUi),
-    "the typeahead runs a search of its own — it must only propose text");
-});
-
-test("both free-text inputs get suggestions, from the field they belong to", () => {
-  assert.match(barUi, /<UsbSuggest field="title" value=\{q\} onChange=\{setQ\}>/);
-  assert.match(barUi, /<UsbSuggest field="location" value=\{loc\} onChange=\{setLoc\}>/);
 });
 
 test("a suggestion request can never force-log-out the app", () => {
