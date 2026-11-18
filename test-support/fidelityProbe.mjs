@@ -13,7 +13,7 @@ import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "..");
-const CACHE = path.join(ROOT, "tmp", "fidelity-cache");
+const CACHE = process.env.FIDELITY_CACHE_DIR || path.join(ROOT, "tmp", "fidelity-cache");   // A234: a test may point it elsewhere
 export const SHOTS = "tmp/fidelity-shots";
 
 /** Every probe a test asks for. A test asking for one not listed here fails loudly (add it here). */
@@ -78,12 +78,34 @@ export function fill(specs = PROBES, { timeout = 40 * 60_000 } = {}) {
   });
 }
 
+// ⭐ A234 (46v): an answer measured while the machine was loaded (11-17: the tracker's phone --bg) was cached and every
+// rerun read the same wrong value. Now a test process remembers the cached answers it read, and if it exits FAILING
+// (node:test sets process.exitCode), those answers are dropped from the cache — the next run measures them again. A
+// passing run keeps them. The global fill never reads through probe(), so a fill alone never evicts anything.
+const readHere = new Set();
+export function evictKeys(keys) {
+  if (!keys.length) return;
+  try {
+    const cur = readCache(); let changed = false;
+    for (const k of keys) if (k in cur) { delete cur[k]; changed = true; }
+    if (!changed) return;
+    const tmp = `${cacheFile()}.${process.pid}.evict.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(cur)); fs.renameSync(tmp, cacheFile());
+  } catch { /* best effort: a cache that cannot be written is simply measured again */ }
+}
+let exitHooked = false;
+const hookExit = () => {
+  if (exitHooked) return; exitHooked = true;
+  process.on("exit", (code) => { if ((code || process.exitCode) && readHere.size) evictKeys([...readHere]); });
+};
+
 /** The answer of `fidelityShots.mjs --styles <id> [routes]` (FIDELITY_SIZES=<sizes>), from the shared probe. */
 export function probe(id, { routes = null, sizes = null } = {}) {
   const spec = { id, ...(routes ? { routes } : {}), ...(sizes ? { sizes } : {}) };
   if (!PROBES.some(p => keyOf(p) === keyOf(spec))) throw new Error(`fidelityProbe: "${keyOf(spec)}" is not in PROBES (test-support/fidelityProbe.mjs) — add it there`);
   let a = readCache()[keyOf(spec)];
   if (!a) a = fill([spec])[keyOf(spec)];
+  readHere.add(keyOf(spec)); hookExit();   // A234: dropped again if this process ends failing
   if (a?.error) throw new Error(`fidelityShots ${keyOf(spec)}: ${a.error}`);
   return a;
 }
