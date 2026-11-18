@@ -11,9 +11,9 @@ const PLAN_LABELS = {
 };
 
 const PLAN_COPY = {
-  BASIC: "Shared jobs console with baseline Simple Apply, ATS Search, and ATS Sort.",
-  PLUS: "Unlock Generate on expanded job cards.",
-  PRO: "Unlock Generate and A+ Resume on expanded job cards.",
+  BASIC: "Your jobs board, today's picks, Applications in Ask me first, and the ATS check.",
+  PLUS: "Adds a tailored résumé when you Draft a job.",
+  PRO: "Adds the A+ résumé, a deeper rewrite, when you Draft a job.",
 };
 
 export function PlansPanel({ user, onUserChange }) {
@@ -54,7 +54,7 @@ export function PlansPanel({ user, onUserChange }) {
           Plans
         </div>
         <div style={{ color:"var(--color-text-muted)", marginBottom:20 }}>
-          Current plan: <strong style={{ color:"var(--color-text)" }}>{PLAN_LABELS[current]}</strong>. Plans control tool access in the shared jobs console.
+          Current plan: <strong style={{ color:"var(--color-text)" }}>{PLAN_LABELS[current]}</strong>. Your plan sets which tools you can use.
         </div>
 
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(190px, 1fr))", gap:12 }}>

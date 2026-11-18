@@ -13,9 +13,9 @@ const TIERS = [
     recommended: false,
     comingSoon: false,
     features: [
-      "Shared jobs console",
-      "Baseline Simple Apply workflow",
-      "ATS Search and ATS Sort",
+      "Your jobs board and today's picks",
+      "Applications in Ask me first",
+      "The ATS check",
       "Profile-isolated saved jobs",
     ],
     cta: "Get started free",
@@ -69,7 +69,7 @@ export function PricingPage() {
         </h1>
         <p style={{ fontSize: ts(16), color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 48,
                      textAlign: "center" }}>
-          Start in the shared jobs console. Request upgrades from Plans when you need more tools.
+          Start with your jobs board and today's picks. Ask for an upgrade from Plans when you need more tools.
         </p>
 
         <div style={{ display: "flex", gap: 20, flexWrap: "wrap", justifyContent: "center" }}>

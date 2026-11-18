@@ -48,3 +48,22 @@ test("no user-facing string says Full House or Draft House", () => {
   }
   assert.deepEqual(hits, [], "retired place names in user-facing text:\n" + hits.join("\n"));
 });
+
+// ⭐ 46v: the other retired words, once none was left on screen — the old mode names (owner D113: "Ask me first" /
+// "Apply for me"), the assistant's old name (owner 11-18: "drop 'tiny'"), and the October plan vocabulary. Client and
+// extension strings only (services' logs and the mobile API's own docs are not screens; admin pages are allowed).
+const SCREENS = ["client/src", "extension"];
+const RETIRED = /\bSEMI\b|FULL AUTO|\bTiny\b|jobs console|Simple Apply|ATS Sort|profile-scoped/;
+const ADMIN = /(^|\/)(admin[^/]*|Admin[^/]*)\.jsx?$|\/pages\/admin\//;
+test("no user-facing string uses a retired name (SEMI / FULL AUTO / Tiny / the October plan words)", () => {
+  const hits = [];
+  for (const d of SCREENS) {
+    for (const file of walk(join(ROOT, d))) {
+      const rel = relative(ROOT, file).split(sep).join("/");
+      if (ALLOW.has(rel) || ADMIN.test(rel) || rel.endsWith(".md")) continue;   // .md: reviewer docs, not in the package's screens
+      const lines = stripComments(readFileSync(file, "utf8")).split(/\r?\n/);
+      lines.forEach((l, i) => { if (RETIRED.test(l) && !/^\s*"about":/.test(l)) hits.push(`${rel}:${i + 1}: ${l.trim().slice(0, 140)}`); });
+    }
+  }
+  assert.deepEqual(hits, [], "retired names in user-facing text:\n" + hits.join("\n"));
+});

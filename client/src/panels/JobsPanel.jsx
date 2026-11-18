@@ -4181,7 +4181,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
           onClick={() => runSearchButton()}
           disabled={scraping || bgLoading}
           title={searchPhase === "local" && roleIsSet
-            ? "Trigger a fresh profile-scoped scrape for this role"
+            ? "Look for new jobs for this role now, for this job profile"
             : "Apply this role to the local board first"}>
           <span aria-hidden="true">{buttonIcon}</span>
           <span>{buttonLabel}</span>

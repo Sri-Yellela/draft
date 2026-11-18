@@ -114,7 +114,7 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded
               <span style={{ ...markStyle(STEP_COLOUR[s.state] || C.INK_FAINT), marginRight: 8 }}>{s.state}</span>
               {s.label}
               {s.step === "form_filled" && s.total ? <span style={muted}> · {s.filled} of {s.total}</span> : null}
-              {s.step === "submitted" && s.by ? <span style={muted}> · {s.by === "auto" ? "sent by FULL AUTO" : "you approved it"}</span> : null}
+              {s.step === "submitted" && s.by ? <span style={muted}> · {s.by === "auto" ? "sent by Apply for me" : "you approved it"}</span> : null}
               {s.step === "needs_you" && s.fields?.length ? <span style={muted}> · {s.fields.slice(0, 3).join(", ")}{s.fields.length > 3 ? "…" : ""}</span> : null}
             </li>
           ))}

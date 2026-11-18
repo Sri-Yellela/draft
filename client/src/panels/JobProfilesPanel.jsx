@@ -318,7 +318,7 @@ export function JobProfilesPanel() {
             textAlign:"center",
             color:"var(--color-text-muted)",
           }}>
-            No job profiles yet. Add your first profile to unlock profile-scoped search, ATS, and resume signals.
+            No job profiles yet. Add your first one and draft starts finding jobs that fit it.
           </div>
         )}
       </div>

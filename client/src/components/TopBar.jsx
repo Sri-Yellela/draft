@@ -223,7 +223,7 @@ function ProfileMenuPanel({ open, onClose, theme, user, onLogout, onTabChange, p
   const planLabel = planTier === "PRO" ? "Pro" : planTier === "PLUS" ? "Plus" : "Basic";
   const toolLabel = planTier === "PRO" ? "Generate + A+ Resume"
     : planTier === "PLUS" ? "Generate"
-    : "Baseline jobs console";
+    : "Your jobs and today's picks";
   const menuItemStyle = {
     padding: "10px 16px", cursor: "pointer", fontSize: ts(13),
     color: theme.text, background: "transparent", border: "none",

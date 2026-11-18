@@ -39,8 +39,8 @@ export function HowItWorksPage() {
         </h1>
         <p style={{ fontSize: ts(16), color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 56, maxWidth: 560 }}>
           {monetisationEnabled
-            ? "One jobs console. Simple Apply is built in, and upgrades add tools when you need them."
-            : "One jobs console, with Simple Apply built in and every tool available."}
+            ? "Your best jobs each day and applications that wait for you. Upgrades add tools when you need them."
+            : "Your best jobs each day, applications that wait for you, and every tool available."}
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {steps.map((s, i) => (

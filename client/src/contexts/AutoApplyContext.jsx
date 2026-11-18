@@ -636,8 +636,8 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
       const r = await api("/api/apply/mode", { method: "POST", body: JSON.stringify({ mode }) });
       setRunBar(r);
       setHoldMsg(mode === "auto"
-        ? "FULL AUTO. draft sends what matches your Auto settings without asking each time."
-        : "SEMI. Every application waits for your approval.");
+        ? "Apply for me. draft sends what matches your settings without asking each time."
+        : "Ask me first. Every application waits for your approval.");
     } catch (e) {
       setHoldMsg(e.message || "Could not change the mode — nothing changed.");
     } finally {

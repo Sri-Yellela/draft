@@ -62,7 +62,7 @@ const BY_REASON = {
   },
   // D100: the same hold now — a run that would have sent without review, for a user whose mode is SEMI.
   full_auto_not_chosen: {
-    obstacle: "This would have been sent without your review, and your mode is SEMI — nothing was opened or sent",
+    obstacle: "This would have been sent without your review, and your mode is Ask me first — nothing was opened or sent",
     action: "Draft it again — it will wait for your approval",
     protective: true, retryable: true,
   },

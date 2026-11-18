@@ -212,7 +212,7 @@ test("D100·7 · the user is told nothing was sent, and how to send it reviewed 
     assert.match(o.action, /wait for your approval/);
     assert.equal(o.protective, true);
   }
-  assert.match(describeApplication({ status: "held_review", reasonCode: "full_auto_not_chosen" }).obstacle, /SEMI/);
+  assert.match(describeApplication({ status: "held_review", reasonCode: "full_auto_not_chosen" }).obstacle, /Ask me first/);   // 46v: the mode's name now (was SEMI) — changed on purpose
 });
 
 // ── 2 · THE KILL SWITCH STOPS A RUN ALREADY IN FLIGHT ─────────────────────────────────────────────

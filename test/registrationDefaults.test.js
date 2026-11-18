@@ -10,7 +10,7 @@ test("registration defaults new users to Basic Simple Apply", () => {
 
   assert.match(server, /apply_mode,plan_tier\) VALUES \(\?,\?,0,'SIMPLE','BASIC'\)/);
   assert.match(server, /applyMode:"SIMPLE", planTier:"BASIC"/);
-  assert.match(topBar, /Baseline jobs console/);
+  assert.match(topBar, /Your jobs and today's picks/);   // 46v: the October plan words retired — changed on purpose
   assert.doesNotMatch(topBar, /Apply Mode|APPLY_MODES|\/api\/settings\/apply-mode/);
   assert.match(jobsPanel, /applyMode = user\?\.applyMode \|\| "SIMPLE"/);
   // The tier test itself is unchanged and still pinned — the monetisation lever decides whether it

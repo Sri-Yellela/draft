@@ -84,7 +84,7 @@ export function heldQuestionsOf({ openQuestionsJson = null, blanksJson = null, p
 const WORDS = Object.freeze({
   awaiting_approval: "Filled and waiting for your approval.",
   full_auto_prerequisites: "Sending without your review waits until draft's safety checks are green, so it was held for you. Nothing was sent.",
-  full_auto_not_chosen: "This would have been sent without your review, and your mode is SEMI. Nothing was opened or sent.",
+  full_auto_not_chosen: "This would have been sent without your review, and your mode is Ask me first. Nothing was opened or sent.",
   full_auto_disabled: "Automatic applications are paused by the operator. Nothing was sent.",
   daily_cap_reached: "Today's application limit was reached. It waits for tomorrow or for you.",
   provider_review_only: "This company's application site isn't one draft sends on by itself yet, so it waits for you.",
