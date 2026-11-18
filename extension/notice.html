@@ -17,6 +17,12 @@
     ul.reads { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
     ul.reads li { padding: 10px 12px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-surface-2); font-size: 13px; line-height: 1.5; }
     ul.reads b { display: block; font-size: 13px; margin-bottom: 2px; }
+    /* ⭐ A233 (46v, owner's pick: disclosures as ✓ / ✕ with every word kept): what draft reads gets a ✓, and the lead's
+       last sentence is said again as two ✕ lines in its own words. The marks are decorative (aria-hidden by CSS content). */
+    ul.reads li { display: grid; grid-template-columns: 18px 1fr; column-gap: 6px; }
+    ul.reads li::before { content: "✓" / ""; color: var(--c-success); font-weight: 800; grid-row: span 2; }
+    ul.nevers { margin: 0; padding: 0; list-style: none; display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; font-weight: 700; }
+    ul.nevers li::before { content: "✕" / ""; color: var(--c-danger); margin-right: 6px; }
     .bar { display: flex; gap: 8px; flex-wrap: wrap; }
     .bar .btn { margin-bottom: 0; }
     .small { font-size: 12px; color: var(--c-ink-muted); margin: 0; }
@@ -26,6 +32,7 @@
   <span class="mark" role="img" aria-label="draft"><span class="mark-slash"></span><span class="mark-word"></span></span>
   <h1>What draft reads, and when</h1>
   <p class="lead">draft reads a page only when you ask it to — a press of its icon, a fill, or the automatic reading you switch on — and sends what it reads only to draft's own server (jobsviadraft.com). Nothing is sold, and no AI reads your pages.</p>
+  <ul class="nevers" aria-label="Never"><li>Nothing is sold.</li><li>No AI reads your pages.</li></ul>
   <ul class="reads" id="notice-reads">
     <li><b>When you press the toolbar icon</b>The page's address and the job posting's text go to draft, to find the job and your match. Signed out, only the employer's name and the page's address go — to show that employer's public record — and nothing is stored.</li>
     <li><b>When you fill an application</b>Your saved answers and résumé come from draft and are typed into the form on that page. draft never submits a form on its own — you press Submit.</li>
