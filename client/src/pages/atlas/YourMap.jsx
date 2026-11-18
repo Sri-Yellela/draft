@@ -84,7 +84,7 @@ export function FamilyMap({ base, familyKey }) {
       <header className="atl__head">
         <p className="atl__kicker"><Link to={base} className="atl__link">The Atlas</Link> · <span className="mark mark--accent">Family</span></p>
         <h1 className="atl__title">{t.centre.name}</h1>
-        <p className="atl__lede">{t.centre.postings} open jobs ask for at least one {t.centre.name} skill. The tree shows what the family is made of{t.signedIn ? "; coloured squares are yours" : ""}.</p>
+        <p className="atl__lede">{t.centre.postings} open jobs ask for a {t.centre.name} skill.{t.signedIn ? " Coloured squares are yours." : ""}</p>
       </header>
       {t.nodes.length ? <AtlasTree tree={t} base={base} /> : <p className="atl__quiet" data-atlas-family-empty="">No job asks for a skill in this family yet.</p>}
     </article>

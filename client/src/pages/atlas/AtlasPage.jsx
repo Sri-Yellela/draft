@@ -258,7 +258,7 @@ export function AtlasNodeView({ base, node, from, onWalk, signedIn = false }) {
     related: (
       <div className="atl__related">
         <div className="atl__cols">
-          {node.kind !== "role" && stats?.topSkills?.length > 0 && <div data-edge-group="seen-with"><h3 className="atl__h3">Seen with it most</h3><LinkList base={base} items={stats.topSkills} /></div>}
+          {node.kind !== "role" && stats?.topSkills?.length > 0 && <div data-edge-group="seen-with"><h3 className="atl__h3">Often asked for with it</h3><LinkList base={base} items={stats.topSkills} /></div>}
           {groups.map(g => <div key={g.title} data-edge-group={g.type}><h3 className="atl__h3">{g.title}</h3><LinkList base={base} items={g.items} /></div>)}
         </div>
         {groups.length > 0 && <AtlasGraph node={node} hrefFor={href} onWalk={onWalk} />}

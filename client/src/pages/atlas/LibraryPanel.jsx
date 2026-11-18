@@ -156,7 +156,7 @@ export function PatternCoursePage({ base, id }) {
           <h1 className="atl__title">{course.title}</h1>
           <p className="atl__lede">{course.intro}</p>
           <Facts items={[{ value: course.counts.modules, label: "modules" }, { value: course.counts.lessons, label: "patterns" }]} />
-          <p className="atl__quiet" data-course-no-progress="">Nothing is counted here yet: a pattern has no check of its own. Practise on LeetCode; the step that teaches each pattern is where you earn it.</p>
+          <p className="atl__quiet" data-course-no-progress="">Patterns have no check of their own. Practise on LeetCode; each one counts at the step that teaches it.</p>
         </div>
       </header>
       <h2 className="atl__h2">Modules</h2>

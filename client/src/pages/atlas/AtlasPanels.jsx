@@ -205,7 +205,7 @@ function PracticeProgressCard({ day, refresh }) {
         ? <p className="atl__quiet">Answer three questions on a skill to see how you're doing on it.</p>
         : <ul className="atl-dq__acc">{p.accuracy.skills.slice(0, 12).map(s => (
             <li key={s.skill} data-skill-accuracy={s.skill}><span>{String(s.skill).replace(/-/g, " ")}</span> <span className="atl__quiet">{s.right} of {s.answered} right</span></li>))}</ul>}
-      <p className="atl__quiet">Your level rises when you prove a skill — a quick check or something you built — not with the number of questions.</p>
+      <p className="atl__quiet">Your level rises when you prove a skill with a quick check or something you built.</p>
     </details>
   );
 }

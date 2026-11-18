@@ -194,7 +194,7 @@ export function ChallengesPanel({ base }) {
         <div className="cmp-grid">
           <section className="cmp-card" data-challenge="beat-the-bar">
             <h2 className="atl__h2">Beat the bar</h2>
-            <p className="atl__quiet">Take the 3-minute audit for a role, keep the result, and share the score — the link shows the score and the role, nothing about you.</p>
+            <p className="atl__quiet">Take the 3-minute audit for a role and share your score. The link shows the score and the role, nothing about you.</p>
             {c.bars.length === 0
               ? <Link className="atl__link" to={`${base}/the-audit`}>Take the audit →</Link>
               : <ul className="cmp-bars">{c.bars.map(b => (

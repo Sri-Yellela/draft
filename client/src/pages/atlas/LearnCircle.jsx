@@ -245,7 +245,7 @@ export function PieceBody({ piece, pieces, states, marks = {}, explanations = {}
         </div>
       )}
       {st.build && <BuildLink piece={piece} saved={builds[piece.id]} signedIn={signedIn} onBuild={onBuild} />}
-      {!signedIn && <p className="atl__quiet" data-learn-signin="">Sign in and draft records what you open, explain and build — the bar fills from that, never from a tick.</p>}
+      {!signedIn && <p className="atl__quiet" data-learn-signin="">Sign in and the bar fills as you open, explain and build.</p>}
       {!compact && (
         <div className="lrc__box" data-learn-unlocks={st.complete ? "done" : "todo"}>
           <h3 className="lrc__box-h">{st.complete ? "Unlocked on your map" : "Finishing this unlocks on your map"}</h3>
