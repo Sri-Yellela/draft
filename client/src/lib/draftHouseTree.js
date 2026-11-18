@@ -96,7 +96,7 @@ export function buildNodes({
     const packet = packetFor ? (packetFor(app.primary?.row) || packetFor(app)) : null;
     const missing = row.missingRequired || [];
     let say, why;
-    if (app.postingGone || packet?.postingGone) { say = "Stopped: the company took the posting down."; why = "gone"; }
+    if (app.postingGone || packet?.postingGone) { say = "Stopped: the company took the job down."; why = "gone"; }
     else if (q) { say = `One question it couldn't answer: ${q.question}. Then it sends.`; why = "question"; }
     else if (missing.length) { say = `${missing.length} required field${missing.length === 1 ? "" : "s"} had no answer it could use.`; why = "empty"; }
     else if (packet && (packet.stale || !(Number(packet.staleAfterMs) - Number(packet.ageMs) > 0))) { say = "The prepared answers have gone stale."; why = "stale"; }

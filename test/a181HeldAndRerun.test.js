@@ -135,7 +135,7 @@ test("a181RerunSelected: the bulk acts on the ticked held drafts, all by default
   const panel = read("client/src/panels/AutoApplyPanel.jsx");
   assert.match(panel, /const \[heldPick, setHeldPick\] = useState\(null\);/, "null = every held draft");
   assert.match(panel, /const chosenHeldFrom = \(ns\) => \{ const all = heldRerunnableFrom\(ns\); return heldPick \? all\.filter\(h => heldPick\.has\(h\.jobId\)\) : all; \};/);
-  assert.match(panel, /onClick=\{\(\) => rerunHeld\(chosen\)\}>\{bulkBusy \? "Starting…" : `Re-run \$\{chosen\.length\} \$\{some \? "selected" : "held"\} \(free\)`\}/);
+  assert.match(panel, /onClick=\{\(\) => rerunHeld\(chosen\)\}>\{bulkBusy \? "Starting…" : `Try \$\{chosen\.length\} \$\{some \? "selected" : "waiting"\} again \(free\)`\}/);   // A233 (46v): plain words — changed on purpose
   assert.match(panel, /clearRunJobs\(\{ runJobIds: chosen\.map\(h => h\.runJobId\)\.filter\(Boolean\) \}\)/, "Cancel acts on the chosen ones");
   assert.match(panel, /disabled=\{bulkBusy \|\| chosen\.length === 0\}/, "none ticked: nothing to run");
   assert.match(panel, /data-held-pick=""/); assert.match(panel, /data-choose-held=""/);

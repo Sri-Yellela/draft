@@ -28,7 +28,8 @@ import { createPortal } from "react-dom";
 import { api, authContextQuery } from "../lib/api.js";
 import { Z } from "../styles/zLayers.js";
 import { lastBoardFilters, filterLine } from "../lib/boardFilterMemory.js";
-import { capUsage, STOP_DOES, STOP_DOES_NOT } from "../lib/draftHouseExceptions.js";
+import { capUsage, STOP_ITEMS } from "../lib/draftHouseExceptions.js";
+import { Promises } from "./TextBlocks.jsx";
 import "./DraftHouse.css";
 import { SALARY_DEFAULTS, SALARY_PRESETS, SALARY_PRESET_LABELS, salaryAnswerFor } from "../../../shared/salaryAnswer.js";
 
@@ -289,10 +290,10 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
               <div className="dh-tg" data-stale-settings="">
                 <span><label htmlFor="dh-sw-stale">Skip stale posts</label>{stale ? (
                   <small>reposted{" "}
-                    <input type="number" min={1} max={20} value={s.staleReposts ?? 3} aria-label="Reposts before a posting is skipped"
+                    <input type="number" min={1} max={20} value={s.staleReposts ?? 3} aria-label="Reposts before a job is skipped"
                       onChange={(e) => set({ staleReposts: Math.max(1, Math.min(20, Number(e.target.value) || 1)) })} />
                     + times or open{" "}
-                    <input type="number" min={14} max={365} value={s.staleOpenDays ?? 90} aria-label="Days open before a posting is skipped"
+                    <input type="number" min={14} max={365} value={s.staleOpenDays ?? 90} aria-label="Days open before a job is skipped"
                       onChange={(e) => set({ staleOpenDays: Math.max(14, Math.min(365, Number(e.target.value) || 14)) })} />
                     + days</small>
                 ) : <small>off — reposted and long-open jobs are picked like any other</small>}</span>
@@ -320,8 +321,11 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
                   {profiles.map(p => <option key={p.id} value={p.id}>{p.profile_name || p.name || `Profile ${p.id}`}</option>)}
                 </select>
               </div>
-              <p className="dh-fold2__lead dh-fold2__lead--after" data-never-sent="">Never sent automatically: jobs your Application defaults rule out, jobs past the limits,
-                a human check (a CAPTCHA), an eligibility question you have not answered{s.agreeToTerms ? "" : ", a terms box"} — each waits in Needs you.</p>
+              {/* ⭐ A233 (46v): the list as ✕ items, every case kept; each waits in Needs you. */}
+              <Promises className="dh-fold2__lead--after" data-never-sent="" title="Never sent automatically — each waits in Needs you"
+                items={[{ ok: false, text: "Jobs your Application defaults rule out" }, { ok: false, text: "Jobs past the limits" },
+                  { ok: false, text: "A human check (a CAPTCHA)" }, { ok: false, text: "An eligibility question you have not answered" },
+                  ...(s.agreeToTerms ? [] : [{ ok: false, text: "A terms box" }])]} />
             </Fold>
 
             <Fold id="before" title="Before sending" value={v.before} headline="Check each form yourself?" {...fp("before")}>
@@ -352,7 +356,7 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
                 const ex = salaryAnswerFor(sal, { profileSalary: null, job: sample });
                 const modes = [["profile", "My Profile's desired salary", "the number on your Profile — as before"],
                   ["fixed", "A fixed amount", "the same number on every application"],
-                  ["position", "A point on the company's range", "a slider from the posting's minimum to its maximum"],
+                  ["position", "A point on the company's range", "a slider from the job's minimum to its maximum"],
                   ["preset", "A named point on the range", "lower limit, lower end, midpoint, higher end or upper limit"]];
                 return (<div data-salary-setting="">
                   {modes.map(([m, label, sub]) => (
@@ -363,7 +367,7 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
                     </label>
                   ))}
                   {(sal.mode === "fixed" || sal.whenNoRange === "fixed") && sal.mode !== "profile" && (
-                    <div className="dh-tg"><span><label htmlFor="dh-sal-amount">{sal.mode === "fixed" ? "The amount" : "When the posting states no range"}</label>
+                    <div className="dh-tg"><span><label htmlFor="dh-sal-amount">{sal.mode === "fixed" ? "The amount" : "When the job states no pay range"}</label>
                       <small>a year, in US dollars</small></span>
                       <input id="dh-sal-amount" type="number" min={1} step={1000} value={sal.amount ?? ""} aria-label="Salary amount"
                         onChange={(e) => setSal({ amount: e.target.value === "" ? null : Math.max(1, Number(e.target.value) || 0) })} />
@@ -371,7 +375,7 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
                   )}
                   {sal.mode === "position" && (
                     <div className="dh-tg" data-salary-slider=""><span><label htmlFor="dh-sal-pos">{sal.position}% up the range</label>
-                      <small>0 = the posting's minimum · 100 = its maximum</small></span>
+                      <small>0 = the job's minimum · 100 = its maximum</small></span>
                       <input id="dh-sal-pos" type="range" min={0} max={100} step={5} value={sal.position} aria-label="Point on the posted range"
                         onChange={(e) => setSal({ position: Number(e.target.value) })} />
                     </div>
@@ -384,9 +388,9 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
                     </div>
                   )}
                   {(sal.mode === "position" || sal.mode === "preset") && (
-                    <label className="dh-tg" data-salary-no-range=""><span>When the posting states no range<small>{sal.whenNoRange === "ask"
+                    <label className="dh-tg" data-salary-no-range=""><span>When the job states no pay range<small>{sal.whenNoRange === "ask"
                       ? "the question waits for you in Needs you" : "answer the amount above (or your Profile's number)"}</small></span>
-                      <select className="dh-select" value={sal.whenNoRange} aria-label="When the posting states no range" onChange={(e) => setSal({ whenNoRange: e.target.value })}>
+                      <select className="dh-select" value={sal.whenNoRange} aria-label="When the job states no pay range" onChange={(e) => setSal({ whenNoRange: e.target.value })}>
                         <option value="fixed">Answer my amount</option><option value="ask">Ask me</option>
                       </select>
                     </label>
@@ -427,7 +431,7 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
                 <button type="button" className="dh-pausebtn" data-pause-now="" data-held={held ? "true" : "false"} disabled={modeBusy || !runBar}
                   onClick={() => onPauseNow(!held)}>{held ? "Resume" : "Pause everything now"}</button>
               )}
-              <p className="dh-fold2__lead dh-fold2__lead--pause" data-stop-says="">{STOP_DOES} {STOP_DOES_NOT}</p>
+              <Promises className="dh-fold2__lead--pause" data-stop-says="" title="Stop everything" items={STOP_ITEMS} />
             </Fold>
 
             {/* ── ACCOUNTS ON JOB SITES (D100) — a fold only when there is anything in it ── */}

@@ -258,8 +258,8 @@ test("AC2: co-resolution reads the SERVER's groupings, and does not re-derive th
 test("AC2: held-on-purpose vs broken, and the dead posting, are states the ENTRY already carries", () => {
   // Requirement 3 and 4. Both live on the component the modal now renders, which is why the modal
   // gets them for free rather than needing a second description that could disagree.
-  assert.match(sections, /app\.postingGone \? "the posting is gone"/);
-  assert.match(sections, /app\.protective \? "held on purpose" : "did not complete"/);
+  assert.match(sections, /app\.postingGone \? "the job ad is gone"/);
+  assert.match(sections, /app\.protective \? "stopped on purpose" : "did not complete"/);
   // A dead posting gets NO action and says why — not a Review button leading nowhere.
   assert.match(sections, /\{app\.postingGone \? \(\s*<span[\s\S]*?posting gone — cannot be resumed/);
 });

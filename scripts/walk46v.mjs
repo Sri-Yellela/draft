@@ -101,6 +101,21 @@ try {
       const card = await page.evaluate(() => ({ title: document.querySelector("#appnav-ask h2")?.textContent, open: document.querySelector("#appnav-ask")?.getAttribute("data-open") }));
       say(`${tag} card`, card.open === "true" && card.title === "draft", `open ${card.open} · title "${card.title}"`);
       await page.screenshot({ path: path.join(SHOTS, `walk46v-ask-${theme}-${w}.png`) });
+      // A233 (46v): Applications → Settings — "Never sent automatically" and Stop everything as ✓ / ✕ lists
+      if (w === 1440) {
+        await page.goto(`${BASE}/app/auto-apply`, { waitUntil: "networkidle2", timeout: 120000 });
+        const opened = await page.waitForSelector("[data-settings-open]", { timeout: 30000 }).then(() => true).catch(() => false);
+        if (!opened) { say(`${tag} settings`, false, "no Settings button on Applications"); continue; }
+        await page.click("[data-settings-open]"); await sleep(700);
+        await page.click('[data-fold-top="jobs"]'); await sleep(500);
+        const never = await page.evaluate(() => { const n = document.querySelector("[data-never-sent]"); return n ? { kind: n.hasAttribute("data-promises"), items: [...n.querySelectorAll("li")].map(l => l.textContent.trim()) } : null; });
+        say(`${tag} never sent`, never?.kind && never.items.length >= 4 && never.items.every(t => t.startsWith("✕")), JSON.stringify(never));
+        const el = await page.$("[data-never-sent]"); if (el) { await el.scrollIntoView(); await sleep(300); await page.screenshot({ path: path.join(SHOTS, `walk46v-neversent-${theme}-${w}.png`) }); }
+        await page.click('[data-fold-top="pausing"]'); await sleep(500);
+        const stop = await page.evaluate(() => [...document.querySelectorAll("[data-stop-says] li")].map(l => l.textContent.trim()));
+        say(`${tag} stop list`, stop.length === 4 && stop[3].startsWith("✕") && /Recall applications already sent/.test(stop[3]), JSON.stringify(stop));
+        const el2 = await page.$("[data-stop-says]"); if (el2) { await el2.scrollIntoView(); await sleep(300); await page.screenshot({ path: path.join(SHOTS, `walk46v-stop-${theme}-${w}.png`) }); }
+      }
     }
   }
 } catch (e) {

@@ -118,7 +118,7 @@ test("d148LimitsBehindDetails · the internal limits are one quiet line; the ful
 test("d148PauseNowExplains · Pause everything now says what it does and does not do", () => {
   const p = fold("pausing");
   assert.match(p, /onClick=\{\(\) => onPauseNow\(!held\)\}>\{held \? "Resume" : "Pause everything now"\}<\/button>/);
-  assert.match(p, /data-stop-says="">\{STOP_DOES\} \{STOP_DOES_NOT\}<\/p>/);
+  assert.match(p, /data-stop-says="" title="Stop everything" items=\{STOP_ITEMS\} \/>/);   // A233 (46v): a ✓ / ✕ checklist, every clause kept (STOP_ITEMS) — changed on purpose
   assert.match(panel, /held=\{held\} onPauseNow=\{setStopEverything\}/, "the timeline's own Pause handler");
 });
 

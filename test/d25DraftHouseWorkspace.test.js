@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
   autoToggle, capUsage, quietLine, splitAnswers, buildStoppedItems, filterItems,
-  STOP_DOES, STOP_DOES_NOT, AUTO_LOCKED_FALLBACK,
+  STOP_DOES, STOP_DOES_NOT, STOP_ITEMS, AUTO_LOCKED_FALLBACK,
 } from "../client/src/lib/draftHouseExceptions.js";
 import { PREREQUISITE_LABELS, groupByApplication } from "../client/src/lib/applyObstacles.js";
 import { at } from "../test-support/sourceAnchors.js";
@@ -85,7 +85,7 @@ test("⚙ Auto settings: the drawer reads and writes the server's settings, term
   assert.doesNotMatch(drawer, /SPARE_TIMES/);
   // D148 (11-03): the switch is drawn by the drawer's one `sw` helper — the same value, the same attribute.
   assert.match(drawer, /\{sw\(s\.agreeToTerms, \(\) => set\(\{ agreeToTerms: !s\.agreeToTerms \}\), \{ "data-agree-to-terms": "" \}\)\}/);
-  assert.match(drawer, /a human check \(a CAPTCHA\)/, "the drawer says a human check is never sent automatically");
+  assert.match(drawer, /A human check \(a CAPTCHA\)/, "the drawer says a human check is never sent automatically");
 });
 
 // D100 (owner 10-30): the proof constant is removed; the mode is the user's (default SEMI) and the kill switch is
@@ -131,10 +131,13 @@ test("the bar says plainly what Stop does and does NOT do — sent applications 
   assert.match(STOP_DOES, /a run in progress starts nothing further/);
   assert.match(STOP_DOES_NOT, /does not recall applications already sent/);
   assert.match(STOP_DOES_NOT, /already being filled finishes — stop it under Running/);
+  // A233 (46v): the checklist Settings shows keeps every clause — recall is the one ✕.
+  assert.deepEqual(STOP_ITEMS.map(i => i.ok), [true, true, true, false]);
+  assert.match(STOP_ITEMS.map(i => i.text).join(" "), /has not started.*starts nothing further.*being filled finishes — stop it under Running.*Recall applications already sent/);
   // Said on the button (its title) and, in text a phone can read, in Settings.
   assert.match(panel, /title=\{\x60\$\{STOP_DOES\} \$\{STOP_DOES_NOT\}\x60\}/);
   // D148 (11-03): in the Pausing fold, beside "Pause everything now" — a paragraph now.
-  assert.match(drawer, /data-stop-says="">\{STOP_DOES\} \{STOP_DOES_NOT\}<\/p>/);
+  assert.match(drawer, /data-stop-says="" title="Stop everything" items=\{STOP_ITEMS\} \/>/);   // A233 (46v): a ✓ / ✕ checklist, every clause kept (STOP_ITEMS) — changed on purpose
   // And the copy matches what the server does: the hold is checked before a run, and between jobs.
   assert.match(route, /if \(userHeld\(db, run\.user_id\)\) \{\s*\n\s*parkRunAtHead\(run,/);
   assert.match(route, /if \(userHeld\(db, run\.user_id\)\) \{ heldMidRun = true; break; \}/);

@@ -36,6 +36,7 @@ import { historyToCsv } from "../../../shared/applicationCsv.js";
 import { REPLY_ASK } from "../../../shared/applicationHistory.js";
 import { JobWorkspacePanel } from "./JobWorkspacePanel.jsx";
 import { buildStoppedItems, packetLife, autoToggle, STOP_DOES, STOP_DOES_NOT } from "../lib/draftHouseExceptions.js";
+import { NoteCard } from "../components/TextBlocks.jsx";
 import {
   buildNodes, buildTree, treeView, branchStep, createLeafCache, answerRows, inlineAnswerStart, isOwnStatement,
   leftOutLines, nextRunFromSettings, timeLabel, connectionsFromStopped, viewerTimeZone, timeZoneOptions,
@@ -580,7 +581,7 @@ export function AutoApplyPanel({ user = null } = {}) {
     let started = 0, refused = 0;
     for (const h of list) { try { const r = await draftJob?.({ jobId: h.jobId, company: h.company, title: h.title }, companyLabel(h.company)); if (r?.ok === false) refused++; else started++; } catch { refused++; } }
     setBulkBusy(false);
-    setBulkMsg(`Started ${started} again${refused ? ` · ${refused} could not start (they say why on their rows)` : ""}. Re-runs are free.`);
+    setBulkMsg(`Started ${started} again${refused ? ` · ${refused} could not start (they say why on their rows)` : ""}. Trying again is free.`);
   };
 
   // The remedy for a STALE or unpreparable handoff (AB1 requirement 5): a fresh run, which produces
@@ -978,7 +979,7 @@ export function AutoApplyPanel({ user = null } = {}) {
           )}
         </>
       ) });
-    out.push({ id: "job", label: "The job", sub: "the posting, why it was picked",
+    out.push({ id: "job", label: "The job", sub: "the job, why it was picked",
       body: () => (
         <>
           {node.line && <p className="dh-fold__quiet">{node.line}</p>}
@@ -996,7 +997,7 @@ export function AutoApplyPanel({ user = null } = {}) {
             </AttemptPosting>
           ) : (<>
             {row?.applyUrl && (
-              <a className="dh-btn" href={row.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(row, e)}>The posting ↗</a>
+              <a className="dh-btn" href={row.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(row, e)}>The job ad ↗</a>
             )}
             {node.jobId != null && <a className="dh-btn" href={jobDetailHref(node.jobId)}>On the board</a>}
           </>)}
@@ -1039,8 +1040,8 @@ export function AutoApplyPanel({ user = null } = {}) {
     ) : (
       <div className="dht-acts">
         {h.applyUrl
-          ? <a className="dh-btn" href={h.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(h, e)}>The posting ↗</a>
-          : <p className="dh-fold__quiet">The posting is not stored for this one.</p>}
+          ? <a className="dh-btn" href={h.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(h, e)}>The job ad ↗</a>
+          : <p className="dh-fold__quiet">The job's details weren't saved for this one.</p>}
       </div>
     );
     if (id === "resume") return (
@@ -1067,7 +1068,7 @@ export function AutoApplyPanel({ user = null } = {}) {
     return (
       <>
         {entry.state === "loading" || entry.state === "idle" ? <p className="dh-fold__quiet">Reading the emails…</p>
-          : mail.length === 0 ? <p className="dh-fold__quiet">No email linked to this application yet. Replies you forward to your draft inbox, or read through Gmail, appear here.</p>
+          : mail.length === 0 ? <NoteCard id="no-email" title="No emails yet" data-no-email="">Replies you forward to your draft inbox, or read through Gmail, appear here.</NoteCard>
           : mail.map(m => (
             <div key={m.id} className="dht-r" data-email={m.id}>
               <span><b>{m.subject || "(no subject)"}</b>{m.preview ? <span className="dht-r__s"> {m.preview}</span> : null}</span>
@@ -1253,7 +1254,7 @@ export function AutoApplyPanel({ user = null } = {}) {
             <div className="dht-deep" data-left-out-list="">
               {lo.data.jobs.map(j => (
                 <div key={j.jobId} className="dht-r">
-                  <a href={jobDetailHref(j.jobId)}>{[j.company, j.title].filter(Boolean).join(" · ") || "A posting"}</a>
+                  <a href={jobDetailHref(j.jobId)}>{[j.company, j.title].filter(Boolean).join(" · ") || "A job"}</a>
                   <span className="dht-r__s">{j.reasonLabel || j.reason}</span>
                 </div>
               ))}
@@ -1352,18 +1353,18 @@ export function AutoApplyPanel({ user = null } = {}) {
           const some = chosen.length < all.length;   // the words say "selected" only when it isn't every one
           return (<>
             <button type="button" className="dh-btn" data-rerun-held="" disabled={bulkBusy || chosen.length === 0}
-              title="Run the held drafts again with draft's current fixes. Re-runs are free."
-              onClick={() => rerunHeld(chosen)}>{bulkBusy ? "Starting…" : `Re-run ${chosen.length} ${some ? "selected" : "held"} (free)`}</button>
+              title="Try the waiting drafts again with draft's current fixes. Trying again is free."
+              onClick={() => rerunHeld(chosen)}>{bulkBusy ? "Starting…" : `Try ${chosen.length} ${some ? "selected" : "waiting"} again (free)`}</button>
             <button type="button" className="dh-btn" data-cancel-held="" disabled={bulkBusy || binBusy || chosen.length === 0}
-              title="Cancel the held drafts — they move to Cleared (restore for 7 days); nothing was sent, so their drafts come back."
-              onClick={() => { if (window.confirm(`Cancel ${chosen.length} held draft${chosen.length === 1 ? "" : "s"}? They stay in Cleared for 7 days.`)) { clearRunJobs({ runJobIds: chosen.map(h => h.runJobId).filter(Boolean) }); setHeldPick(null); } }}>Cancel {chosen.length} {some ? "selected" : "held"}</button>
+              title="Cancel the waiting drafts — they move to Cleared (restore for 7 days); nothing was sent, so their drafts come back."
+              onClick={() => { if (window.confirm(`Cancel ${chosen.length} waiting draft${chosen.length === 1 ? "" : "s"}? They stay in Cleared for 7 days.`)) { clearRunJobs({ runJobIds: chosen.map(h => h.runJobId).filter(Boolean) }); setHeldPick(null); } }}>Cancel {chosen.length} {some ? "selected" : "held"}</button>
             {all.length > 1 && (
               <button type="button" className="dht-step__link" data-choose-held="" aria-expanded={choosingHeld} onClick={() => setChoosingHeld(o => !o)}>
                 {choosingHeld ? "Done choosing" : "Choose which"}</button>
             )}
             {choosingHeld && all.length > 1 && (
               <fieldset className="dh-held-pick" data-held-pick="">
-                <legend className="dh-fold__quiet">Held drafts — the two buttons act on the ticked ones</legend>
+                <legend className="dh-fold__quiet">Waiting drafts — the two buttons act on the ticked ones</legend>
                 {all.map(h => (
                   <label key={h.jobId} className="dh-held-pick__row" data-held-pick-row={h.jobId}>
                     <input type="checkbox" checked={chosen.some(c => c.jobId === h.jobId)} onChange={() => toggleHeld(nodes, h.jobId)} />
@@ -1381,8 +1382,8 @@ export function AutoApplyPanel({ user = null } = {}) {
         {/* ⭐ A181 (5c): once after an update — the drafts held before it, offered a free re-run with the fixes. */}
         {applySlots?.heldBeforeUpdate > 0 && heldRerunnableFrom(nodes).length > 0 && !bannerGone && (
           <p className="dh-fold__quiet" data-held-before-update="">
-            {applySlots.heldBeforeUpdate} draft{applySlots.heldBeforeUpdate === 1 ? " was" : "s were"} held before draft's latest update — re-run {applySlots.heldBeforeUpdate === 1 ? "it" : "them"} with the fixes (free).{" "}
-            <button type="button" className="dht-step__link" onClick={() => { rerunHeld(heldRerunnableFrom(nodes)); setBannerGone(true); }}>Re-run</button>{" · "}
+            {applySlots.heldBeforeUpdate} draft{applySlots.heldBeforeUpdate === 1 ? " was" : "s were"} stopped before draft's latest update — try {applySlots.heldBeforeUpdate === 1 ? "it" : "them"} again with the fixes (free).{" "}
+            <button type="button" className="dht-step__link" onClick={() => { rerunHeld(heldRerunnableFrom(nodes)); setBannerGone(true); }}>Try again</button>{" · "}
             <button type="button" className="dht-step__link" onClick={() => setBannerGone(true)}>Not now</button>
           </p>
         )}
@@ -1639,7 +1640,7 @@ export function AutoApplyPanel({ user = null } = {}) {
                     <span style={{ color:C.SUCCESS, fontWeight:700 }}>✓ {applyRunDetail.run.submittedCount} submitted</span>
                   )}
                   {applyRunDetail.run.heldCount > 0 && (
-                    <span style={{ color:C.WARNING, fontWeight:700 }}>⏸ {applyRunDetail.run.heldCount} held</span>
+                    <span style={{ color:C.WARNING, fontWeight:700 }}>⏸ {applyRunDetail.run.heldCount} waiting</span>
                   )}
                   {applyRunDetail.run.failedCount > 0 && (
                     <span style={{ color:C.DANGER, fontWeight:700 }}>✗ {applyRunDetail.run.failedCount} failed</span>

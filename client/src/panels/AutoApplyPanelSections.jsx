@@ -113,9 +113,9 @@ export function ApplicationObstacleCard({
         <div style={{ flex: 1, minWidth: 220 }}>
           <div style={{ fontSize: ts(9), fontWeight: 800, letterSpacing: "0.08em",
                         textTransform: "uppercase", color: tone, marginBottom: 3 }}>
-            {app.postingGone ? "the posting is gone"
+            {app.postingGone ? "the job ad is gone"
               : stale ? "prepared too long ago"
-              : app.protective ? "held on purpose" : "did not complete"}
+              : app.protective ? "stopped on purpose" : "did not complete"}
           </div>
           {/* THE APPLICATION, named. */}
           <div style={{ fontSize: ts(14), fontWeight: 800, color: theme.text, lineHeight: 1.35 }}>
@@ -379,7 +379,7 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
               whatever hold it was in when the posting vanished, which is a hold that can no longer
               be cleared by anything. */}
           {job.postingGone && !job.title
-            ? "The posting was removed from the board, so there is nothing left to finish"
+            ? "The job was taken down, so there is nothing left to finish"
             : d.obstacle}
           {/* A detail that merely repeats the obstacle reads as a stutter ("You rejected this one —
               You rejected this one"), which happens whenever reason_detail restates reason_code. */}
@@ -435,7 +435,7 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
           style={bandMarkStyle(atsBandFor(job.atsScore ?? null))}>
           {atsBandLabel(atsBandFor(job.atsScore ?? null)).short}
         </span>
-        {job.applyUrl && link(job.applyUrl, "The posting ↗", job)}
+        {job.applyUrl && link(job.applyUrl, "The job ad ↗", job)}
 
         <span style={{ flex: 1 }} />
 
@@ -721,7 +721,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
           // saying so is the whole affordance.
           if (packet.postingGone) {
             return (
-              <span title="This posting was removed from the board. There is no application left to finish; the record of the attempt stays here."
+              <span title="This job was taken down. There is no application left to finish; the record of the attempt stays here."
                 style={markStyle(theme.textDim)}>
                 posting gone — cannot be resumed
               </span>

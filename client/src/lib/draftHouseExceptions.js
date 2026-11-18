@@ -17,6 +17,14 @@ export const STOP_DOES =
   "Stop everything holds every draft that has not started, and a run in progress starts nothing further.";
 export const STOP_DOES_NOT =
   "It does not recall applications already sent. One already being filled finishes — stop it under Running.";
+// ⭐ A233 (46v, owner's pick: promises as ✓ / ✕ with every meaning kept): STOP_DOES + STOP_DOES_NOT as a checklist,
+// one clause per item — Settings shows this; the Pause button's tooltip keeps the two sentences.
+export const STOP_ITEMS = Object.freeze([
+  Object.freeze({ ok: true, text: "Every draft that has not started is held." }),
+  Object.freeze({ ok: true, text: "A run in progress starts nothing further." }),
+  Object.freeze({ ok: true, text: "One already being filled finishes — stop it under Running." }),
+  Object.freeze({ ok: false, text: "Recall applications already sent." }),
+]);
 export const HELD_LINE = "Stopped — nothing new starts until you resume.";
 
 /** Shown under the locked AUTO segment until the server says otherwise. */
@@ -148,7 +156,7 @@ export function buildStoppedItems({
     items.push({
       key: `held-${app.key}`, kind: "held", tone: app.postingGone ? "warning" : app.protective ? "warning" : "danger", ref: app,
       jobId: app.jobId ?? null,
-      title: companyLabel(app.company), sub: [app.title, app.postingGone ? "the posting is gone" : "stopped"].filter(Boolean).join(" · "),
+      title: companyLabel(app.company), sub: [app.title, app.postingGone ? "the job ad is gone" : "stopped"].filter(Boolean).join(" · "),
       fold: { needs: [...reasons, ...missing.map(m => `Empty: ${m}`)], quiet: null },
     });
   }
@@ -186,8 +194,8 @@ export const SEARCH_FROM = 6;
  * @returns {{ state: "ready"|"stale"|"gone"|"none", line: string, action: "fill"|"prepare"|"open" }}
  */
 export function packetLife(packet, now = Date.now()) {
-  if (!packet) return { state: "none", line: "No prepared answers — it was held before the form was reached.", action: "prepare" };
-  if (packet.postingGone) return { state: "gone", line: "The posting is no longer listed — there is no form to fill.", action: "open" };
+  if (!packet) return { state: "none", line: "No prepared answers — it stopped before the form was reached.", action: "prepare" };
+  if (packet.postingGone) return { state: "gone", line: "The job is no longer listed — there is no form to fill.", action: "open" };
   const left = Number(packet.staleAfterMs) - Number(packet.ageMs);
   if (packet.stale || !(left > 0)) return { state: "stale", line: "Prepared answers have gone stale — prepare again for fresh ones.", action: "prepare" };
   const h = Math.ceil(left / 3600000);
