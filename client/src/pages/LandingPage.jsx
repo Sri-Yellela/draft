@@ -20,6 +20,7 @@ import { BookShelf, BookSpine } from "../components/BookShelf.jsx";
 import { NoteCard, Facts, Promises } from "../components/TextBlocks.jsx";
 import { HOME_CARD } from "../lib/fanGeometry.js";
 import { api } from "../lib/api.js";
+import { openPosting } from "../lib/openPosting.js";
 import "./LandingPage.css";
 
 /** How often the hero deck deals its next card (owner 11-18: "auto scroll … at 1s"). */
@@ -76,7 +77,7 @@ function HeroDeck({ jobs }) {
   }, [reduced, paused, n, next]);
   const job = n ? jobs[at % n] : null;
   const behind = n > 1 ? [jobs[(at + 1) % n], jobs[(at + 2) % n]].filter(Boolean) : [];
-  const open = (j) => () => { const u = j?.applyUrl || j?.url; if (u) window.open(u, "_blank", "noopener,noreferrer"); };
+  const open = (j) => () => { void openPosting(j); };   // lib/openPosting.js — the one way a posting opens (the extension hand-off included)
   return (
     <div className="lp2-deck" data-landing-deck="" data-dealing={reduced || paused ? "paused" : "on"}
       onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}
