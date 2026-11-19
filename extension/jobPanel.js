@@ -27,6 +27,11 @@ export function renderJobPanel(model, theme, dockMeta) {
   host.setAttribute('data-draft-job-panel', model.kind || '');
   const root = host.shadowRoot || host.attachShadow({ mode: 'open' });
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  // the status line: the match % (when the line carries one) in its band's colour, then the rest of the words as they were
+  const statusHtml = (st) => { const t = String(st?.text || ''), m = st?.match ? String(st.match) : '';
+    if (!m || !t.includes(m)) return esc(t);
+    const k = t.indexOf(m);
+    return `${esc(t.slice(0, k))}<span class="m" data-band="${esc(st.band || '')}">${esc(m)}</span>${esc(t.slice(k + m.length))}`; };
 
   const css = `
     :host { all: initial; display: block; height: 100%; }
@@ -36,6 +41,9 @@ export function renderJobPanel(model, theme, dockMeta) {
     .st::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none; background: ${c.INK_FAINT}; }
     .st[data-tone="ok"]::before { background: ${c.SUCCESS}; }
     .st[data-tone="busy"]::before { background: ${c.ACCENT}; }
+    /* ⭐ 46x: the ATS number's colour is its band — no word (owner 11-19) */
+    .st .m { font-weight: 700; }
+    .st .m[data-band="strong"] { color: ${c.BAND_STRONG}; } .st .m[data-band="moderate"] { color: ${c.BAND_MODERATE}; } .st .m[data-band="weak"] { color: ${c.BAND_WEAK}; }
     .job { display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: center; padding: 14px 16px 14px; }
     .lg { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; overflow: hidden; font-weight: 700; font-size: 16px;
           background: ${c.TILE_SLATE}; color: ${c.ON_TILE}; }
@@ -91,7 +99,7 @@ export function renderJobPanel(model, theme, dockMeta) {
       ${m.how.resume ? `<button class="opt" data-role="resume" aria-haspopup="true" aria-expanded="false">Résumé: ${esc(m.how.resume)} ▾</button><div class="pick" data-role="resume-list" hidden></div>` : ''}
       ${sw('review', m.how.review, 'Review before I submit')}${sw('autoOpen', m.how.autoOpen, 'Open by itself on job boards')}</div>` : '';
   root.innerHTML = `<style>${css}</style><div class="p" role="region" aria-label="draft — this job">
-      <div class="st" data-role="status" data-tone="${esc(m.status?.tone || 'quiet')}" role="status">${esc(m.status?.text || '')}</div>
+      <div class="st" data-role="status" data-tone="${esc(m.status?.tone || 'quiet')}" role="status">${statusHtml(m.status)}</div>
       ${m.day ? `<div class="day" role="group" aria-label="Your day">${m.day.map(d => `<button class="tile" data-act="${esc(d.act)}"><b>${esc(d.n)}</b>${esc(d.label)}</button>`).join('')}</div>` : job}
       ${m.button ? `<button class="go" data-role="go" ${m.button.act ? `data-act="${esc(m.button.act)}"` : ''}${m.button.disabled ? ' disabled' : ''}>${esc(m.button.label || '')}</button>` : ''}
       ${m.ask ? `<div class="ask"><input id="rm-draft-ask-input" type="text" maxlength="600" placeholder="Search jobs, or ask draft" aria-label="Search jobs, or ask draft" autocomplete="off">

@@ -20,6 +20,7 @@
 // It is the same call the approval screen and the board use (server.js scoreBaseResumeForApply), so the score the
 // page shows is the web app's.
 import express from "express";
+import { atsBandFor } from "../shared/atsBands.js";   // ⭐ 46x D192 (4d): the band of the contextual number
 import { jobOnUsersBoard, resolvePageJob, userHasJob } from "../services/manualHandoff.js";
 import { jobFromLabelledText } from "../services/jobs/importJob.js";
 import { previewIngest } from "../services/jobs/jobGateway.js";
@@ -38,7 +39,9 @@ export const reportOf = (r) => (r ? { state: "ready", score: r.score ?? null, ba
   matched: (r.matched || []).slice(0, 40), missing: (r.missing || []).slice(0, 40),
   ...(r.report && typeof r.report === "object" ? { report: r.report } : {}),
   // ⭐ D192 (4): the contextual block (ATS contract 2.0.0) beside the report — the panel's % is the skill match until it reads this
-  ...(r.contextual && typeof r.contextual === "object" ? { contextual: r.contextual } : {}) } : { state: "unavailable" });
+  ...(r.contextual && typeof r.contextual === "object" ? { contextual: r.contextual,
+    // the owner, 11-19: "the font color on the ats number should do it" — the panel paints the number it shows by this band
+    contextualBand: atsBandFor(r.contextual.score ?? null) } : {}) } : { state: "unavailable" });
 
 /** The job the extension may open, and its report — or null when it is not on this user's board. */
 export function boardJobForExtension(db, userId, jobId, { scoreFor, hasBaseResume }) {

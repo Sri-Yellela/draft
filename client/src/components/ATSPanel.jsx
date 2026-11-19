@@ -20,6 +20,8 @@ import {
 import { profileSignalKey } from "../../../shared/profileSignals.js";
 import { atsBandFor } from "../../../shared/atsBands.js";
 import { AtsReport } from "./AtsReport.jsx";
+// ⭐ D192 (4d, owner 11-19: option A): the contextual score beside the report — added, never replacing it
+import { ContextualFit } from "./ContextualFit.jsx";
 // ⭐ D169 P2: "That's true of me" on a SKILL opens its quick check (or its proof choice) in place — the same component
 // Your skills in Atlas opens. The claim itself behaves as before (counts toward the score); the résumé waits for the proof.
 import SkillCheck from "./SkillCheck.jsx";
@@ -226,7 +228,10 @@ export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeT
 
   // THE REPORT ITSELF IS components/AtsReport.jsx — the one implementation every ATS surface draws
   // (A52). This panel only fetches, caches and claims.
-  const reportEl = <AtsReport report={activeReport} band={band} claims={claims} history={history} bare={bare} />;
+  const reportEl = (<>
+    <AtsReport report={activeReport} band={band} claims={claims} history={history} bare={bare} />
+    {jobId ? <ContextualFit jobId={jobId} /> : null}
+  </>);
   if (!proving) return reportEl;
   return (
     <>

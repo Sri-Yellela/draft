@@ -118,7 +118,9 @@ test("d192ExistingScoreUnchanged / d192DraftFeaturesUnchanged — the block ride
   assert.match(s, /\.\.\.\(withReport \? \{ report, contextual: contextualForBase\(userId, activeProfile, job, report\) \} : \{\}\)/);
   assert.doesNotMatch(s, /report\.contextual\s*=/, "nothing writes the block into the report");
   const ext = read("routes/extensionJob.js");
-  assert.match(ext, /\.\.\.\(r\.contextual && typeof r\.contextual === "object" \? \{ contextual: r\.contextual \} : \{\}\)/);
+  // 46x (owner 11-19): + the band of the contextual number, for its colour in the panel
+  assert.ok(ext.includes('...(r.contextual && typeof r.contextual === "object" ? { contextual: r.contextual,'));
+  assert.ok(ext.includes("contextualBand: atsBandFor(r.contextual.score ?? null) } : {})"));
   assert.doesNotMatch(read("services/atsContextual.js").replace(/^\s*\/\/.*$/gm, ""), /anthropic|callModel|modelGateway|fetch\(/, "no model, no network (D190)");
 });
 

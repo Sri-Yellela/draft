@@ -17,9 +17,11 @@
 
 const clean = (s, n = 140) => (typeof s === 'string' ? s.replace(/\s+/g, ' ').trim().slice(0, n) : '');
 const pct = (n) => (Number.isFinite(n) ? `${Math.max(0, Math.min(100, Math.round(n)))}% match` : '');
-// The board's band word beside the number (shared/atsBands.js short labels) — "Not enough signal" says nothing here.
-const BAND_WORD = { strong: 'Strong', moderate: 'Moderate', weak: 'Weak' };
-export const matchWords = (j) => [pct(j?.score), BAND_WORD[j?.band] || ''].filter(Boolean).join(' · ');
+// ⭐ 46x (owner 11-19: "the font color on the ats number should do it no need for the words"): the % alone; its band
+// (strong · moderate · weak, the board's) is the number's COLOUR in the panel — "not enough signal" paints it plain.
+const BANDS = new Set(['strong', 'moderate', 'weak']);
+export const matchWords = (j) => pct(j?.score);
+export const matchBand = (j) => (Number.isFinite(j?.score) && BANDS.has(j?.band) ? j.band : null);
 
 /** "sponsors visas" when draft's record shows the employer sponsored; '' otherwise (never a guess). Pure. */
 export function sponsorWords(company) {
@@ -75,6 +77,7 @@ export function panelModel({ signedIn = false, page = null, ctx = null, pending 
   const j = ctx?.job || {};
   const state = j.application?.state || null;
   const match = Number.isFinite(j.score) ? matchWords(j) : '';
+  const band = matchBand(j);
   const sponsor = sponsorWords(ctx?.company);
   const facts = [match, sponsor].filter(Boolean).join(' · ');
 
@@ -99,13 +102,13 @@ export function panelModel({ signedIn = false, page = null, ctx = null, pending 
         button: { label: 'Open in draft', act: 'open-needs', disabled: false }, note: null, how };
     case 'Drafted':
       return j.application?.sendFromHere
-        ? { kind: 'ready', status: said(['Résumé ready', match].filter(Boolean).join(' · '), 'ok'), job,
+        ? { kind: 'ready', status: { ...said(['Résumé ready', match].filter(Boolean).join(' · '), 'ok'), ...(match ? { match, band } : {}) }, job,
             button: { label: 'Apply from here', act: 'fill', disabled: false },
             note: { text: 'Fills the form. You press Submit.', act: null }, how }
         : { kind: 'drafted', status: said('Drafted · waits for your approval', 'ok'), job,
             button: { label: 'Open in draft', act: 'open-needs', disabled: false }, note: null, how };
     default:
-      return { kind: 'job', status: said(facts || (j.known ? 'On your board' : 'New to draft'), facts ? 'ok' : 'quiet'), job,
+      return { kind: 'job', status: { ...said(facts || (j.known ? 'On your board' : 'New to draft'), facts ? 'ok' : 'quiet'), ...(match ? { match, band } : {}) }, job,
         // a posting draft does not hold yet: add it, then draft it (DOCK_ACT 'add-draft'), in ONE press
         button: { label: 'Draft this job', act: j.known ? 'draft' : 'add-draft', disabled: false }, note: null, how };
   }

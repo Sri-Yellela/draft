@@ -985,7 +985,8 @@ function rememberPressContext(tab, c) {
   const skill = Number.isFinite(report?.score) ? report.score : Number.isFinite(p?.scores?.shown) ? p.scores.shown : null;
   const contextual = Number.isFinite(report?.contextual?.score) ? report.contextual.score : null;
   const score = contextual ?? skill;
-  const band = typeof report?.band === "string" ? report.band : null;
+  // ⭐ 46x: the band of the number shown — the contextual one's when that is the number (the colour says it, no word)
+  const band = contextual != null && typeof report?.contextualBand === "string" ? report.contextualBand : typeof report?.band === "string" ? report.band : null;
   const f = c.facts || null;
   pressContextByTab.set(tab.id, { job: p ? { jobId: p.known ? p.jobId ?? null : null, title: p.title ?? null, company: p.company ?? null, known: !!p.known, score, skill, band, contextual: contextual != null,
       mine: !!p.mine, onBoard: !!p.onBoard, ...(f?.job ? { facts: f.job } : {}), ...(f?.application ? { application: f.application } : {}) } : null,
