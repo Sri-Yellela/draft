@@ -24,34 +24,17 @@ test("profile suggestion additions use shared normalized helpers on both server 
 // deliberately INVERTED rather than updated: the chip used to get pointerEvents:"none" once added,
 // which is what made the decision permanent. A claimed chip must stay clickable, because that click
 // is how the candidate takes the claim back.
-test("ATS missing chips stay visible, turn green when claimed, and react to profile suggestion updates", () => {
+test("ATS missing rows stay visible and read-only — no claim state anywhere (46x, owner 11-19: \"ditch the whole prove it and claim it gimmick\", \"do the clean up\")", () => {
   const atsPanel = fs.readFileSync("client/src/components/ATSPanel.jsx", "utf8");
-  // A52: the chips are drawn by the one report implementation — since T9 the shared component
-  // (shared/atsReportElement.js); ATSPanel keeps the claim state and events.
-  const chips = fs.readFileSync("shared/atsReportElement.js", "utf8");
-
-  // ⭐ 46x (owner 11-19: "ditch the whole prove it and claim it gimmick"): the posting's panel keeps no claim state and
-  // listens for no claim events — it draws the ATS card. The shared component's claim rows below are no host's now.
-  assert.doesNotMatch(atsPanel, /PROFILE_SUGGESTIONS_UPDATED_EVENT|buildProfileClaimLookup|emitProfileSuggestionsUpdated/);
-  // theme.successMuted was replaced with literal greens (#0a1f0a background, #22c55e text). The
-  // behaviour this test is named for — the chip turns green — is unchanged; only the token went,
-  // and now the trigger is the candidate's claim rather than an irreversible add.
-  // Re-pinned at UI step 2b (09-30): the dark-era literals became tokens; the claimed/unclaimed switch is what is pinned.
-  // D31: the claim chip's resting colours are tokens on the chip itself (the + chip); the switch is the same.
-  // D32 re-pin: the chip is a depth BOX on the ink pair, and its colours moved into AtsReport.css as the
-  // pair's tokens — the switch is now aria-pressed (which IS the claimed state), and it still turns green.
-  // T9: the stylesheet travels with the component (shared/atsReportStyles.js), rule for rule.
+  const chips = fs.readFileSync("shared/atsReportElement.js", "utf8").replace(/^\s*(\/\/|\*).*$/gm, "");
   const css = fs.readFileSync("shared/atsReportStyles.js", "utf8");
-  assert.match(chips, /"aria-pressed": claimed \? "true" : "false"/);
-  // ⭐ D152 (8) re-pin (ats-options.html option A): the claim is a plain row with a quiet button at its end — "That's
-  // true of me" in the kicker ink; claimed, "Claimed · undo" in faint ink, and the row reads as yours (tone ok).
-  assert.match(css, /\.ats-cl__claim \{[^}]*color: var\(--c-pair-kicker\);/);
-  assert.match(css, /\.ats-cl__claim\[aria-pressed="true"\] \{ color: var\(--c-pair-ink-faint\); \}/);
-  assert.match(chips, /"data-tone": claimed \? "ok" : "claim", "data-claimed": claimed \? "true" : "false" \}/);
-  assert.match(chips, /"data-claim-chip": claimKind, "data-key": key, "aria-pressed": claimed \? "true" : "false"/);
-  assert.match(chips, /claimed \? "Claimed · undo" : "That's true of me"/);
-  assert.doesNotMatch(chips, /pointerEvents:\s*claimed/,
-    "a claimed chip must stay clickable — that click is how the claim is withdrawn");
+  // the posting's panel keeps no claim state and listens for no claim events — it draws the ATS card
+  assert.doesNotMatch(atsPanel, /PROFILE_SUGGESTIONS_UPDATED_EVENT|buildProfileClaimLookup|emitProfileSuggestionsUpdated/);
+  // the one report component: the missing terms are plain rows, labelled, never a button
+  assert.match(chips, /"Not on your résumé"/);
+  assert.match(chips, /const tone = generic \? "gen" : evidenced \? "ok" : "miss";/);
+  assert.doesNotMatch(chips, /aria-pressed|data-claim-chip|Claimed · undo|That's true of me/);
+  assert.doesNotMatch(css, /\.ats-cl__claim/);
 });
 
 test("jobs search button uses two-step local then scrape flow and pagination supports direct page jumps", () => {

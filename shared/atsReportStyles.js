@@ -11,8 +11,8 @@
 // same pixels on every surface for the same theme, whatever page it sits in.
 // ⛔ NOTHING HERE ANIMATES: no transition, no keyframes, no minimum width — the card renders the same in the deck's
 // panel, the board's panel, the phone's sheet, /tools/ats, the extension's popup and its on-page panel. A hover tints
-// a claim button instantly (D31 forbids motion).
-// ⛔ D60: no capsule — the switches radius 11, the claim buttons radius 10, the bar corner 2; the key's dots are circles.
+// a row instantly (D31 forbids motion).
+// ⛔ D60: no capsule — the bar corner 1; the key's dots are circles.
 // ⭐ D152 (8): option A's look (docs/sketches/ats-options.html) — plain rows, the count as the heading, no depth boxes.
 // The sketch's 600 weight is drawn at 500: the faces both products ship are DM Sans 400 / 500 / 700 (extension/fonts).
 import { ATS_REPORT_THEMES, ATS_REPORT_DEFAULT_THEMES, ATS_REPORT_FONTS } from "./atsReportTokens.js";
@@ -51,19 +51,17 @@ export const ATS_REPORT_CSS = `
 .ats-sum[data-compact="true"] .ats-sum__sub { font-size: 13.5px; margin-bottom: 10px; }
 .ats-sum__notes { margin: 0 0 14px; display: flex; flex-direction: column; gap: 8px; }
 
-/* The bar (.bar): 6px, on the rule's colour (missing) — on your résumé · claimed by you. Corner 1 (D60: never a capsule — d60CompactRadius allows ≤ 30 % of the height; 2 on 6 was 33 %). */
+/* The bar (.bar): 6px, on the rule's colour (missing) — on your résumé. Corner 1 (D60: never a capsule — d60CompactRadius allows ≤ 30 % of the height; 2 on 6 was 33 %). */
 .ats-bar { display: flex; height: 6px; border-radius: 1px; overflow: hidden; background: var(--c-pair-rule); margin: 0 0 6px; box-sizing: border-box; }
 .ats-bar__seg { height: 100%; }
 .ats-bar__seg--matched { background: var(--c-pair-matched); }
-.ats-bar__seg--claimed { background: var(--c-pair-kicker); }
 /* ⛔ NOT ENOUGH SIGNAL: every segment loses its colour, the bar is a DASHED outline — never a short Weak bar. */
 .ats-bar[data-unknown="true"] { border: 1.5px dashed var(--c-band-unknown-edge); background: transparent; }
 .ats-bar[data-unknown="true"] .ats-bar__seg { background: transparent; }
-/* The key (.key): three words, each after a 7px dot (a perfect circle). */
+/* The key (.key): two words, each after a 7px dot (a perfect circle). */
 .ats-key { display: flex; gap: 14px; flex-wrap: wrap; margin: 0 0 18px; font-size: 12.5px; line-height: 1.5; color: var(--c-pair-ink-faint); }
 .ats-key__i::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; }
 .ats-key__i[data-k="matched"]::before { background: var(--c-pair-matched); }
-.ats-key__i[data-k="claimed"]::before { background: var(--c-pair-kicker); }
 .ats-key__i[data-k="missing"]::before { background: var(--c-pair-rule); }
 .ats-sum[data-compact="true"] .ats-key { margin-bottom: 0; }
 
@@ -74,17 +72,6 @@ export const ATS_REPORT_CSS = `
 .ats-note[data-best="reached"] { color: var(--c-pair-matched); }
 .ats-note__best { font-weight: 500; }
 
-/* ── The quiet switches (.tabs): "You could claim · n" · "History" — corner 11, the pressed one outlined in the accent ── */
-.ats-tabs { display: flex; gap: 6px; margin: 0 0 14px; }
-.ats-tab {
-  all: unset; box-sizing: border-box; cursor: pointer; padding: 7px 12px; border-radius: 11px;
-  font-family: var(--font-body); font-weight: 500; font-size: 13.5px; line-height: 1.4;
-  color: var(--c-pair-ink-muted); background: var(--c-pair-surface);
-}
-.ats-tab[aria-pressed="true"] { color: var(--c-pair-ink); outline: 1px solid var(--c-pair-kicker); }
-.ats-tab:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; }
-/* With nothing to switch to it is a heading, not a control: the pressed look, no pointer. */
-.ats-tabs--one .ats-tab { cursor: default; color: var(--c-pair-ink); outline: 1px solid var(--c-pair-kicker); }
 [hidden] { display: none !important; }
 
 /* ── The body and its sections ─────────────────────────────────────────────────────────────── */
@@ -110,7 +97,6 @@ export const ATS_REPORT_CSS = `
 .ats-fold[open] > summary .ats-gh__label::before { content: "▾ "; }
 .ats-fold:not([open]) > summary { margin-bottom: 0; }
 .ats-fold > summary:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; border-radius: 4px; }
-.ats-claim-note { font-size: 12.5px; color: var(--c-pair-ink-faint); line-height: 1.55; margin: 14px 0 0; }
 
 /* ── Experience: its own row, pass/fail — a plain line, the state a word ─────────────────────── */
 .ats-exp { display: flex; align-items: baseline; gap: 11px; font-size: 13.5px; line-height: 1.5; color: var(--c-pair-ink-muted); }
@@ -118,8 +104,8 @@ export const ATS_REPORT_CSS = `
 .ats-exp[data-state="met"] .ats-exp__mark { color: var(--c-pair-matched); }
 .ats-exp[data-state="short"] .ats-exp__mark { color: var(--c-pair-missing); }
 
-/* ── The rows (.cl): the term · its kind in small type · at the end, "That's true of me" ─────── */
-.ats-claims { display: grid; gap: 0; }
+/* ── The rows (.cl): the term · its kind in small type — read-only (46x: no claims) ─────────── */
+.ats-rows { display: grid; gap: 0; }
 .ats-cl {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 11px 0;
   border-top: 1px solid var(--c-pair-rule); font-size: 15.5px; line-height: 1.4; color: var(--c-pair-ink);
@@ -130,14 +116,6 @@ export const ATS_REPORT_CSS = `
 .ats-cl__kind { margin-left: 8px; font-size: 12.5px; color: var(--c-pair-ink-faint); }
 .ats-cl[data-tone="gen"] { color: var(--c-pair-ink-muted); }
 .ats-cl:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; }
-.ats-cl__state { font-size: 13.5px; font-weight: 500; color: var(--c-pair-ink-faint); }
-.ats-cl__claim {
-  all: unset; box-sizing: border-box; cursor: pointer; padding: 6px 10px; border-radius: 10px; white-space: nowrap;
-  font-family: var(--font-body); font-size: 13.5px; font-weight: 500; line-height: 1.4; color: var(--c-pair-kicker);
-}
-.ats-cl__claim:hover { background: var(--c-pair-surface); }
-.ats-cl__claim:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; }
-.ats-cl__claim[aria-pressed="true"] { color: var(--c-pair-ink-faint); }
 /* ── More about this match ───────────────────────────────────────────────────────────────────── */
 .ats-sec__label {
   font-size: 9px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; color: var(--c-pair-ink-faint);
@@ -150,14 +128,10 @@ export const ATS_REPORT_CSS = `
 
 /* ── D91 P4 · SHAPE CUES (moved from client/src/styles/cues.css — a document rule cannot reach into a shadow root).
    A user setting, not a theme: the host carries cues="shape" (the web app sets it from the one stored preference).
-   The bar: yours solid · claimed hatched · missing the bare track. ⛔ No reflow — a pattern, not a size. */
-:host([cues="shape"]) .ats-bar__seg--claimed {
-  background-image: repeating-linear-gradient(135deg, transparent 0 2px, var(--c-pair-surface) 2px 3.5px);
-}
+   The bar: yours solid · missing the bare track (its edge, below). ⛔ No reflow — a pattern, not a size. */
 
-/* forced-colors (Windows High Contrast): the switches and the claim buttons keep an edge, the bar an outline (cues.css P5). */
+/* forced-colors (Windows High Contrast): the bar keeps an outline (cues.css P5). */
 @media (forced-colors: active) {
-  .ats-tab, .ats-cl__claim { border: 1px solid ButtonText; }
   .ats-bar { border: 1px solid CanvasText; }
 }
 `;

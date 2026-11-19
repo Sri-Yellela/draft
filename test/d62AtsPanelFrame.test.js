@@ -86,7 +86,9 @@ test("⭐ D62 → D152 (8) · History is the report's switch, and counts THIS jo
   const jd = code(read("client/src/components/JobDetailPanel.jsx"));
   assert.match(jd, /api\(`\/api\/resumes\/\$\{encodeURIComponent\(versionsJobId\)\}\/versions`\)/, "the job's résumé versions");
   assert.match(jd, /history=\{matchHistory\} bare \/>/);
-  assert.match(read("shared/atsReportElement.js"), /\["history", "History"\]/);
+  // ⭐ 46x: the versions ride with the ATS card behind one toggle; the report's History switch is retired.
+  assert.match(read("client/src/components/AtsCard.jsx"), /"Your résumés for this job"/);
+  assert.doesNotMatch(read("shared/atsReportElement.js"), /\["history", "History"\]/);
 });
 
 test("⭐ D62 · ONE list component, two homes: the posting match's History and Settings' Generated résumés", () => {

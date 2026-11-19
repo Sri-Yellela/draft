@@ -293,20 +293,13 @@ test("AG2: the ATS chips claim through the reversible route, not the one-way add
   // ⭐ 46x (owner 11-19: "ditch the whole prove it and claim it gimmick … from the jd panel"): the posting's panel claims
   // nothing now — it draws the ATS card (AtsCard). The route and the shared component's claim branch stay below as built.
   assert.doesNotMatch(panel, /setProfileClaim|toggleClaim/);
-  // A52: ATSPanel hands its toggle to the one report implementation, which calls it per kind.
-  // T9: the one component (shared/atsReportElement.js) DISPATCHES the claim (draft-ats-claim { kind, term, claimed });
-  // the web wrapper hands it to ATSPanel's toggle, per kind — the same reversible call.
-  const wrapper = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
-  const report = fs.readFileSync("shared/atsReportElement.js", "utf8") + fs.readFileSync("shared/atsReportModel.js", "utf8");
-  assert.match(wrapper, /latest\.current\.claims\?\.onToggle\?\.\(kind, term, claimed\)/);
-  assert.match(report, /\{ detail: \{ kind: claimKind, term: k, claimed: !claimed \}, bubbles: true, composed: true \}/);
-  // D31 (the weave dropped): skills and competencies are claimed in "You could claim" — the same reversible call.
-  // D32 re-pin: ONE block, each box claiming through its scorer bucket's route — skill and quality as
-  // "skill", verb as "action_verb" — the same two reversible kinds.
-  assert.match(report, /const claimKind = TERM_KINDS\[kind\]\?\.claim \|\| "skill";/);
-  assert.match(report, /skill: +\{ label: "skill", +claim: "skill" \}/);
-  assert.match(report, /quality: \{ label: "quality", claim: "skill" \}/);
-  assert.match(report, /verb: +\{ label: "verb", +claim: "action_verb" \}/);
+  // ⭐ 46x ("do the clean up"): the one report component claims nothing either — no claim event, no claim button, no
+  // claim prop on the web wrapper. The route stays (the profile's own claims use it); the report's bucket kinds stay.
+  const wrapper = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8").replace(/^\s*\/\/.*$/gm, "");
+  const report = fs.readFileSync("shared/atsReportElement.js", "utf8").replace(/^\s*(\/\/|\*).*$/gm, "");
+  assert.doesNotMatch(wrapper, /claims|ATS_CLAIM_EVENT|onToggle/);
+  assert.doesNotMatch(report, /draft-ats-claim|ATS_CLAIM_EVENT|claimKind|ats-cl__claim/);
+  assert.match(fs.readFileSync("shared/atsReportModel.js", "utf8"), /quality: \{ label: "quality", claim: "skill" \}/);
 
   // The superseded one-way helpers must be gone from the client, so there is one way to do this.
   for (const dead of ["addSkillToProfile", "addVerbToProfile", "buildProfileSuggestionLookup"]) {
@@ -334,28 +327,12 @@ test("AG2: nothing is pre-selected — only what the candidate claimed reads as 
   assert.match(aggregator, /CLAIM_ASSERTIONS = new Set\(\[ASSERTIONS\.CLAIMED, ASSERTIONS\.APPLIED\]\)/);
   assert.match(aggregator, /ASSERTIONS = \{ NONE: "none", CLAIMED: "claimed", APPLIED: "applied" \}/);
 
-  // ⛔ CC4 REVERSED WHAT THIS ASSERTS, AND KEPT THE PROPERTY IT WAS PROTECTING.
-  //
-  // It used to require the panel to say "It does not change this score", on the reasoning that
-  // claims were kept out of the scoring basis so a claim could not flatter its own number. Claims
-  // now DO count — that is the feature — so the panel must say so instead. What has NOT changed is
-  // the thing that actually fights the bad incentive: the copy asks for the truth and never offers
-  // a reward, and nothing is pre-checked.
-  //
-  // Checked against the code with COMMENTS STRIPPED. The comment explaining why the copy must not
-  // say "add this to improve your score" contains that phrase, and matching it there would fail on
-  // the very sentence that documents the rule.
+  // ⭐ 46x (owner 11-19: "ditch the whole prove it and claim it gimmick", "do the clean up"): the report has NO claim copy
+  // now — no button, no "counts toward this score" line. What this test protected still holds, trivially: nothing is
+  // pre-selected (nothing can be selected) and nothing is framed as a reward.
   const visible = panel.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
-  assert.doesNotMatch(visible, /improve your score|boost your score|increase your score/i,
-    "the chip must never be framed as a reward — that is the incentive this feature must not create");
-  assert.match(visible, /counts toward this/,
-    "the panel must say plainly that a claim DOES count, now that it does");
-  assert.doesNotMatch(visible, /does not change this score/i,
-    "and must not still carry the old promise, which is now false");
-  assert.match(visible, /only if it is|claim it only if/i,
-    "the ask must be for the truth, not for the number");
-  assert.match(visible, /is true of you|You claimed this/,
-    "the copy must read as the candidate claiming, not as the product advising");
+  assert.doesNotMatch(visible, /improve your score|boost your score|increase your score/i);
+  assert.doesNotMatch(visible, /That's true of me|counts toward this|Claimed · undo|aria-pressed/, "a claim is back in the report");
 });
 
 test("AG2: a claim informs FUTURE generation and never rewrites an existing resume", () => {

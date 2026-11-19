@@ -11,7 +11,7 @@
 //   2. the same report renders the same words and numbers on both surfaces (the web path and the extension's data path)
 //   3. theme parity — the component's token values ARE the registry's, all four themes; shape cues travel with it
 //   4. job terms are rendered as TEXT, never markup; the component makes no request and runs no parsed HTML
-//   5. keyboard and screen reader: claim boxes are real buttons with aria-pressed, folds are details/summary
+//   5. keyboard and screen reader: every row is read-only (46x: no claims), folds are details/summary
 //   6. the consumers: the wrapper is thin, the popup and the panel load the bundle; nothing extension-only
 //   7. in a REAL Chrome: the popup (the real unpacked extension page, its CSS and its CSP) and a web-app host page draw
 //      the same pixels, per theme, cues off and on; no request; the keyboard claims a term (skips with its reason
@@ -24,7 +24,7 @@ import path from "node:path";
 import vm from "node:vm";
 import { miniDocument } from "../test-support/miniDom.mjs";
 import { at } from "../test-support/sourceAnchors.js";
-import { buildAtsReport, ATS_CLAIM_EVENT, ATS_TERM_EVENT } from "../shared/atsReportElement.js";
+import { buildAtsReport, ATS_TERM_EVENT } from "../shared/atsReportElement.js";
 import { cleanReport, fromDeckReport } from "../shared/atsReportModel.js";
 import { ATS_REPORT_CSS, atsHostCss } from "../shared/atsReportStyles.js";
 import { ATS_REPORT_THEMES, ATS_REPORT_DEFAULT_THEMES } from "../shared/atsReportTokens.js";
@@ -183,40 +183,24 @@ test("⛔ T9 · the component makes no request and loads nothing — no fetch, n
 });
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-// 5 · KEYBOARD AND SCREEN READER · CLAIMS ARE THE HOST'S
+// 5 · KEYBOARD AND SCREEN READER · READ-ONLY (⭐ 46x, owner 11-19: "ditch the whole prove it and claim it gimmick", then
+//     "do the clean up" — the claim buttons, the claimed segment and the You could claim / History switches are retired)
 // ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-test("⭐ T9 · read-only without claims (the extension, the public tool); real buttons with aria-pressed with them", () => {
-  const ro = buildAtsReport(miniDocument(), cleanReport(RAW));
-  assert.equal(ro.querySelectorAll("button").length, 0, "a read-only card offers a control");
-  assert.equal(ro.querySelectorAll("[data-claim-note]").length, 0, "the claim copy shows where nothing can be claimed");
-  const host = new EventTarget();
-  const got = [];
-  host.addEventListener(ATS_CLAIM_EVENT, (e) => got.push(e.detail));
-  const rw = buildAtsReport(miniDocument(), cleanReport(RAW), { host, claims: { pending: new Set(["skill:mentoring"]) } });
-  const buttons = rw.querySelectorAll("button");
-  assert.equal(buttons.length, 4, "one \"That's true of me\" per 'You could claim' row (no switch without a History)");
-  for (const b of buttons) { assert.equal(b.getAttribute("type"), "button"); assert.ok(["true", "false"].includes(b.getAttribute("aria-pressed"))); }
-  // NOTHING IS PRE-SELECTED: only the click in flight reads as claimed.
-  assert.deepEqual(buttons.filter((b) => b.getAttribute("aria-pressed") === "true").map((b) => b.getAttribute("data-key")), ["quality:mentoring"]);
-  buttons.find((b) => b.getAttribute("data-key") === "verb:Scaled").click();
-  buttons.find((b) => b.getAttribute("data-key") === "quality:mentoring").click();
-  assert.deepEqual(got, [{ kind: "action_verb", term: "Scaled", claimed: true }, { kind: "skill", term: "mentoring", claimed: false }]);
+test("⭐ T9 → 46x · the report is read-only on every surface: no button, no claim copy, no switch; the folds and the bar say what they show", () => {
+  const rw = buildAtsReport(miniDocument(), cleanReport(RAW));
+  assert.equal(rw.querySelectorAll("button").length, 0, "a read-only card offers a control");
+  for (const sel of ["[data-claim-note]", "[data-ats-view]", "[aria-pressed]"]) assert.equal(rw.querySelectorAll(sel).length, 0, `a claim or a switch is back: ${sel}`);
+  assert.doesNotMatch(rw.textContent, /That's true of me|Claimed · undo|You could claim|claimed by you/);
+  // the missing terms: one labelled block of plain rows
+  assert.equal(rw.querySelector("[data-ats-missing]").querySelectorAll(".ats-cl").length, 4);
   // The folds are native disclosure widgets, closed by default; the bar says what it shows.
   assert.equal(rw.querySelectorAll("details").length, 2);
   assert.ok(rw.querySelectorAll("details").every((d) => !d.hasAttribute("open") && d.children[0].localName === "summary"));
   const bar = rw.querySelector("[data-ats-bar]");
   assert.equal(bar.getAttribute("role"), "img");
-  // ⭐ D152 (8): the bar is on your résumé · claimed by you · missing (generic language is not an ask, so not on it).
-  assert.equal(bar.getAttribute("aria-label"), "4 of 8 asks already on your résumé; 1 claimed by you");
-  assert.match(rw.textContent, /That's true of me/);
-  assert.match(rw.textContent, /Claimed · undo/);
-  // ⭐ D152 (8): with a History, the two quiet switches — buttons with aria-pressed; the History panel is the host's slot.
-  const hist = buildAtsReport(miniDocument(), cleanReport(RAW), { host, claims: { pending: new Set() }, history: true });
-  const sw = hist.querySelectorAll("button[data-ats-view]");
-  assert.deepEqual(sw.map((b) => [b.textContent, b.getAttribute("aria-pressed")]), [["You could claim · 4", "true"], ["History", "false"]]);
-  assert.ok(hist.querySelector('[data-ats-view-panel="history"]').hasAttribute("hidden"));
-  assert.equal(hist.querySelectorAll('slot[name="history"]').length, 1);
+  // ⭐ D152 (8) → 46x: the bar is on your résumé · missing (generic language is not an ask, so not on it).
+  assert.equal(bar.getAttribute("aria-label"), "4 of 8 asks already on your résumé");
 });
 
 test("⭐ T9 · D32's hover link: only where the host asks — focus and pointer say the term, leaving says null", () => {
@@ -239,8 +223,7 @@ test("⭐ T9 · D32's hover link: only where the host asks — focus and pointer
 test("⛔ T9 · the web wrapper is THIN — it reads no section, prints no copy, and only passes inputs and events", () => {
   const w = stripJs(read("client/src/components/AtsReport.jsx"));
   assert.doesNotMatch(w, /tier1_|competencies_|action_verbs_|decline_reasons|You could claim|Already yours|ats-box|className=/);
-  assert.match(w, /el\.addEventListener\(ATS_CLAIM_EVENT, onClaim\)/);
-  assert.match(w, /latest\.current\.claims\?\.onToggle\?\.\(kind, term, claimed\)/, "the claim goes back through ATSPanel's toggle (AG2)");
+  assert.doesNotMatch(w, /claims|ATS_CLAIM_EVENT|onToggle|history/, "46x: the wrapper passes no claims and no history");
   assert.match(w, /latest\.current\.link\?\.light\(e\.detail\?\.term \|\| null\)/, "the hover link reaches lib/pairLink.js");
   assert.ok(!fs.existsSync("client/src/components/AtsReport.css"), "the old stylesheet is back beside the component");
 });
@@ -324,10 +307,8 @@ draft-ats-report { width: 300px; }
 </style></head><body><div class="warm">warm <b>up</b> <i>the</i> <s>faces</s></div>
 <draft-ats-report id="card"></draft-ats-report>
 <script type="module">
-import { defineAtsReportElement, ATS_CLAIM_EVENT } from "/shared/atsReportElement.js";
+import { defineAtsReportElement } from "/shared/atsReportElement.js";
 defineAtsReportElement();
-window.claims = [];
-document.getElementById("card").addEventListener(ATS_CLAIM_EVENT, (e) => window.claims.push(e.detail));
 window.ready = true;
 </script></body></html>`;
 
@@ -451,7 +432,7 @@ test("⭐ T9 · REAL CHROME: the extension's bundle and the web app draw the sam
     assert.ok(da.equals(dt), `no theme, dark OS: not Charcoal Dark — ${da.equals(dt) ? "" : await pictureDiff(page, da, dt)}`);
   });
 
-test("⭐ T9 · REAL CHROME: the keyboard claims a term — Tab to the box, Space presses it — and a redraw keeps focus and folds",
+test("⭐ T9 → 46x · REAL CHROME: the keyboard reaches the folds (no claim button to stop on) — and a redraw keeps the open fold",
   { skip: chrome.skip || false, timeout: 120000 }, async (t) => {
     let h;
     try { h = await launchExtensionBrowser({ theme: "light" }); }
@@ -461,17 +442,14 @@ test("⭐ T9 · REAL CHROME: the keyboard claims a term — Tab to the box, Spac
     const page = await h.browser.newPage();
     await page.goto(`${web.origin}/host.html`);
     await page.waitForFunction(() => window.ready === true);
-    await page.evaluate((r) => { const el = document.getElementById("card"); el.report = r; el.claims = { pending: [] }; el.render();
+    await page.evaluate((r) => { const el = document.getElementById("card"); el.report = r; el.render();
       el.shadowRoot.querySelector("details[data-fold=on-resume]").open = true; }, JSON.parse(JSON.stringify(RAW)));
     await page.keyboard.press("Tab");
-    const first = await page.evaluate(() => document.getElementById("card").shadowRoot.activeElement?.getAttribute("data-key"));
-    assert.equal(first, "skill:Kafka", "the first claim box is the first stop");
-    await page.keyboard.press("Space");
-    assert.deepEqual(await page.evaluate(() => window.claims), [{ kind: "skill", term: "Kafka", claimed: true }]);
-    // The host answers with new claim state (as ATSPanel does); the card redraws — focus and the open fold stay.
-    await page.evaluate(() => { const el = document.getElementById("card"); el.claims = { pending: ["skill:Kafka"] }; el.render(); });
-    const after = await page.evaluate(() => { const r = document.getElementById("card").shadowRoot;
-      return { focus: r.activeElement?.getAttribute("data-key"), pressed: r.activeElement?.getAttribute("aria-pressed"),
-               open: !!r.querySelector("details[data-fold=on-resume]").open }; });
-    assert.deepEqual(after, { focus: "skill:Kafka", pressed: "true", open: true });
+    const first = await page.evaluate(() => document.getElementById("card").shadowRoot.activeElement?.localName || null);
+    assert.equal(first, "summary", "the first stop is a fold's summary — the report has no button");
+    // A new report (a re-score) redraws the card — the open fold stays open.
+    await page.evaluate((r) => { const el = document.getElementById("card"); el.report = { ...r, score: (r.score || 0) + 1 }; el.render(); }, JSON.parse(JSON.stringify(RAW)));
+    const after = await page.evaluate(() => ({ open: !!document.getElementById("card").shadowRoot.querySelector("details[data-fold=on-resume]").open,
+      buttons: document.getElementById("card").shadowRoot.querySelectorAll("button").length }));
+    assert.deepEqual(after, { open: true, buttons: 0 });
   });

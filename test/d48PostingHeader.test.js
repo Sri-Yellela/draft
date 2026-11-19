@@ -61,7 +61,8 @@ test("D48 · owner: \"the ATS number switches colour\" — the ATS card's accent
   // ⭐ D152 (8), changed on purpose: the big serif number left the card (option A: "A 66% match." is a sentence); its
   // one accent — the claim button and the claimed segment — is still the kicker ink, never the brand accent.
   const css = read("shared/atsReportStyles.js");
-  const rule = css.slice(at(css, ".ats-cl__claim {"), at(css, ".ats-cl__claim:hover {"));
+  // ⭐ 46x: the claim button is retired; the card's one accent left is the Atlas link — still the kicker ink.
+  const rule = css.slice(at(css, ".ats-atlas {"), at(css, ".ats-atlas:hover {"));
   assert.match(rule, /color: var\(--c-pair-kicker\);/);
   assert.doesNotMatch(css, /--c-pair-accent/);
 });

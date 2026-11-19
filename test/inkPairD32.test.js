@@ -51,7 +51,7 @@ const FULL = cleanReport({ source: "local_ats_v5", score: 52, tier1_matched: ["G
   competencies_matched: ["ownership"], competencies_missing: ["mentoring"], action_verbs_matched: ["Shipped"],
   action_verbs_missing: ["Scaled"], action_verbs_generic: ["Managed"],
   experience: { summary: "Meets 4+ years.", requiredYears: 4, candidateYears: 6, fit: true } });
-const DRAWN = buildAtsReport(miniDocument(), FULL, { claims: { pending: [] } }).outerHTML;
+const DRAWN = buildAtsReport(miniDocument(), FULL).outerHTML;
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 // RE-PINNED FROM D31 (atsSimpleCardD31.test.js, retired) — every constraint survives
@@ -102,15 +102,16 @@ test("⭐ the header is the count · one sentence · ONE bar and its key — the
   const score = card.indexOf('"data-ats-score"');
   const bar = card.indexOf("askBar(doc, ");
   assert.ok(count > 0 && score > 0 && bar > count && bar > score, "the header's order is count, sentence, bar");
-  assert.match(card, /`\$\{matched \+ claimed\} of \$\{total\} things this posting asks for`/);
+  // 46x (owner 11-19: "ditch the whole prove it and claim it gimmick", "do the clean up"): no claimed count
+  assert.match(card, /`\$\{matched\} of \$\{total\} things this posting asks for`/);
   assert.doesNotMatch(card, /ats-sum__band|meta\.label\)/, "the band heading is back");
   assert.equal((card.match(/askBar\(doc, /g) || []).length, 1, "ONE bar");
   const order = ["data-ats-count", "data-ats-score", "data-ats-bar"].map((k) => DRAWN.indexOf(k));
   assert.ok(order.every((i, n) => i > 0 && (n === 0 || i > order[n - 1])), `the drawn header's order: ${order}`);
-  // D152 (8): TWO coloured segments over the bare track — on your résumé · claimed by you; the track is "missing".
+  // D152 (8) → 46x: ONE coloured segment over the bare track — on your résumé; the track is "missing" (no claimed segment).
   const segs = askBar.match(/ats-bar__seg--(\w+)/g) || [];
-  assert.deepEqual(segs, ["ats-bar__seg--matched", "ats-bar__seg--claimed"]);
-  assert.match(DRAWN, /<span class="ats-key__i" data-k="matched">on your résumé<\/span><span class="ats-key__i" data-k="claimed">claimed by you<\/span><span class="ats-key__i" data-k="missing">missing<\/span>/);
+  assert.deepEqual(segs, ["ats-bar__seg--matched"]);
+  assert.match(DRAWN, /<span class="ats-key__i" data-k="matched">on your résumé<\/span><span class="ats-key__i" data-k="missing">missing<\/span>/);
   // ⭐ D50 (owner, 10-07): the number is ON and provisional — still gated on a score (no score → no digit).
   assert.match(card, /const showNumber = ATS_NUMBER_SHOWN && !isUnknown && Number\.isFinite\(report\?\.score\);/);
   assert.match(read("shared/atsBands.js"), /export const ATS_NUMBER_SHOWN = true;/, "D50 turned the number on");
@@ -123,40 +124,26 @@ test("⭐ the header is the count · one sentence · ONE bar and its key — the
   assert.doesNotMatch(lists, /generic/, "generic language counted as an ask");
 });
 
-test("⭐ \"You could claim\" is the ONLY open section; \"Already yours\" and generic fold away", () => {
+test("⭐ \"Not on your résumé\" is the ONLY open section; \"Already yours\" and generic fold away (46x: no claims)", () => {
   const visible = strip(body);
   assert.equal((visible.match(/h\(doc, "section"/g) || []).length, 1, "one open section");
-  // D152 (8): "You could claim · n" heads it (a switch beside "History" where the host has one, else a quiet heading).
-  assert.match(DRAWN, /<span class="ats-tab" data-ats-view="claim">You could claim · 3<\/span>/);
-  assert.match(DRAWN, /<section data-ats-could-claim class="ats-sec ats-sec--claim">/);
+  assert.match(DRAWN, /<section data-ats-missing class="ats-sec ats-sec--miss"><div class="ats-gh"><span class="ats-gh__label">Not on your résumé<\/span><span class="ats-gh__ct">3<\/span><\/div>/);
   assert.match(DRAWN, /<details data-ats-on-resume data-fold="on-resume" class="ats-fold ats-sec"><summary class="ats-gh"><span class="ats-gh__label">Already yours/);
   assert.match(DRAWN, /<details data-ats-generic data-fold="generic" class="ats-fold ats-sec"><summary class="ats-gh"><span class="ats-gh__label">Generic — not a gap/);
   for (const d of DRAWN.match(/<details\b[^>]*>/g) || []) assert.doesNotMatch(d, /\bopen\b/, `a fold opens by default: ${d}`);
   // ⛔ ONE block: no per-kind sections beside it (the old Skills / Verbs / Competencies Missing).
   assert.doesNotMatch(visible, /Skills Missing|Verbs Missing|Competencies Missing|title: "[^"]*(Matched|Missing)"/);
-  assert.equal((DRAWN.match(/<section data-ats-could-claim/g) || []).length, 1);
+  assert.equal((DRAWN.match(/<section data-ats-missing/g) || []).length, 1);
+  assert.doesNotMatch(DRAWN, /You could claim|data-ats-view|History/, "the switches are retired");
 });
 
-test("⛔ the claim copy appears ONCE, beneath the claim rows, where the action is", () => {
-  assert.equal((JSX.match(/Claiming says it's true of you/g) || []).length, 1);
-  const section = DRAWN.slice(at(DRAWN, "<section data-ats-could-claim"), at(DRAWN, "</section>"));
-  assert.ok(section.indexOf("Claiming says it's true of you") > section.lastIndexOf("ats-cl__claim"),
-    "the claim copy must sit beneath the rows, inside the one open section");
-  assert.match(section, /Nothing is ever pre-selected\./);
-});
-
-test("⛔ nothing is pre-selected; a claim is a plain row with \"That's true of me\" at its end", () => {
-  // A row reads as claimed only from what the candidate did: a lock, a claim, or a click in flight.
-  assert.match(box, /const claimed = locked \|\| claimedKeys\.has\(itemKey\) \|\| \(claims \? claims\.pending\.has\(`\$\{claimKind\}:\$\{k\}`\) : false\);/);
-  assert.doesNotMatch(DRAWN, /aria-pressed="true"/, "a row drew as claimed with nothing claimed");
+test("⛔ no claims anywhere in the report (46x, owner 11-19): no claim button, no claim copy, no claim event, no claimed state", () => {
+  assert.doesNotMatch(code, /Claiming says it's true of you|That's true of me"\)|Claimed · undo|ats-cl__claim"|draft-ats-claim|data-claim-chip|claimState\(/);
+  assert.doesNotMatch(DRAWN, /<button|aria-pressed/, "a read-only report draws no button");
   assert.doesNotMatch(code, /defaultChecked|useState\(true\)/);
-  assert.match(box, /claimed \? "Claimed · undo" : "That's true of me"/);
-  assert.match(box, /class: "ats-cl__claim"/);
-  assert.match(box, /"aria-pressed": claimed \? "true" : "false"/);
-  assert.equal((DRAWN.match(/>That's true of me<\/button>/g) || []).length, 3, "one per row you could claim");
+  assert.doesNotMatch(WRAPPER.replace(/^\s*\/\/.*$/gm, ""), /claims|ATS_CLAIM_EVENT|history/, "the wrapper hands the element no claims and no history");
   assert.match(css, /\.ats-cl \{[^}]*grid-template-columns: minmax\(0, 1fr\) auto;[^}]*padding: 11px 0;[^}]*border-top: 1px solid var\(--c-pair-rule\);/);
-  assert.match(css, /\.ats-cl__claim:focus-visible \{ outline: 2px solid var\(--c-pair-kicker\);/, "the claim lost its focus ring");
-  assert.match(css, /\.ats-cl__claim \{[^}]*border-radius: 10px;/);
+  assert.doesNotMatch(css, /ats-cl__claim|ats-claim-note|ats-bar__seg--claimed|ats-tab\b/, "a retired claim style is back");
   assert.doesNotMatch(css, /ats-box/, "the depth boxes are back");
   assert.doesNotMatch(css, /border-radius: 999px/, "a pill is back");
 });
@@ -204,12 +191,12 @@ test("⛔ the `kind` label is the SCORER'S BUCKET, carried — skill · verb · 
   assert.match(read("services/standaloneAts.js"), /competencies_missing: report\.competencies_missing \|\| \[\]/);
 });
 
-test("⭐ Experience gets its OWN ROW — pass/fail, between the claim block and the folds", () => {
-  const claim = DRAWN.indexOf("<section data-ats-could-claim");
+test("⭐ Experience gets its OWN ROW — pass/fail, between the missing block and the folds", () => {
+  const claim = DRAWN.indexOf("<section data-ats-missing");
   const exp = DRAWN.indexOf("data-ats-experience");
   const yours = DRAWN.indexOf("<details data-ats-on-resume");
   const generic = DRAWN.indexOf("<details data-ats-generic");
-  assert.ok(claim > 0 && exp > claim && yours > exp && generic > yours, "claim · experience · already yours · generic");
+  assert.ok(claim > 0 && exp > claim && yours > exp && generic > yours, "missing · experience · already yours · generic");
   // Four states, from the scorer's numbers — never from its prose — and a legacy card is no mark at all.
   assert.equal(experienceState({ requiredYears: 5, candidateYears: 6, fit: true }), "met");
   assert.equal(experienceState({ requiredYears: 5, candidateYears: 2, fit: false }), "short");

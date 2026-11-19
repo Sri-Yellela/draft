@@ -69,7 +69,7 @@ const asTerms = (list, kind) => (Array.isArray(list) ? list : []).filter(t => ty
 
 /**
  * D32: what the card counts. Every real ask the posting makes — skills, competencies (qualities) and
- * its job-specific verbs — is either already on the résumé or something the candidate could claim.
+ * its job-specific verbs — is either already on the résumé or not on it (`couldClaim`: the name is kept for its callers).
  * Generic language is in NEITHER: it is not a gap, so it is not in the denominator either; the bar
  * draws it as its own third segment so the reader sees it was read and set aside.
  */

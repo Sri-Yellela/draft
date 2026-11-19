@@ -238,11 +238,13 @@ test("the panel renders both new buckets, and AG2's copy is untouched", () => {
   // include "It does not change this score". A claim now counts toward the score and toward where
   // the job ranks, so that sentence had to go — copy promising one thing while the code does
   // another is a lie, not a caveat. The two that describe unchanged behaviour stay.
-  for (const sentence of [
-    "Claiming says it's true of you",   // ⭐ D152 (8): option A's wording of the same promise
-    "never rewrites one you already have",
-    "counts toward this",
-  ]) assert.ok(panel.includes(sentence), sentence);
+  // ⭐ 46x (owner 11-19: "ditch the whole prove it and claim it gimmick", "do the clean up"): the claim copy is gone with
+  // the claims — the report says what is and is not on the résumé, and offers nothing to press.
+  const live = panel.replace(/^\s*(\/\/|\*).*$/gm, "");
+  for (const sentence of ["Claiming says it's true of you", "never rewrites one you already have", "counts toward this"]) {
+    assert.ok(!live.includes(sentence), `the claim copy is back: ${sentence}`);
+  }
+  assert.match(panel, /"Not on your résumé"/);
   assert.ok(!panel.includes("It does not change this score"),
     "the panel must not still claim that a claim does not affect the score — since CC4 it does");
 });

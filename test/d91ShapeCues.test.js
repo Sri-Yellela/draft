@@ -79,9 +79,9 @@ test("⛔ the hue-only places the audit found (§5) all have a cue", () => {
   // ⭐ T9: the pair's bar is inside the ATS report's shadow root, so its cues travel with the component — keyed on the
   // host's cues="shape", which the web wrapper sets from the same one preference.
   // ⭐ D152 (8): the bar is yours · claimed · missing (the bare track) — the claimed segment carries the hatch.
-  for (const sel of [".ats-bar__seg--claimed"]) {
-    assert.ok(ATS_REPORT_CSS.includes(`:host([cues="shape"]) ${sel}`), `no cue for ${sel} in the ATS report`);
-  }
+  // ⭐ 46x: the claimed segment (the one that needed the hatch) is retired with the claims; the bar is a fill against the
+  // bare track — never hue alone.
+  assert.ok(!ATS_REPORT_CSS.includes(".ats-bar__seg--claimed"), "the claimed segment is back");
   assert.match(read("client/src/components/AtsReport.jsx"), /\.\.\.\(CUES \? \{ cues: "shape" \} : \{\}\)/);
   // Draft House's protective / blocking dots: a glyph each, not only amber against red.
   const sections = read("client/src/panels/AutoApplyPanelSections.jsx");

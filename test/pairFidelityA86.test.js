@@ -215,21 +215,17 @@ const FIDELITY = [
   [A_, ".ats-sum__sub", "margin", "0 0 14px"], [A_, ".ats-sum__sub", "color", "var(--c-pair-ink-muted)"],
   // .bar — 6px, on the rule's colour; .key — 12.5px, gap 14, the 7px dots
   [A_, ".ats-bar", "height", "6px"], [A_, ".ats-bar", "background", "var(--c-pair-rule)"], [A_, ".ats-bar", "margin", "0 0 6px"],
-  [A_, ".ats-bar__seg--matched", "background", "var(--c-pair-matched)"], [A_, ".ats-bar__seg--claimed", "background", "var(--c-pair-kicker)"],
+  // ⭐ 46x (owner 11-19: "ditch the whole prove it and claim it gimmick", "do the clean up"): the claimed segment, the
+  // You could claim / History switches and the claim button are retired — their rows of this table went with them.
+  [A_, ".ats-bar__seg--matched", "background", "var(--c-pair-matched)"],
   [A_, ".ats-key", "gap", "14px"], [A_, ".ats-key", "font-size", "12.5px"], [A_, ".ats-key", "margin", "0 0 18px"],
   [A_, ".ats-key__i::before", "width", "7px"], [A_, ".ats-key__i::before", "border-radius", "50%"], [A_, ".ats-key__i::before", "margin-right", "6px"],
   // .tabs
-  [A_, ".ats-tabs", "gap", "6px"], [A_, ".ats-tabs", "margin", "0 0 14px"],
-  [A_, ".ats-tab", "padding", "7px 12px"], [A_, ".ats-tab", "border-radius", "11px"], [A_, ".ats-tab", "font-size", "13.5px"],
-  [A_, ".ats-tab", "background", "var(--c-pair-surface)"], [A_, '.ats-tab[aria-pressed="true"]', "outline", "1px solid var(--c-pair-kicker)"],
   // .cl · its button · .fine
   [A_, ".ats-cl", "grid-template-columns", "minmax(0, 1fr) auto"], [A_, ".ats-cl", "gap", "12px"], [A_, ".ats-cl", "padding", "11px 0"],
   [A_, ".ats-cl", "border-top", "1px solid var(--c-pair-rule)"], [A_, ".ats-cl:first-child", "border-top", "0"],
   [A_, ".ats-cl__term b", "font-weight", "500"], [A_, ".ats-cl__kind", "margin-left", "8px"], [A_, ".ats-cl__kind", "font-size", "12.5px"],
-  [A_, ".ats-cl__claim", "padding", "6px 10px"], [A_, ".ats-cl__claim", "border-radius", "10px"], [A_, ".ats-cl__claim", "font-size", "13.5px"],
-  [A_, ".ats-cl__claim", "color", "var(--c-pair-kicker)"], [A_, ".ats-cl__claim:hover", "background", "var(--c-pair-surface)"],
-  [A_, '.ats-cl__claim[aria-pressed="true"]', "color", "var(--c-pair-ink-faint)"],
-  [A_, ".ats-claim-note", "font-size", "12.5px"], [A_, ".ats-claim-note", "margin", "14px 0 0"],
+
 ];
 
 test("⭐ the boxes and the type are the sketch's, rule by rule", () => {
