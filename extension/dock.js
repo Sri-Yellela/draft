@@ -540,14 +540,16 @@
         : `<div class="pane" data-tab="${tab}"><slot name="view-${tab}"><div class="empty">${esc(EMPTY[tab] || '')}</div></slot></div>`;
       // The status line's "has" mark is part of the markup (a patch would otherwise take it off); slotchange keeps it.
       const hasStatus = !!host.querySelector(':scope > [slot="status"]');
+      // ⭐ D191 sketch 2: the panel alone keeps a quiet header — no pop-out, no dock-to-side (they belong to the tabs)
+      const lone = kind === 'dock' && f.active === 'draft' && !f.others;
       morph(fr, `
         <div class="hd" data-role="drag">
           <div class="mk" aria-hidden="true"><span class="sl">/</span>draft</div>
           ${kind === 'pop' ? `<span class="ttl" data-role="title">${esc(title)}</span>` : '<span class="sr">draft</span>'}
           <span class="sp"></span>
           ${moveBtn}
-          ${sideBtn()}
-          ${kind === 'dock' ? `<button class="ib" data-role="pop" aria-label="Open this tab in its own window" title="Open this tab in its own window">${icon('pop')}</button>`
+          ${lone ? '' : sideBtn()}
+          ${kind === 'dock' && lone ? '' : kind === 'dock' ? `<button class="ib" data-role="pop" aria-label="Open this tab in its own window" title="Open this tab in its own window">${icon('pop')}</button>`
             : `<button class="ib" data-role="dock-back" aria-label="Back into the dock" title="Back into the dock">${icon('dockBack')}</button>`}
           <button class="ib" data-role="collapse" aria-label="Collapse the panel" title="Collapse">${icon('minimise')}</button>
           ${kind === 'dock' && f.job ? submittedBtn() : ''}

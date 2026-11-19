@@ -86,6 +86,7 @@ export default async function run(h, { check, observe, section }) {
   observe('the panel as drawn', await waitUntil(async () => { const p = await panelOf(h); return p && p.kind !== 'arriving' ? p : null; }, 8000, 200));
   const other = await settled('other');
   observe('the panel', other);
+  observe('shot', await h.screenshot('d191-panel-other'));   // for the owner's look (docs/fidelity-shots)
   check('the day: new matches 2, need you, drafted — and the one box', other?.day?.length === 3 && /^2\s*new matches$/.test(other.day[0]) && other.ask, JSON.stringify(other));
   const popups = await h.page.evaluate(() => [...document.querySelectorAll('[data-draft-popup]')].map(e => e.id));
   check('…and no toast repeats the day', !popups.includes('draft-home'), JSON.stringify(popups));

@@ -65,6 +65,7 @@ export default async function run(h, { check, observe, section }) {
     return { panelAt: window.__d191At ?? null, domReady: nav?.domContentLoadedEventEnd ?? null, loaded: nav?.loadEventEnd ?? null, kinds: window.__d191Kinds };
   });
   observe('the panel', shown);
+  observe('shot', await h.screenshot('d191-panel-job'));   // for the owner's look (docs/fidelity-shots)
   observe('timing (ms since navigation start)', timing);
   check('the panel opened with no press — the job from the page, ONE button', !!shown?.title && !!shown.button, JSON.stringify(shown));
   const ms = timing.panelAt != null && timing.domReady != null ? Math.round(timing.panelAt - timing.domReady) : null;
@@ -151,4 +152,5 @@ export default async function run(h, { check, observe, section }) {
     return { checked: r?.querySelector('[data-set="review"]')?.getAttribute('aria-checked'), said: r?.querySelector('[data-role="said"]')?.textContent || '' }; });
   check('Review before I submit stays on, and the panel says why', review.checked === 'true' && /waits for your approval/.test(review.said), JSON.stringify(review));
   observe('the panel', open7);
+  observe('shot', await h.screenshot('d191-panel-resume'));
 }
