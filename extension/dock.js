@@ -35,7 +35,10 @@
   const VERSION = 1;
   if (globalThis.__draftDock?.version === VERSION) return;
 
+  // ⭐ D191 sketch 2 (owner, 11-18: "alright go") · THE PANEL is the dock's home: `draft` (This job) comes first and is
+  // the default; the tab row shows only once another tab has something to show (the form's Fill, an ATS report…).
   const TABS = Object.freeze([
+    Object.freeze({ id: 'draft', label: 'This job', icon: 'home' }),
     Object.freeze({ id: 'fill', label: 'Fill', icon: 'fill' }),
     Object.freeze({ id: 'ats', label: 'ATS', icon: 'ats' }),
     Object.freeze({ id: 'resume', label: 'Résumé', icon: 'resume' }),
@@ -64,6 +67,7 @@
     settings: 'M12 9.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6zM12 3v2.6M12 18.4V21M5.6 5.6l1.9 1.9M16.5 16.5l1.9 1.9M3 12h2.6M18.4 12H21M5.6 18.4l1.9-1.9M16.5 7.5l1.9-1.9',
     close: 'M6.5 6.5l11 11M17.5 6.5l-11 11',
     resize: 'M20 13l-7 7M20 7L7 20',
+    home: 'M4 11.5L12 4.5l8 7M6.5 9.8V19.5h11V9.8',
     fill: 'M4 6h9M4 11h6M4 16h4M13.5 19l.8-3.3 6-6a1.5 1.5 0 0 0-2.1-2.1l-6 6-.8 3.3z',
     ats: 'M5 20v-7M12 20V5M19 20v-4',
     resume: 'M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM14 3v5h5M9.5 13h6M9.5 17h6',
@@ -223,7 +227,7 @@
     const launch = Number.isFinite(p?.launch?.x) && Number.isFinite(p?.launch?.y) ? { x: Math.round(p.launch.x), y: Math.round(p.launch.y),
       ...(EDGES.includes(p.launch.edge) && Number.isFinite(p.launch.f) ? { edge: p.launch.edge, f: Math.min(Math.max(p.launch.f, 0), 1) } : {}) } : null;
     return { rect: rect(p?.rect), edge: EDGES.includes(p?.edge) ? p.edge : null, collapsed: p?.collapsed === true,
-      tab: TAB_IDS.includes(p?.tab) ? p.tab : 'fill', pops, ...(launch ? { launch } : {}) };
+      tab: TAB_IDS.includes(p?.tab) ? p.tab : 'draft', pops, ...(launch ? { launch } : {}) };
   }
 
   const overlaps = (a, b) => !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
@@ -372,6 +376,7 @@
   const LOGO = `'${LOGO_FACE}', 'Poppins', ui-sans-serif, system-ui, sans-serif`;
 
   const EMPTY = {
+    draft: 'What draft knows about this page shows here.',
     fill: 'Nothing has been filled on this page yet.',
     ats: 'The ATS report for this page shows here.',
     resume: 'The résumé made for this job shows here — its state, a preview, and Attach.',
@@ -436,7 +441,7 @@
     fr.setAttribute('role', kind === 'dock' ? 'complementary' : 'dialog');
     fr.setAttribute('aria-label', kind === 'dock' ? 'draft' : `draft — ${title}`);
     root.append(style, fr);
-    const f = { id, kind, tab, host, root, fr, place: { rect, edge, collapsed, launch }, active: 'fill', summary: {}, statusText: '' };
+    const f = { id, kind, tab, host, root, fr, place: { rect, edge, collapsed, launch }, active: 'draft', summary: {}, statusText: '', others: false };
     // ⭐ T28: the dock collapsed is the launcher (a pop-out collapsed is its slim bar); while it is dragged it goes where
     // the pointer takes it, and onto an edge when it is let go
     const launcherNow = () => kind === 'dock' && !!f.place.collapsed;
@@ -518,7 +523,8 @@
           </div>`);
         return;
       }
-      const tabs = kind === 'dock' ? `<div class="tabs" role="tablist" aria-label="draft">${TABS.map(t => `
+      // ⭐ D191: one quiet panel — no tab row while This job is all there is
+      const tabs = kind === 'dock' && (f.others || f.active !== 'draft') ? `<div class="tabs" role="tablist" aria-label="draft">${TABS.map(t => `
           <button class="tab" role="tab" id="${id}-tab-${t.id}" data-role="tab" data-tab="${t.id}" aria-controls="${id}-pane-${t.id}"
             aria-selected="${t.id === f.active}" tabindex="${t.id === f.active ? 0 : -1}" aria-label="${esc(t.label)}" title="${esc(t.label)}">${icon(t.icon, 18)}</button>`).join('')}</div>` : '';
       const panes = kind === 'dock' ? TABS.map(t => `
@@ -917,6 +923,7 @@
         if (reuse != null) el.dataset.reuse = String(reuse);
         (pops.get(tab)?.host || frame.host).appendChild(el);
         views.set(tab, { el, onClose });
+        frame.others = [...views.keys()].some(t => t !== 'draft');   // ⭐ D191: the tab row appears with a second view
         if (frame.loadError) frame.loadError[tab] = null;
         if (expand && frame.place.collapsed) frame.place = { ...frame.place, collapsed: false };
         if (sel) select(tab, { load: false }); else frame.draw();
@@ -927,6 +934,7 @@
         const v = views.get(tab);
         if (!v || (el && v.el !== el)) return;
         views.delete(tab);
+        frame.others = [...views.keys()].some(t => t !== 'draft');
         v.el.remove();
         if (pops.has(tab)) dockBack(tab);
         frame.draw();

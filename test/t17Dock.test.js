@@ -97,8 +97,8 @@ test("T17: snap — a full-height column at left / right, a full-width band at t
 
 test("T17: a saved place is cleaned to its named fields — finite numbers, a known edge and tab, nothing else", () => {
   const p = D.cleanPlace({ rect: { x: 1.4, y: 2.6, w: 300, h: 400, extra: 1 }, edge: "diagonal", collapsed: "yes", tab: "secrets", pops: { copy: { x: 1, y: 2, w: 3, h: 4 }, evil: { x: 1, y: 1, w: 1, h: 1 }, ats: { x: 1 } }, html: "<script>" });
-  assert.deepEqual(JSON.parse(JSON.stringify(p)), { rect: { x: 1, y: 3, w: 300, h: 400 }, edge: null, collapsed: false, tab: "fill", pops: { copy: { x: 1, y: 2, w: 3, h: 4 } } });
-  assert.deepEqual([...D.TAB_IDS], ["fill", "ats", "resume", "copy"], "ONE dock, four tabs: Fill · ATS · Résumé · Copy sheet");
+  assert.deepEqual(JSON.parse(JSON.stringify(p)), { rect: { x: 1, y: 3, w: 300, h: 400 }, edge: null, collapsed: false, tab: "draft", pops: { copy: { x: 1, y: 2, w: 3, h: 4 } } });   // ⭐ D191 sketch 2: an unknown tab → the panel, the home
+  assert.deepEqual([...D.TAB_IDS], ["draft", "fill", "ats", "resume", "copy"], "ONE dock: the panel (This job, D191 sketch 2) · Fill · ATS · Résumé · Copy sheet");
 });
 
 // ── 2 · the top frame only ────────────────────────────────────────────────────────────────────────────────────────

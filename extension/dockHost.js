@@ -28,7 +28,7 @@ export const DOCK_FILE = 'dock.js';
 export const DOCK_PLACE_KEY = 'dockPlace';
 export const DOCK_PLACE_MAX_SITES = 50;
 export const DOCK_PLACE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-export const DOCK_TABS = Object.freeze(['fill', 'ats', 'resume', 'copy']);
+export const DOCK_TABS = Object.freeze(['draft', 'fill', 'ats', 'resume', 'copy']);
 const EDGES = ['left', 'right', 'top', 'bottom'];
 
 // ── the account's appearance → the palettes (D91: four themes and the shape cues) ──────────────────────────────────

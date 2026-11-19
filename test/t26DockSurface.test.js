@@ -92,7 +92,11 @@ test("T26 · the frame in a REAL Chrome — no words outside names, one divider,
     assert.deepEqual(g.unnamed, [], `${tag}: a control without an aria-label and a tooltip`);
     assert.deepEqual(g.lines, ["hd:Bottom"], `${tag}: the dividers`);
     assert.ok(g.gear, `${tag}: no gear`);
-    assert.equal(g.tabs, 4, `${tag}: four icon tabs`);
+    // ⭐ D191 sketch 2: the panel (This job) alone has no tab row; a second view (the form's Fill) brings the five icon tabs
+    assert.equal(g.tabs, 0, `${tag}: no tab row while the panel is alone`);
+    const five = await page.evaluate(() => { globalThis.__draftDock.ensure({}).view("fill", { id: "t26-fill", select: false });
+      return document.getElementById("rm-draft-dock").shadowRoot.querySelectorAll('[role="tab"] svg').length; });
+    assert.equal(five, 5, `${tag}: five icon tabs once Fill has a view`);
   }
   // the gear: a page script's click sends nothing; the person's click asks the service worker for the settings page
   await page.evaluate(() => document.getElementById("rm-draft-dock").shadowRoot.querySelector('[data-role="settings"]').click());

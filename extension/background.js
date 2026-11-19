@@ -43,8 +43,11 @@ import { C_LIGHT, C_DARK } from './tokens.js';
 import {
   handlers as AUTO_READ_HANDLERS, configureAutoRead, reconcileAutoRead, onPermissionsRemoved, onPermissionsAdded, forgetTab, noteFrameSite,
   AUTO_READ_KEY, normaliseSettings, SITES as AUTO_SITES, customOriginFor, originPattern, popupAutoView, siteFor as autoSiteFor, takeAutoCapture,
-  GLOBAL_ORIGINS,
+  GLOBAL_ORIGINS, loadSettings as loadAutoSettings, updateSettings as updateAutoSettings,
 } from './autoRead.js';
+// ⭐ D191 sketch 2 (owner 11-18) · THE ONE PANEL — the dock's home tab: the words (pure) and the view (injected)
+import { panelModel } from './jobPanelModel.js';
+import { renderJobPanel } from './jobPanel.js';
 // ⭐ D112 b2: the ONE global-read ask — a small window over the posting that closes itself on either answer.
 import { openGlobalAsk, handlers as GLOBAL_ASK_HANDLERS, onWindowRemoved as onAskWindowRemoved } from './globalRead.js';
 // ⭐⭐ D112 item 7: "Let draft apply here while you're away" — a portal's sign-in sealed to the apply worker's key.
@@ -300,6 +303,10 @@ async function drawDockTab(tab, which) {
 async function openDock(tab, which = null) {
   const cant = { ok: false, message: "draft can't open its panel on this page." };
   if (!tab?.id || !/^https?:/.test(String(tab.url || ''))) return cant;
+  // ⭐ D191 sketch 2: the press opens the dock on its home — the panel (drawPanel draws it; no tab is read here)
+  if (which === 'draft') {
+    try { const o = await drawInDock(tab.id, openDockInPage, [await dockMeta(tab), 'draft']); return o?.ok ? { ok: true, tab: 'draft' } : cant; } catch { return cant; }
+  }
   const want = ['fill', 'ats', 'resume', 'copy'].includes(which) ? which : null;
   let r;
   try { r = await drawInDock(tab.id, openDockInPage, [await dockMeta(tab), want]); } catch { return cant; }
@@ -915,12 +922,14 @@ function pressToolbar(tab) {
   return toolbarPress(tab, {
     state: () => inTop(dockStateInPage),
     collapse: () => inTop(collapseDockInPage),
-    openDock: () => openDock(tab),
+    openDock: () => openDock(tab, 'draft'),
     identity: () => getIdentity(RESUME_MASTER_URL),
     // ⭐ D191: the press's read is remembered for this tab (memory only) — the Ask window's "this job" / "this company"
     context: async () => { const c = await popupContext(tab); rememberPressContext(tab, c); return c; },
     auto: () => autoFactsFor(tab),
     relay: async (_t, specs) => drawInDock(tab.id, renderRelay, [specs, await overlayTheme()]),
+    // ⭐ D191 sketch 2: the panel — drawn from the page first (pending), then from the press's read
+    panel: (_t, o) => drawPanel(tab, o),
     openBoard: () => chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app` }),
     // ⭐ D112 b2: the press is the ONE ask's moment while it is due (never answered) — the window over the posting
     ask: (t) => openGlobalAsk(t),
@@ -976,6 +985,55 @@ function rememberPressContext(tab, c) {
   // ⭐ D191 · the side panel, if it is open on this tab, redraws from the new read
   try { chrome.runtime.sendMessage?.({ type: 'ASK_PRESSED', tabId: tab.id })?.catch?.(() => {}); } catch { /* no panel open */ }
 }
+// ── ⭐ D191 sketch 2 (owner 11-18: "alright go") · THE ONE PANEL ─────────────────────────────────────────────────
+// The dock's home tab (`draft`): the status line, the job, ONE button, "How I apply" (extension/jobPanel.js draws it,
+// extension/jobPanelModel.js words it). Its first frame comes from the PAGE ITSELF (the extractor, in the page — nothing
+// sent), so it shows before draft answers; the press's read redraws it. The page read is kept per tab in memory only.
+const pageReadByTab = new Map();
+async function pageFirstRead(tab) {
+  const key = `${tab?.id}|${tab?.url || ''}`;
+  if (pageReadByTab.has(key)) return pageReadByTab.get(key);
+  let page = null;
+  try {
+    const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id, frameIds: [0] }, func: extractJobPayload });
+    const v = r?.result || null;
+    page = v && (v.title || v.company) ? { title: String(v.title || '').slice(0, 200), company: String(v.company || '').slice(0, 120),
+      location: String(v.location || '').slice(0, 120) } : null;
+  } catch { page = null; }
+  for (const k of pageReadByTab.keys()) if (k.startsWith(`${tab?.id}|`)) pageReadByTab.delete(k);
+  pageReadByTab.set(key, page);
+  return page;
+}
+chrome.tabs?.onRemoved?.addListener?.((tabId) => { for (const k of pageReadByTab.keys()) if (k.startsWith(`${tabId}|`)) pageReadByTab.delete(k); });
+/** Draw (or redraw) the panel on `tab`. o: { signedIn, pending, card, expand } — the press's read is pressContextByTab's. */
+async function drawPanel(tab, o = {}) {
+  if (!tab?.id) return { ok: false };
+  const [page, settings, theme, meta] = await Promise.all([pageFirstRead(tab), loadAutoSettings().catch(() => null), overlayTheme(), dockMeta(tab)]);
+  const ctx = o.signedIn ? (o.pending ? null : pressContextByTab.get(tab.id) || null) : (o.card ? { company: o.card } : null);
+  const model = { ...panelModel({ signedIn: !!o.signedIn, page, ctx, pending: !!o.pending, settings: settings?.panel || {} }), expand: o.expand !== false };
+  const r = await drawInDock(tab.id, renderJobPanel, [model, theme, meta]).catch(() => null);
+  return { ok: !!r?.rendered, kind: r?.kind || null };
+}
+// PANEL_REFRESH — after the panel's own Draft / Save / Fill: read this tab again and redraw. PANEL_SETTING — a "How I
+// apply" switch. ⛔ Both: the person's click, in a web page's TOP frame, on THAT tab.
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.type !== 'PANEL_REFRESH' && msg?.type !== 'PANEL_SETTING') return false;
+  if (msg.trigger !== 'click' || sender?.frameId !== 0 || !sender?.tab?.id) { sendResponse({ ok: false }); return true; }
+  const tab = sender.tab;
+  if (msg.type === 'PANEL_SETTING') {
+    if (!['review', 'autoOpen'].includes(msg.key) || typeof msg.value !== 'boolean') { sendResponse({ ok: false }); return true; }
+    updateAutoSettings((cur) => { cur.panel = { ...(cur.panel || {}), [msg.key]: msg.value }; return cur; })
+      .then(() => sendResponse({ ok: true }), () => sendResponse({ ok: false, say: 'Could not change that — try again.' }));
+    return true;
+  }
+  (async () => {
+    const identity = await getIdentity(RESUME_MASTER_URL).catch(() => null);
+    if (!identity?.authenticated) return drawPanel(tab, { signedIn: false, card: await publicCompanyCard(tab).catch(() => null) });
+    rememberPressContext(tab, await popupContext(tab).catch(() => null));
+    return drawPanel(tab, { signedIn: true });
+  })().then(r => sendResponse(r || { ok: false }), () => sendResponse({ ok: false }));
+  return true;
+});
 // ── ⭐ A211 (1a) · THE RUNNER TAB (runner.html): the applications sent from the person's own browser — listed, filled in
 // background tabs on their "Fill all", sent on ONE trusted press of "Send all". ⛔ From runner.html only; only A207
 // extension-submit packets; only tabs this runner opened; "Send all" goes through the same sendWithPress as the panel's press.
@@ -1112,6 +1170,14 @@ chrome.action.onClicked.addListener((tab) => { void pressToolbar(tab).catch(() =
 const DOCK_ACTS = Object.freeze({
   capture: async (tab) => { const r = await captureActiveTab(tab); return { ok: !!r?.success, say: null }; },   // the capture says its own outcome on the page
   draft: async (tab) => { const r = await runDraft(tab, { control: 'draft' }); return { ok: !!r?.ok, say: r?.asked ? null : r?.message || null }; },
+  // ⭐ D191 sketch 2 · the panel's ONE button on a posting draft does not hold yet: add it to the board (the capture binds
+  // the tab), then draft it — the same two steps the old "Add this job to draft?" asked for one at a time
+  'add-draft': async (tab) => {
+    const c = await captureActiveTab(tab).catch(() => null);
+    if (!c?.success) return { ok: false, say: c?.message || c?.error || "draft couldn't add this job — try again in a moment." };
+    const r = await runDraft(tab, { control: 'draft' });
+    return { ok: !!r?.ok, say: r?.asked ? null : r?.message || null };
+  },
   fill: async (tab) => { const r = await handleGatedHandoff(tab); return { ok: !!r?.ok, say: r?.ok ? null : r?.message || 'Could not fill this page.' }; },
   unbind: async (tab) => { await clearBinding(tab.id); return { ok: true, say: null }; },
   // ⭐ T31 · Undo an AUTOMATIC capture — only the job draft itself just added on THIS tab (never one the message names)

@@ -158,7 +158,9 @@ export const LATER_MS = 14 * 24 * 60 * 60 * 1000;
 /** The defaults: no consent, no site on, nothing read. */
 export function defaultSettings() {
   return { v: 2, consent: null, consent2: null, later: null, kill: false, global: null, globalAsk: null,
-    sites: Object.fromEntries(SITES.map(s => [s.id, offSite()])), custom: {}, frameHints: {}, reads: [] };
+    sites: Object.fromEntries(SITES.map(s => [s.id, offSite()])), custom: {}, frameHints: {}, reads: [],
+    // ⭐ D191 sketch 2 · the panel's "How I apply" switches (owner 11-18), kept in THIS record — no new storage key
+    panel: { review: true, autoOpen: true } };
 }
 const offSite = () => Object.fromEntries(BEHAVIOURS.map(b => [b, false]));
 
@@ -200,6 +202,7 @@ export function normaliseSettings(raw, now = Date.now()) {
       labels: (Array.isArray(r.labels) ? r.labels : []).filter(l => typeof l === 'string').map(l => str(l, 120)).filter(Boolean).slice(0, READ_LABEL_LIMIT),
     }))
     .sort((a, b) => b.at - a.at).slice(0, READ_LOG_LIMIT);
+  out.panel = { review: raw.panel?.review !== false, autoOpen: raw.panel?.autoOpen !== false };
   return out;
 }
 

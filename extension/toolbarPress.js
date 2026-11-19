@@ -23,7 +23,9 @@
 // browser work handed in as `deps` so it is tested without a browser.
 
 /** What the press says about this page — the popups, in order (one is shown at a time). */
-export function relayFor({ identity = null, ctx = null, auto = null, away = null, home = null, card = null } = {}) {
+export function relayFor({ identity = null, ctx = null, auto = null, away = null, home = null, card = null, panel = false } = {}) {
+  // ⭐ D191 sketch 2: with the panel drawn, it says the job, the sign-in, "add this job" and "answers ready" — no toast repeats them
+  if (!identity?.authenticated && panel) return [];
   if (!identity?.authenticated) {
     // ⭐ D191 P4 · signed out, still useful: the posting's employer from draft's PUBLIC data, and the reason to sign up
     const pub = companyLine(card);
@@ -39,14 +41,14 @@ export function relayFor({ identity = null, ctx = null, auto = null, away = null
   if (id?.action === 'sign_in') {
     out.push({ id: 'draft-relay', kind: 'question', icon: 'info', text: id.message || 'Sign in to draft to use it here.',
       actions: [{ id: 'sign-in', label: 'Sign in to draft', word: 'Sign in', primary: true }] });
-  } else if (id && !id.bind && !ctx.binding && id.action === 'capture') {
+  } else if (id && !id.bind && !ctx.binding && id.action === 'capture' && !panel) {
     // a posting draft does not hold — the two things a person does with one
     out.push({ id: 'draft-relay', kind: 'question', icon: 'info', text: 'Add this job to draft?',
       actions: [{ id: 'capture', label: 'Capture it — add it to your board', word: 'Capture', primary: true },
         { id: 'draft', label: 'Draft it — add it and queue its résumé', word: 'Draft' }] });
   } else if (ctx.handoff?.state === 'elsewhere' && ctx.handoff.message) {
     out.push({ id: 'draft-relay', kind: 'toast', icon: 'info', text: ctx.handoff.message, ms: 6000 });
-  } else if (ctx.prepared) {
+  } else if (ctx.prepared && !panel) {
     out.push({ id: 'draft-relay', kind: 'toast', icon: 'check', tone: 'ok', ms: 6000,
       text: ctx.binding ? `Answers prepared for ${job(ctx.binding)} — fill when you are ready.` : 'Answers prepared — fill when you are ready.',
       actions: [{ id: 'fill', label: 'Fill this page', icon: 'fill', primary: true }] });
@@ -54,7 +56,7 @@ export function relayFor({ identity = null, ctx = null, auto = null, away = null
   if (ctx.notice) out.push({ id: 'draft-notice', kind: 'toast', icon: 'info', text: String(ctx.notice), ms: 6000 });
   // ⭐ D191 (2d) · the employer, from draft's own records — said only when draft knows something about them
   const co = companyLine(ctx.company);
-  if (co) out.push({ id: 'draft-company', kind: 'toast', icon: 'info', ms: 8000, text: co,
+  if (co && !panel) out.push({ id: 'draft-company', kind: 'toast', icon: 'info', ms: 8000, text: co,
     actions: ctx.company?.href ? [{ id: 'open-company', label: `Open ${ctx.company.name}'s page on draft`, word: 'Company' }] : [] });
   // automatic reading — offered only where it would work, and only until it is set up (or put off).
   // ⭐ D112: while the ONE global-read ask is due, the press opens its window instead (toolbarPress → deps.ask) — no
@@ -184,13 +186,17 @@ export async function toolbarPress(tab, deps) {
   const opened = await deps.openDock(tab).catch(() => null);
   if (!opened?.ok) { await deps.openBoard(); return { ok: true, did: 'board', said: 0 }; }
   const identity = await deps.identity().catch(() => ({ authenticated: false }));
+  // ⭐ D191 sketch 2: the panel first, from the page itself ("Checking draft…"), before anything is asked of draft
+  const signedIn = !!identity?.authenticated;
+  const drawn = deps.panel && signedIn ? await deps.panel(tab, { signedIn, pending: true }).catch(() => null) : null;
   const ctx = identity?.authenticated ? await deps.context(tab).catch(() => null) : null;
   const auto = identity?.authenticated && deps.auto ? await deps.auto(tab).catch(() => null) : null;
   const away = identity?.authenticated && deps.away ? await deps.away(tab).catch(() => null) : null;
   // ⭐ D191: signed in — the day (home line); signed out — the posting's employer from draft's public data
   const home = identity?.authenticated && deps.home ? await deps.home(tab).catch(() => null) : null;
   const card = !identity?.authenticated && deps.publicCard ? await deps.publicCard(tab).catch(() => null) : null;
-  const specs = relayFor({ identity, ctx, auto, away, home, card });
+  const panel = deps.panel ? await deps.panel(tab, { signedIn, card }).catch(() => null) : drawn;
+  const specs = relayFor({ identity, ctx, auto, away, home, card, panel: !!panel?.ok });
   if (specs.length) await deps.relay(tab, specs).catch(() => null);
   // ⭐ D112 b2: the ONE ask — a small window over this posting, opened by this press while it is due (never answered)
   const asked = auto?.globalAsk && deps.ask ? await deps.ask(tab).catch(() => null) : null;

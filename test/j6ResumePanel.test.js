@@ -462,5 +462,6 @@ test("⛔ J6 → T22 → T31: no Résumé button outside the dock — the toolba
   for (const f of ["extension/toolbarPress.js", "extension/options.js", "extension/options-auto.js", "extension/options-permissions.js"]) {
     assert.doesNotMatch(read(f), /RESUME_PANEL_OPEN|RESUME_GENERATE/, `${f} starts a résumé`);
   }
-  assert.match(read("extension/background.js"), /openDock: \(\) => openDock\(tab\),/);
+  // ⭐ D191 sketch 2: the press opens the dock on its home, the panel ('draft'); the Résumé tab is still a view in it
+  assert.match(read("extension/background.js"), /openDock: \(\) => openDock\(tab, 'draft'\),/);
 });
