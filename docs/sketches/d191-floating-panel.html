@@ -1,0 +1,287 @@
+<title>D191 Floating Panel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:ital,wght@1,800&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
+<style>
+/* Layout: a sketch sheet — the owner's question up top, a live mock of an employer's posting with the ONE panel on it,
+   three layouts (A / B / C) × five states, then what happens to today's three surfaces and the open decisions. */
+:root {
+  --bg: #F3ECE0; --sheet: #FBF7F0; --ink: #1E1915; --muted: #4A423B; --faint: #62574D;
+  --line: #DDD2C3; --accent: #FD4600; --accent-ink: #A33200; --quiet: #EBD5C6;
+  --ok: #1A6B33; --warn: #855000; --info: #1E5E94;
+  --display: 'Source Serif 4', Georgia, serif; --body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --mark: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1C1815; --sheet: #26201C; --ink: #F2EADF; --muted: #CFC2B3; --faint: #ADA090;
+  --line: #3B332C; --accent: #FD4600; --accent-ink: #FF7D4A; --quiet: #3D2519;
+  --ok: #5FCB8C; --warn: #E6AA4E; --info: #7BB4EA; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #1C1815; --sheet: #26201C; --ink: #F2EADF; --muted: #CFC2B3; --faint: #ADA090;
+  --line: #3B332C; --accent: #FD4600; --accent-ink: #FF7D4A; --quiet: #3D2519;
+  --ok: #5FCB8C; --warn: #E6AA4E; --info: #7BB4EA; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font: 600 clamp(26px, 4vw, 36px)/1.15 var(--display); margin: 0 0 8px; text-wrap: balance; }
+h2 { font: 600 22px/1.25 var(--display); margin: 40px 0 10px; text-wrap: balance; }
+h3 { font: 600 15px/1.3 var(--body); margin: 0 0 6px; }
+p { margin: 0 0 10px; max-width: 70ch; }
+.lede { color: var(--muted); }
+.eyebrow { font: 600 11px/1 var(--body); letter-spacing: .09em; text-transform: uppercase; color: var(--faint); margin-bottom: 10px; }
+.slash { font-family: var(--mark); font-style: italic; font-weight: 800; color: var(--accent); }
+code { font: 13px ui-monospace, Consolas, monospace; }
+
+/* controls — depth boxes, never capsules (D60) */
+.controls { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end; margin: 18px 0 14px; }
+.group { display: grid; gap: 6px; }
+.group > span { font: 600 11px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { font: 500 13px var(--body); color: var(--ink); background: var(--sheet); border: 1px solid var(--line);
+  border-radius: 8px; padding: 7px 11px; cursor: pointer; box-shadow: 0 2px 5px rgba(30,25,21,.08); }
+.seg button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-ink); box-shadow: inset 0 0 0 1px var(--accent); }
+.seg button:focus-visible, .mock button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.optnote { background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+.optnote b { font-family: var(--display); font-size: 17px; }
+
+/* ── THE MOCK: an employer's posting page (synthetic), drawn in draft's extension tokens ── */
+.mock { --p-canvas: #FFFFFF; --p-ink: #22252B; --p-muted: #5D636E; --p-line: #E3E5EA; --p-btn: #2C5BE0;
+  --c-surface: #FBF7F0; --c-ink: #1E1915; --c-muted: #4A423B; --c-faint: #62574D; --c-border: #DDD2C3;
+  --c-accent: #FD4600; --c-on-accent: #1E1915; --c-accent-ink: #A33200; --c-quiet: #EBD5C6;
+  --c-ok: #1A6B33; --c-warn: #855000; --c-hover: rgba(30,25,21,.05);
+  --c-shadow: 0 18px 40px rgba(30,25,21,.14), 0 6px 14px rgba(30,25,21,.08);
+  --c-depth: 0 3px 8px rgba(30,25,21,.11), inset 0 1px 0 rgba(255,255,255,.66);
+  --c-depth-accent: 0 3px 9px rgba(253,70,0,.34), inset 0 1px 0 rgba(255,255,255,.35);
+  position: relative; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--p-canvas);
+  height: 680px; color: var(--p-ink); }
+.mock[data-t="dark"] { --c-surface: #26201C; --c-ink: #F2EADF; --c-muted: #CFC2B3; --c-faint: #ADA090; --c-border: #3B332C;
+  --c-accent-ink: #FF7D4A; --c-quiet: #3D2519; --c-ok: #5FCB8C; --c-warn: #E6AA4E; --c-hover: rgba(255,255,255,.05);
+  --c-shadow: 0 18px 40px rgba(0,0,0,.5), 0 6px 14px rgba(0,0,0,.35);
+  --c-depth: 0 3px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08);
+  --c-depth-accent: 0 3px 9px rgba(253,70,0,.4), inset 0 1px 0 rgba(255,255,255,.2); }
+.chrome { display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: #EEF0F3; border-bottom: 1px solid var(--p-line);
+  font: 12px var(--body); color: var(--p-muted); }
+.chrome .url { flex: 1; min-width: 0; background: #fff; border: 1px solid var(--p-line); border-radius: 6px; padding: 4px 10px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chrome .tb { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; background: #fff; border: 1px solid var(--p-line); }
+.chrome .tb .slash { font-size: 12px; }
+.posting { padding: 28px clamp(16px, 4vw, 48px); max-width: 680px; font-size: 14px; }
+.posting .co { font-weight: 600; color: var(--p-muted); margin-bottom: 4px; }
+.posting h4 { font: 700 24px/1.2 var(--body); margin: 0 0 6px; }
+.posting .loc { color: var(--p-muted); margin-bottom: 18px; }
+.posting .bar { height: 9px; border-radius: 3px; background: var(--p-line); margin: 0 0 9px; }
+.ats-apply { position: absolute; font: 600 14px var(--body); color: #fff; background: var(--p-btn); border: 0; border-radius: 6px;
+  padding: 11px 20px; right: 24px; bottom: 22px; }
+.ats-apply.top { bottom: auto; top: 112px; right: auto; left: clamp(16px, 4vw, 48px); }
+
+/* the ONE panel */
+.dp { position: absolute; z-index: 5; width: min(320px, calc(100% - 24px)); background: var(--c-surface); color: var(--c-ink);
+  border: 1px solid var(--c-border); border-radius: 12px; box-shadow: var(--c-shadow); font: 13px/1.45 var(--body);
+  display: flex; flex-direction: column; max-height: calc(100% - 64px); }
+.dp.pos-br { right: 16px; bottom: 16px; } .dp.pos-bl { left: 16px; bottom: 16px; }
+.dp.edge { top: 41px; bottom: 0; right: 0; width: min(360px, 100%); border-radius: 12px 0 0 0; max-height: none; }
+.dp.strip { width: min(380px, calc(100% - 24px)); }
+.dp-body { padding: 14px; overflow: auto; display: grid; gap: 10px; min-height: 0; }
+.dp-head { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: start; }
+.logo { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; font: 700 16px var(--body);
+  background: #12324A; color: #E7F0F7; }
+.dp-title { font-weight: 650; font-size: 14px; line-height: 1.3; }
+.dp-sub { color: var(--c-muted); font-size: 12px; }
+.x { width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--c-border); background: var(--c-surface); color: var(--c-muted);
+  cursor: pointer; font: 600 13px var(--body); box-shadow: var(--c-depth); }
+.fitline { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--c-muted); }
+.mk { display: inline-flex; align-items: center; gap: 6px; }
+.mk::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.mk.ok { color: var(--c-ok); font-weight: 600; } .mk.warn { color: var(--c-warn); font-weight: 600; }
+.btn { font: 600 13px var(--body); border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-surface); color: var(--c-ink);
+  padding: 8px 12px; box-shadow: var(--c-depth); cursor: pointer; }
+.btn.primary { width: 100%; background: var(--c-accent); border-color: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent); padding: 10px 12px; }
+.links { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; }
+.links a, .more { color: var(--c-accent-ink); font-weight: 600; text-decoration: none; cursor: pointer; background: none; border: 0; padding: 0; font: 600 12px var(--body); }
+.fact { font-size: 12px; color: var(--c-muted); }
+.fact b { color: var(--c-ink); font-weight: 600; }
+.chk { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--c-muted); }
+.chk i { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid var(--c-accent); display: grid; place-items: center; font: 700 10px/1 var(--body); color: var(--c-accent-ink); font-style: normal; }
+.dp-foot { display: flex; justify-content: space-between; align-items: center; padding: 9px 14px; border-top: 1px solid var(--c-border); }
+.sec { border-top: 1px solid var(--c-border); padding-top: 10px; display: grid; gap: 6px; }
+.sec h5 { margin: 0; font: 600 10.5px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--c-faint); }
+.stack { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; }
+.stack .y { color: var(--c-ok); } .stack .n { color: var(--c-faint); }
+.stack .y::before { content: "✓ "; } .stack .n::before { content: "○ "; }
+.ask { display: flex; gap: 6px; } .ask input { flex: 1; min-width: 0; font: 13px var(--body); padding: 7px 9px; border-radius: 8px;
+  border: 1px solid var(--c-border); background: transparent; color: var(--c-ink); }
+.sk { height: 9px; border-radius: 3px; background: var(--c-border); opacity: .7; }
+.pending { color: var(--c-faint); font-size: 12px; }
+/* the closed state: the /d DEPTH BOX (T28's launcher) — a square, never a capsule */
+.dsq { position: absolute; z-index: 5; right: 16px; bottom: 16px; width: 44px; height: 44px; border-radius: 13px; border: 0;
+  background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent); display: grid; place-items: center; cursor: pointer;
+  font: italic 800 19px var(--mark); }
+.dsq .dot { position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--c-on-accent); box-shadow: 0 0 0 2px var(--c-accent); }
+@media (prefers-reduced-motion: no-preference) { .dsq.pulse { animation: pulse 1.2s ease-out 1; } }
+@keyframes pulse { 0% { box-shadow: var(--c-depth-accent), 0 0 0 0 rgba(253,70,0,.5); } 100% { box-shadow: var(--c-depth-accent), 0 0 0 16px rgba(253,70,0,0); } }
+.strip-row { display: grid; grid-template-columns: 32px 1fr auto auto; gap: 10px; align-items: center; padding: 10px 12px; }
+.strip-row .logo { width: 32px; height: 32px; font-size: 14px; }
+.strip-row .btn.primary { width: auto; padding: 8px 12px; }
+.timeline { position: absolute; left: 12px; top: 52px; z-index: 6; font: 12px var(--body); background: var(--sheet); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
+
+/* reference sections */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.card { background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.card p, .card li { font-size: 14px; }
+.card ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--sheet); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px/1.2 var(--body); letter-spacing: .07em; text-transform: uppercase; color: var(--faint); }
+tr:last-child td { border-bottom: 0; }
+.q { counter-reset: q; display: grid; gap: 10px; padding: 0; list-style: none; }
+.q li { counter-increment: q; background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px 12px 48px; position: relative; }
+.q li::before { content: counter(q); position: absolute; left: 14px; top: 11px; width: 24px; height: 24px; border-radius: 6px;
+  background: var(--quiet); color: var(--accent-ink); font: 700 13px/24px var(--body); text-align: center; }
+.rec { color: var(--accent-ink); font-weight: 600; }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">D191 update · sketch for the owner's pick · 46w · synthetic data</div>
+  <h1>One <span class="slash">/d</span> panel that opens itself on the boards draft knows</h1>
+  <p class="lede">Your 11-14 ask: pop up almost instantly on recognised boards, look as small as Tsenta's, merge the floating widget and the docked panel into one thing, and make it reopen after you close it. Below are three layouts of that one panel on a made-up Greenhouse posting. Switch the layout, the state and the theme. Nothing is built until you pick.</p>
+
+  <div class="controls" role="group" aria-label="Sketch controls">
+    <div class="group"><span>Layout</span><div class="seg" id="optSeg">
+      <button id="opt-a" data-v="a" aria-pressed="true">A · Corner card</button>
+      <button id="opt-b" data-v="b" aria-pressed="false">B · Edge sheet</button>
+      <button id="opt-c" data-v="c" aria-pressed="false">C · One-line strip</button></div></div>
+    <div class="group"><span>State</span><div class="seg" id="stSeg">
+      <button id="st-arrive" data-v="arrive" aria-pressed="false">Arriving</button>
+      <button id="st-collapsed" data-v="collapsed" aria-pressed="true">Collapsed</button>
+      <button id="st-expanded" data-v="expanded" aria-pressed="false">Expanded</button>
+      <button id="st-closed" data-v="closed" aria-pressed="false">Closed</button>
+      <button id="st-out" data-v="out" aria-pressed="false">Signed out</button></div></div>
+    <div class="group"><span>Theme</span><div class="seg" id="thSeg">
+      <button id="th-light" data-v="light" aria-pressed="true">Plain Light</button>
+      <button id="th-dark" data-v="dark" aria-pressed="false">Dusk Dark</button></div></div>
+    <div class="group"><span>Page</span><div class="seg" id="apSeg">
+      <button id="ap-br" data-v="br" aria-pressed="true">Apply button top</button>
+      <button id="ap-tr" data-v="tr" aria-pressed="false">Apply button bottom-right</button></div></div>
+  </div>
+
+  <div class="optnote" id="optnote"></div>
+
+  <div class="mock" id="mock" data-t="light">
+    <div class="chrome"><span>◀ ▶ ↻</span><span class="url">https://job-boards.greenhouse.io/kestrelpayments/jobs/5129904</span><span class="tb" title="The extension's toolbar icon"><span class="slash">/d</span></span></div>
+    <div class="posting">
+      <div class="co">Kestrel Payments</div>
+      <h4>Senior Backend Engineer</h4>
+      <div class="loc">Boston, MA · Hybrid · $165,000 – $195,000</div>
+      <div class="bar" style="width:92%"></div><div class="bar" style="width:84%"></div><div class="bar" style="width:88%"></div>
+      <div class="bar" style="width:60%"></div><br>
+      <div class="bar" style="width:90%"></div><div class="bar" style="width:76%"></div><div class="bar" style="width:82%"></div>
+      <div class="bar" style="width:40%"></div>
+    </div>
+    <button class="ats-apply top" id="atsApply" tabindex="-1">Apply for this job</button>
+    <div id="slot"></div>
+  </div>
+
+  <h2>What happens to the three surfaces that exist today</h2>
+  <p class="lede">Today the extension shows you three different things. The pick merges them into the panel above.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Today</th><th>Where it lives</th><th>After the pick</th></tr></thead>
+    <tbody>
+      <tr><td><b>The dock</b> on a page (Fill · ATS · Résumé · Copy sheet tabs, drag, resize, snap)</td><td><code>dock.js</code>, <code>dockHost.js</code>; draws only after a press</td><td>Becomes <b>the panel</b>. Its frame (drag, snap, per-site place, never over the field being typed in) is kept. The four tabs become sections of the expanded panel, and on an application form the panel opens on Fill.</td></tr>
+      <tr><td><b>The /d square</b>, the dock collapsed (T28)</td><td><code>dock.js</code> <code>.launch</code>, 44 px, 13 px corners</td><td>Becomes <b>the closed state</b> as it is: a square depth box, never a capsule (D60). The D row says "pill" and the sketch keeps the square. The dot on it is a perfect circle and means a new match. It pulses once, and not at all with reduced motion.</td></tr>
+      <tr><td><b>Chrome's side panel</b>: your day, This job, the company, search, Ask draft</td><td><code>ask.html</code> / <code>ask.js</code>, the <code>sidePanel</code> permission (46o)</td><td><b>Retired.</b> Its This-job and company cards fill the panel's collapsed and expanded views. Your day, search and Ask draft become the panel's <b>general view</b> on pages that are not postings. The <code>sidePanel</code> permission leaves the manifest.</td></tr>
+      <tr><td><b>The toolbar press</b> (toasts, the relay)</td><td><code>toolbarPress.js</code></td><td>The icon <b>opens the panel</b> on the page you are on: the posting view on a posting, the general view anywhere else. Toasts go.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>What Chrome allows, and where that bends the 11-14 row</h2>
+  <div class="grid2">
+    <div class="card"><h3>Opening by itself needs page access on the boards</h3><p>Chrome lets an extension draw on a page before you click only on sites it has access to. Today the board sites are <i>optional</i> and come from one prompt, the "read and prepare" consent you already give in Options (D97 T12). D191 (6) said "activeTab only", and the panel cannot open by itself under that rule.</p><p class="rec">Recommended: the panel opens by itself only on boards you have allowed. Until then, the first press of the toolbar icon opens it and offers "Open on job boards by itself", which shows one Chrome prompt for all eight board families. No install warning, and nothing is added for other sites.</p></div>
+    <div class="card"><h3>Under 300 ms without keeping your data</h3><p>D191 (4) says the extension keeps nothing of yours on the computer beyond the session token. So the first frame is drawn from <b>the page itself</b>: the title, company and place from the page's own JSON-LD or headings, with no network call. That takes about 100 ms after the page is ready. draft's facts (fit, stack, sponsorship, run state) fill in when the answer arrives, typically 300–700 ms. Choose <b>Arriving</b> above to see it.</p><p class="rec">Recommended: also keep the last answer per posting in Chrome's session storage, cleared when Chrome closes, so a reopen or back-navigation is instant.</p></div>
+    <div class="card"><h3>Pages the panel cannot reach</h3><p>Without access to every site (D191 (6) forbids it), the /d square cannot sit on every page. On an unrecognised page the toolbar icon is the way in, and the press draws the panel's general view on that page. Chrome draws nothing on its own pages (chrome://, the Web Store, the PDF viewer). There the icon opens <code>jobsviadraft.com/app</code>.</p></div>
+    <div class="card"><h3>Never over the employer's Apply button</h3><p>Before drawing, the panel finds the page's apply control (the button or link that says "Apply"). If its box meets the panel's corner, the panel moves to bottom-left, then top-right. Choose <b>Apply button bottom-right</b> above to see it. A spot you drag the panel to is remembered per site and always wins.</p></div>
+  </div>
+
+  <h2>What you decide</h2>
+  <ol class="q">
+    <li><b>The layout:</b> A corner card, B edge sheet, or C one-line strip. <span class="rec">Recommended: A.</span> It is closest to what you pointed at, and the dock's frame already does everything it needs.</li>
+    <li><b>Opening by itself:</b> only after the one board prompt (recommended), or ask for board access at install. Install-time access adds a Chrome warning and changes D191 (6).</li>
+    <li><b>The fit line:</b> the word draft already shows (Good fit / Stretch / Long shot from the board's cut points), or a percentage as the 11-14 row draws it ("86% match"). <span class="rec">Recommended: the word.</span> The board shows the word too.</li>
+    <li><b>"Review before I submit":</b> the row puts it in the collapsed panel. In draft every application waits for you unless Apply for me is on, so the box would really be the Apply-for-me switch for this job. Keep it, or show the state as plain words ("Waits for your approval")?</li>
+  </ol>
+</div>
+
+<script>
+(() => {
+  const S = { opt: 'a', st: 'collapsed', th: 'light', ap: 'br' };
+  const NOTES = {
+    a: '<b>A · Corner card.</b> 320 px in the bottom-right corner, as small as Tsenta\'s. More grows it upward in place to the full detail, scrolling inside itself. Close leaves the /d square in the same corner. Drag it anywhere; the spot is kept per site.',
+    b: '<b>B · Edge sheet.</b> Collapsed it is the same corner card. Expanded, it snaps to the right edge at full height, where Chrome\'s side panel used to sit, but drawn in the page, so it stays one thing. It covers the page\'s right side while it is open.',
+    c: '<b>C · One-line strip.</b> The smallest arrival: one row with the logo, the title, the fit word and Draft this job. The ▴ opens the same detail as A. The quietest option, but the company card and the stack are hidden until you ask.'
+  };
+  const slot = document.getElementById('slot'), mock = document.getElementById('mock');
+  const head = (x = true) => `<div class="dp-head"><div class="logo" aria-hidden="true">K</div><div><div class="dp-title">Senior Backend Engineer</div><div class="dp-sub">Kestrel Payments · Boston, MA</div></div>${x ? '<button class="x" data-act="close" aria-label="Close — leaves the /d square">✕</button>' : ''}</div>`;
+  const fit = `<div class="fitline"><span class="mk ok">Good fit</span><span>Sponsored H-1B · 41 in 2025</span><span>$165k – $195k</span></div>`;
+  const acts = `<button class="btn primary">Draft this job</button><div class="links"><a>Save</a><a>Send to a connection</a><a>Open in draft</a></div>`;
+  const stackLine = `<div class="fact">Works with <b>Go, Kafka, PostgreSQL, AWS</b></div><div class="fact">You've proven <b>4 of their top 8</b></div>`;
+  const review = `<div class="chk"><i>✓</i> Waits for your approval before it is sent</div>`;
+  const expandedSecs = `
+    <div class="sec"><h5>The company</h5><div class="fact">Payments infrastructure for mid-size merchants · 1,200 people</div>
+      <div class="fact"><b>37</b> open jobs on draft · hiring <b>↑</b> over six months · <b>41</b> H-1B LCAs in 2025 (DOL)</div><div class="links"><a>Company page on draft</a></div></div>
+    <div class="sec"><h5>Their stack</h5><div class="stack"><span class="y">Go</span><span class="y">PostgreSQL</span><span class="y">AWS</span><span class="y">Docker</span><span class="n">Kafka</span><span class="n">Terraform</span><span class="n">gRPC</span><span class="n">Redis</span></div></div>
+    <div class="sec"><h5>Your résumé against it</h5><div class="fact">ATS <b>78</b> · has <b>14</b> of 19 keywords · missing <b>Kafka, gRPC, idempotency, PCI, on-call</b></div></div>
+    <div class="sec"><h5>Fill · ATS · Résumé · Copy sheet</h5><div class="fact">On the application form, the panel opens here on Fill. The dock's four tabs live in this section.</div></div>
+    <div class="sec"><h5>Ask draft</h5><div class="ask"><input id="askIn" placeholder="does Kestrel sponsor? · draft this job" aria-label="Ask draft"><button class="btn">Ask</button></div></div>`;
+  const foot = (more) => `<div class="dp-foot"><button class="more" data-act="${more ? 'more' : 'less'}">${more ? 'More ▾' : 'Less ▴'}</button><span class="links"><a>Open draft ⇗</a></span></div>`;
+
+  function pos() { return S.ap === 'tr' ? 'pos-bl' : 'pos-br'; }
+  function render() {
+    mock.dataset.t = S.th;
+    document.getElementById('atsApply').className = 'ats-apply' + (S.ap === 'tr' ? '' : ' top');
+    document.getElementById('optnote').innerHTML = NOTES[S.opt];
+    let h = '';
+    const st = S.st;
+    if (st === 'closed') {
+      h = `<button class="dsq pulse" data-act="open" aria-label="Open draft's panel" style="${S.ap === 'tr' ? 'right:auto;left:16px' : ''}">/d<span class="dot" aria-hidden="true"></span></button>`;
+    } else if (st === 'out') {
+      h = `<section class="dp ${pos()}" aria-label="draft"><div class="dp-body">${head()}
+        <div class="fitline"><span>Sponsored H-1B · 41 in 2025</span><span>37 open jobs</span><span>hiring ↑</span></div>
+        <div class="fact">Payments infrastructure for mid-size merchants.</div>
+        <div class="fact"><b>Sign in to see your fit</b> and draft a tailored résumé for this job.</div>
+        <button class="btn primary">Get started</button><div class="links"><a>Sign in</a></div></div></section>`;
+    } else if (st === 'arrive') {
+      h = `<section class="dp ${pos()}" aria-label="draft"><div class="dp-body">${head()}
+        <div class="pending">Checking draft…</div><div class="sk" style="width:70%"></div><button class="btn primary">Draft this job</button>
+        <div class="sk" style="width:85%"></div><div class="sk" style="width:55%"></div></div>${foot(true)}</section>
+        <div class="timeline" aria-label="Arrival timeline"><b>Arriving</b><span>0 ms · page ready</span><span>~100 ms · panel drawn from the page</span><span>~300–700 ms · draft's facts fill in</span></div>`;
+    } else if (S.opt === 'c' && st === 'collapsed') {
+      h = `<section class="dp strip ${pos()}" aria-label="draft"><div class="strip-row"><div class="logo" aria-hidden="true">K</div>
+        <div style="min-width:0"><div class="dp-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Senior Backend Engineer</div><span class="mk ok" style="font-size:12px">Good fit</span></div>
+        <button class="btn primary">Draft</button><button class="x" data-act="more" aria-label="More">▴</button></div></section>`;
+    } else if (st === 'collapsed') {
+      h = `<section class="dp ${pos()}" aria-label="draft"><div class="dp-body">${head()}${fit}${acts}${stackLine}${review}</div>${foot(true)}</section>`;
+    } else {
+      const cls = S.opt === 'b' ? 'edge' : pos();
+      h = `<section class="dp ${cls}" aria-label="draft"><div class="dp-body">${head()}${fit}${acts}${stackLine}${review}${expandedSecs}</div>${foot(false)}</section>`;
+    }
+    slot.innerHTML = h;
+    for (const [seg, key] of [['optSeg', 'opt'], ['stSeg', 'st'], ['thSeg', 'th'], ['apSeg', 'ap']])
+      for (const b of document.getElementById(seg).querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.v === S[key]));
+  }
+  for (const [seg, key] of [['optSeg', 'opt'], ['stSeg', 'st'], ['thSeg', 'th'], ['apSeg', 'ap']])
+    document.getElementById(seg).addEventListener('click', e => { const b = e.target.closest('button'); if (b) { S[key] = b.dataset.v; render(); } });
+  let last = 'collapsed';
+  slot.addEventListener('click', e => {
+    const a = e.target.closest('[data-act]')?.dataset.act; if (!a) return;
+    if (a === 'close') { last = S.st === 'expanded' ? 'expanded' : 'collapsed'; S.st = 'closed'; }
+    else if (a === 'open') S.st = last;
+    else if (a === 'more') S.st = 'expanded';
+    else if (a === 'less') S.st = 'collapsed';
+    render();
+  });
+  render();
+})();
+</script>
