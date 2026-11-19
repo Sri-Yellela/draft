@@ -102,6 +102,7 @@ import { createCompanyTech, stackFor, techForJobs } from "./services/companies/c
 import { createTaxonomyBackfill, taxonomyStats } from "./services/jobs/taxonomyBackfill.js";
 import { publicBoardPage, publicBoardFacets, publicRateLimit } from "./services/jobs/publicBoard.js";
 import { publicCompany, publicSuggest, companyMatchFor, companyIdForSlug, focusJob } from "./services/companies/publicCompany.js";
+import { contextualFor, publicCompanyStack, contextualWeights, setContextualWeights } from "./services/atsContextual.js";   // ⭐ D192 (3) + (4)
 import { companyDirectory } from "./services/companies/companyDirectory.js";   // A144 (45o): the Companies tab
 import { publicEntry } from "./services/jobs/publicEntry.js";                     // A147 (45o): the signed-out /jobs entry
 import { companyHealth } from "./services/companies/companyHealth.js";            // A142 (45o): Admin → Board → Company records
@@ -11101,6 +11102,15 @@ app.post("/api/companies/:slug/follow", requireAuth, (req, res) => {
   else db.prepare(`INSERT OR IGNORE INTO company_follows (user_id, company_id) VALUES (?, ?)`).run(req.user.id, co);
   res.json({ following: req.body?.on !== false });
 });
+// ⭐ D192 (3) · THE COMPANY'S STACK FOR THE TOOLS SERVICE STANDING ALONE (owner 11-14): RM scores a résumé against a JD with no draft
+// in the loop, reads the company's name from the JD and asks here — the same public data the company pages show (D179 P5a's
+// stack, ≥ 2 postings in 180 days, and the record's industry); nothing about any person. { matched: false } for no record.
+// RM keeps an answer 24 h in memory, never on disk. When draft is the caller it sends the stack itself and RM never asks.
+const companyStackLimit = publicRateLimit({ limit: 60, windowMs: 60_000 });
+app.get("/api/public/company-stack", companyStackLimit, (req, res) => {
+  try { res.set("Cache-Control", "public, max-age=86400").json(publicCompanyStack(db, String(req.query?.name || ""))); }
+  catch (e) { console.error("[public/company-stack]", e.message); res.status(500).json({ error: "stack_unavailable" }); }
+});
 app.get("/api/public/suggest", publicLimit, async (req, res) => {
   // A148 (45o): ?kind=person|company|role|tech — the search's scope label; only that group is read.
   try { res.json(await publicSuggest(db, readPool, String(req.query?.q || ""), { kind: String(req.query?.kind || "") || null })); }
@@ -14840,6 +14850,20 @@ app.patch("/api/jobs/:id/disliked", requireAuth, (req, res) => {
   res.json({ ok:true, disliked: !!newDisliked });
 });
 
+// ⭐ D192 (4) · the contextual score for one board posting against the person's base résumé — the web app's Résumé tab and the
+// held panel read it BESIDE the skill-match report (which /keywords keeps serving unchanged). Same computation as the extension's.
+app.get("/api/jobs/:id/contextual", requireAuth, (req, res) => {
+  const r = scoreBaseResumeForApply(req.user.id, String(req.params.id), { withReport: true });
+  if (!r) return res.status(404).json({ error: "nothing_to_score" });
+  res.set("Cache-Control", "private, no-store").json({ score: r.score, band: r.band, contextual: r.contextual || null });
+});
+// ⭐ D192 (4c) · Admin → Ops: the contextual weights (the contract's `contextual_weights`). PUT { weights } | { weights: null } = defaults.
+app.get("/api/admin/ats-contextual-weights", requireAdmin, (_req, res) => res.json({ weights: contextualWeights(db) }));
+app.put("/api/admin/ats-contextual-weights", requireAdmin, (req, res) => {
+  try { res.json({ weights: setContextualWeights(db, req.body?.weights ?? null) }); }
+  catch (e) { res.status(400).json({ error: "bad_weights", message: e.message }); }
+});
+
 app.get("/api/jobs/:id/recruiter", requireAuth, (_req, res) => {
   res.json({ comingSoon: true, available: false });
 });
@@ -15892,7 +15916,8 @@ function scoreBaseResumeForApply(userId, jobId, { withReport = false } = {}) {
       matched: report.tier1_matched || [],
       missing: report.tier1_missing || [],
       resumeDepth: report.resume_depth || null,
-      ...(withReport ? { report } : {}),
+      // ⭐ D192 (4): the contextual block rides BESIDE the report (never inside it), only where the report travels.
+      ...(withReport ? { report, contextual: contextualForBase(userId, activeProfile, job, report) } : {}),
     };
   } catch (e) {
     // A missing free score must not take down the run that was going to show it. The approval
@@ -15908,6 +15933,15 @@ function scoreBaseResumeForApply(userId, jobId, { withReport = false } = {}) {
  * the capture's reader (routes/extensionJob.js pageJobForExtension). The same basis and the same scorer as
  * scoreBaseResumeForApply above, so a page and the board job it later becomes read the same number. Nothing is stored.
  */
+/** ⭐ D192 (4) · the contextual block for the active profile's base résumé (services/atsContextual.js). null on any failure —
+ *  the skill-match report it sits beside never depends on it. */
+function contextualForBase(userId, profile, job, report) {
+  try {
+    const resumeText = profile?.id ? getBaseResumeRecord(db, { userId, profileId: profile.id })?.content : null;
+    return contextualFor(db, { userId, job: withPostingText(job), report, resumeText });
+  } catch (e) { console.warn(`[ats-contextual] ${e.message}`); return null; }
+}
+
 function scorePageTextForBase(userId, job) {
   try {
     if (!job?.description && !job?.description_text) return null;
@@ -15918,7 +15952,8 @@ function scorePageTextForBase(userId, job) {
     const report = scoreJobForBasis(job, basis.runtimeBasis);
     // T9: the scorer's own report travels too — the extension draws the web app's ATS component from it.
     return { score: report.score, band: atsBandFor(report), scorable: report.scorable,
-             matched: report.tier1_matched || [], missing: report.tier1_missing || [], report };
+             matched: report.tier1_matched || [], missing: report.tier1_missing || [], report,
+             contextual: contextualForBase(userId, activeProfile, withPostingText(job), report) };
   } catch (e) {
     console.warn(`[scorePageTextForBase] ${e.message}`);
     return null;

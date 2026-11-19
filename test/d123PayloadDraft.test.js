@@ -76,7 +76,7 @@ test("d123PayloadJobBlock: must / nice split by the posting's Preferred section,
   assert.deepEqual(kw.broader, [{ term: "SQL databases", from: "PostgreSQL" }]);
   assert.deepEqual(broaderTerms(db, { resumeText: "no postgres here", missing: ["SQL databases"] }), []);
   assert.equal(RESUME_MASTER_ACCEPTS_PAYLOAD, true);
-  assert.equal(contract.info.version, "1.8.0");
+  assert.equal(contract.info.version, "1.10.0");   // D192 (46x): the vendored contract moved to 1.10.0 on purpose (additive: /v2/ats/score); 1.8.0's shapes are unchanged
   const gists = [{ employer: "Quillmark Freight", text: "Backend engineer on a freight platform." }];
   const body = generateRequest({ profile: {}, job, baseResumeText: RESUME, mode: "GENERATE", tailoring: "payload", keywords: kw,
                                  model: "sonnet", gists, coursework: ["Databases"] });

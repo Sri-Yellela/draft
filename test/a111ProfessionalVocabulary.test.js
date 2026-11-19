@@ -101,8 +101,10 @@ test("a111: twenty domains in the registry's own schema, each title placed in a 
   }
 });
 
-test("a111: the three copies agree — registry/, the scorer package, and the domain picker's fallback; the package is 1.4.0", () => {
+test("a111: the three copies agree — registry/, the scorer package, and the domain picker's fallback; the package is 1.4.0 or later", () => {
   assert.equal(fs.readFileSync("registry/DOMAIN_METADATA_REGISTRY.json", "utf8"), fs.readFileSync("packages/ats-scorer/data/DOMAIN_METADATA_REGISTRY.json", "utf8"));
   for (const d of A111_DOMAINS) assert.deepEqual(BUILTIN_REGISTRY[d], REG[d], d);
-  assert.equal(JSON.parse(fs.readFileSync("packages/ats-scorer/package.json", "utf8")).version, "1.4.0");
+  // D192 (46x): 1.5.0 added the contextual score (additive); A111's vocabulary is unchanged, so the pin is "at least 1.4.0".
+  const [maj, min] = JSON.parse(fs.readFileSync("packages/ats-scorer/package.json", "utf8")).version.split(".").map(Number);
+  assert.ok(maj > 1 || (maj === 1 && min >= 4));
 });

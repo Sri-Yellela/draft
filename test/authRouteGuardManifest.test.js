@@ -39,6 +39,7 @@ const PUBLIC = new Set([
   "GET /api/public/companies",   // A144 (45o): the Companies tab's list — public facts only
   "GET /api/public/companies/:slug",
   "GET /api/public/suggest",
+  "GET /api/public/company-stack",   // D192 (3): a company's public stack + industry for the tools service scoring on its own — the company pages' data, nothing personal
   // D150 T05–T06 (45l): the 3-minute audit — anonymous by design (a random token), nothing personal.
   "POST /api/audit/start",
   "POST /api/audit/:token/answer",
@@ -403,6 +404,7 @@ const AUTHENTICATED = new Set([
   "PATCH /api/jobs/:id/starred",
   "PATCH /api/jobs/:id/disliked",
   "GET /api/jobs/:id/recruiter",
+  "GET /api/jobs/:id/contextual",   // D192 (4): the contextual ATS score for the person's own base résumé
   "POST /api/jobs/:id/keywords",
   "POST /api/scrape",
   "GET /api/base-resume",
@@ -462,6 +464,8 @@ const AUTHENTICATED = new Set([
   "GET /api/admin/submit-outcomes",   // A187 S3
   "GET /api/admin/submit-share",   // A207 (d)
   "POST /api/admin/submit-families/:ats/clear",   // A207 (b): the owner clears a family's mark
+  "GET /api/admin/ats-contextual-weights",   // D192 (4c)
+  "PUT /api/admin/ats-contextual-weights",
   // D76: the Railway deploy events — admin only. (The hook itself, POST /api/hooks/railway, is a mounted
   // router authenticated by its own Bearer header; it is not a session route.)
   "GET /api/admin/deploy-events",
