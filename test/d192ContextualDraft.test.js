@@ -1,5 +1,5 @@
 // ⭐ D192 (3) + (4) · draft's half of the contextual ATS score: the inputs from draft's own tables (services/atsContextual.js),
-// the public company-stack lookup Resume Master uses standing alone, the weights Admin → Ops sets, and the wiring that keeps
+// the public company-stack lookup the tools service uses standing alone, the weights Admin → Ops sets, and the wiring that keeps
 // the existing skill-match report unchanged.
 import test from "node:test";
 import assert from "node:assert/strict";

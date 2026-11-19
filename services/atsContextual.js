@@ -15,7 +15,7 @@
 import { scoreContextual, resolveContextualWeights, DEFAULT_CONTEXTUAL_WEIGHTS } from "@draft/ats-scorer";
 import { stackFor } from "./companies/companyTech.js";
 import { technologiesIn } from "../shared/techVocabulary.js";
-import { companyNameKey } from "../shared/companyIdentity.js";
+import { companyRef, companyIdForSlug } from "./entities.js";
 import { companySlug } from "../shared/companyPaths.js";
 import { storedPlacement } from "./placement.js";
 import { getSetting, setSetting, clearSetting } from "./appSettings.js";
@@ -54,14 +54,13 @@ export function companyStackOf(db, companyId, nowSec = Math.floor(Date.now() / 1
 
 /** A company record by its name, as the public pages resolve one (the name alias, else the slug). null when none. */
 export function companyIdByName(db, name) {
-  const key = companyNameKey(name);
-  if (!key) return null;
-  return safe(() => db.prepare(`SELECT company_id FROM company_aliases WHERE alias_key = ?`).pluck().get(`name:${key}`), null)
-    ?? safe(() => db.prepare(`SELECT id FROM companies WHERE slug = ?`).pluck().get(companySlug(name)), null) ?? null;
+  if (!String(name || "").trim()) return null;
+  // b6: companies are looked up by name through services/entities.js only (the one resolver); else the page slug
+  return safe(() => companyRef(db, name)?.id, null) ?? safe(() => companyIdForSlug(db, companySlug(name)), null) ?? null;
 }
 
 /**
- * ⭐ D192 (3) · GET /api/public/company-stack?name= — Resume Master's lookup when it scores on its own (no draft in the loop).
+ * ⭐ D192 (3) · GET /api/public/company-stack?name= — the tools service's lookup when it scores on its own (no draft in the loop).
  * The same public data the company pages show; nothing about any person. { matched: false } when no record answers.
  */
 export function publicCompanyStack(db, name, nowSec = Math.floor(Date.now() / 1000)) {
