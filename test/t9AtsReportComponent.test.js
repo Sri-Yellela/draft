@@ -120,7 +120,8 @@ test("⭐ T9 · no extension-only field: the extension's `ats.report` is the sco
   // The approval screen's stored copy stays the summary: only the extension's routes ask for the report.
   const server = read("server.js");
   assert.match(server, /function scoreBaseResumeForApply\(userId, jobId, \{ withReport = false \} = \{\}\)/);
-  assert.match(server, /\.\.\.\(withReport \? \{ report \} : \{\}\),/);
+  // ⭐ 46x D192 (4): the contextual block rides beside the report, and only where the report travels (withReport)
+  assert.match(server, /\.\.\.\(withReport \? \{ report, contextual: contextualForBase\(userId, activeProfile, job, report\) \} : \{\}\),/);
   assert.match(read("routes/apply.js"), /scoreBaseResumeForApply\(userId, jobId\) : null;/, "the apply worker started storing the full report");
 });
 

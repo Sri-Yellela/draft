@@ -85,6 +85,8 @@ async function launch(fx, { greenhouse }) {
     // The careers host stands in for the user's activeTab grant (the harness's convention); Greenhouse is the optional
     // permission the user grants — present in (a), absent in (b).
     hosts: [`https://${CAREERS}/*`, ...(greenhouse ? [`https://${GH_HOST}/*`, "https://boards.greenhouse.io/*"] : [])],
+    // ⭐ 46x: since D191 B2 Greenhouse is install-time access — (b) takes it away, as Chrome's "on click" site access does
+    ...(greenhouse ? {} : { withoutHosts: [`https://${GH_HOST}/*`, "https://boards.greenhouse.io/*"] }),
   });
 }
 const frameValues = (h) => h.frame(u => u.startsWith(`https://${GH_HOST}/`))?.evaluate(() =>
@@ -214,7 +216,7 @@ test("⭐ T17 (d): the dock dragged ACROSS the embedded form's frame keeps movin
     const again = await waitUntil(async () => (await h.page.$("#rm-draft-dock")) && rect(), BUSY_MS);
     assert.deepEqual([again.x, again.y, again.w], [after.x, after.y, after.w], "the same rectangle, on the same site");
     // ⭐ T26: the empty Fill tab's words are its accessible name; the one control on it is Fill this page
-    assert.match(await h.page.evaluate(() => { const e = document.getElementById("rm-draft-dock").shadowRoot.querySelector('[data-role="empty"]');
+    assert.match(await h.page.evaluate(() => { const e = document.getElementById("rm-draft-dock").shadowRoot.querySelector('.pane[data-tab="fill"] [data-role="empty"]');   // D191 B1: the panel's pane comes first; read the Fill pane's own
       return `${e?.getAttribute("aria-label") || ""} | ${e?.querySelector('[data-role="fill"]')?.getAttribute("aria-label") || ""}`; }),
       /Nothing has been filled on this page yet.* \| Fill this page/, "a fresh page's Fill tab says so — and offers Fill this page");
     assert.deepEqual(fx.posts, []);

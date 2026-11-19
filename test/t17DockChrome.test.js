@@ -180,7 +180,7 @@ test("⛔ T17: keyboard-operable — Move (arrows, Ctrl+arrow snaps), Resize (ar
   const { url } = await servers(t);
   const browser = await launch(t);
   const page = await openPage(browser, url);
-  await page.evaluate((m) => globalThis.__draftDock.ensure(m), meta(undefined, { rect: { x: 600, y: 100, w: 380, h: 500 } }));
+  await page.evaluate((m) => globalThis.__draftDock.ensure(m), meta(undefined, { rect: { x: 600, y: 100, w: 380, h: 500 }, tab: "fill" }));   // D191 B1: off the home tab, the tab row is drawn
   const r0 = await rect(page);
   await page.focus("#rm-draft-dock >>> [data-role='move']");
   await page.keyboard.press("ArrowLeft");
@@ -199,7 +199,7 @@ test("⛔ T17: keyboard-operable — Move (arrows, Ctrl+arrow snaps), Resize (ar
   await page.focus("#rm-draft-dock >>> [data-role='tab'][data-tab='fill']");
   await page.keyboard.press("ArrowRight");
   const sel = await page.evaluate(() => [...document.getElementById("rm-draft-dock").shadowRoot.querySelectorAll('[role="tab"]')].map(b => [b.dataset.tab, b.getAttribute("aria-selected")]));
-  assert.deepEqual(sel, [["fill", "false"], ["ats", "true"], ["resume", "false"], ["copy", "false"]]);
+  assert.deepEqual(sel, [["draft", "false"], ["fill", "false"], ["ats", "true"], ["resume", "false"], ["copy", "false"]], "D191 B1: the home tab (the panel) leads the row");
   assert.equal(await page.evaluate(() => document.getElementById("rm-draft-dock").shadowRoot.activeElement?.dataset.tab), "ats", "the focus follows the tab");
   // Esc in a page FIELD is the page's (its dropdowns); Esc from inside the dock closes it
   await page.focus("#city");
@@ -234,7 +234,7 @@ test("⛔ T17: the four themes — the frame is painted from the palette it is h
   for (const [name, theme, os, want] of cases) {
     const page = await openPage(browser, url);
     await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: os }]);
-    await page.evaluate((m) => globalThis.__draftDock.ensure(m), meta(theme, null, name.startsWith("contrast")));
+    await page.evaluate((m) => globalThis.__draftDock.ensure(m), meta(theme, { tab: "fill" }, name.startsWith("contrast")));   // D191 B1: the row (and its selected tab) is drawn off the home tab
     const got = await page.evaluate(() => { const r = document.getElementById("rm-draft-dock").shadowRoot; const tab = r.querySelector('[aria-selected="true"]'); return {
       ink: getComputedStyle(r.querySelector(".fr")).color, cues: document.getElementById("rm-draft-dock").getAttribute("data-cues"),
       before: getComputedStyle(tab, "::before").content, radius: Math.max(...[...r.querySelectorAll("button, .fr")].map(b => parseFloat(getComputedStyle(b).borderTopRightRadius) || 0)) }; });
@@ -276,7 +276,7 @@ test("⛔ T17: a tab with no view is drawn on the user's own press only — a pa
   const { url } = await servers(t);
   const browser = await launch(t);
   const page = await openPage(browser, url);
-  await page.evaluate((m) => globalThis.__draftDock.ensure(m), meta());
+  await page.evaluate((m) => globalThis.__draftDock.ensure(m), meta(undefined, { tab: "fill" }));   // D191 B1: the row is drawn off the home tab
   await page.evaluate(() => document.getElementById("rm-draft-dock").shadowRoot.querySelector('[data-tab="ats"]').click());
   assert.deepEqual(await page.evaluate(() => window.__sent.filter(m => m.type === "DOCK_TAB")), [], "a synthetic click loads nothing");
   await page.click("#rm-draft-dock >>> [data-role='tab'][data-tab='resume']");

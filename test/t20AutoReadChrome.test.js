@@ -118,6 +118,9 @@ test("⭐ (a) consent reads the tabs ALREADY OPEN with no press · a new tab rea
     t.after(() => fx.stop());
     const h = await launchExtensionBrowser({ insecureCerts: true, resolverRules: rules(fx), hosts: [...OPTIONAL_ORIGINS] });
     t.after(() => h.close());
+    // ⭐ 46x: since D191 B2 the PANEL opens by itself on a board posting (the owner's 11-18 pick, walked in d191Panel); this
+    // test is the READ's rule (T17: a read alone never draws an expanded dock), so the person's "Open by itself" is off here
+    await h.storage.set("local", { autoRead: { panel: { autoOpen: false } } });
 
     // 1 · two application pages are OPEN before the consent: Greenhouse (the active tab) and a Workday step (another tab)
     const wd = await h.browser.newPage();
@@ -212,7 +215,9 @@ test("⛔ (c) the REAL request with no grant (Chrome's prompt, never answered): 
   { skip, timeout: 180000 }, async (t) => {
     const fx = await startFixture();
     t.after(() => fx.stop());
-    const h = await launchExtensionBrowser({ insecureCerts: true, resolverRules: rules(fx), hosts: [] });
+    // ⭐ 46x: since D191 B2 the six board families are install-time access; a REAL no-grant request needs them taken away
+    // (what a person who set them to "on click" in Chrome has) — the optional list keeps them, so Chrome is asked
+    const h = await launchExtensionBrowser({ insecureCerts: true, resolverRules: rules(fx), hosts: [], withoutHosts: [...OPTIONAL_ORIGINS] });
     t.after(() => h.close());
     await h.open(GH_APPLY, { settle: 1500 });
     // ⭐ T31: the press is Settings' now (the retired popup closed as Chrome's prompt opened — a tab does not, but the

@@ -170,7 +170,7 @@ const APP_URL_DECL = (origin) => `const RESUME_MASTER_URL = '${origin}';`;
  * the tenant(s) to host_permissions. TEST BUILD ONLY — it stands in for the user's activeTab gesture; the shipped
  * manifest is not touched. Throws if background.js stops declaring RESUME_MASTER_URL the way it does today.
  */
-export async function buildTestExtension({ apiOrigin, outDir, hosts = [`${T}/*`], backgroundAppend = '', panelArrive = false }) {
+export async function buildTestExtension({ apiOrigin, outDir, hosts = [`${T}/*`], backgroundAppend = '', panelArrive = false, withoutHosts = [] }) {
   const { CANONICAL_ORIGIN: canonical } = await import('../shared/brand.js');
   const src = path.join(ROOT, 'extension');
   const dst = path.join(outDir, 'extension');
@@ -193,6 +193,13 @@ ${backgroundAppend}
   }
   const manifest = JSON.parse(fs.readFileSync(path.join(dst, 'manifest.json'), 'utf8'));
   manifest.host_permissions = [...(manifest.host_permissions || []), `${apiOrigin}/*`, ...hosts];   // TEST BUILD ONLY
+  // ⭐ 46x · `withoutHosts`: the install-time board access (D191 B2) taken away again — what a person who sets a board to
+  // "on click" in Chrome's site access has. The optional list keeps them, so the extension can still ask (TEST BUILD ONLY).
+  if (withoutHosts.length) {
+    manifest.host_permissions = manifest.host_permissions.filter(h => !withoutHosts.includes(h));
+    for (const cs of manifest.content_scripts || []) cs.matches = cs.matches.filter(m => !withoutHosts.includes(m));
+    manifest.content_scripts = (manifest.content_scripts || []).filter(cs => cs.matches.length);
+  }
   // D99 J11's bridge runs on draft's own origin — in the test build, the test API's (as RESUME_MASTER_URL is above)
   for (const cs of manifest.content_scripts || []) cs.matches = cs.matches.map(m => (m === `${canonical}/*` ? `${apiOrigin}/*` : m));
   // ⭐ D191 sketch 2: the panel's arrival script runs on the boards over https; the fixture's tenant is http — TEST BUILD ONLY,
@@ -278,7 +285,7 @@ export async function launchExtensionBrowser(opts = {}) {
     cleanups.push(() => ats.stop());
     const api = await startApi(opts.api || {});
     cleanups.push(() => api.stop());
-    const ext = await buildTestExtension({ apiOrigin: api.origin, outDir, hosts: opts.hosts || [`${T}/*`], backgroundAppend: opts.backgroundAppend || '', panelArrive: opts.panelArrive === true });
+    const ext = await buildTestExtension({ apiOrigin: api.origin, outDir, hosts: opts.hosts || [`${T}/*`], backgroundAppend: opts.backgroundAppend || '', panelArrive: opts.panelArrive === true, withoutHosts: opts.withoutHosts || [] });
     const profileDir = path.join(outDir, 'profile');
     fs.rmSync(profileDir, { recursive: true, force: true });
     const { default: puppeteer } = await import('puppeteer-core');

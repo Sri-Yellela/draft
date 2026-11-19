@@ -64,7 +64,7 @@ test("⛔ J12 → T22 → T31 · draft's own report is the dock's ATS tab — no
     assert.doesNotMatch(code, /openAtsScore|OPEN_ATS_SCORE|btn-score-primary/, `${f} wires a score button`);
   }
   const bg = read("extension/background.js");
-  assert.match(bg, /openDock: \(\) => openDock\(tab\),/, "the toolbar press opens the dock");
+  assert.match(bg, /openDock: \(\) => openDock\(tab, 'draft'\),/, "the toolbar press opens the dock — on the panel (D191 B1, 6bcd45b3: the home tab is the panel)");
   assert.doesNotMatch(bg, /message\.type === 'OPEN_ATS_SCORE'/);
   assert.match(bg, /if \(which === 'ats' \|\| which === 'resume'\) return RESUME_PANEL_HANDLERS\.RESUME_PANEL_OPEN\(\{ tab: which \}, \{ tab \}\);/);
   assert.match(bg, /MENU_ATS_PAGE\) void openDock\(tab, 'ats'\);/);
