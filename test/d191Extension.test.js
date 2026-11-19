@@ -142,7 +142,7 @@ test("d191StylingFromDraftTokens / d191ThemeFromAppearanceSetting — every site
 
 test("d191NoAllUrlsPermission — activeTab, storage, scripting, contextMenus; draft's own origin; every ATS host optional", () => {
   const m = JSON.parse(read("extension/manifest.json"));
-  assert.deepEqual([...m.permissions].sort(), ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
+  assert.deepEqual([...m.permissions].sort(), ["activeTab", "contextMenus", "scripting", "storage"]);
   assert.deepEqual(m.host_permissions, [...D191_HOSTS]);
   assert.ok(!JSON.stringify(m.permissions).includes("<all_urls>") && !m.host_permissions.includes("<all_urls>"));
   assert.ok(!m.permissions.includes("tabs") && !m.permissions.includes("history") && !m.permissions.includes("webRequest"), "nothing that watches browsing");
@@ -155,24 +155,28 @@ test("d191NeverAutoSubmits — the extension still never sends without the perso
   assert.doesNotMatch(bg.slice(at(bg, "const HOME_EVERY_MS"), at(bg, "async function publicCompanyCard")), /submit/i);
 });
 
-test("D191 (2e) / (3) / P5 · the extension's panel runs the SITE's engine, mirrored byte-identical, and asks no model", async () => {
+test("D191 (2e) / (3) → B3 · Ask draft runs the SITE's engine, mirrored byte-identical, inside the ONE panel, and asks no model", async () => {
+  // ⭐ D191 B3 (owner 11-18, the one-panel sketch): the side panel's ask.js retired — the same handlers run in the worker
+  // (extension/panelAsk.js), the panel's box sends PANEL_ASK. Changed ON PURPOSE.
   const norm = (p) => read(p);
   assert.equal(norm("extension/assistantEngine.js"), norm("shared/assistantEngine.js"), "change both copies of the engine");
   assert.equal(norm("extension/assistantVoice.js"), norm("shared/assistantVoice.js"), "change both copies of the voice helper");
   assert.equal(norm("extension/commands-v1.json"), norm("content/assistant/commands-v1.json"), "change both copies of the vocabulary");
-  const ask = norm("extension/ask.js");
-  assert.match(ask, /import COMMANDS from '\.\/commands-v1\.json' with \{ type: 'json' \};/);
-  assert.doesNotMatch(ask, /assistant\/ask|anthropic|\/v1\/messages/, "no model route");
-  assert.doesNotMatch(ask, /const RESUME_MASTER_URL = 'https:\/\/jobsviadraft\.com';/, "draft's address comes from the worker — one source");
+  const ask = norm("extension/panelAsk.js");
+  assert.match(ask, /import \{ createAssistant \} from '\.\/assistantEngine\.js';/);
+  assert.doesNotMatch(ask, /assistant\/ask|anthropic|\/v1\/messages|callTask/, "no model route");
   assert.match(ask, /t3: \(\) => \(\{ ask: /, "T3 is not offered here");
   const bg = norm("extension/background.js");
-  assert.match(bg, /const fromOwnPage = \(sender\) => sender\?\.id === chrome\.runtime\.id && String\(sender\?\.url \|\| ''\)\.startsWith\(chrome\.runtime\.getURL\('ask\.html'\)\);/);
-  // ⭐ 46o: + 'fill' — the panel's "Apply from here" (D191 (2c)) is the dock's OWN Fill (D36: it fills, the person submits)
-  assert.match(bg, /msg\.act === 'draft' \|\| msg\.act === 'capture' \|\| msg\.act === 'fill' \? DOCK_ACTS\[msg\.act\] : null/, "only the dock's own Capture / Draft / Fill");
+  assert.match(bg, /const commands = await fetch\(chrome\.runtime\.getURL\('commands-v1\.json'\)\)\.then\(r => r\.json\(\)\);/, "the vocabulary ships and is read by name");
+  assert.match(bg, /if \(msg\.trigger !== 'click' \|\| sender\?\.frameId !== 0 \|\| !sender\?\.tab\?\.id \|\| typeof msg\.text !== 'string'\) \{ sendResponse\(null\); return true; \}/, "PANEL_ASK: the page's top frame, a click, that tab");
+  assert.match(bg, /return t && DOCK_ACTS\[name\] \? DOCK_ACTS\[name\]\(t\) :/, "its acts are the dock's own");
+  const { collectRequiredFiles } = await import("../scripts/buildExtension.mjs");
   const m = JSON.parse(norm("extension/manifest.json"));
+  assert.ok(collectRequiredFiles(m).includes("commands-v1.json"), "the packager follows the getURL literal");
   assert.ok(m.commands["open-ask-draft"] && !m.commands["open-ask-draft"].suggested_key, "a shortcut the person binds (no new default key)");
   const { CONTEXT_MENUS, MENU_ASK } = await import("../extension/formReport.js");
   assert.ok(CONTEXT_MENUS.some(i => i.id === MENU_ASK && i.title === "Ask draft…"), "46v 0c (owner 11-18): Tiny retired — the menu asks draft");
+  assert.match(bg, /if \(info\.menuItemId === MENU_ASK\) void openPanelHere\(tab\);/, "the menu opens the panel");
   // the board takes the panel's search by address, once
   const bs = norm("client/src/lib/boardSearch.js");
   assert.match(bs, /export const SEARCH_PARAM = "search";/);
@@ -187,17 +191,11 @@ test("46n · the card asks the H-1B record by the posting's own company string f
 
 // ⭐ 46v 0c (owner 11-18: "drop 'tiny'"), changed ON PURPOSE: the fox and the name Tiny are retired — the chat wears draft's
 // short logo "/d" and is called draft; this pinned the opposite (no "Ask draft" left on screen).
-test("46v · the panel's chat wears draft's short logo and name: the same as on draft; no 'Tiny' left on screen", () => {
-  const html = read("extension/ask.html");
-  assert.match(html, /<title>Ask draft<\/title>/);
-  assert.match(html, /<span class="tiny-face" id="ask-tiny-face" aria-hidden="true"><\/span>/);
-  assert.match(html, /<h2 id="ask-tiny-name">draft<\/h2>/);
-  assert.match(html, /aria-label="Tell draft what to do"/);
-  assert.doesNotMatch(html.replace(/<!--[\s\S]*?-->/g, ""), /Tiny/, "nothing the person sees says Tiny");
-  assert.match(html, /\.tiny-face \{[^}]*width: 32px; height: 32px; border-radius: 50%;/, "the fox's well is a perfect circle (D60)");
-  const ask = read("extension/ask.js");
-  assert.match(ask, /import \{ tinySvg, TINY_NAME \} from '\.\/tinyMascot\.js';/);
-  assert.match(ask, /\$\('ask-tiny-face'\)\.innerHTML = tinySvg\(\{ size: 26 \}\);/);
+test("46v → B3 · the panel's ask box says draft, never Tiny; the mascot's two copies still match", () => {
+  // ⭐ D191 B3: the side panel's ask.html (its fox well and title) retired with it — changed ON PURPOSE
+  const view = read("extension/jobPanel.js");
+  assert.match(view, /placeholder="Search jobs, or ask draft" aria-label="Search jobs, or ask draft"/);
+  assert.doesNotMatch(view.replace(/^\s*\/\/.*$/gm, ""), /Tiny/, "nothing the person sees says Tiny");
   assert.equal(read("extension/tinyMascot.js"), read("shared/tinyMascot.js"), "change both copies of the mascot");
   assert.match(JSON.parse(read("extension/manifest.json")).commands["open-ask-draft"].description, /Ask draft$/);
 });
@@ -227,7 +225,10 @@ test("A211 (b) · the home view counts the applications waiting to be sent from 
   assert.equal(both[0].text, "Today: 2 new matches · 1 waiting to send from this browser");
   const none = relayFor({ identity: SIGNED_IN, ctx: { identity: null }, home: { newMatches: 2, toSend: 0 } });
   assert.deepEqual(none[0].actions.map(a => a.id), ["open-ask", "open-draft"], "nothing waiting → no runner button");
-  assert.match(read("extension/ask.js"), /\$\('ask-runner'\)\.textContent = n > 0 \? `\$\{n\} waiting to send from this browser — Open the runner` : 'Apply while this is open';/);
+  // ⭐ D191 B3: the panel's other-page view says it, with the runner as its link (the side panel's button retired)
+  const { panelModel } = await import("../extension/jobPanelModel.js");
+  assert.deepEqual(panelModel({ signedIn: true, other: true, home: { toSend: 3 } }).note, { text: "3 waiting to send from this browser", act: "open-runner" });
+  assert.equal(panelModel({ signedIn: true, other: true, home: { toSend: 0 } }).note, null);
   // no timer: the count rides the existing home read (on a page load or a press, at most every few minutes)
   assert.doesNotMatch(read("extension/toolbarPress.js"), /setInterval|chrome\.alarms/);
 });
@@ -266,27 +267,17 @@ test("D191 (2a) / (2c) / (2d), 46o · the side panel's facts: level, salary, Wor
   assert.equal(trendWord([{ postings: 4 }, { postings: 4 }]), "flat"); assert.equal(trendWord([{ postings: 1 }]), null);
 });
 
-test("D191 46o · the panel's lines say only what draft knows; the side panel, the notice, no privacy_policy_url", async () => {
-  const { jobLines, companyLines } = await import("../extension/panelModel.js");
-  const l = jobLines({ score: 51.4, facts: { subcategory: "Backend engineering", level: "Senior", salary: "$140k–$180k a year", fit: "Good fit", proven: { count: 4, of: 8 }, worksWith: ["Go", "Postgres"] }, application: { state: "Needs you" } });
-  assert.deepEqual(l, { sub: "Backend engineering · Senior · $140k–$180k a year", fit: "Good fit · 51 ATS match · you've proven 4 of their top 8", works: "Works with Go, Postgres", state: "Needs you" });
-  assert.deepEqual(jobLines({}), { sub: "", fit: "", works: "", state: "" }, "nothing known → nothing said");
-  assert.equal(companyLines({ sponsorship: { text: "Filed 290 certified LCAs in FY2025" }, openJobs: 23, trend: "up" }), "Filed 290 certified LCAs in FY2025 · 23 open jobs on draft · hiring more than three months ago");
-  assert.equal(companyLines({ openJobs: 0 }), "");
-  // the panel's actions: Draft / Save only when not yours; Apply from here = the dock's Fill; Open in draft = the board's job
-  const ask = read("extension/ask.js");
-  assert.match(ask, /if \(!j\.mine\) acts\.push\(btn\('Draft this job', \(\) => act\('draft'\), true\), btn\('Save', \(\) => act\('capture'\)\)\);/);
-  assert.match(ask, /btn\('Apply from here', \(\) => act\('fill'\)/);
-  assert.match(ask, /open\(`\/app\/jobs\?job=\$\{encodeURIComponent\(j\.jobId\)\}`\)/);
-  assert.doesNotMatch(ask, /callTask|anthropic|assistant\.chat/);
-  // the side panel: declared, opened on the person's click with a window fallback
+test("D191 46o → B3 · ONE panel: no side panel, no ask window; the notice; no privacy_policy_url", async () => {
+  // ⭐ D191 B3 (owner 11-18: "we only need either of the floating widget or the docked panel … merge them"): Chrome's side
+  // panel (ask.html / ask.js / panelModel.js, the sidePanel permission) is retired — changed ON PURPOSE
+  for (const f of ["ask.html", "ask.js", "panelModel.js"]) assert.ok(!fs.existsSync(`extension/${f}`), `extension/${f} is back`);
   const m = JSON.parse(read("extension/manifest.json"));
-  assert.equal(m.side_panel?.default_path, "ask.html");
-  assert.ok(m.permissions.includes("sidePanel"));
+  assert.equal(m.side_panel, undefined, "d191OneUiNotTwo: no side panel declared");
+  assert.ok(!m.permissions.includes("sidePanel"));
   assert.equal(m.privacy_policy_url, undefined, "not a manifest key (Chrome: Unrecognized manifest key)");
   const bg = read("extension/background.js");
-  assert.match(bg, /try \{ await chrome\.sidePanel\.open\(\{ tabId: tab\.id \}\); await set; return \{ ok: true, say: null \}; \}/);
-  assert.match(bg, /await chrome\.windows\.create\(\{ url: chrome\.runtime\.getURL\(path\), type: 'popup'/, "the window is the fallback");
+  assert.doesNotMatch(bg, /chrome\.sidePanel|openAskWindow|ask\.html|ASK_CONTEXT/, "d191OneUiNotTwo: no code path opens a second UI");
+  assert.doesNotMatch(bg, /chrome\.windows\.create\(\{ url: chrome\.runtime\.getURL\(path\), type: 'popup'/, "no ask window either");
   // the in-product disclosure: once on install and on an update from before 1.7.0; nothing stored
   const { noticeDue } = await import("../extension/toolbarPress.js");
   assert.equal(noticeDue({ reason: "install" }), true);
@@ -295,7 +286,8 @@ test("D191 46o · the panel's lines say only what draft knows; the side panel, t
   assert.equal(noticeDue({ reason: "chrome_update" }), false);
   assert.match(bg, /chrome\.runtime\.onInstalled\?\.addListener\(\(details\) => \{ if \(noticeDue\(details\)\) void chrome\.tabs\.create\(\{ url: chrome\.runtime\.getURL\('notice\.html'\) \}\)/);
   const notice = read("extension/notice.html");
-  for (const said of ["only when you ask it to", "only to draft's own server", "Signed out, only the employer's name and the page's address go", "never submits a form on its own", "Only your press of Send all sends them"]) assert.ok(notice.includes(said), said);
+  for (const said of ["only when you ask it to", "only to draft's own server", "Signed out, only the employer's name and the page's address go", "never submits a form on its own", "Only your press of Send all sends them",
+    "On Greenhouse, Lever, Ashby, Workable, Workday and SmartRecruiters, draft's panel opens by itself on a posting"]) assert.ok(notice.includes(said), `the notice no longer says: ${said}`);
   assert.doesNotMatch(read("extension/notice.js"), /chrome\.storage/, "the notice stores nothing");
 });
 

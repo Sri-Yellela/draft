@@ -62,6 +62,19 @@ export function renderJobPanel(model, theme, dockMeta) {
     .opt[aria-checked="true"] { background: ${c.SUCCESS_QUIET}; color: ${c.SUCCESS}; border-color: transparent; }
     .ft { border-top: 1px solid ${c.BORDER}; padding: 10px 16px; }
     .ft .ln { color: ${c.INK}; }
+    /* ⭐ B3 · any other page: the day (three counts, each opens draft) and ONE box — search jobs, or ask draft */
+    .day { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 14px 16px 4px; }
+    .tile { font: 500 11px system-ui, -apple-system, "Segoe UI", sans-serif; color: ${c.INK_MUTED}; text-align: center; padding: 8px 4px;
+            border: 1px solid ${c.BORDER}; border-radius: 8px; background: ${c.SURFACE_SOLID}; box-shadow: ${c.DEPTH_REST || 'none'}; cursor: pointer; }
+    .tile b { display: block; font-size: 18px; font-weight: 700; color: ${c.INK}; font-variant-numeric: tabular-nums; }
+    .ask { display: flex; gap: 6px; padding: 12px 16px 0; }
+    .ask input { flex: 1; min-width: 0; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; padding: 9px 10px; border-radius: 8px;
+                 border: 1px solid ${c.BORDER_CONTROL || c.BORDER}; background: ${c.SURFACE_INPUT || c.SURFACE_SOLID}; color: ${c.INK}; }
+    .ask input:focus-visible, .tile:focus-visible { outline: 2px solid ${c.ACCENT_INK}; outline-offset: 2px; }
+    .reply { margin: 10px 16px 0; font-size: 12.5px; color: ${c.INK}; }
+    .reply:empty { display: none; }
+    .reply .lb { display: block; font-size: 10.5px; color: ${c.INK_FAINT}; margin-bottom: 2px; }
+    .reply .yn { display: flex; gap: 6px; margin-top: 6px; }
   `;
   const m = model;
   const job = m.job ? `<div class="job"><div class="lg" aria-hidden="true">${m.job.logo ? `<img alt="" src="${esc(m.job.logo)}" referrerpolicy="no-referrer">` : esc(m.job.letter)}</div>
@@ -72,8 +85,10 @@ export function renderJobPanel(model, theme, dockMeta) {
       ${sw('review', m.how.review, 'Review before I submit')}${sw('autoOpen', m.how.autoOpen, 'Open by itself on job boards')}</div>` : '';
   root.innerHTML = `<style>${css}</style><div class="p" role="region" aria-label="draft — this job">
       <div class="st" data-role="status" data-tone="${esc(m.status?.tone || 'quiet')}" role="status">${esc(m.status?.text || '')}</div>
-      ${job}
-      <button class="go" data-role="go" ${m.button?.act ? `data-act="${esc(m.button.act)}"` : ''}${m.button?.disabled ? ' disabled' : ''}>${esc(m.button?.label || '')}</button>
+      ${m.day ? `<div class="day" role="group" aria-label="Your day">${m.day.map(d => `<button class="tile" data-act="${esc(d.act)}"><b>${esc(d.n)}</b>${esc(d.label)}</button>`).join('')}</div>` : job}
+      ${m.button ? `<button class="go" data-role="go" ${m.button.act ? `data-act="${esc(m.button.act)}"` : ''}${m.button.disabled ? ' disabled' : ''}>${esc(m.button.label || '')}</button>` : ''}
+      ${m.ask ? `<div class="ask"><input id="rm-draft-ask-input" type="text" maxlength="600" placeholder="Search jobs, or ask draft" aria-label="Search jobs, or ask draft" autocomplete="off">
+        <button class="opt" data-role="ask-go" type="button">Go</button></div><div class="reply" data-role="reply" role="status" aria-live="polite"></div>` : ''}
       ${note}<div class="said" data-role="said" role="alert"></div>
       <div class="mid"></div>${how}
       <div class="ft"><button class="ln" data-act="open-draft">Open draft ↗</button></div></div>`;
@@ -91,9 +106,36 @@ export function renderJobPanel(model, theme, dockMeta) {
   if (root.__draftWired) return { rendered: true, kind: m.kind || null, stepped };
   root.__draftWired = true;                                        // a redraw keeps the one listener (reuse: 'job')
   const send = (msg) => new Promise((resolve) => { try { chrome.runtime.sendMessage(msg, (r) => { void chrome.runtime.lastError; resolve(r || null); }); } catch { resolve(null); } });
+  // ⭐ B3 · the box: what is typed goes to the worker's Ask draft (PANEL_ASK — the site's engine, no model); the answer shows
+  // under it, with Yes / No when the engine asks first. ⛔ D36·5: Enter calls the same function the button does (no form)
+  const ask = async (text) => {
+    const reply = root.querySelector('[data-role="reply"]');
+    const q = String(text || '').trim();
+    if (!q || !reply) return;
+    reply.textContent = '…';
+    const r = await send({ type: 'PANEL_ASK', text: q, trigger: 'click' });
+    reply.replaceChildren();
+    reply.dataset.tier = r?.tier || '';                            // T1 action · T2 from your data · ask (the walks read it)
+    if (r?.label) reply.append(Object.assign(document.createElement('span'), { className: 'lb', textContent: r.label }));
+    reply.append(document.createTextNode(r?.text || 'draft could not answer that — try again.'));
+    if (r?.confirm) {
+      const yn = Object.assign(document.createElement('div'), { className: 'yn' });
+      for (const w of ['Yes', 'No']) yn.append(Object.assign(document.createElement('button'), { className: 'opt', type: 'button', textContent: w }));
+      for (const b of yn.children) b.dataset.say = b.textContent;
+      reply.append(yn);
+    }
+  };
+  root.addEventListener('keydown', (ev) => {
+    if (!ev.isTrusted || ev.key !== 'Enter' || ev.target?.id !== 'rm-draft-ask-input') return;
+    ev.preventDefault();
+    const v = ev.target.value; ev.target.value = ''; void ask(v);
+  });
   root.addEventListener('click', async (ev) => {
     if (!ev.isTrusted) return;                                     // ⛔ the person's own click only
     const said = root.querySelector('[data-role="said"]');
+    if (ev.target.closest?.('[data-role="ask-go"]')) { const i = root.getElementById('rm-draft-ask-input'); const v = i?.value || ''; if (i) i.value = ''; void ask(v); return; }
+    const yes = ev.target.closest?.('[data-say]');
+    if (yes) { void ask(yes.dataset.say); return; }
     const set = ev.target.closest?.('[data-set]');
     if (set) {
       const on = set.getAttribute('aria-checked') !== 'true';

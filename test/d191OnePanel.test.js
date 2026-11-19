@@ -153,3 +153,40 @@ test("D191 B2 · the manifest: the six board families at install, the arrival sc
   assert.deepEqual(m.content_scripts, D191_CONTENT_SCRIPTS);
   assert.doesNotMatch(JSON.stringify(m.host_permissions), /linkedin|indeed|glassdoor|<all_urls>|https:\/\/\*\/\*"/i);
 });
+
+// ── B3 · ONE panel: Chrome's side panel retired; the day and Ask draft live in the panel's other-page view ─────────────
+test("D191 B3 · any other page: the day (three counts that open draft), the runner line, and ONE box — no big button", () => {
+  const m = panelModel({ signedIn: true, page: null, ctx: null, home: { newMatches: 2, needsYou: 1, drafted: 3, toSend: 0 } });
+  assert.equal(m.kind, "other");
+  assert.equal(m.button, null);
+  assert.equal(m.ask, true);
+  assert.deepEqual(m.day.map(d => [d.n, d.label, d.act]), [[2, "new matches", "open-draft"], [1, "need you", "open-needs"], [3, "drafted", "open-needs"]]);
+  assert.equal(m.note, null);
+  assert.equal(panelModel({ signedIn: true, other: true, page, ctx: ctx() }).kind, "other", "the shortcut / Ask draft… opens it on a posting too");
+});
+
+test("D191 B3 · Ask draft in the worker: the site's engine, T2 from the day, a sentence it does not know is a search, no model", async () => {
+  const { createPanelAsk, PLACES } = await import("../extension/panelAsk.js");
+  const commands = JSON.parse(readFileSync(new URL("../extension/commands-v1.json", import.meta.url), "utf8"));
+  const opened = [], fetched = [];
+  const a = createPanelAsk({ commands, act: async () => ({ ok: true }), open: (p) => opened.push(p), context: () => null,
+    home: async () => ({ needsYou: 2, drafted: 1, sent: 0 }), fetchJson: async (path) => { fetched.push(path); return null; } });
+  assert.equal((await a.handle(1, "how many need me?")).text, "2 applications need you.");
+  const s = await a.handle(1, "backend jobs in Boston");
+  assert.equal(s.intent, "search");
+  assert.equal(opened.at(-1), "/app/jobs?search=backend%20jobs%20in%20Boston");
+  assert.match((await a.handle(1, "rewrite this bullet to highlight Kafka")).text, /isn't offered in the extension/);
+  assert.equal(PLACES.home, "/app/auto-apply");
+  assert.ok(!fetched.some(p => /assistant\/ask|messages|anthropic/.test(p)), "no model route");
+});
+
+test("D191 B3 · d191OneUiNotTwo — no side panel, no ask window, and a page identify calls no job has no job in the panel", () => {
+  const m = JSON.parse(readFileSync(new URL("../extension/manifest.json", import.meta.url), "utf8"));
+  assert.equal(m.side_panel, undefined);
+  assert.ok(!m.permissions.includes("sidePanel"));
+  const bg = readFileSync(new URL("../extension/background.js", import.meta.url), "utf8");
+  assert.doesNotMatch(bg, /chrome\.sidePanel|openAskWindow|getURL\('ask\.html/);
+  assert.match(bg, /const notAJob = \['not_a_job', 'unread'\]\.includes\(c\.identity\?\.outcome\) && !c\.posting\?\.known;/,
+    "the import context sends a posting record for EVERY address — a news page must not read as a job (found by the 46w walk)");
+  assert.match(bg, /'open-ask': async \(tab\) => openPanelHere\(tab\),/);
+});

@@ -62,7 +62,7 @@ test("the runner page sends only on a trusted press, and only the sendable rows"
 
 test("the worker answers RUNNER_* from runner.html only, sends only a trusted press on its own tab holding an extension-submit packet", () => {
   const bg = read("extension/background.js");
-  const block = bg.slice(at(bg, "const runnerTabs = new Map();"), at(bg, "async function openAskWindow(tab) {"));
+  const block = bg.slice(at(bg, "const runnerTabs = new Map();"), at(bg, "/** The card's link, kept for THIS tab")   /* ⭐ D191 B3: the side panel's block that followed is gone */);
   assert.match(block, /startsWith\(chrome\.runtime\.getURL\('runner\.html'\)\)/);
   assert.match(block, /if \(!fromRunner\(sender\)\) \{ sendResponse\(\{ ok: false/);
   assert.match(block, /\.filter\(isExtensionSubmitPacket\)/);

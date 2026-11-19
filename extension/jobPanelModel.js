@@ -36,7 +36,7 @@ export function jobOf(page, ctx) {
   return { title: title || company, sub: title ? sub : clean(page?.location, 60), logo, letter: (company || title).charAt(0).toUpperCase() };
 }
 
-export function panelModel({ signedIn = false, page = null, ctx = null, pending = false, settings = {} } = {}) {
+export function panelModel({ signedIn = false, page = null, ctx = null, pending = false, settings = {}, home = null, other = false } = {}) {
   const job = jobOf(page, ctx);
   const how = { review: settings.review !== false, autoOpen: settings.autoOpen !== false };
   const said = (text, tone = 'quiet') => ({ text, tone });
@@ -55,10 +55,14 @@ export function panelModel({ signedIn = false, page = null, ctx = null, pending 
       button: { label: 'Draft this job', act: 'add-draft', disabled: !job }, note: null, how };
   }
 
-  if (!job) {
-    // B3 draws the day, search and Ask draft here; until then, a way to draft
-    return { kind: 'other', status: said('No job on this page'), job: null,
-      button: { label: 'Open draft', act: 'open-draft', disabled: false }, note: null, how };
+  if (!job || other) {
+    // ⭐ B3 · any other page (the press, the shortcut, "Ask draft…"): the day, and ONE box — search jobs, or ask draft
+    const n = (k) => Math.max(0, Number(home?.[k]) || 0);
+    const waiting = n('toSend');
+    return { kind: 'other', status: said('Your day'), job: null, button: null,
+      day: home ? [{ n: n('newMatches'), label: 'new matches', act: 'open-draft' }, { n: n('needsYou'), label: 'need you', act: 'open-needs' },
+        { n: n('drafted'), label: 'drafted', act: 'open-needs' }] : null,
+      note: waiting ? { text: `${waiting} waiting to send from this browser`, act: 'open-runner' } : null, ask: true, how };
   }
 
   const j = ctx?.job || {};

@@ -12,7 +12,6 @@
     "activeTab",
     "contextMenus",
     "scripting",
-    "sidePanel",
     "storage"
   ],
   "optional_permissions": [
@@ -81,9 +80,6 @@
     }
   },
   "options_page": "options.html",
-  "side_panel": {
-    "default_path": "ask.html"
-  },
   "commands": {
     "capture-job": {
       "suggested_key": {

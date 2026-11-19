@@ -22,7 +22,7 @@ test("R1: the files that drive a browser — directly, through the extension har
     "test/fidelity.test.js", "test/d163OtherScreens.test.js", "test/a201ShrinkGracefully.test.js",
     "test/a131NoSidewaysOverflow1280.test.js",   // runs scripts/a131OverflowProbe.mjs, which drives Chrome
     "test/a210QuestionsThreadNewRun.test.js",    // runs scripts/a199Walk.mjs
-    "test/d191SidePanelWalk.test.js"]) assert.equal(tierOf(f), "browser", f);
+    "test/d191PanelWalk.test.js"]   /* ⭐ D191 B3: the side panel's walk retired with it; the one panel's walk */) assert.equal(tierOf(f), "browser", f);
   // and nothing in the fast tier launches one itself
   for (const f of filesFor("fast")) assert.doesNotMatch(read(f), /puppeteer\.launch\(|launchBrowser\(|fidelityShots\.mjs", "--styles/, f);
 });

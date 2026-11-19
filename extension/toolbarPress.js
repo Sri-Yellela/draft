@@ -79,8 +79,9 @@ export function relayFor({ identity = null, ctx = null, auto = null, away = null
   // ⭐ D191 P1 · on a page with nothing else to say: the person's day (draft's home, in one line) — never on top of a question
   // ⭐ A211 (1a) (b): applications waiting to be sent from this browser → the runner is the first thing offered (no timer:
   // said only on a press, as the day line is)
-  const waiting = !out.length ? runnerLine(home) : null;
-  const day = !out.length ? [homeLine(home), waiting].filter(Boolean).join(' · ') || null : null;
+  // ⭐ D191 B3: with the panel drawn, the day and the runner line are the panel's own (its other-page view) — no toast
+  const waiting = !out.length && !panel ? runnerLine(home) : null;
+  const day = !out.length && !panel ? [homeLine(home), waiting].filter(Boolean).join(' · ') || null : null;
   if (day) out.push({ id: 'draft-home', kind: 'toast', icon: 'info', ms: 7000, text: day,
     // ⭐ D191 (3): Open = the extension's own panel (the day, a search of draft, Tiny); Matches = draft's board
     // ⛔ T27: a popup draws at most two buttons (popup-layer.js) — with the runner first, Matches gives way (the panel's own

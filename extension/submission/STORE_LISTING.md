@@ -17,8 +17,10 @@
 > in the panel. No other site is read without your press."* · Privacy practices → **Website content**: still yes (now also
 > "on a posting you open on the six job boards") · the privacy policy's Browser Extension section was rewritten in the same
 > change (`client/src/pages/marketing/PrivacyPage.jsx`, its EFFECTIVE_DATE set by the push that ships it) · the in-product
-> disclosure `notice.html` names the six boards. **B3 (next) retires Chrome's side panel** — `sidePanel` will leave the
-> manifest; this note will say so when it does.
+> disclosure `notice.html` names the six boards. ⛔ **`sidePanel` LEFT THE MANIFEST (B3)** — the owner's "one panel, not
+> two": Chrome's side panel (`ask.html`) is gone; your day, a search of draft and Ask draft live in the panel's other-page
+> view (the toolbar icon, the shortcut or "Ask draft…" on any page). 👤 At the upload, delete the `sidePanel` justification
+> (the 46o addendum's line below no longer applies). Voice input for Ask draft is not offered in the panel.
 
 > **v1.7.0 + D191 rebuilt to the current spec (2026-11-15, 46o — the owner's "rebuild and revamp extension to current
 > specifications").** Still v1.7.0 (unpublished — the zip is rebuilt). ⛔ **ONE NEW PERMISSION: `sidePanel`** (the owner

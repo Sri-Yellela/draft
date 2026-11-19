@@ -165,6 +165,9 @@ export function collectRequiredFiles(manifest) {
         if (!need.has(resolved)) { need.add(resolved); queue.push(resolved); }
       }
     }
+    // ⭐ D191 B3: a data file READ by name at run time (fetch(chrome.runtime.getURL('commands-v1.json')) — background.js's
+    // Ask draft) is named only by that literal, as a page is
+    for (const m of text.matchAll(/getURL\(\s*[`'"]([\w./-]+\.json)[`'"]\s*\)/g)) need.add(path.posix.normalize(m[1].replace(/^\.?\//, '')));
     // ⭐ D112 b2: an extension PAGE opened by name (chrome.windows.create({ url: chrome.runtime.getURL('global-ask.html…') }))
     // is named only by that literal — the page, then its own scripts and stylesheets (as the entry pages above).
     for (const m of text.matchAll(/getURL\(\s*[`'"]([\w./-]+\.html)/g)) {

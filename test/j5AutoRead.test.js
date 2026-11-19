@@ -51,7 +51,7 @@ test("⛔ D97 · the manifest's optional hosts ARE the site table (5 + Workday's
     "https://boards.greenhouse.io/*", "https://job-boards.greenhouse.io/*", "https://jobs.lever.co/*",
     "https://jobs.ashbyhq.com/*", "https://apply.workable.com/*", ...WD, "https://jobs.smartrecruiters.com/*",
   ]);
-  assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
+  assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "storage"]);
   assert.deepEqual(manifest.host_permissions, [...D191_HOSTS]);
   // the watcher is REGISTERED at run time, never declared — the one declared script is D99 J11's bridge, on draft's origin
   assert.deepEqual(manifest.content_scripts, D191_CONTENT_SCRIPTS, "the watcher is REGISTERED at run time, never declared");

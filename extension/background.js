@@ -48,6 +48,8 @@ import {
 // ⭐ D191 sketch 2 (owner 11-18) · THE ONE PANEL — the dock's home tab: the words (pure) and the view (injected)
 import { panelModel } from './jobPanelModel.js';
 import { renderJobPanel } from './jobPanel.js';
+// ⭐ D191 B3: Ask draft inside the panel — the site's engine, run here (the side panel's ask.js retired)
+import { createPanelAsk } from './panelAsk.js';
 // ⭐ D112 b2: the ONE global-read ask — a small window over the posting that closes itself on either answer.
 import { openGlobalAsk, handlers as GLOBAL_ASK_HANDLERS, onWindowRemoved as onAskWindowRemoved } from './globalRead.js';
 // ⭐⭐ D112 item 7: "Let draft apply here while you're away" — a portal's sign-in sealed to the apply worker's key.
@@ -578,8 +580,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // what grants activeTab for the tab they are on — the same grant the gated handoff runs on.
 chrome.commands.onCommand.addListener((command, cmdTab) => {
   if (command === 'fill-gated-application') { void handleGatedHandoff(); return; }
-  // ⭐ D191 · sidePanel.open() must run inside the gesture: the tab Chrome hands the listener, no query awaited first (46p)
-  if (command === 'open-ask-draft') { if (cmdTab?.id) { void openAskWindow(cmdTab); return; } chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => { void openAskWindow(tab); }); return; }
+  // ⭐ D191 B3: "Open draft's panel" opens THE panel on this page — your day and Ask draft (the side panel is retired)
+  if (command === 'open-ask-draft') { if (cmdTab?.id) { void openPanelHere(cmdTab); return; } chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => { void openPanelHere(tab); }); return; }
   if (command !== 'capture-job') return;
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => { void captureActiveTab(tab); });
 });
@@ -854,7 +856,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   // draft's ATS report" opens the dock on its ATS tab (a view from draft's server; nothing of the page is read for it).
   if (info.menuItemId === MENU_FILL_PAGE) { void handleGatedHandoff(tab); return; }
   if (info.menuItemId === MENU_ATS_PAGE) void openDock(tab, 'ats');
-  if (info.menuItemId === MENU_ASK) void openAskWindow(tab);
+  if (info.menuItemId === MENU_ASK) void openPanelHere(tab);   // ⭐ D191 B3: the panel, not the side panel
 });
 
 /** "Save link to draft": the link's address only — no page is opened or read. The server decides. */
@@ -970,11 +972,14 @@ async function publicCompanyCard(tab) {
   const body = r && r.ok ? await r.json().catch(() => null) : null;
   return body?.company ? rememberCompanyHref(tab, companyFacts(body.company)) : null;
 }
-// ── ⭐ D191 (2e) / (3) · THE EXTENSION'S OWN PANEL — ask.html: the day, a search of draft, Ask draft (the site's engine) ──
+// ── ⭐ D191 (2e) / (3) → B3 · what the press read on each tab — the panel's job, its company, and Ask draft's context ──
 const pressContextByTab = new Map();
 function rememberPressContext(tab, c) {
   if (!tab?.id || !c) return;
-  const p = c.posting || null, report = c.report || null;
+  // ⭐ D191 B3: a page draft's identify calls no job (a news page, an unread page) has no job, whatever posting record the
+  // import context sends for its address (it sends one, known: false, for EVERY address) — the panel then shows the day
+  const notAJob = ['not_a_job', 'unread'].includes(c.identity?.outcome) && !c.posting?.known;
+  const p = notAJob ? null : c.posting || null, report = c.report || null;
   const score = Number.isFinite(report?.score) ? report.score : Number.isFinite(p?.scores?.shown) ? p.scores.shown : null;
   const f = c.facts || null;
   pressContextByTab.set(tab.id, { job: p ? { jobId: p.known ? p.jobId ?? null : null, title: p.title ?? null, company: p.company ?? null, known: !!p.known, score,
@@ -982,8 +987,6 @@ function rememberPressContext(tab, c) {
     prepared: !!c.prepared,
     company: c.company ? { name: c.company.name, sponsorship: c.company.sponsorship, openJobs: c.company.openJobs, href: c.company.href || null,
       ...(f?.company ? { logo: f.company.logo, about: f.company.about, trend: f.company.trend } : {}) } : null });
-  // ⭐ D191 · the side panel, if it is open on this tab, redraws from the new read
-  try { chrome.runtime.sendMessage?.({ type: 'ASK_PRESSED', tabId: tab.id })?.catch?.(() => {}); } catch { /* no panel open */ }
 }
 // ── ⭐ D191 sketch 2 (owner 11-18: "alright go") · THE ONE PANEL ─────────────────────────────────────────────────
 // The dock's home tab (`draft`): the status line, the job, ONE button, "How I apply" (extension/jobPanel.js draws it,
@@ -1010,7 +1013,11 @@ async function drawPanel(tab, o = {}) {
   if (!tab?.id) return { ok: false };
   const [page, settings, theme, meta] = await Promise.all([pageFirstRead(tab), loadAutoSettings().catch(() => null), overlayTheme(), dockMeta(tab)]);
   const ctx = o.signedIn ? (o.pending ? null : pressContextByTab.get(tab.id) || null) : (o.card ? { company: o.card } : null);
-  const model = { ...panelModel({ signedIn: !!o.signedIn, page, ctx, pending: !!o.pending, settings: settings?.panel || {} }), expand: o.expand !== false };
+  // ⭐ B3: the day for the other-page view (GET /api/extension/home, asked at most every five minutes — never a timer)
+  // a page the press read as no posting at all (draft's answer has no job) is "any other page" too, whatever its heading
+  const other = !!o.other || (!!o.signedIn && !o.pending && !!ctx && !ctx.job);
+  const home = o.signedIn && !o.pending && (other || !page) ? await extensionHomeFacts().catch(() => null) : null;
+  const model = { ...panelModel({ signedIn: !!o.signedIn, page, ctx, pending: !!o.pending, settings: settings?.panel || {}, home, other }), expand: o.expand !== false };
   const r = await drawInDock(tab.id, renderJobPanel, [model, theme, meta]).catch(() => null);
   return { ok: !!r?.rendered, kind: r?.kind || null };
 }
@@ -1046,6 +1053,41 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type !== 'PANEL_ARRIVE') return false;
   if (sender?.frameId !== 0 || !sender?.tab?.id || sender.id !== chrome.runtime.id) { sendResponse({ ok: false }); return true; }
   panelArrive(sender.tab).then(r => sendResponse(r), () => sendResponse({ ok: false }));
+  return true;
+});
+// ⭐ D191 B3 · the panel's other-page view on demand — the shortcut, "Ask draft…" on the right-click menu, the home line's Open
+async function openPanelHere(tab) {
+  if (!tab?.id || !/^https?:/.test(String(tab.url || ''))) { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app` }); return { ok: true, say: null }; }
+  const opened = await openDock(tab, 'draft').catch(() => null);
+  if (!opened?.ok) { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app` }); return { ok: true, say: null }; }
+  const identity = await getIdentity(RESUME_MASTER_URL).catch(() => null);
+  const r = await drawPanel(tab, { signedIn: !!identity?.authenticated, other: true });
+  return { ok: !!r?.ok, say: null };
+}
+// ⭐ D191 B3 · PANEL_ASK — what the person typed in the panel's box, through the site's engine (panelAsk.js; no model).
+// ⛔ The page's top frame, a trusted Enter or click (jobPanel.js checks isTrusted), acting on THAT tab only.
+let PANEL_ASK = null;
+async function panelAskEngine() {
+  if (PANEL_ASK) return PANEL_ASK;
+  const commands = await fetch(chrome.runtime.getURL('commands-v1.json')).then(r => r.json());
+  const json = (r) => (r && r.ok ? r.json().catch(() => null) : null);
+  PANEL_ASK = createPanelAsk({
+    commands,
+    act: async (tabId, name) => { const t = await chrome.tabs.get(tabId).catch(() => null); return t && DOCK_ACTS[name] ? DOCK_ACTS[name](t) : { ok: false, say: 'That tab is gone — open the posting again.' }; },
+    open: (path) => chrome.tabs.create({ url: `${RESUME_MASTER_URL}${path}` }),
+    context: (tabId) => pressContextByTab.get(tabId) || null,
+    home: () => extensionHomeFacts({ force: true }),
+    fetchJson: (path, init = {}, { auth = true } = {}) => (auth ? authedFetch(RESUME_MASTER_URL, path, init) : fetch(`${RESUME_MASTER_URL}${path}`, { ...init, credentials: 'omit' })).then(json),
+  });
+  return PANEL_ASK;
+}
+chrome.tabs?.onRemoved?.addListener?.((tabId) => { PANEL_ASK?.forget(tabId); });
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.type !== 'PANEL_ASK') return false;
+  if (msg.trigger !== 'click' || sender?.frameId !== 0 || !sender?.tab?.id || typeof msg.text !== 'string') { sendResponse(null); return true; }
+  panelAskEngine().then(a => a.handle(sender.tab.id, msg.text))
+    .then(m => sendResponse(m ? { text: m.text, label: m.label || null, tier: m.tier || null, intent: m.intent || null, confirm: !!m.confirm } : null),
+      () => sendResponse({ text: 'draft could not answer that — try again.' }));
   return true;
 });
 // PANEL_REFRESH — after the panel's own Draft / Save / Fill: read this tab again and redraw. PANEL_SETTING — a "How I
@@ -1139,34 +1181,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 chrome.tabs?.onRemoved?.addListener?.((tabId) => { runnerTabs.delete(tabId); });
 
-// ⭐ D191 (46o) · the panel is Chrome's SIDE PANEL beside the page (chrome.sidePanel, the platform's place for one), per
-// tab — so it shows what draft knows about THAT tab's posting. open() must run in the person's gesture, so it is called
-// before anything is awaited; where Chrome refuses (an older Chrome, a gesture lost on the way), the small window it was.
-async function openAskWindow(tab) {
-  const path = `ask.html?tab=${encodeURIComponent(tab?.id ?? '')}`;
-  if (tab?.id && chrome.sidePanel?.open) {
-    const set = chrome.sidePanel.setOptions({ tabId: tab.id, path, enabled: true });
-    try { await chrome.sidePanel.open({ tabId: tab.id }); await set; return { ok: true, say: null }; }
-    catch { /* no gesture or no side panel — the window below */ }
-  }
-  await chrome.windows.create({ url: chrome.runtime.getURL(path), type: 'popup', focused: true, width: 440, height: 640 });
-  return { ok: true, say: null };
-}
-const fromOwnPage = (sender) => sender?.id === chrome.runtime.id && String(sender?.url || '').startsWith(chrome.runtime.getURL('ask.html'));
-// the Ask window asks what the press read on its tab, and runs the dock's own Capture / Draft there — ⛔ from ask.html only
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg?.type !== 'ASK_CONTEXT' && msg?.type !== 'ASK_ACT' && msg?.type !== 'ASK_RUNNER') return false;
-  if (!fromOwnPage(sender)) { sendResponse(null); return true; }
-  const tabId = Number(msg.tabId) || null;
-  if (msg.type === 'ASK_RUNNER') { openRunner().then(() => sendResponse({ ok: true }), () => sendResponse({ ok: false })); return true; }
-  if (msg.type === 'ASK_CONTEXT') { sendResponse({ server: RESUME_MASTER_URL, context: tabId ? pressContextByTab.get(tabId) || null : null }); return true; }
-  // ⭐ D191 (2b) / (2c): the panel's Draft / Save, and "Apply from here" = the dock's own Fill (D36: it fills, the person submits)
-  const act = msg.act === 'draft' || msg.act === 'capture' || msg.act === 'fill' ? DOCK_ACTS[msg.act] : null;
-  if (!act || !tabId) { sendResponse({ ok: false, say: 'Press the toolbar icon on the posting first.' }); return true; }
-  chrome.tabs.get(tabId).then(t => act(t)).then(r => sendResponse(r || { ok: false }), () => sendResponse({ ok: false, say: 'That tab is gone — open the posting again.' }));
-  return true;
-});
-
 /** The card's link, kept for THIS tab in the worker's memory only (no storage key — the privacy listing's count holds):
  *  'open-company' opens only what this tab's own read found; a worker that slept in between asks for one more press. */
 const companyHrefByTab = new Map();
@@ -1233,7 +1247,7 @@ const DOCK_ACTS = Object.freeze({
     await chrome.tabs.create({ url: href }); return { ok: true, say: null };
   },
   'open-draft': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app` }); return { ok: true, say: null }; },
-  'open-ask': async (tab) => openAskWindow(tab),
+  'open-ask': async (tab) => openPanelHere(tab),   // ⭐ D191 B3: the panel's other-page view (the day, Ask draft)
   'open-runner': async () => openRunner(),   // ⭐ A211 (1a)
   'open-needs': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app/auto-apply` }); return { ok: true, say: null }; },
   'sign-up': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/register?from=extension` }); return { ok: true, say: null }; },

@@ -419,7 +419,7 @@ test("⛔ J6: the preview HTML is cleaned again in the extension — no script, 
 // ── nothing new is asked of Chrome ──────────────────────────────────────────────────────────────────────────────
 test("⛔ J6: no new permission and no new storage key — the panel uses scripting, activeTab, storage and tabs.create only", () => {
   const manifest = JSON.parse(read("extension/manifest.json"));
-  assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"], "the permission list changed");
+  assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "storage"], "the permission list changed");
   for (const f of ["extension/resumePanel.js"]) {   // (T22: popup-resume.js is gone)
     const src = read(f);
     assert.doesNotMatch(src, /chrome\.(downloads|notifications|cookies|webRequest|identity|permissions|history|bookmarks|tabs\.(update|get|onUpdated))/, `${f} needs a new permission`);
