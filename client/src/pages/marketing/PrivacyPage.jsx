@@ -103,6 +103,9 @@ import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follo
 // before the extension ships it). (2) The last capture's result is no longer stored (nothing reads it any more).
 // (3) The popup's places — the account and Disconnect, automatic reading's one-time offer, "Always read here", the Copy
 // sheet, Report this form — are named where they are now: the settings page and draft's panel on the page.
+// November 19, 2026 (owner, 11-19 — 46x, "push to prod"): the push that applies D191 sketch 2's Browser Extension text (46w B2:
+// the panel opens by itself on a posting on the six job boards, with install-time access to them; Chrome's side panel
+// retired) — effective the day it goes live (the file's convention, 46w's owner note (3)).
 // November 8, 2026 (owner, 11-08 — 45n, decision (5)): the push that applies D183 (the profile is private unless the person
 // makes it public; what a public page shows; search engines only when switched on; a replaced résumé re-fills it; reports),
 // the Google sign-in and crawl-sources lines, and people search (a public profile can be found by name in draft's search
@@ -152,7 +155,7 @@ import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follo
 // that push (the owner's word), not before — it is still the 10-31 date until then.
 // ⭐ 45n push (owner 11-08, decision (5)): the push carrying D183's profile lines, the Google sign-in and crawl-sources
 // lines, and people search (a public profile findable by name) — effective the day it goes live.
-const EFFECTIVE_DATE = 'November 8, 2026';
+const EFFECTIVE_DATE = 'November 19, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
 export function PrivacyPage() {
