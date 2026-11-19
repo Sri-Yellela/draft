@@ -36,9 +36,12 @@ export function jobOf(page, ctx) {
   return { title: title || company, sub: title ? sub : clean(page?.location, 60), logo, letter: (company || title).charAt(0).toUpperCase() };
 }
 
-export function panelModel({ signedIn = false, page = null, ctx = null, pending = false, settings = {}, home = null, other = false } = {}) {
+export function panelModel({ signedIn = false, page = null, ctx = null, pending = false, settings = {}, home = null, other = false, profile = null } = {}) {
   const job = jobOf(page, ctx);
-  const how = { review: settings.review !== false, autoOpen: settings.autoOpen !== false };
+  // ⭐ B4 · How I apply: the résumé = the account's active job profile (its name; ▾ lists the others); Review before I
+  // submit stays ON — draft holds every Draft for the person's approval while Apply for me is locked (routes/apply.js
+  // FULL_AUTO_PROVEN), so the switch cannot turn it off (the worker says why)
+  const how = { review: true, autoOpen: settings.autoOpen !== false, resume: clean(profile?.name, 60) || null };
   const said = (text, tone = 'quiet') => ({ text, tone });
 
   // ⭐ D191 (5): signed out — the employer's facts from draft's public record, and the way in

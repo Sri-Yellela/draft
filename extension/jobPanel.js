@@ -75,6 +75,12 @@ export function renderJobPanel(model, theme, dockMeta) {
     .reply:empty { display: none; }
     .reply .lb { display: block; font-size: 10.5px; color: ${c.INK_FAINT}; margin-bottom: 2px; }
     .reply .yn { display: flex; gap: 6px; margin-top: 6px; }
+    /* ⭐ B4 · Résumé ▾ — the job profiles, one press switches the active one (as the site's own switcher does) */
+    .pick { display: grid; gap: 4px; padding: 2px 0 2px 8px; }
+    .pick[hidden] { display: none; }
+    .pick button { justify-self: start; font: 500 12.5px system-ui, -apple-system, "Segoe UI", sans-serif; color: ${c.INK}; background: none; border: 0; padding: 3px 0; cursor: pointer; }
+    .pick button[aria-current="true"] { color: ${c.ACCENT_INK}; font-weight: 700; }
+    .pick button:focus-visible { outline: 2px solid ${c.ACCENT_INK}; outline-offset: 2px; }
   `;
   const m = model;
   const job = m.job ? `<div class="job"><div class="lg" aria-hidden="true">${m.job.logo ? `<img alt="" src="${esc(m.job.logo)}" referrerpolicy="no-referrer">` : esc(m.job.letter)}</div>
@@ -82,6 +88,7 @@ export function renderJobPanel(model, theme, dockMeta) {
   const note = m.note ? `<div class="nt" data-role="note">${m.note.act ? `<button class="ln" data-act="${esc(m.note.act)}">${esc(m.note.text)}</button>` : esc(m.note.text)}</div>` : '';
   const sw = (key, on, words) => `<button class="opt" role="switch" data-set="${key}" aria-checked="${on ? 'true' : 'false'}">${on ? '✓ ' : ''}${esc(words)}</button>`;
   const how = m.how ? `<div class="how" role="group" aria-label="How I apply"><div class="hh"><span>How I apply</span><button class="ln" data-act="auto-setup">All settings</button></div>
+      ${m.how.resume ? `<button class="opt" data-role="resume" aria-haspopup="true" aria-expanded="false">Résumé: ${esc(m.how.resume)} ▾</button><div class="pick" data-role="resume-list" hidden></div>` : ''}
       ${sw('review', m.how.review, 'Review before I submit')}${sw('autoOpen', m.how.autoOpen, 'Open by itself on job boards')}</div>` : '';
   root.innerHTML = `<style>${css}</style><div class="p" role="region" aria-label="draft — this job">
       <div class="st" data-role="status" data-tone="${esc(m.status?.tone || 'quiet')}" role="status">${esc(m.status?.text || '')}</div>
@@ -134,6 +141,25 @@ export function renderJobPanel(model, theme, dockMeta) {
     if (!ev.isTrusted) return;                                     // ⛔ the person's own click only
     const said = root.querySelector('[data-role="said"]');
     if (ev.target.closest?.('[data-role="ask-go"]')) { const i = root.getElementById('rm-draft-ask-input'); const v = i?.value || ''; if (i) i.value = ''; void ask(v); return; }
+    // ⭐ B4 · Résumé ▾: the list on the person's click (PANEL_PROFILES), a pick switches the active job profile
+    const rb = ev.target.closest?.('[data-role="resume"]');
+    if (rb) {
+      const list = root.querySelector('[data-role="resume-list"]');
+      if (!list) return;
+      if (!list.hidden) { list.hidden = true; rb.setAttribute('aria-expanded', 'false'); return; }
+      const r = await send({ type: 'PANEL_PROFILES', trigger: 'click' });
+      list.replaceChildren(...(r?.profiles || []).map(p => { const b = document.createElement('button'); b.type = 'button'; b.textContent = p.name;
+        b.dataset.profile = String(p.id); if (p.active) b.setAttribute('aria-current', 'true'); return b; }));
+      if (!list.children.length) { if (said) said.textContent = r?.say || 'draft could not list your job profiles — try again.'; return; }
+      list.hidden = false; rb.setAttribute('aria-expanded', 'true');
+      return;
+    }
+    const pick = ev.target.closest?.('[data-profile]');
+    if (pick) {
+      const r = await send({ type: 'PANEL_PROFILE_PICK', id: pick.dataset.profile, trigger: 'click' });
+      if (!r?.ok && said) said.textContent = r?.say || 'draft could not switch the profile — try again.';
+      return;   // the worker redraws the panel with the new name
+    }
     const yes = ev.target.closest?.('[data-say]');
     if (yes) { void ask(yes.dataset.say); return; }
     const set = ev.target.closest?.('[data-set]');
@@ -142,7 +168,12 @@ export function renderJobPanel(model, theme, dockMeta) {
       set.setAttribute('aria-checked', String(on));
       set.textContent = `${on ? '✓ ' : ''}${set.dataset.set === 'review' ? 'Review before I submit' : 'Open by itself on job boards'}`;
       const r = await send({ type: 'PANEL_SETTING', key: set.dataset.set, value: on, trigger: 'click' });
-      if (r && r.ok === false && said) said.textContent = r.say || 'Could not change that — try again.';
+      if (r && r.ok === false) {
+        // refused (Review before I submit while Apply for me is locked): the switch goes back, and says why
+        set.setAttribute('aria-checked', String(!on));
+        set.textContent = `${!on ? '✓ ' : ''}${set.dataset.set === 'review' ? 'Review before I submit' : 'Open by itself on job boards'}`;
+        if (said) said.textContent = r.say || 'Could not change that — try again.';
+      }
       return;
     }
     const b = ev.target.closest?.('[data-act]');

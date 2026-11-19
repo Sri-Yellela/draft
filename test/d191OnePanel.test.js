@@ -71,8 +71,10 @@ test("D191 (5) · signed out: the employer's public facts and the way in — no 
 });
 
 test("D191 · How I apply: Review before I submit and Open by itself — both on unless switched off, kept in the autoRead record", () => {
-  assert.deepEqual(panelModel({ signedIn: true, page, ctx: ctx() }).how, { review: true, autoOpen: true });
-  assert.deepEqual(panelModel({ signedIn: true, page, ctx: ctx(), settings: { review: false } }).how, { review: false, autoOpen: true });
+  assert.deepEqual(panelModel({ signedIn: true, page, ctx: ctx() }).how, { review: true, autoOpen: true, resume: null });
+  // ⭐ B4: Review before I submit stays ON while Apply for me is locked on draft — a stored "off" cannot turn it off
+  assert.deepEqual(panelModel({ signedIn: true, page, ctx: ctx(), settings: { review: false, autoOpen: false } }).how, { review: true, autoOpen: false, resume: null });
+  assert.equal(panelModel({ signedIn: true, page, ctx: ctx(), profile: { id: 3, name: "Backend engineer", active: true } }).how.resume, "Backend engineer");
   assert.deepEqual(defaultSettings().panel, { review: true, autoOpen: true });
   assert.deepEqual(normaliseSettings({ panel: { review: false, autoOpen: "yes", junk: 1 } }).panel, { review: false, autoOpen: true });
 });
@@ -189,4 +191,16 @@ test("D191 B3 · d191OneUiNotTwo — no side panel, no ask window, and a page id
   assert.match(bg, /const notAJob = \['not_a_job', 'unread'\]\.includes\(c\.identity\?\.outcome\) && !c\.posting\?\.known;/,
     "the import context sends a posting record for EVERY address — a news page must not read as a job (found by the 46w walk)");
   assert.match(bg, /'open-ask': async \(tab\) => openPanelHere\(tab\),/);
+});
+
+// ── B4 · How I apply: the résumé (the active job profile) and Review before I submit ─────────────────────────────────
+test("D191 B4 · Résumé ▾ lists the job profiles on the person's click and switches with the site's own activate; review cannot be turned off", () => {
+  const bg = readFileSync(new URL("../extension/background.js", import.meta.url), "utf8");
+  assert.match(bg, /const r = await authedFetch\(RESUME_MASTER_URL, '\/api\/domain-profiles'\)\.catch\(\(\) => null\);/, "the profiles: the site's own list");
+  assert.match(bg, /authedFetch\(RESUME_MASTER_URL, `\/api\/domain-profiles\/\$\{id\}\/activate`, \{ method: 'POST' \}\)/, "a pick: the site's own switch");
+  assert.match(bg, /if \(!\(await panelProfiles\(\)\)\?\.some\(p => p\.id === id\)\) return \{ ok: false, say: 'That profile is not yours\.' \};/, "only one of the person's own profiles");
+  assert.match(bg, /if \(msg\.key === 'review' && msg\.value === false\) \{ sendResponse\(\{ ok: false, say: /, "Review before I submit cannot be turned off while Apply for me is locked");
+  const view = readFileSync(new URL("../extension/jobPanel.js", import.meta.url), "utf8");
+  assert.match(view, /send\(\{ type: 'PANEL_PROFILES', trigger: 'click' \}\)/);
+  assert.match(view, /set\.setAttribute\('aria-checked', String\(!on\)\);/, "a refused switch goes back");
 });

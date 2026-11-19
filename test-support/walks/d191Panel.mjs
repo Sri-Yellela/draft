@@ -16,7 +16,22 @@
 import { POSTING, OWNER_STAGE, waitUntil, sleep, BUSY_MS } from '../extensionBrowser.mjs';
 
 // the test build's arrival script also matches the fixture's http tenant (test-support/extensionBrowser.mjs)
-export const options = { panelArrive: true };
+export const options = {
+  panelArrive: true,
+  api: {
+    // ⭐ B4: the site's two profile routes, as the walk's server answers them (synthetic: two job profiles, one active)
+    mount: (app) => {
+      const profiles = [{ id: 11, profile_name: 'Backend engineer', is_active: 1 }, { id: 12, profile_name: 'Data engineer', is_active: 0 }];
+      app.get('/api/domain-profiles', (_q, res) => res.json(profiles));
+      app.post('/api/domain-profiles/:id/activate', (q, res) => {
+        const p = profiles.find(x => x.id === Number(q.params.id));
+        if (!p) return res.status(404).json({ error: 'Profile not found' });
+        for (const x of profiles) x.is_active = x === p ? 1 : 0;
+        res.json(p);
+      });
+    },
+  },
+};
 export const description = 'D191 sketch 2: the one panel opens by itself on a board posting, from the page first; avoids the Apply control; closes to the /d square; not on an apply step; the switch turns it off';
 
 const panelOf = (h) => h.page.evaluate(() => {
@@ -114,4 +129,26 @@ export default async function run(h, { check, observe, section }) {
   await h.open(POSTING, { settle: 1800 });
   const none = await h.page.evaluate(() => !!document.getElementById('rm-draft-dock'));
   check('with the switch off, nothing is drawn by itself', none === false, String(none));
+
+  section('7 · How I apply — Résumé ▾ switches the job profile; Review before I submit stays on and says why');
+  await h.send({ type: 'TOOLBAR_PRESS' });
+  const open7 = await waitUntil(async () => { const p = await panelOf(h); return p && p.kind !== 'arriving' ? p : null; }, BUSY_MS, 200);
+  const label = () => h.page.evaluate(() => document.getElementById('rm-draft-job-panel')?.shadowRoot?.querySelector('[data-role="resume"]')?.textContent || null);
+  check('the résumé is the active job profile', (await label()) === 'Résumé: Backend engineer ▾', String(await label()));
+  const rb = await h.page.evaluateHandle(() => document.getElementById('rm-draft-job-panel')?.shadowRoot?.querySelector('[data-role="resume"]') || null);
+  await rb.asElement()?.click();
+  const names = await waitUntil(() => h.page.evaluate(() => { const l = document.getElementById('rm-draft-job-panel')?.shadowRoot?.querySelector('[data-role="resume-list"]');
+    return l && !l.hidden ? [...l.querySelectorAll('button')].map(b => b.textContent) : null; }), 6000, 150);
+  check('▾ lists the person\'s job profiles', JSON.stringify(names) === JSON.stringify(['Backend engineer', 'Data engineer']), JSON.stringify(names));
+  const pick = await h.page.evaluateHandle(() => document.getElementById('rm-draft-job-panel')?.shadowRoot?.querySelector('[data-profile="12"]') || null);
+  await pick.asElement()?.click();
+  const switched = await waitUntil(async () => ((await label()) === 'Résumé: Data engineer ▾' ? true : null), 8000, 200);
+  check('a pick switches it (the site\'s own activate), and the panel says the new one', switched === true, String(await label()));
+  const rv = await h.page.evaluateHandle(() => document.getElementById('rm-draft-job-panel')?.shadowRoot?.querySelector('[data-set="review"]') || null);
+  await rv.asElement()?.click();
+  await sleep(700);
+  const review = await h.page.evaluate(() => { const r = document.getElementById('rm-draft-job-panel')?.shadowRoot;
+    return { checked: r?.querySelector('[data-set="review"]')?.getAttribute('aria-checked'), said: r?.querySelector('[data-role="said"]')?.textContent || '' }; });
+  check('Review before I submit stays on, and the panel says why', review.checked === 'true' && /waits for your approval/.test(review.said), JSON.stringify(review));
+  observe('the panel', open7);
 }

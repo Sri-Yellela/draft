@@ -1017,7 +1017,8 @@ async function drawPanel(tab, o = {}) {
   // a page the press read as no posting at all (draft's answer has no job) is "any other page" too, whatever its heading
   const other = !!o.other || (!!o.signedIn && !o.pending && !!ctx && !ctx.job);
   const home = o.signedIn && !o.pending && (other || !page) ? await extensionHomeFacts().catch(() => null) : null;
-  const model = { ...panelModel({ signedIn: !!o.signedIn, page, ctx, pending: !!o.pending, settings: settings?.panel || {}, home, other }), expand: o.expand !== false };
+  const profile = o.signedIn && !o.pending ? (await panelProfiles().catch(() => null))?.find(p => p.active) || null : null;
+  const model = { ...panelModel({ signedIn: !!o.signedIn, page, ctx, pending: !!o.pending, settings: settings?.panel || {}, home, other, profile }), expand: o.expand !== false };
   const r = await drawInDock(tab.id, renderJobPanel, [model, theme, meta]).catch(() => null);
   return { ok: !!r?.rendered, kind: r?.kind || null };
 }
@@ -1053,6 +1054,37 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type !== 'PANEL_ARRIVE') return false;
   if (sender?.frameId !== 0 || !sender?.tab?.id || sender.id !== chrome.runtime.id) { sendResponse({ ok: false }); return true; }
   panelArrive(sender.tab).then(r => sendResponse(r), () => sendResponse({ ok: false }));
+  return true;
+});
+// ⭐ D191 B4 · Résumé ▾ — the account's job profiles (GET /api/domain-profiles: ≤ 4 per person), kept five minutes in this
+// worker's memory only; a pick is the site's own switch (POST /api/domain-profiles/:id/activate). Names and ids only.
+const PROFILES_EVERY_MS = 5 * 60 * 1000;
+let profilesAt = 0, profilesLast = null;
+async function panelProfiles({ force = false } = {}) {
+  if (!force && profilesLast && Date.now() - profilesAt < PROFILES_EVERY_MS) return profilesLast;
+  const r = await authedFetch(RESUME_MASTER_URL, '/api/domain-profiles').catch(() => null);
+  const rows = r && r.ok ? await r.json().catch(() => null) : null;
+  profilesAt = Date.now();
+  profilesLast = Array.isArray(rows) ? rows.slice(0, 8).map(p => ({ id: Number(p.id), name: String(p.profile_name || '').slice(0, 60), active: !!p.is_active }))
+    .filter(p => Number.isFinite(p.id) && p.name) : null;
+  return profilesLast;
+}
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.type !== 'PANEL_PROFILES' && msg?.type !== 'PANEL_PROFILE_PICK') return false;
+  if (msg.trigger !== 'click' || sender?.frameId !== 0 || !sender?.tab?.id) { sendResponse({ ok: false }); return true; }
+  (async () => {
+    if (msg.type === 'PANEL_PROFILES') {
+      const profiles = await panelProfiles({ force: true });
+      return profiles ? { ok: true, profiles } : { ok: false, say: 'Sign in to draft to choose a résumé.' };
+    }
+    const id = Number(msg.id);
+    if (!(await panelProfiles())?.some(p => p.id === id)) return { ok: false, say: 'That profile is not yours.' };
+    const r = await authedFetch(RESUME_MASTER_URL, `/api/domain-profiles/${id}/activate`, { method: 'POST' }).catch(() => null);
+    if (!r?.ok) return { ok: false, say: 'draft could not switch the profile — try again.' };
+    await panelProfiles({ force: true });
+    await drawPanel(sender.tab, { signedIn: true });
+    return { ok: true };
+  })().then(sendResponse, () => sendResponse({ ok: false }));
   return true;
 });
 // ⭐ D191 B3 · the panel's other-page view on demand — the shortcut, "Ask draft…" on the right-click menu, the home line's Open
@@ -1098,6 +1130,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const tab = sender.tab;
   if (msg.type === 'PANEL_SETTING') {
     if (!['review', 'autoOpen'].includes(msg.key) || typeof msg.value !== 'boolean') { sendResponse({ ok: false }); return true; }
+    // ⭐ B4: every Draft waits for the person's approval while Apply for me is locked on draft (routes/apply.js
+    // FULL_AUTO_PROVEN) — the switch cannot turn that off, and says so
+    if (msg.key === 'review' && msg.value === false) { sendResponse({ ok: false, say: 'Every application waits for your approval for now — draft does not send one without your review yet.' }); return true; }
     updateAutoSettings((cur) => { cur.panel = { ...(cur.panel || {}), [msg.key]: msg.value }; return cur; })
       .then(() => sendResponse({ ok: true }), () => sendResponse({ ok: false, say: 'Could not change that — try again.' }));
     return true;
