@@ -52,7 +52,7 @@ export function renderJobPanel(model, theme, dockMeta) {
     .ln { font: inherit; font-weight: 600; color: ${c.ACCENT_INK}; background: none; border: 0; padding: 0; cursor: pointer; }
     .said { margin: 8px 16px 0; font-size: 12px; color: ${c.WARNING}; text-align: center; }
     .said:empty { display: none; }
-    .mid { flex: 1; min-height: 12px; }
+    .mid { flex: 1; min-height: 12px; }   /* stretches only when the person made the dock taller than the panel */
     .how { border-top: 1px solid ${c.BORDER}; padding: 12px 16px 12px; display: grid; gap: 8px; }
     .hh { display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
           text-transform: uppercase; color: ${c.INK_FAINT}; }
@@ -101,6 +101,24 @@ export function renderJobPanel(model, theme, dockMeta) {
       <div class="ft"><button class="ln" data-act="open-draft">Open draft ↗</button></div></div>`;
   const img = root.querySelector('.lg img');
   if (img) img.addEventListener('error', () => { img.parentElement.textContent = m.job?.letter || ''; }, { once: true });
+  // ⭐ D191 (owner 11-19: "the panel is as long as the content"): its natural height — the content without the middle's
+  // stretch — goes to the dock, which sizes the home tab to it (capped at the viewport; a person's own resize wins).
+  const fitDock = () => {
+    const p = root.querySelector('.p'), mid = root.querySelector('.mid');
+    if (!p || typeof dock.fit !== 'function') return;
+    const natural = [...p.children].reduce((n, el) => n + (el === mid ? 12 : el.offsetHeight + (parseFloat(getComputedStyle(el).marginTop) || 0) + (parseFloat(getComputedStyle(el).marginBottom) || 0)), 0);
+    if (natural > 0) dock.fit('draft', natural);
+  };
+  fitDock();
+  requestAnimationFrame(fitDock);
+  // the résumé list, a reply, a said line change the content's height after the draw — the dock follows (the middle is
+  // not observed: it is the dock's height, and following it would loop)
+  try { root.__draftFit?.disconnect(); } catch { /* a stale observer */ }
+  if (typeof ResizeObserver === 'function') {
+    root.__draftFit = new ResizeObserver(() => fitDock());
+    for (const el of root.querySelector('.p')?.children || []) if (!el.classList.contains('mid')) root.__draftFit.observe(el);
+  }
+  if (img) img.addEventListener('load', fitDock, { once: true });
 
   // ⭐ never over the employer's Apply control: its box, found by its words; the dock steps to the other side (dock.avoid)
   let stepped = false;
@@ -169,11 +187,11 @@ export function renderJobPanel(model, theme, dockMeta) {
       set.textContent = `${on ? '✓ ' : ''}${set.dataset.set === 'review' ? 'Review before I submit' : 'Open by itself on job boards'}`;
       const r = await send({ type: 'PANEL_SETTING', key: set.dataset.set, value: on, trigger: 'click' });
       if (r && r.ok === false) {
-        // refused (Review before I submit while Apply for me is locked): the switch goes back, and says why
+        // refused (the operator paused sending without review, signed out, a failed write): the switch goes back, says why
         set.setAttribute('aria-checked', String(!on));
         set.textContent = `${!on ? '✓ ' : ''}${set.dataset.set === 'review' ? 'Review before I submit' : 'Open by itself on job boards'}`;
         if (said) said.textContent = r.say || 'Could not change that — try again.';
-      }
+      } else if (r?.say && said) said.textContent = r.say;   // 46x: what the mode now means (Apply for me / Ask me first)
       return;
     }
     const b = ev.target.closest?.('[data-act]');

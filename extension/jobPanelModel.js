@@ -17,6 +17,9 @@
 
 const clean = (s, n = 140) => (typeof s === 'string' ? s.replace(/\s+/g, ' ').trim().slice(0, n) : '');
 const pct = (n) => (Number.isFinite(n) ? `${Math.max(0, Math.min(100, Math.round(n)))}% match` : '');
+// The board's band word beside the number (shared/atsBands.js short labels) — "Not enough signal" says nothing here.
+const BAND_WORD = { strong: 'Strong', moderate: 'Moderate', weak: 'Weak' };
+export const matchWords = (j) => [pct(j?.score), BAND_WORD[j?.band] || ''].filter(Boolean).join(' · ');
 
 /** "sponsors visas" when draft's record shows the employer sponsored; '' otherwise (never a guess). Pure. */
 export function sponsorWords(company) {
@@ -36,12 +39,13 @@ export function jobOf(page, ctx) {
   return { title: title || company, sub: title ? sub : clean(page?.location, 60), logo, letter: (company || title).charAt(0).toUpperCase() };
 }
 
-export function panelModel({ signedIn = false, page = null, ctx = null, pending = false, settings = {}, home = null, other = false, profile = null } = {}) {
+export function panelModel({ signedIn = false, page = null, ctx = null, pending = false, settings = {}, home = null, other = false, profile = null, applyMode = null } = {}) {
   const job = jobOf(page, ctx);
-  // ⭐ B4 · How I apply: the résumé = the account's active job profile (its name; ▾ lists the others); Review before I
-  // submit stays ON — draft holds every Draft for the person's approval while Apply for me is locked (routes/apply.js
-  // FULL_AUTO_PROVEN), so the switch cannot turn it off (the worker says why)
-  const how = { review: true, autoOpen: settings.autoOpen !== false, resume: clean(profile?.name, 60) || null };
+  // ⭐ B4 · How I apply: the résumé = the account's active job profile (its name; ▾ lists the others). ⭐ 46x (owner 11-19:
+  // "unlock apply for me"): Review before I submit = the account's mode (D100 users.send_mode) — ON = Ask me first (semi),
+  // OFF = Apply for me (auto). Unknown (no answer) reads ON, the safe side; `reviewLocked` while the operator paused sending.
+  const how = { review: applyMode?.current !== 'auto', reviewLocked: !!applyMode?.locked && applyMode?.current !== 'auto',
+    autoOpen: settings.autoOpen !== false, resume: clean(profile?.name, 60) || null };
   const said = (text, tone = 'quiet') => ({ text, tone });
 
   // ⭐ D191 (5): signed out — the employer's facts from draft's public record, and the way in
@@ -70,7 +74,7 @@ export function panelModel({ signedIn = false, page = null, ctx = null, pending 
 
   const j = ctx?.job || {};
   const state = j.application?.state || null;
-  const match = pct(j.score);
+  const match = Number.isFinite(j.score) ? matchWords(j) : '';
   const sponsor = sponsorWords(ctx?.company);
   const facts = [match, sponsor].filter(Boolean).join(' · ');
 

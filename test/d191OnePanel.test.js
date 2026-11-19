@@ -71,9 +71,12 @@ test("D191 (5) · signed out: the employer's public facts and the way in — no 
 });
 
 test("D191 · How I apply: Review before I submit and Open by itself — both on unless switched off, kept in the autoRead record", () => {
-  assert.deepEqual(panelModel({ signedIn: true, page, ctx: ctx() }).how, { review: true, autoOpen: true, resume: null });
-  // ⭐ B4: Review before I submit stays ON while Apply for me is locked on draft — a stored "off" cannot turn it off
-  assert.deepEqual(panelModel({ signedIn: true, page, ctx: ctx(), settings: { review: false, autoOpen: false } }).how, { review: true, autoOpen: false, resume: null });
+  assert.deepEqual(panelModel({ signedIn: true, page, ctx: ctx() }).how, { review: true, reviewLocked: false, autoOpen: true, resume: null });
+  // ⭐ 46x (owner 11-19: "unlock apply for me"): Review before I submit IS the account's mode — a stored panel setting never decides it
+  assert.deepEqual(panelModel({ signedIn: true, page, ctx: ctx(), settings: { review: false, autoOpen: false } }).how, { review: true, reviewLocked: false, autoOpen: false, resume: null });
+  assert.equal(panelModel({ signedIn: true, page, ctx: ctx(), applyMode: { current: "auto", locked: false } }).how.review, false, "Apply for me: off");
+  assert.equal(panelModel({ signedIn: true, page, ctx: ctx(), applyMode: { current: "semi", locked: false } }).how.review, true, "Ask me first: on");
+  assert.equal(panelModel({ signedIn: true, page, ctx: ctx(), applyMode: { current: "semi", locked: true } }).how.reviewLocked, true, "the operator paused sending");
   assert.equal(panelModel({ signedIn: true, page, ctx: ctx(), profile: { id: 3, name: "Backend engineer", active: true } }).how.resume, "Backend engineer");
   assert.deepEqual(defaultSettings().panel, { review: true, autoOpen: true });
   assert.deepEqual(normaliseSettings({ panel: { review: false, autoOpen: "yes", junk: 1 } }).panel, { review: false, autoOpen: true });
@@ -194,12 +197,15 @@ test("D191 B3 · d191OneUiNotTwo — no side panel, no ask window, and a page id
 });
 
 // ── B4 · How I apply: the résumé (the active job profile) and Review before I submit ─────────────────────────────────
-test("D191 B4 · Résumé ▾ lists the job profiles on the person's click and switches with the site's own activate; review cannot be turned off", () => {
+test("D191 B4 · Résumé ▾ lists the job profiles on the person's click and switches with the site's own activate; Review before I submit is the account's mode (46x)", () => {
   const bg = readFileSync(new URL("../extension/background.js", import.meta.url), "utf8");
   assert.match(bg, /const r = await authedFetch\(RESUME_MASTER_URL, '\/api\/domain-profiles'\)\.catch\(\(\) => null\);/, "the profiles: the site's own list");
   assert.match(bg, /authedFetch\(RESUME_MASTER_URL, `\/api\/domain-profiles\/\$\{id\}\/activate`, \{ method: 'POST' \}\)/, "a pick: the site's own switch");
   assert.match(bg, /if \(!\(await panelProfiles\(\)\)\?\.some\(p => p\.id === id\)\) return \{ ok: false, say: 'That profile is not yours\.' \};/, "only one of the person's own profiles");
-  assert.match(bg, /if \(msg\.key === 'review' && msg\.value === false\) \{ sendResponse\(\{ ok: false, say: /, "Review before I submit cannot be turned off while Apply for me is locked");
+  // ⭐ 46x: the switch writes the account's mode (the run bar's POST /api/apply/mode), never a local setting; 46w's refusal is gone
+  assert.match(bg, /if \(msg\.key === 'review'\) \{\s+setApplyMode\(msg\.value \? 'semi' : 'auto'\)/);
+  assert.match(bg, /authedFetch\(RESUME_MASTER_URL, '\/api\/apply\/mode', \{ method: 'POST'/);
+  assert.doesNotMatch(bg, /draft does not send one without your review yet/);
   const view = readFileSync(new URL("../extension/jobPanel.js", import.meta.url), "utf8");
   assert.match(view, /send\(\{ type: 'PANEL_PROFILES', trigger: 'click' \}\)/);
   assert.match(view, /set\.setAttribute\('aria-checked', String\(!on\)\);/, "a refused switch goes back");

@@ -980,9 +980,14 @@ function rememberPressContext(tab, c) {
   // import context sends for its address (it sends one, known: false, for EVERY address) — the panel then shows the day
   const notAJob = ['not_a_job', 'unread'].includes(c.identity?.outcome) && !c.posting?.known;
   const p = notAJob ? null : c.posting || null, report = c.report || null;
-  const score = Number.isFinite(report?.score) ? report.score : Number.isFinite(p?.scores?.shown) ? p.scores.shown : null;
+  // ⭐ D191 (owner 11-19: "an ats score in line with the latest ats engine") · the panel's % is the CONTEXTUAL score (ATS contract
+  // 2.0.0, D192 (4): skill match + role fit + responsibilities + their stack) when draft sent it; the skill match otherwise.
+  const skill = Number.isFinite(report?.score) ? report.score : Number.isFinite(p?.scores?.shown) ? p.scores.shown : null;
+  const contextual = Number.isFinite(report?.contextual?.score) ? report.contextual.score : null;
+  const score = contextual ?? skill;
+  const band = typeof report?.band === "string" ? report.band : null;
   const f = c.facts || null;
-  pressContextByTab.set(tab.id, { job: p ? { jobId: p.known ? p.jobId ?? null : null, title: p.title ?? null, company: p.company ?? null, known: !!p.known, score,
+  pressContextByTab.set(tab.id, { job: p ? { jobId: p.known ? p.jobId ?? null : null, title: p.title ?? null, company: p.company ?? null, known: !!p.known, score, skill, band, contextual: contextual != null,
       mine: !!p.mine, onBoard: !!p.onBoard, ...(f?.job ? { facts: f.job } : {}), ...(f?.application ? { application: f.application } : {}) } : null,
     prepared: !!c.prepared,
     company: c.company ? { name: c.company.name, sponsorship: c.company.sponsorship, openJobs: c.company.openJobs, href: c.company.href || null,
@@ -1018,7 +1023,8 @@ async function drawPanel(tab, o = {}) {
   const other = !!o.other || (!!o.signedIn && !o.pending && !!ctx && !ctx.job);
   const home = o.signedIn && !o.pending && (other || !page) ? await extensionHomeFacts().catch(() => null) : null;
   const profile = o.signedIn && !o.pending ? (await panelProfiles().catch(() => null))?.find(p => p.active) || null : null;
-  const model = { ...panelModel({ signedIn: !!o.signedIn, page, ctx, pending: !!o.pending, settings: settings?.panel || {}, home, other, profile }), expand: o.expand !== false };
+  const applyMode = o.signedIn ? await panelApplyMode().catch(() => null) : null;
+  const model = { ...panelModel({ signedIn: !!o.signedIn, page, ctx, pending: !!o.pending, settings: settings?.panel || {}, home, other, profile, applyMode }), expand: o.expand !== false };
   const r = await drawInDock(tab.id, renderJobPanel, [model, theme, meta]).catch(() => null);
   return { ok: !!r?.rendered, kind: r?.kind || null };
 }
@@ -1060,6 +1066,27 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // worker's memory only; a pick is the site's own switch (POST /api/domain-profiles/:id/activate). Names and ids only.
 const PROFILES_EVERY_MS = 5 * 60 * 1000;
 let profilesAt = 0, profilesLast = null;
+// ⭐ 46x · the account's apply mode (D100) for the panel's Review switch — the run bar's read (GET /api/apply/run-bar), and its
+// write (POST /api/apply/mode, refused 409 while the operator's kill switch is on). Kept a minute; a write refreshes it.
+let modeLast = null, modeAt = 0;
+async function panelApplyMode({ force = false } = {}) {
+  if (!force && modeLast && Date.now() - modeAt < 60_000) return modeLast;
+  const r = await authedFetch(RESUME_MASTER_URL, '/api/apply/run-bar').catch(() => null);
+  const bar = r && r.ok ? await r.json().catch(() => null) : null;
+  modeAt = Date.now();
+  modeLast = bar?.mode ? { current: bar.mode.current === 'auto' ? 'auto' : 'semi', locked: !!bar.mode.auto?.locked } : null;
+  return modeLast;
+}
+async function setApplyMode(mode) {
+  const r = await authedFetch(RESUME_MASTER_URL, '/api/apply/mode', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode }) }).catch(() => null);
+  if (!r) return { ok: false, say: 'Sign in to draft first.' };
+  const body = await r.json().catch(() => null);
+  if (!r.ok) return { ok: false, say: r.status === 409 ? 'Sending without review is paused by draft right now.' : 'Could not change that — try again.' };
+  modeLast = body?.mode ? { current: body.mode.current === 'auto' ? 'auto' : 'semi', locked: !!body.mode.auto?.locked } : null;
+  modeAt = Date.now();
+  return { ok: true, review: modeLast ? modeLast.current !== 'auto' : mode !== 'auto',
+    say: mode === 'auto' ? 'Apply for me is on: your Drafts send without waiting for you.' : 'Every Draft waits for your review.' };
+}
 async function panelProfiles({ force = false } = {}) {
   if (!force && profilesLast && Date.now() - profilesAt < PROFILES_EVERY_MS) return profilesLast;
   const r = await authedFetch(RESUME_MASTER_URL, '/api/domain-profiles').catch(() => null);
@@ -1130,9 +1157,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const tab = sender.tab;
   if (msg.type === 'PANEL_SETTING') {
     if (!['review', 'autoOpen'].includes(msg.key) || typeof msg.value !== 'boolean') { sendResponse({ ok: false }); return true; }
-    // ⭐ B4: every Draft waits for the person's approval while Apply for me is locked on draft (routes/apply.js
-    // FULL_AUTO_PROVEN) — the switch cannot turn that off, and says so
-    if (msg.key === 'review' && msg.value === false) { sendResponse({ ok: false, say: 'Every application waits for your approval for now — draft does not send one without your review yet.' }); return true; }
+    // ⭐ 46x (owner 11-19: "unlock apply for me") · Review before I submit IS the account's mode (D100: users.send_mode) —
+    // the site's own control, POST /api/apply/mode: OFF = Apply for me (a Draft sends without waiting, through draft's
+    // server path; the operator's kill switch and Stop everything still stop it), ON = Ask me first. ⛔ The extension
+    // never presses an employer's Submit on its own (D36·5): sending without review is the server's path, not a click here.
+    if (msg.key === 'review') {
+      setApplyMode(msg.value ? 'semi' : 'auto').then(sendResponse, () => sendResponse({ ok: false, say: 'Could not change that — try again.' }));
+      return true;
+    }
     updateAutoSettings((cur) => { cur.panel = { ...(cur.panel || {}), [msg.key]: msg.value }; return cur; })
       .then(() => sendResponse({ ok: true }), () => sendResponse({ ok: false, say: 'Could not change that — try again.' }));
     return true;

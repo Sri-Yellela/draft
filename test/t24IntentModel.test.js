@@ -470,7 +470,7 @@ test("⭐ T24 · server: 0 of 10 slots is said BEFORE queuing — nothing is wri
   } finally { f.close(); }
 });
 
-test("⛔ T24 · server: full auto is still refused — the extension's surface may not ask for no review, and its Draft never does", async () => {
+test("⛔ T24 · server: the extension's surface may not NAME an approval mode; its Draft follows the account's mode (46x, owner 11-19: \"unlock apply for me\")", async () => {
   const f = serverFixture();
   try {
     const r = await f.call("POST", "/api/apply/runs", { jobIds: [JOB2], mode: "auto", surface: "extension", approvalMode: "auto" });
@@ -480,8 +480,20 @@ test("⛔ T24 · server: full auto is still refused — the extension's surface 
     assert.equal(plain.status, 403, "D100: a user in SEMI (the default) — the check is the server's");
     assert.equal(plain.body.error, "full_auto_not_chosen");
     const src = read("routes/extensionDraft.js");
-    assert.doesNotMatch(src.replace(/^\s*\/\/.*$/gm, ""), /approvalMode/, "the extension's Draft never names one");
-    assert.match(read("routes/apply.js"), /const draftForExtension = \(user, jobId\) =>\n\s+startRun\(user\.id, normalisePlanTier\(user\?\.planTier\), \[String\(jobId\)\], \{ mode: "auto" \}\);/);
+    assert.doesNotMatch(src.replace(/^\s*\/\/.*$/gm, ""), /approvalMode/, "the extension's router never names one — the account's mode decides");
+    assert.ok(read("routes/apply.js").includes('userApplyMode(user.id) === "auto" ? { mode: "auto", approvalMode: "auto" } : { mode: "auto" });'),
+      "draftForExtension: Apply for me sends without waiting, Ask me first previews");
+    // Ask me first (the default): the extension's Draft waits for review
+    const semi = await f.call("POST", "/api/extension/draft", { boundJobId: JOB, trigger: "click", resume: false });
+    assert.equal(semi.status, 202, JSON.stringify(semi.body));
+    assert.equal(f.count("SELECT approval_mode FROM apply_runs ORDER BY id DESC LIMIT 1"), "required");
+    // Apply for me (the account's own choice, the run bar's control): the next Draft sends without waiting
+    const mode = await f.call("POST", "/api/apply/mode", { mode: "auto" });
+    assert.equal(mode.status, 200, JSON.stringify(mode.body));
+    const auto = await f.call("POST", "/api/extension/draft", { boundJobId: JOB2, trigger: "click", resume: false });
+    assert.equal(auto.status, 202, JSON.stringify(auto.body));
+    assert.equal(auto.body.applyMode, "auto");
+    assert.equal(f.count("SELECT approval_mode FROM apply_runs ORDER BY id DESC LIMIT 1"), "auto");
   } finally { f.close(); }
 });
 

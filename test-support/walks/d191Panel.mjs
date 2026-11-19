@@ -131,7 +131,7 @@ export default async function run(h, { check, observe, section }) {
   const none = await h.page.evaluate(() => !!document.getElementById('rm-draft-dock'));
   check('with the switch off, nothing is drawn by itself', none === false, String(none));
 
-  section('7 · How I apply — Résumé ▾ switches the job profile; Review before I submit stays on and says why');
+  section('7 · How I apply — Résumé ▾ switches the job profile; Review before I submit is the account mode; the panel fits its content');
   await h.send({ type: 'TOOLBAR_PRESS' });
   const open7 = await waitUntil(async () => { const p = await panelOf(h); return p && p.kind !== 'arriving' ? p : null; }, BUSY_MS, 200);
   const label = () => h.page.evaluate(() => document.getElementById('rm-draft-job-panel')?.shadowRoot?.querySelector('[data-role="resume"]')?.textContent || null);
@@ -150,7 +150,18 @@ export default async function run(h, { check, observe, section }) {
   await sleep(700);
   const review = await h.page.evaluate(() => { const r = document.getElementById('rm-draft-job-panel')?.shadowRoot;
     return { checked: r?.querySelector('[data-set="review"]')?.getAttribute('aria-checked'), said: r?.querySelector('[data-role="said"]')?.textContent || '' }; });
-  check('Review before I submit stays on, and the panel says why', review.checked === 'true' && /waits for your approval/.test(review.said), JSON.stringify(review));
+  // ⭐ 46x (owner 11-19: "unlock apply for me"): the switch is the account's mode — off = Apply for me, on = Ask me first
+  check('Review before I submit turns OFF — Apply for me, and the panel says what that means',
+    review.checked === 'false' && /Apply for me is on/.test(review.said), JSON.stringify(review));
+  await rv.asElement()?.click();
+  await sleep(700);
+  const back = await h.page.evaluate(() => { const r = document.getElementById('rm-draft-job-panel')?.shadowRoot;
+    return { checked: r?.querySelector('[data-set="review"]')?.getAttribute('aria-checked'), said: r?.querySelector('[data-role="said"]')?.textContent || '' }; });
+  check('…and back ON — every Draft waits for review', back.checked === 'true' && /waits for your review/.test(back.said), JSON.stringify(back));
+  // ⭐ 46x (owner 11-19: "the panel is as long as the content"): no empty middle — the dock is the panel's height
+  const fit = await h.page.evaluate(() => { const host = document.getElementById('rm-draft-dock'); const r = document.getElementById('rm-draft-job-panel')?.shadowRoot;
+    return { dock: Math.round(host?.getBoundingClientRect().height || 0), mid: Math.round(r?.querySelector('.mid')?.getBoundingClientRect().height || 0), vh: innerHeight }; });
+  check('the panel is as long as its content (no empty middle; under the old 680 px column)', fit.dock > 0 && fit.dock < Math.min(680, fit.vh - 32) && fit.mid <= 14, JSON.stringify(fit));
   observe('the panel', open7);
   observe('shot', await h.screenshot('d191-panel-resume'));
 }

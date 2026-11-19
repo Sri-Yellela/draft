@@ -6088,8 +6088,15 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   // ⭐ T24: the extension's Draft button is the board's Draft — THIS startRun, mode "auto", ⛔ never an approvalMode (so
   // it previews and waits for review exactly as the deck's and the board's do; full auto stays locked above). Its
   // run bar (the account's mode, the hold) and the job's Draft House state are read through the same functions.
+  // ⭐ 46x (owner 11-19: "unlock apply for me") · the extension panel's Review before I submit IS the account's mode (D100,
+  // users.send_mode, set by POST /api/apply/mode — the run bar's own control). Apply for me ('auto') → this Draft sends
+  // without waiting (approvalMode 'auto': startRun admits it only in FULL AUTO, processRunJob checks again, the FA6 gate,
+  // the kill switch and Stop everything still hold it); Ask me first ('semi', the default) → it previews and waits, as
+  // before. ⛔ A187 stays: a family whose server submits are flagged goes to the extension path, and the extension never
+  // presses an employer's Submit on its own (D36·5) — "sends without review" is draft's server path.
   const draftForExtension = (user, jobId) =>
-    startRun(user.id, normalisePlanTier(user?.planTier), [String(jobId)], { mode: "auto" });
+    startRun(user.id, normalisePlanTier(user?.planTier), [String(jobId)],
+      userApplyMode(user.id) === "auto" ? { mode: "auto", approvalMode: "auto" } : { mode: "auto" });
   // D100 P7: the FULL AUTO scheduler's way in (services/autoScheduler.js) — the same admission as every Draft;
   // startRun refuses approvalMode 'auto' unless the user's mode is FULL AUTO, and processRunJob checks again.
   // D100 P2: the apply worker's inputs — it has no database, so draft hands it the SAME payload a local run fills from

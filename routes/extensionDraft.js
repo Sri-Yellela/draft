@@ -1,8 +1,9 @@
 // routes/extensionDraft.js — ⭐ T24 · THE INTENT MODEL, the server's half: the extension's Draft button IS the board's Draft.
 //
 // Owner, 10-15 (T22 REVISED): the popup's Draft button (/d) pressed before any autofill on a tab DRAFTS the job — the same
-// queue as the board's Draft, semi / full auto exactly as the account's apply mode says (⛔ full auto stays LOCKED:
-// routes/apply.js FULL_AUTO_PROVEN = false) — and QUEUES the résumé's generation as part of that pipeline.
+// queue as the board's Draft, semi / full auto exactly as the account's apply mode says — and QUEUES the résumé's generation
+// as part of that pipeline. ⭐ 46x correction: full auto is NOT locked — FULL_AUTO_PROVEN was removed on 10-30 (D100, a
+// recorded reversal); full auto is the person's own mode (users.send_mode), locked only by the operator's kill switch.
 //
 //   GET  /api/extension/draft/:jobId   the tells only the server holds, in ONE read (nothing is started or spent):
 //        → { ok, jobId, draft: { drafted, status, runId }, resume: { state, id }, slots, applyMode, autoLocked, held, settings }
@@ -14,8 +15,8 @@
 //   GET  /api/settings/extension-intent   the two settings and the remembered choice (below)
 //   PUT  /api/settings/extension-intent   { onDraft?, manualResume?, remembered? } — merged, a bad value refused, never half-stored
 //
-// ⛔ ONE IMPLEMENTATION. The Draft is routes/apply.js startRun (draftForExtension — mode "auto", never an approvalMode, so
-//    it previews and waits for the user's approval like every Draft); the slots are services/draftSlots.js; the résumé is
+// ⛔ ONE IMPLEMENTATION. The Draft is routes/apply.js startRun (draftForExtension — mode "auto"; in Ask me first it previews
+//    and waits for the user's approval like every Draft, in Apply for me it sends without waiting — 46x, owner 11-19); the slots are services/draftSlots.js; the résumé is
 //    services/extensionResume.js start() — ONCE per (job, base résumé), a live one joined, a made one reused, no second
 //    spend. This file only orders them and says the refusals first.
 // ⛔ The Draft routes are the extension's own credential only (an auth_contexts row with the extension's user agent), like

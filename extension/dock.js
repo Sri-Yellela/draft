@@ -227,7 +227,7 @@
     const launch = Number.isFinite(p?.launch?.x) && Number.isFinite(p?.launch?.y) ? { x: Math.round(p.launch.x), y: Math.round(p.launch.y),
       ...(EDGES.includes(p.launch.edge) && Number.isFinite(p.launch.f) ? { edge: p.launch.edge, f: Math.min(Math.max(p.launch.f, 0), 1) } : {}) } : null;
     return { rect: rect(p?.rect), edge: EDGES.includes(p?.edge) ? p.edge : null, collapsed: p?.collapsed === true,
-      tab: TAB_IDS.includes(p?.tab) ? p.tab : 'draft', pops, ...(launch ? { launch } : {}) };
+      tab: TAB_IDS.includes(p?.tab) ? p.tab : 'draft', pops, ...(launch ? { launch } : {}), ...(p?.sized === true ? { sized: true } : {}) };
   }
 
   const overlaps = (a, b) => !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
@@ -447,7 +447,15 @@
     const launcherNow = () => kind === 'dock' && !!f.place.collapsed;
     const freeLaunch = () => { const v = vp(), m = LIMITS.margin, s = LIMITS.launch;
       return { x: Math.round(clamp(f.place.launch.x, m, v.w - m - s)), y: Math.round(clamp(f.place.launch.y, m, v.h - m - s)), w: s, h: s }; };
-    const rectOf = () => (launcherNow() ? (f.launchFree && f.place.launch ? freeLaunch() : launchRect(f.place, vp())) : layoutRect(f.place, vp()));
+    // ⭐ D191 (owner 11-19: "the panel is as long as the content") · the home tab `draft` is as tall as what it shows (fitH, from
+    // the panel's own measure, capped at the viewport) until the person resizes the dock (place.sized); the other tabs and a
+    // snapped edge keep their size.
+    const fitted = (r) => {
+      if (kind !== 'dock' || f.active !== 'draft' || f.place.edge || f.place.collapsed || f.place.sized || !(f.fitH > 0)) return r;
+      const v = vp(), L = limitsFor(v), h = Math.round(clamp(f.fitH, L.minH, L.maxH));
+      return { ...r, h, y: Math.round(clamp(r.y, L.margin, v.h - L.margin - h)) };
+    };
+    const rectOf = () => (launcherNow() ? (f.launchFree && f.place.launch ? freeLaunch() : launchRect(f.place, vp())) : fitted(layoutRect(f.place, vp())));
 
     const vp = () => viewport();
     const apply = (settle = false) => {
@@ -617,7 +625,7 @@
       root.querySelector('.hd, .slim')?.classList.add('dragging');
       f.place = op.kind === 'move'
         ? { ...f.place, edge: null, rect: shiftTo(op.start, dx, dy, op.free) }
-        : { ...f.place, edge: null, rect: resizeRect(op.start, op.handle, dx, dy, vp()) };
+        : { ...f.place, edge: null, sized: true, rect: resizeRect(op.start, op.handle, dx, dy, vp()) };
       apply();
     };
     const onUp = (ev) => {
@@ -677,7 +685,7 @@
       if (role === 'resize') {
         ev.preventDefault();
         const d = ev.shiftKey ? LIMITS.bigStep : LIMITS.step;
-        f.place = { ...f.place, edge: null, rect: resizeRect(f.rectNow(), 'se', a[0] * d, a[1] * d, vp()) };
+        f.place = { ...f.place, edge: null, sized: true, rect: resizeRect(f.rectNow(), 'se', a[0] * d, a[1] * d, vp()) };
         f.draw(); onChange?.();
         root.querySelector('[data-role="resize"]')?.focus();
         return;
@@ -745,6 +753,7 @@
     const placeNow = () => ({
       rect: frame.place.rect || (frame.place.collapsed ? null : frame.rectNow()) || defaultRect(viewport()), edge: frame.place.edge || null, collapsed: !!frame.place.collapsed, tab: frame.active,
       ...(frame.place.launch ? { launch: frame.place.launch } : {}),
+      ...(frame.place.sized ? { sized: true } : {}),
       pops: Object.fromEntries([...pops.entries()].map(([t, p]) => [t, p.place.rect || p.rectNow()])),
       popped: [...pops.keys()],
     });
@@ -825,6 +834,7 @@
       rect: saved.rect ? clampRect(saved.rect, vp0) : defaultRect(vp0), edge: saved.edge, collapsed: saved.collapsed, launch: saved.launch || null,
       onChange: save, onClose: closeAll, onSelect: (t, o) => select(t, o), onLoad: (t, trusted) => { if (trusted) loadTab(t); } });
     frame.active = saved.tab;
+    if (saved.sized) frame.place = { ...frame.place, sized: true };   // ⭐ D191: the person sized it — the fit stands aside
     frame.popped = new Set();
     frame.theme = meta.theme;
     frame.job = jobOf(meta.job);                                    // ⭐ O100 (a): the tab's bound job, or null
@@ -978,6 +988,16 @@
       popOut, dockBack,
       popped: () => [...pops.keys()],
       rect: () => frame.rectNow(),
+      /** ⭐ D191 · the home panel's natural height (px of its own content); the dock adds its header and redraws. */
+      fit(tab, px) {
+        if (tab !== 'draft' || !Number.isFinite(px) || px <= 0) return;
+        const body = frame.root.querySelector('.body'), now = frame.rectNow();
+        const chrome = body && now ? Math.max(0, now.h - body.clientHeight) : 48;
+        const next = Math.round(px + chrome);
+        if (Math.abs((frame.fitH || 0) - next) < 2) return;
+        frame.fitH = next;
+        frame.apply();
+      },
       /** ⭐ A128: the height a popup covers at the dock's foot (0 when none) — the panes keep that much room below. */
       footInset(px) {
         const n = Math.max(0, Math.round(Number(px) || 0));
