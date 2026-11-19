@@ -16,7 +16,10 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOTS = ["server.js", "routes", "services", "shared", "client/src", "extension", "apply-worker", "crawler", "packages"];
-const ALLOWED = new Set(["shared/modelTasks.js", "shared/anthropicModels.js"]);
+const ALLOWED = new Set(["shared/modelTasks.js", "shared/anthropicModels.js",
+  // 46x · D192 (4d): the plausibility check's TECH_FIRST_YEAR names "GPT-4" as a TECHNOLOGY a résumé may list (it came out in
+  // 2023, so a role that ended before then cannot have used it) — vocabulary for a lookup, never a model to call. Nothing else.
+  "packages/ats-scorer/src/plausibility.js"]);
 
 export const MODEL_SHAPES = [
   { name: "model id literal",

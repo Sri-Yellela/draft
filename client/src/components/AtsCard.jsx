@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { api } from "../lib/api.js";
 import { atsCardView } from "../../../shared/contextualView.js";
 import { atsInk } from "./AtsInk.jsx";
+import { PlausibilityFlags } from "./PlausibilityFlags.jsx";   // D192 (4d): does the résumé add up
 import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
 import { ts } from "../themes/shapes.js";
 
@@ -63,6 +64,8 @@ export function AtsCard({ report = null, jobId = null, history = null, contextua
           )}
         </>
       )}
+      {/* ⭐ D192 (4d): the base résumé's bullets that don't line up with what draft knows about their employers — warnings, never in the number */}
+      <PlausibilityFlags src="/api/resume/plausibility" />
       {history && (
         <div data-ats-card-history>
           <button type="button" aria-expanded={showHistory} onClick={() => setShowHistory(v => !v)}

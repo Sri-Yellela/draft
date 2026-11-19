@@ -404,7 +404,10 @@ const AUTHENTICATED = new Set([
   "PATCH /api/jobs/:id/starred",
   "PATCH /api/jobs/:id/disliked",
   "GET /api/jobs/:id/recruiter",
-  "GET /api/jobs/:id/contextual",   // D192 (4): the contextual ATS score for the person's own base résumé
+  "GET /api/jobs/:id/contextual",
+  "GET /api/resume/plausibility",   // D192 (4d): the person's own base résumé
+  "GET /api/resumes/:id/plausibility",   // D192 (4d): the person's own generated résumé (user_id in the query)
+  "POST /api/resume/plausibility/dismiss",   // D192 (4d): the person's own dismissals   // D192 (4): the contextual ATS score for the person's own base résumé
   "POST /api/jobs/:id/keywords",
   "POST /api/scrape",
   "GET /api/base-resume",

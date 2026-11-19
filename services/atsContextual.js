@@ -19,6 +19,7 @@ import { companyRef, companyIdForSlug } from "./entities.js";
 import { companySlug } from "../shared/companyPaths.js";
 import { storedPlacement } from "./placement.js";
 import { getSetting, setSetting, clearSetting } from "./appSettings.js";
+import { companyFacts } from "./atsPlausibility.js";   // D192 (4d): families + size for the public stack
 
 export const WEIGHTS_KEY = "ats_contextual_weights";
 export const STACK_MAX = 20;
@@ -86,7 +87,10 @@ function publicCompanyStackUncached(db, n, nowSec) {
   const co = safe(() => db.prepare(`SELECT name, slug FROM companies WHERE id = ?`).get(id), null);
   if (!co) return { matched: false };
   const { industry, techStack } = companyStackOf(db, id, nowSec);
-  return { matched: true, name: co.name, slug: co.slug, industry, techStack };
+  // D192 (4d): the kinds of roles it posts and its size, for the plausibility check when the tools service stands alone —
+  // public facts (the company page's), nothing about any person
+  const facts = companyFacts(db, id, nowSec);
+  return { matched: true, name: co.name, slug: co.slug, industry, techStack, families: facts?.families || {}, employees: facts?.employees ?? null };
 }
 
 /** The posting's side: its taxonomy placement, its level read, its text, its company record. */

@@ -26,6 +26,7 @@ Experience
 Senior Software Engineer, Backend — Northwind Systems
 - Built payment infrastructure for merchants in Ruby and Java, processing card transactions
 - Designed APIs and data pipelines on Kafka and SQL; ran on-call for the ledger service
+- Built a sales incentive compensation model for account executives
 Skills
 Ruby, Java, SQL, Kafka, Python, AWS`;
 const POSTING = `What you'll do

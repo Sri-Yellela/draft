@@ -103,6 +103,7 @@ import { createTaxonomyBackfill, taxonomyStats } from "./services/jobs/taxonomyB
 import { publicBoardPage, publicBoardFacets, publicRateLimit } from "./services/jobs/publicBoard.js";
 import { publicCompany, publicSuggest, companyMatchFor, companyIdForSlug, focusJob } from "./services/companies/publicCompany.js";
 import { contextualFor, publicCompanyStack, contextualWeights, setContextualWeights } from "./services/atsContextual.js";   // ⭐ D192 (3) + (4)
+import { plausibilityFor, dismissFlag } from "./services/atsPlausibility.js";   // ⭐ D192 (4d) — does the résumé add up
 import { companyDirectory } from "./services/companies/companyDirectory.js";   // A144 (45o): the Companies tab
 import { publicEntry } from "./services/jobs/publicEntry.js";                     // A147 (45o): the signed-out /jobs entry
 import { companyHealth } from "./services/companies/companyHealth.js";            // A142 (45o): Admin → Board → Company records
@@ -8066,6 +8067,20 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_ats_only_reports_mark ON ats_only_reports(user_id, domain_profile_id, id);
       `,
     },
+    {
+      // ⭐ D192 (4d) (46x, owner 11-14 / 11-19): CLAIM PLAUSIBILITY — a flag the person dismissed stays dismissed across
+      // re-scores. The flag's key is the scorer's (kind · employer · the bullet · the technology, normalised — packages/ats-scorer
+      // src/plausibility.js); nothing about the résumé is stored here but that key. Only ADDS.
+      id: "277_ats_flag_dismissals",
+      sql: `
+        CREATE TABLE IF NOT EXISTS ats_flag_dismissals (
+          user_id     INTEGER NOT NULL,
+          flag_key    TEXT NOT NULL,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, flag_key)
+        ) WITHOUT ROWID;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -14856,6 +14871,25 @@ app.get("/api/jobs/:id/contextual", requireAuth, (req, res) => {
   const r = scoreBaseResumeForApply(req.user.id, String(req.params.id), { withReport: true });
   if (!r) return res.status(404).json({ error: "nothing_to_score" });
   res.set("Cache-Control", "private, no-store").json({ score: r.score, band: r.band, contextual: r.contextual || null });
+});
+// ⭐ D192 (4d) · CLAIM PLAUSIBILITY — "does this add up?" (owner 11-14): each experience entry's bullets against what draft knows
+// about that employer (services/atsPlausibility.js; the checks are the scorer package's, no model). Warnings only — no score
+// reads them. The base résumé of the active job profile; a generated (tailored) résumé — the check runs on the RESULT, so a
+// bullet that does not line up is caught before it is sent; and the person's Dismiss (kept across re-scores, migration 277).
+app.get("/api/resume/plausibility", requireAuth, (req, res) => {
+  const profile = getOrRepairActiveProfile(req.user.id);
+  const text = profile?.id ? getBaseResumeRecord(db, { userId: req.user.id, profileId: profile.id })?.content : null;
+  if (!text) return res.status(404).json({ error: "no_base_resume" });
+  res.set("Cache-Control", "private, no-store").json(plausibilityFor(db, { userId: req.user.id, text }));
+});
+app.get("/api/resumes/:id/plausibility", requireAuth, (req, res) => {
+  const row = db.prepare("SELECT html FROM resumes WHERE id = ? AND user_id = ?").get(Number(req.params.id), req.user.id);
+  if (!row?.html) return res.status(404).json({ error: "no_such_resume" });
+  res.set("Cache-Control", "private, no-store").json(plausibilityFor(db, { userId: req.user.id, html: row.html }));
+});
+app.post("/api/resume/plausibility/dismiss", requireAuth, (req, res) => {
+  try { res.json(dismissFlag(db, req.user.id, req.body?.key, { undo: req.body?.undo === true })); }
+  catch (e) { res.status(e.status || 500).json({ error: "bad_flag", message: e.message }); }
 });
 // ⭐ D192 (4c) · Admin → Ops: the contextual weights (the contract's `contextual_weights`). PUT { weights } | { weights: null } = defaults.
 app.get("/api/admin/ats-contextual-weights", requireAdmin, (_req, res) => res.json({ weights: contextualWeights(db) }));

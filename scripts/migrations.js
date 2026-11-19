@@ -7399,4 +7399,18 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_ats_only_reports_mark ON ats_only_reports(user_id, domain_profile_id, id);
       `,
     },
+    {
+      // ⭐ D192 (4d) (46x, owner 11-14 / 11-19): CLAIM PLAUSIBILITY — a flag the person dismissed stays dismissed across
+      // re-scores. The flag's key is the scorer's (kind · employer · the bullet · the technology, normalised — packages/ats-scorer
+      // src/plausibility.js); nothing about the résumé is stored here but that key. Only ADDS.
+      id: "277_ats_flag_dismissals",
+      sql: `
+        CREATE TABLE IF NOT EXISTS ats_flag_dismissals (
+          user_id     INTEGER NOT NULL,
+          flag_key    TEXT NOT NULL,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, flag_key)
+        ) WITHOUT ROWID;
+      `,
+    },
   ];

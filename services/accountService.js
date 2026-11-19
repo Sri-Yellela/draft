@@ -362,6 +362,8 @@ export const MERGE_PLAN = Object.freeze({
   a140_trial_cleaned: "keepInto",
   // D179 P4b / D159 T1 (237): the companies a person follows — one row per (user, company); a merged person follows both lists.
   company_follows: "keepInto",
+  // D192 (4d) (277): the person's dismissed plausibility flags — one row per (user, flag key); a merged person keeps both lists.
+  ats_flag_dismissals: "keepInto",
   // D154 P1 (240): one daily question per (user, day) — INTO's day stands on a clash; FROM's fill the rest.
   daily_questions: "keepInto",
   // D183 P1 (243): who can see the profile page — one row per user; INTO's setting stands (the safer, its own choice);

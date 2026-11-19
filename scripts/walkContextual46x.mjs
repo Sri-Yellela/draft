@@ -38,6 +38,9 @@ Senior Software Engineer, Backend — Northwind Systems
 - Built payment infrastructure for merchants in fintech on Kafka and PostgreSQL
 - Ran on-call for the ledger service and cut pages by 40%
 - Built data pipelines on Airflow
+Software Engineer — Kestrel Payments
+2016 – 2018
+- Integrated Salesforce for the revenue team
 Skills
 Go, Kafka, PostgreSQL, Airflow, Docker, AWS`;
 const POSTING = `Senior Backend Engineer at Kestrel Payments
@@ -132,6 +135,8 @@ try {
       say(`${tag}: no band word, no claims, no quick check, no old report`, !/(Strong|Moderate|Weak)|true of me|You could claim|claimed by you/i.test(r.panel) && !r.claims, "none");
       say(`${tag}: the four parts, one line each`, r.parts.map(x => x[0]).join() === "skill_match,role_fit,responsibility_overlap,tech_stack", r.parts.map(x => x[1]).join(" | ").slice(0, 300));
       say(`${tag}: the biggest gain`, /Biggest gain: Terraform — in 41% of their jobs/.test(r.gain), r.gain);
+      const plaus = await page.waitForSelector("[data-plausibility]", { timeout: 20000 }).then(() => page.evaluate(() => document.querySelector("[data-plausibility]").innerText)).catch(() => "");
+      say(`${tag}: does it add up — Salesforce at Kestrel flagged, with a Dismiss`, /You list Salesforce at Kestrel Payments/.test(plaus) && /Dismiss/.test(plaus), plaus.replace(/\s+/g, " ").slice(0, 160));
       say(`${tag}: fits, no side-scroll, no page errors`, r.w > 0 && r.w <= w && !r.side && errors.length === 0, `${r.w}px · ${errors.slice(0, 2).join(" | ") || "no errors"}`);
       await sec.evaluate(s => s.scrollIntoView({ block: "start" }));
       await sleep(200);

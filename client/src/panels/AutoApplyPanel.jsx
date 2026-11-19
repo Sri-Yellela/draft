@@ -14,6 +14,8 @@ import {
 import { companyLabel, UNKNOWN_COMPANY } from "../../../shared/atsHosts.js";
 // ⭐ 46x (owner 11-19: "switch the held panel rows to colour too"): the rows say the résumé's ATS number in its band's colour
 import { AtsInk } from "../components/AtsInk.jsx";
+// ⭐ D192 (4d): the TAILORED résumé is checked before it is sent — a bullet the tailoring wrote that doesn't add up is flagged
+import { PlausibilityFlags } from "../components/PlausibilityFlags.jsx";
 import { REJECTION_REASONS, REJECTION_NOTE_MAX, RESPONSE_OUTCOME, RESPONSE_LABELS } from "../../../shared/applicationResponse.js";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
@@ -968,6 +970,9 @@ export function AutoApplyPanel({ user = null } = {}) {
                 : <>Résumé: <AtsInk score={node.ref.resume?.atsScore ?? null} />.</>}
               {approvalCap ? ` ${approvalCap.remaining} of ${approvalCap.limit} approvals left today.` : ""}
             </p>
+          )}
+          {node.kind === "approval" && node.ref.resume?.artifactId != null && (
+            <PlausibilityFlags src={`/api/resumes/${encodeURIComponent(node.ref.resume.artifactId)}/plausibility`} title="Does the tailored résumé add up?" />
           )}
           {/* 46j (owner 11-13: "remove this prompt from here, and move the entire what we changed panel as a side panel beside
               the resume tailored for this job"): opening the résumé shows What we changed beside it (ResumeEditorHost). */}

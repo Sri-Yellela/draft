@@ -57,7 +57,7 @@ test("d192PublicStackEndpointReturnsStack — the company page's stack in the co
   assert.equal(r.industry, "financial technology");
   assert.deepEqual(r.techStack.map(t => t.name), ["Apache Kafka", "Terraform", "Prefect"], "Haskell (1 posting) is below the evidence line");
   assert.deepEqual(r.techStack[0], { name: "Apache Kafka", category: "data", postingShare: Math.round(1000 * 14 / 22) / 1000 });
-  for (const k of Object.keys(r)) assert.ok(["matched", "name", "slug", "industry", "techStack"].includes(k), `no other field: ${k}`);
+  for (const k of Object.keys(r)) assert.ok(["matched", "name", "slug", "industry", "techStack", "families", "employees"].includes(k), `no other field: ${k}`);   // 46x: + families / employees (D192 (4d), public facts)
 });
 
 test("d192UnknownCompanyReturnsFalse", () => {
