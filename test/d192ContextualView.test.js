@@ -51,7 +51,7 @@ test("no band WORD anywhere — the number's colour says it (owner 11-19); a par
 
 test("the component: painted by band from the tokens, beside the report (the posting's match panel — ATSPanel's one mount), no dead Atlas link", () => {
   const c = read("client/src/components/ContextualFit.jsx");
-  assert.match(c, /const ink = \(n\) => bandStyle\(atsBandFor\(n\)\)\.fg;/, "the number's colour is its band's (styles/bandStyle.js tokens)");
+  assert.ok(c.includes("const ink = atsInk;"), "the number's colour is its band's — the one ink (AtsInk.jsx, styles/bandStyle.js tokens)");
   assert.match(c, /color: n == null \? "var\(--color-text-faint\)" : ink\(n\)/);
   assert.doesNotMatch(c, /atsBandLabel|ATS_BAND_LABELS|"Strong|Moderate"|Weak match/, "no band word");
   assert.match(c, /api\(`\/api\/jobs\/\$\{encodeURIComponent\(jobId\)\}\/contextual`\)/);
@@ -61,4 +61,17 @@ test("the component: painted by band from the tokens, beside the report (the pos
   const panel = read("client/src/components/ATSPanel.jsx");
   assert.ok(panel.includes("{jobId ? <ContextualFit jobId={jobId} /> : null}"), "in the posting's match panel (ATSPanel's one mount)");
   assert.match(read("client/src/modules.manifest.js"), /"components\/ContextualFit\.jsx":/);
+});
+
+test("Home's held rows (owner 11-19: \"switch the held panel rows to colour too\"): the résumé's number in its band's colour, no band word", () => {
+  const p = read("client/src/panels/AutoApplyPanel.jsx");
+  assert.doesNotMatch(p, /atsBandLabel\(/, "no band word on a held row");
+  assert.ok(p.includes("Base résumé: <AtsInk score={node.ref.baseAts?.score ?? null} band={node.ref.baseAts?.band ?? null} />."));
+  assert.ok(p.includes("Résumé: <AtsInk score={node.ref.resume?.atsScore ?? null} />."));
+  assert.ok(p.includes(" · <AtsInk score={p.baseAts?.score ?? null} band={p.baseAts?.band ?? null} /> (base resume)"));
+  const ink = read("client/src/components/AtsInk.jsx");
+  assert.match(ink, /export const atsInk = \(score\) => bandStyle\(atsBandFor\(Number\.isFinite\(score\) \? score : null\)\)\.fg;/);
+  assert.match(ink, /style=\{\{ color: atsInk\(score\), fontWeight: 700 \}\}>\{Math\.round\(score\)\}\{suffix\}<\/span>/, "the number, painted");
+  assert.match(ink, /aria-label=\{atsBandLabel\(band\)\.label\}/, "a legacy row with only a band: a dot, the word only as its accessible name");
+  assert.doesNotMatch(ink.replace(/^\s*\/\/.*$/gm, ""), /#[0-9a-fA-F]{3,6}\b|rgba?\(/, "no colour literal");
 });

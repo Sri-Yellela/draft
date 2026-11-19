@@ -98,6 +98,7 @@ export const MODULES = Object.freeze({
 export const SHARED = Object.freeze({
   // ── the ATS ──
   "components/ATSPanel.jsx":            { what: "the ATS report LOADER (fetch, cache, claims) — the deck and the ATS panel mount it" },
+  "components/AtsInk.jsx":             { what: "an ATS number painted by its band, inline (46x, owner 11-19: colour, not words) — the contextual section and Home's held rows" },
   "components/ContextualFit.jsx":       { what: "D192 (4d): the contextual ATS score beside the report — the four parts, What fits, What to do (owner's option A; numbers painted by band, no band word)" },
   "components/AtsReport.jsx":           { what: "THE ATS report in the web app — a thin React wrapper of the ONE component, shared/atsReportElement.js (A52 → T9; see CROSS_PRODUCT)" },
   "components/AtsNumberBox.jsx":        { what: "THE ATS number box (D50) — posting header, ATS panel, résumé rows (A93)" },

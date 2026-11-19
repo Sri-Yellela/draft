@@ -10,16 +10,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api.js";
-import { atsBandFor } from "../../../shared/atsBands.js";
 import { contextualView } from "../../../shared/contextualView.js";
-import { bandStyle } from "../styles/bandStyle.js";
+import { atsInk } from "./AtsInk.jsx";   // the one band ink (A93)
 import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
 // the résumé lives on Your profile (pages/profile/profilePanels.js "about": About you + Your résumés)
 const RESUME_HREF = "/app/profile/about";
 import { ts } from "../themes/shapes.js";
 
 const card = { background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 10, padding: 12 };
-const ink = (n) => bandStyle(atsBandFor(n)).fg;
+const ink = atsInk;
 
 export function ContextualFit({ jobId, block: given = null }) {
   const [block, setBlock] = useState(given);

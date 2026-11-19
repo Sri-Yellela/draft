@@ -12,7 +12,8 @@ import {
   ApplicationRow, ApplicationObstacleCard, CompanyHeading, AttemptRow,
 } from "./AutoApplyPanelSections.jsx";
 import { companyLabel, UNKNOWN_COMPANY } from "../../../shared/atsHosts.js";
-import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
+// ⭐ 46x (owner 11-19: "switch the held panel rows to colour too"): the rows say the résumé's ATS number in its band's colour
+import { AtsInk } from "../components/AtsInk.jsx";
 import { REJECTION_REASONS, REJECTION_NOTE_MAX, RESPONSE_OUTCOME, RESPONSE_LABELS } from "../../../shared/applicationResponse.js";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
@@ -942,7 +943,7 @@ export function AutoApplyPanel({ user = null } = {}) {
       body: () => node.kind === "pick" ? (
         <>
           {pickReady
-            ? <p className="dh-fold__quiet">Made{made.atsScore != null ? `. Résumé: ${atsBandLabel(atsBandFor(made.atsScore)).short}` : ""}. Nothing was sent.</p>
+            ? <p className="dh-fold__quiet">Made{made.atsScore != null ? <>. Résumé: <AtsInk score={made.atsScore} /></> : ""}. Nothing was sent.</p>
             : <p className="dh-fold__quiet">Not made yet: it is tailored only after you tap Apply.</p>}
           {/* 46j (owner 11-13): no "What we changed" line here — it is a side panel beside the tailored résumé (ResumeEditorHost). */}
           {/* ⭐ D171 FIX 4: the résumé opens in draft's editor, never only a link to Profile. */}
@@ -963,8 +964,8 @@ export function AutoApplyPanel({ user = null } = {}) {
           {node.kind === "approval" && (
             <p className="dh-fold__quiet">
               {node.ref.generationDeferred
-                ? `No résumé yet — approving writes the tailored one. Base résumé: ${atsBandLabel(node.ref.baseAts?.band ?? null).short}.`
-                : `Résumé: ${atsBandLabel(atsBandFor(node.ref.resume?.atsScore ?? null)).short}.`}
+                ? <>No résumé yet — approving writes the tailored one. Base résumé: <AtsInk score={node.ref.baseAts?.score ?? null} band={node.ref.baseAts?.band ?? null} />.</>
+                : <>Résumé: <AtsInk score={node.ref.resume?.atsScore ?? null} />.</>}
               {approvalCap ? ` ${approvalCap.remaining} of ${approvalCap.limit} approvals left today.` : ""}
             </p>
           )}
@@ -1717,8 +1718,8 @@ export function AutoApplyPanel({ user = null } = {}) {
                           <span style={{ fontSize:ts(10), color:theme.textDim, whiteSpace:"nowrap" }}>
                             {p.answerCount} answer{p.answerCount === 1 ? "" : "s"}
                             {p.generationDeferred
-                              ? ` · ${atsBandLabel(p.baseAts?.band ?? null).short} (base resume)`
-                              : ` · ${atsBandLabel(atsBandFor(p.resume.atsScore ?? null)).short}`}
+                              ? <> · <AtsInk score={p.baseAts?.score ?? null} band={p.baseAts?.band ?? null} /> (base resume)</>
+                              : <> · <AtsInk score={p.resume.atsScore ?? null} /></>}
                           </span>
                         </div>
 

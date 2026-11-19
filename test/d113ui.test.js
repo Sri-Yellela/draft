@@ -523,7 +523,8 @@ test("d113uiMakeItNowTailorsOnceAndReuses — made on the press (the pick stays 
   // The UI: the leaf's Make it now is the adapter's call, only for a pick still waiting; once made it shows the result —
   // the band and What we changed (D90 P3's ChangesSummaryLine); the server is wired to the apply path's generation.
   const leaf = panel.slice(at(panel, 'const made = node.kind === "pick"'), at(panel, 'out.push({ id: "job", label: "The job"'));
-  assert.match(leaf, /Made\{made\.atsScore != null \? `\. Résumé: \$\{atsBandLabel\(atsBandFor\(made\.atsScore\)\)\.short\}` : ""\}\. Nothing was sent\./);
+  // moved on purpose 11-19 (46x, owner: "switch the held panel rows to colour too"): the number in its band's colour, no word
+  assert.ok(leaf.includes('Made{made.atsScore != null ? <>. Résumé: <AtsInk score={made.atsScore} /></> : ""}. Nothing was sent.'));
   // 46j (owner 11-13, changed on purpose): What we changed is a side panel beside the opened résumé, not a line in the pane.
   assert.match(leaf, /pickReady && node\.jobId != null && \(\s*<AttemptResume jobId=\{node\.jobId\}/);
   assert.match(fs.readFileSync("client/src/components/ResumeEditorHost.jsx", "utf8"), /<ResumeChangesPanel docked jobId=\{request\.jobId\}/);
