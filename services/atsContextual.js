@@ -63,9 +63,24 @@ export function companyIdByName(db, name) {
  * ⭐ D192 (3) · GET /api/public/company-stack?name= — the tools service's lookup when it scores on its own (no draft in the loop).
  * The same public data the company pages show; nothing about any person. { matched: false } when no record answers.
  */
-export function publicCompanyStack(db, name, nowSec = Math.floor(Date.now() / 1000)) {
+// A public, unauthenticated read: each name's answer is kept 10 minutes (at most 500 names), so a burst of the same lookups
+// costs one set of reads. It is public data and the same for every caller.
+export const PUBLIC_STACK_TTL_MS = 10 * 60_000;
+const publicStackCaches = new WeakMap();   // db → Map(name → { at, value })
+export function publicCompanyStack(db, name, nowSec = Math.floor(Date.now() / 1000), { nowMs = Date.now() } = {}) {
   const n = String(name || "").trim().slice(0, 200);
   if (!n) return { matched: false };
+  const ck = n.toLowerCase();
+  let publicStackCache = publicStackCaches.get(db);
+  if (!publicStackCache) publicStackCaches.set(db, (publicStackCache = new Map()));
+  const hit = publicStackCache.get(ck);
+  if (hit && nowMs - hit.at < PUBLIC_STACK_TTL_MS) return hit.value;
+  const value = publicCompanyStackUncached(db, n, nowSec);
+  if (publicStackCache.size >= 500) publicStackCache.delete(publicStackCache.keys().next().value);
+  publicStackCache.set(ck, { at: nowMs, value });
+  return value;
+}
+function publicCompanyStackUncached(db, n, nowSec) {
   const id = companyIdByName(db, n);
   if (!id) return { matched: false };
   const co = safe(() => db.prepare(`SELECT name, slug FROM companies WHERE id = ?`).get(id), null);

@@ -121,3 +121,12 @@ test("d192ExistingScoreUnchanged / d192DraftFeaturesUnchanged — the block ride
   assert.match(ext, /\.\.\.\(r\.contextual && typeof r\.contextual === "object" \? \{ contextual: r\.contextual \} : \{\}\)/);
   assert.doesNotMatch(read("services/atsContextual.js").replace(/^\s*\/\/.*$/gm, ""), /anthropic|callModel|modelGateway|fetch\(/, "no model, no network (D190)");
 });
+
+test("the public stack is cached 10 minutes per database, and the company count drives from job_company (46p's join order)", () => {
+  const db = fixture();
+  const first = publicCompanyStack(db, "Kestrel Payments", NOW, { nowMs: 1_000 });
+  db.prepare(`DELETE FROM company_tech`).run();
+  assert.deepEqual(publicCompanyStack(db, "kestrel payments", NOW, { nowMs: 1_000 + 60_000 }), first, "a burst of lookups is one set of reads");
+  assert.deepEqual(publicCompanyStack(db, "Kestrel Payments", NOW, { nowMs: 1_000 + 11 * 60_000 }).techStack, [], "read again after 10 minutes");
+  assert.match(read("services/companies/companyTech.js"), /SELECT COUNT\(\*\) FROM job_company jc CROSS JOIN scraped_jobs sj ON sj\.job_id = jc\.job_id/);
+});

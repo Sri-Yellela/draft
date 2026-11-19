@@ -121,7 +121,9 @@ export function stackFor(db, companyId, nowSec = Math.floor(Date.now() / 1000)) 
   const since = nowSec - FRESH_DAYS * 86400;
   const items = db.prepare(`SELECT tech, grp, postings, first_seen, last_seen, teams_json FROM company_tech
       WHERE company_id = ? AND postings >= ? AND last_seen >= ? ORDER BY postings DESC, tech`).all(companyId, SHOW_MIN_POSTINGS, since);
-  const ofPostings = db.prepare(`SELECT COUNT(*) FROM job_company jc JOIN scraped_jobs sj ON sj.job_id = jc.job_id
+  // ⛔ 46x (46p's finding, the same shape): CROSS JOIN pins the join order to THIS company's job_company rows — a plain JOIN let
+  // SQLite drive from scraped_jobs (~200 ms a call at 100k). D192 reads this on every extension press and the public stack.
+  const ofPostings = db.prepare(`SELECT COUNT(*) FROM job_company jc CROSS JOIN scraped_jobs sj ON sj.job_id = jc.job_id
       WHERE jc.company_id = ? AND (sj.is_active = 1 OR ${SEC("COALESCE(sj.retired_at, sj.discovered_at)")} >= ?)`).pluck().get(companyId, since);
   const groups = {};
   for (const x of items) {
