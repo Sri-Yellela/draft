@@ -1,0 +1,1232 @@
+[
+ {
+  "name": "home",
+  "path": "/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "Resume Master — résumé tools that show their work",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 78,
+  "h1": "Résumé tools that show their work.",
+  "url": "https://resumemaster.one/"
+ },
+ {
+  "name": "workspace",
+  "path": "/workspace/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "Workspace — Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\""
+  ],
+  "controls": 50,
+  "h1": null,
+  "url": "https://resumemaster.one/workspace/"
+ },
+ {
+  "name": "pdf",
+  "path": "/pdf/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "Free PDF tools that never upload your file — Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 41,
+  "h1": "PDF tools that never upload your file",
+  "url": "https://resumemaster.one/pdf/"
+ },
+ {
+  "name": "pdf_merge-pdf",
+  "path": "/pdf/merge-pdf/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "Merge PDF files — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "Merge PDF files",
+  "url": "https://resumemaster.one/pdf/merge-pdf/"
+ },
+ {
+  "name": "pdf_split-pdf",
+  "path": "/pdf/split-pdf/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "Split a PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 60,
+  "h1": "Split a PDF",
+  "url": "https://resumemaster.one/pdf/split-pdf/"
+ },
+ {
+  "name": "pdf_organize-pdf",
+  "path": "/pdf/organize-pdf/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "Organize PDF pages — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "Organize PDF pages",
+  "url": "https://resumemaster.one/pdf/organize-pdf/"
+ },
+ {
+  "name": "pdf_compress-pdf",
+  "path": "/pdf/compress-pdf/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "Compress a PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "Compress a PDF",
+  "url": "https://resumemaster.one/pdf/compress-pdf/"
+ },
+ {
+  "name": "pdf_edit-pdf",
+  "path": "/pdf/edit-pdf/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "Edit a PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "Edit a PDF",
+  "url": "https://resumemaster.one/pdf/edit-pdf/"
+ },
+ {
+  "name": "pdf_sign-pdf",
+  "path": "/pdf/sign-pdf/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "Sign a PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "Sign a PDF",
+  "url": "https://resumemaster.one/pdf/sign-pdf/"
+ },
+ {
+  "name": "pdf_watermark-pdf",
+  "path": "/pdf/watermark-pdf/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "Add a watermark to a PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 60,
+  "h1": "Add a watermark to a PDF",
+  "url": "https://resumemaster.one/pdf/watermark-pdf/"
+ },
+ {
+  "name": "pdf_protect-pdf",
+  "path": "/pdf/protect-pdf/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "Password-protect a PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "Password-protect a PDF",
+  "url": "https://resumemaster.one/pdf/protect-pdf/"
+ },
+ {
+  "name": "pdf_unlock-pdf",
+  "path": "/pdf/unlock-pdf/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "Unlock a PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 60,
+  "h1": "Unlock a PDF",
+  "url": "https://resumemaster.one/pdf/unlock-pdf/"
+ },
+ {
+  "name": "pdf_jpg-to-pdf",
+  "path": "/pdf/jpg-to-pdf/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "JPG and PNG to PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 59,
+  "h1": "JPG and PNG to PDF",
+  "url": "https://resumemaster.one/pdf/jpg-to-pdf/"
+ },
+ {
+  "name": "pdf_pdf-to-jpg",
+  "path": "/pdf/pdf-to-jpg/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "PDF to JPG or PNG — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "PDF to JPG or PNG",
+  "url": "https://resumemaster.one/pdf/pdf-to-jpg/"
+ },
+ {
+  "name": "pdf_pdf-to-text",
+  "path": "/pdf/pdf-to-text/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "PDF to text — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "PDF to text",
+  "url": "https://resumemaster.one/pdf/pdf-to-text/"
+ },
+ {
+  "name": "pdf_pdf-to-word",
+  "path": "/pdf/pdf-to-word/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "PDF to Word — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "PDF to Word",
+  "url": "https://resumemaster.one/pdf/pdf-to-word/"
+ },
+ {
+  "name": "pdf_pdf-to-excel",
+  "path": "/pdf/pdf-to-excel/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "PDF to Excel — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 59,
+  "h1": "PDF to Excel",
+  "url": "https://resumemaster.one/pdf/pdf-to-excel/"
+ },
+ {
+  "name": "pdf_ocr-pdf",
+  "path": "/pdf/ocr-pdf/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "OCR a scanned PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "OCR a scanned PDF",
+  "url": "https://resumemaster.one/pdf/ocr-pdf/"
+ },
+ {
+  "name": "pdf_html-to-pdf",
+  "path": "/pdf/html-to-pdf/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "HTML to PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "ui-monospace",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 60,
+  "h1": "HTML to PDF",
+  "url": "https://resumemaster.one/pdf/html-to-pdf/"
+ },
+ {
+  "name": "editor",
+  "path": "/editor/",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "Résumé editor — Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "Georgia",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\""
+  ],
+  "controls": 38,
+  "h1": "Edit your résumé, section by section",
+  "url": "https://resumemaster.one/editor/"
+ },
+ {
+  "name": "editor-sample",
+  "path": "/editor/?sample=1",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "Résumé editor — Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "Georgia",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\""
+  ],
+  "controls": 52,
+  "h1": "Edit your résumé, section by section",
+  "url": "https://resumemaster.one/editor/?sample=1"
+ },
+ {
+  "name": "editor-noslash",
+  "path": "/editor",
+  "size": "desktop",
+  "status": 304,
+  "errors": [],
+  "title": "Résumé editor — Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "Georgia",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\""
+  ],
+  "controls": 38,
+  "h1": "Edit your résumé, section by section",
+  "url": "https://resumemaster.one/editor/"
+ },
+ {
+  "name": "privacy",
+  "path": "/privacy.html",
+  "size": "desktop",
+  "status": 200,
+  "errors": [],
+  "title": "Resume Master — privacy",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 1440,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "monospace",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 25,
+  "h1": null,
+  "url": "https://resumemaster.one/privacy.html"
+ },
+ {
+  "name": "home_ats",
+  "path": "/#ats",
+  "size": "desktop",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "home_format",
+  "path": "/#format",
+  "size": "desktop",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "home_generate",
+  "path": "/#generate",
+  "size": "desktop",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "home_pdf",
+  "path": "/#pdf",
+  "size": "desktop",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "home_signin",
+  "path": "/#signin",
+  "size": "desktop",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "home_signup",
+  "path": "/#signup",
+  "size": "desktop",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "home_reset",
+  "path": "/#reset",
+  "size": "desktop",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "home_account",
+  "path": "/#account",
+  "size": "desktop",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "workspace_edit",
+  "path": "/workspace/ (edit)",
+  "size": "desktop",
+  "capsules": [],
+  "sideways": false
+ },
+ {
+  "name": "workspace_annotate",
+  "path": "/workspace/ (annotate)",
+  "size": "desktop",
+  "capsules": [],
+  "sideways": false
+ },
+ {
+  "name": "workspace_sign",
+  "path": "/workspace/ (sign)",
+  "size": "desktop",
+  "capsules": [],
+  "sideways": false
+ },
+ {
+  "name": "workspace_pages",
+  "path": "/workspace/ (pages)",
+  "size": "desktop",
+  "capsules": [],
+  "sideways": false
+ },
+ {
+  "name": "workspace_convert",
+  "path": "/workspace/ (convert)",
+  "size": "desktop",
+  "capsules": [],
+  "sideways": false
+ },
+ {
+  "name": "home",
+  "path": "/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Resume Master — résumé tools that show their work",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 78,
+  "h1": "Résumé tools that show their work.",
+  "url": "https://resumemaster.one/"
+ },
+ {
+  "name": "workspace",
+  "path": "/workspace/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Workspace — Resume Master",
+  "capsules": [
+   {
+    "tag": "aside",
+    "cls": "ws-strip",
+    "text": "",
+    "w": 390,
+    "h": 33,
+    "radius": "18px"
+   }
+  ],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\""
+  ],
+  "controls": 50,
+  "h1": null,
+  "url": "https://resumemaster.one/workspace/"
+ },
+ {
+  "name": "pdf",
+  "path": "/pdf/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Free PDF tools that never upload your file — Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 41,
+  "h1": "PDF tools that never upload your file",
+  "url": "https://resumemaster.one/pdf/"
+ },
+ {
+  "name": "pdf_merge-pdf",
+  "path": "/pdf/merge-pdf/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Merge PDF files — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "Merge PDF files",
+  "url": "https://resumemaster.one/pdf/merge-pdf/"
+ },
+ {
+  "name": "pdf_split-pdf",
+  "path": "/pdf/split-pdf/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Split a PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 60,
+  "h1": "Split a PDF",
+  "url": "https://resumemaster.one/pdf/split-pdf/"
+ },
+ {
+  "name": "pdf_organize-pdf",
+  "path": "/pdf/organize-pdf/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Organize PDF pages — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "Organize PDF pages",
+  "url": "https://resumemaster.one/pdf/organize-pdf/"
+ },
+ {
+  "name": "pdf_compress-pdf",
+  "path": "/pdf/compress-pdf/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Compress a PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "Compress a PDF",
+  "url": "https://resumemaster.one/pdf/compress-pdf/"
+ },
+ {
+  "name": "pdf_edit-pdf",
+  "path": "/pdf/edit-pdf/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Edit a PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "Edit a PDF",
+  "url": "https://resumemaster.one/pdf/edit-pdf/"
+ },
+ {
+  "name": "pdf_sign-pdf",
+  "path": "/pdf/sign-pdf/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Sign a PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "Sign a PDF",
+  "url": "https://resumemaster.one/pdf/sign-pdf/"
+ },
+ {
+  "name": "pdf_watermark-pdf",
+  "path": "/pdf/watermark-pdf/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Add a watermark to a PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 60,
+  "h1": "Add a watermark to a PDF",
+  "url": "https://resumemaster.one/pdf/watermark-pdf/"
+ },
+ {
+  "name": "pdf_protect-pdf",
+  "path": "/pdf/protect-pdf/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Password-protect a PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "Password-protect a PDF",
+  "url": "https://resumemaster.one/pdf/protect-pdf/"
+ },
+ {
+  "name": "pdf_unlock-pdf",
+  "path": "/pdf/unlock-pdf/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Unlock a PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 60,
+  "h1": "Unlock a PDF",
+  "url": "https://resumemaster.one/pdf/unlock-pdf/"
+ },
+ {
+  "name": "pdf_jpg-to-pdf",
+  "path": "/pdf/jpg-to-pdf/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "JPG and PNG to PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 59,
+  "h1": "JPG and PNG to PDF",
+  "url": "https://resumemaster.one/pdf/jpg-to-pdf/"
+ },
+ {
+  "name": "pdf_pdf-to-jpg",
+  "path": "/pdf/pdf-to-jpg/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "PDF to JPG or PNG — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "PDF to JPG or PNG",
+  "url": "https://resumemaster.one/pdf/pdf-to-jpg/"
+ },
+ {
+  "name": "pdf_pdf-to-text",
+  "path": "/pdf/pdf-to-text/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "PDF to text — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "PDF to text",
+  "url": "https://resumemaster.one/pdf/pdf-to-text/"
+ },
+ {
+  "name": "pdf_pdf-to-word",
+  "path": "/pdf/pdf-to-word/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "PDF to Word — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "PDF to Word",
+  "url": "https://resumemaster.one/pdf/pdf-to-word/"
+ },
+ {
+  "name": "pdf_pdf-to-excel",
+  "path": "/pdf/pdf-to-excel/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "PDF to Excel — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 59,
+  "h1": "PDF to Excel",
+  "url": "https://resumemaster.one/pdf/pdf-to-excel/"
+ },
+ {
+  "name": "pdf_ocr-pdf",
+  "path": "/pdf/ocr-pdf/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "OCR a scanned PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "Arial",
+   "\"Arial Narrow\""
+  ],
+  "controls": 43,
+  "h1": "OCR a scanned PDF",
+  "url": "https://resumemaster.one/pdf/ocr-pdf/"
+ },
+ {
+  "name": "pdf_html-to-pdf",
+  "path": "/pdf/html-to-pdf/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "HTML to PDF — free, in your browser | Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "ui-monospace",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 60,
+  "h1": "HTML to PDF",
+  "url": "https://resumemaster.one/pdf/html-to-pdf/"
+ },
+ {
+  "name": "editor",
+  "path": "/editor/",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Résumé editor — Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "Georgia",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\""
+  ],
+  "controls": 38,
+  "h1": "Edit your résumé, section by section",
+  "url": "https://resumemaster.one/editor/"
+ },
+ {
+  "name": "editor-sample",
+  "path": "/editor/?sample=1",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Résumé editor — Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "Georgia",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\""
+  ],
+  "controls": 52,
+  "h1": "Edit your résumé, section by section",
+  "url": "https://resumemaster.one/editor/?sample=1"
+ },
+ {
+  "name": "editor-noslash",
+  "path": "/editor",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Résumé editor — Resume Master",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "Georgia",
+   "\"Instrument Serif\"",
+   "\"Arial Narrow\""
+  ],
+  "controls": 38,
+  "h1": "Edit your résumé, section by section",
+  "url": "https://resumemaster.one/editor/"
+ },
+ {
+  "name": "privacy",
+  "path": "/privacy.html",
+  "size": "phone",
+  "status": 304,
+  "errors": [],
+  "title": "Resume Master — privacy",
+  "capsules": [],
+  "sideways": false,
+  "scrollW": 390,
+  "fonts": [
+   "\"DM Sans\"",
+   "\"Barlow Condensed\"",
+   "\"Instrument Serif\"",
+   "monospace",
+   "\"Arial Narrow\"",
+   "Arial"
+  ],
+  "controls": 25,
+  "h1": null,
+  "url": "https://resumemaster.one/privacy.html"
+ },
+ {
+  "name": "home_ats",
+  "path": "/#ats",
+  "size": "phone",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "home_format",
+  "path": "/#format",
+  "size": "phone",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "home_generate",
+  "path": "/#generate",
+  "size": "phone",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "home_pdf",
+  "path": "/#pdf",
+  "size": "phone",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "home_signin",
+  "path": "/#signin",
+  "size": "phone",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "home_signup",
+  "path": "/#signup",
+  "size": "phone",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "home_reset",
+  "path": "/#reset",
+  "size": "phone",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "home_account",
+  "path": "/#account",
+  "size": "phone",
+  "visible": true,
+  "errors": [],
+  "sectionCapsules": [],
+  "sideways": false
+ },
+ {
+  "name": "workspace_edit",
+  "path": "/workspace/ (edit)",
+  "size": "phone",
+  "capsules": [
+   {
+    "tag": "aside",
+    "cls": "ws-strip",
+    "text": "",
+    "w": 390,
+    "h": 33,
+    "radius": "18px"
+   }
+  ],
+  "sideways": false
+ },
+ {
+  "name": "workspace_annotate",
+  "path": "/workspace/ (annotate)",
+  "size": "phone",
+  "capsules": [
+   {
+    "tag": "aside",
+    "cls": "ws-strip",
+    "text": "",
+    "w": 390,
+    "h": 33,
+    "radius": "18px"
+   }
+  ],
+  "sideways": false
+ },
+ {
+  "name": "workspace_sign",
+  "path": "/workspace/ (sign)",
+  "size": "phone",
+  "capsules": [
+   {
+    "tag": "aside",
+    "cls": "ws-strip",
+    "text": "",
+    "w": 390,
+    "h": 33,
+    "radius": "18px"
+   }
+  ],
+  "sideways": false
+ },
+ {
+  "name": "workspace_pages",
+  "path": "/workspace/ (pages)",
+  "size": "phone",
+  "capsules": [
+   {
+    "tag": "aside",
+    "cls": "ws-strip",
+    "text": "",
+    "w": 390,
+    "h": 33,
+    "radius": "18px"
+   }
+  ],
+  "sideways": false
+ },
+ {
+  "name": "workspace_convert",
+  "path": "/workspace/ (convert)",
+  "size": "phone",
+  "capsules": [
+   {
+    "tag": "aside",
+    "cls": "ws-strip",
+    "text": "",
+    "w": 390,
+    "h": 33,
+    "radius": "18px"
+   }
+  ],
+  "sideways": false
+ }
+]
