@@ -22,6 +22,7 @@ import vm from "node:vm";
 import { at } from "../test-support/sourceAnchors.js";
 import { C_LIGHT, C_DARK, C_CONTRAST_LIGHT, C_CONTRAST_DARK, EXT_THEMES } from "../extension/tokens.js";
 import { collectRequiredFiles } from "../scripts/buildExtension.mjs";
+import { D191_HOSTS, D191_BOARD_HOSTS, D191_CONTENT_SCRIPTS } from "../test-support/d191Manifest.mjs";   // ⭐ D191: the boards at install (owner 11-18)
 
 const read = (f) => fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
 const stripJs = (s) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:"'`\\])\/\/[^\n]*/g, "$1");
@@ -272,7 +273,7 @@ test("T17: the frame paints only with tokens — var(--c-*), no colour literal; 
 test("T17: no new permission, and the dock ships in the package (the builder follows files: ['dock.js'])", () => {
   const manifest = JSON.parse(read("extension/manifest.json"));
   assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
-  assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
+  assert.deepEqual(manifest.host_permissions, [...D191_HOSTS]);
   assert.ok(!manifest.web_accessible_resources, "the dock needs no web-accessible resource");
   const files = collectRequiredFiles(manifest);
   for (const f of ["dock.js", "dockHost.js"]) assert.ok(files.includes(f), `${f} is not in the package`);

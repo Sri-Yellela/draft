@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 import { at } from "../test-support/sourceAnchors.js";
+import { D191_BOARD_HOSTS, D191_CONTENT_SCRIPTS } from "../test-support/d191Manifest.mjs";   // ⭐ D191: the boards at install (owner 11-18)
 
 // TASK E3 — the manifest and its written justification must not drift apart.
 //
@@ -120,13 +121,16 @@ test("⭐⭐ D112 item 7: every optional permission has a row in MANIFEST_RATION
 
 test("no host permission is a bare-domain wildcard, and none is a gated portal", () => {
   // v1.3.0 declared https://*.linkedin.com/* — the whole site for the sake of six job-view paths.
+  // ⭐ D191 sketch 2 (owner 11-18): the six board families are declared for the panel's arrival — exactly those
+  assert.deepEqual(manifest.host_permissions.filter(h => !h.includes("jobsviadraft.com")), [...D191_BOARD_HOSTS]);
   for (const host of manifest.host_permissions) {
     assert.doesNotMatch(host, /^https:\/\/\*\.(linkedin|indeed|glassdoor|lever|greenhouse|workable)\.[a-z.]+\/\*$/,
       `${host} is a bare-domain wildcard; narrow it to the paths the extractors actually need`);
   }
   // The gated handoff reaches portals through activeTab alone. A host permission for one would
   // silently convert a per-invocation grant into standing access.
-  for (const host of manifest.host_permissions) {
+  // (D191: the board families above are the owner's 11-18 decision — every OTHER portal still needs activeTab)
+  for (const host of manifest.host_permissions.filter(h => !D191_BOARD_HOSTS.includes(h))) {
     assert.doesNotMatch(host, /workday|myworkdayjobs|amazon\.jobs|metacareers|smartrecruiters|icims|taleo/i,
       `${host} is a gated portal origin — the handoff must depend on activeTab, not a host grant`);
   }
@@ -151,7 +155,8 @@ test("THE EXTENSION DECLARES ONE CONTENT SCRIPT — D99's bridge, on draft's own
   // it on. Capture injects on demand under activeTab instead.
   // ⭐ D99 J11 (owner, 10-14: "build the bridge"): the ONE declared script is boardBridge.js, on jobsviadraft.com —
   // already the one host — top frame only, so the draft website can hand a board job to the extension.
-  assert.deepEqual(manifest.content_scripts, [{ matches: ["https://jobsviadraft.com/*"], js: ["boardBridge.js"], run_at: "document_start", all_frames: false }],
+  // ⭐ D191 sketch 2 (owner 11-18): a SECOND declared script, panelArrive.js, on the six board families — it reads nothing
+  assert.deepEqual(manifest.content_scripts, D191_CONTENT_SCRIPTS,
     "a content script other than the bridge is declared — see MANIFEST_RATIONALE.md, Content scripts");
 });
 
@@ -222,7 +227,9 @@ test("the extractor still knows the named job boards, and still works without th
   }
 
   // Workday having an extractor must never be read as Workday having a host permission.
-  assert.ok(!manifest.host_permissions.some(h => /workday/i.test(h)),
+  // ⭐ D191 (owner 11-18): Workday's two hosts ARE declared now — for the panel's arrival on a posting only (never an
+  // application step: background.js panelArrive() refuses isApplyStageUrl); no other Workday host appears
+  assert.ok(!manifest.host_permissions.filter(h => !D191_BOARD_HOSTS.includes(h)).some(h => /workday/i.test(h)),
     "an extractor entry is not a permission — the handoff's activeTab-only access depends on this");
 });
 

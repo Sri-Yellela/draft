@@ -29,6 +29,7 @@ import { onAllow, onNotNow } from "../extension/apply-away.js";
 import { relayFor, toolbarPress } from "../extension/toolbarPress.js";
 import { collectRequiredFiles } from "../scripts/buildExtension.mjs";
 import { at } from "../test-support/sourceAnchors.js";
+import { D191_HOSTS, D191_CONTENT_SCRIPTS } from "../test-support/d191Manifest.mjs";   // ⭐ D191: the boards at install (owner 11-18)
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const manifest = JSON.parse(read("extension/manifest.json"));
@@ -94,7 +95,7 @@ async function server({ client = null, worker = true } = {}) {
 test("⭐ d112ApplyAway · `cookies` is OPTIONAL and asked ONLY in the window's Allow press — its first call, for exactly the portal family's hosts; the dock's press and Not now ask Chrome nothing", async () => {
   assert.deepEqual(manifest.optional_permissions, ["cookies"]);
   assert.ok(!manifest.permissions.includes("cookies"), "never at install");
-  assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"], "no portal host at install");
+  assert.deepEqual(manifest.host_permissions, [...D191_HOSTS], "no portal host at install");
   // the one request site in the extension that names cookies is apply-away.js onAllow
   const files = collectRequiredFiles(manifest).filter(f => f.endsWith(".js"));
   const requesters = files.filter(f => /permissions\.request\(/.test(read(`extension/${f}`))).sort();

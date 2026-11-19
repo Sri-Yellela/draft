@@ -5,6 +5,7 @@ import { LOGO_HOST } from "../shared/companyLogos.js";
 import { at } from "../test-support/sourceAnchors.js";
 import { CANONICAL_HOST, LEGACY_HOST } from "../shared/brand.js";
 import { collectRequiredFiles } from "../scripts/buildExtension.mjs";
+import { D191_BOARD_HOSTS } from "../test-support/d191Manifest.mjs";   // ⭐ D191: the boards at install (owner 11-18)
 
 // TASK E4 — the manifest, the privacy policy and the store listing must not contradict each other.
 //
@@ -106,9 +107,15 @@ test("the policy's account of WHAT the extension can read matches the manifest",
   // a "job board", which is what this filter is looking for.
   const ours = [LEGACY_HOST, CANONICAL_HOST];
   const jobHosts = manifest.host_permissions.filter(h => !ours.some(o => h.includes(o)));
-  assert.deepEqual(jobHosts, [],
-    `the policy says the extension holds no standing permission for any site, but the manifest ` +
-    `declares ${jobHosts.join(", ")} — narrow the code or widen the claim, and prefer the first`);
+  // ⭐ D191 sketch 2 (owner 11-18: "Ask at install"): the six board families are declared, for the panel's arrival on a
+  // posting — and the policy must say so, name all six, and keep its per-invocation rule for everywhere else
+  assert.deepEqual(jobHosts, [...D191_BOARD_HOSTS],
+    `the manifest declares ${jobHosts.join(", ")} — the policy describes exactly the six board families; narrow the code or widen the claim`);
+  assert.match(policyText, /On six job boards, its panel opens by itself/,
+    "the policy must say the panel opens by itself on the six boards");
+  for (const board of ["Greenhouse", "Lever", "Ashby", "Workable", "Workday", "SmartRecruiters"])
+    assert.match(policyText, new RegExp(`\\b${board}\\b`), `the policy does not name ${board}`);
+  assert.match(policyText, /Open by itself on job boards/, "the policy names the switch that turns it off");
 
   assert.match(policyText, /reads nothing until you invoke it/i,
     "the policy must state the per-invocation rule it now depends on");

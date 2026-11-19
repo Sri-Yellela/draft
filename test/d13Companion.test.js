@@ -11,6 +11,7 @@ import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import { createImportJobRouter } from "../routes/importJob.js";
 import { at } from "../test-support/sourceAnchors.js";
+import { D191_HOSTS, D191_CONTENT_SCRIPTS } from "../test-support/d191Manifest.mjs";   // ⭐ D191: the boards at install (owner 11-18)
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 
@@ -102,9 +103,9 @@ test("⛔ D13: no new storage, no new permission — the context is asked on the
   // D55 decision B (10-07) added contextMenus — the owner's decision, rationalised in
   // MANIFEST_RATIONALE.md and reconciled in PRIVACY_RECONCILIATION.md. D13 itself still adds none.
   assert.deepEqual(manifest.permissions, ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
-  assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
+  assert.deepEqual(manifest.host_permissions, [...D191_HOSTS]);
   // D99 J11 (owner, 10-14: "build the bridge"): the ONE content script is the bridge, on draft's own origin only.
-  assert.deepEqual(manifest.content_scripts, [{ matches: ["https://jobsviadraft.com/*"], js: ["boardBridge.js"], run_at: "document_start", all_frames: false }], "a content script other than D99's bridge appeared");
+  assert.deepEqual(manifest.content_scripts, D191_CONTENT_SCRIPTS, "a content script other than D99's bridge appeared");
 
   const bg = read("extension/background.js");
   const ctx = bg.slice(at(bg, "async function popupContext"), at(bg, "// ── ⭐ T17 · THE DOCK"));
@@ -128,5 +129,5 @@ test("D13 → T31: the privacy policy says the toolbar press sends the tab's add
   // D23 moved the board check from popup OPEN to the "Read this page" press; ⭐ T31 (owner 10-25, "one press reads")
   // makes the toolbar press that press — the sentence moved with it rather than growing a new disclosure.
   assert.match(read("client/src/pages/marketing/PrivacyPage.jsx"),
-    /When you press the extension's\{" "\}\s*<Strong>toolbar button<\/Strong> \(or its keyboard shortcut\) on a page, it opens draft's\s+panel there and also sends that one address to \{CANONICAL_HOST\}[\s\S]{0,260}nothing is read or sent before you press it/);
+    /When you press the extension's\{" "\}\s*<Strong>toolbar button<\/Strong> \(or its keyboard shortcut\) on a page, it opens draft's\s+panel there and also sends that one address to \{CANONICAL_HOST\}[\s\S]{0,260}Nothing is read or sent before you press it — except on a posting on the six job boards/);   // ⭐ D191 (owner 11-18): the panel opens by itself there
 });

@@ -25,6 +25,7 @@ import {
 } from "../extension/autoRead.js";
 import { installAutoReadChrome, settingsWith } from "../test-support/autoReadChrome.mjs";
 import { at } from "../test-support/sourceAnchors.js";
+import { D191_HOSTS, D191_CONTENT_SCRIPTS } from "../test-support/d191Manifest.mjs";   // ⭐ D191: the boards at install (owner 11-18)
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const manifest = JSON.parse(read("extension/manifest.json"));
@@ -91,7 +92,7 @@ test("⛔ manifest: https://*/* ONLY in optional_host_permissions — nothing ne
   assert.deepEqual(manifest.optional_host_permissions, [...MANIFEST_OPTIONAL_HOSTS]);
   assert.equal(manifest.optional_host_permissions.at(-1), ANY_SITE_PATTERN);
   assert.equal(manifest.optional_host_permissions.filter(o => o === ANY_SITE_PATTERN).length, 1);
-  assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"], "nothing at install");
+  assert.deepEqual(manifest.host_permissions, [...D191_HOSTS], "nothing at install");
   assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
   assert.deepEqual(manifest.optional_permissions, ["cookies"], "⭐⭐ D112 item 7: the one optional API permission");
   for (const k of ["host_permissions", "permissions"]) {

@@ -18,6 +18,7 @@ import { staleExtensionTokens, renderExtensionTokens, COPIED_ASSETS } from "../s
 import { collectRequiredFiles } from "../scripts/buildExtension.mjs";
 import { C_LIGHT, C_DARK } from "../client/src/styles/colorTokens.js";
 import { at } from "../test-support/sourceAnchors.js";
+import { D191_HOSTS, D191_CONTENT_SCRIPTS } from "../test-support/d191Manifest.mjs";   // ⭐ D191: the boards at install (owner 11-18)
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const manifest = JSON.parse(read("extension/manifest.json"));
@@ -27,7 +28,7 @@ const manifest = JSON.parse(read("extension/manifest.json"));
 test("⛔ D23: the permission set is exactly activeTab + scripting + storage, and the one host", () => {
   // + contextMenus by D55 decision B (10-07) — a decided addition, not D23's.
   assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
-  assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
+  assert.deepEqual(manifest.host_permissions, [...D191_HOSTS]);
   // + optional_host_permissions by D64 (owner, 10-07: automated capture) — a decided addition, not D23's:
   // granted only when the user switches automatic capture on, public job-posting hosts only, and
   // exactly D64's list (never a gated portal) — since D97 derived from extension/autoRead.js's site table.
@@ -45,8 +46,8 @@ test("⛔ D23: the permission set is exactly activeTab + scripting + storage, an
   ]);
   // + ONE content script by D99 J11 (owner, 10-14: "build the bridge") — the bridge, on draft's own origin only, top
   // frame only. It is not a permission (jobsviadraft.com is already the one host) and is pinned exactly here.
-  assert.deepEqual(manifest.content_scripts, [{ matches: ["https://jobsviadraft.com/*"], js: ["boardBridge.js"],
-    run_at: "document_start", all_frames: false }], "the content scripts are exactly D99's bridge");
+  // ⭐ D191 sketch 2 (owner 11-18): + panelArrive.js on the six board families (reads nothing; says "a page loaded")
+  assert.deepEqual(manifest.content_scripts, D191_CONTENT_SCRIPTS, "the content scripts are exactly D99's bridge and D191's arrival");
   // ⭐⭐ D112 item 7 (owner 10-30): ONE optional permission, `cookies` — "apply here while you're away", asked in that
   // press only, for one portal family's hosts (test/d112ApplyAway.test.js)
   assert.deepEqual(manifest.optional_permissions, ["cookies"]);

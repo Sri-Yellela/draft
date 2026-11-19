@@ -23,6 +23,7 @@ import {
 import { collectFormLabels } from "../extension/formReport.js";
 import { installAutoReadChrome, settingsWith } from "../test-support/autoReadChrome.mjs";
 import { at } from "../test-support/sourceAnchors.js";
+import { D191_HOSTS, D191_BOARD_HOSTS, D191_CONTENT_SCRIPTS } from "../test-support/d191Manifest.mjs";   // ⭐ D191: the boards at install (owner 11-18)
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const manifest = JSON.parse(read("extension/manifest.json"));
@@ -51,9 +52,9 @@ test("⛔ D97 · the manifest's optional hosts ARE the site table (5 + Workday's
     "https://jobs.ashbyhq.com/*", "https://apply.workable.com/*", ...WD, "https://jobs.smartrecruiters.com/*",
   ]);
   assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
-  assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
+  assert.deepEqual(manifest.host_permissions, [...D191_HOSTS]);
   // the watcher is REGISTERED at run time, never declared — the one declared script is D99 J11's bridge, on draft's origin
-  assert.deepEqual(manifest.content_scripts, [{ matches: ["https://jobsviadraft.com/*"], js: ["boardBridge.js"], run_at: "document_start", all_frames: false }], "the watcher is REGISTERED at run time, never declared");
+  assert.deepEqual(manifest.content_scripts, D191_CONTENT_SCRIPTS, "the watcher is REGISTERED at run time, never declared");
   assert.deepEqual(manifest.optional_permissions, ["cookies"], "⭐⭐ D112 item 7 — apply here while you're away; nothing for reading");
   for (const o of manifest.optional_host_permissions) assert.doesNotMatch(o, /linkedin|indeed|glassdoor|<all_urls>/i);
   // the watcher ships in the zip (scripts/buildExtension.mjs follows the registration's `js: [...]` literal)

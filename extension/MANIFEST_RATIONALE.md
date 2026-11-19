@@ -82,7 +82,20 @@ worker's identity (`PINNED_WORKER_IDENTITY` is empty: the line is never offered)
 
 ## Host permissions
 
-**There is exactly one, and it is our own server.** No job board is declared. No employer portal is
+⭐ **D191 sketch 2 (owner, 11-18: "Ask at install", then "alright go") — the six job-board families are declared
+again, at install, for ONE purpose: the panel opens by itself on a posting there** (Tsenta-style; the owner's
+screenshot was a Workday posting). The hosts are exactly autoRead.js `SITES`' origins (the same list stays in
+`optional_host_permissions` too, so the D97 consent's `chrome.permissions.request` keeps working unchanged):
+`https://boards.greenhouse.io/*`, `https://job-boards.greenhouse.io/*`, `https://jobs.lever.co/*`, `https://jobs.ashbyhq.com/*`, `https://apply.workable.com/*`, `https://*.myworkdayjobs.com/*`, `https://*.myworkdaysite.com/*`, `https://jobs.smartrecruiters.com/*`.
+What the grant is used for, and nothing else: the declared content script `panelArrive.js` (below) says "a page
+loaded"; `background.js` `panelArrive()` then injects the extractor and the panel into the TOP frame of a page that
+is a posting (`hasPostingUrlShape()`, or on Workday the page's own JobPosting), ⛔ never an application step
+(`isApplyStageUrl()`), only while the panel's "Open by itself" switch is on and the kill switch off. ⚠ This
+reverses the reasoning kept below ("no portal origin in `host_permissions`"): Workday's hosts now carry standing
+access to every tenant the person can reach. The owner chose it knowing Chrome's install warning; the code's limits
+above are what keeps it to postings, and `test/d191OnePanel.test.js` pins them.
+
+**Before D191 (kept for the history): there was exactly one, and it is our own server.** No job board is declared. No employer portal is
 declared. Nothing the extension reads a job from is declared.
 
 That is not a narrowing of the old list, it is a different mechanism. Capture used to run from a
@@ -99,6 +112,14 @@ of them, and it holds no standing access to any site at any time.
 
 | Host | Required by | What breaks without it |
 |---|---|---|
+| `https://boards.greenhouse.io/*` | ⭐ D191: `panelArrive.js` (declared content script) → `background.js` `panelArrive()` → `pageFirstRead()` + `drawPanel()` | The panel cannot open by itself on a posting here; it opens on the person's press only (activeTab), as before 1.7.0. |
+| `https://job-boards.greenhouse.io/*` | ⭐ D191: `panelArrive.js` (declared content script) → `background.js` `panelArrive()` → `pageFirstRead()` + `drawPanel()` | The panel cannot open by itself on a posting here; it opens on the person's press only (activeTab), as before 1.7.0. |
+| `https://jobs.lever.co/*` | ⭐ D191: `panelArrive.js` (declared content script) → `background.js` `panelArrive()` → `pageFirstRead()` + `drawPanel()` | The panel cannot open by itself on a posting here; it opens on the person's press only (activeTab), as before 1.7.0. |
+| `https://jobs.ashbyhq.com/*` | ⭐ D191: `panelArrive.js` (declared content script) → `background.js` `panelArrive()` → `pageFirstRead()` + `drawPanel()` | The panel cannot open by itself on a posting here; it opens on the person's press only (activeTab), as before 1.7.0. |
+| `https://apply.workable.com/*` | ⭐ D191: `panelArrive.js` (declared content script) → `background.js` `panelArrive()` → `pageFirstRead()` + `drawPanel()` | The panel cannot open by itself on a posting here; it opens on the person's press only (activeTab), as before 1.7.0. |
+| `https://*.myworkdayjobs.com/*` | ⭐ D191: `panelArrive.js` (declared content script) → `background.js` `panelArrive()` → `pageFirstRead()` + `drawPanel()` | The panel cannot open by itself on a posting here; it opens on the person's press only (activeTab), as before 1.7.0. |
+| `https://*.myworkdaysite.com/*` | ⭐ D191: `panelArrive.js` (declared content script) → `background.js` `panelArrive()` → `pageFirstRead()` + `drawPanel()` | The panel cannot open by itself on a posting here; it opens on the person's press only (activeTab), as before 1.7.0. |
+| `https://jobs.smartrecruiters.com/*` | ⭐ D191: `panelArrive.js` (declared content script) → `background.js` `panelArrive()` → `pageFirstRead()` + `drawPanel()` | The panel cannot open by itself on a posting here; it opens on the person's press only (activeTab), as before 1.7.0. |
 | `https://jobsviadraft.com/*` | `background.js:26` `/api/import/job`, `:76` `/api/auth/me`, `:195` `/api/apply/gate-review`, `:216` `/api/apply/gate-packets`; `gated-handoff.js:338,469`; D55: `saveLinkToDraft()` `/api/import/link`, the `REPORT_FORM` handler `/api/form-reports` | The service worker's fetches become subject to CORS. `corsOrigin` refuses `chrome-extension://` in production, so capture, the auth probe and the whole handoff fail. |
 
 Measured, not argued: `scripts/e6PopupGrant.mjs` opens a real popup by a real invocation on an
@@ -201,7 +222,13 @@ What is read and sent, and when:
 
 ## Content scripts
 
-**One declared, on draft's own origin only (D99 J11, owner 10-14: "build the bridge"):** `boardBridge.js`,
+⭐ **D191 sketch 2 (owner 11-18) — a SECOND declared script, `panelArrive.js`, on the six board families only**
+(the hosts above), top frame, `document_idle`. It reads nothing from the page and sends no address or text: it
+sends `PANEL_ARRIVE` once per address (and again on the boards' single-page navigation). The worker re-checks the
+sender (this extension, frame 0), the switches and the posting's shape before it injects anything. Never on
+LinkedIn, Indeed or Glassdoor (not in its matches). Pinned by `test/manifestMinimumPermission.test.js`.
+
+**Before D191: one declared, on draft's own origin only (D99 J11, owner 10-14: "build the bridge"):** `boardBridge.js`,
 `matches: ["https://jobsviadraft.com/*"]` — already the one host, so **no permission is added** — top frame only,
 `document_start`. It lets the draft website hand a job from the board to the extension: the page posts a **job id**
 (never an address), the script forwards it to the service worker, and `boardOpen.js` asks draft's server whether

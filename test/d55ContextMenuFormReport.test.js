@@ -20,6 +20,7 @@ import {
 } from "../extension/formReport.js";
 import { MERGE_PLAN, deleteAccount, exportAccount } from "../services/accountService.js";
 import { at } from "../test-support/sourceAnchors.js";
+import { D191_HOSTS, D191_CONTENT_SCRIPTS } from "../test-support/d191Manifest.mjs";   // ⭐ D191: the boards at install (owner 11-18)
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const manifest = JSON.parse(read("extension/manifest.json"));
@@ -54,8 +55,8 @@ test("⛔ D55 B: contextMenus is declared — and rationalised, reconciled, just
   assert.match(read("extension/submission/PRIVACY_RECONCILIATION.md"), /^\| `contextMenus` \|/m);
   assert.match(read("extension/submission/STORE_LISTING.md"), /\*\*`contextMenus`\*\*/);
   // It came with no host and no content script (the one content script since is D99 J11's bridge, on draft's origin).
-  assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
-  assert.deepEqual(manifest.content_scripts, [{ matches: ["https://jobsviadraft.com/*"], js: ["boardBridge.js"], run_at: "document_start", all_frames: false }]);
+  assert.deepEqual(manifest.host_permissions, [...D191_HOSTS]);
+  assert.deepEqual(manifest.content_scripts, D191_CONTENT_SCRIPTS);
 });
 
 test("D55 B: Save this page (pages) and Save link (http(s) links only) — and, since T22, Fill and the ATS report", () => {

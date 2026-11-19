@@ -1,5 +1,25 @@
 # Chrome Web Store listing — draft v1.7.0
 
+> **⭐ v1.7.0 + D191 sketch 2 (2026-11-18, 46w — the owner's "alright go" on the one-panel sketch, after choosing "Ask at
+> install").** Still v1.7.0 (unpublished — the zip is rebuilt). ⛔ **NEW INSTALL-TIME HOST PERMISSIONS: the six job-board
+> families** (`boards.greenhouse.io`, `job-boards.greenhouse.io`, `jobs.lever.co`, `jobs.ashbyhq.com`, `apply.workable.com`,
+> `*.myworkdayjobs.com`, `*.myworkdaysite.com`, `jobs.smartrecruiters.com`) — Chrome now shows an install warning ("Read and
+> change your data on …"), and the reviewer sees host permissions added since the published version. ⛔ **A NEW DECLARED
+> CONTENT SCRIPT: `panelArrive.js`** on those hosts — it reads nothing and sends nothing itself; it tells the service worker a
+> page loaded. **Why:** draft's panel opens by itself on a job posting on those boards (the job, the match, one button —
+> Tsenta-style, the owner's ask), never on an application step, and the person can switch it off in the panel ("Open by
+> itself on job boards"). **What is sent:** on a posting, the same as a press of the toolbar icon — signed in, the page's
+> address and posting text to draft to find the job and the match; signed out, the employer's name and the address for its
+> public record. 👤 **At the upload, paste into the host-permission justification:** *"draft's panel opens by itself when you
+> open a job posting on these six job boards — the job, your match and one button — so you do not have to press the icon.
+> On these hosts a small script only tells the extension that a page loaded; on a posting (never an application step) the
+> extension reads the posting's title, company and text and asks draft what it knows about the job. You can turn this off
+> in the panel. No other site is read without your press."* · Privacy practices → **Website content**: still yes (now also
+> "on a posting you open on the six job boards") · the privacy policy's Browser Extension section was rewritten in the same
+> change (`client/src/pages/marketing/PrivacyPage.jsx`, its EFFECTIVE_DATE set by the push that ships it) · the in-product
+> disclosure `notice.html` names the six boards. **B3 (next) retires Chrome's side panel** — `sidePanel` will leave the
+> manifest; this note will say so when it does.
+
 > **v1.7.0 + D191 rebuilt to the current spec (2026-11-15, 46o — the owner's "rebuild and revamp extension to current
 > specifications").** Still v1.7.0 (unpublished — the zip is rebuilt). ⛔ **ONE NEW PERMISSION: `sidePanel`** (the owner
 > chose it, 11-15) — draft's panel (your day, what draft knows about the job on this tab, a search of draft, Tiny) opens in
@@ -265,8 +285,9 @@ origin at a time.
 > Granted only when the user explicitly invokes the extension — pressing the toolbar icon, a
 > right-click menu item, or one of the keyboard shortcuts. It is used to read the job
 > posting on the page the user is viewing and to fill the application form on a page they have opened
-> and signed in to themselves. The extension holds no install-time permission for any job site or
-> employer portal, so it reaches such a page only through that per-tab, per-invocation grant.
+> and signed in to themselves. Apart from six job boards, where its panel opens by itself on a posting (see the host
+> permissions), the extension holds no install-time permission for any job site or employer portal, so it reaches such a
+> page only through that per-tab, per-invocation grant.
 
 *(Code: `background.js` `chrome.action.onClicked` → `pressToolbar()` → `toolbarPress.js` `toolbarPress()` (the press's
 own tab; the page is read through `popupContext()` only when signed in), `chrome.commands.onCommand` and
@@ -294,8 +315,9 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 > review panel on a handoff, and (d) when automatic reading is on for a site, register a small watcher
 > script on that site only (`chrome.scripting.registerContentScripts`) that notices a new application
 > step and reads no values, check a page there for JobPosting structured data, and run the switched-on
-> steps. The manifest declares no content script; the watcher is registered only for hosts the user
-> switched on and granted, and unregistered when they switch it off.
+> steps. The manifest declares two content scripts: one on our own site (the board's hand-off) and one on the six job
+> boards that only tells the extension a page loaded, so its panel can open on a posting there. The watcher is registered
+> only for hosts the user switched on and granted, and unregistered when they switch it off.
 
 *(Code: `background.js` `captureActiveTab()` / `reportCapture()` injecting `extractor.js`
 `extractJobPayload()` and `showCaptureToast()`; ⭐ T31 `background.js` `pressToolbar()` (the dock's state and
@@ -337,7 +359,7 @@ the toast on the page and writes no key; `gated-handoff.js` → `gate:{tabId}` a
 `progress.js` `progress.patch()` / `set()` / `claim()` → `jobProgress` (local), removed by `progress.clearAll()` from `auth.js` `disconnect()` and `getIdentity()` (sign-out, another account);
 ⭐ T17: `dockHost.js` `saveDockPlace()` (its one write, `writeDockPlaces()`, from the dock's `DOCK_PLACE` message — a page's top frame only) → `dockPlace` (local), the 50 most recent sites, 30 days.)*
 
-**Host permission** — one, our own backend
+**Host permissions** — our own backend, and ⭐ (D191, 11-18) the six job-board families for the panel's arrival (the paste-ready justification is in the addendum at the top)
 > `https://jobsviadraft.com/*` is our own server. The extension calls it with an access token of its
 > own, obtained once when the user connects the extension. The browser's session cookie is deliberately
 > NOT sent (`credentials: 'omit'` on every call but the one that obtains the token), so the extension
@@ -498,8 +520,9 @@ In the order the developer dashboard asks. ⛔ The owner pastes, ticks and uploa
 >
 > It never crosses a sign-in or a CAPTCHA. The user authenticates on a portal themselves; only then can
 > they invoke the extension there, and that invocation is what grants access to that one tab. The
-> extension holds no host permission at install for any employer portal; Workday's public hosts are
-> optional and granted only if the user switches Workday on for automatic reading.
+> extension holds no host permission at install for any employer portal other than the six job boards — where, since
+> 1.7.0, its panel opens by itself on a posting (never on an application step); everything else it does on a Workday
+> tenant still begins with the user's press.
 >
 > There is no toolbar popup: pressing the toolbar icon opens draft's panel on the page and, signed in, reads that
 > page in the same press (its address goes to our server); pressing it again closes the panel and reads nothing.

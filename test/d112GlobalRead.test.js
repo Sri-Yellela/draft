@@ -30,6 +30,7 @@ import { installAutoReadChrome } from "../test-support/autoReadChrome.mjs";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import { importJob } from "../services/jobs/importJob.js";
 import { at } from "../test-support/sourceAnchors.js";
+import { D191_HOSTS, D191_CONTENT_SCRIPTS } from "../test-support/d191Manifest.mjs";   // ⭐ D191: the boards at install (owner 11-18)
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const SERVER = "https://draft.test";
@@ -377,7 +378,7 @@ test("D112 · a NEW extension version (1.6.0) — no new required permission, th
   const manifest = JSON.parse(read("extension/manifest.json"));
   // the new version was 1.6.0; later versions (1.6.1, 46j) keep its permission set
   assert.ok(manifest.version.split(".").map(Number).reduce((a, n, i) => a || (n !== [1, 6, 0][i] ? (n > [1, 6, 0][i] ? 1 : -1) : 0), 0) >= 0, `manifest v${manifest.version} is below 1.6.0`);
-  assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
+  assert.deepEqual(manifest.host_permissions, [...D191_HOSTS]);
   assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
   assert.ok(manifest.optional_host_permissions.includes(ANY));
   const { collectRequiredFiles } = await import("../scripts/buildExtension.mjs");

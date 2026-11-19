@@ -43,7 +43,7 @@ import { C_LIGHT, C_DARK } from './tokens.js';
 import {
   handlers as AUTO_READ_HANDLERS, configureAutoRead, reconcileAutoRead, onPermissionsRemoved, onPermissionsAdded, forgetTab, noteFrameSite,
   AUTO_READ_KEY, normaliseSettings, SITES as AUTO_SITES, customOriginFor, originPattern, popupAutoView, siteFor as autoSiteFor, takeAutoCapture,
-  GLOBAL_ORIGINS, loadSettings as loadAutoSettings, updateSettings as updateAutoSettings,
+  GLOBAL_ORIGINS, loadSettings as loadAutoSettings, updateSettings as updateAutoSettings, hasPostingUrlShape, isApplyStageUrl,
 } from './autoRead.js';
 // ⭐ D191 sketch 2 (owner 11-18) · THE ONE PANEL — the dock's home tab: the words (pure) and the view (injected)
 import { panelModel } from './jobPanelModel.js';
@@ -1014,6 +1014,40 @@ async function drawPanel(tab, o = {}) {
   const r = await drawInDock(tab.id, renderJobPanel, [model, theme, meta]).catch(() => null);
   return { ok: !!r?.rendered, kind: r?.kind || null };
 }
+// ⭐ D191 sketch 2 · PANEL_ARRIVE — the panel opens BY ITSELF on a posting on the six board families (panelArrive.js, the
+// manifest's content script; the hosts are granted at install — the owner's pick, 11-18). ⛔ Only: the top frame of a
+// web page on a preset board · "Open by itself" on and the kill switch off · a posting (its address's shape; on Workday,
+// whose addresses say nothing, the page's own JobPosting) · never an application step (…/apply). Once per page load
+// (panelArrive.js). The first frame is the page's own words; draft's answer redraws it. Closed on this site before → the
+// /d square.
+// the board by its host name (the manifest's content script runs on https only; the test build maps an http tenant)
+const boardOf = (url) => { try { const h = new URL(url).hostname; return AUTO_SITES.find(s => s.hosts.some(re => re.test(h))) || null; } catch { return null; } };
+async function panelArrive(tab) {
+  const url = String(tab?.url || '');
+  if (!tab?.id || !/^https?:/.test(url) || !boardOf(url) || /\/apply(?:\/|$)/i.test(new URL(url).pathname)) return { ok: false, why: 'not-here' };
+  const settings = await loadAutoSettings().catch(() => null);
+  if (!settings || settings.kill || settings.panel?.autoOpen === false) return { ok: false, why: 'off' };
+  const page = await pageFirstRead(tab);
+  const posting = hasPostingUrlShape(url) || (boardOf(url)?.id === 'workday' && !!(page?.title && page?.company));
+  if (!posting) return { ok: false, why: 'not-a-posting' };
+  const known = await cachedIdentity().catch(() => null);
+  const meta = await dockMeta(tab).catch(() => null);
+  const expand = !meta?.place?.collapsed;                        // the person closed it on this site → the /d square
+  const first = await drawPanel(tab, { signedIn: !!known?.authenticated, pending: !!known?.authenticated, expand });
+  if (known?.authenticated) {
+    rememberPressContext(tab, await popupContext(tab).catch(() => null));
+    await drawPanel(tab, { signedIn: true, expand });
+  } else {
+    await drawPanel(tab, { signedIn: false, card: await publicCompanyCard(tab).catch(() => null), expand });
+  }
+  return { ok: !!first?.ok, kind: first?.kind || null };
+}
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.type !== 'PANEL_ARRIVE') return false;
+  if (sender?.frameId !== 0 || !sender?.tab?.id || sender.id !== chrome.runtime.id) { sendResponse({ ok: false }); return true; }
+  panelArrive(sender.tab).then(r => sendResponse(r), () => sendResponse({ ok: false }));
+  return true;
+});
 // PANEL_REFRESH — after the panel's own Draft / Save / Fill: read this tab again and redraw. PANEL_SETTING — a "How I
 // apply" switch. ⛔ Both: the person's click, in a web page's TOP frame, on THAT tab.
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {

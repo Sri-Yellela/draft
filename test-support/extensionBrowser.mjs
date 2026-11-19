@@ -170,7 +170,7 @@ const APP_URL_DECL = (origin) => `const RESUME_MASTER_URL = '${origin}';`;
  * the tenant(s) to host_permissions. TEST BUILD ONLY — it stands in for the user's activeTab gesture; the shipped
  * manifest is not touched. Throws if background.js stops declaring RESUME_MASTER_URL the way it does today.
  */
-export async function buildTestExtension({ apiOrigin, outDir, hosts = [`${T}/*`], backgroundAppend = '' }) {
+export async function buildTestExtension({ apiOrigin, outDir, hosts = [`${T}/*`], backgroundAppend = '', panelArrive = false }) {
   const { CANONICAL_ORIGIN: canonical } = await import('../shared/brand.js');
   const src = path.join(ROOT, 'extension');
   const dst = path.join(outDir, 'extension');
@@ -195,6 +195,9 @@ ${backgroundAppend}
   manifest.host_permissions = [...(manifest.host_permissions || []), `${apiOrigin}/*`, ...hosts];   // TEST BUILD ONLY
   // D99 J11's bridge runs on draft's own origin — in the test build, the test API's (as RESUME_MASTER_URL is above)
   for (const cs of manifest.content_scripts || []) cs.matches = cs.matches.map(m => (m === `${canonical}/*` ? `${apiOrigin}/*` : m));
+  // ⭐ D191 sketch 2: the panel's arrival script runs on the boards over https; the fixture's tenant is http — TEST BUILD ONLY,
+  // and only for a walk that asks (`options.panelArrive`): every other walk opens the fixture's posting expecting no panel
+  if (panelArrive) for (const cs of manifest.content_scripts || []) if (cs.js?.includes('panelArrive.js')) cs.matches = [...cs.matches, ...hosts.filter(h => h.startsWith('http://'))];
   fs.writeFileSync(path.join(dst, 'manifest.json'), JSON.stringify(manifest, null, 2));
   return dst;
 }
@@ -275,7 +278,7 @@ export async function launchExtensionBrowser(opts = {}) {
     cleanups.push(() => ats.stop());
     const api = await startApi(opts.api || {});
     cleanups.push(() => api.stop());
-    const ext = await buildTestExtension({ apiOrigin: api.origin, outDir, hosts: opts.hosts || [`${T}/*`], backgroundAppend: opts.backgroundAppend || '' });
+    const ext = await buildTestExtension({ apiOrigin: api.origin, outDir, hosts: opts.hosts || [`${T}/*`], backgroundAppend: opts.backgroundAppend || '', panelArrive: opts.panelArrive === true });
     const profileDir = path.join(outDir, 'profile');
     fs.rmSync(profileDir, { recursive: true, force: true });
     const { default: puppeteer } = await import('puppeteer-core');

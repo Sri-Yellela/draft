@@ -80,7 +80,15 @@ export function renderJobPanel(model, theme, dockMeta) {
   const img = root.querySelector('.lg img');
   if (img) img.addEventListener('error', () => { img.parentElement.textContent = m.job?.letter || ''; }, { once: true });
 
-  if (root.__draftWired) return { rendered: true, kind: m.kind || null };
+  // ⭐ never over the employer's Apply control: its box, found by its words; the dock steps to the other side (dock.avoid)
+  let stepped = false;
+  try {
+    const words = /^\s*(?:apply(?:\s+(?:now|for\s+this\s+(?:job|position|role)|to\s+this\s+job))?|easy\s+apply)\s*$/i;
+    const ctl = [...document.querySelectorAll('a, button, [role="button"], input[type="submit"], input[type="button"]')].slice(0, 600)
+      .find(e => !e.closest('#rm-draft-dock') && words.test(e.value || e.textContent || '') && e.getClientRects().length > 0);
+    if (ctl && typeof dock.avoid === 'function') stepped = dock.avoid(ctl.getBoundingClientRect());
+  } catch { /* a page we cannot measure: the dock stays where it is */ }
+  if (root.__draftWired) return { rendered: true, kind: m.kind || null, stepped };
   root.__draftWired = true;                                        // a redraw keeps the one listener (reuse: 'job')
   const send = (msg) => new Promise((resolve) => { try { chrome.runtime.sendMessage(msg, (r) => { void chrome.runtime.lastError; resolve(r || null); }); } catch { resolve(null); } });
   root.addEventListener('click', async (ev) => {
@@ -105,5 +113,5 @@ export function renderJobPanel(model, theme, dockMeta) {
     // the worker reads this tab again and redraws the panel with what changed (Drafting…, Ready, Sent)
     if (['draft', 'add-draft', 'capture', 'fill'].includes(b.dataset.act)) void send({ type: 'PANEL_REFRESH', trigger: 'click' });
   });
-  return { rendered: true, kind: m.kind || null };
+  return { rendered: true, kind: m.kind || null, stepped };
 }

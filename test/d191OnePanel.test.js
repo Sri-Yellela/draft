@@ -4,6 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { at } from "../test-support/sourceAnchors.js";
 import { panelModel, sponsorWords, jobOf } from "../extension/jobPanelModel.js";
 import { relayFor, toolbarPress } from "../extension/toolbarPress.js";
 import { normaliseSettings, defaultSettings } from "../extension/autoRead.js";
@@ -120,4 +121,35 @@ test("D191 · the dock's home is the panel: `draft` is the first tab and the def
   assert.equal((view.match(/border-radius:\s*50%/g) || []).length, 1, "only the 7 px status dot is round (a perfect circle)");
   assert.match(view, /if \(!ev\.isTrusted\) return;/, "only the person's own click acts");
   assert.doesNotMatch(view, /requestSubmit|\.submit\(/, "D36: the panel never submits a form");
+});
+
+// ── B2 · the panel opens BY ITSELF on the six board families (owner 11-18: "Ask at install") ──────────────────────────
+test("D191 B2 · panelArrive.js reads NOTHING from the page and sends only 'a page loaded' — top frame, once per address", () => {
+  const src = readFileSync(new URL("../extension/panelArrive.js", import.meta.url), "utf8");
+  const code = src.replace(/^\s*\/\/.*$/gm, "");
+  assert.doesNotMatch(code, /querySelector|textContent|innerText|innerHTML|document\.title|getElementsBy|cookie|localStorage|fetch\(/, "it reads nothing");
+  assert.match(code, /chrome\.runtime\.sendMessage\(\{ type: 'PANEL_ARRIVE' \}/, "the one message carries no address and no text");
+  assert.match(code, /if \(window\.top !== window \|\| globalThis\.__draftPanelArrive\) return;/, "the top frame only, once");
+  assert.match(code, /if \(here === last\) return;/, "once per address");
+});
+
+test("D191 B2 · the worker draws by itself only on a posting, never an apply step, only with Open by itself on and the kill switch off", () => {
+  const bg = readFileSync(new URL("../extension/background.js", import.meta.url), "utf8");
+  const fn = bg.slice(at(bg, "async function panelArrive(tab) {"), at(bg, "if (msg?.type !== 'PANEL_ARRIVE') return false;"));
+  assert.ok(fn.length > 200, "panelArrive() is there");
+  assert.ok(fn.includes(String.raw`!boardOf(url) || /\/apply(?:\/|$)/i.test(new URL(url).pathname)`), "a preset board, never …/apply");
+  assert.match(fn, /settings\.kill \|\| settings\.panel\?\.autoOpen === false\) return \{ ok: false, why: 'off' \}/, "the switch and the kill switch");
+  assert.match(fn, /hasPostingUrlShape\(url\) \|\| \(boardOf\(url\)\?\.id === 'workday' && !!\(page\?\.title && page\?\.company\)\)/, "a posting, by shape or Workday's JobPosting");
+  assert.ok(at(fn, "pending: !!known?.authenticated") < at(fn, "popupContext(tab)"), "d191CollapsedNoApiWait: the page's own frame before draft is asked");
+  assert.match(fn, /const expand = !meta\?\.place\?\.collapsed;/, "closed on this site → the /d square, not the panel");
+  const handler = bg.slice(at(bg, "if (msg?.type !== 'PANEL_ARRIVE') return false;"));
+  assert.match(handler.slice(0, 300), /sender\?\.frameId !== 0 \|\| !sender\?\.tab\?\.id \|\| sender\.id !== chrome\.runtime\.id/, "this extension's top-frame script only");
+});
+
+test("D191 B2 · the manifest: the six board families at install, the arrival script on exactly those, never LinkedIn / Indeed / Glassdoor", async () => {
+  const m = JSON.parse(readFileSync(new URL("../extension/manifest.json", import.meta.url), "utf8"));
+  const { D191_HOSTS, D191_CONTENT_SCRIPTS } = await import("../test-support/d191Manifest.mjs");
+  assert.deepEqual(m.host_permissions, [...D191_HOSTS]);
+  assert.deepEqual(m.content_scripts, D191_CONTENT_SCRIPTS);
+  assert.doesNotMatch(JSON.stringify(m.host_permissions), /linkedin|indeed|glassdoor|<all_urls>|https:\/\/\*\/\*"/i);
 });

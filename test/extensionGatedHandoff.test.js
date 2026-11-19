@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 import { matchAnswersToFields } from "../extension/gated-handoff.js";
+import { D191_HOSTS, D191_BOARD_HOSTS, D191_CONTENT_SCRIPTS } from "../test-support/d191Manifest.mjs";   // ⭐ D191: the boards at install (owner 11-18)
 
 const manifest = JSON.parse(fs.readFileSync("extension/manifest.json", "utf8"));
 
@@ -21,7 +22,9 @@ test("the extension requests no host permission for any portal origin", () => {
   // The whole security property: access to a gated portal is granted per tab, per gesture, by the
   // user. A host permission for one would replace that with a standing grant, and would be a Web
   // Store review problem besides.
-  for (const h of manifest.host_permissions || []) {
+  // ⭐ D191 sketch 2 (owner 11-18): the six board families are declared for the panel's arrival — exactly those, no other portal
+  assert.deepEqual((manifest.host_permissions || []).filter(h => !h.includes("jobsviadraft.com")), [...D191_BOARD_HOSTS]);
+  for (const h of (manifest.host_permissions || []).filter(h => !D191_BOARD_HOSTS.includes(h))) {
     assert.ok(!h.includes("<all_urls>"), "<all_urls> must never appear");
     assert.ok(!/myworkdayjobs|amazon\.jobs|metacareers|greenhouse\.io\/\*$/.test(h) || h.startsWith("https://*.greenhouse.io/"),
       `${h} looks like a portal host permission`);

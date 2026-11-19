@@ -17,6 +17,7 @@ import { recordSubmission, USER_METHODS, SERVER_METHODS, SUBMIT_METHODS } from "
 import { extensionSent } from "../services/submitFamilies.js";
 import { EXT_THEMES } from "../extension/tokens.js";
 import { at } from "../test-support/sourceAnchors.js";
+import { D191_HOSTS, D191_CONTENT_SCRIPTS } from "../test-support/d191Manifest.mjs";   // ⭐ D191: the boards at install (owner 11-18)
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const read = (p) => fs.readFileSync(path.join(ROOT, p), "utf8").replace(/\r\n/g, "\n");
@@ -142,7 +143,7 @@ test("d191StylingFromDraftTokens / d191ThemeFromAppearanceSetting — every site
 test("d191NoAllUrlsPermission — activeTab, storage, scripting, contextMenus; draft's own origin; every ATS host optional", () => {
   const m = JSON.parse(read("extension/manifest.json"));
   assert.deepEqual([...m.permissions].sort(), ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
-  assert.deepEqual(m.host_permissions, ["https://jobsviadraft.com/*"]);
+  assert.deepEqual(m.host_permissions, [...D191_HOSTS]);
   assert.ok(!JSON.stringify(m.permissions).includes("<all_urls>") && !m.host_permissions.includes("<all_urls>"));
   assert.ok(!m.permissions.includes("tabs") && !m.permissions.includes("history") && !m.permissions.includes("webRequest"), "nothing that watches browsing");
 });

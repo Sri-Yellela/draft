@@ -983,6 +983,22 @@
         else frame.host.style.removeProperty('--draft-foot-inset');
       },
       place: () => placeNow(),
+      /**
+       * ⭐ D191 sketch 2 · never over the employer's Apply control: `r` is its box (getBoundingClientRect). Where the dock
+       * covers it, it steps to the other side of the page — only while the person has not placed it on this site, and the
+       * step is not remembered (it is not their choice). → true when it moved.
+       */
+      avoid(r) {
+        if (!r || frame.place.collapsed || saved.rect || frame.place.edge) return false;
+        const vp = viewport(), cur = frame.rectNow();
+        const hits = (a) => !(a.x + a.w <= r.left || a.x >= r.right || a.y + a.h <= r.top || a.y >= r.bottom);
+        if (!cur || !hits(cur)) return false;
+        const other = clampRect({ ...cur, x: cur.x + cur.w / 2 > vp.w / 2 ? LIMITS.margin * 2 : vp.w - LIMITS.margin * 2 - cur.w }, vp);
+        if (hits(other)) return false;                               // nowhere better: stay
+        frame.place = { ...frame.place, rect: other };
+        frame.draw();
+        return true;
+      },
     };
     // a tab that was popped out when this site last showed the dock opens popped out again, once its view arrives
     DOCK.restorePops = (tab) => { if (saved.pops[tab] && (meta.place?.popped || []).includes(tab) && views.has(tab) && !pops.has(tab)) popOut(tab); };

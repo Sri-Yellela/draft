@@ -19,7 +19,15 @@
     "cookies"
   ],
   "host_permissions": [
-    "https://jobsviadraft.com/*"
+    "https://jobsviadraft.com/*",
+    "https://boards.greenhouse.io/*",
+    "https://job-boards.greenhouse.io/*",
+    "https://jobs.lever.co/*",
+    "https://jobs.ashbyhq.com/*",
+    "https://apply.workable.com/*",
+    "https://*.myworkdayjobs.com/*",
+    "https://*.myworkdaysite.com/*",
+    "https://jobs.smartrecruiters.com/*"
   ],
   "optional_host_permissions": [
     "https://boards.greenhouse.io/*",
@@ -45,6 +53,23 @@
         "boardBridge.js"
       ],
       "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://boards.greenhouse.io/*",
+        "https://job-boards.greenhouse.io/*",
+        "https://jobs.lever.co/*",
+        "https://jobs.ashbyhq.com/*",
+        "https://apply.workable.com/*",
+        "https://*.myworkdayjobs.com/*",
+        "https://*.myworkdaysite.com/*",
+        "https://jobs.smartrecruiters.com/*"
+      ],
+      "js": [
+        "panelArrive.js"
+      ],
+      "run_at": "document_idle",
       "all_frames": false
     }
   ],

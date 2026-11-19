@@ -21,6 +21,7 @@ import {
 const AUTO_CAPTURE_ORIGINS = OPTIONAL_ORIGINS;
 import { installAutoReadChrome, settingsWith } from "../test-support/autoReadChrome.mjs";
 import { at } from "../test-support/sourceAnchors.js";
+import { D191_HOSTS, D191_CONTENT_SCRIPTS } from "../test-support/d191Manifest.mjs";   // ⭐ D191: the boards at install (owner 11-18)
 
 const read = (f) => fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
 const manifest = JSON.parse(read("extension/manifest.json"));
@@ -122,7 +123,7 @@ test("⛔ D64 · capture never fills, prepares or submits — capture on alone r
 test("⛔ D64 → D97 · the permission request names ONLY the table's origins — optional, never LinkedIn / Indeed / Glassdoor", () => {
   assert.deepEqual(manifest.optional_host_permissions, [...MANIFEST_OPTIONAL_HOSTS], "the manifest and the code are one list");
   assert.deepEqual([...MANIFEST_OPTIONAL_HOSTS], [...AUTO_CAPTURE_ORIGINS, ANY_SITE_PATTERN], "the presets, then T12's pattern — last");
-  assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"], "nothing new at install time");
+  assert.deepEqual(manifest.host_permissions, [...D191_HOSTS], "nothing new at install time");
   for (const o of AUTO_CAPTURE_ORIGINS) {
     // D97, owner 10-13: Workday's two public hosts are the ONLY preset wildcard, one level under the vendor's own domain.
     assert.match(o, /^https:\/\/(?:[a-z0-9.-]+|\*\.myworkday(?:jobs|site)\.com)\/\*$/, `${o}: one host (or Workday's tenant wildcard), https only`);

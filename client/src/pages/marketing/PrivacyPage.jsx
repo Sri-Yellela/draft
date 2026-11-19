@@ -229,29 +229,43 @@ export function PrivacyPage() {
           </P>
 
           <H3>Browser Extension</H3>
+          {/* ⭐ D191 sketch 2 (owner 11-18): the panel opens by itself on a posting on six job boards — install-time
+              access to those boards' hosts (extension/manifest.json host_permissions), the content script
+              extension/panelArrive.js (reads nothing; says "a page loaded"), background.js panelArrive(). ⚠ MATERIAL:
+              the push that ships extension 1.7.0's store listing sets EFFECTIVE_DATE (the convention above). */}
           <P>
-            <Strong>The extension reads nothing until you invoke it</Strong> — unless you switch on
-            automatic reading yourself (below): for a list of job sites, for one careers site at a time, or,
-            if you allow it once, for job postings on any site. Out of the box it holds no permission for
-            any job site, runs no code on any page automatically, and cannot see what you are
-            browsing. When you press its keyboard shortcut or open it from the toolbar, and
-            only then, it reads the one tab you are looking at — and its access to that tab ends
-            when you navigate away from that site.
+            <Strong>On six job boards, its panel opens by itself.</Strong> When you open a job posting on
+            Greenhouse, Lever, Ashby, Workable, Workday or SmartRecruiters, the extension shows its panel
+            on that page without a click, so it holds permission for those six boards from the moment you
+            install it. On those boards it runs one small script that tells the extension a page has
+            loaded; it reads nothing and sends nothing itself. When the page is a posting (never an
+            application step), the extension reads the posting's title, company and location from the
+            page, and then asks {CANONICAL_HOST} what draft knows about it, exactly as a press of the toolbar
+            button does (below). You can switch this off in the panel (<Strong>Open by itself on job
+            boards</Strong>), and the extension then waits for your press on those boards too.
           </P>
           <P>
-            This is a change from earlier versions, and it is worth being exact about what changed
-            in each direction. Previously the extension held standing permission for six named job
-            boards and ran a script on their pages automatically whenever one was open; it could not
-            read anything else. Now it holds no standing permission for any site, reads nothing
-            automatically anywhere — and the page it reads when you do invoke it can be any job
-            posting, including employers' own careers pages. It trades constant access to six sites
-            for momentary access to the one you point it at.
+            <Strong>Everywhere else, the extension reads nothing until you invoke it</Strong> — unless you
+            switch on automatic reading yourself (below): for a list of job sites, for one careers site at a
+            time, or, if you allow it once, for job postings on any site. Apart from the six boards it holds
+            no permission for any site, runs no code on any other page automatically, and cannot see what
+            you are browsing. When you press its keyboard shortcut or open it from the toolbar, it reads the
+            one tab you are looking at — and its access to that tab ends when you navigate away from
+            that site.
+          </P>
+          <P>
+            This is a change from earlier versions, and it is worth being exact about what changed. Version
+            1.6 held no standing permission for any site and read nothing automatically anywhere. Version
+            1.7 holds standing permission for the six job boards above, for one purpose: so its panel can
+            open on a posting there. It still reads only the posting you open, never a list of jobs, and
+            it reads nothing on any other site until you invoke it.
           </P>
           <UL>
             <LI>
               It reads the <Strong>visible text</Strong> of the page you invoke it on, to extract
               title, company, location, and description. It does this when you capture the job, by
-              clicking the toolbar button or pressing the keyboard shortcut — never before.
+              clicking the toolbar button or pressing the keyboard shortcut — and, on a posting on the six job
+              boards above, when its panel opens there by itself.
             </LI>
             <LI>
               It reads the <Strong>address (URL) of the tab you invoke it on</Strong>, to
@@ -259,8 +273,9 @@ export function PrivacyPage() {
               <Strong>toolbar button</Strong> (or its keyboard shortcut) on a page, it opens draft's
               panel there and also sends that one address to {CANONICAL_HOST}, to show you whether the job
               is already on your board and whether an application you drafted is waiting on that
-              site; nothing is read or sent before you press it, and the answer is shown on that page
-              and not kept by the extension. When that address
+              site. Nothing is read or sent before you press it — except on a posting on the six job boards
+              above, where the panel opening by itself sends the same address (and, when needed, the same
+              text) as a press would. The answer is shown on that page and not kept by the extension. When that address
               alone does not identify the job, the same press also sends the posting's text it read
               (the title, company and description a capture would send), so draft can tell which job on
               your board it is and score your résumé against it; that text is used for the answer and
@@ -321,8 +336,8 @@ export function PrivacyPage() {
             <LI>
               It does <Strong>not</Strong> read your messages, connections, or profile feed on any
               site. It reads a page only when you invoke it on that page, and only that one tab —
-              or, once you have switched automatic reading on, a job posting or application page
-              you open yourself, as described below.
+              or a job posting you open on one of the six job boards above, or, once you have switched
+              automatic reading on, a job posting or application page you open yourself, as described below.
             </LI>
             <LI>
               It does <Strong>not</Strong> collect lists of jobs. It reads the one posting you are
@@ -523,9 +538,11 @@ export function PrivacyPage() {
           </P>
           <UL>
             <LI>
-              The extension only reaches that page because <Strong>you invoked it there</Strong>.
-              It holds no standing permission for any employer or job-portal site; pressing the
-              shortcut is what grants it access, to that one tab, at that moment.
+              The extension fills that page only because <Strong>you invoked it there</Strong>.
+              Apart from the six job boards above, where it may open its panel on a posting, it holds no
+              standing permission for any employer or job-portal site, and on an application step it does
+              nothing by itself anywhere; pressing the shortcut is what makes it act, on that one tab, at
+              that moment.
             </LI>
             <LI>
               It fetches from your {BRAND} account the details you have already saved there

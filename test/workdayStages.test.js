@@ -18,6 +18,7 @@ import { resolvePageJob, userHasJob, copySheetRows } from "../services/manualHan
 import { pageMatchesPacket } from "../services/applyOrigins.js";
 import { renderCopySheetPanel } from "../extension/copy-sheet-panel.js";
 import { C_LIGHT, C_DARK } from "../extension/tokens.js";
+import { D191_HOSTS, D191_BOARD_HOSTS, D191_CONTENT_SCRIPTS } from "../test-support/d191Manifest.mjs";   // ⭐ D191: the boards at install (owner 11-18)
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const T = "https://zoom.wd5.myworkdayjobs.com";
@@ -275,7 +276,7 @@ test("⛔ the binding: set by a capture, used first, valid only on its origin, c
 test("⛔ no new permission — no tabs, no webNavigation; the manifest's list is pinned", () => {
   const m = JSON.parse(read("extension/manifest.json"));
   assert.deepEqual([...m.permissions].sort(), ["activeTab", "contextMenus", "scripting", "sidePanel", "storage"]);
-  assert.deepEqual(m.host_permissions, ["https://jobsviadraft.com/*"]);
+  assert.deepEqual(m.host_permissions, [...D191_HOSTS]);
   assert.ok(!m.permissions.includes("tabs") && !m.permissions.includes("webNavigation"));
 });
 
