@@ -290,13 +290,14 @@ test("AG2: the ATS chips claim through the reversible route, not the one-way add
   assert.doesNotMatch(routes, /profile_base_resumes[\s\S]{0,120}claims/);
 
   assert.match(suggestionsLib, /body: JSON\.stringify\(\{ kind, label, claimed \}\)/);
-  assert.match(panel, /await setProfileClaim\(clickableProfileId, kind, label, claimed\)/);
+  // ⭐ 46x (owner 11-19: "ditch the whole prove it and claim it gimmick … from the jd panel"): the posting's panel claims
+  // nothing now — it draws the ATS card (AtsCard). The route and the shared component's claim branch stay below as built.
+  assert.doesNotMatch(panel, /setProfileClaim|toggleClaim/);
   // A52: ATSPanel hands its toggle to the one report implementation, which calls it per kind.
   // T9: the one component (shared/atsReportElement.js) DISPATCHES the claim (draft-ats-claim { kind, term, claimed });
   // the web wrapper hands it to ATSPanel's toggle, per kind — the same reversible call.
   const wrapper = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
   const report = fs.readFileSync("shared/atsReportElement.js", "utf8") + fs.readFileSync("shared/atsReportModel.js", "utf8");
-  assert.match(panel, /onToggle: toggleClaim,/);
   assert.match(wrapper, /latest\.current\.claims\?\.onToggle\?\.\(kind, term, claimed\)/);
   assert.match(report, /\{ detail: \{ kind: claimKind, term: k, claimed: !claimed \}, bubbles: true, composed: true \}/);
   // D31 (the weave dropped): skills and competencies are claimed in "You could claim" — the same reversible call.

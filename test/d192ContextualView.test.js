@@ -1,66 +1,63 @@
-// ⭐ D192 (4d) · the owner's pick (11-19): option A — the two numbers, the four parts, What fits, What to do — and "the font
-// color on the ats number should do it no need for the words". shared/contextualView.js words it (pure);
-// client/src/components/ContextualFit.jsx draws it beside the ATS report.
+// ⭐ THE ATS CARD — the owner's pick, 11-19: option C (https://claude.ai/artifact/Fx8EDAEByAkLuBcADt7v2W): the number, the four
+// parts as one bar and one plain line each, the single biggest gain; and "ditch the whole prove it and claim it gimmick and
+// definitely ditch it from the jd panel". shared/contextualView.js atsCardView words it (pure); client/src/components/AtsCard.jsx
+// draws it; ATSPanel draws only the card. Numbers are painted by band (AtsInk), never a band word.
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { scoreContextual } from "@draft/ats-scorer";
-import { contextualView } from "../shared/contextualView.js";
+import { atsCardView } from "../shared/contextualView.js";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8").replace(/\r\n/g, "\n");
 
-const POSTING = "Senior Backend Engineer\nWhat you'll do\n- Build payment infrastructure for merchants\n- Lead a team of 5 engineers\n- Own on-call for the ledger service\nfintech PCI";
+const POSTING = "Senior Backend Engineer\nWhat you'll do\n- Build payment infrastructure for merchants\n- Lead a team of 5 engineers through design reviews\n- Own on-call for the ledger service\nfintech";
 const RESUME = "Experience\n- Built payment infrastructure for merchants in fintech on Kafka\n- Ran on-call for the ledger service\nSkills: Airflow, Kafka, Go";
 const SB = { category: "software-engineering", subcategory: "swe.backend", level: "senior" };
-const block = scoreContextual({ skillMatch: 72, skillsBoth: ["kafka", "go", "postgresql"],
-  posting: { ...SB, text: POSTING }, resume: { ...SB, text: RESUME },
-  company: { industry: "healthcare", techStack: [{ name: "Apache Kafka", postingShare: 0.64 }, { name: "Prefect", postingShare: 0.27 }, { name: "Terraform", postingShare: 0.41 }] } });
+const REPORT = { score: 64, tier1_matched: ["Go", "Kafka", "PostgreSQL", "AWS", "Docker"], tier1_missing: ["Terraform", "Kubernetes", "gRPC"] };
+const block = scoreContextual({ skillMatch: 64, skillsBoth: REPORT.tier1_matched, posting: { ...SB, text: POSTING }, resume: { ...SB, text: RESUME },
+  company: { industry: "healthcare", techStack: [{ name: "Apache Kafka", postingShare: 0.64 }, { name: "Go", postingShare: 0.55 }, { name: "Terraform", postingShare: 0.41 }, { name: "Prefect", postingShare: 0.27 }] } });
 
-test("option A's content: the two numbers, the four parts with why, What fits, What to do", () => {
-  const v = contextualView(block);
-  assert.equal(v.skill, 72);
-  assert.equal(v.score, block.score);
-  assert.deepEqual(v.parts.map(p => p.name), ["Skill match", "Role fit", "What you have done", "Their stack"]);
-  assert.equal(v.parts.find(p => p.id === "role_fit").why, "the same role");
-  assert.match(v.parts.find(p => p.id === "responsibility_overlap").why, /^2 of the 3 things the role does$/);
-  assert.match(v.parts.find(p => p.id === "tech_stack").why, /1 you share · 1 close · 1 you don't show/);
-  const fit = Object.fromEntries(v.fits.map(f => [f.label, f.value]));
-  assert.equal(fit["Skills you both have"], "kafka · go · postgresql");
-  assert.equal(fit["Same purpose"], "you: Apache Airflow → they: Prefect");
-  assert.equal(fit["Their stack, yours too"], "Apache Kafka");
-  assert.equal(fit["Both in"], "fintech");
-  assert.equal(fit["Role and level"], "backend · senior");
-  assert.match(fit["You've done"], /“Build payment infrastructure for merchants”/);
-  assert.deepEqual(v.todo.map(t => t.kind), ["learn", "evidence"]);
-  assert.equal(v.todo[0].text, "They use Terraform (in 41% of their postings)");
-  assert.match(v.todo[1].text, /^“Lead a team of 5 engineers” — your résumé doesn't show it$/);
-  assert.match(v.notes[0], /^They're in healthcare; your experience is fintech\. Not counted against you\.$/);
+test("option C's content: the number, Skills · Role · The work · Their stack — one line each — and the biggest gain", () => {
+  const v = atsCardView({ report: REPORT, contextual: block });
+  assert.equal(v.declined, false);
+  assert.equal(v.score, block.score, "the contextual number");
+  assert.deepEqual(v.parts.map(p => p.name), ["Skills", "Role", "The work", "Their stack"]);
+  const line = Object.fromEntries(v.parts.map(p => [p.name, p.line]));
+  assert.equal(line.Skills, "Go, Kafka, PostgreSQL, AWS, Docker — missing Terraform, Kubernetes, gRPC");
+  assert.equal(line.Role, "Backend, senior — the same as the job");
+  assert.match(line["The work"], /^You have done 2 of 3 — not “Lead a team of 5 engineers through design…”$/);
+  assert.equal(line["Their stack"], "Kafka and Go yes · Airflow ≈ their Prefect · Terraform no", "the vendor prefix dropped where the line is short");
+  assert.equal(atsCardView({ report: { score: 50, tier1_matched: ["aws", "postgresql", "docker"], tier1_missing: ["grpc"] } }).parts[0].line, "AWS, PostgreSQL, Docker — missing gRPC", "names as people write them");
+  assert.deepEqual(v.gain, { tech: "Terraform", text: "Terraform — in 41% of their jobs" });
 });
 
-test("no band WORD anywhere — the number's colour says it (owner 11-19); a part without data is left out", () => {
-  const v = contextualView(block);
-  assert.doesNotMatch(JSON.stringify(v), /\b(Strong|Moderate|Weak)\b/);
-  const thin = contextualView(scoreContextual({ skillMatch: 50, posting: { text: "Join us." }, resume: { text: "Python" } }));
-  assert.deepEqual(thin.parts.map(p => p.id), ["skill_match"]);
-  assert.deepEqual([thin.fits, thin.todo], [[], []]);
-  assert.equal(contextualView(null), null);
-  assert.equal(contextualView(scoreContextual({ skillMatch: null })).score, null, "a declined skill match draws nothing (the component returns null)");
+test("no band word, no claim, no term lists beyond one line; a declined score is said in words; no block → the skill match alone", () => {
+  const v = atsCardView({ report: REPORT, contextual: block });
+  assert.doesNotMatch(JSON.stringify(v), /\b(Strong|Moderate|Weak)\b|true of me|claim/i);
+  const alone = atsCardView({ report: REPORT, contextual: null });
+  assert.deepEqual([alone.score, alone.parts.map(p => p.id)], [64, ["skill_match"]]);
+  assert.deepEqual(alone.gain, { tech: "Terraform", text: "Terraform — the posting asks for it" });
+  const declined = atsCardView({ report: { score: null, decline_reasons: ["The posting names too few skills."] } });
+  assert.deepEqual(declined, { declined: true, reason: "The posting names too few skills." });
+  assert.equal(atsCardView({}), null);
+  const other = atsCardView({ report: REPORT, contextual: scoreContextual({ skillMatch: 64, posting: { ...SB, text: "x" }, resume: { category: "data", subcategory: "data.analyst", level: "mid", text: "x" } }) });
+  assert.equal(other.parts.find(p => p.id === "role_fit").line, "The job is Backend, senior; your résumé reads Analyst, mid level");
 });
 
-test("the component: painted by band from the tokens, beside the report (the posting's match panel — ATSPanel's one mount), no dead Atlas link", () => {
-  const c = read("client/src/components/ContextualFit.jsx");
-  assert.ok(c.includes("const ink = atsInk;"), "the number's colour is its band's — the one ink (AtsInk.jsx, styles/bandStyle.js tokens)");
-  assert.match(c, /color: n == null \? "var\(--color-text-faint\)" : ink\(n\)/);
-  assert.doesNotMatch(c, /atsBandLabel|ATS_BAND_LABELS|"Strong|Moderate"|Weak match/, "no band word");
-  assert.match(c, /api\(`\/api\/jobs\/\$\{encodeURIComponent\(jobId\)\}\/contextual`\)/);
-  assert.match(c, /slugs\[t\.tech\] \? atlasHref\(slugs\[t\.tech\]\) : null/, "Learn it only when a published Atlas page exists");
-  assert.match(c, /borderRadius: 2/, "D60: the bar's corner is 2 px on a 6 px bar — no capsule");
-  assert.doesNotMatch(c, /#[0-9a-fA-F]{3,6}\b|rgba?\(/, "no colour literal");
-  const panel = read("client/src/components/ATSPanel.jsx");
-  assert.ok(panel.includes("{jobId ? <ContextualFit jobId={jobId} /> : null}"), "in the posting's match panel (ATSPanel's one mount)");
-  assert.match(read("client/src/modules.manifest.js"), /"components\/ContextualFit\.jsx":/);
+test("the panel draws ONE card: no claims, no quick check, no old report, no In context section", () => {
+  const panel = read("client/src/components/ATSPanel.jsx").replace(/^\s*\/\/.*$/gm, "");
+  assert.match(panel, /return <AtsCard report=\{shown\} jobId=\{jobId\} history=\{history\} \/>;/);
+  assert.doesNotMatch(panel, /SkillCheck|toggleClaim|setProfileClaim|buildProfileClaimLookup|claims|<AtsReport|ContextualFit/);
+  assert.equal(fs.existsSync(path.join(ROOT, "client/src/components/ContextualFit.jsx")), false, "the In context section is folded into the card");
+  const card = read("client/src/components/AtsCard.jsx");
+  assert.match(card, /color: atsInk\(view\.score\)/, "the number painted by its band");
+  assert.match(card, /background: atsInk\(p\.score\)/);
+  assert.match(card, /view\.gain\.tech && slugs\[view\.gain\.tech\] && \(/, "Learn only to a published Atlas page");
+  assert.match(card, /borderRadius: 2/, "D60: a 6 px bar with a 2 px corner");
+  assert.doesNotMatch(card, /#[0-9a-fA-F]{3,6}\b|rgba?\(|Strong|Moderate|Weak/, "tokens only, no band word");
+  assert.match(read("client/src/modules.manifest.js"), /"components\/AtsCard\.jsx":/);
 });
 
 test("Home's held rows (owner 11-19: \"switch the held panel rows to colour too\"): the résumé's number in its band's colour, no band word", () => {
@@ -71,7 +68,6 @@ test("Home's held rows (owner 11-19: \"switch the held panel rows to colour too\
   assert.ok(p.includes(" · <AtsInk score={p.baseAts?.score ?? null} band={p.baseAts?.band ?? null} /> (base resume)"));
   const ink = read("client/src/components/AtsInk.jsx");
   assert.match(ink, /export const atsInk = \(score\) => bandStyle\(atsBandFor\(Number\.isFinite\(score\) \? score : null\)\)\.fg;/);
-  assert.match(ink, /style=\{\{ color: atsInk\(score\), fontWeight: 700 \}\}>\{Math\.round\(score\)\}\{suffix\}<\/span>/, "the number, painted");
   assert.match(ink, /aria-label=\{atsBandLabel\(band\)\.label\}/, "a legacy row with only a band: a dot, the word only as its accessible name");
   assert.doesNotMatch(ink.replace(/^\s*\/\/.*$/gm, ""), /#[0-9a-fA-F]{3,6}\b|rgba?\(/, "no colour literal");
 });

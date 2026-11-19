@@ -97,7 +97,9 @@ test("the four surfaces — board side panel, deck panel, phone sheet, public to
   assert.match(deck, /<AtsBandCard report=\{fromDeckReport\(card\.report\)\}/, "the deck draws the frozen report through the one adapter");
   assert.doesNotMatch(deck, /<ATSPanel\b|DeckAtsReport|AtsSheet/, "the deck's own full report is back");
   // … which is the data container, and draws nothing itself.
-  assert.match(code("components/ATSPanel.jsx"), /<AtsReport report=\{activeReport\}/);
+  // ⭐ 46x (owner 11-19, option C): the posting's match is the ATS card now (AtsCard: the number, the four parts, the biggest
+  // gain — no claims); the one report component stays the deck's, the public tool's, the signup hook's and the extension's
+  assert.match(code("components/ATSPanel.jsx"), /return <AtsCard report=\{shown\} jobId=\{jobId\} history=\{history\} \/>;/);
   assert.match(code("pages/tools/ATSToolPage.jsx"), /<AtsReport report=\{fromStandaloneResult\(result\)\}/, "the public tool");
   assert.match(code("components/SignupAtsHook.jsx"), /<AtsBandCard\b/, "the signup hook's band card");
   // T9: the extension's on-page panel (the renderer, in the panel's shadow root) — ⭐ T31: the popup's element went with

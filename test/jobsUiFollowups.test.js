@@ -30,9 +30,9 @@ test("ATS missing chips stay visible, turn green when claimed, and react to prof
   // (shared/atsReportElement.js); ATSPanel keeps the claim state and events.
   const chips = fs.readFileSync("shared/atsReportElement.js", "utf8");
 
-  assert.match(atsPanel, /PROFILE_SUGGESTIONS_UPDATED_EVENT/);
-  assert.match(atsPanel, /buildProfileClaimLookup/);
-  assert.match(atsPanel, /emitProfileSuggestionsUpdated/);
+  // ⭐ 46x (owner 11-19: "ditch the whole prove it and claim it gimmick"): the posting's panel keeps no claim state and
+  // listens for no claim events — it draws the ATS card. The shared component's claim rows below are no host's now.
+  assert.doesNotMatch(atsPanel, /PROFILE_SUGGESTIONS_UPDATED_EVENT|buildProfileClaimLookup|emitProfileSuggestionsUpdated/);
   // theme.successMuted was replaced with literal greens (#0a1f0a background, #22c55e text). The
   // behaviour this test is named for — the chip turns green — is unchanged; only the token went,
   // and now the trigger is the candidate's claim rather than an irreversible add.

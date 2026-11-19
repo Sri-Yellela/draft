@@ -318,13 +318,15 @@ test("no call site constructs its own EventSource", () => {
 
 test("the five consumers still subscribe through the hook", () => {
   // The fix must not have been achieved by deleting subscribers.
+  // ⭐ 46x (owner 11-19): ATSPanel listened only to reload claim suggestions on a profile switch — the claims are gone from
+  // it (the ATS card), so it no longer subscribes; the four others are unchanged (four call sites, still one connection).
   const callers = ["client/src/App.jsx", "client/src/components/TopBar.jsx",
-                   "client/src/panels/JobsPanel.jsx", "client/src/components/ATSPanel.jsx"];
+                   "client/src/panels/JobsPanel.jsx"];
   let total = 0;
   for (const f of callers) {
     const n = (fs.readFileSync(f, "utf8").match(/useSyncEvents\(/g) || []).length;
     assert.ok(n > 0, `${f} stopped listening for sync events`);
     total += n;
   }
-  assert.equal(total, 5, `expected 5 useSyncEvents call sites across the app, found ${total}`);
+  assert.equal(total, 4, `expected 4 useSyncEvents call sites across the app, found ${total}`);
 });

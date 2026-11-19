@@ -1,7 +1,7 @@
 // scripts/walkRmAts46x.mjs — ⭐ 46x · D192 (4d) on the tools service's own ATS check, in real Chrome: boots the sibling checkout
 // (../resume-master) on a free port with no store and no model key, fills the check with a SYNTHETIC résumé and posting
 // (company "Stripe", so the service asks draft's public company-stack — a public read), and reads the result: the number
-// painted by its band with no band word, the four parts, What fits, What to do. Shots: docs/fidelity-shots/walk46x-rm-ats-*.png.
+// painted by its band with no band word, the four parts as one bar and line each, the biggest gain (option C). Shots: docs/fidelity-shots/walk46x-rm-ats-*.png.
 //   node scripts/walkRmAts46x.mjs
 import path from "node:path";
 import { spawn, execFileSync } from "node:child_process";
@@ -55,15 +55,15 @@ try {
     await page.waitForFunction(() => !/Scoring…/.test(document.getElementById("ats-out")?.innerText || "Scoring…"), { timeout: 30000 });
     const r = await page.evaluate(() => {
       const out = document.getElementById("ats-out");
-      const num = out.querySelector(".ats-head .ats-num, .ctx-nums .ats-num");
+      const num = out.querySelector(".atsc-num .ats-num, .ats-head .ats-num");
       return { text: out.innerText, numCls: num?.className || null, numColor: num ? getComputedStyle(num).color : null,
-        parts: [...out.querySelectorAll(".ctx-parts .ctx-card span:first-child")].map(s => s.textContent),
-        heads: [...out.querySelectorAll("h3")].map(h => h.textContent), side: document.documentElement.scrollWidth > innerWidth + 1 };
+        parts: [...out.querySelectorAll(".atsc-row > span:first-child")].map(s => s.textContent),
+        heads: [...out.querySelectorAll("h3")].map(h => h.textContent), gain: out.querySelector(".atsc-gain")?.textContent || "", side: document.documentElement.scrollWidth > innerWidth + 1 };
     });
     say(`${w}: the number, painted by its band`, !!r.numCls && /strong|moderate|weak/.test(r.numCls), `${r.numCls} · ${r.numColor}`);
     say(`${w}: no band word`, !/Strong match|Moderate match|Weak match|\bStrong\b|\bModerate\b|\bWeak\b/.test(r.text), "none");
     say(`${w}: the four parts`, r.parts.length >= 3, r.parts.join(" | "));
-    say(`${w}: What fits / What to do`, r.heads.includes("What fits") && r.heads.includes("What to do"), r.heads.join(" | "));
+    say(`${w}: the biggest gain, and no lists of terms`, /^Biggest gain: /.test(r.gain) && r.heads.length === 0, `${r.gain} · headings: ${r.heads.join(" | ") || "none"}`);
     say(`${w}: their stack from draft's public record`, r.parts.includes("Their stack"), r.parts.includes("Their stack") ? "Stripe's stack read" : "no stack part");
     say(`${w}: no side-scroll, no page errors`, !r.side && errors.length === 0, errors.join(" | ") || "none");
     const out = await page.$("#ats-out"); await out.screenshot({ path: path.join(SHOTS, `walk46x-rm-ats-${w}.png`) });

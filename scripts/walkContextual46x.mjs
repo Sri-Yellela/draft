@@ -1,4 +1,4 @@
-// scripts/walkContextual46x.mjs — ⭐ 46x · D192 (4d), the owner's option A (11-19) in draft's web app, in real Chrome: a SYNTHETIC
+// scripts/walkContextual46x.mjs — ⭐ 46x · THE ATS CARD (the owner's option C, 11-19) in draft's web app, in real Chrome: a SYNTHETIC
 // person (a backend résumé, placed swe.backend · senior) and a SYNTHETIC company (Kestrel Payments: a stack read from its own
 // postings, an industry) with one posting, on a FRESH data dir, crawling off. Opens the posting, presses its match box, and reads
 // the contextual section under the report: two numbers painted by band (no band word), the four parts, What fits, What to do.
@@ -116,24 +116,27 @@ try {
       if (!box) { say(`${tag}: the posting's match box`, false, "not found"); await page.screenshot({ path: path.join(SHOTS, `walk46x-contextual-${theme}-${w}-nobox.png`) }); continue; }
       await box.evaluate(b => b.scrollIntoView({ block: "center" }));
       await box.click();
-      const sec = await page.waitForSelector("[data-contextual-fit]", { timeout: 45000 }).catch(() => null);
-      if (!sec) { say(`${tag}: the contextual section`, false, "not drawn"); await page.screenshot({ path: path.join(SHOTS, `walk46x-contextual-${theme}-${w}-none.png`) }); continue; }
+      const sec = await page.waitForSelector("[data-ats-card-part='tech_stack']", { timeout: 45000 }).then(() => page.$("[data-ats-card]")).catch(() => null);
+      if (!sec) { say(`${tag}: the ATS card`, false, "not drawn"); await page.screenshot({ path: path.join(SHOTS, `walk46x-atscard-${theme}-${w}-none.png`) }); continue; }
       const r = await page.evaluate(() => {
-        const s = document.querySelector("[data-contextual-fit]");
-        const nums = [...s.querySelectorAll("[data-contextual-number]")].map(n => { const v = n.children[1]; return { k: n.dataset.contextualNumber, text: v.textContent, color: getComputedStyle(v).color }; });
-        return { text: s.innerText, nums, parts: [...s.querySelectorAll("[data-contextual-part]")].map(p => p.dataset.contextualPart),
-          fits: !!s.querySelector("[data-contextual-fits]"), todo: s.querySelector("[data-contextual-todo]")?.innerText || "",
+        const s = document.querySelector("[data-ats-card]");
+        const n = s.querySelector("[data-ats-card-score]");
+        const panel = document.querySelector("[data-posting-match-panel]");
+        return { text: s.innerText, num: n?.textContent, color: n ? getComputedStyle(n).color : null, body: getComputedStyle(s).color,
+          parts: [...s.querySelectorAll("[data-ats-card-part]")].map(p => [p.dataset.atsCardPart, p.innerText.replace(/\s+/g, " ")]),
+          gain: s.querySelector("[data-ats-card-gain]")?.innerText || "", panel: panel?.innerText || "",
+          claims: !!document.querySelector("draft-ats-report, [data-claim-chip], [data-skill-check]"),
           w: Math.round(s.getBoundingClientRect().width), side: document.documentElement.scrollWidth > innerWidth + 1 };
       });
-      say(`${tag}: two numbers, each painted (not the body ink)`, r.nums.length === 2 && r.nums.every(n => /%$/.test(n.text)), JSON.stringify(r.nums));
-      say(`${tag}: no band word`, !/\b(Strong|Moderate|Weak)\b/.test(r.text), "none");
-      say(`${tag}: the four parts`, ["skill_match", "role_fit", "responsibility_overlap", "tech_stack"].every(p => r.parts.includes(p)), r.parts.join(" | "));
-      say(`${tag}: What fits and What to do`, r.fits && /Terraform/.test(r.todo) && /Lead a team of 5/.test(r.todo), r.todo.replace(/\s+/g, " ").slice(0, 200));
-      say(`${tag}: a different industry is said, not counted`, /healthcare/.test(r.text) && /Not counted against you/.test(r.text), "healthcare");
+      say(`${tag}: the number, painted by its band`, /^\d+%$/.test(r.num || "") && r.color !== r.body, `${r.num} · ${r.color}`);
+      say(`${tag}: no band word, no claims, no quick check, no old report`, !/(Strong|Moderate|Weak)|true of me|You could claim|claimed by you/i.test(r.panel) && !r.claims, "none");
+      say(`${tag}: the four parts, one line each`, r.parts.map(x => x[0]).join() === "skill_match,role_fit,responsibility_overlap,tech_stack", r.parts.map(x => x[1]).join(" | ").slice(0, 300));
+      say(`${tag}: the biggest gain`, /Biggest gain: Terraform — in 41% of their jobs/.test(r.gain), r.gain);
       say(`${tag}: fits, no side-scroll, no page errors`, r.w > 0 && r.w <= w && !r.side && errors.length === 0, `${r.w}px · ${errors.slice(0, 2).join(" | ") || "no errors"}`);
       await sec.evaluate(s => s.scrollIntoView({ block: "start" }));
       await sleep(200);
-      await sec.screenshot({ path: path.join(SHOTS, `walk46x-contextual-${theme}-${w}.png`) });
+      const card = await page.$("[data-posting-match-panel]");
+      await card.screenshot({ path: path.join(SHOTS, `walk46x-atscard-${theme}-${w}.png`) });
     }
   }
 } catch (e) {

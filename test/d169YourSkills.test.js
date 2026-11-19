@@ -251,14 +251,11 @@ test("D169 · d169NoQuestionsProofOrBuild — no questions: a proof link or a bu
   assert.match(src, /draft doesn't open it or vouch for it/, "⛔ D109: draft certifies nothing");
 });
 
-test("D169 · d169AtsClaimOpensCheck — the ATS panel's \"That's true of me\" on a skill opens the same check in place", async () => {
-  const src = read("client/src/components/ATSPanel.jsx");
-  assert.match(src, /import SkillCheck from "\.\/SkillCheck\.jsx";/);
-  assert.match(src, /if \(kind === "skill"\) setProving\(claimed \? label : \(p => \(p === label \? null : p\)\)\);/);
-  assert.match(src, /<SkillCheck key=\{proving\} skill=\{proving\} onClose=\{\(\) => setProving\(null\)\} \/>/);
-  assert.match(src, /setProving\(null\);\n  \}, \[jobId, activeProfileId\]\);/, "a new posting or profile closes it");
-  // The claim itself still happens exactly as before (setProfileClaim), so the score moves as D152 (8) says.
-  assert.match(src, /await setProfileClaim\(clickableProfileId, kind, label, claimed\)/);
+test("D169 · the quick check lives in Atlas's Your skills only — the posting's ATS panel no longer claims or opens a check (46x)", async () => {
+  // ⭐ 46x (owner 11-19: "ditch the whole prove it and claim it gimmick and definitely ditch it from the jd panel"): moved on
+  // purpose — d169AtsClaimOpensCheck pinned the claim → check in the posting's panel; the panel draws the ATS card now.
+  const src = read("client/src/components/ATSPanel.jsx").replace(/^\s*\/\/.*$/gm, "");
+  assert.doesNotMatch(src, /SkillCheck|setProving|setProfileClaim/);
   // The Atlas list opens the SAME component (A93: built once).
   assert.match(read("client/src/pages/atlas/YourSkillsPanel.jsx"), /import SkillCheck from "\.\.\/\.\.\/components\/SkillCheck\.jsx";/);
   const u = await loadUi();

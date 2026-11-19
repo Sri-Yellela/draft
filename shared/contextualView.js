@@ -1,70 +1,88 @@
-// shared/contextualView.js — ⭐ D192 (4d) · WHAT THE CONTEXTUAL ATS BLOCK SAYS, pure. The owner's pick (11-19): option A of
-// https://claude.ai/artifact/TVySAZbL7s7jXD5XEDFpcQ — the two numbers, the four parts, then "What fits" and "What to do" —
-// and "the font color on the ats number should do it no need for the words": every number is painted by its band, and no
-// band word ("Strong", "Moderate") is written anywhere (D182: no label restates a number).
+// shared/contextualView.js — ⭐ THE ATS CARD's words, pure. The owner's pick, 11-19: option C of
+// https://claude.ai/artifact/Fx8EDAEByAkLuBcADt7v2W — "the number, then the four things it is made of — one bar and one
+// plain line each — and the single most useful next step. No lists of terms." It REPLACES the old report's claims ("That's
+// true of me", owner: "ditch the whole prove it and claim it gimmick") and the In context section in the posting's panel.
+// Every number is painted by its band (owner 11-19: "the font color on the ats number should do it no need for the words").
 //
-// contextualView(block) → null | {
-//   score, skill,                         the contextual and the skill-match numbers (each null when unknown)
-//   parts: [{ id, name, score, why }],    the four, in the contract's order — only those with data (no_data is left out)
-//   fits:  [{ label, value }],            skills both have · same purpose · their stack · domain · role and level · done
-//   todo:  [{ kind, text, tech?, phrase? }], a stack gap ("learn") or a responsibility not shown ("evidence")
-//   notes: [text]                          neutral differences (another industry) — never a penalty, said as such
-// }
-// ⛔ No model (D190): every word below is a template over the block's own fields.
+// atsCardView({ report, contextual }) → null | {
+//   declined: false, score,                         the number: the contextual one, else the skill match
+//   parts: [{ id, name, score, line }],             Skills · Role · The work · Their stack — those with data, in that order
+//   gain: { text, tech? } | null,                    the single biggest gain (a stack gap → its Atlas page when one exists)
+// } | { declined: true, reason }                      the scorer declined: said in words, never a number
+// ⛔ No model (D190): every word is a template over the report's and the block's own fields.
 
-const ORDER = ["skill_match", "role_fit", "responsibility_overlap", "tech_stack"];
-const NAMES = { skill_match: "Skill match", role_fit: "Role fit", responsibility_overlap: "What you have done", tech_stack: "Their stack" };
-const ROLE = { same_role: "the same role", also_fits: "a role your résumé also fits", same_family: "the same family, another role", other_family: "another family" };
-const LEVEL = (l) => String(l || "").replace(/^entry$/, "entry level").replace(/^early$/, "early career");
 const clean = (s, n = 120) => (typeof s === "string" ? s.replace(/\s+/g, " ").trim().slice(0, n) : "");
-const list = (xs, n = 6, max = 60) => (Array.isArray(xs) ? xs.map(x => clean(String(x ?? ""), max)).filter(Boolean).slice(0, n) : []);
 const num = (n) => (typeof n === "number" && Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null);
-const shareWords = (d) => (Number.isFinite(d?.postings) && Number.isFinite(d?.of) ? `in ${d.postings} of their ${d.of} postings`
-  : Number.isFinite(d?.share) ? `in ${Math.round(d.share * 100)}% of their postings` : "");
+// The scorer hands its terms normalised ("postgresql", "aws"); a name is shown as people write it. A known name takes its
+// casing; another lower-case word takes a capital; a vendor prefix ("Apache Kafka") is dropped where the line is short.
+const CASING = Object.fromEntries(["AWS", "GCP", "Azure", "SQL", "NoSQL", "PostgreSQL", "MySQL", "MongoDB", "Redis", "Kafka", "Docker", "Kubernetes",
+  "gRPC", "GraphQL", "REST", "TypeScript", "JavaScript", "Node.js", "React", "Terraform", "Python", "Java", "Go", "Ruby", "Rust",
+  "C++", "C#", "Scala", "Kotlin", "Swift", "Spark", "Airflow", "Snowflake", "dbt", "Linux", "CI/CD", "API", "APIs", "HTML", "CSS",
+  "Elasticsearch", "DynamoDB", "BigQuery", "Databricks", "Tableau", "Excel", "PyTorch", "TensorFlow", "Jenkins", "Git", "iOS", "Android"]
+  .map(n => [n.toLowerCase(), n]));
+const display = (t) => { const k = String(t).toLowerCase(); return CASING[k] || (t === k && /^[a-z]/.test(t) ? t.charAt(0).toUpperCase() + t.slice(1) : t); };
+const bare = (t) => String(t || "").replace(/^(Apache|Amazon|Google|Microsoft)\s+/, "");
+const words = (xs, n) => (Array.isArray(xs) ? xs.map(x => display(clean(String(x?.term ?? x ?? ""), 40))).filter(Boolean).slice(0, n) : []);
+const join = (xs) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+const short = (s, n = 60) => { const t = clean(s, 200); return t.length <= n ? t : `${t.slice(0, n).replace(/\s+\S*$/, "")}…`; };
+const subName = (id) => { const t = String(id || "").split(".").pop().replace(/-/g, " "); return t ? t.charAt(0).toUpperCase() + t.slice(1) : ""; };
+const LEVEL = { entry: "entry level", early: "early career", junior: "junior", mid: "mid level", senior: "senior", executive: "executive" };
+const shareOf = (g) => (Number.isFinite(g?.share) ? g.share : Number.isFinite(g?.postings) && g?.of ? g.postings / g.of : 0);
 
-function why(id, p) {
-  if (id === "skill_match") return "the terms you both use";
-  if (id === "role_fit") {
-    const rel = ROLE[p.relation] || "";
-    const gap = Number.isFinite(p.level_gap) && p.level_gap !== 0
-      ? `, ${Math.abs(p.level_gap)} level${Math.abs(p.level_gap) === 1 ? "" : "s"} ${p.level_gap > 0 ? "below" : "above"} the posting` : "";
-    return `${rel}${gap}`.replace(/^,\s*/, "");
+function skillsLine(report) {
+  const have = words(report?.tier1_matched, 5), miss = words(report?.tier1_missing, 3);
+  if (!have.length && !miss.length) return "";
+  if (!miss.length) return `${have.join(", ")} — everything it asks for`;
+  return `${have.length ? `${have.join(", ")} — ` : ""}missing ${miss.join(", ")}`;
+}
+function roleLine(p) {
+  const job = [subName(p.posting?.subcategory), LEVEL[p.posting?.level] || ""].filter(Boolean).join(", ");
+  const yours = [subName(p.resume?.subcategory), LEVEL[p.resume?.level] || ""].filter(Boolean).join(", ");
+  if (p.relation === "same_role" && !p.level_gap) return `${job || "Your role"} — the same as the job`;
+  if (p.relation === "same_role" || p.relation === "also_fits") {
+    const g = Math.abs(p.level_gap || 0);
+    return g ? `${job} — your résumé reads ${g} level${g === 1 ? "" : "s"} ${p.level_gap > 0 ? "below" : "above"} it` : `${job} — a role your résumé also fits`;
   }
-  if (id === "responsibility_overlap") return Number.isFinite(p.phrases) ? `${(p.matched || []).length} of the ${p.phrases} things the role does` : "";
-  if (id === "tech_stack") {
-    // the gaps counted are the ones What to do lists — at least 10 % of their postings (the package's GAP_MIN_SHARE)
-    const share = (x) => (Number.isFinite(x?.share) ? x.share : Number.isFinite(x?.postings) && x?.of ? x.postings / x.of : 0);
-    const n = (p.exact || []).length, e = (p.ecosystem || []).length, g = (p.gaps || []).filter(x => share(x) >= 0.1).length;
-    return [n ? `${n} you share` : "", e ? `${e} close` : "", g ? `${g} you don't show` : ""].filter(Boolean).join(" · ");
-  }
-  return "";
+  return `The job is ${job || "another role"}; your résumé reads ${yours || "another role"}`;
+}
+function workLine(p) {
+  const done = p.matched || [], miss = p.missing || [];
+  if (!miss.length) return `You have done all ${p.phrases} things it describes`;
+  if (!done.length) return `Not on your résumé yet: “${short(miss[0])}”`;
+  return `You have done ${done.length} of ${p.phrases} — not “${short(miss[0], 48)}”`;
+}
+function stackLine(p) {
+  const bits = [];
+  const yes = (p.exact || []).slice(0, 2).map(x => bare(x.tech));
+  if (yes.length) bits.push(`${join(yes)} yes`);
+  const eco = (p.ecosystem || []).find(e => !(p.exact || []).some(x => x.tech === e.yours));
+  if (eco) bits.push(`${bare(eco.yours)} ≈ their ${bare(eco.theirs)}`);
+  const gap = [...(p.gaps || [])].sort((a, b) => shareOf(b) - shareOf(a))[0];
+  if (gap && shareOf(gap) >= 0.1) bits.push(`${bare(gap.tech)} no`);
+  return bits.join(" · ");
 }
 
-export function contextualView(block) {
-  if (!block || typeof block !== "object" || !block.parts) return null;
-  const parts = ORDER.map(id => ({ id, p: block.parts[id] })).filter(({ p }) => p && p.status === "ok" && num(p.score) != null)
-    .map(({ id, p }) => ({ id, name: NAMES[id], score: num(p.score), why: why(id, p) }));
-  const s = block.similarities || {};
-  const fits = [];
-  const add = (label, value) => { if (value) fits.push({ label, value }); };
-  add("Skills you both have", list(s.skills).join(" · "));
-  add("Same purpose", (s.ecosystem || []).slice(0, 4).map(e => `you: ${clean(e.yours, 40)} → they: ${clean(e.theirs, 40)}`).join(" · "));
-  add("Their stack, yours too", list(s.stack).join(" · "));
-  add("Both in", list(s.domains).join(" · "));
-  const role = block.parts?.role_fit;
-  if (role?.status === "ok" && (s.role || []).length) {
-    const sub = clean(String(role.posting?.subcategory || "").split(".").pop().replace(/-/g, " "), 40);
-    add("Role and level", [sub, LEVEL(role.posting?.level)].filter(Boolean).join(" · "));
+export function atsCardView({ report = null, contextual = null } = {}) {
+  if (!report && !contextual) return null;
+  const skill = num(report?.score ?? contextual?.parts?.skill_match?.score);
+  if (skill == null) {
+    const why = clean((report?.decline_reasons || [])[0] || "", 140);
+    return { declined: true, reason: why || "The posting or your résumé says too little to judge the fit." };
   }
-  add("You've done", list(s.responsibilities, 3, 120).map(r => `“${r}”`).join(" · "));   // the whole phrase (the package cuts it on a word)
-  const todo = [], notes = [];
-  for (const d of block.dissimilarities || []) {
-    if (d?.kind === "stack_gap" && clean(d.tech, 60)) todo.push({ kind: "learn", tech: clean(d.tech, 60), text: `They use ${clean(d.tech, 60)}${shareWords(d) ? ` (${shareWords(d)})` : ""}` });
-    else if (d?.kind === "responsibility" && clean(d.phrase)) todo.push({ kind: "evidence", phrase: clean(d.phrase), text: `“${clean(d.phrase)}” — your résumé doesn't show it` });
-    else if (d?.kind === "domain" && clean(d.theirs, 40)) {
-      const yours = list(d.yours, 3);
-      notes.push(`They're in ${clean(d.theirs, 40)}${yours.length ? `; your experience is ${yours.join(", ")}` : " — your résumé doesn't name it"}. Not counted against you.`);
-    }
-  }
-  return { score: num(block.score), skill: num(block.parts?.skill_match?.score), parts, fits, todo: todo.slice(0, 6), notes: notes.slice(0, 2) };
+  const c = contextual && contextual.parts ? contextual : null;
+  const parts = [];
+  const line = skillsLine(report);
+  parts.push({ id: "skill_match", name: "Skills", score: skill, line });
+  const role = c?.parts?.role_fit, work = c?.parts?.responsibility_overlap, stack = c?.parts?.tech_stack;
+  if (role?.status === "ok" && num(role.score) != null) parts.push({ id: "role_fit", name: "Role", score: num(role.score), line: roleLine(role) });
+  if (work?.status === "ok" && num(work.score) != null) parts.push({ id: "responsibility_overlap", name: "The work", score: num(work.score), line: workLine(work) });
+  if (stack?.status === "ok" && num(stack.score) != null) parts.push({ id: "tech_stack", name: "Their stack", score: num(stack.score), line: stackLine(stack) });
+
+  // the single biggest gain: their most-used technology you don't show, else the skill the posting asks for most, else the work
+  let gain = null;
+  const gap = (c?.dissimilarities || []).find(d => d.kind === "stack_gap");
+  if (gap) gain = { tech: clean(gap.tech, 60), text: `${clean(gap.tech, 60)}${shareOf(gap) ? ` — in ${Math.round(shareOf(gap) * 100)}% of their jobs` : ""}` };
+  else if (words(report?.tier1_missing, 1).length) { const t = words(report.tier1_missing, 1)[0]; gain = { tech: t, text: `${t} — the posting asks for it` }; }
+  else if ((work?.missing || []).length) gain = { text: `Show “${short(work.missing[0])}” on your résumé` };
+  return { declined: false, score: num(c?.score) ?? skill, parts, gain };
 }

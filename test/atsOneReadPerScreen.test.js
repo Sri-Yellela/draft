@@ -29,6 +29,7 @@ test("the client: one scoring read per screen", () => {
   assert.match(jd, /onReport=\{selectedJobMeta\?\.onAtsReport \|\| null\}/);
   assert.match(read("client/src/components/ATSPanel.jsx"), /if \(data && onReport\) onReport\(jobId, data\);/);
   // ATSPanel: a declined report's null is the band, never replaced by a stored number.
-  assert.match(read("client/src/components/ATSPanel.jsx"), /hasOwnProperty\.call\(activeReport, "score"\) \? activeReport\.score : \(score \?\? null\)/);
+  // 46x: the same rule, handed to the ATS card (AtsCard) as the report it draws
+  assert.ok(read("client/src/components/ATSPanel.jsx").includes('Object.prototype.hasOwnProperty.call(activeReport, "score") ? activeReport : { ...activeReport, score: score ?? null }'));
   assert.match(SERVER, /report_basis: "generated_resume"/);
 });
