@@ -21,12 +21,12 @@ export function approvalOf(version) {
   try { return JSON.parse(fs.readFileSync("content/decks/approvals.json", "utf8")).approved?.[String(version)] || null; } catch { return null; }
 }
 
-export function writeBatch({ version, title, note, decks }) {
+export function writeBatch({ version, title, note, decks, dir = "content/decks" }) {   // 46z: `dir` — a batch held for review outside the served folder
   // ⭐ An approved batch is written approved (its decks served, its questions live on import) — regenerating never reverts it.
   const ok = approvalOf(version);
   if (ok) { for (const d of decks) { d.status = "approved"; d._q.status = "live"; } note = `${note} APPROVED by the ${ok.by} ${ok.at} ("${ok.words}").`; }
   const out = { version, note, decks: decks.map(({ _q, ...d }) => d), newQuestions: decks.map(d => d._q) };
-  fs.writeFileSync(`content/decks/decks-v${version}.json`, JSON.stringify(out, null, 1) + "\n");
+  fs.writeFileSync(`${dir}/decks-v${version}.json`, JSON.stringify(out, null, 1) + "\n");
   const md = [
     `# Decks v${version} — ${title} (for your review)`,
     "",
@@ -43,6 +43,6 @@ export function writeBatch({ version, title, note, decks }) {
       "",
     ]),
   ].join("\n");
-  fs.writeFileSync(`content/decks/decks-v${version}.md`, md);
+  fs.writeFileSync(`${dir}/decks-v${version}.md`, md);
   console.log(`decks-v${version}: ${decks.length} decks, ${decks.length} questions (draft)`);
 }
