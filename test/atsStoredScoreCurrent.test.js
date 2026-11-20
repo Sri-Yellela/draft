@@ -146,7 +146,7 @@ test("the board never presents a stale stored score — posting changed, basis c
 });
 
 test("the server wires it: every writer stamps the posting, the panel's cache and the board check it", () => {
-  assert.match(SERVER, /INSERT INTO ats_only_reports\s*\(user_id, domain_profile_id, job_id, ats_report, ats_score, scorer_version, scored_at, basis_hash, job_hash\)/);
+  assert.match(SERVER, /INSERT INTO ats_only_reports\s*\(user_id, domain_profile_id, job_id, ats_report, ats_score, scorer_version, scored_at, basis_hash, job_hash, contextual_score, contextual_key\)/);   // D184 B-8 (46y): + the contextual pair
   const panel = SERVER.slice(at(SERVER, 'app.post("/api/jobs/:id/keywords"'), at(SERVER, 'app.get("/api/jobs/by-id/:jobId"'));
   assert.match(panel, /AND job_hash IS \?/, "the panel's cache must not serve a report about an older posting");
   assert.match(panel, /jobHash: panelJobHash/);

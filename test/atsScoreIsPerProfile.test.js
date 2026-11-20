@@ -74,7 +74,7 @@ test("every scoring path writes through the one per-profile writer", () => {
   // (deleted 10-02, 18 — A58 had removed its last entry point).
   // `basisHash` (migration 110) records which candidate basis produced the report; `jobHash`
   // (migration 118, A52) which version of the posting.
-  assert.match(SERVER, /function storeAtsReportForProfile\(\{ userId, profileId = null, jobId, report, basisHash = null, jobHash = null, slim = false \}\)/);   // A187 (46i): + slim
+  assert.match(SERVER, /function storeAtsReportForProfile\(\{ userId, profileId = null, jobId, report, basisHash = null, jobHash = null, slim = false, contextual = undefined \}\)/);   // A187 (46i): + slim; D184 B-8 (46y): + contextual
   // The board's fit precompute is a fourth scoring path, and it stores through the SAME writer —
   // by reference, injected, so it adds no call site of its own below.
   assert.match(SERVER, /createBoardFitPrecompute\(\{\s*db, basisFor: atsBasisForProfile, scoreJob: scoreJobForBasis, store: \(a\) => storeAtsReportForProfile\(\{ \.\.\.a, slim: true \}\),/);   // A187 (46i): the same writer, slim when ATS_STORE_SLIM=on

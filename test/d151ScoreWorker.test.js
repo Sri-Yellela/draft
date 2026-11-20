@@ -39,14 +39,14 @@ test("d151ScoringOffTheLoop: the precompute falls back to the main thread when s
   const { createBoardFitPrecompute } = await import("../services/jobs/boardFitPrecompute.js");
   const src = read("services/jobs/boardFitPrecompute.js");
   // the one helper every scoring loop goes through
-  assert.equal((src.match(/await scoreMany\(jobs, basis\.runtimeBasis, st\)/g) || []).length, 3, "prime, the pass and the queue");
+  assert.equal((src.match(/await scoreMany\(jobs, basis\.runtimeBasis, st, pass\)/g) || []).length, 3, "prime, the pass and the queue");
   assert.match(src, /if \(Array\.isArray\(out\) && out\.length === jobs\.length\) \{/);
   assert.match(src, /catch \{ \/\* the worker could not answer: score here, as before \*\/ \}/);
   assert.throws(() => createBoardFitPrecompute({}), /needs db, basisFor, scoreJob and store/);
   // server.js wires the worker in, with scoreJob kept as the fallback
   const server = read("server.js");
   assert.match(server, /scoreBatch: scoreBatchForBasis,/);
-  assert.match(server, /return scorePool\.score\(\{ items, weights, synonyms: atsSynonyms\(\), runtimeBasis \}\);/);
+  assert.match(server, /return scorePool\.score\(\{ items, weights, synonyms: atsSynonyms\(\), runtimeBasis, ctx \}\);/);   // D184 B-8 (46y): + ctx
   assert.match(server, /enabled: String\(process\.env\.DRAFT_SCORE_WORKER \|\| "on"\)\.toLowerCase\(\) !== "off",/);
   assert.match(server, /scorePool: scorePool\.status\(\),/);
 });

@@ -147,7 +147,7 @@ test("D112 item 6 · the key reads eligibilityOf's verdicts per answer, and its 
 test("D112 item 6 · server.js: the board's order leads with the key; the count statement is unchanged; the within-page move stays", () => {
   const src = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
   const board = src.slice(at(src, "const boardEligInputs = "), at(src, "const responseBody = {"));
-  assert.match(board, /buildOrderKeys\(sort, richFilters\.rank\.keys,\s*\{[^}]*ineligible: ineligibleOrderKey\(boardEligInputs\.defaults\), ghost: boardHasGhosts, skillTier: boardSkillTier \}\)/);
+  assert.match(board, /buildOrderKeys\(sort, richFilters\.rank\.keys,\s*\{[^}]*ineligible: ineligibleOrderKey\(boardEligInputs\.defaults\), ghost: boardHasGhosts, skillTier: boardSkillTier,[\s\S]*?contextual: flagOn\(db, BOARD_CONTEXTUAL_FLAG\) \}\)/);
   // ^ 45p D184 B-8 (0e4f5b0c): the order also takes skillTier after ghost (pin moved on purpose).
   assert.match(board, /const total = keptOrder \? keptOrder\.total : \(\(await readPool\.get\(`SELECT COUNT\(\*\) as n \$\{joinClause\} \$\{whereClause\}`, baseArgs\)\)/);   // A175: the kept order carries the same statement's total
   assert.match(board, /const eligInputs = boardEligInputs;/);
