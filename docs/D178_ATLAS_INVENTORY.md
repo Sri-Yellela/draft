@@ -58,7 +58,7 @@ D177; **"Fly my route to senior …"** → *Your map*'s track-board animation (�
 `GET /api/learn/` · `GET /api/learn/circle` · `GET /api/learn/circle/my-route` · `GET /api/learn/course/:id` ·
 `GET /api/learn/guides` · `GET /api/learn/pathways` (D155 Part C, 45j) · `GET /api/learn/how-it-works` (A154, 45o) · `GET /api/learn/deck/:id` · `POST /api/learn/deck/:id/answer` · `GET /api/learn/earned` ·
 `POST /api/learn/opened` · `PUT /api/learn/explained` · `PUT /api/learn/built` · `GET /api/learn/progress` ·
-`PUT /api/learn/progress` · `POST /api/learn/progress/import`
+`PUT /api/learn/progress` · `POST /api/learn/progress/import` · `GET /api/learn/checks` · `GET /api/learn/piece/:id/questions` · `POST /api/learn/piece/:id/answer` (D150 T14, 46y: a piece's checked state + the questions inside Learn)
 
 The curator's tools (`/api/admin/atlas/…`) stay in Admin (D167's map, row 20).
 
