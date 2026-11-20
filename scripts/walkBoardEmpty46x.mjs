@@ -94,6 +94,12 @@ try {
         const hs = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
         say(`${tag} ${theme} ${w}: no side-scroll`, !hs, hs ? "scrolls sideways" : "none");
         say(`${tag} ${theme} ${w}: no page errors`, errors.length === 0, errors.slice(0, 2).join(" | ") || "none");
+        // ⭐ 46y: the deck beside it — it said "Your best matches will be here in a few seconds…" (43y's scoring answer)
+        // for 3 minutes on a board with nothing to score. Now: its own note, nothing to pick from.
+        const deck = await page.waitForSelector("[data-deck-empty]", { timeout: 20000 }).then(() => page.evaluate(() => ({
+          id: document.querySelector("[data-deck-empty]").getAttribute("data-deck-empty"), text: document.querySelector("[data-deck-empty]").innerText.replace(/\s+/g, " ").trim(),
+          scoring: !!document.querySelector("[data-deck-scoring]") }))).catch(() => ({ id: null, text: "", scoring: !!0 }));
+        say(`${tag} ${theme} ${w}: the deck says there is nothing to pick from (not "a few seconds")`, deck.id === "no_jobs" && !deck.scoring && !/few seconds/.test(deck.text), `${deck.id} · ${deck.text.slice(0, 140)}`);
         await page.screenshot({ path: path.join(SHOTS, `walk46x-board-${shot}-${theme}-${w}.png`) });
       }
     }
@@ -102,18 +108,33 @@ try {
   // (1) the pool is empty for everyone
   await looks("empty pool", "board-no-jobs", "no-jobs");
 
-  // (2) jobs exist, none sorted into this profile's role
+  // (2) jobs exist, none sorted into this profile's role.
+  // ⭐ 46y: the jobs must be CLASSIFIED into other roles. 46x inserted them with no job_role_map row and no board_category,
+  // and the board's scope is soft-null by design (server.js /api/jobs, CC1b + D126: "a row must never be hidden purely
+  // because we have not classified it") — so the three unclassified postings were listed and the card never showed. Here
+  // each carries a role bucket outside engineering + its D42 extra (data) and a category outside computing: an explicit
+  // mismatch, which is what the scope excludes. The pool is not empty (no cache_empty), nothing narrows the board.
   const db2 = new Database(path.join(RUN, "resume_master.db"));
   const cols = new Set(db2.prepare("PRAGMA table_info(scraped_jobs)").all().map(c => c.name));
   const now = Math.floor(Date.now() / 1000);
-  for (const [i, [title, company]] of [["Registered Nurse, ICU", "Larkspur Health"], ["Construction Project Manager", "Tidewater Build"], ["Staff Accountant", "Bluefin Ledger"]].entries()) {
+  for (const [i, [title, company, roleKey, category]] of [["Account Executive, Mid-Market", "Larkspur Health", "sales", "sales"],
+    ["Brand Marketing Manager", "Tidewater Build", "marketing", "marketing"], ["Staff Accountant", "Bluefin Ledger", "finance", "business"]].entries()) {
     const row = { job_id: `walk46x-${i}`, search_query: "walk", company, title, location: "Boston, MA", url: `https://example.invalid/jobs/${i}`,
       _hash: `walk46x-${i}`, scraped_at: now - i * 60, posted_at: new Date(Date.now() - (i + 1) * 86400e3).toISOString(), direct_apply: 1, is_active: 1, source: "greenhouse",
-      description: `${title} at ${company}. A synthetic posting for a walk.` };
+      board_category: category, description: `${title} at ${company}. A synthetic posting for a walk.` };
     const keys = Object.keys(row).filter(k => cols.has(k));
     db2.prepare(`INSERT OR REPLACE INTO scraped_jobs (${keys.join(",")}) VALUES (${keys.map(() => "?").join(",")})`).run(...keys.map(k => row[k]));
+    db2.prepare(`INSERT OR REPLACE INTO job_role_map (job_id, role_key, role_family, matched_by) VALUES (?, ?, ?, 'walk')`).run(row.job_id, roleKey, roleKey);
   }
   db2.close();
+  // the same three jobs are still reachable by asking: a search lifts the role scope (A72), so the card is not hiding them
+  // (listed, or held back as "being matched" until scored — A126 (7); either way the search reaches it, the scope does not)
+  const lifted = await page.evaluate(async () => { const r = await fetch("/api/jobs?localSearch=Accountant", { credentials: "include" }).then(x => x.json()).catch(() => null);
+    return { listed: r?.jobs?.length ?? -1, matching: r?.beingMatched ?? 0 }; });
+  const scoped = await page.evaluate(async () => { const r = await fetch("/api/jobs", { credentials: "include" }).then(x => x.json()).catch(() => null);
+    return { listed: r?.jobs?.length ?? -1, matching: r?.beingMatched ?? 0, reason: r?.reason ?? null }; });
+  say("other roles only: the board's own answer is empty, and not cache_empty", scoped.listed === 0 && !scoped.matching && scoped.reason !== "cache_empty", JSON.stringify(scoped));
+  say("other roles only: a search still reaches them (A72 lifts the scope)", lifted.listed + lifted.matching >= 1, `${JSON.stringify(lifted)} for "Accountant"`);
   await looks("other roles only", "board-no-role-jobs", "no-role-jobs");
 } catch (e) {
   say("the walk ran", false, e.message.slice(0, 600));

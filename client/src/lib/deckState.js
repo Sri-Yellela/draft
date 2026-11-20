@@ -13,7 +13,7 @@ export const DECISIONS = Object.freeze({ DRAFTED: "drafted", PASSED: "passed", S
 
 export function initialDeck(deck) {
   const cards = (deck?.cards || []).map(c => ({ ...c, error: null, pending: false }));
-  return { date: deck?.date, reason: deck?.reason || null, size: cards.length, cards,
+  return { date: deck?.date, reason: deck?.reason || null, boardReason: deck?.boardReason || null, size: cards.length, cards,
            index: firstUndecided(cards, 0), lastAction: null, seq: 0, flight: null };
 }
 

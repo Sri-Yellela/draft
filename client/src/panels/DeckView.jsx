@@ -856,7 +856,10 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       // deck exactly as it is (the card you are on, your decisions); before, every refresh re-built the deck from its
       // first card — the "choppy" re-render on every return to Home.
       const sameCards = shown && loadStatusRef.current === "ready" && Array.isArray(shown.cards)
-        && shown.cards.length === deck.cards.length && shown.cards.every((c, i) => c?.job?.id === deck.cards[i]?.job?.id);
+        && shown.cards.length === deck.cards.length && shown.cards.every((c, i) => c?.job?.id === deck.cards[i]?.job?.id)
+        // 46y: two EMPTY deals are "the same cards" — but not the same note when the reason changed (no_jobs ↔ empty, or the
+        // board's cache_empty ↔ an empty role): the new answer's note is drawn.
+        && (shown.reason || null) === (deck.reason || null) && (shown.boardReason || null) === (deck.boardReason || null);
       if (sameCards) { setLoad({ status: "ready", error: null }); return; }
       dispatch({ type: "__replace", state: initialDeck(deck) });
       // ⛔ The deal plays on the day's FIRST open only — the server says whether this request dealt.
@@ -1253,6 +1256,13 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
             no_resume: ["Add your résumé to get today's picks.",
               "draft judges fit against your résumé. It takes a minute, and nothing is sent to an employer.",
               [["/app/job-profiles", "Add your résumé →"], ["/app/jobs", "Every job"]]],
+            // ⭐ 46y: the board has no job for this profile to pick from (an empty pool, or none in its role) — never
+            // "your best matches will be here in a few seconds", which no scoring pass could keep. The board says why.
+            no_jobs: ["No jobs to pick from yet.",
+              s.boardReason === "cache_empty"
+                ? "The board is empty for everyone right now. draft looks for new jobs every night, and today's picks are dealt from them."
+                : "Nothing on the board is in this job profile's role yet. Switch job profile, or search the board to bring in new jobs.",
+              [["/app/job-profiles", "Your job profiles →"]]],
             empty: ["Nothing strong enough today.",
               "Today's picks are good and close fits you haven't decided on, and there are none right now. More detail in your résumé changes this most.",
               [["/app/jobs", "All jobs →"], ["/app/job-profiles", "Improve your profile →"]]],

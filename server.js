@@ -14329,8 +14329,12 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
       const { status, body } = await boardPageResponse({ ...req, query: { pageSize: "50", sort: "atsScore", ...(cursor ? { cursor } : {}) } });
       // A187 (46i): this page's slim reports, expanded in the score worker before the deal reads them (never on the main thread).
       if (status === 200 && body?.jobs?.length) { try { await expandSlimPage(req.user.id, profile.id, body.jobs.map(j => j.id)); } catch { /* the sync expander still answers */ } }
-      return { ok: status === 200 && body?.success !== false, jobs: body?.jobs || [], nextCursor: body?.nextCursor || null, error: body?.error };
+      const ok = status === 200 && body?.success !== false;
+      // ⭐ 46y: the board's own first answer, kept for the empty-deal decision below (rows listed · rows held being matched).
+      if (!cursor && firstBoardPage === null) firstBoardPage = { ok, listed: body?.jobs?.length || 0, beingMatched: Number(body?.beingMatched) || 0, reason: body?.reason || null };
+      return { ok, jobs: body?.jobs || [], nextCursor: body?.nextCursor || null, error: body?.error };
     };
+    let firstBoardPage = null;
     const reportStmt = db.prepare(
       "SELECT ats_report FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ? AND job_id = ?");
     const reportFor = (jobId) => {
@@ -14373,6 +14377,13 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
     // 43y (the owner's trial walk, 11-01: "no jobs or picks" on a new account): an empty deal for a profile whose
     // scores have not landed yet is not "empty" — it is SCORING. The pass is (re)asked for, the client says so and asks
     // again; the deal is not frozen (an empty one never is), so the next request deals from the first scores.
+    // ⭐ 46y (the board walk, walkBoardEmpty46x): ONLY when there is something to score. With the board's own answer empty
+    // and nothing held back being matched (an empty pool — cache_empty — or no job in this profile's role), no scoring pass
+    // can deal a card: the deck said "Your best matches will be here in a few seconds…" for its 3 minutes of retries beside
+    // the board's "No jobs collected yet" / "No jobs in your profile's role". It now says there is nothing to pick from.
+    if (!deck.size && firstBoardPage?.ok && firstBoardPage.listed === 0 && firstBoardPage.beingMatched === 0) {
+      return res.json({ ...deck, reason: "no_jobs", boardReason: firstBoardPage.reason });
+    }
     if (!deck.size) {
       const scoredSoFar = db.prepare("SELECT COUNT(*) FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ?").pluck().get(req.user.id, profile.id);
       if (scoredSoFar < 30) { scheduleBoardFit(req.user.id, "deck", profile); return res.json({ ...deck, reason: "scoring" }); }
