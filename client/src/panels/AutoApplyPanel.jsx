@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../lib/api.js";
 import { companyRows, matchCompany } from "../../../shared/companyIdentity.js";
 import { useNavigate } from "react-router-dom";
@@ -26,10 +26,11 @@ import WaitingLine from "../components/WaitingLine.jsx";
 import AutoSettingsDrawer from "../components/AutoSettingsDrawer.jsx";
 import DraftHouseTree, { Branch, RunCard } from "../components/DraftHouseTree.jsx";
 // ⭐ D146 · the one tracker: the table (and its opened row), what each row says, and The Table's full sheet behind View.
-import ApplicationTracker, { RowOpen, TrackerCounts, TrackerFilters, DEFAULT_SORT } from "../components/ApplicationTracker.jsx";
+import ApplicationTracker, { RowOpen, TrackerFilters, DEFAULT_SORT } from "../components/ApplicationTracker.jsx";
+import ApplicationInbox from "../components/ApplicationInbox.jsx";   // 46y: the Inbox is Home's second part (home-sketch.html)
 import { heldHeadline, runSteps, answerSource, earlierAttempts, saveForNextTimeLabel, heldQuestionsFor } from "../lib/heldApplication.js";
 import {
-  trackerRows, trackerView, trackerCounts, sortRows, stageActions, readyToSend, sendAllConfirmText, TRACKER_PERIODS,
+  trackerRows, trackerView, filterCounts, homeSummary, homeNeeds, sortRows, stageActions, readyToSend, sendAllConfirmText, TRACKER_PERIODS,
 } from "../lib/trackerRows.js";
 import { DatabasePanel } from "./DatabasePanel.jsx";
 import LiveCheck from "../components/LiveCheck.jsx";   // A186-CAPTCHA (1)
@@ -70,7 +71,10 @@ import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow S
 //             Settings (ONE drawer: when, which jobs, accounts, view — components/AutoSettingsDrawer.jsx); Import and
 //             Export (The Table's CSV import, Excel and CSV export, unchanged in function); Send all ready (n) — one
 //             confirm that lists them.
-//   TABLE     one row of counts; the filters All · Needs you · In progress · Sent · Replies · Stopped, the search and the
+//   ⭐ 46y (home-sketch.html, D167 on D146): under the header, THE AUTO-APPLY BAR (a live dot, "Auto-apply is running · n of
+//             N today · next run at …", the mode, Pause, Settings — moved here from the header and the timeline's head),
+//             THE NEEDS-YOU CARDS (lib/trackerRows.js homeNeeds), then Applications n · Inbox n new (components/ApplicationInbox.jsx).
+//   TABLE     (46y: no counts row — each filter carries its count) the filters All · Needs you · In progress · Sent · Replies · Stopped, the search and the
 //             period; plain rows and columns (components/ApplicationTracker.jsx), what each says from lib/trackerRows.js.
 //             A row opens IN PLACE, one at a time: the stage's eyebrow and headline, the panes on demand (The posting ·
 //             Résumé · Answers · Emails — the tree's old leaves) and the stage's actions (actionsFor below + the stage's).
@@ -614,6 +618,25 @@ export function AutoApplyPanel({ user = null } = {}) {
   const [open, setOpen] = useState(null);
   const [pane, setPane] = useState(null);
   const [phoneView, setPhoneView] = useState("table");
+  // ⭐ 46y · home-sketch.html: Home's two parts — Applications · Inbox ("4 new": messages newer than the newest one this
+  // browser has shown; a per-viewer convenience, so localStorage, guarded).
+  const [homeTab, setHomeTab] = useState("apps");
+  const [inboxHead, setInboxHead] = useState({ total: 0, fresh: 0 });
+  const INBOX_SEEN = "draft:inbox-seen-at";
+  useEffect(() => {
+    let off = false;
+    api("/api/inbox").then(d => {
+      if (off) return;
+      let seen = 0; try { seen = Number(localStorage.getItem(INBOX_SEEN)) || 0; } catch { /* storage refused */ }
+      const ms = Array.isArray(d?.messages) ? d.messages : [];
+      setInboxHead({ total: ms.length, fresh: ms.filter(m => Number(m.receivedAt) > seen).length });
+    }).catch(() => {});
+    return () => { off = true; };
+  }, []);
+  const inboxSeen = useCallback((top) => {
+    try { if (Number(top) > (Number(localStorage.getItem(INBOX_SEEN)) || 0)) localStorage.setItem(INBOX_SEEN, String(top)); } catch { /* storage refused */ }
+    setInboxHead(h => (h.fresh ? { ...h, fresh: 0 } : h));
+  }, []);
   // Settings → View: the table, or The Table's full sheet (a deep link with ?sheet= opens the sheet, as /app/database did).
   const [listView, setListView] = useState(() => { try { return new URLSearchParams(window.location.search).get("sheet") ? "sheet" : "table"; } catch { return "table"; } });
   const [sheetAt, setSheetAt] = useState(null);   // { sheet, jobId } — "I applied" opens the sheet's Pending at that job
@@ -662,7 +685,9 @@ export function AutoApplyPanel({ user = null } = {}) {
   const rows = trackerRows({ nodes, history, now });
   const periodDays = TRACKER_PERIODS.find(p => p[0] === period)?.[2] ?? null;
   const shownRows = sortRows(trackerView(rows, { filter, q, periodDays, now }), sort);
-  const counts = trackerCounts(rows);
+  const fcounts = filterCounts(rows);
+  const summary = homeSummary(rows, now);
+  const needs = homeNeeds(rows, now);
   const ready = readyToSend(rows);
   // CSV out: exactly the rows shown that The Table knows (D55 (i)).
   const csvRows = shownRows.map(r => r.hist).filter(Boolean);
@@ -1081,7 +1106,7 @@ export function AutoApplyPanel({ user = null } = {}) {
               <span className="dht-r__s">{m.category}{m.receivedAt ? ` · ${new Date(m.receivedAt * 1000).toLocaleDateString()}` : ""}</span>
             </div>
           ))}
-        <div className="dht-acts"><button type="button" className="dh-btn" data-open-inbox="" onClick={() => openSheet("inbox", null)}>The inbox</button></div>
+        <div className="dht-acts"><button type="button" className="dh-btn" data-open-inbox="" onClick={() => { setOpen(null); setHomeTab("inbox"); }}>The inbox</button></div>
       </>
     );
   };
@@ -1285,7 +1310,10 @@ export function AutoApplyPanel({ user = null } = {}) {
        sub && `${sub.used} of ${settings?.dailyCap ?? sub.limit} sent today.`,
        fullAuto ? "Good matches are sent for you." : picksOn ? "You tap Apply on each pick." : "Nothing is submitted until you approve it."]
       .filter(Boolean).join(" ");
-  // ⭐ D146 · the timeline's head: "Auto-apply · Runs at 9 AM and 6 PM" (D182: the mode words left), the sentence, Pause.
+  // ⭐ 46y · the auto-apply bar's words after "Auto-apply is running": " · 4 of 10 today · next run at 3:00 pm".
+  const autoLine = held ? "" : [sub && ` · ${sub.used} of ${settings?.dailyCap ?? sub.limit} today`,
+    nextRunAt && ` · next run at ${timeLabel(nextRunAt, timeZone)}`].filter(Boolean).join("");
+  // ⭐ D146 · the timeline's head: "Auto-apply · Runs at 9 AM and 6 PM" (D182: the mode words left), the sentence.
   const runAt = (t) => { const [h, m] = t.split(":").map(Number); return `${h % 12 || 12}${m ? `:${String(m).padStart(2, "0")}` : ""} ${h < 12 ? "AM" : "PM"}`; };
   const runTimes = (Array.isArray(settings?.runTimes) ? settings.runTimes : []).filter(t => /^\d\d:\d\d$/.test(t)).map(runAt);
   const runsWord = !runTimes.length ? "" : `Runs at ${runTimes.length > 1 ? `${runTimes.slice(0, -1).join(", ")} and ${runTimes[runTimes.length - 1]}` : runTimes[0]}`;
@@ -1307,15 +1335,11 @@ export function AutoApplyPanel({ user = null } = {}) {
   };
   const timelineHead = (
     // ⭐ D149 (11-03) · the sketch's .tl head: "Auto-apply" (15 / 600) over "Ask me first · runs at 9 AM and 6 PM". The
-    // running sentence is not on the sketch (shown only while paused). Pause — the safety stop — stays here as one
-    // quiet word on the title's line (it is also Settings → Pausing, D148), not a boxed button.
+    // running sentence is not on the sketch (shown only while paused). ⭐ 46y (home-sketch.html): Pause — the safety stop —
+    // moved to the auto-apply bar above the table, beside the mode (it is also Settings → Pausing, D148).
     <div className="dht-head" data-held={held ? "true" : "false"}>
       <div className="dht-head__top">
         <h3 className="dht-head__t" data-timeline-title="">Auto-apply</h3>
-        <button type="button" className="dht-link" data-stop-everything="" data-held={held ? "true" : "false"}
-          disabled={holdBusy || !runBar} title={`${STOP_DOES} ${STOP_DOES_NOT}`} onClick={() => setStopEverything?.(!held)}>
-          {held ? "Resume" : "Pause"}
-        </button>
       </div>
       {/* D182 (45n): no mode words here — the header's mode switch already shows Ask me first / Apply for me. */}
       {runsWord && <p className="dht-head__sub">{runsWord}</p>}
@@ -1459,21 +1483,14 @@ export function AutoApplyPanel({ user = null } = {}) {
         <div className="dh-head__text">
           {/* ⭐ D149 (11-03): the sketch's .ph3 — the serif at 44 / 1 over its line in body grey (DraftHouse.css). */}
           <h1 style={{ ...TYPE.PAGE_TITLE, ...DH_TITLE }}>Home</h1>
+          {/* ⭐ 46y · home-sketch.html's line under the title: "12 this month · 3 replies · 1 interview coming up". */}
+          {summary && <p className="dh-head__say" data-home-summary="">{summary}</p>}
           {/* ⭐ D154 P1: Home shows ONE line for the daily question — never a panel (D145). */}
           <p className="dh-head__say" data-daily-line=""><a href="/app/atlas/todays-question">Today's question · 2 minutes</a></p>
         </div>
-        {/* The sketch's .tools3: the mode (.seg2), three quiet buttons, and Send all ready in the accent. */}
+        {/* ⭐ 46y · home-sketch.html's .acts: Import · Export · Send all ready (the mode, Pause and Settings moved to the
+            auto-apply bar below). The sketch writes "Send all ready · 2"; D146's "Send all ready (n)" is the owner's own row, kept. */}
         <div className="dh-head__ctl">
-          <div className="dh-mode" role="group" aria-label="Mode">
-            <button type="button" className="dh-mode__seg" data-mode="ask" aria-pressed={!fullAuto}
-              disabled={holdBusy || !runBar} onClick={chooseAsk}>Ask me first</button>
-            {/* ⛔ FULL AUTO is the operator's to unlock (autoToggle): locked, it has no handler. */}
-            <button type="button" className="dh-mode__seg" data-mode="auto" aria-pressed={fullAuto}
-              data-locked={mode.selectable ? "false" : "true"} disabled={!mode.selectable || holdBusy}
-              aria-describedby={mode.selectable ? undefined : "dh-auto-why"}
-              onClick={mode.selectable ? () => !fullAuto && setApplyMode?.("auto") : undefined}>Apply for me</button>
-          </div>
-          <button type="button" className="dh-quiet" data-settings-open="" onClick={(e) => openSettings(null, e.currentTarget)}>Settings</button>
           {/* The Table's Excel / CSV import and export, unchanged in function (lib/tableExport.js, ApplicationHistory's ImportPanel). */}
           <button type="button" className="dh-quiet" data-import-open="" aria-pressed={importing} onClick={() => setImporting(v => !v)}>Import</button>
           <button type="button" className="dh-quiet" data-export-open="" aria-pressed={exporting} onClick={() => setExporting(v => !v)}>Export</button>
@@ -1482,8 +1499,6 @@ export function AutoApplyPanel({ user = null } = {}) {
             title="Approves every application that is Ready to send. Approving submits it to the employer and cannot be undone."
             onClick={sendAllReady}>Send all ready ({ready.length})</button>
         </div>
-        {!mode.selectable && <p className="dh-head__why" id="dh-auto-why" data-auto-locked-reason="">Apply for me is locked: {mode.reason}</p>}
-        {holdMsg && <p className="dh-head__why" role="status">{holdMsg}</p>}
       </header>
       {/* ⭐ D148: the drawer opens with the mode (the header switch's own handlers and lock) and Pause everything now. */}
       <AutoSettingsDrawer open={settingsOpen} runBar={runBar} group={settingsGroup} listView={listView} onListView={setListView}
@@ -1498,6 +1513,50 @@ export function AutoApplyPanel({ user = null } = {}) {
         </div>
       )}
       {importing && <ImportPanel onClose={() => setImporting(false)} onImported={() => { refreshTableRecords(); loadTableRows().then(setTableRows); }} />}
+
+      {/* ── ⭐ 46y · home-sketch.html's .auto — THE AUTO-APPLY BAR: a live dot, what it is doing ("Auto-apply is running ·
+          4 of 10 today · next run at 3:00 pm"), the mode, Pause (the safety stop, from the timeline's head) and Settings. ── */}
+      <div className="dh-auto" data-home-auto="" data-held={held ? "true" : "false"}>
+        <div className="dh-auto__st">
+          <span className="dh-live" aria-hidden="true" />
+          <span><b>{held ? "Auto-apply is paused" : "Auto-apply is running"}</b>{autoLine}</span>
+        </div>
+        <div className="dh-auto__ctl">
+          <div className="dh-mode" role="group" aria-label="Mode">
+            <button type="button" className="dh-mode__seg" data-mode="ask" aria-pressed={!fullAuto}
+              disabled={holdBusy || !runBar} onClick={chooseAsk}>Ask me first</button>
+            {/* ⛔ FULL AUTO is the operator's to unlock (autoToggle): locked, it has no handler. */}
+            <button type="button" className="dh-mode__seg" data-mode="auto" aria-pressed={fullAuto}
+              data-locked={mode.selectable ? "false" : "true"} disabled={!mode.selectable || holdBusy}
+              aria-describedby={mode.selectable ? undefined : "dh-auto-why"}
+              onClick={mode.selectable ? () => !fullAuto && setApplyMode?.("auto") : undefined}>Apply for me</button>
+          </div>
+          <button type="button" className="dh-quiet" data-stop-everything="" data-held={held ? "true" : "false"}
+            disabled={holdBusy || !runBar} title={`${STOP_DOES} ${STOP_DOES_NOT}`} onClick={() => setStopEverything?.(!held)}>
+            {held ? "Resume" : "Pause"}
+          </button>
+          <button type="button" className="dht-link dh-auto__rules" data-settings-open="" onClick={(e) => openSettings(null, e.currentTarget)}>Settings</button>
+        </div>
+        {!mode.selectable && <p className="dh-head__why" id="dh-auto-why" data-auto-locked-reason="">Apply for me is locked: {mode.reason}</p>}
+        {holdMsg && <p className="dh-head__why" role="status">{holdMsg}</p>}
+      </div>
+
+      {/* ── ⭐ 46y · home-sketch.html's .needs — what needs the person first: at most three cards (lib/trackerRows.js homeNeeds). ── */}
+      {needs.length > 0 && listView !== "sheet" && (
+        <div className="dh-needs" data-home-needs="">
+          {needs.map(n => (
+            <div key={n.kind} className="dh-nd" data-home-need={n.kind}>
+              <span className="dh-nd__k">{n.eyebrow}</span>
+              <b>{n.title}</b>
+              <p>{n.line}</p>
+              <div className="dht-acts">
+                <button type="button" className={n.primary ? "dh-send" : "dh-quiet"} data-need-act={n.act}
+                  onClick={() => (n.act === "interview" ? navigate("/app/interview") : openRow(n.key))}>{n.label}</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* What it said BEFORE a run still matters: autofill unavailable is stated here. */}
       {applyReadiness && !applyReadiness.available && (
@@ -1529,28 +1588,34 @@ export function AutoApplyPanel({ user = null } = {}) {
         </div>
       ))}
 
-      {/* ⭐ D149 (11-03): the counts and the filters span the page above the table and the timeline (the sketch's .cnt
-          and .flt sit before its .layout), so the timeline's top meets the table's, and on a phone both stay above the
-          switch whichever side is shown. The full sheet (Settings → View) replaces them. */}
-      {listView !== "sheet" && (
-        <>
-          <TrackerCounts counts={counts} />
-          <TrackerFilters filter={filter} onFilter={setFilter} period={period} onPeriod={setPeriod}
-            findOpen={findOpen || !!q || period !== "any"} onFind={(on) => { setFindOpen(on); if (!on) { setQ(""); setPeriod("any"); } }}
-            search={<PanelSearch theme={theme} value={q} onChange={setQ} width={200} placeholder="Search" />} />
-        </>
-      )}
+      {/* ⭐ D149 (11-03) → 46y: tracker-options.html put the counts and the filters above the table and the timeline;
+          home-sketch.html (D167) puts the Applications · Inbox tabs and the filters INSIDE the table's column, the timeline
+          level with the tabs — so they are drawn there (.dh-table-col below). */}
 
-      {/* ── ⭐ D146 · phones: a switch, Applications · Auto-apply timeline (layout 3). Hidden from 900 px (CSS). ── */}
+      {/* ── ⭐ D146 · phones: a switch, Applications · Auto-apply timeline (layout 3). Hidden from 900 px (CSS). ⭐ 46y: on a
+          phone it is also home-sketch.html's tabs — Applications · Inbox · Auto-apply timeline, ONE row (.dh-tabs hides). ── */}
       <div className="dh-mode dh-switch" role="group" aria-label="Show" data-phone-switch="">
-        <button type="button" className="dh-mode__seg" data-phone-view="table" aria-pressed={phoneView === "table"} onClick={() => setPhoneView("table")}>Applications</button>
+        <button type="button" className="dh-mode__seg" data-phone-view="table" aria-pressed={phoneView === "table" && homeTab === "apps"} onClick={() => { setPhoneView("table"); setHomeTab("apps"); }}>Applications</button>
+        <button type="button" className="dh-mode__seg" data-phone-view="inbox" aria-pressed={phoneView === "table" && homeTab === "inbox"} onClick={() => { setOpen(null); setPhoneView("table"); setHomeTab("inbox"); }}>Inbox</button>
         <button type="button" className="dh-mode__seg" data-phone-view="timeline" aria-pressed={phoneView === "timeline"} onClick={() => setPhoneView("timeline")}>Auto-apply timeline</button>
       </div>
 
       {/* ── ⭐ D146 · THE TABLE, AND THE AUTO-APPLY TIMELINE BESIDE IT (layout 1). ── */}
       <div className="dh-main" data-draft-split="" data-phone-view={phoneView} data-detail={sideJob && sideDetail ? "true" : undefined}>
         <div className="dh-table-col">
-          {listView === "sheet" ? (
+          {/* ⭐ 46y · home-sketch.html's .tabs: Home's two parts — Applications n · Inbox n new — then that part's filters. The
+              timeline beside starts level with them (the sketch's .grid2). */}
+          {listView !== "sheet" && (
+            <div className="dh-tabs" role="group" aria-label="Show" data-home-tabs="">
+              <button type="button" data-home-tab="apps" aria-pressed={homeTab === "apps"} onClick={() => setHomeTab("apps")}>
+                Applications <span>{rows.length}</span></button>
+              <button type="button" data-home-tab="inbox" aria-pressed={homeTab === "inbox"} onClick={() => { setOpen(null); setHomeTab("inbox"); }}>
+                Inbox <span>{inboxHead.fresh ? `${inboxHead.fresh} new` : inboxHead.total}</span></button>
+            </div>
+          )}
+          {listView !== "sheet" && homeTab === "inbox" ? (
+            <ApplicationInbox theme={theme} onSeen={inboxSeen} />
+          ) : listView === "sheet" ? (
             /* Settings → View → The full sheet: The Table's own views (D15 / D54 / D55), kept, not on the first screen. */
             <section data-full-sheet="" aria-label="The full sheet" style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 480 }}>
               <div className="dht-acts"><button type="button" className="dh-btn" data-back-to-table="" onClick={() => { setListView("table"); setSheetAt(null); }}>Back to the table</button></div>
@@ -1559,6 +1624,10 @@ export function AutoApplyPanel({ user = null } = {}) {
             </section>
           ) : (
             <>
+              {/* ⭐ D149 (11-03) / 46y: the filters, each with its count (home-sketch.html's .filters), above the table. */}
+              <TrackerFilters filter={filter} onFilter={setFilter} period={period} onPeriod={setPeriod} counts={fcounts}
+                findOpen={findOpen || !!q || period !== "any"} onFind={(on) => { setFindOpen(on); if (!on) { setQ(""); setPeriod("any"); } }}
+                search={<PanelSearch theme={theme} value={q} onChange={setQ} width={200} placeholder="Search" />} />
               <ApplicationTracker rows={shownRows} sort={sort} onSort={setSort}
                 openKey={open?.type === "job" ? open.key : null}
                 onOpen={(key) => step(key == null ? { type: "close" } : { type: "job", key })}

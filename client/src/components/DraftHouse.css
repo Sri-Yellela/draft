@@ -53,6 +53,80 @@
 .dh-send:disabled { cursor: default; }
 .dh-quiet:focus-visible, .dh-send:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 3px; }
 .dh-mode__why { margin: 0; font-size: 11.5px; color: var(--c-ink-muted); max-width: 30ch; }
+/* ⭐ 46y · home-sketch.html's .acts — Import · Export as its .btn (the raised colour, the ink, 14 radius, 11 × 16) and
+   Send all ready as its .btn.p, at its 15 px. */
+.dh-head__ctl .dh-quiet, .dh-head__ctl .dh-send { border-radius: 14px; padding: 11px 16px; font-size: calc(15px * var(--type-scale, 1)); }
+.dh-head__ctl .dh-quiet { background: var(--c-fh-well); color: var(--c-ink); }
+
+/* ── ⭐ 46y · home-sketch.html's .auto — THE AUTO-APPLY BAR: the card colour, radius 24, 14 × 18, 18 under; the live dot
+   (8 px, the ok green, pulsing 1.6 s), the words in body grey with the state in ink 600; .mode on the raised colour (3 in,
+   the chosen side the card colour in the accent); Pause the raised .btn; Settings the accent .quiet. ── */
+.dh-auto { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; margin: 18px 0 18px;
+  padding: 14px 18px; border-radius: 24px; background: var(--c-surface-solid); }
+.dh-auto__st { display: flex; gap: 10px; align-items: center; color: var(--c-ink-muted); min-width: 0; }
+.dh-auto__st b { color: var(--c-ink); font-weight: 600; }
+.dh-auto__ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.dh-auto .dh-head__why { flex-basis: 100%; }
+.dh-live { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--c-success);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-success) 60%, transparent); animation: dh-pulse 1.6s infinite; }
+.dh-auto[data-held="true"] .dh-live { background: var(--c-ink-faint); animation: none; }
+@keyframes dh-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-success) 55%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
+.dh-auto .dh-mode { padding: 3px; border-radius: 13px; background: var(--c-fh-well); }
+.dh-auto .dh-mode__seg { padding: 7px 12px; border-radius: 10px; font-size: calc(13.5px * var(--type-scale, 1)); }
+.dh-auto .dh-mode__seg[aria-pressed="true"] { background: var(--c-surface-solid); color: var(--c-accent-ink); }
+.dh-auto .dh-quiet { border-radius: 14px; padding: 11px 16px; background: var(--c-fh-well); color: var(--c-ink); font-size: calc(15px * var(--type-scale, 1)); }
+.dh-auto .dh-auto__rules { color: var(--c-accent-ink); font-weight: 600; font-size: calc(14px * var(--type-scale, 1)); }
+@media (prefers-reduced-motion: reduce) { .dh-live { animation: none; } }
+
+/* ── ⭐ 46y · home-sketch.html's .needs / .nd — what needs you first: cards in a 260 px-minimum grid, 12 apart, 26 under;
+   each the card colour, radius 24, padding 18, 6 between: the kind in the accent (13), the name (16 / 600), the line
+   (14, body grey), the button (.btn.p for Needs you, .btn otherwise) 6 below. ── */
+.dh-needs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin: 0 0 26px; }
+.dh-nd { display: grid; gap: 6px; align-content: start; padding: 18px; border-radius: 24px; background: var(--c-surface-solid); }
+.dh-nd__k { color: var(--c-accent-ink); font-size: calc(13px * var(--type-scale, 1)); }
+.dh-nd b { font-size: calc(16px * var(--type-scale, 1)); font-weight: 600; color: var(--c-ink); }
+.dh-nd p { margin: 0; color: var(--c-ink-muted); font-size: calc(14px * var(--type-scale, 1)); }
+.dh-nd .dht-acts { margin-top: 6px; }
+.dh-nd .dh-send, .dh-nd .dh-quiet { border-radius: 14px; padding: 11px 16px; font-size: calc(15px * var(--type-scale, 1)); }
+.dh-nd .dh-quiet { background: var(--c-fh-well); color: var(--c-ink); }
+
+/* ── ⭐ 46y · home-sketch.html's .tabs — Applications n · Inbox n new: the card colour, radius 16, 4 in, 14 under; each
+   8 × 16, radius 12, 14 / 600 in body grey; the chosen one raised in ink; the count muted at 500, 6 px in. ── */
+.dh-tabs { display: inline-flex; align-self: flex-start; padding: 4px; border-radius: 16px; background: var(--c-surface-solid); margin: 0 0 2px; }
+.dh-tabs button { border: 0; background: transparent; cursor: pointer; padding: 8px 16px; border-radius: 12px; font: inherit; line-height: 1.55;
+  font-size: calc(14px * var(--type-scale, 1)); font-weight: 600; color: var(--c-ink-muted); }
+.dh-tabs button[aria-pressed="true"] { background: var(--c-fh-well); color: var(--c-ink); }
+.dh-tabs button span { margin-left: 6px; color: var(--c-ink-faint); font-weight: 500; }
+.dh-tabs button:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 3px; }
+
+/* ── ⭐ 46y · home-sketch.html's Inbox — .list (one card, radius 24) of .it rows: bubble · subject over the sender ·
+   a dot + the category · when; 13 × 18, 14 between, a line between rows; hovered / opened raised. An opened row's .det:
+   the message on the card colour (radius 18, 14 × 16, 14.5, ≤ 70ch), the update line (13, muted), its buttons. ── */
+.dh-inbox { display: flex; flex-direction: column; min-width: 0; }
+.dh-inbox__q { flex: 1; min-width: 160px; border: 0; border-radius: 12px; padding: 8px 12px; background: var(--c-surface-solid);
+  color: var(--c-ink); font: inherit; font-size: calc(13.5px * var(--type-scale, 1)); }
+.dh-inbox__q:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 3px; }
+.dh-ilist { border-radius: 24px; background: var(--c-surface-solid); overflow: hidden; }
+.dh-ilist > .dht-empty { padding: 14px 18px 18px; }
+.dh-it { display: grid; grid-template-columns: 38px minmax(0, 1.6fr) minmax(0, 1fr) auto; gap: 14px; align-items: center;
+  padding: 13px 18px; border-top: 1px solid var(--c-border); cursor: pointer; }
+.dh-it:first-child { border-top: 0; }
+.dh-it:hover, .dh-it[data-open="true"] { background: var(--c-fh-well); }
+.dh-it[data-open="true"] { cursor: default; }
+.dh-it:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; }
+.dh-it__t { display: flex; flex-direction: column; min-width: 0; }
+.dh-it__t b { font-weight: 600; color: var(--c-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dh-it__t span { color: var(--c-ink-faint); font-size: calc(13px * var(--type-scale, 1)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dh-it__when { color: var(--c-ink-faint); font-size: calc(13px * var(--type-scale, 1)); text-align: right; white-space: nowrap; }
+.dh-it__det { grid-column: 1 / -1; padding: 4px 0 6px; }
+.dh-it__msg { margin: 0 0 10px; max-width: 70ch; padding: 14px 16px; border-radius: 18px; background: var(--c-surface-solid);
+  color: var(--c-ink-muted); font-size: calc(14.5px * var(--type-scale, 1)); }
+.dh-it__upd { margin: 0 0 10px; color: var(--c-ink-faint); font-size: calc(13px * var(--type-scale, 1)); }
+.dh-isrc { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; margin: 12px 4px 0; color: var(--c-ink-faint); font-size: calc(12.5px * var(--type-scale, 1)); }
+@media (max-width: 760px) {
+  .dh-it { grid-template-columns: 36px minmax(0, 1fr) auto; }
+  .dh-it__when { display: none; }
+}
 
 .dh-btn {
   border: 0; border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 12.5px; font-weight: 700;
@@ -84,9 +158,10 @@
 .dh-fold__quiet { margin: 0; font-size: 12px; color: var(--c-ink-faint); }
 
 /* ── ⭐ D146 · THE MAIN GRID — the table, and the auto-apply timeline card beside it at 300 px ───── */
-.dh-main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
+.dh-main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }   /* 46y: home-sketch.html's .grid2 */
 .dh-main[data-detail="true"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
 .dh-table-col { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.dh-table-col > .trk-filters { margin: 0; }
 .dh-detail { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; position: sticky; top: 8px; }
 .dh-switch { display: none; }
 /* D149 (11-03): a broken connection is one line on the card colour — no border, no coloured edge (no card borders). */
@@ -108,6 +183,7 @@
 @media (max-width: 899px) {
   .dh-main, .dh-main[data-detail="true"] { grid-template-columns: minmax(0, 1fr); }
   .dh-switch { display: inline-flex; align-self: flex-start; margin-bottom: 14px; }
+  .dh-table-col > .dh-tabs { display: none; }   /* 46y: the phone's switch carries Applications · Inbox · timeline */
   .dh-main[data-phone-view="table"] > .dht, .dh-main[data-phone-view="timeline"] > .dh-table-col { display: none; }
   .dht { position: static; }
   .dh-main > .dh-detail { order: -1; }
@@ -121,7 +197,7 @@
    words (13.5, body grey; "why these" in the accent) and the 30 px bubbles; the key a dot per stage. */
 .dht {
   min-width: 0; display: flex; flex-direction: column; position: sticky; top: 8px; padding: 18px;
-  border-radius: 22px; background: var(--c-surface-solid);
+  border-radius: 24px; background: var(--c-surface-solid);   /* 46y: home-sketch.html's .tl */
 }
 .dht-head { display: flex; flex-direction: column; margin-bottom: 14px; }
 .dht-head__t { margin: 0 0 2px; font: 600 calc(15px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body)); color: var(--c-ink); }

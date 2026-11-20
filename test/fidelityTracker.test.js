@@ -10,7 +10,7 @@ import { probe as fidelityProbe } from "../test-support/fidelityProbe.mjs";
 const probe = (screen) => fidelityProbe(screen);
 
 const CARD = "rgb(38, 38, 38)", RAISE = "rgb(46, 46, 46)", INK = "rgb(255, 255, 255)", BODY = "rgb(163, 163, 163)";
-const ACCENT = "rgb(251, 211, 196)", ON_ACCENT = "rgb(27, 27, 27)";
+const ACCENT = "rgb(251, 211, 196)", ON_ACCENT = "rgb(27, 27, 27)", FAINT = "rgb(149, 149, 149)";
 
 test("fidelity · the tracker (tracker-options.html): the page, the header, the counts, the filters, the table, the timeline", { timeout: 200000 }, (t) => {
   const out = probe("tracker");
@@ -23,15 +23,26 @@ test("fidelity · the tracker (tracker-options.html): the page, the header, the 
     // ⭐ D167 (changed on purpose, 45b 21ff9b5): the page starts below a top dock's reserve (--appnav-top-reserve, measured).
     assert.equal(d.title.y, 84 + (d.dock?.reserve || 0), `${size}: the title at the sketch's 84 px`);
     assert.deepEqual([d.line.size, d.line.color], ["16px", BODY]);
-    // .seg2 / .quiet / .btn.p — the card colour, no borders, no capsules; the primary in the accent's gradient.
-    assert.deepEqual([d.mode.bg, d.mode.radius, d.mode.padding, d.mode.border], [CARD, "14px", "4px", "0px"]);
-    assert.deepEqual([d.modeOn.bg, d.modeOn.radius, d.modeOn.padding, d.modeOn.size, d.modeOn.weight, d.modeOn.color], [RAISE, "10px", "8px 14px", "14px", "600", INK]);
-    assert.deepEqual([d.quiet.bg, d.quiet.radius, d.quiet.padding, d.quiet.size, d.quiet.weight, d.quiet.color, d.quiet.border], [CARD, "12px", "9px 14px", "14px", "600", BODY, "0px"]);
+    // ⭐ 46y (changed on purpose, home-sketch.html — D167 on D146's tracker): the mode moved into the auto-apply bar
+    // (.auto .mode: the raised colour, radius 13, 3 in; the chosen side the card colour in the accent, 7 × 12, 13.5);
+    // the header's Import / Export are the sketch's .btn (raised, ink, radius 14, 11 × 16, 15) and Send all ready its .btn.p.
+    assert.deepEqual([d.mode.bg, d.mode.radius, d.mode.padding, d.mode.border], [RAISE, "13px", "3px", "0px"]);
+    assert.deepEqual([d.modeOn.bg, d.modeOn.radius, d.modeOn.padding, d.modeOn.size, d.modeOn.weight, d.modeOn.color], [CARD, "10px", "7px 12px", "13.5px", "600", ACCENT]);
+    assert.deepEqual([d.quiet.bg, d.quiet.radius, d.quiet.padding, d.quiet.size, d.quiet.weight, d.quiet.color, d.quiet.border], [RAISE, "14px", "11px 16px", "15px", "600", INK, "0px"]);
     assert.match(d.send.bgImage, /^linear-gradient\(rgb\(251, 211, 196\), rgb\(242, 194, 178\)\)$/, `${size}: Send all ready in the accent's gradient`);
-    assert.deepEqual([d.send.color, d.send.radius, d.send.padding, d.send.size, d.send.weight], [ON_ACCENT, "16px", "10px 16px", "15.5px", "600"]);
-    // .cnt — 30 / 500 over a 13 px grey word; needs you in the accent.
-    assert.deepEqual([d.count.size, d.count.weight, d.countWord.size], ["30px", "500", "13px"]);
-    assert.equal(d.countHot.color, ACCENT);
+    assert.deepEqual([d.send.color, d.send.radius, d.send.padding, d.send.size, d.send.weight], [ON_ACCENT, "14px", "11px 16px", "15px", "600"]);
+    // ⭐ 46y: .auto — the card colour, radius 24, 14 × 18; .nd — the card colour, radius 24, 18; the fixture's three
+    // cards in the sketch's order (Needs you · the interview · Ready to send); .tabs — the card colour, radius 16, 4 in,
+    // the chosen tab raised in ink.
+    assert.deepEqual([d.bar.bg, d.bar.radius, d.bar.padding, d.bar.border], [CARD, "24px", "14px 18px", "0px"]);
+    assert.deepEqual([d.need.bg, d.need.radius, d.need.padding], [CARD, "24px", "18px"]);
+    assert.deepEqual(d.needKinds, ["need", "interview", "ready"]);
+    assert.deepEqual([d.tabs.bg, d.tabs.radius, d.tabs.padding], [CARD, "16px", "4px"]);
+    assert.deepEqual([d.tabOn.bg, d.tabOn.size, d.tabOn.weight, d.tabOn.color], [RAISE, "14px", "600", INK]);
+    // ⭐ 46y (changed on purpose): the .cnt row is gone — each filter carries its count, 13.5 / 500 in the muted grey.
+    assert.equal(d.counts, false, `${size}: no counts row`);
+    assert.deepEqual([d.count.size, d.count.weight, d.count.color], ["13.5px", "500", FAINT]);
+    assert.equal(d.countText, "6", `${size}: All counts the fixture's six applications`);
     // .flt — 600 13.5 on the card colour, radius 11, 7 × 13; the pressed one raised.
     assert.deepEqual([d.filter.bg, d.filter.radius, d.filter.padding, d.filter.size, d.filter.weight, d.filter.color, d.filter.border], [CARD, "11px", "7px 13px", "13.5px", "600", BODY, "0px"]);
     assert.equal(d.filterOn.bg, RAISE);
@@ -57,12 +68,14 @@ test("fidelity · the tracker (tracker-options.html): the page, the header, the 
   // ⭐ 46q FULL WIDTH (owner 11-16, changed on purpose): the page fills the 1280 inside the page gutter (3vw = 38.4), so
   // the table takes what the 18 + 300 timeline leave — no longer the sketch's 882 centred.
   assert.equal(dk.table.x, 38, "the table starts at the page gutter");
-  assert.equal(dk.table.w, Math.round(1280 - 2 * 38.4 - 18 - 300), "the table takes the width the timeline leaves");
+  // ⭐ 46y (changed on purpose, home-sketch.html's .grid2): the timeline is 320 wide.
+  assert.equal(dk.table.w, Math.round(1280 - 2 * 38.4 - 18 - 320), "the table takes the width the timeline leaves");
   assert.equal(dk.row.h, 84, "a row is the sketch's 84: 14 + the 44 px position + the folded .det's 12 px gap + 14");
   // ⭐ 46q: the 38.4 px gutter puts the edges on sub-pixels — the measured x / w are rounded, so the sum may be one off.
-  assert.deepEqual([dk.timeline.w, dk.timeline.y], [300, dk.table.y], "the timeline 300 wide, level with the table");
+  // ⭐ 46y (changed on purpose): the tabs and filters sit in the table's column, so the timeline is level with the TABS.
+  assert.deepEqual([dk.timeline.w, dk.timeline.y], [320, dk.tabs.y], "the timeline 320 wide, level with the tabs");
   assert.ok(Math.abs(dk.timeline.x - (dk.table.x + dk.table.w + 18)) <= 1, `the timeline beside, 18 apart (${dk.timeline.x} vs ${dk.table.x + dk.table.w + 18})`);
-  assert.deepEqual([dk.timeline.bg, dk.timeline.radius, dk.timeline.padding, dk.timeline.border, dk.timeline.shadow], [CARD, "22px", "18px", "0px", "none"]);
+  assert.deepEqual([dk.timeline.bg, dk.timeline.radius, dk.timeline.padding, dk.timeline.border, dk.timeline.shadow], [CARD, "24px", "18px", "0px", "none"]);
   assert.deepEqual([dk.tlTitle.size, dk.tlTitle.weight], ["15px", "600"]);
   assert.deepEqual([dk.bubble.w, dk.bubble.h], [30, 30], "the timeline's 30 px bubbles");
   assert.equal(dk.phoneSwitch, false, "no switch on a computer");
