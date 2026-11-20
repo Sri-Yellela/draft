@@ -31,6 +31,19 @@ test("R1: pure files that only MENTION a walk or a Chrome helper stay fast", () 
   for (const f of ["test/d190TinyFloating.test.js", "test/t20AutoReadOpenTabs.test.js", "test/a230DeadEndpointsGone.test.js"]) assert.equal(tierOf(f), "fast", f);
 });
 
+test("A232 R3: the long walks run ONE theme each, and j9's unit rules sit in the fast tier", () => {
+  assert.equal(tierOf("test/j9FullPassRules.test.js"), "fast");
+  const walks = { "test/j9FullPass.test.js": "dark", "test/j4PanelBrowser.test.js": "light", "test/j6ResumePanelBrowser.test.js": "dark" };
+  for (const [f, theme] of Object.entries(walks)) {
+    const loops = [...read(f).matchAll(/for \(const theme of (\[[^\]]*\])\)/g)].map(m => m[1]);
+    assert.deepEqual(loops, [`["${theme}"]`], `${f} walks one theme`);
+  }
+  // the two schemes are each still walked once across the tier
+  assert.deepEqual(new Set(Object.values(walks)), new Set(["light", "dark"]));
+  // j9's walk file holds the walk and nothing else
+  assert.equal([...read("test/j9FullPass.test.js").matchAll(/^\s*test\(/gm)].length, 1);
+});
+
 test("R1: the runner and the npm scripts read the one rule", () => {
   const runner = read("scripts/testTier.mjs"), pkg = JSON.parse(read("package.json"));
   assert.match(runner, /import \{ filesFor \} from "\.\.\/test-support\/testTiers\.mjs";/);

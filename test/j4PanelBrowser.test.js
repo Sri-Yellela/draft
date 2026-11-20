@@ -1,5 +1,5 @@
 // J4 · D96 §4–§7 IN A REAL CHROME. (1) The whole walk — the REAL extension (test build, with the lane's proposed
-// router wiring appended) on the Workday-shaped fixture, J8's real routes, BOTH THEMES: test-support/walks/
+// router wiring appended) on the Workday-shaped fixture, J8's real routes, ONE theme (A232 R3): test-support/walks/
 // panelLifecycle.mjs. (2) The panel itself, drawn on the fixture page: tokens per theme, no capsule, Collapse, Esc,
 // Close. (3) The wizard's advance never presses a hidden button, nor anything on a page with a password box.
 // (4) A Workday dropdown whose choices changed since the answer was remembered is a NEW question. (5) The Copy
@@ -19,7 +19,10 @@ const DOCK_JS = fs.readFileSync("extension/dock.js", "utf8");
 const chrome = await findChrome();
 const SKIP = chrome.skip || false;
 
-for (const theme of ["light", "dark"]) {
+// ⭐ A232 R3 (46y, owner 11-19 "all four approved"): the walk runs ONE theme (light). panelLifecycle.mjs makes no
+// theme-dependent check at all — its second (dark) walk repeated the same 3.8-min walk for nothing; the panel's tokens in
+// BOTH schemes are the "panel in both themes" test below, and j9FullPass walks dark, so each scheme is still walked once.
+for (const theme of ["light"]) {
   test(`⛔ J4 walk (${theme}): every field listed, Ready means ready, one tick remembers (eligibility too), a change is not stored, consent / signature / password untouched, dock / drag / Esc / Close`, { skip: SKIP, timeout: 600000 }, async () => {
     const lines = [];
     const r = await runScenario("panelLifecycle", { theme, log: (l) => lines.push(l) });

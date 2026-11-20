@@ -1,5 +1,5 @@
 // J6 · D98 §4–§5 IN A REAL CHROME. (1) The whole walk — the REAL extension (test build) on the Workday-shaped fixture,
-// J3's real routes with the generation stubbed, BOTH THEMES: test-support/walks/resumePanel.mjs. (2) The panel itself,
+// J3's real routes with the generation stubbed, ONE theme (A232 R3): test-support/walks/resumePanel.mjs. (2) The panel itself,
 // drawn on the fixture page: tokens per theme, no capsule, a preview that cannot run a script or load an image even when
 // handed raw markup, its own shadow root, a synthetic click that sends nothing, Collapse / Esc / Close, a step change it
 // survives while it polls. (3) Attach on a plain input (verified — the browser draws the name), on the fixture's drop
@@ -17,7 +17,9 @@ import { C_LIGHT, C_DARK } from "../extension/tokens.js";
 const chrome = await findChrome();
 const SKIP = chrome.skip || false;
 
-for (const theme of ["light", "dark"]) {
+// ⭐ A232 R3 (46y, owner 11-19 "all four approved"): the walk runs ONE theme (dark). Its one theme-dependent check (the
+// panel painted from SURFACE_MENU) is made for BOTH schemes by "the panel in both themes" test below, on the same render.
+for (const theme of ["dark"]) {
   test(`⛔ J6 walk (${theme}): generate on the page, survive a step change and a popup close, cancel, refuse, attach on Workday's drop zone, the Copy sheet and the next fill reuse the same file`, { skip: SKIP, timeout: 600000 }, async () => {
     const lines = [];
     const r = await runScenario("resumePanel", { theme, log: (l) => lines.push(l) });
