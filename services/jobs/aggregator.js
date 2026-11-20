@@ -11,6 +11,7 @@ import { retireDuplicate, keptApart } from './dedupRetire.js';
 import { ageGate, readPolicy } from './boardAge.js';
 import { scopeGate, storedFamily, writeCategory } from './boardScope.js';
 import { categoryOf } from './professionalScope.js';
+import { noteJobPageChanged } from '../seo/indexNow.js';   // D128 P2 (46y)
 
 // ─── REGISTER SOURCES HERE ───────────────────────────────────────────────────
 // To add a new source: import it and add to SOURCES array.
@@ -994,6 +995,9 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
             }
             continue;
           }
+          // ⭐ D128 P2 (46y): a stored posting whose content changed — its public page may have too. A no-op unless the
+          // IndexNow pinger runs; the pinger sends it only if the posting is still open and public at its next pass.
+          if (exists) noteJobPageChanged(jobId);
 
           const verdict = classifyJob(job.title || '', job.description || '', job.company || '');
 

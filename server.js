@@ -382,6 +382,7 @@ import { createReadPool } from "./services/db/readWorker.js";
 import { createAdminReports } from "./services/admin/reportWorker.js";
 import { createOffload, offloadCache } from "./services/db/offloadWorker.js";   // ⛔ A158 (45r)
 import { createPublicOpenBackfill } from "./services/jobs/publicOpenJobs.js";   // ⛔ A158 (45r)
+import { mountIndexNow } from "./routes/indexNow.js";   // ⭐ D128 P2 (46y): OFF until INDEXNOW_KEY is set
 import { createScorePool } from "./services/jobs/scoreWorker.js";
 // Y2B — the SAME fetcher and the SAME writer the enrichment pass uses. One implementation, two
 // triggers: the background pass buys descriptions for rows it is about to enrich, and this buys
@@ -11291,6 +11292,7 @@ app.get("/robots.txt", (req, res) => {
     "",
   ].join("\n"));
 });
+mountIndexNow(app, db);   // ⭐ D128 P2 (46y): /<INDEXNOW_KEY>.txt + the IndexNow pinger (timer, never a request path); nothing when unset
 
 // ═══════════════════════════════════════════════════════════════
 // AUTH
