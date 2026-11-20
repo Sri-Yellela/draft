@@ -30,6 +30,7 @@ a vendor is added or removed; a new outside call needs a row here AND a sentence
 | **DuckDuckGo Icons** | a company's domain (loaded by the person's browser) | company logos | `shared/companyLogos.js` | ✅ | public endpoint |
 | **The browser's push service** (Google / Mozilla / Microsoft / Apple) | an encrypted push message | push notifications (opt-in) | `services/webPush.js` | ✅ | the browser's |
 | **Cloudflare Email Routing** | mail people send to the contact / support addresses | forwarding to the inbox the team reads | DNS only — draft sends it nothing | ✅ | ⚠ not recorded — owner |
+| **IndexNow** (api.indexnow.org — Bing, Yandex, Seznam, Naver, Yep) — ⛔ OFF until `INDEXNOW_KEY` is set (D128 P2, 46y) | the site's host, its IndexNow key, and the URLs of public job pages just published or changed — no personal data | telling search engines a public job page appeared or changed | `services/seo/indexNow.js`, key file `routes/indexNow.js` | — (no personal data) | IndexNow's public protocol |
 | **LinkedIn** (optional sign-in) | — (LinkedIn sends name + email) | "Sign in with LinkedIn" | `routes/account.js` | ✅ | LinkedIn's OAuth terms |
 | **The person's own ChatGPT / Claude** (optional connector) | base résumé work history + skills (no contact details), job title / company / level / location / matched keywords | the connector (D86) | `routes/byom.js`, `services/byom/`, `docs/CLAUDE_CONNECTOR_COMPLIANCE.md` | ✅ | the person's own account |
 

@@ -9,6 +9,7 @@ import {
 } from "../services/seo/indexNow.js";
 import { mountIndexNow } from "../routes/indexNow.js";
 import { jobPath } from "../services/jobs/publicJobPage.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 // ⭐ D128 P2 (46y): IndexNow — the key file at the root, and a batched, capped, deduped ping when a public job page is
 // published or changes. OFF until INDEXNOW_KEY is set. Synthetic postings; the fetch is always injected (no network).
@@ -184,16 +185,16 @@ test("D128 P2 · a failed POST advances nothing (the same pages go next pass); 4
 
 test("D128 P2 · wiring: mounted beside robots.txt (before A157's /<company> catch-all), the crawl's changed path notes, robots allows the root", () => {
   const server = fs.readFileSync("server.js", "utf8");
-  const mount = server.indexOf("mountIndexNow(app, db);");
-  const robots = server.indexOf('app.get("/robots.txt"');
-  const company = server.indexOf("⭐ A157 (45q, owner 11-09) · a company's own address");
+  const mount = at(server, "mountIndexNow(app, db);");
+  const robots = at(server, 'app.get("/robots.txt"');
+  const company = at(server, "⭐ A157 (45q, owner 11-09) · a company's own address");
   assert.ok(mount > robots && robots > 0, "mounted after robots.txt");
   assert.ok(company > mount, "mounted before the /<company> catch-all");
   assert.equal(server.split("mountIndexNow(app, db)").length - 1, 1, "mounted once");
   const agg = fs.readFileSync("services/jobs/aggregator.js", "utf8").replace(/\r\n/g, "\n");
-  const note = agg.indexOf("if (exists) noteJobPageChanged(jobId);");
-  const unchanged = agg.indexOf("touchSeenStmt.run(now, now");
-  const classify = agg.indexOf("const verdict = classifyJob(job.title");
+  const note = at(agg, "if (exists) noteJobPageChanged(jobId);");
+  const unchanged = at(agg, "touchSeenStmt.run(now, now");
+  const classify = at(agg, "const verdict = classifyJob(job.title");
   assert.ok(note > unchanged && note < classify, "after the unchanged-touch path (never a change), before classifying the changed row");
   const svc = fs.readFileSync("services/seo/indexNow.js", "utf8");
   assert.ok(!/from "\.\.\/jobs\/publicJobPage\.js"/.test(svc), "no render imports — the aggregator imports this module");
