@@ -163,6 +163,7 @@ import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { createLearnRouter } from "./routes/learn.js";
 // ⭐ D169: Your skills in Atlas — and the gate: a skill not on the résumé goes into a tailored one only once proven.
 import { createYourSkillsRouter, createYourSkillsAdminRouter } from "./routes/yourSkills.js";
+import { createTrackersRouter } from "./routes/trackers.js";   // D159 T2–T4 (46y)
 import { ask as assistantAsk, decideAction as decideAssistantAction, actionLog as assistantActionLog, setImproveAtlas, improveAtlasOn,
   assistantAvailable, isAdminsOwnAccount, asksSummary as assistantAsksSummary, gapToBacklog as assistantGapToBacklog, ENABLED_KEY as ASSISTANT_ENABLED_KEY,
   lookup as assistantLookup, LOOKUP_INTENTS as ASSISTANT_LOOKUP_INTENTS } from "./services/assistant/assistant.js";
@@ -8095,6 +8096,33 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         ALTER TABLE ats_only_reports ADD COLUMN contextual_key TEXT;
       `,
     },
+    {
+      // ⭐ D159 T2–T4 (46y): TRACKERS. (1) company_follows (D159 T1, migration 237) gains last_seen_at — the follow becomes
+      // a feed with "new since you last looked" (NULL = since the follow). (2) tracked_pages: a careers page or an ATS board
+      // URL a person pasted to follow (T3 / T4). A board we already crawl resolves at once to a company follow; one we don't
+      // goes into the company-candidate pool (D82, the owner's approval) and this row waits, resolving to a follow when the
+      // board is added. A page with no readable board is kept as 'unsupported' (said so, never fetched on the request).
+      // The saved search (T2) keeps its home, domain_profiles.tracked_search_json (FE-3) — its lastSeenAt rides in the JSON.
+      // Only ADDS (a nullable column with no default, and a new table).
+      id: "279_trackers",
+      sql: `
+        ALTER TABLE company_follows ADD COLUMN last_seen_at INTEGER;
+        CREATE TABLE IF NOT EXISTS tracked_pages (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id       INTEGER NOT NULL,
+          url           TEXT    NOT NULL,
+          ats_type      TEXT,
+          ats_slug      TEXT COLLATE NOCASE,
+          company       TEXT,
+          status        TEXT    NOT NULL DEFAULT 'pending',
+          company_id    INTEGER,
+          created_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+          resolved_at   INTEGER,
+          UNIQUE (user_id, url)
+        );
+        CREATE INDEX IF NOT EXISTS idx_tracked_pages_pair ON tracked_pages(ats_type, ats_slug) WHERE status = 'pending';
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -12529,6 +12557,8 @@ app.use("/api/learn", createLearnRouter(db, { requireAuth }));
 // ⭐ D169 · Your skills (signed in, the person's own): the list, the map, add / remove, the quick check, a proof link.
 app.use("/api/your-skills", createYourSkillsRouter(db, { requireAuth }));
 app.use("/api/admin/your-skills", requireAdmin, createYourSkillsAdminRouter(db));
+// ⭐ D159 T2–T4 (46y) · trackers (routes/trackers.js): a saved search's "new since last seen" is the BOARD's own statement, counted.
+app.use("/api/trackers", requireAuth, createTrackersRouter(db, { read: readPool, countSearch: (user, profileId, params, since) => boardPageResponse({ user, boardProfileId: profileId, query: Object.fromEntries(new URLSearchParams(String(params || ""))) }, { measure: async ({ read, joinClause, whereClause, baseArgs }) => (await read.get(`SELECT COUNT(*) AS n ${joinClause} ${whereClause} AND ${FIRST_SEEN_SQL}`, [...baseArgs, since]))?.n ?? 0 }).then((r) => (r.body?.measured ? r.body.value : null)) }));
 // ⭐ D119 · thumbnails: stored pictures for Learn's resources (public), and the admin's Pin a video / Hide / refresh.
 app.use("/api/thumbs", createThumbsRouter(db));
 // ⭐ D130 / D131 · the standalone survey (public), Admin → Testers (the research over the trial's stored answers and the

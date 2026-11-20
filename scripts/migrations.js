@@ -7426,4 +7426,31 @@ export const MIGRATIONS = [
         ALTER TABLE ats_only_reports ADD COLUMN contextual_key TEXT;
       `,
     },
+    {
+      // ⭐ D159 T2–T4 (46y): TRACKERS. (1) company_follows (D159 T1, migration 237) gains last_seen_at — the follow becomes
+      // a feed with "new since you last looked" (NULL = since the follow). (2) tracked_pages: a careers page or an ATS board
+      // URL a person pasted to follow (T3 / T4). A board we already crawl resolves at once to a company follow; one we don't
+      // goes into the company-candidate pool (D82, the owner's approval) and this row waits, resolving to a follow when the
+      // board is added. A page with no readable board is kept as 'unsupported' (said so, never fetched on the request).
+      // The saved search (T2) keeps its home, domain_profiles.tracked_search_json (FE-3) — its lastSeenAt rides in the JSON.
+      // Only ADDS (a nullable column with no default, and a new table).
+      id: "279_trackers",
+      sql: `
+        ALTER TABLE company_follows ADD COLUMN last_seen_at INTEGER;
+        CREATE TABLE IF NOT EXISTS tracked_pages (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id       INTEGER NOT NULL,
+          url           TEXT    NOT NULL,
+          ats_type      TEXT,
+          ats_slug      TEXT COLLATE NOCASE,
+          company       TEXT,
+          status        TEXT    NOT NULL DEFAULT 'pending',
+          company_id    INTEGER,
+          created_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+          resolved_at   INTEGER,
+          UNIQUE (user_id, url)
+        );
+        CREATE INDEX IF NOT EXISTS idx_tracked_pages_pair ON tracked_pages(ats_type, ats_slug) WHERE status = 'pending';
+      `,
+    },
   ];

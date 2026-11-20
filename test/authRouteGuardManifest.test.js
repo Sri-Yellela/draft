@@ -300,6 +300,9 @@ const AUTHENTICATED = new Set([
   // D179 P4b (45l): Your match on a company page — the person's own skills, signed in.
   "GET /api/companies/:slug/match",
   "POST /api/companies/:slug/follow",
+  // D159 T2–T4 (46y): trackers — the person's own saved searches, followed companies and tracked pages (routes/trackers.js).
+  "GET /api/trackers/", "POST /api/trackers/pages", "DELETE /api/trackers/pages/:id",
+  "POST /api/trackers/companies/:id/seen", "POST /api/trackers/searches/:profileId/seen",
   "POST /api/audit/:token/claim",   // D150 T07: keep the result — signed in
   "GET /api/learn/today",           // D154 P1: today's question
   "POST /api/learn/today/answer",
@@ -776,6 +779,9 @@ function collect() {
       .map(r => ({ ...r, guard: named(r.guard) || mounts.get("/api/domain-profiles") })),
     ...routerRoutes(fs.readFileSync("routes/importJob.js", "utf8"), "/api/import")
       .map(r => ({ ...r, guard: named(r.guard) || mounts.get("/api/import") })),
+    // D159 T2–T4 (46y): mounted at /api/trackers behind requireAuth — the mount's guard is every route's.
+    ...routerRoutes(fs.readFileSync("routes/trackers.js", "utf8"), "/api/trackers")
+      .map(r => ({ ...r, guard: named(r.guard) || mounts.get("/api/trackers") })),
     ...routerRoutes(fs.readFileSync("routes/companyKb.js", "utf8"), "/api/company-kb")
       .map(r => ({ ...r, guard: named(r.guard) || mounts.get("/api/company-kb") })),
     // D115: mounted at /api/learn with NO mount guard — each progress route carries requireAuth itself.
