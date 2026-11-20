@@ -14,6 +14,15 @@ export const FLAGS = Object.freeze({
     cohort: false,
     since: "A187 Stage 0 (46i)",
   }),
+  // ⭐ D184 B-8 (46y): the kill switch. Off = the board's order is exactly as before (no key), and the precompute computes
+  // nothing and marks nothing stale. Turned on, every active profile's board is re-scored once (the rows carry no key yet).
+  board_contextual_tiebreak: Object.freeze({
+    what: "The board orders cards with the same fit band and score by the contextual score (role, responsibilities, company stack).",
+    env: "BOARD_CONTEXTUAL_TIEBREAK",
+    default: "off",
+    cohort: false,
+    since: "D184 B-8 (46y)",
+  }),
 });
 
 export const FLAG_KEYS = Object.freeze(Object.keys(FLAGS));

@@ -67,7 +67,8 @@ test("a187 flags: the admin routes list, switch and roll back; mounted behind re
   const server = app.listen(0); const base = `http://127.0.0.1:${server.address().port}/f`;
   try {
     const list = await (await fetch(base)).json();
-    assert.deepEqual(list.flags.map(f => [f.key, f.state, f.layer]), [["ats_store_slim", "off", "default"]]);
+    // D184 B-8 (46y) added the second flag, board_contextual_tiebreak (off by default) — moved on purpose
+    assert.deepEqual(list.flags.map(f => [f.key, f.state, f.layer]), [["ats_store_slim", "off", "default"], ["board_contextual_tiebreak", "off", "default"]]);
     const no = await fetch(`${base}/ats_store_slim`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ state: "on" }) });
     assert.equal(no.status, 400);
     const ok = await (await fetch(`${base}/ats_store_slim`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ state: "on", reason: "storage" }) })).json();

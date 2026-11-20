@@ -133,6 +133,19 @@ export function stackFor(db, companyId, nowSec = Math.floor(Date.now() / 1000)) 
   return { companyId, ofPostings, groups };
 }
 
+/**
+ * ⭐ D184 B-8 (46y) · stackFor's two reads for MANY companies at once — the board's contextual tiebreaker builds every
+ * company's stack once per precompute pass, in the read pool (services/jobs/boardContextual.js), never one company per
+ * posting on the one thread. The same filters as stackFor (≥ SHOW_MIN_POSTINGS postings, seen inside FRESH_DAYS) and the
+ * same window for `ofPostings`; params: [...ids, SHOW_MIN_POSTINGS, since] and [...ids, since].
+ */
+export const stackRowsManySql = (n) => `SELECT company_id, tech, grp, postings FROM company_tech
+    WHERE company_id IN (${Array(n).fill("?").join(",")}) AND postings >= ? AND last_seen >= ?`;
+export const stackOfManySql = (n) => `SELECT jc.company_id AS company_id, COUNT(*) AS n FROM job_company jc
+    CROSS JOIN scraped_jobs sj ON sj.job_id = jc.job_id
+    WHERE jc.company_id IN (${Array(n).fill("?").join(",")}) AND (sj.is_active = 1 OR ${SEC("COALESCE(sj.retired_at, sj.discovered_at)")} >= ?)
+    GROUP BY jc.company_id`;
+
 /** The background job: extract, then aggregate. One run at a time; resolves with the status. */
 /**
  * ⛔ A159 (45r): `offloadAgg({ from, to, nowSec })` runs readAggregate on the offload worker; only writeAggregate runs here.

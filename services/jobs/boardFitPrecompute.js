@@ -60,6 +60,7 @@
 
 import crypto from "node:crypto";
 import { freshText } from "./descriptionText.js";
+import { createPassContext, contextualScoreFor } from "./boardContextual.js";
 
 /** Stable JSON: object keys sorted, so a basis re-read from the database hashes identically. */
 function stableStringify(value) {
@@ -196,6 +197,8 @@ export function postingInputHashSql(jobAlias = "sj") {
 }
 
 const yieldToEventLoop = () => new Promise(resolve => setImmediate(resolve));
+// D184 B-8: with no read pool, the posting side and the stacks are read on the connection (tests; DRAFT_READ_WORKERS=off).
+const dbReadOf = (db) => ({ all: async (sql, params = []) => db.prepare(sql).all(...params) });
 
 /**
  * @param {object}   deps
@@ -220,6 +223,10 @@ export function createBoardFitPrecompute({
   // newest first). Without it a new tester's deck waited for the whole board — measured 320 s for 2,411 postings.
   primeFor = null,
   primeSize = 60,
+  // ⭐ D184 B-8 (46y): (userId, profile) -> { resume, weights } | null — the contextual tiebreaker's inputs for this pass
+  // (services/jobs/boardContextual.js); null = the switch is off (nothing computed, nothing marked stale). Its per-posting
+  // reads go through `read` (the pool) and each company's stack is read once per pass.
+  contextual = null,
   // ⭐ A112 (11-02): (userId, profile) -> the board category this profile's board shows, or null for every category.
   // The crawler boost took the board from 3,734 to 79,184 postings, and this scored EVERY active posting for every
   // profile — 418,711 stored reports (≈ 500 MB) for 15 users, ≈ 9 min of scoring per profile per crawl. The board's
@@ -254,6 +261,11 @@ export function createBoardFitPrecompute({
   const hasPostingText = columns.some(c => c.name === "description_text");
   // ⭐ A176: the kept posting hash (migration 269), where the schema has it — the plan's "changed" check then reads it
   // instead of hashing every posting's description on every pass (the same answer: postingInputHashes.js).
+  // ⭐ D184 B-8: migration 278's columns — without them (a hand-built fixture) the tiebreaker is simply off here.
+  const hasCtxCols = db.prepare("PRAGMA table_info(ats_only_reports)").all().some(c => c.name === "contextual_key");
+  // A row scored before the tiebreaker (or under another placement / weights) is re-scored: 'ctx'. Params: [ctxKey, ctxKey].
+  const CTX_WHEN = hasCtxCols ? "WHEN ? IS NOT NULL AND aor.contextual_key IS NOT ? THEN 'ctx'" : "";
+  const ctxParams = (k) => (hasCtxCols ? [k ?? null, k ?? null] : []);
   const hasKeptHashes = hasPostingText && !!db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'posting_input_hashes'").get();
   // A112: the board's own category clause (server.js /api/jobs) — 'held' never, another category not by default.
   const SCOPE_SQL = columns.some(c => c.name === "board_category")
@@ -263,6 +275,7 @@ export function createBoardFitPrecompute({
     SELECT sj.job_id AS job_id,
            CASE WHEN aor.id IS NULL THEN 'missing'
                 WHEN aor.basis_hash IS NOT ? OR ? = 1 THEN 'stale'
+                ${CTX_WHEN}
                 ELSE 'check' END AS why,
            aor.job_hash AS stored_job_hash,
            ${[...ATS_JOB_INPUT_FIELDS, ...(hasPostingText ? POSTING_TEXT_COLUMNS : [])].map(c => `sj.${c}`).join(", ")}
@@ -284,6 +297,7 @@ export function createBoardFitPrecompute({
     SELECT sj.job_id AS job_id,
            CASE WHEN aor.id IS NULL THEN 'missing'
                 WHEN aor.basis_hash IS NOT ? OR ? = 1 THEN 'stale'
+                ${CTX_WHEN}
                 WHEN aor.job_hash IS NOT ${hasKeptHashes ? postingInputHashSql("sj") : `${ATS_INPUT_HASH_FN}(${[
                   ...ATS_JOB_INPUT_FIELDS.map(c => `sj.${c}`),
                   ...(hasPostingText ? POSTING_TEXT_COLUMNS.map(c => `sj.${c}`) : POSTING_TEXT_COLUMNS.map(() => "NULL")),
@@ -310,13 +324,14 @@ export function createBoardFitPrecompute({
    * keyset pages of `planPage` (job_id is the key) and the loop is handed back between pages, so a plan holds
    * it for one page at most — the same counts, the same job ids, in the same order.
    */
-  function planPageRows({ userId, profileId, basisHash, force, scope, after }) {
-    return planStmt.all(basisHash, force ? 1 : 0, userId, profileId ?? null, ...scope, after, planPage);
+  function planPageRows({ userId, profileId, basisHash, force, scope, after, ctxKey = null }) {
+    return planStmt.all(basisHash, force ? 1 : 0, ...ctxParams(ctxKey), userId, profileId ?? null, ...scope, after, planPage);
   }
   function tally(acc, rows) {
     for (const r of rows) {
       if (r.why === "missing") { acc.missing++; acc.jobIds.push(r.job_id); continue; }
       if (r.why === "stale") { acc.stale++; acc.jobIds.push(r.job_id); continue; }
+      if (r.why === "ctx") { acc.ctx++; acc.jobIds.push(r.job_id); continue; }   // D184 B-8: scored before the tiebreaker's key
       if (r.why === "fresh") continue;   // the off-loop page judged the posting side already
       // The basis matches: the row is fresh only if the POSTING is still the one that was scored.
       if (r.why === "changed" || r.stored_job_hash !== atsJobInputHash(r)) { acc.stale++; acc.postingChanged++; acc.jobIds.push(r.job_id); }
@@ -324,14 +339,14 @@ export function createBoardFitPrecompute({
   }
   function finishPlan(acc, scope, active = activeCountStmt.get(...scope).n) {
     const { missing, stale, postingChanged, jobIds } = acc;
-    return { active, missing, stale, postingChanged, fresh: active - jobIds.length, jobIds };
+    return { active, missing, stale, postingChanged, ...(acc.ctx ? { ctx: acc.ctx } : {}), fresh: active - jobIds.length, jobIds };
   }
   /** The plan in one call (tests and any synchronous caller). Same pages, no yields. */
-  function plan({ userId, profileId, basisHash, force = false, category = null }) {
+  function plan({ userId, profileId, basisHash, force = false, category = null, ctxKey = null }) {
     const scope = SCOPE_SQL ? [category, category] : [];
-    const acc = { missing: 0, stale: 0, postingChanged: 0, jobIds: [] };
+    const acc = { missing: 0, stale: 0, postingChanged: 0, ctx: 0, jobIds: [] };
     for (let after = ""; ;) {
-      const rows = planPageRows({ userId, profileId, basisHash, force, scope, after });
+      const rows = planPageRows({ userId, profileId, basisHash, force, scope, after, ctxKey });
       tally(acc, rows);
       if (rows.length < planPage) break;
       after = rows[rows.length - 1].job_id;
@@ -339,17 +354,17 @@ export function createBoardFitPrecompute({
     return finishPlan(acc, scope);
   }
   /** The same plan, handing the event loop back between pages — what every pass uses. */
-  async function planSliced({ userId, profileId, basisHash, force = false, category = null }) {
+  async function planSliced({ userId, profileId, basisHash, force = false, category = null, ctxKey = null }) {
     const scope = SCOPE_SQL ? [category, category] : [];
-    const acc = { missing: 0, stale: 0, postingChanged: 0, jobIds: [] };
+    const acc = { missing: 0, stale: 0, postingChanged: 0, ctx: 0, jobIds: [] };
     let pages = 0, longestPageMs = 0, longestWaitMs = 0;
     for (let after = ""; ;) {
       const t0 = now();
       // D151: off the loop when there is a read pool (longestPlanPageMs is then the page's wall time, mostly the
       // worker's); the pool answers on the main connection when it cannot, which is planStmt's work, once.
       const rows = read
-        ? await read.all(PLAN_OFF_LOOP_SQL, [basisHash, force ? 1 : 0, userId, profileId ?? null, ...scope, after, planPage])
-        : planPageRows({ userId, profileId, basisHash, force, scope, after });
+        ? await read.all(PLAN_OFF_LOOP_SQL, [basisHash, force ? 1 : 0, ...ctxParams(ctxKey), userId, profileId ?? null, ...scope, after, planPage])
+        : planPageRows({ userId, profileId, basisHash, force, scope, after, ctxKey });
       // ⛔ A175 (46i, staging): with the pool, the await above is a WORKER's time plus its queue — 360–417 ms at a boot burst
       // of 20 cold loads on 2 workers while the event loop's p99 read 23.8 ms. longestPlanPageMs is the MAIN THREAD's share
       // (the 100 ms slice budget); the wall time goes to longestPlanWaitMs.
@@ -365,6 +380,16 @@ export function createBoardFitPrecompute({
     }
     const done = read ? finishPlan(acc, scope, (await read.get(ACTIVE_COUNT_SQL, scope)).n) : finishPlan(acc, scope);
     return { ...done, planPages: pages, longestPlanPageMs: Math.round(longestPageMs), longestPlanWaitMs: Math.round(longestWaitMs), offLoop: !!read };
+  }
+
+  /** ⭐ D184 B-8 · one pass's contextual context, or null (off, no columns, or the inputs could not be built). */
+  function passContextFor(userId, profile) {
+    if (!hasCtxCols || typeof contextual !== "function") return null;
+    try {
+      const inputs = contextual(userId, profile);
+      if (!inputs?.resume) return null;
+      return createPassContext({ read: read || dbReadOf(db), resume: inputs.resume, weights: inputs.weights || null });
+    } catch { return null; }
   }
 
   const saidNoBaseResume = new Set();
@@ -397,9 +422,11 @@ export function createBoardFitPrecompute({
 
     let category = null;
     try { category = scopeFor ? scopeFor(userId, profile) ?? null : null; } catch { category = null; }
-    const p = await planSliced({ userId, profileId: profile.id, basisHash: basis.basisHash, force, category });
+    // ⭐ D184 B-8: the pass's contextual context (null = off) — the résumé side and the weights once, the stack cache empty
+    const pass = passContextFor(userId, profile);
+    const p = await planSliced({ userId, profileId: profile.id, basisHash: basis.basisHash, force, category, ctxKey: pass?.key ?? null });
     const counts = { active: p.active, fresh: p.fresh, missing: p.missing, stale: p.stale,
-                     postingChanged: p.postingChanged, todo: p.jobIds.length,
+                     postingChanged: p.postingChanged, ...(p.ctx ? { ctxStale: p.ctx } : {}), todo: p.jobIds.length,
                      planPages: p.planPages, longestPlanPageMs: p.longestPlanPageMs,
                      ...(p.offLoop ? { longestPlanWaitMs: p.longestPlanWaitMs } : {}) };
     if (dryRun) {
@@ -417,7 +444,8 @@ export function createBoardFitPrecompute({
     const results = [];
     const writeChunk = db.transaction((items) => {
       for (const it of items) {
-        store({ userId, profileId: profile.id, jobId: it.jobId, report: it.report, basisHash: basis.basisHash, jobHash: it.jobHash });
+        store({ userId, profileId: profile.id, jobId: it.jobId, report: it.report, basisHash: basis.basisHash, jobHash: it.jobHash,
+          ...(hasCtxCols ? { contextual: it.contextual ?? null } : {}) });
       }
     });
 
@@ -432,8 +460,8 @@ export function createBoardFitPrecompute({
       if (want.length) {
         const jobs = db.prepare(`SELECT * FROM scraped_jobs WHERE is_active = 1 AND job_id IN (${want.map(() => "?").join(",")})`).all(...want);
         const first = [];
-        for (const it of await scoreMany(jobs, basis.runtimeBasis, st)) {
-          if (it.report) first.push({ jobId: it.job.job_id, report: it.report, jobHash: atsJobInputHash(it.job) });
+        for (const it of await scoreMany(jobs, basis.runtimeBasis, st, pass)) {
+          if (it.report) first.push({ jobId: it.job.job_id, report: it.report, jobHash: atsJobInputHash(it.job), contextual: it.contextual });
           else { failed++; if (errors.length < 5) errors.push(`${it.job.job_id}: ${it.error}`); }
         }
         try { writeChunk(first); primed = new Set(first.map(x => x.jobId)); }
@@ -452,8 +480,8 @@ export function createBoardFitPrecompute({
         `SELECT * FROM scraped_jobs WHERE is_active = 1 AND job_id IN (${ids.map(() => "?").join(",")})`,
       ).all(...ids);
       gone += ids.length - jobs.length;
-      for (const it of await scoreMany(jobs, basis.runtimeBasis, st)) {
-        if (it.report) results.push({ jobId: it.job.job_id, report: it.report, jobHash: atsJobInputHash(it.job) });
+      for (const it of await scoreMany(jobs, basis.runtimeBasis, st, pass)) {
+        if (it.report) results.push({ jobId: it.job.job_id, report: it.report, jobHash: atsJobInputHash(it.job), contextual: it.contextual });
         else { failed++; if (errors.length < 5) errors.push(`${it.job.job_id}: ${it.error}`); }
       }
       st.yields++;
@@ -493,6 +521,8 @@ export function createBoardFitPrecompute({
     const r = {
       ...base, status: scored > 0 ? "scored" : "failed", ...counts,
       scored, failed, gone, yields: st.yields, longestSliceMs: Math.round(st.longestSliceMs), offLoop: st.offLoop || 0,
+      ...(pass ? { contextual: { companies: pass.stats.companies, postingReads: pass.stats.postingReads, stackReads: pass.stats.stackReads,
+        failed: st.ctxFailed || 0 } } : {}),
       commits, commitMs: Math.round(commitMs), longestCommitMs: Math.round(longestCommitMs),
       ms: Math.round(now() - started),
       ...(errors.length ? { errors } : {}),
@@ -572,21 +602,36 @@ export function createBoardFitPrecompute({
    * Score a batch: through `scoreBatch` (off the loop) when it is given and answers in full, else here in slices of
    * `sliceMs` with a yield between. @returns [{ job, report } | { job, error }] in the jobs' order.
    */
-  async function scoreMany(jobs, runtimeBasis, st) {
+  // ⭐ D184 B-8: with a pass context, each scored posting also carries `contextual` = { score, key } (the key null when its
+  // posting side could not be read — the next pass tries again). The posting side and the stacks come through `read`.
+  async function scoreMany(jobs, runtimeBasis, st, pass = null) {
+    let ctx = null;
+    if (pass && jobs.length) {
+      try {
+        const items = await pass.itemsFor(jobs);
+        ctx = { shared: pass.shared, items };
+      } catch { st.ctxFailed = (st.ctxFailed || 0) + jobs.length; ctx = null; }
+    }
+    const ctxOf = (n) => (pass ? (ctx ? { score: n ?? null, key: pass.key } : { score: null, key: null }) : undefined);
     if (scoreBatch && jobs.length) {
       try {
-        const out = await scoreBatch(jobs, runtimeBasis);
+        const out = await scoreBatch(jobs, runtimeBasis, ctx);
         if (Array.isArray(out) && out.length === jobs.length) {
           st.offLoop = (st.offLoop || 0) + jobs.length;
-          return jobs.map((job, i) => (out[i] && out[i].report ? { job, report: out[i].report } : { job, error: out[i]?.error || "no report" }));
+          return jobs.map((job, i) => (out[i] && out[i].report
+            ? { job, report: out[i].report, contextual: ctxOf(out[i].contextual) } : { job, error: out[i]?.error || "no report" }));
         }
       } catch { /* the worker could not answer: score here, as before */ }
       st.fallback = (st.fallback || 0) + 1;
     }
     const res = [];
     let sliceStart = now();
-    for (const job of jobs) {
-      try { res.push({ job, report: scoreJob(job, runtimeBasis) }); } catch (e) { res.push({ job, error: e.message }); }
+    for (let i = 0; i < jobs.length; i++) {
+      const job = jobs[i];
+      try {
+        const report = scoreJob(job, runtimeBasis);
+        res.push({ job, report, contextual: ctxOf(ctx ? contextualScoreFor(job, report, ctx.items[i], ctx.shared) : null) });
+      } catch (e) { res.push({ job, error: e.message }); }
       if (now() - sliceStart >= sliceMs) {
         st.longestSliceMs = Math.max(st.longestSliceMs || 0, now() - sliceStart);
         st.yields++;
@@ -611,20 +656,22 @@ export function createBoardFitPrecompute({
     const results = [];
     let failed = 0;
     const st = { yields: 0, longestSliceMs: 0 };
+    const pass = passContextFor(userId, profile);
     for (let i = 0; i < jobIds.length; i += batchSize) {
       const ids = jobIds.slice(i, i + batchSize);
       const done = new Set(scoredStmtFor(ids.length).pluck().all(userId, profile.id, basis.basisHash, ...ids));
       const want = ids.filter(id => !done.has(id));
       if (!want.length) continue;
       const jobs = db.prepare(`SELECT * FROM scraped_jobs WHERE is_active = 1 AND job_id IN (${want.map(() => "?").join(",")})`).all(...want);
-      for (const it of await scoreMany(jobs, basis.runtimeBasis, st)) {
-        if (it.report) results.push({ jobId: it.job.job_id, report: it.report, jobHash: atsJobInputHash(it.job) });
+      for (const it of await scoreMany(jobs, basis.runtimeBasis, st, pass)) {
+        if (it.report) results.push({ jobId: it.job.job_id, report: it.report, jobHash: atsJobInputHash(it.job), contextual: it.contextual });
         else failed++;
       }
       st.yields++; await yieldToEventLoop();
     }
     const writeChunk = db.transaction((items) => {
-      for (const it of items) store({ userId, profileId: profile.id, jobId: it.jobId, report: it.report, basisHash: basis.basisHash, jobHash: it.jobHash });
+      for (const it of items) store({ userId, profileId: profile.id, jobId: it.jobId, report: it.report, basisHash: basis.basisHash, jobHash: it.jobHash,
+        ...(hasCtxCols ? { contextual: it.contextual ?? null } : {}) });
     });
     let scored = 0;
     for (let i = 0; i < results.length; i += commitChunk) {

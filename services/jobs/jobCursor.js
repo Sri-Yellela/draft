@@ -149,6 +149,18 @@ const FIT_KEYS = Object.freeze([
   KEY(FIT_SCORE_SQL, "DESC"),
 ]);
 
+// ⭐ D184 B-8 (46y) · THE CONTEXTUAL TIEBREAKER — `aor.contextual_score` (migration 278, written by the board-fit precompute
+// beside the score: services/jobs/boardContextual.js). It follows FIT_KEYS, so it orders only rows with the SAME band AND the
+// SAME score — rows the curated order used to leave to recency. Nothing ahead of it moves: the tier key, the band, the score.
+// NULLS_LAST first, as every keyed sort: a row not yet given a contextual number (scored before the switch, or the skill
+// match declined) sorts after the numbered rows of its own (band, score) group, never across groups — the cursor's
+// partition stays NULL-safe. The number lives in the same row as the score, so the fit epoch already signs it.
+const CONTEXTUAL_SQL = "aor.contextual_score";
+const CONTEXTUAL_KEYS = Object.freeze([
+  NULLS_LAST(CONTEXTUAL_SQL),
+  KEY(CONTEXTUAL_SQL, "DESC"),
+]);
+
 /**
  * Every sort the board offers, as key lists. Reconciled against shared/jobFilterOptions.js's SORTS
  * by test/filterOptionContract.test.js — an option with no entry here would silently fall through
@@ -305,7 +317,9 @@ const CURATED_TAIL = Object.freeze([...NEWEST, ...COMPANY_AZ, BY_ID]);
 // ⭐ D184 B-8 (45p): `skillTier` = services/jobs/skillTiers.js's key (jobs asking for more of the résumé's top skills first).
 // It applies to the DEFAULT order only, with fit on, after the rank keys and before fit — so inside a tier the order is
 // ATS match, then recency. Never under a search (the search's own relevance tier leads) or an explicit sort.
-function buildOrderKeys(sort, rankKeys = [], { fit = false, search = null, established = [], ineligible = null, ghost = false, skillTier = null } = {}) {
+// ⭐ D184 B-8 (46y): `contextual` (the flag board_contextual_tiebreak) adds CONTEXTUAL_KEYS right after the fit keys — the
+// default order with fit on only; never under a search or an explicit sort (their tie-breaks are the sort panel's words, D24).
+function buildOrderKeys(sort, rankKeys = [], { fit = false, search = null, established = [], ineligible = null, ghost = false, skillTier = null, contextual = false } = {}) {
   const lead = ineligible?.sql ? [KEY(ineligible.sql, "ASC", ineligible.params || [])] : [];
   if (ghost) lead.push(KEY(GHOST_LAST_SQL, "ASC"));
   const sortIsDefault = !SORT_KEYS[sort];
@@ -320,7 +334,8 @@ function buildOrderKeys(sort, rankKeys = [], { fit = false, search = null, estab
     : [];
   const fitKeys = sortIsDefault && fit ? FIT_KEYS : [];
   const tier = sortIsDefault && fit && skillTier?.sql ? [KEY(skillTier.sql, "ASC", skillTier.params || [])] : [];
-  return assertTotalOrder([...lead, ...known, ...prefix, ...tier, ...fitKeys, ...chosen], sort || "dateDesc");
+  const ctxKeys = sortIsDefault && fit && contextual ? CONTEXTUAL_KEYS : [];
+  return assertTotalOrder([...lead, ...known, ...prefix, ...tier, ...fitKeys, ...ctxKeys, ...chosen], sort || "dateDesc");
 }
 
 /**
@@ -338,7 +353,8 @@ function ordersByFit(keys) {
  * epoch-signed; the atsScore sort ordered by the same moving cell without it.
  */
 function ordersByScore(keys) {
-  return keys.some(k => k.sql.includes(FIT_SCORE_SQL));
+  // D184 B-8: the contextual number is rewritten by the same pass as the score
+  return keys.some(k => k.sql.includes(FIT_SCORE_SQL) || k.sql.includes(CONTEXTUAL_SQL));
 }
 
 /**
@@ -505,5 +521,6 @@ export {
   encodeCursor, decodeCursor, cursorColumn, orderSignature, assertTotalOrder,
   KEY, NULLS_LAST,
   FIT_KEYS, FIT_BAND_SQL, FIT_SCORE_SQL, FIT_BAND_ORDINAL, ordersByFit, ordersByScore, fitBandsSql,
+  CONTEXTUAL_KEYS, CONTEXTUAL_SQL,
   NEWEST, BEST_FIT, COMPANY_AZ, CURATED_TAIL, TIE_BREAK_KEYS, tieBreakKeys,
 };

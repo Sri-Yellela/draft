@@ -227,6 +227,7 @@ import { activeBaseResume as baseResumeForDraft } from "./services/baseResumeOnl
 import { createModelGatewayAdminRouter } from "./routes/modelGateway.js";
 import { createFlagsAdminRouter } from "./routes/flags.js";   // A187 Stage 0 (46i): runtime flags
 import { flagOn } from "./services/flags.js";
+import { resumeSideOf, FLAG as BOARD_CONTEXTUAL_FLAG } from "./services/jobs/boardContextual.js";   // ⭐ D184 B-8 (46y)
 // AK1: the ONE exception to "server.js does not touch the tracker directly", and it is not a
 // second recording path — recordAtsOutcome only fills ats_score_before/after on a row callModel
 // has already written. It cannot create a usage_events row, so the reason the note above exists
@@ -8081,6 +8082,19 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         ) WITHOUT ROWID;
       `,
     },
+    {
+      // ⭐ D184 B-8 (46y): THE CONTEXTUAL TIEBREAKER — the contextual score (D192, @draft/ats-scorer scoreContextual) for a
+      // (user, profile, posting) row, written by the board-fit precompute beside the skill match (the same DELETE + INSERT,
+      // so the board's cursor epoch covers it), and the key it rests on (the placement + weights + version — a pass re-scores
+      // a row whose key is not the current one). The board orders by it INSIDE the same band and score only
+      // (services/jobs/jobCursor.js CONTEXTUAL_KEYS). Only ADDS two nullable columns (no table rewrite: an ADD COLUMN with no
+      // default is a schema change only).
+      id: "278_ats_only_reports_contextual",
+      sql: `
+        ALTER TABLE ats_only_reports ADD COLUMN contextual_score INTEGER;
+        ALTER TABLE ats_only_reports ADD COLUMN contextual_key TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -10517,7 +10531,9 @@ function scoreJobForBasis(job, runtimeBasis) {
  * per posting), the synonyms once — scored by the worker's import of the same scoreAtsLocally. Rejects when the pool
  * cannot answer; the precompute then scores the batch here (boardFitPrecompute scoreMany).
  */
-function scoreBatchForBasis(jobs, runtimeBasis) {
+// ⭐ D184 B-8 (46y): `ctx` ({ shared, items }, services/jobs/boardContextual.js) rides along — the worker adds each posting's
+// contextual number beside its report.
+function scoreBatchForBasis(jobs, runtimeBasis, ctx = null) {
   const weights = {};
   const items = jobs.map((raw) => {
     const job = withPostingText(raw);
@@ -10527,7 +10543,7 @@ function scoreBatchForBasis(jobs, runtimeBasis) {
     if (!(wk in weights)) weights[wk] = atsTermWeightsForJob(job);
     return { job, wk };
   });
-  return scorePool.score({ items, weights, synonyms: atsSynonyms(), runtimeBasis });
+  return scorePool.score({ items, weights, synonyms: atsSynonyms(), runtimeBasis, ctx });
 }
 
 /**
@@ -10563,7 +10579,11 @@ let _storeAtsReportTxn = null;
 // the precompute re-scores it and the board never presents it as a verdict.
 // A187 Stage 0 (46i): `slim` (the board's bulk scoring) stores slimOf(report) when ATS_STORE_SLIM=on — the score and what
 // it rested on; a reader that needs the detail goes through services/atsReportRead.js fullReport (re-scored once).
-function storeAtsReportForProfile({ userId, profileId = null, jobId, report, basisHash = null, jobHash = null, slim = false }) {
+// ⭐ D184 B-8 (46y): `contextual` = { score, key } (the board-fit precompute) or null (written empty). UNDEFINED (every other
+// writer — the panel, the slim expander) KEEPS the row's contextual number when the row being replaced was scored on the same
+// basis and the same posting (then the skill match is the same number, so the contextual one is too) — a write-back of the
+// same score never drops a card out of its tiebreak place.
+function storeAtsReportForProfile({ userId, profileId = null, jobId, report, basisHash = null, jobHash = null, slim = false, contextual = undefined }) {
   if (!userId || !jobId || !report) return;
   // A declaration rather than a `const` holding db.transaction(...), because the scrape scorer 1,500
   // lines above calls this: a const would sit in its temporal dead zone for any caller that ran
@@ -10578,21 +10598,28 @@ function storeAtsReportForProfile({ userId, profileId = null, jobId, report, bas
     );
     const ins = db.prepare(`
         INSERT INTO ats_only_reports
-          (user_id, domain_profile_id, job_id, ats_report, ats_score, scorer_version, scored_at, basis_hash, job_hash)
-        VALUES (?, ?, ?, ?, ?, ?, unixepoch(), ?, ?)
+          (user_id, domain_profile_id, job_id, ats_report, ats_score, scorer_version, scored_at, basis_hash, job_hash, contextual_score, contextual_key)
+        VALUES (?, ?, ?, ?, ?, ?, unixepoch(), ?, ?, ?, ?)
       `);
+    const keep = db.prepare(
+      "SELECT contextual_score, contextual_key FROM ats_only_reports WHERE user_id=? AND job_id=? AND domain_profile_id IS ? AND basis_hash IS ? AND job_hash IS ?"
+    );
     _storeAtsReportTxn = db.transaction((args) => {
+      const ctx = args.contextual === undefined
+        ? (keep.get(args.userId, args.jobId, args.profileId, args.basisHash, args.jobHash) || null)
+        : { contextual_score: args.contextual?.score ?? null, contextual_key: args.contextual?.key ?? null };
       del.run(args.userId, args.jobId, args.profileId);
       ins.run(
         args.userId, args.profileId, args.jobId,
         JSON.stringify(args.slim ? slimOf(args.report) : args.report), args.report.score ?? null,
         args.report.source || LOCAL_ATS_SOURCE,
         args.basisHash, args.jobHash,
+        ctx?.contextual_score ?? null, ctx?.contextual_key ?? null,
       );
     });
   }
   _storeAtsReportTxn({ userId, profileId: profileId ?? null, jobId: String(jobId), report,
-                       basisHash: basisHash ?? null, jobHash: jobHash ?? null, slim: !!slim && flagOn(db, "ats_store_slim") });   // A187: the flag (registry → ATS_STORE_SLIM → Admin's switch)
+                       basisHash: basisHash ?? null, jobHash: jobHash ?? null, slim: !!slim && flagOn(db, "ats_store_slim"), contextual });   // A187: the flag (registry → ATS_STORE_SLIM → Admin's switch)
 }
 
 // ⭐ A187 Stage 0 (46i) · a SLIM row's report, made when a reader needs its detail: the same basis + scorer the board
@@ -10689,6 +10716,15 @@ function boardFit() {
       scopeFor: (_userId, profile) => {
         const cat = profileCategory(profile || {});
         return cat && /^[a-z_]+$/.test(cat) ? cat : null;
+      },
+      // ⭐ D184 B-8 (46y): the contextual tiebreaker's inputs, once per pass — the profile's stored placement, its base résumé,
+      // Admin → Ops' weights. null while the flag is off (the pass then computes nothing and marks nothing stale).
+      contextual: (userId, profile) => {
+        if (!flagOn(db, BOARD_CONTEXTUAL_FLAG)) return null;
+        const text = profile?.id ? getBaseResumeRecord(db, { userId, profileId: profile.id })?.content : null;
+        if (!text) return null;
+        const full = db.prepare("SELECT * FROM domain_profiles WHERE id = ?").get(profile.id) || profile;
+        return { resume: resumeSideOf(full, text), weights: contextualWeights(db) };
       },
     });
   }
@@ -13216,7 +13252,9 @@ async function boardPageResponse(req, { measure = null, nowSec = null, warmOrder
       }
       const orderKeys = buildOrderKeys(sort, richFilters.rank.keys,
         { fit: fitRequested, search: boardSearch, established: richFilters.established.keys,
-          ineligible: ineligibleOrderKey(boardEligInputs.defaults), ghost: boardHasGhosts, skillTier: boardSkillTier });
+          ineligible: ineligibleOrderKey(boardEligInputs.defaults), ghost: boardHasGhosts, skillTier: boardSkillTier,
+          // ⭐ D184 B-8 (46y): the contextual tiebreaker inside one (band, score) — the flag is the kill switch
+          contextual: flagOn(db, BOARD_CONTEXTUAL_FLAG) });
       const fitApplied = ordersByFit(orderKeys);
       // The fit keys sort on scores a precompute pass can rewrite while this user pages, so the
       // cursor is signed with an EPOCH that moves whenever their scores do: the newest report row

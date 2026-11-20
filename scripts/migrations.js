@@ -7413,4 +7413,17 @@ export const MIGRATIONS = [
         ) WITHOUT ROWID;
       `,
     },
+    {
+      // ⭐ D184 B-8 (46y): THE CONTEXTUAL TIEBREAKER — the contextual score (D192, @draft/ats-scorer scoreContextual) for a
+      // (user, profile, posting) row, written by the board-fit precompute beside the skill match (the same DELETE + INSERT,
+      // so the board's cursor epoch covers it), and the key it rests on (the placement + weights + version — a pass re-scores
+      // a row whose key is not the current one). The board orders by it INSIDE the same band and score only
+      // (services/jobs/jobCursor.js CONTEXTUAL_KEYS). Only ADDS two nullable columns (no table rewrite: an ADD COLUMN with no
+      // default is a schema change only).
+      id: "278_ats_only_reports_contextual",
+      sql: `
+        ALTER TABLE ats_only_reports ADD COLUMN contextual_score INTEGER;
+        ALTER TABLE ats_only_reports ADD COLUMN contextual_key TEXT;
+      `,
+    },
   ];

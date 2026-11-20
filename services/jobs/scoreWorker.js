@@ -20,9 +20,15 @@ const HERE = fileURLToPath(import.meta.url);
 
 if (!isMainThread && workerData?.__draftScoreWorker) {
   const { scoreAtsLocally } = await import("../localAtsScorer.js");
-  parentPort.on("message", ({ id, items, weights, synonyms, runtimeBasis }) => {
-    const out = items.map(({ job, wk }) => {
-      try { return { report: scoreAtsLocally({ job, runtimeBasis, termWeights: weights[wk] ?? null, synonyms }) }; }
+  // ⭐ D184 B-8 (46y): with `ctx` ({ shared, items } — services/jobs/boardContextual.js), the contextual number for each scored
+  // posting is worked out HERE beside its report (contextualScoreFor, the same pure function the main-thread fallback calls).
+  const { contextualScoreFor } = await import("./boardContextual.js");
+  parentPort.on("message", ({ id, items, weights, synonyms, runtimeBasis, ctx }) => {
+    const out = items.map(({ job, wk }, i) => {
+      try {
+        const report = scoreAtsLocally({ job, runtimeBasis, termWeights: weights[wk] ?? null, synonyms });
+        return ctx ? { report, contextual: contextualScoreFor(job, report, ctx.items?.[i], ctx.shared) } : { report };
+      }
       catch (e) { return { error: e?.message || String(e) }; }
     });
     parentPort.postMessage({ id, out });
@@ -73,7 +79,7 @@ export function createScorePool({ size = 1, timeoutMs = 60_000, enabled = true, 
   const pick = () => workers.filter(e => e?.ready).sort((a, b) => a.inflight - b.inflight)[0] || null;
 
   /** Score a prepared batch. @returns Promise<[{ report } | { error }]> in the items' order; rejects → score on the main thread. */
-  function score({ items, weights = {}, synonyms = null, runtimeBasis }) {
+  function score({ items, weights = {}, synonyms = null, runtimeBasis, ctx = null }) {
     const entry = enabled && !closed ? pick() : null;
     if (!entry) { stats.rejected++; return Promise.reject(new Error("no score worker ready")); }
     return new Promise((resolve, reject) => {
@@ -86,7 +92,7 @@ export function createScorePool({ size = 1, timeoutMs = 60_000, enabled = true, 
       timer.unref?.();
       pending.set(id, { resolve, reject, timer, entry, n: items.length });
       entry.inflight++;
-      try { entry.w.postMessage({ id, items, weights, synonyms, runtimeBasis }); }
+      try { entry.w.postMessage({ id, items, weights, synonyms, runtimeBasis, ...(ctx ? { ctx } : {}) }); }
       catch (err) { pending.delete(id); clearTimeout(timer); entry.inflight--; stats.rejected++; reject(err); }
     });
   }

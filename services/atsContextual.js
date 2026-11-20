@@ -21,8 +21,11 @@ import { storedPlacement } from "./placement.js";
 import { getSetting, setSetting, clearSetting } from "./appSettings.js";
 import { companyFacts } from "./atsPlausibility.js";   // D192 (4d): families + size for the public stack
 
+// D184 B-8 (46y): the stack's ONE shape lives with the board's per-pass stack cache (light imports — the score worker loads it)
+import { techStackShape, STACK_MAX } from "./jobs/boardContextual.js";
+export { STACK_MAX, techStackShape };
+
 export const WEIGHTS_KEY = "ats_contextual_weights";
-export const STACK_MAX = 20;
 const safe = (fn, d = null) => { try { return fn(); } catch { return d; } };
 
 /** The weights Admin → Ops set, else the contract's defaults. A stored value that no longer validates falls back (logged once). */
@@ -45,10 +48,7 @@ export function setContextualWeights(db, input) {
 export function companyStackOf(db, companyId, nowSec = Math.floor(Date.now() / 1000)) {
   if (!companyId) return { industry: null, techStack: [] };
   const s = safe(() => stackFor(db, companyId, nowSec), null);
-  const of = s?.ofPostings || 0;
-  const techStack = !s || !of ? [] : Object.entries(s.groups).flatMap(([grp, items]) => items.map(x => ({
-    name: x.tech, category: grp, postingShare: Math.round(1000 * Math.min(1, x.postings / of)) / 1000 })))
-    .sort((a, b) => b.postingShare - a.postingShare || a.name.localeCompare(b.name)).slice(0, STACK_MAX);
+  const techStack = !s ? [] : techStackShape(Object.entries(s.groups).flatMap(([grp, items]) => items.map(x => ({ tech: x.tech, grp, postings: x.postings }))), s.ofPostings || 0);
   const industry = safe(() => db.prepare(`SELECT industry FROM company_facts WHERE company_id = ? AND status = 'ok'`).pluck().get(companyId), null) || null;
   return { industry, techStack };
 }
