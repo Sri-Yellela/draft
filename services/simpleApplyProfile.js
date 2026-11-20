@@ -380,7 +380,11 @@ export function loadOrCreateSimpleApplyProfile(db, scopeOrUserId, roleTitles = [
   if (!base?.content) return profile;
   const sourceHash = crypto.createHash("sha256").update(String(base.content || "")).digest("hex");
   if (profile?.sourceHash === sourceHash) return profile;
-  return upsertSimpleApplyProfile(db, scope, base.content, scope.roleTitles);
+  const built = upsertSimpleApplyProfile(db, scope, base.content, scope.roleTitles);
+  // A235: hand back the stored row, not the freshly built object — the row carries
+  // structuredFacts (and updatedAt), which buildRuntimeAtsBasis hashes. Returning the built
+  // object changed the basis at the next read, so a new profile's first board-fit ran twice.
+  return loadSimpleApplyProfile(db, { ...scope, seedLegacy: false }) || built;
 }
 
 export function buildAtsResumeBasis(resumeText, signalProfile = null) {
