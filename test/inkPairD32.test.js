@@ -119,7 +119,7 @@ test("⭐ the header is the count · one sentence · ONE bar and its key — the
   assert.match(css, /\.ats-sum__count \{[^}]*font-weight: 500; font-size: 30px; line-height: 1\.08; letter-spacing: -\.03em;/, "the sketch's h3");
   // ⛔ Generic language is drawn but NOT counted: "9 of 12" is matched over matched + missing only.
   assert.match(asks, /total: onResume\.length \+ missing/);
-  assert.match(asks, /const missing = couldClaim\.length;/);
+  assert.match(asks, /const missing = notOnResume\.length;/);
   const lists = asks.slice(at(asks, "const onResume"), at(asks, "const generic"));
   assert.doesNotMatch(lists, /generic/, "generic language counted as an ask");
 });

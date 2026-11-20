@@ -190,7 +190,7 @@ export function buildAtsReport(doc, report, { band: knownBand = null, mode = "fu
   // `pct` survives only for the best-possible line (LLM reports), which is itself shown as a band.
   const pct = Math.max(0, Math.min(100, report.score ?? 0));
   const depth = report.resume_depth || null;
-  const { onResume, couldClaim, generic } = reportAsks(report);
+  const { onResume, notOnResume, generic } = reportAsks(report);
   const evidenced = evidencedKeys(report);
   // The verdict is printed once: when it is only the experience summary again (the A52 "renders twice"
   // defect), the Experience row already said it.
@@ -211,9 +211,9 @@ export function buildAtsReport(doc, report, { band: knownBand = null, mode = "fu
       h(doc, "div", { class: "ats-note__head" }, depth.headline || ""), h(doc, "div", null, depth.detail || "")),
     // ⭐ D32 → D152 (8) → 46x: what the posting asks for that the résumé doesn't show — ONE block, the only open section,
     // each row labelled with the scorer's bucket, read-only (no claims).
-    couldClaim.length > 0 && h(doc, "section", { "data-ats-missing": true, class: "ats-sec ats-sec--miss" },
-      h(doc, "div", { class: "ats-gh" }, h(doc, "span", { class: "ats-gh__label" }, "Not on your résumé"), h(doc, "span", { class: "ats-gh__ct" }, couldClaim.length)),
-      h(doc, "div", { class: "ats-rows" }, couldClaim.map(t => row(t)))),
+    notOnResume.length > 0 && h(doc, "section", { "data-ats-missing": true, class: "ats-sec ats-sec--miss" },
+      h(doc, "div", { class: "ats-gh" }, h(doc, "span", { class: "ats-gh__label" }, "Not on your résumé"), h(doc, "span", { class: "ats-gh__ct" }, notOnResume.length)),
+      h(doc, "div", { class: "ats-rows" }, notOnResume.map(t => row(t)))),
     // ⭐ D32: Experience gets its own row — pass/fail, not a footnote.
     report.experience?.summary && experienceRow(doc, report.experience),
     // FOLDED: what the résumé already shows. Read-only — there is nothing to do here.

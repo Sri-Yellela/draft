@@ -638,7 +638,7 @@ const asTerms = (list, kind) => (Array.isArray(list) ? list : []).filter(t => ty
 
 /**
  * D32: what the card counts. Every real ask the posting makes — skills, competencies (qualities) and
- * its job-specific verbs — is either already on the résumé or not on it (`couldClaim`: the name is kept for its callers).
+ * its job-specific verbs — is either already on the résumé or not on it (`notOnResume` — named `couldClaim` until the 46y tidy, when the claims had gone).
  * Generic language is in NEITHER: it is not a gap, so it is not in the denominator either; the bar
  * draws it as its own third segment so the reader sees it was read and set aside.
  */
@@ -648,14 +648,14 @@ function reportAsks(report) {
     ...(report?.competencies_matched || []).map(term => ({ term, kind: "quality" })),
     ...(report?.action_verbs_matched || []).map(term => ({ term, kind: "verb" })),
   ];
-  const couldClaim = [
+  const notOnResume = [
     ...(report?.tier1_missing || []).map(term => ({ term, kind: "skill" })),
     ...(report?.action_verbs_missing || []).map(term => ({ term, kind: "verb" })),
     ...(report?.competencies_missing || []).map(term => ({ term, kind: "quality" })),
   ];
   const generic = asTerms(report?.action_verbs_generic, "verb");
-  const missing = couldClaim.length;
-  return { onResume, couldClaim, generic, matched: onResume.length, missing, total: onResume.length + missing };
+  const missing = notOnResume.length;
+  return { onResume, notOnResume, generic, matched: onResume.length, missing, total: onResume.length + missing };
 }
 
 /**
@@ -664,8 +664,8 @@ function reportAsks(report) {
  * ask the server's resolve with exactly these, so the two products link the same boxes.
  */
 function atlasTerms(report) {
-  const { onResume, couldClaim } = reportAsks(report);
-  return [...new Set([...couldClaim, ...onResume].filter(t => t.kind !== "verb" && typeof t.term === "string" && t.term.trim()).map(t => t.term.trim()))];
+  const { onResume, notOnResume } = reportAsks(report);
+  return [...new Set([...notOnResume, ...onResume].filter(t => t.kind !== "verb" && typeof t.term === "string" && t.term.trim()).map(t => t.term.trim()))];
 }
 
 /** Provenance: what the résumé already evidences — the scorer decided this; nothing is re-derived. */
@@ -1102,7 +1102,7 @@ function buildAtsReport(doc, report, { band: knownBand = null, mode = "full", co
   // `pct` survives only for the best-possible line (LLM reports), which is itself shown as a band.
   const pct = Math.max(0, Math.min(100, report.score ?? 0));
   const depth = report.resume_depth || null;
-  const { onResume, couldClaim, generic } = reportAsks(report);
+  const { onResume, notOnResume, generic } = reportAsks(report);
   const evidenced = evidencedKeys(report);
   // The verdict is printed once: when it is only the experience summary again (the A52 "renders twice"
   // defect), the Experience row already said it.
@@ -1123,9 +1123,9 @@ function buildAtsReport(doc, report, { band: knownBand = null, mode = "full", co
       h(doc, "div", { class: "ats-note__head" }, depth.headline || ""), h(doc, "div", null, depth.detail || "")),
     // ⭐ D32 → D152 (8) → 46x: what the posting asks for that the résumé doesn't show — ONE block, the only open section,
     // each row labelled with the scorer's bucket, read-only (no claims).
-    couldClaim.length > 0 && h(doc, "section", { "data-ats-missing": true, class: "ats-sec ats-sec--miss" },
-      h(doc, "div", { class: "ats-gh" }, h(doc, "span", { class: "ats-gh__label" }, "Not on your résumé"), h(doc, "span", { class: "ats-gh__ct" }, couldClaim.length)),
-      h(doc, "div", { class: "ats-rows" }, couldClaim.map(t => row(t)))),
+    notOnResume.length > 0 && h(doc, "section", { "data-ats-missing": true, class: "ats-sec ats-sec--miss" },
+      h(doc, "div", { class: "ats-gh" }, h(doc, "span", { class: "ats-gh__label" }, "Not on your résumé"), h(doc, "span", { class: "ats-gh__ct" }, notOnResume.length)),
+      h(doc, "div", { class: "ats-rows" }, notOnResume.map(t => row(t)))),
     // ⭐ D32: Experience gets its own row — pass/fail, not a footnote.
     report.experience?.summary && experienceRow(doc, report.experience),
     // FOLDED: what the résumé already shows. Read-only — there is nothing to do here.
