@@ -16,10 +16,12 @@ export const FLAGS = Object.freeze({
   }),
   // ⭐ D184 B-8 (46y): the kill switch. Off = the board's order is exactly as before (no key), and the precompute computes
   // nothing and marks nothing stale. Turned on, every active profile's board is re-scored once (the rows carry no key yet).
+  // Default ON: measured on the 100k fixture (docs/D184_B8_DESIGN.md §4) — a 49,072-posting pass 210 s → 227 s, the
+  // longest event-loop block 34 ms with it (54 ms without), the read pool never fell back, the board's first page 313 ms both ways.
   board_contextual_tiebreak: Object.freeze({
     what: "The board orders cards with the same fit band and score by the contextual score (role, responsibilities, company stack).",
     env: "BOARD_CONTEXTUAL_TIEBREAK",
-    default: "off",
+    default: "on",
     cohort: false,
     since: "D184 B-8 (46y)",
   }),

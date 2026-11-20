@@ -233,7 +233,7 @@ test("d184B8 the stack cache: one shape with companyStackOf; ids read in bulk ch
 });
 
 // ── the wiring ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-test("d184B8 wiring: migration 278 byte-identical and additive; the flag is the kill switch (off by default); server, worker, store wired", () => {
+test("d184B8 wiring: migration 278 byte-identical and additive; the flag is the kill switch (on by default, measured); server, worker, store wired", () => {
   const block = (f) => { const s = fs.readFileSync(f, "utf8"); const i = at(s, 'id: "278_ats_only_reports_contextual"'); return s.slice(lastAt(s, "    {", i), at(s, "    },", i) + 6); };
   assert.equal(block("server.js"), block("scripts/migrations.js"));
   const sql = block("server.js").replace(/^\s*\/\/.*$/gm, "");
@@ -241,7 +241,7 @@ test("d184B8 wiring: migration 278 byte-identical and additive; the flag is the 
   assert.match(sql, /ALTER TABLE ats_only_reports ADD COLUMN contextual_key TEXT;/);
   assert.doesNotMatch(sql, /\b(DROP|DELETE|UPDATE|DEFAULT)\b/);
   assert.equal(FLAGS.board_contextual_tiebreak.env, "BOARD_CONTEXTUAL_TIEBREAK");
-  assert.equal(FLAGS.board_contextual_tiebreak.default, "off");
+  assert.equal(FLAGS.board_contextual_tiebreak.default, "on", "on by default — measured safe at 100k (docs/D184_B8_DESIGN.md §4)");
 
   const server = src("server.js");
   assert.match(server, /contextual: flagOn\(db, BOARD_CONTEXTUAL_FLAG\) \}\);/, "the board's order reads the switch");
