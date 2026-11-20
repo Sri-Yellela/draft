@@ -129,11 +129,14 @@ try {
           parts: [...s.querySelectorAll("[data-ats-card-part]")].map(p => [p.dataset.atsCardPart, p.innerText.replace(/\s+/g, " ")]),
           gain: s.querySelector("[data-ats-card-gain]")?.innerText || "", panel: panel?.innerText || "",
           claims: !!document.querySelector("draft-ats-report, [data-claim-chip], [data-skill-check]"),
+          facts: [...s.querySelectorAll("[data-ats-card-facts]")].map(f => [f.dataset.atsCardFacts, f.innerText]),
           w: Math.round(s.getBoundingClientRect().width), side: document.documentElement.scrollWidth > innerWidth + 1 };
       });
       say(`${tag}: the number, painted by its band`, /^\d+%$/.test(r.num || "") && r.color !== r.body, `${r.num} · ${r.color}`);
       say(`${tag}: no band word, no claims, no quick check, no old report`, !/(Strong|Moderate|Weak)|true of me|You could claim|claimed by you/i.test(r.panel) && !r.claims, "none");
       say(`${tag}: the four parts, one line each`, r.parts.map(x => x[0]).join() === "skill_match,role_fit,responsibility_overlap,tech_stack", r.parts.map(x => x[1]).join(" | ").slice(0, 300));
+      // ⭐ 46z (owner 11-20): each part states its figures, and the card one row
+      say(`${tag}: the figures — every part and the card`, ['card', 'skill_match', 'role_fit', 'responsibility_overlap', 'tech_stack'].every(k => r.facts.some(f => f[0] === k && f[1].trim())) && r.facts.some(f => f[0] === 'tech_stack' && /% of their jobs/.test(f[1])), r.facts.map(f => `${f[0]}: ${f[1]}`).join(' | ').slice(0, 400));
       say(`${tag}: the biggest gain`, /Biggest gain: Terraform — in 41% of their jobs/.test(r.gain), r.gain);
       const plaus = await page.waitForSelector("[data-plausibility]", { timeout: 20000 }).then(() => page.evaluate(() => document.querySelector("[data-plausibility]").innerText)).catch(() => "");
       say(`${tag}: does it add up — Salesforce at Kestrel flagged, with a Dismiss`, /You list Salesforce at Kestrel Payments/.test(plaus) && /Dismiss/.test(plaus), plaus.replace(/\s+/g, " ").slice(0, 160));

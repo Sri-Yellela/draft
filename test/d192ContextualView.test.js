@@ -71,3 +71,27 @@ test("Home's held rows (owner 11-19: \"switch the held panel rows to colour too\
   assert.match(ink, /aria-label=\{atsBandLabel\(band\)\.label\}/, "a legacy row with only a band: a dot, the word only as its accessible name");
   assert.doesNotMatch(ink.replace(/^\s*\/\/.*$/gm, ""), /#[0-9a-fA-F]{3,6}\b|rgba?\(/, "no colour literal");
 });
+
+test("46z (owner 11-20: 'can definitely put more stats out … just state more to add context'): every part states its figures, and the card one row", async () => {
+  const { scoreAtsLocally, scoreContextual } = await import("../services/localAtsScorer.js");
+  const resumeText = "Ada Synthetic\nSenior Software Engineer, Northwind, 2018 – 2024\n- Built React and TypeScript front ends\n- Led a Spring Boot service migration\nSkills: TypeScript, React, Java, Spring, PostgreSQL, AWS";
+  const jd = "Senior Software Engineer\nWhat you'll do\n- Design and build TypeScript and React features for patients\n- Own backend services in Node.js and PostgreSQL on AWS\n- Build dashboards in Looker\nRequirements\n- TypeScript, React, Node.js, PostgreSQL, AWS, Looker";
+  const report = scoreAtsLocally({ resumeText, job: { title: "Senior Software Engineer", description: jd } });
+  const contextual = scoreContextual({ skillMatch: report.score, skillsBoth: report.tier1_matched,
+    posting: { category: "software-engineering", subcategory: "swe.backend", level: "senior", text: jd },
+    resume: { category: "software-engineering", subcategory: "swe.fullstack", level: "mid", text: resumeText, tech: ["TypeScript", "React", "Spring"] },
+    company: { techStack: [{ name: "TypeScript", postingShare: 0.9 }, { name: "Node.js", postingShare: 0.7 }, { name: "Looker", postingShare: 0.4 }] } });
+  const v = atsCardView({ report, contextual });
+  const f = Object.fromEntries(v.parts.map(p => [p.name, p.facts.join(" · ")]));
+  assert.match(f.Skills, /^\d+ of \d+ skills/);
+  assert.match(f.Skills, /weighs 50%/);
+  assert.match(f.Role, /1 level apart/);
+  assert.match(f["The work"], /dut(y|ies) to show · weighs 15%/);
+  assert.match(f["Their stack"], /TypeScript 90%, Node\.js 70%, Looker 40% of their jobs/);
+  assert.match(f["Their stack"], /\d of 3 of their tools exact/);
+  assert.match(v.facts.join(" · "), /skill match \d+ · in context \d+/);
+  // a report alone (no contextual block) still states its counts, with no weight to state
+  const alone = atsCardView({ report: { score: 50, tier1_matched: ["aws", "go"], tier1_missing: ["grpc"], action_verbs_matched: ["Built"], action_verbs_missing: [] } });
+  assert.deepEqual(alone.parts[0].facts, ["2 of 3 skills", "1 of 1 action verbs"]);
+  assert.deepEqual(alone.facts, []);
+});

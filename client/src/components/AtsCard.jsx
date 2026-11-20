@@ -39,6 +39,7 @@ export function AtsCard({ report = null, jobId = null, history = null, contextua
       ) : (
         <>
           <div data-ats-card-score style={{ fontSize: ts(44), fontWeight: 700, lineHeight: 1, color: atsInk(view.score) }}>{view.score}%</div>
+          {view.facts?.length > 0 && <div data-ats-card-facts="card" style={{ fontSize: ts(12.5), color: "var(--color-text-muted)", marginTop: -8, overflowWrap: "anywhere" }}>{view.facts.join(" · ")}</div>}
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {view.parts.map(p => (
               <div key={p.id} data-ats-card-part={p.id} style={{ display: "grid", gridTemplateColumns: "minmax(84px, 110px) minmax(0, 1fr) 36px", alignItems: "center", gap: 12 }}>
@@ -48,6 +49,8 @@ export function AtsCard({ report = null, jobId = null, history = null, contextua
                     <div style={{ height: 6, width: `${p.score}%`, background: atsInk(p.score) }} />
                   </div>
                   {p.line && <div style={{ fontSize: ts(12.5), color: "var(--color-text-muted)", overflowWrap: "anywhere" }}>{p.line}</div>}
+                  {/* ⭐ 46z (owner 11-20): the part's figures, stated — counts, shares, its weight */}
+                  {p.facts?.length > 0 && <div data-ats-card-facts={p.id} style={{ fontSize: ts(11.5), color: "var(--color-text-muted)", opacity: 0.85, overflowWrap: "anywhere" }}>{p.facts.join(" · ")}</div>}
                 </div>
                 <div style={{ fontSize: ts(14), fontWeight: 700, textAlign: "right", color: atsInk(p.score) }}>{p.score}</div>
               </div>
