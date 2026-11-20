@@ -86,10 +86,12 @@ export function itemSource(item, index) {
   }
   const h = hostOf(item.u);
   const rows = index.hosts.get(h) || [];
-  if (rows.length === 1) return { id: rows[0].id, via: "host" };
-  if (rows.length > 1) {
-    const p = urlOf(item.u).pathname;
-    const best = rows.filter(r => r.path && p.startsWith(r.path)).sort((a, b) => b.path.length - a.path.length)[0];
+  // ⭐ 46z: path-aware even with ONE row — a row registered for one repository (github.com/barbagroup/CFDPython) is not the
+  // source of every link on its host. Before, every GitHub link in Learn resolved to that one row. A row at the host's root
+  // (path "") still answers for the whole host; the longest matching path wins.
+  if (rows.length) {
+    const p = urlOf(item.u).pathname.replace(/\/+$/, "");
+    const best = rows.filter(r => !r.path || p === r.path || p.startsWith(`${r.path}/`)).sort((a, b) => b.path.length - a.path.length)[0];
     if (best) return { id: best.id, via: "host" };
   }
   const want = hostSlug(h);
