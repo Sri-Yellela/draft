@@ -179,6 +179,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 8. **`l46y-fidelity` Home** — only after the owner approves `home-sketch.html` (owner step 3).
 9. **A T14 index** if `learn_question_answers` by user measures slow at production size.
 10. The 28 OPEN-OWNER rows (ROUND 2 list) stay owner-gated; the agent builds each as the owner answers.
+11. **NEW from the chat assistant during 46y (owner 11-14 rows, committed as written in `25acaadd`), NOT STARTED:** **D194** animated decks with narration and captions (P1 the animation engine + *Read* mode on the existing decks → then the narrated *Watch* mode via the browser's `SpeechSynthesis`, no AI / no service) · **D193** Atlas content gaps from the owner's saved reels (D193-1: each gap into D185-3's rising-skills backlog; licences checked by the agent before any source is used). Read both rows in full before starting.
 
 ### 👤👤👤 OWNER — YOUR STEPS FOR 46z (the 46y list below still stands: staging force push, store upload, four decisions)
 1. ☐ Set **`INDEXNOW_KEY`** on draft production (32 hex chars) to switch IndexNow on.
