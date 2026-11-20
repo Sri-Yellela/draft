@@ -25,7 +25,7 @@ import { at } from "../test-support/sourceAnchors.js";
  * mount-time bootstrap that picked a day for that calendar, the "Showing <day>" line, the tab notes
  * and the standing-work notes were all removed with it, and their nine tests with them. What stays
  * pinned here is the ENDPOINT, which still exists and still answers correctly; that no effect calls
- * it any more is asserted in applyRunHistory.test.js and applyPanelLayoutAdoption.test.js.
+ * it any more is asserted in applyRunHistory.test.js and applyObstacleSurfaces.test.js (applyPanelLayoutAdoption's block, A232 R6).
  */
 
 function serverWith(rows) {

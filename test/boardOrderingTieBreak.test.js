@@ -198,7 +198,7 @@ test("every sort value the client can send has its own case", () => {
 
   // D24: the sort icon opens the SORT PANEL, rendered from shared/filterSentence.js's SORT_PANEL
   // through sortRows — still no list of its own. That every PANEL value is one GET /api/jobs accepts
-  // is held by test/d24FilterSentenceClient.test.js (companyAsc arrives with D24's server half).
+  // is held by test/d35FullHouseHeader.test.js's D24 block (was d24FilterSentenceClient; A232 R6) (companyAsc arrives with D24's server half).
   assert.match(app, /sortRows\(atsSortAvailable\)/,
     "the sort icon no longer reads the sort panel's list");
   assert.ok(!/const SORT_OPTIONS\s*=/.test(app),
