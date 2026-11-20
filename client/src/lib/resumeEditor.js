@@ -51,6 +51,8 @@ export function themeTokens(doc = document) {
     raise: v("--color-surface-offset"), raise2: v("--color-surface-offset"),
     line: v("--color-border"), ink: v("--color-text"), body: v("--color-text-muted"), muted: v("--color-text-faint"),
     accent: v("--color-primary"), accent2: v("--color-primary-hover"), onAccent: v("--color-on-primary"),
-    font: getComputedStyle(doc.body).fontFamily,
+    // 46y (D157 walk vs resume-master 2f890f7): the theme's interface face (--shape-font-ui, Inter Tight in Dusk / Plain), not
+    // the body's — the shell sets an inline DM Sans on <body> that every themed screen overrides, so the editor drew DM Sans.
+    font: v("--shape-font-ui") || getComputedStyle(doc.body).fontFamily,
   };
 }
