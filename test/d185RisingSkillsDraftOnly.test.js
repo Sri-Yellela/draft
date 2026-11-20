@@ -66,3 +66,20 @@ test("d185RisingSkillsDraftOnly: an outline is a DRAFT brief — the register's 
   const src = fs.readFileSync(new URL("../services/atlas/risingSkills.js", import.meta.url), "utf8");
   assert.ok(!/INSERT INTO atlas_nodes|UPDATE atlas_nodes|setStatus\(|autoPublish/.test(src), "the backlog never touches the Atlas's own nodes");
 });
+
+test("D193-1 (46z): the owner's research gaps sit in the backlog beside the rising skills, by priority — drafting one stays a draft brief", async () => {
+  const db = world();
+  const nodesBefore = db.prepare("SELECT COUNT(*) FROM atlas_nodes").pluck().get();
+  const backlog = await contentBacklog(db, read(db), { now: NOW });
+  assert.equal(backlog.rows[0].tech, "Rust", "the market's rows are unchanged");
+  assert.deepEqual(backlog.research.slice(0, 2).map(r => r.tech).sort(), ["AI engineering", "System design"], "priority 1 first");
+  assert.equal(backlog.research.at(-1).tech, "Quantum computing basics", "quantum lowest");
+  assert.ok(backlog.research.every(r => r.kind === "research" && r.subcategory && r.priority >= 1));
+  const item = draftOutline(db, backlog.research[0], { reg: { sources: [] }, by: "owner" });
+  assert.equal(item.status, "draft");
+  assert.match(item.outline.why, /owner's research \(D193, priority 1\)/);
+  assert.match(item.outline.note, /never copied/);
+  assert.equal(db.prepare("SELECT COUNT(*) FROM atlas_nodes").pluck().get(), nodesBefore, "no atlas node is written");
+  const again = await contentBacklog(db, read(db), { now: NOW });
+  assert.equal(again.research.find(r => r.tech === backlog.research[0].tech).draft.status, "draft");
+});

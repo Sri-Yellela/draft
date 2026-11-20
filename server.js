@@ -14114,7 +14114,8 @@ app.get("/api/admin/atlas-backlog", requireAdmin, async (req, res) => {
 app.post("/api/admin/atlas-backlog/draft", requireAdmin, async (req, res) => {
   try {
     const tech = String(req.body?.tech || ""), subcategory = String(req.body?.subcategory || "");
-    const row = (await contentBacklog(db, readPool, { limit: 500 })).rows.find(r => r.tech === tech && r.subcategory === subcategory);
+    const backlog = await contentBacklog(db, readPool, { limit: 500 });
+    const row = [...backlog.rows, ...(backlog.research || [])].find(r => r.tech === tech && r.subcategory === subcategory);   // D193-1: research rows too
     if (!row) return res.status(404).json({ error: "not_rising", message: "That skill is not on the rising list for that role." });
     res.json(draftOutline(db, row, { by: req.user?.username || req.admin?.email || null }));
   } catch (e) { res.status(e.status || 500).json({ error: e.code || "draft_failed", message: e.message }); }

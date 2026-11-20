@@ -16,6 +16,7 @@ import { loadRegistry, effectiveClass, mayAdapt } from "./sourceRegistry.js";
 import { learnStepForNode } from "../learn/learnLinks.js";
 import { learnContent } from "../learn/learnContent.js";
 import { taxonomy } from "../jobs/taxonomyClassify.js";
+import fs from "node:fs";
 
 export const RECENT_DAYS = 30;
 export const BASELINE_DAYS = 120;
@@ -32,6 +33,18 @@ function subName(id) {
   const tax = safe(() => taxonomy(), null);
   for (const c of tax?.categories || []) { const s = c.subs.find(x => x.id === id); if (s) return s.name; }
   return id;
+}
+
+// ⭐ D193-1 (46z, owner 11-14) · the owner's research gaps (content/atlas/research-gaps-v1.json — topics with high creator
+// engagement that Atlas is thin on) join the backlog BESIDE the market's rising skills, ranked by their own priority. Same
+// rule: a row is a brief for the curator — drafting an outline stores status 'draft', nothing is written to atlas_nodes.
+const RESEARCH_FILE = new URL("../../content/atlas/research-gaps-v1.json", import.meta.url);
+export function researchGaps() {
+  const doc = safe(() => JSON.parse(fs.readFileSync(RESEARCH_FILE, "utf8")), { gaps: [] });
+  return (doc.gaps || []).filter(g => g?.term && g?.subcategory)
+    .map(g => ({ kind: "research", tech: g.term, subcategory: g.subcategory, priority: Number(g.priority) || 9,
+      scope: g.scope || "", atlasHas: g.atlasHas || "", proposal: g.proposal || "" }))
+    .sort((a, b) => a.priority - b.priority || a.tech.localeCompare(b.tech));
 }
 
 /** PURE. Rows of (subcategory, tech, recent n, baseline n) + window totals → the rising list, best first. */
@@ -87,7 +100,12 @@ export async function contentBacklog(db, read, { now = nowS(), limit = 40 } = {}
       draft: drafts.get(`${r.subcategory}|${r.tech}`) || null };
     if (!byTech.has(r.tech) || byTech.get(r.tech).score < row.score) byTech.set(r.tech, row);
   }
-  return { rows: [...byTech.values()].sort((a, b) => b.score - a.score).slice(0, limit),
+  const research = researchGaps().map(g => {
+    const lesson = learn ? safe(() => learnStepForNode(db, { name: g.tech, term: g.tech.toLowerCase() }, learn), null) : null;
+    return { ...g, subcategoryName: subName(g.subcategory), hasLesson: !!lesson, lesson: lesson ? (lesson.title || lesson.id || true) : null,
+      draft: drafts.get(`${g.subcategory}|${g.tech}`) || null };
+  });
+  return { rows: [...byTech.values()].sort((a, b) => b.score - a.score).slice(0, limit), research,
     windows: { recentDays: RECENT_DAYS, baselineDays: BASELINE_DAYS }, minimums: { recent: MIN_RECENT_POSTINGS, subcategory: MIN_SUBCATEGORY_POSTINGS },
     asks: "D177's unanswered asks join here once the ask log exists (owner-gated: a privacy line + an opt-out)." };
 }
@@ -105,6 +123,22 @@ export function sourcesFor(term, reg) {
 export function outlineFor(row, reg) {
   const sources = sourcesFor(row.tech, reg);
   const adapt = sources.filter(s => s.use === "adapt");
+  if (row.kind === "research") {
+    return {
+      title: `${row.tech} for ${row.subcategoryName || row.subcategory}`,
+      why: `From the owner's research (D193, priority ${row.priority}): ${row.scope} Atlas has ${row.atlasHas}`,
+      steps: [
+        `What ${row.tech} covers and where it sits in ${row.subcategoryName || row.subcategory} work — in our own words, with a neutral source linked.`,
+        adapt.length ? `The first module, adapted from ${adapt[0].publisher} ${adapt[0].name} (${adapt[0].licenceClass}; attribution + licence notice).`
+          : `The first module — no open-licence source in the register covers it yet: write it ourselves, link the primary docs.`,
+        `One deck and one check per idea (the reel shape: one concept, visual, five slides).`,
+        `Proposed: ${row.proposal}.`,
+      ],
+      sources,
+      status: "draft",
+      note: "A brief for the curator. Nothing is published from here; creators' reels are linked as 'also watch', never copied.",
+    };
+  }
   return {
     title: `${row.tech} for ${row.subcategoryName || row.subcategory}`,
     why: `${row.recentShare}% of new ${row.subcategoryName || row.subcategory} postings ask for ${row.tech} (was ${row.baselineShare}%).`,

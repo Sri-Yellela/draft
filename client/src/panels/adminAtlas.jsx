@@ -592,6 +592,19 @@ export function AtlasBacklogSection() {
           ))}
         </div>
       )}
+      {s?.research?.length > 0 && (
+        <div style={{ display: "grid", gap: 6, marginTop: 12 }} data-backlog-research="">
+          <div style={sub}>From the owner's research (D193) — topics people are learning that Atlas is thin on</div>
+          {s.research.map(r => (
+            <div key={`${r.subcategory}|${r.tech}`} style={row} data-backlog-row={r.tech} data-backlog-kind="research">
+              <b>{r.tech}</b>
+              <span style={quiet}>priority {r.priority} · {r.subcategoryName} · {r.proposal}{r.hasLesson ? " · has a lesson" : " · no lesson yet"}</span>
+              {r.draft ? <Mark>{`outline ${r.draft.status}`}</Mark> : null}
+              <DepthButton onClick={() => draft(r)} disabled={busy === `${r.subcategory}|${r.tech}`}>{r.draft ? "Redraft the outline" : "Draft an outline"}</DepthButton>
+            </div>
+          ))}
+        </div>
+      )}
       {open?.outline && (
         <div style={{ marginTop: 12 }} data-backlog-outline={open.status}>
           <div style={sub}>{open.outline.title} — draft</div>

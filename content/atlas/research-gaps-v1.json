@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "note": "D193-1 (owner 11-14, analysed by the chat assistant from the owner's saved tech-education reels): the topics with high creator engagement that Atlas is thin or empty on. Each joins D185-3's content backlog beside the market's rising skills, with its priority (1 = highest). A row is a brief for the curator, never a lesson: nothing here writes atlas_nodes or publishes. The creators' own reels are their copyrighted content: Atlas may link to them as 'also watch', never copy or adapt them.",
+  "gaps": [
+    {
+      "term": "AI engineering",
+      "subcategory": "data.ai-apps",
+      "priority": 1,
+      "scope": "RAG (hybrid search, reranking, citations), agentic systems (orchestration, tools, memory, human-in-the-loop), fine-tuning (LoRA), evals from production logs, guardrails (prompt injection, blocking destructive text-to-SQL), context engineering, model migration and canary rollout.",
+      "atlasHas": "ML fundamentals (D2L, the Hugging Face courses) and the decks-v1 AI engineering deck; not the applied stack AI-engineer roles ask for.",
+      "proposal": "a new Atlas course: AI engineering (outline: docs/D193_AI_ENGINEERING_OUTLINE.md)"
+    },
+    {
+      "term": "System design",
+      "subcategory": "swe.distributed",
+      "priority": 1,
+      "scope": "Scaling (horizontal / vertical), load balancing, caching (semantic caching too), data pipelines, model serving, latency / reliability / monitoring trade-offs, deployment patterns (blue-green, canary, rolling, shadow, feature flags).",
+      "atlasHas": "systems in From silicon to software, not as interview prep or production patterns.",
+      "proposal": "a course or a module in the existing path: System design (the Google SRE books CC BY 4.0, the Kubernetes docs CC BY 4.0, deployment patterns as general knowledge)"
+    },
+    {
+      "term": "DSA patterns",
+      "subcategory": "swe.general",
+      "priority": 2,
+      "scope": "The 15 reusable moves: two pointers, sliding window, binary search, prefix sums, hash map, merge intervals, fast / slow pointers, reverse a linked list, monotonic stack, top K, BFS, DFS, backtracking, topological sort, dynamic programming.",
+      "atlasHas": "D172's LeetCode pattern atlas as a tab, not a course with checks.",
+      "proposal": "promote the pattern atlas to its own course on the shelf (D193-4), one deck and one check per pattern"
+    },
+    {
+      "term": "Data engineering roadmap",
+      "subcategory": "data.engineering",
+      "priority": 2,
+      "scope": "SQL, Python, Git and Linux, data modelling, warehousing, ETL / ELT, Spark, Databricks, cloud, Airflow, Kafka, end-to-end projects, drawn station by station.",
+      "atlasHas": "a data path, not drawn as a roadmap people save and follow.",
+      "proposal": "a route on the course (D178's route feature) and a public landing page (D185-6), D193-5"
+    },
+    {
+      "term": "Kubernetes in production",
+      "subcategory": "infra.platform-devops",
+      "priority": 3,
+      "scope": "Docker image, registry, deployment, pods, service, ingress / load balancer, rollback; CI / CD; managed Kubernetes.",
+      "atlasHas": "the Kubernetes docs (CC BY 4.0) in the register, no structured flow.",
+      "proposal": "a module or a route"
+    },
+    {
+      "term": "Picking an ML algorithm",
+      "subcategory": "data.science",
+      "priority": 3,
+      "scope": "Which algorithm for which job: linear and logistic regression, KNN, SVM, decision trees, random forests, gradient boosting, K-means, as one comparison grid.",
+      "atlasHas": "the algorithms conceptually, not the one-page decision grid.",
+      "proposal": "one deck (general knowledge, no licence question), D193-6"
+    },
+    {
+      "term": "Security for developers",
+      "subcategory": "sec.appsec",
+      "priority": 3,
+      "scope": "Leaked-key scanning, AI-assisted attacks, code auditing by agents, what quantum computing means for TLS.",
+      "atlasHas": "OWASP in the register (CC BY-SA), no applied course.",
+      "proposal": "a module in the security pathway, from OWASP and NIST (both in the register)"
+    },
+    {
+      "term": "Small language models",
+      "subcategory": "data.ai-apps",
+      "priority": 4,
+      "scope": "What a small language model is, when it beats a large one, running one locally.",
+      "atlasHas": "nothing.",
+      "proposal": "deferred until demand shows in D177's gap log"
+    },
+    {
+      "term": "Quantum computing basics",
+      "subcategory": "data.research",
+      "priority": 5,
+      "scope": "Qubits, superposition, the few algorithms that matter, what it does and does not threaten.",
+      "atlasHas": "nothing.",
+      "proposal": "deferred until demand shows in D177's gap log (lowest priority)"
+    }
+  ]
+}
