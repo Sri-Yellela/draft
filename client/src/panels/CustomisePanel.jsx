@@ -15,6 +15,7 @@ import DepthButton from "../components/DepthButton.jsx";
 import RadioCards from "../components/RadioCards.jsx";
 import CustomisePreview from "../components/CustomisePreview.jsx";
 import { ThemeSection, AccessibilitySection, saveAppearance } from "../components/AppearanceSettings.jsx";
+import { NarrationSection } from "../components/NarrationSettings.jsx";   // ⭐ D194 (2)
 import { LAYOUT_OPTIONS, layoutDefaults } from "../themes/layoutOptions.js";
 import { ACTIVE_THEME, CUES, layout, setLayout, applyLayout } from "../themes/index.js";
 import { api } from "../lib/api.js";
@@ -113,6 +114,7 @@ export default function CustomisePanel() {
         <div className="cz-col">
           <ThemeSection />
           <AccessibilitySection />
+          <NarrationSection />
           {LAYOUT_OPTIONS.map((o) => (
             <SettingsSection key={o.id} title={o.label} subtitle={o.description}>
               <RadioCards label={o.label} name={o.id} value={lay[o.id]} onChange={(v) => choose(o.id, v)}

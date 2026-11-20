@@ -16,6 +16,8 @@ import { pastelIndex, pastelVar } from "../../../../shared/pastel.js";
 export { BookSpine, BookShelf, bookShape, spineFont } from "../../components/BookShelf.jsx";
 import "./LibraryPanel.css";
 import { Facts } from "../../components/TextBlocks.jsx";   // A233: meta lines as figures
+import DeckPlay from "./DeckPlay.jsx";   // ⭐ D194: Watch / Read
+import { MODES } from "./deckPlay.js";
 
 export function useGuides() {
   const [g, setG] = useState(null);
@@ -122,6 +124,8 @@ export function GuidePage({ base, guide }) {
               <Link to={`${base}/library/${l.id}`} className="lib-lesson__t">{i + 1}. {l.title}</Link>
               <span className="atl__quiet">{l.slides} slides{l.skills.length ? ` · ${l.skills.join(", ")}` : ""}</span>
             </div>
+            {/* ⭐ D194 (6): the ▶ on a deck — it plays (Watch, muted until the person turns the sound on) */}
+            <Link to={`${base}/library/${l.id}?play=watch`} className="atl__link lib-lesson__play" data-deck-play-link={l.id} aria-label={`Watch ${l.title}`}>▶ Watch</Link>
           </li>
         ))}
       </ol>
@@ -136,6 +140,9 @@ export function DeckPage({ base, id }) {
   const [error, setError] = useState("");
   const [i, setI] = useState(0);
   const [answer, setAnswer] = useState(null);
+  // ⭐ D194: three modes, one toggle — Watch · Read · Cards. Cards (the static deck below) unless the link asks to play
+  // (?play=watch — a course lesson's Open — or ?play=read). Playing never starts with sound.
+  const [mode, setMode] = useState(() => { try { const m = new URLSearchParams(window.location.search).get("play"); return MODES.includes(m) ? m : "cards"; } catch { return "cards"; } });
   useEffect(() => {
     let live = true;
     setDeck(null); setI(0); setAnswer(null); setError("");
@@ -175,14 +182,21 @@ export function DeckPage({ base, id }) {
     );
   };
   return (
-    <article className="lib-deck" data-deck-view={deck.id} data-slide={i + 1} data-pastel={pastelIndex(deck.id)}>
+    <article className="lib-deck" data-deck-view={deck.id} data-slide={i + 1} data-pastel={pastelIndex(deck.id)} data-deck-mode={mode}>
       <p className="atl__kicker">{deck.guide ? <Link to={`${base}/library/${deck.guide.id}`} className="atl__link">{deck.guide.name}</Link> : "Library"} · {deck.title}</p>
-      <CardPile count={deck.slides.length} at={i} color={pastelVar(deck.id)} flipKey={last && answer ? "answered" : null} renderFace={face} />
-      <div className="lib-deck__nav">
-        <DepthButton disabled={i === 0} onClick={() => setI(i - 1)}>← Back</DepthButton>
-        <span className="atl__quiet" aria-live="polite">{i + 1} of {deck.slides.length}</span>
-        {!last && <DepthButton primary onClick={() => setI(i + 1)}>Next →</DepthButton>}
+      <div className="lib-modes" role="group" aria-label="How to take this deck" data-deck-modes="">
+        {[["watch", "Watch"], ["read", "Read"], ["cards", "Cards"]].map(([m, label]) => (
+          <DepthButton key={m} size="compact" pressed={mode === m} primary={mode === m} onClick={() => setMode(m)} data-deck-mode-pick={m}>{label}</DepthButton>
+        ))}
       </div>
+      {mode === "cards" ? (<>
+        <CardPile count={deck.slides.length} at={i} color={pastelVar(deck.id)} flipKey={last && answer ? "answered" : null} renderFace={face} />
+        <div className="lib-deck__nav">
+          <DepthButton disabled={i === 0} onClick={() => setI(i - 1)}>← Back</DepthButton>
+          <span className="atl__quiet" aria-live="polite">{i + 1} of {deck.slides.length}</span>
+          {!last && <DepthButton primary onClick={() => setI(i + 1)}>Next →</DepthButton>}
+        </div>
+      </>) : <DeckPlay deck={deck} mode={mode} onMode={setMode} renderCheck={() => face(deck.slides.length - 1)} />}
     </article>
   );
 }

@@ -124,3 +124,39 @@
 .rr-tabs button { all: unset; cursor: pointer; padding: 7px 14px; border-radius: 11px; color: var(--c-ink-muted); font-weight: 600; font-size: 13.5px; }
 .rr-tabs button[aria-pressed="true"] { background: var(--c-surface); color: var(--c-ink); }
 .rr-tabs button:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+
+/* ⭐ D194 · the deck, played (DeckPlay.jsx) — Watch / Read. The points come in one at a time (≈ 300 ms); the caption bar is
+   always on, large, in the body font on a see-through surface; Reduce motion → every point appears at once. No capsules. */
+.lib-modes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 12px; }
+.lib-play { display: grid; gap: 12px; outline: none; }
+.lib-play:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 4px; }
+.lib-play__stage { background: var(--c-surface-solid); border: 1px solid var(--c-border-strong); border-radius: 14px; padding: 24px 26px; min-height: 300px; box-shadow: var(--c-depth-rest, none); }
+.lib-play__pt { opacity: 0; transform: translateY(10px); transition: opacity 300ms ease, transform 300ms ease; }
+.lib-play__pt.is-in { opacity: 1; transform: none; }
+.lib-play__pt--none { transition: none; }
+.lib-play__pt--typewriter.is-in { animation: lib-play-type 600ms steps(24, end) both; }
+.lib-play__pt--drawSvg svg path, .lib-play__pt--drawSvg svg line { stroke-dasharray: 1000; stroke-dashoffset: 1000; }
+.lib-play__pt--drawSvg.is-in svg path, .lib-play__pt--drawSvg.is-in svg line { animation: lib-play-draw 900ms ease forwards; }
+.lib-play__in { animation: lib-play-rise 300ms ease both; }
+@keyframes lib-play-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes lib-play-draw { to { stroke-dashoffset: 0; } }
+@keyframes lib-play-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.lib-play__cap { margin: 0; min-height: 3.2em; padding: 12px 16px; border-radius: 10px; font-size: 19px; line-height: 1.45; color: var(--c-ink);
+  background: color-mix(in srgb, var(--c-surface-solid) 82%, transparent); border: 1px solid var(--c-border-strong); }
+.lib-play__bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.lib-play__speeds { display: inline-flex; gap: 4px; }
+.lib-play__prog { display: inline-flex; gap: 8px; align-items: center; flex: 1 1 180px; min-width: 160px; }
+.lib-play__track { flex: 1; height: 6px; background: var(--c-border-strong); border-radius: 2px; overflow: hidden; }
+.lib-play__fill { display: block; height: 100%; background: var(--c-accent); transition: width 300ms ease; }
+@media (prefers-reduced-motion: reduce) {
+  .lib-play__pt, .lib-play__pt.is-in, .lib-play__in, .lib-play__fill { transition: none !important; animation: none !important; transform: none; }
+  .lib-play__pt--drawSvg svg path, .lib-play__pt--drawSvg svg line { stroke-dashoffset: 0; }
+}
+/* a phone: the reel full screen; a swipe skips */
+@media (max-width: 600px) {
+  .lib-play { position: fixed; inset: 0; z-index: 850; /* Z.MODAL — the reel covers the page and its bars */ background: var(--c-canvas); padding: 14px 14px 18px; grid-template-rows: 1fr auto auto; overflow-y: auto; }
+  .lib-play__stage { padding: 18px; min-height: 0; }
+  .lib-play__cap { font-size: 17px; }
+  .lib-play .lib-play__bar .lib-play__exit { display: inline-flex; }
+}
+.lib-play .lib-play__exit { display: none; }

@@ -45,7 +45,7 @@ export const MODULES = Object.freeze({
   // ⭐ D93 · the Customise page — Appearance (moved off Account) and the layout options, with its live preview.
   // App.jsx is a member for ContrastOffer, the prefers-contrast banner the shell mounts.
   customise: { why: "the Customise page (D93) — theme, shape cues and the layout options", css: ["components/Customise.css"],
-    members: ["App.jsx", "panels/CustomisePanel.jsx", "components/AppearanceSettings.jsx", "components/RadioCards.jsx", "components/CustomisePreview.jsx",
+    members: ["App.jsx", "panels/CustomisePanel.jsx", "components/AppearanceSettings.jsx", "components/NarrationSettings.jsx", "components/RadioCards.jsx", "components/CustomisePreview.jsx",
     "components/DeckGeometryControl.jsx"] },
   // ⭐ D146 (owner 11-03): Draft House and The Table are ONE application tracker, so one module — the old theTable
   // module's members joined this one (The Table's views are its full sheet, behind Settings → View).
@@ -68,7 +68,7 @@ export const MODULES = Object.freeze({
   // (the panels), atlasPanels.js (which panel an address belongs to; docs/D167_ATLAS_MAP.md maps every older surface to its
   // panel); AtlasPanels.css is the panels' look.
   atlas: { why: "the Atlas pages (D105) — search, one node's page, its neighbourhood graph; Learn, the owner's path (D115); Your map, the tree (D116); its own navigation of panels (D167)", css: ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/LearnCircle.css", "pages/atlas/AtlasTree.css", "pages/atlas/AtlasPanels.css", "pages/atlas/LibraryPanel.css", "pages/atlas/YourRun.css", "pages/atlas/TrackBoard.css", "pages/atlas/CompetePanels.css", "pages/atlas/SkillMap.css"],
-    members: ["App.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/atlasModel.js", "pages/atlas/LearnView.jsx", "pages/atlas/learnModel.js", "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/LibraryPanel.jsx", "pages/atlas/PathwayArt.jsx", "pages/atlas/libraryModel.js", "pages/atlas/YourRun.jsx", "pages/atlas/yourRunModel.js", "pages/atlas/TrackBoard.jsx", "pages/atlas/trackModel.js", "pages/atlas/LibraryGuides.jsx", "pages/atlas/LessonDeck.jsx",
+    members: ["App.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/atlasModel.js", "pages/atlas/LearnView.jsx", "pages/atlas/learnModel.js", "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/LibraryPanel.jsx", "pages/atlas/PathwayArt.jsx", "pages/atlas/libraryModel.js", "pages/atlas/YourRun.jsx", "pages/atlas/yourRunModel.js", "pages/atlas/TrackBoard.jsx", "pages/atlas/trackModel.js", "pages/atlas/LibraryGuides.jsx", "pages/atlas/LessonDeck.jsx", "pages/atlas/DeckPlay.jsx", "pages/atlas/deckPlay.js",
       "pages/atlas/AtlasTree.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js", "pages/atlas/YourMap.jsx",
       "pages/atlas/Navigator.jsx", "pages/atlas/ReadinessCheck.jsx",
       "pages/atlas/AtlasPanels.jsx", "pages/atlas/atlasPanels.js",
@@ -187,6 +187,7 @@ export const SHARED = Object.freeze({
   "components/ui/toaster.jsx":          { what: "the app's toaster" },
   // ── module-private parts ──
   "components/AppearanceSettings.jsx":  { what: "Customise's Theme and Accessibility cards, and the prefers-contrast offer (D91 P5; moved off Account by D93)", module: "customise" },
+  "components/NarrationSettings.jsx":   { what: "D194 (2) · Customise's Narration voice — one of this device's voices for a played deck", module: "customise" },
   "components/RadioCards.jsx":          { what: "the Customise page's option cards — a keyboard radio group (D93)", module: "customise" },
   "components/CustomisePreview.jsx":    { what: "the Customise page's live preview, drawn with the real stylesheets (D93)", module: "customise" },
   "components/Customise.css":           { what: "the Customise page's look", owner: "panels/CustomisePanel.jsx", alsoBy: ["components/RadioCards.jsx", "components/CustomisePreview.jsx"] },
@@ -261,6 +262,7 @@ export const SHARED = Object.freeze({
   // ── lib ──
   "lib/accountAvatar.js":               { what: "the account avatar" },
   "lib/api.js":                         { what: "THE API client" },
+  "lib/narrationVoice.js":              { what: "D194 (2) · the narration voice — one of this device's installed voices, chosen in Customise, used by the played deck" },
   "lib/personalState.js":               { what: "A148 · forget the signed-in person when they change (sign-out, a switch) — one place, every tab" },
   "lib/atlasLinks.js":                  { what: "D105 P5 · a skill tag's link to its PUBLISHED Atlas page — resolved in bulk, cached per page" },
   "lib/applyObstacles.js":              { what: "the apply line's vocabulary" },
