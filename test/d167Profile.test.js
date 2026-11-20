@@ -221,8 +221,10 @@ test("d167InterviewPageSections · /app/interview: Coming up · Prepare · Pract
   }
   // what exists is linked; what does not says it is coming — no sample companies, no invented numbers
   assert.match(interview("drills"), /<a [^>]*data-open-check=""[^>]*href="\/app\/atlas\/check"[^>]*>Start a check/, "D142's readiness check");
-  assert.match(interview("defend"), /href="\/tools\/honesty"/);
-  for (const id of ["guides", "coach", "defend", "mock"]) assert.match(interview(id), new RegExp(`data-coming="${id}"`));
+  // ⭐ D142 Defend (46y): built — the sketch's heading, reading the person's résumé (test/d142Defend.test.js holds the rest)
+  assert.match(interview("defend"), /Every line you wrote, asked about/);
+  assert.doesNotMatch(interview("defend"), /data-coming="defend"/);
+  for (const id of ["guides", "coach", "mock"]) assert.match(interview(id), new RegExp(`data-coming="${id}"`));
   assert.match(interview("past"), /data-past-empty=""/);
   for (const id of INTERVIEW_PANEL_IDS) assert.doesNotMatch(interview(id), /Stripe|Prophetic|Plaid|142<\/b>/, `${id}: none of the sketch's sample data`);
   assert.match(interview("debrief"), /data-debrief-form=""/);

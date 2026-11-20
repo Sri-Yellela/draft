@@ -40,3 +40,10 @@
   .iv__item { grid-template-columns: 1fr; }
   .iv__stage { grid-template-columns: 1fr; }
 }
+/* ⭐ D142 Defend (46y): the sketch's card — the bullet, the question, the two answers, then the harder follow-up. */
+.iv__defend-where { margin: 0 0 8px; }
+.iv__defend-q { color: var(--c-ink); font-size: 16px; margin-top: 6px; }
+.iv__defend-clock { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 20px; color: var(--c-ink); min-width: 3.5ch; }
+.iv__defend-form { margin-top: 14px; }
+.iv__defend-form .iv__row { margin-top: 0; }
+.iv__defend-harder { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--c-border); }

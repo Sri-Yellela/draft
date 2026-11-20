@@ -14,6 +14,9 @@
 // DELETE /api/interview/debriefs/:id
 // GET    /api/interview/questions                           ?round= — the user's OWN question bank (never another user's)
 // GET    /api/interview/upcoming                            ⭐ D167: Interview → Coming up — the Inbox's invites matched to applications
+// GET    /api/interview/defend                              ⭐ D142 Defend: each base-résumé bullet's follow-ups, from templates
+//                                                            (services/defendResume.js — no model, nothing stored)
+import { defendFor } from "../services/defendResume.js";
 import { readPrep, setPrepDate, connectorPack, listStories, createStory, updateStory, deleteStory, seedStoriesFromProfile,
   addDebrief, listDebriefs, deleteDebrief, questionBank, upcomingInterviews } from "../services/interviewPrep.js";
 import { jobDetail } from "../services/pipelineWorkspace.js";
@@ -79,6 +82,7 @@ export default function interviewRoutes(app, db, requireAuth) {
     send(res, () => (deleteDebrief(db, req.user.id, req.params.id) ? { ok: true } : null));
   });
   app.get("/api/interview/upcoming", requireAuth, (req, res) => send(res, () => ({ interviews: upcomingInterviews(db, req.user.id) })));
+  app.get("/api/interview/defend", requireAuth, (req, res) => { res.set("Cache-Control", "private, no-store"); send(res, () => defendFor(db, req.user.id)); });
   app.get("/api/interview/questions", requireAuth, (req, res) =>
     send(res, () => ({ questions: questionBank(db, req.user.id, { round: req.query.round ? String(req.query.round) : null }) })));
 }

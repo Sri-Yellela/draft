@@ -3,9 +3,10 @@
 //
 // ⛔ NOTHING INVENTED. Each panel draws only what the server holds today: Coming up is GET /api/interview/upcoming (the
 // Inbox's interview / assessment mail matched to applications, D103 / D112 → D110's prep summary); Tracks by round and the
-// story bank are D110's own question bank and stories; Drills open D142's readiness check; Debrief is D110 P5. What is
-// planned and not built — company guides (D150 T12–T13), the mock interview and the coach (D161), Defend (D142 module
-// four), past practice sessions — says so plainly, and points at what exists now, if anything does.
+// story bank are D110's own question bank and stories; Drills open D142's readiness check; Defend is GET
+// /api/interview/defend (D142 module four, 46y: each base-résumé bullet's follow-ups, from templates); Debrief is D110 P5.
+// What is planned and not built — company guides (D150 T12–T13), the mock interview and the coach (D161), past practice
+// sessions — says so plainly, and points at what exists now, if anything does.
 
 export const INTERVIEW_BASE = "/app/interview";
 
@@ -73,4 +74,28 @@ export function upcomingHeadline(items = []) {
   if (!items.length) return "No interviews yet";
   if (!ahead) return "Nothing coming up right now";
   return ahead === 1 ? "One interview to prepare for" : `${ahead} interviews to prepare for`;
+}
+
+// ⭐ D142 DEFEND (46y) · where the person is in Defend: a line (bullet), one of its questions, and its stage — "ask" (the
+// follow-up, waiting), "answering" (out loud or typed), "harder" (the harder follow-up after the answer). Pure.
+export const DEFEND_START = Object.freeze({ line: 0, q: 0, stage: "ask", mode: null });
+
+/** The next position: after "harder", the line's next question; after its last, the next line (wrapping to the first). */
+export function defendNext(pos, bullets = []) {
+  const n = bullets.length;
+  if (!n) return DEFEND_START;
+  const qs = bullets[pos.line]?.questions?.length || 0;
+  if (pos.stage === "ask") return pos;
+  if (pos.stage === "answering") return { ...pos, stage: "harder" };
+  if (pos.q + 1 < qs) return { line: pos.line, q: pos.q + 1, stage: "ask", mode: null };
+  return { line: (pos.line + 1) % n, q: 0, stage: "ask", mode: null };
+}
+
+/** Another line, any time: the next one, its first question. */
+export const defendAnotherLine = (pos, bullets = []) => (bullets.length ? { line: (pos.line + 1) % bullets.length, q: 0, stage: "ask", mode: null } : DEFEND_START);
+
+/** "0:42" — the out-loud clock (it counts up; nothing is scored by it). */
+export function clockWords(sec) {
+  const s = Math.max(0, Math.floor(Number(sec) || 0));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }

@@ -643,6 +643,8 @@ const AUTHENTICATED = new Set([
   "GET /api/interview/questions",
   // D167: Interview → Coming up — the caller's own Inbox invites matched to the caller's own applications.
   "GET /api/interview/upcoming",
+  // D142 Defend (46y): the follow-ups for the caller's own base résumé's bullets (templates; nothing stored).
+  "GET /api/interview/defend",
   // D113: the picks API for the Draft House tree — the caller's own picks and runs only (routes/picksConfirm.js; the
   // signed-out confirm page is /p/confirm/<token>, outside /api). U4 "Make it now": the caller's own offered pick's résumé.
   "GET /api/picks/state",

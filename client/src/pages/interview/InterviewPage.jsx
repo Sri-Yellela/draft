@@ -8,7 +8,10 @@
 //                   own Prep tab (D110: the skills against yours, the likely rounds, the countdown).
 //   Tracks by round D110's own question bank (your debriefs' questions, by round) and the story bank.
 //   Drills          D142's readiness check (/app/atlas/check: timed, extended time, untimed).
-//   Defend          not built (D142 module four) — the honesty check (/tools/honesty) flags the lines to be ready for.
+//   Defend          ⭐ D142 module four (46y) — GET /api/interview/defend: each bullet of the base résumé, the follow-up an
+//                   interviewer would ask (from templates over the bullet's own technologies, numbers, scope words and the
+//                   plausibility / honesty checks' flags — services/defendResume.js, no model), then a harder one. Answer
+//                   out loud (a clock, nothing recorded) or type it (kept in this browser tab only — nothing is sent).
 //   Mock / coach    not built in draft (D161) — the mock interview runs today in the user's own Claude via the connector.
 //   Debrief         D110 P5: your debriefs, and a new one (private — sharing is not built).
 import { useCallback, useEffect, useState } from "react";
@@ -16,7 +19,8 @@ import { Link } from "react-router-dom";
 import PlaceNav, { PlaceHead } from "../../components/PlaceNav.jsx";
 import { NoteCard } from "../../components/TextBlocks.jsx";
 import { api } from "../../lib/api.js";
-import { INTERVIEW_GROUPS, interviewPath, TRACKS, bankCounts, whenWords, upcomingHeadline } from "./interviewModel.js";
+import { INTERVIEW_GROUPS, interviewPath, TRACKS, bankCounts, whenWords, upcomingHeadline,
+  DEFEND_START, defendNext, defendAnotherLine, clockWords } from "./interviewModel.js";
 import "./InterviewPage.css";
 
 const ROUND_WORDS = { coding: "Coding", system_design: "System design", ml: "Machine learning", behavioural: "Behavioural", other: "Other" };
@@ -144,6 +148,93 @@ function Coming({ id, eyebrow, title, lead, children }) {
   );
 }
 
+// ⭐ D142 DEFEND (46y) · the approved sketch's card (docs/sketches/Interview.html → Defend): the bullet in quotes, the
+// interviewer's follow-up, "Answer out loud" and "Type it". After the answer, the harder follow-up; then the line's next
+// question, then the next line. Out loud: a clock counts up — nothing listens, nothing is recorded (draft's voice coach is
+// D161, not built). Typed: the text stays in this tab — nothing is sent or kept.
+function Defend() {
+  const [s] = useRead("/api/interview/defend");
+  const bullets = s.data?.bullets || [];
+  const [pos, setPos] = useState(DEFEND_START);
+  const [typed, setTyped] = useState("");
+  const [sec, setSec] = useState(0);
+  const talking = pos.stage === "answering" && pos.mode === "voice";
+  useEffect(() => {
+    if (!talking) return undefined;
+    setSec(0);
+    const t = setInterval(() => setSec(x => x + 1), 1000);
+    return () => clearInterval(t);
+  }, [talking, pos.line, pos.q]);
+  const go = (next) => { setPos(next); setTyped(""); };
+  const b = bullets[pos.line] || null;
+  const q = b?.questions?.[pos.q] || null;
+  return (
+    <>
+      <PlaceHead eyebrow="Defend your résumé" title="Every line you wrote, asked about"
+        lead="The coach picks a bullet and asks the follow-ups an interviewer would." />
+      {s.status === "loading" && <Quiet role="status">Reading your résumé…</Quiet>}
+      {s.status === "error" && <Quiet role="alert">Your résumé could not be read: {s.error}</Quiet>}
+      {s.status === "ready" && !s.data?.hasResume && (
+        <div className="iv__card" data-defend-empty="no-resume">
+          <h3 className="iv__h4">No résumé yet</h3>
+          <p className="iv__p">Add your résumé to your Profile and every bullet on it gets the questions an interviewer would ask.</p>
+          <div className="iv__row"><Link className="iv__btn" to="/app/profile">Open your Profile</Link></div>
+        </div>
+      )}
+      {s.status === "ready" && s.data?.hasResume && !bullets.length && (
+        <div className="iv__card" data-defend-empty="no-bullets">
+          <h3 className="iv__h4">No bullets found</h3>
+          <p className="iv__p">Your résumé has no bullet lines under its experience. Lines that start with a bullet (•, -, *) are the ones asked about.</p>
+        </div>
+      )}
+      {b && q && (
+        <div className="iv__card iv__defend" data-defend-line={b.id} data-defend-kind={q.kind} data-defend-stage={pos.stage}>
+          <p className="iv__quiet iv__defend-where">Line {pos.line + 1} of {bullets.length}{b.employer ? ` · ${b.employer}` : ""} · question {pos.q + 1} of {b.questions.length}</p>
+          <h3 className="iv__h4">“{b.text}”</h3>
+          <p className="iv__p iv__defend-q" data-defend-ask="">{q.ask}</p>
+          <p className="iv__quiet" data-defend-because="">{q.because}</p>
+          {pos.stage === "ask" && (
+            <div className="iv__row">
+              <button type="button" className="iv__btn iv__btn--p" onClick={() => setPos({ ...pos, stage: "answering", mode: "voice" })} data-defend-voice="">Answer out loud</button>
+              <button type="button" className="iv__btn" onClick={() => setPos({ ...pos, stage: "answering", mode: "typed" })} data-defend-type="">Type it</button>
+            </div>
+          )}
+          {pos.stage === "answering" && pos.mode === "voice" && (
+            <div className="iv__row" data-defend-clock="">
+              <span className="iv__defend-clock" role="timer" aria-live="off">{clockWords(sec)}</span>
+              <span className="iv__quiet">Say it out loud, as in the room. Nothing is recorded.</span>
+              <button type="button" className="iv__btn iv__btn--p" onClick={() => setPos(defendNext(pos, bullets))} data-defend-done="">Done</button>
+            </div>
+          )}
+          {pos.stage === "answering" && pos.mode === "typed" && (
+            <div className="iv__form iv__defend-form">
+              <label className="iv__wide">Your answer<textarea rows={4} value={typed} onChange={e => setTyped(e.target.value)} data-defend-text="" autoFocus /></label>
+              <div className="iv__row iv__wide">
+                <button type="button" className="iv__btn iv__btn--p" onClick={() => setPos(defendNext(pos, bullets))} disabled={!typed.trim()} data-defend-done="">Done</button>
+                <span className="iv__quiet">Stays on this page — nothing is sent or kept.</span>
+              </div>
+            </div>
+          )}
+          {pos.stage === "harder" && (
+            <div className="iv__defend-harder" data-defend-harder="">
+              <p className="iv__quiet">Then the interviewer pushes:</p>
+              <p className="iv__p iv__defend-q">{q.harder}</p>
+              <div className="iv__row">
+                <button type="button" className="iv__btn iv__btn--p" onClick={() => go(defendNext(pos, bullets))} data-defend-next="">
+                  {pos.q + 1 < b.questions.length ? "Next question" : "Next line"}</button>
+              </div>
+            </div>
+          )}
+          {pos.stage !== "harder" && bullets.length > 1 && (
+            <div className="iv__row"><button type="button" className="iv__btn" onClick={() => go(defendAnotherLine(pos, bullets))} data-defend-another="">Another line</button></div>
+          )}
+        </div>
+      )}
+      {b && <Quiet>Lines most likely to be probed come first. To compare a tailored résumé with your original, <Link to="/tools/honesty">run the honesty check</Link>.</Quiet>}
+    </>
+  );
+}
+
 function Debrief() {
   const [d, reload] = useRead("/api/interview/debriefs");
   const [up] = useRead("/api/interview/upcoming");
@@ -235,12 +326,7 @@ export default function InterviewPage({ panel = "upcoming" }) {
       <div className="iv__row"><Link className="iv__btn" to="/app/atlas/library/coding-interview-patterns" data-open-patterns="">Coding interview patterns</Link></div>
     </Coming>
   );
-  else if (panel === "defend") body = (
-    <Coming id="defend" eyebrow="Defend your résumé" title="Every line you wrote, asked about" lead="Coming — the follow-up questions for each bullet are not built yet.">
-      <p className="iv__p">Today, the honesty check reads your résumé and flags the lines you may not be able to defend in a room.</p>
-      <div className="iv__row"><Link className="iv__btn" to="/tools/honesty">Run the honesty check</Link></div>
-    </Coming>
-  );
+  else if (panel === "defend") body = <Defend />;
   else if (panel === "past") body = (
     <Coming id="past" eyebrow="Past sessions" title="No practice sessions yet" lead="Each mock interview will leave a report here: pace, filler words, structure and what to work on.">
       <p className="iv__p" data-past-empty="">Nothing is recorded until the mock interview runs in draft. Your debriefs are under Debrief.</p>

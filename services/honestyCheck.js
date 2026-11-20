@@ -111,6 +111,12 @@ function closestOriginal(text, originalLines) {
 
 const learnHref = (term) => `/atlas?q=${encodeURIComponent(term)}`;
 
+/** ⭐ D142 Defend (46y) · the scope words a line uses (led, owned, spearheaded …) — the check's own SCOPE_RE, lower-cased, once
+ *  each. With an original the check flags only the NEW ones; Defend asks about every one, because each will be probed. */
+export function scopeWordsIn(text) {
+  return [...new Set([...String(text ?? "").matchAll(SCOPE_RE)].map(m => m[0].toLowerCase().replace(/\s+/g, " ")))];
+}
+
 /**
  * The check.
  * @param {object} o { resumeText, originalText?, jdText?, keywordsFor?(text) → { matched: string[], missing: string[] } }
