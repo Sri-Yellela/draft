@@ -22,7 +22,7 @@ test("R1: the files that drive a browser — directly, through the extension har
     "test/fidelity.test.js", "test/d163OtherScreens.test.js", "test/a201ShrinkGracefully.test.js",
     "test/a131NoSidewaysOverflow1280.test.js",   // runs scripts/a131OverflowProbe.mjs, which drives Chrome
     "test/a210QuestionsThreadNewRun.test.js",    // runs scripts/a199Walk.mjs
-    "test/d191PanelWalk.test.js"]   /* ⭐ D191 B3: the side panel's walk retired with it; the one panel's walk */) assert.equal(tierOf(f), "browser", f);
+    "test/realExtensionWalks.test.js"]   /* ⭐ A232 R4: the one panel's walk (was d191PanelWalk) and five more */) assert.equal(tierOf(f), "browser", f);
   // and nothing in the fast tier launches one itself
   for (const f of filesFor("fast")) assert.doesNotMatch(read(f), /puppeteer\.launch\(|launchBrowser\(|fidelityShots\.mjs", "--styles/, f);
 });
@@ -42,6 +42,20 @@ test("A232 R3: the long walks run ONE theme each, and j9's unit rules sit in the
   assert.deepEqual(new Set(Object.values(walks)), new Set(["light", "dark"]));
   // j9's walk file holds the walk and nothing else
   assert.equal([...read("test/j9FullPass.test.js").matchAll(/^\s*test\(/gm)].length, 1);
+});
+
+test("A232 R4: the six one-walk files are ONE file of six walks; j2ExtensionHarness is gone; a launch that dies is retried once", () => {
+  for (const f of ["a207RealExtensionWalk", "a211RealExtensionWalk", "a211BackgroundWalk", "d191PanelWalk", "d112GlobalReadChrome", "d97rT12Chrome", "j2ExtensionHarness"])
+    assert.equal(fs.existsSync(`test/${f}.test.js`), false, f);
+  const s = read("test/realExtensionWalks.test.js");
+  for (const scen of ["extensionSubmit", "a211Runner", "a211Background", "d191Panel", "globalAsk"]) assert.match(s, new RegExp(`runScenario\\("${scen}"`), scen);
+  assert.match(s, /const h = await launchExtensionBrowser\(\{\s*insecureCerts: true,/, "d97r's own launch");
+  assert.equal([...s.matchAll(/^test\(/gm)].length, 6);
+  // only the LAUNCH is retried, never the scenario
+  const w = read("test-support/walkExtension.mjs").replace(/\r\n/g, "\n");
+  assert.match(w, /for \(let attempt = 1; ; attempt\+\+\) \{\n    try \{\n      h = await launchExtensionBrowser\(/);
+  assert.match(w, /if \(attempt >= 2\) throw e;/);
+  assert.equal([...w.matchAll(/await mod\.default\(h, /g)].length, 1);
 });
 
 test("R1: the runner and the npm scripts read the one rule", () => {

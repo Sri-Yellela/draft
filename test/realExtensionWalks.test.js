@@ -1,3 +1,93 @@
+// ⭐ A232 R4 (46y, owner 11-19 "all four approved") · THE REAL-EXTENSION WALKS THAT WERE ONE TEST EACH, IN ONE FILE.
+//
+// Six files each ran ONE walk of the real extension in a real Chrome: a207RealExtensionWalk, a211RealExtensionWalk,
+// a211BackgroundWalk, d191PanelWalk (the audit named d191SidePanelWalk; D191 B3 retired that walk and this is the one
+// panel's), d112GlobalReadChrome and d97rT12Chrome. They are this file's six tests now, in the same words, run one after
+// another in ONE node process; j2ExtensionHarness ("does the harness boot?") is deleted — every walk here and in j4 / j6 /
+// j9 / t10 / t13t14 / t18 boots the same harness first and fails first if it doesn't.
+//
+// ⚠ What the audit called "one boot" is ONE PROCESS, not one Chrome: each walk still launches its own Chrome, because
+// they cannot share one — each builds a DIFFERENT test extension (d191's has panelArrive; d97r's lists the preset ATS
+// hosts and an HTTPS careers origin; the runner walks add http://localhost), seeds a DIFFERENT API database, and leaves
+// state (bindings, chrome.storage, the global-read ask) the next walk must not inherit. What the merge saves is the five
+// extra node processes and their module loads; the launch flake (46s: d191SidePanelWalk's Chrome closed at launch, before
+// the test did anything) is answered where it happens — runScenario (test-support/walkExtension.mjs) launches once more
+// when the FIRST launch throws, so a walk is never red for a Chrome that died before it began.
+// Skips, with its reason, without Chrome (and d97r without openssl). Synthetic people and companies only.
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import https from "node:https";
+import { execFileSync } from "node:child_process";
+import { runScenario } from "../test-support/walkExtension.mjs";
+import { findChrome, launchExtensionBrowser, waitUntil, sleep, BUSY_MS } from "../test-support/extensionBrowser.mjs";
+import { OPTIONAL_ORIGINS } from "../extension/autoRead.js";
+
+const chrome = await findChrome();
+
+// ── a207RealExtensionWalk (was its own file) ──
+// ⭐ A207 (a) (46l) · the one press WITH THE REAL EXTENSION LOADED — test-support/walks/extensionSubmit.mjs: an extension-submit
+// hand-off on the fake ATS's plain form; Submit application waits for Ready; a page script's click sends and records nothing;
+// the person's ONE trusted press submits the form from this browser (one submission at the fake ATS, every answer + the
+// résumé) and Sent is recorded on draft's server from the confirmation page, once. Skips, with its reason, without Chrome.
+test("⭐ A207 (a) (real extension): one trusted press sends the form from the person's browser; nothing else does", { timeout: 300000 }, async () => {
+  const lines = [];
+  const r = await runScenario("extensionSubmit", { log: (l) => lines.push(l) });
+  if (r.skipped) return;
+  assert.equal(r.failures, 0, lines.filter(l => /^FAIL/.test(l)).join("\n") || lines.slice(-20).join("\n"));
+});
+
+// ── a211RealExtensionWalk (was its own file) ──
+// ⭐ A211 (1a) · the runner tab WITH THE REAL EXTENSION LOADED — test-support/walks/a211Runner.mjs: two extension-submit
+// applications; "Fill all" fills each in a background tab (one to Ready, one stopped at Needs you) and sends nothing; a
+// script's click and a press-less / non-runner RUNNER_SEND send nothing; ONE trusted "Send all" sends exactly the Ready one
+// from this browser and Sent is recorded once. Skips, with its reason, without Chrome.
+test("⭐ A211 (1a) (real extension): the runner fills in the background and sends only the Ready ones, on one trusted press", { timeout: 300000 }, async () => {
+  const lines = [];
+  const r = await runScenario("a211Runner", { log: (l) => lines.push(l) });
+  if (r.skipped) return;
+  assert.equal(r.failures, 0, lines.filter(l => /^FAIL/.test(l)).join("\n") || lines.slice(-20).join("\n"));
+});
+
+// ── a211BackgroundWalk (was its own file) ──
+// ⭐ A211 (a), walked 46p · AN ASHBY-SHAPED REACT FORM IN A BACKGROUND TAB — test-support/walks/a211Background.mjs: the
+// runner's Fill all opens /ashby-spa (2.5 s hydration) in a hidden tab; the form renders there, is filled (name + email)
+// and the row reaches a final state (Needs you) without the tab being brought forward; nothing is sent. Skips without Chrome.
+test("⭐ A211 (a) (real extension): a hidden tab does not stall the runner's fill of a late-rendering React form", { timeout: 300000 }, async () => {
+  const lines = [];
+  const r = await runScenario("a211Background", { log: (l) => lines.push(l) });
+  if (r.skipped) return;
+  assert.equal(r.failures, 0, lines.filter(l => /^FAIL/.test(l)).join("\n") || lines.slice(-20).join("\n"));
+});
+
+// ── d191PanelWalk (was its own file) ──
+// ⭐ D191 sketch 2 (owner 11-18: "alright go") · THE ONE PANEL WITH THE REAL EXTENSION LOADED — test-support/walks/d191Panel.mjs:
+// it opens by itself on a board posting (the page first, then draft's answer, within 300 ms of the page being ready), is ONE
+// thing, steps aside from the employer's Apply control, closes to the /d square and stays closed on that site, does nothing
+// by itself on an application step, and the person's "Open by itself" switch turns it off. Skips without Chrome.
+test("⭐ D191 sketch 2 (real extension): the one panel opens by itself on a board posting, and only there", { timeout: 300000 }, async () => {
+  const lines = [];
+  const r = await runScenario("d191Panel", { log: (l) => lines.push(l) });
+  if (r.skipped) return;
+  assert.equal(r.failures, 0, lines.filter(l => /^FAIL/.test(l)).join("\n") || lines.slice(-20).join("\n"));
+});
+
+// ── d112GlobalReadChrome (was its own file) ──
+// ⭐ D112 b2 · the ONE global-read ask in a REAL Chrome (test-support/walks/globalAsk.mjs): a real press opens a small
+// popup window over the posting; Not now raises no prompt, the window closes by itself, the posting tab has the focus
+// again, and the next press asks nothing (asked ONCE). Covers d112bWindowClosesOnAnswer · d112bFocusReturnsToPosting ·
+// d112bNotNowNoPrompt · d112PermissionAskedOnce for the Not-now path; Allow's half (Chrome's own prompt, which no headless
+// browser can answer) is test/d112GlobalRead.test.js. SKIPS, with its reason, on a machine with no Chrome.
+test("⭐ D112 b2 · the ask window on the REAL extension — opened by the press, Not now closes it and gives the posting the focus, asked once", { skip: chrome.skip || false, timeout: 300000 }, async () => {
+  const lines = [];
+  const r = await runScenario("globalAsk", { log: (l) => lines.push(l) });
+  if (r.skipped) return;
+  assert.equal(r.failures, 0, lines.filter(l => l.startsWith("FAIL") || l.startsWith("OBSERVED")).join("\n"));
+});
+
+// ── d97rT12Chrome (was its own file) ──
 // ⭐ D97 REVISED + T12 · IN A REAL CHROME — the one-time card, then automatic reading on a preset host; then "Always read
 // here" on an employer's careers origin whose application is an embedded Greenhouse frame (the Stripe shape, T11).
 //
@@ -9,19 +99,8 @@
 // resolves without a prompt, and every other step — the card, the click, the consent, the registration, the watcher,
 // the pass, the frame pass, the popup's line — is the shipped code. The shipped manifest is untouched.
 // Skips, with its reason, where there is no Chrome or no openssl. Synthetic people and companies only.
-import test from "node:test";
-import assert from "node:assert/strict";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import https from "node:https";
-import { execFileSync } from "node:child_process";
-import { findChrome, launchExtensionBrowser, waitUntil, sleep, BUSY_MS } from "../test-support/extensionBrowser.mjs";
-import { OPTIONAL_ORIGINS } from "../extension/autoRead.js";
-
-const chrome = await findChrome();
 const opensslSkip = (() => { try { execFileSync("openssl", ["version"], { stdio: "ignore" }); return false; } catch { return "no openssl to make the fixture's test certificate"; } })();
-const skip = chrome.skip || opensslSkip || false;
+const d97rSkip = chrome.skip || opensslSkip || false;
 
 const CAREERS = "careers.acme.test";
 const GH_HOST = "job-boards.greenhouse.io";
@@ -75,7 +154,7 @@ const settings = async (h) => (await h.storage.local()).autoRead || {};
 const registered = (h) => h.control.evaluate(() => chrome.scripting.getRegisteredContentScripts());
 
 test("⭐ the one-time card → ONE grant → a preset host is read automatically; then 'Always read here' on the careers origin reads its Greenhouse frame",
-  { skip, timeout: 240000 }, async (t) => {
+  { skip: d97rSkip, timeout: 240000 }, async (t) => {
     const fx = await startFixture();
     t.after(() => fx.stop());
     const h = await launchExtensionBrowser({

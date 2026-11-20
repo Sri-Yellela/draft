@@ -55,11 +55,18 @@ export async function runScenario(name, { headful = false, theme = null, log = c
   const section = (title) => log(`── ${title} ──`);
   log(`=== ${name}${mod.description ? ` — ${mod.description}` : ''} ===`);
   let h;
-  try {
-    h = await launchExtensionBrowser({ ...(mod.options || {}), ...(theme ? { theme } : {}), headless: !headful });
-  } catch (e) {
-    if (e instanceof HarnessSkip) { log(`SKIP  ${name} — ${e.reason}`); return { name, failures: 0, skipped: true, reason: e.reason }; }
-    throw e;
+  // ⭐ A232 R4 (46y): a Chrome that dies DURING its launch (46s: d191SidePanelWalk, "Target.setDiscoverTargets: Target
+  // closed" at 2.7 s, before the scenario did anything) is launched once more. Only the launch is retried — the launcher
+  // has already stopped the fake ATS, the API and the browser it started — never the scenario, whose checks run once.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      h = await launchExtensionBrowser({ ...(mod.options || {}), ...(theme ? { theme } : {}), headless: !headful });
+      break;
+    } catch (e) {
+      if (e instanceof HarnessSkip) { log(`SKIP  ${name} — ${e.reason}`); return { name, failures: 0, skipped: true, reason: e.reason }; }
+      if (attempt >= 2) throw e;
+      log(`OBSERVED  the launch failed before the scenario began, launching once more  — ${e?.message || e}`);
+    }
   }
   try {
     await mod.default(h, { check, observe, section });

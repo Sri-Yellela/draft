@@ -12,7 +12,7 @@
 //
 // Unit level, against the REAL modules with a fake `chrome` (test-support/autoReadChrome.mjs + windows/tabs fakes below)
 // and the REAL content scripts run in a node `vm` with a fake page. The real-Chrome half — the window opened by a real
-// press, answered Not now, closed, the posting tab focused again — is test/d112GlobalReadChrome.test.js.
+// press, answered Not now, closed, the posting tab focused again — is the D112 b2 test in test/realExtensionWalks.test.js (A232 R4; it was d112GlobalReadChrome).
 // Synthetic companies and people only.
 import test from "node:test";
 import assert from "node:assert/strict";
