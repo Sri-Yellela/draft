@@ -137,8 +137,10 @@ try {
   say("… it is in the D82 candidate pool, not added", pooled?.status === "new" && pooled?.source === "user" && !db.prepare("SELECT 1 FROM company_ats_list WHERE ats_slug = 'zephyrdata'").get(), JSON.stringify(pooled));
   const s3 = await track("https://careers.unknown-co.example/open-roles");
   say("a careers page with no readable board → said so", /can't read this page yet/.test(s3), s3);
-  // postings first seen AFTER the follow
-  const later = Math.floor(Date.now() / 1000) + 30;
+  // postings first seen AFTER the follow — both in the PAST (46z: the postings were dated now + 30 s, so Open's "seen now"
+  // could not clear them inside the walk: a walk artifact, not a defect). The follow is moved two minutes back.
+  const later = Math.floor(Date.now() / 1000) - 60;
+  db.prepare("UPDATE company_follows SET last_seen_at = ? WHERE user_id = ? AND company_id = ?").run(later - 60, uid, cid);
   for (let i = 1; i <= 3; i++) {
     db.prepare(`INSERT INTO scraped_jobs (job_id, search_query, company, title, _hash, source, is_active, discovered_at) VALUES (?, 'q', 'Northwind Labs', ?, ?, 'lever', 1, ?)`)
       .run(`walk46y-nw-${i}`, `Data Engineer ${i}`, `walk46y-nw-${i}`, later);
@@ -184,9 +186,9 @@ try {
   // Open on the company → its page; its feed is read
   await open();
   await page.evaluate(() => [...document.querySelectorAll('[data-tracker-company="northwind-labs"] button')].find(b => b.textContent.trim() === "Open")?.click());
-  await page.waitForFunction(() => location.pathname === "/companies/northwind-labs", { timeout: 20000 }).catch(() => null);
+  await page.waitForFunction(() => /^(\/app)?\/companies\/northwind-labs$/.test(location.pathname), { timeout: 20000 }).catch(() => null);   // /companies redirects to /app/companies signed in
   const co = (await api("/api/trackers")).body.companies.find(c => c.slug === "northwind-labs");
-  say("Open on the company: its page, the feed read (0 new)", new URL(page.url()).pathname === "/companies/northwind-labs" && co?.newCount === 0, `${new URL(page.url()).pathname} · ${co?.newCount}`);
+  say("Open on the company: its page, the feed read (0 new)", /^(\/app)?\/companies\/northwind-labs$/.test(new URL(page.url()).pathname) && co?.newCount === 0, `${new URL(page.url()).pathname} · ${co?.newCount}`);
   db.close();
 } catch (e) {
   say("the walk ran", false, e.message.slice(0, 600));
