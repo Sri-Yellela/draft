@@ -1,5 +1,16 @@
 # Chrome Web Store listing — draft v1.7.0
 
+> **⭐ v1.7.0 as uploaded (2026-11-20, 46y — the owner approved the upload 11-19).** Still v1.7.0; the zip is rebuilt from the
+> final tree. **No new permission, no new host, no new data since the 46w addendum below.** What changed in the panel since
+> 46w (46x–46y): (1) the match on a posting is one number painted in its band's colour — no fit word (the 46o addendum's
+> "a one-word fit" and "you've proven 4 of their top 8" no longer appear; the claims / quick check left the panel); the number
+> is draft's contextual score (skills, role, the work, their stack), computed by draft's own code from draft's own records,
+> no AI; (2) **Review before I submit** in the panel is the account's own Ask me first / Apply for me setting (the same switch
+> as draft's site); with it off, draft's SERVER sends the application through the account's existing Apply for me path — the
+> extension still never presses an employer's Submit on its own; (3) the shared ATS report's rows are read-only. 👤 **At the
+> upload:** the permission justifications are the 46w text below (delete the `sidePanel` one); Privacy practices unchanged in
+> kind; in the description, prefer *"your match as one number, from draft's own data"* over any wording that names a fit word.
+
 > **⭐ v1.7.0 + D191 sketch 2 (2026-11-18, 46w — the owner's "alright go" on the one-panel sketch, after choosing "Ask at
 > install").** Still v1.7.0 (unpublished — the zip is rebuilt). ⛔ **NEW INSTALL-TIME HOST PERMISSIONS: the six job-board
 > families** (`boards.greenhouse.io`, `job-boards.greenhouse.io`, `jobs.lever.co`, `jobs.ashbyhq.com`, `apply.workable.com`,
