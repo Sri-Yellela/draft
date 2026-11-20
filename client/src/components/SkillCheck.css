@@ -3,8 +3,10 @@
 .skc { box-sizing: border-box; margin: 6px 0 10px; padding: 14px 16px; border-radius: 18px; background: var(--c-surface-solid);
   border: 1px solid var(--c-border); color: var(--c-ink); min-width: 0; overflow-wrap: anywhere; }
 .skc__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 0 0 8px; }
-.skc__title { margin: 0; font-weight: 600; font-size: 14.5px; }
-.skc__clock { font-variant-numeric: tabular-nums; color: var(--c-accent-ink); font-weight: 600; font-size: 14px; }
+.skc__title { margin: 0; font-weight: 600; font-size: 14.5px; min-width: 0; }
+/* 46y (the real-Chrome walk at 400 px): the card's overflow-wrap: anywhere let the long title squeeze the clock to "75 / s"
+   on two lines — the clock keeps its width and never breaks; the title wraps instead. */
+.skc__clock { flex: none; white-space: nowrap; overflow-wrap: normal; font-variant-numeric: tabular-nums; color: var(--c-accent-ink); font-weight: 600; font-size: 14px; }
 .skc__stem { margin: 0 0 10px; color: var(--c-ink); font: 400 21px/1.25 var(--font-display); text-wrap: balance; }   /* 46u: the card's serif title */
 .skc__opts { display: grid; gap: 6px; }
 .skc__opt { all: unset; box-sizing: border-box; cursor: pointer; padding: 10px 12px; font-size: 14px; line-height: 1.4;
