@@ -168,7 +168,15 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 **WHAT 46x DID (details: ▶▶▶ 46x PROGRESS below):** D192 (3)+(4) the ATS contract 2.0.0 (contextual score: skills 0.5 · role 0.2 · the work 0.15 · their stack 0.15; RM stateless, standing alone it asks draft's public `/api/public/company-stack`, 24 h in memory) · D191 the panel's % = the contextual score painted by band, the panel as long as its content, *Review before I submit* real (Apply for me through the account's `send_mode`) · the held review's rows in colour · **the ATS card, option C** (the claims / prove-it / quick check gone from the posting's panel; the shared report's claim branch retired) · **D192 (4d) claim plausibility** ("does this add up?": tech / domain / role / timeline flags per bullet, warnings only, Dismiss kept across re-scores — migration 277; in the ATS card, Home's held review, and Resume Master's check). Live check on Resume Master: a synthetic Stripe 2019–2021 entry → Java / Ruby / Salesforce confirmed from Stripe's postings, GPT-4 flagged on the timeline.
 
-**THE OWNER'S WORDS (11-19, end of 46x):** *"keep GPT-4"* — ✅ the d162 model-name guard's allowance for `packages/ats-scorer/src/plausibility.js` (TECH_FIRST_YEAR names "GPT-4" as a technology with its first year, never a model call) **STAYS**; decided, not an open item.
+**THE OWNER'S WORDS (11-19, end of 46x):** *"keep GPT-4"* · then *"gpt 4 stays, its good to be able to flag such things. and i reviewed and approving all open items. log these for new session"*
+- ✅ **GPT-4 STAYS** — the d162 model-name guard's allowance for `packages/ats-scorer/src/plausibility.js` (TECH_FIRST_YEAR names "GPT-4" as a technology with its first year, never a model call) is kept ON PURPOSE: the owner wants the timeline check able to flag such things. Decided, not an open item.
+- ✅ **ALL OPEN OWNER ITEMS APPROVED (owner 11-19, "i reviewed and approving all open items").** Each one is now agent work, in THE ORDER below:
+  - **(a) the Resume Master audit's action table** (`docs/research/rm-audit.md`) — approved as written → D192 P3 / P4 unblocked (P3 includes the RM workspace's ATS / properties panel, where the plausibility flags go).
+  - **(b) draft's `staging` branch may be force-reset to `main`** — approved. Before: `git bundle` the old staging to `C:\Users\duggi\repo-backups\<date>\` (as 46v did); then `git push --force-with-lease origin main:staging`; then watch staging's deploy (memory: staging environment — don't push staging mid-run).
+  - **(c) the extension panel + the ATS card** — reviewed; no change asked.
+  - **(d) the store upload of the extension v1.7.0** — approved. Rebuild the zip from the final tree (`node scripts/buildExtension.mjs`), check the listing / privacy / rationale texts match the build, then prepare the upload; the dashboard sign-in and the final Submit press are the owner's own (hand them the steps, as the earlier store submissions did).
+  - **(e) the demo take 3** — reviewed; approved as is.
+  - **(f) A232 R3–R6 — the test pruning** (`docs/A232_TEST_AUDIT.md`) — all four approved. Build them one at a time with the fast tier after each; the browser tier before the push; the suite count in CLAUDE.md updated at the end.
 
 **THE ORDER FOR 46y (agent):**
 1. **Whatever the owner says first.**
@@ -176,15 +184,15 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 3. **D184 B-8 · the contextual tiebreaker** on the board — needs a scale-fixture design first (memory: scale-fixture traps; measure whole-board passes at production size before any push).
 4. **Carried walks:** the board's "No jobs in your profile's role" card (needs an empty answer under a narrowed scope) · the quick check's card (both themes, 1440 / 400).
 5. **A-row tidy:** the shared report's `couldClaim` field name kept after the clean-up — rename only if no host reads it (grep the deck / public tool / signup hook / extension first).
-6. **Waiting on the owner (do not start):** D192 P3 / P4 (the RM audit table) · the RM workspace's properties panel for flags (part of D192 (3d) / P3 — the workspace has no ATS panel yet) · A232 R3–R6 · the store upload.
+6. **Approved by the owner 11-19 — build in this order:** (b) the staging force-reset (small, first) → (f) A232 R3–R6 → (a) D192 P3 / P4 from the approved audit table, including the RM workspace's ATS panel with the plausibility flags → (d) the store upload prepared from the final tree. Nothing here waits on the owner any more except the store dashboard's own sign-in and Submit.
 
 ### 👤👤👤 OWNER — YOUR STEPS FOR 46y
-1. ☐ Approve the Resume Master audit's action table (`docs/research/rm-audit.md`, 72 shots in `docs/research/rm-audit-shots/`) — D192 P3 / P4 wait on it.
-2. ☐ draft's `staging` branch holds the pre-11-17 history — say if it may be force-reset to `main` (then staging deploys run again).
-3. ☐ Look at the panel (`docs/fidelity-shots/d191-panel-*`) and the ATS card on a real posting; try *Review before I submit* OFF on your own account only if you want Apply for me on.
-4. ☐ The store upload (v1.7.0) — when your review is done.
-5. ☐ Still open: the demo take 3 · A232 R3–R6.
-6. ✅ GPT-4 in the plausibility timeline list — kept (11-19).
+1. ✅ The Resume Master audit's action table — approved (11-19).
+2. ✅ draft's `staging` force-reset to `main` — approved (11-19).
+3. ✅ The panel and the ATS card — reviewed (11-19). *Review before I submit* OFF on your own account stays your choice, any time.
+4. ✅ The store upload (v1.7.0) — approved (11-19); ☐ the store dashboard's sign-in and Submit press when the agent hands you the prepared upload.
+5. ✅ The demo take 3 · A232 R3–R6 — approved (11-19).
+6. ✅ GPT-4 in the plausibility timeline list — stays, "good to be able to flag such things" (11-19).
 
 ### ⛔⛔⛔ (46x's start block, kept as history) NEW SESSION (46x) STARTS HERE (end of 46w, 11-19 — the owner: "prepare for new session")
 
