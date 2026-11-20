@@ -5,6 +5,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { at } from "../test-support/sourceAnchors.js";
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const bg = read("extension/background.js"), ov = read("extension/review-overlay.js");
 
@@ -21,8 +22,8 @@ test("D173 R1: every popup-era type is gated on the extension's own origin, firs
 
 test("D173 R2: GATE_SUBMITTED and GATE_BATCH_NEXT need the click from frame 0; the panel sends it only when trusted", () => {
   for (const t of ["GATE_BATCH_NEXT", "GATE_SUBMITTED"]) {
-    const at = bg.indexOf(`if (msg?.type === '${t}') {`);
-    const body = bg.slice(at, bg.indexOf("return true;\n  }", at));
+    const from = at(bg, `if (msg?.type === '${t}') {`);
+    const body = bg.slice(from, at(bg, "return true;\n  }", from));
     assert.match(body, /if \(msg\.trigger !== 'click' \|\| sender\?\.frameId !== 0\)/, t);
   }
   assert.match(ov, /if \(role === 'next'\) \{\n[^\n]*\n      if \(!ev\.isTrusted\) return;/);
