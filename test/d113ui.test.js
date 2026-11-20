@@ -381,7 +381,8 @@ test("d113uiNarrow — below 900 px: one column and a switch (D146 layout 3), br
   assert.match(narrow, /\.dh-main\[data-phone-view="table"\] > \.dht, \.dh-main\[data-phone-view="timeline"\] > \.dh-table-col \{ display: none; \}/);
   assert.match(narrow, /\.dht-branch \{ margin-left: 16px; \}/);
   assert.match(narrow, /\.dht-acts \{ flex-wrap: wrap; \}/);
-  assert.match(css, /\.dh-main \{ display: grid; grid-template-columns: minmax\(0, 1fr\) 300px;/, "wide: the timeline is 300 px");
+  // ⭐ 46y (changed on purpose, home-sketch.html's .grid2): the timeline column is 320 px.
+  assert.match(css, /\.dh-main \{ display: grid; grid-template-columns: minmax\(0, 1fr\) 320px;/, "wide: the timeline is 320 px");
   // DOM order is table then timeline.
   assert.ok(at(panel, "<ApplicationTracker rows={shownRows}") < at(panel, "<DraftHouseTree view={view}"));
 });
@@ -842,10 +843,10 @@ async function loadUi() {
       contents: `
         import { createElement } from "react";
         import { renderToStaticMarkup } from "react-dom/server.browser";
-        import ApplicationTracker, { RowOpen, StatusDot, TrackerCounts, TrackerFilters } from ${abs("components/ApplicationTracker.jsx")};
+        import ApplicationTracker, { RowOpen, StatusDot, TrackerFilters } from ${abs("components/ApplicationTracker.jsx")};
         import DraftHouseTree from ${abs("components/DraftHouseTree.jsx")};
         export const html = (C, props) => renderToStaticMarkup(createElement(C, props));
-        export { createElement, ApplicationTracker, RowOpen, StatusDot, TrackerCounts, TrackerFilters, DraftHouseTree };`,
+        export { createElement, ApplicationTracker, RowOpen, StatusDot, TrackerFilters, DraftHouseTree };`,
       resolveDir: CLIENT, loader: "jsx",
     },
     bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
@@ -1110,8 +1111,9 @@ test("d146TimelineBesideDesktop — the table, and the timeline card beside it a
 });
 
 test("d146TimelineSwitchPhone — on a phone, a switch: Applications · Auto-apply timeline", () => {
-  const sw = panel.slice(at(panel, 'data-phone-switch=""'), at(panel, 'data-phone-switch=""') + 600);
-  assert.match(sw, /data-phone-view="table"[^>]*onClick=\{\(\) => setPhoneView\("table"\)\}>Applications</);
+  const sw = panel.slice(at(panel, 'data-phone-switch=""'), at(panel, 'data-phone-switch=""') + 1000);   // 46y: three buttons
+  // ⭐ 46y (changed on purpose, home-sketch.html): the phone's switch also carries the Inbox, so Applications sets the tab too.
+  assert.match(sw, /data-phone-view="table"[^>]*onClick=\{\(\) => \{ setPhoneView\("table"\); setHomeTab\("apps"\); \}\}>Applications</);
   assert.match(sw, /data-phone-view="timeline"[^>]*onClick=\{\(\) => setPhoneView\("timeline"\)\}>Auto-apply timeline</);
   assert.match(panel, /<div className="dh-main" data-draft-split="" data-phone-view=\{phoneView\}/);
   const narrow = dhCss.slice(at(dhCss, "@media (max-width: 899px) {"));
@@ -1182,7 +1184,8 @@ test("d146NothingDropped — every capability in the row's map survives, where t
   check("the pending record form survives (I applied → the full sheet's Pending)", /onClick: \(\) => openSheet\("pending", row\.jobId\)/.test(panel)
     && /export function DatabasePanel\(\{ user, embedded = false, sheet = null, focusJobId = null \}\)/.test(dbPanel));
   // Inbox → each row's Emails pane (+ the inbox itself in the full sheet).
-  check("Inbox → the Emails pane", byJob(rows, "j-sent").panes.includes("emails") && /openSheet\("inbox", null\)/.test(panel) && /\["inbox","Inbox"\]/.test(dbPanel));
+  // ⭐ 46y (changed on purpose): the Emails pane's "The inbox" opens Home's own Inbox tab (home-sketch.html); the full sheet keeps its Inbox too.
+  check("Inbox → the Emails pane", byJob(rows, "j-sent").panes.includes("emails") && /data-open-inbox="" onClick=\{\(\) => \{ setOpen\(null\); setHomeTab\("inbox"\); \}\}/.test(panel) && /\["inbox","Inbox"\]/.test(dbPanel));
   // The date range / search → a search field and the period in the filter row.
   check("search + period in the filter row", TRACKER_PERIODS.length === 4 && /<TrackerFilters filter=\{filter\} onFilter=\{setFilter\} period=\{period\} onPeriod=\{setPeriod\}/.test(panel)
     && trackerView(rows, { periodDays: 7, now: NOW }).every(r => r.at >= NOW - 7 * 86400000)

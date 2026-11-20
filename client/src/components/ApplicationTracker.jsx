@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./ApplicationTracker.css";
 import CompanyBubble from "./CompanyBubble.jsx";
-import { TRACKER_FILTERS, TRACKER_COUNTS, TRACKER_COLUMNS, TRACKER_PANES, TRACKER_PERIODS } from "../lib/trackerRows.js";
+import { TRACKER_FILTERS, TRACKER_COLUMNS, TRACKER_PANES, TRACKER_PERIODS } from "../lib/trackerRows.js";
 import { ringVar } from "../styles/rings.js";
 
 // ============================================================
@@ -9,35 +9,23 @@ import { ringVar } from "../styles/rings.js";
 // ============================================================
 // Draft House and The Table, merged. What each row SAYS is lib/trackerRows.js (one pure function); this file only
 // draws it, and every piece of state is a prop, so it renders the same in a test as on the page.
-//   · ONE row of counts (D145's minimal style) · the filters, the search and the period in one row.
+//   · the filters, each with its count (46y, home-sketch.html — the counts row is gone), the search and the period in one row.
 //   · Position (company bubble + company + role) · Résumé · Answers · Status (a quiet dot + a word, ⛔ never a
 //     capsule — D60) · When. Sortable headers. On a phone: two columns, the row opens for the rest (CSS).
 //   · A row opens in place, one at a time (`openKey`): <RowOpen> — the accent eyebrow, the headline for its stage,
 //     the on-demand panes (one shown at a time) and the stage's actions.
 // ============================================================
 
-// ⭐ D149 (11-03) · built to tracker-options.html's markup: the counts are the sketch's `.cnt` (a large number over a
-// small grey word, as blocks), the filters its `.flt` buttons, the status its `.dot` (a 7 px dot + the word; "Needs
+// ⭐ D149 (11-03) · built to tracker-options.html's markup (46y: home-sketch.html's filter counts replace its `.cnt`
+// row): the filters its `.flt` buttons, the status its `.dot` (a 7 px dot + the word; "Needs
 // you" in the accent), the opened row its `.det` (eyebrow · 32 px headline · on-demand buttons · the pane · `.btn`s).
-export function TrackerCounts({ counts = {} }) {
-  return (
-    <div className="trk-counts" data-tracker-counts="">
-      {TRACKER_COUNTS.map(c => (
-        <div key={c.id} data-count={c.id} data-accent={c.accent ? "true" : undefined}>
-          <b>{counts[c.id] ?? 0}</b><span>{c.label}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export function TrackerFilters({ filter = "all", onFilter, search = null, period = "any", onPeriod, findOpen = false, onFind }) {
+export function TrackerFilters({ filter = "all", onFilter, counts = null, search = null, period = "any", onPeriod, findOpen = false, onFind }) {
   return (
     <>
       <div className="trk-filters" role="toolbar" aria-label="Show">
         {TRACKER_FILTERS.map(([id, label]) => (
           <button key={id} type="button" className="trk-chip" data-filter={id} aria-pressed={filter === id}
-            onClick={() => onFilter?.(id)}>{label}</button>
+            onClick={() => onFilter?.(id)}>{label}{counts && <span className="trk-chip__n">{counts[id] ?? 0}</span>}</button>
         ))}
         {/* D149 (11-03): the search and the period are not on the sketch (D146: "the date range / search → a search
             field and the period in the filter row") — kept one press away: a last quiet button, Search, opens them

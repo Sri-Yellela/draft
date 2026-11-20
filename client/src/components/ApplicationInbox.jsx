@@ -13,8 +13,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, authContextQuery } from "../lib/api.js";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
+import CompanyBubble from "./CompanyBubble.jsx";
+import { StatusDot } from "./ApplicationTracker.jsx";
+import { whenWord } from "../lib/trackerRows.js";
 
-// D182 (45n): a message carries no category mark — its "File as [category]" select already says it.
+// D182 (45n): a message carried no category mark while its "File as [category]" select said it. 46y (home-sketch.html):
+// the select now sits inside the opened row, so the closed row says its category as a dot + the word, as the sketch does.
 const LABEL = { applied: "Applied", verification: "Verification", interview: "Interview", assessment: "Assessment",
   recruiter: "Recruiter", reminder: "Reminder", offer: "Offer", rejection: "Rejection", other: "Other" };
 
@@ -74,19 +78,41 @@ export function GmailConnection({ theme, onChange }) {
 }
 
 const when = (sec) => (sec ? new Date(sec * 1000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "");
+// ⭐ 46y · home-sketch.html's Inbox row: a dot + the category's word (.dot), in the tracker's ring colours — a reply that
+// moves an application on in the reply colour, what needs the person in the accent, the rest quiet.
+const RING = { interview: "reply", assessment: "reply", offer: "reply", recruiter: "need", rejection: "stop",
+  applied: "sent", verification: "sent", reminder: "need", other: "stop" };
+// The sender's name for the row's second line and its bubble: "Vireo Talent <talent@vireo.example>" → "Vireo Talent";
+// a bare address → its domain's first label ("vireo").
+const senderOf = (from = "") => {
+  const name = String(from).replace(/<[^>]*>/g, "").replace(/"/g, "").trim();
+  if (name && !name.includes("@")) return name;
+  const dom = (String(from).match(/@([^>\s]+)/) || [])[1] || "";
+  const label = dom.split(".").filter(p => !/^(mail|email|no-?reply|notifications?|jobs|careers|talent|hire|hiring)$/i.test(p))[0] || dom.split(".")[0] || "";
+  return label ? label.charAt(0).toUpperCase() + label.slice(1) : "Unknown sender";
+};
 
-export default function ApplicationInbox({ theme }) {
+/**
+ * ⭐ D103 / D112 · the Inbox — and since 46y Home's second part (home-sketch.html, D167: "the Inbox stays in Home"),
+ * drawn as the sketch's list: one card, a row per message (bubble · subject over the sender · a dot + its category ·
+ * when), a row opens IN PLACE (the message, what it did, File as · Delete · Close). The same component is the full
+ * sheet's Inbox (Settings → View → The full sheet). `onSeen` tells Home the newest message the person has now seen.
+ */
+export default function ApplicationInbox({ theme, onSeen = null }) {
   const [data, setData] = useState(null);
   const [category, setCategory] = useState(null);
   const [addr, setAddr] = useState(null);
   const [busy, setBusy] = useState(null);
   const [msg, setMsg] = useState("");
+  const [q, setQ] = useState("");
+  const [openId, setOpenId] = useState(null);
 
   const load = useCallback(async () => {
     try { setData(await api(`/api/inbox${category ? `?category=${category}` : ""}`)); }
     catch (e) { setMsg(e.message || "Could not load your inbox."); }
   }, [category]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { const top = data?.messages?.[0]?.receivedAt; if (top) onSeen?.(top); }, [data, onSeen]);
 
   const act = async (key, fn, done) => {
     setBusy(key); setMsg("");
@@ -105,12 +131,63 @@ export default function ApplicationInbox({ theme }) {
   };
 
   const muted = { fontSize: ts(12), color: theme.textMuted };
-  const messages = data?.messages || [];
+  const needle = q.trim().toLowerCase();
+  const messages = (data?.messages || []).filter(m => !needle || `${m.subject || ""} ${m.from || ""} ${m.preview || ""}`.toLowerCase().includes(needle));
+  const nowMs = Date.now();
   return (
-    <div data-table-inbox="" style={{ flex: 1, overflowY: "auto", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-      <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div data-table-inbox="" data-home-inbox="" className="dh-inbox">
+      {/* the sketch's .filters for the Inbox: the categories as the tracker's filter buttons, then "Search the Inbox" */}
+      <div className="trk-filters" role="group" aria-label="Filter by category">
+        {[null, ...(data?.categories || [])].map(c => (
+          <button key={c || "all"} type="button" className="trk-chip" aria-pressed={category === c}
+            onClick={() => { setCategory(c); setOpenId(null); }}>{c ? LABEL[c] || c : "All"}</button>
+        ))}
+        <input className="dh-inbox__q" type="search" placeholder="Search the Inbox" aria-label="Search the Inbox"
+          value={q} onChange={(e) => setQ(e.target.value)} />
+      </div>
+      {msg && data && <p role="status" className="dh-fold__quiet">{msg}</p>}
+
+      <div className="dh-ilist" data-inbox-list="">
+        {!data && <p className="dht-empty">{msg || "Loading…"}</p>}
+        {data && messages.length === 0 && (
+          <p className="dht-empty">{needle ? "No message matches." : category ? `No ${LABEL[category] || category} messages.` : "No messages yet."}</p>
+        )}
+        {messages.map(m => {
+          const open = openId === m.id;
+          const who = senderOf(m.from);
+          return (
+            <div key={m.id} className="dh-it" data-inbox-message={m.id} data-open={open ? "true" : undefined}
+              role="button" tabIndex={0} aria-expanded={open}
+              onClick={(e) => { if (e.target.closest("button, select, a, label")) return; setOpenId(open ? null : m.id); }}
+              onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setOpenId(open ? null : m.id); } }}>
+              <CompanyBubble company={who} size="row" />
+              <span className="dh-it__t"><b>{m.subject || "(no subject)"}</b><span>{who}{m.source === "gmail" ? " · via Gmail" : ""}</span></span>
+              <StatusDot ring={RING[m.category] || "stop"} word={LABEL[m.category] || m.category} />
+              <span className="dh-it__when" title={when(m.receivedAt)}>{whenWord(m.receivedAt * 1000, nowMs)}</span>
+              {open && (
+                <div className="dh-it__det" data-inbox-open={m.id}>
+                  {m.preview && <p className="dh-it__msg">{m.preview}</p>}
+                  <p className="dh-it__upd">{m.from}{m.applicationId ? " · linked to an application" : ""}{m.code ? ` · code ${m.code}` : ""} · {when(m.receivedAt)}</p>
+                  <div className="dht-acts">
+                    <label className="dh-fold__quiet">File as{" "}
+                      <select value={m.category} disabled={busy === `f${m.id}`} onChange={(e) => refile(m, e.target.value)}>
+                        {(data.categories || []).map(c => <option key={c} value={c}>{LABEL[c] || c}</option>)}
+                      </select>
+                    </label>
+                    <button type="button" className="dh-btn" onClick={() => remove(m)} disabled={busy === `d${m.id}`}>Delete</button>
+                    <button type="button" className="dht-link" onClick={() => setOpenId(null)}>Close</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* the sketch's .src: where the mail comes from — Gmail, or the forwarding address — and Delete all */}
+      <section className="dh-isrc" data-inbox-source="">
         <GmailConnection theme={theme} onChange={load} />
-        {!data ? <span style={muted}>{msg || "Loading…"}</span> : !data.intake ? (
+        {!data ? null : !data.intake ? (
           <p style={{ ...muted, margin: 0 }} data-inbox-off="">
             The application inbox is not switched on yet. When it is, you will get a private address to forward
             replies from job sites to — employers keep writing to your own email, and with forwarding draft never connects to your mailbox.
@@ -119,55 +196,21 @@ export default function ApplicationInbox({ theme }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: ts(13), color: theme.text }}>Forward to <b data-inbox-address="">{addr.address}</b></span>
             <ol style={{ ...muted, margin: 0, paddingLeft: 18 }}>{(addr.steps || []).map(s => <li key={s}>{s}</li>)}</ol>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <a className="rm-btn rm-btn-ghost rm-btn-sm" href={`/api/inbox/gmail-filter.xml?${authContextQuery()}`}>Download the Gmail filter</a>
-              <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={revoke} disabled={busy === "revoke"}>Stop forwarding</button>
+            <div className="dht-acts">
+              <a className="dh-btn" href={`/api/inbox/gmail-filter.xml?${authContextQuery()}`}>Download the Gmail filter</a>
+              <button type="button" className="dh-btn" onClick={revoke} disabled={busy === "revoke"}>Stop forwarding</button>
             </div>
           </div>
         ) : (
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <button className="rm-btn rm-btn-primary rm-btn-sm" onClick={showAddress} disabled={busy === "addr"}>My forwarding address</button>
+            <button type="button" className="dht-link" onClick={showAddress} disabled={busy === "addr"}>My forwarding address</button>
             <span style={muted}>Forward replies from job sites to this address. Employers keep writing to your own email; with forwarding, draft never connects to your mailbox.</span>
           </div>
         )}
-      </section>
-
-      <div role="group" aria-label="Filter by category" style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-        {[null, ...(data?.categories || [])].map(c => (
-          <button key={c || "all"} className={`rm-btn rm-btn-sm ${category === c ? "rm-btn-primary" : "rm-btn-ghost"}`}
-            aria-pressed={category === c} onClick={() => setCategory(c)}>{c ? LABEL[c] || c : "All"}</button>
-        ))}
-        <div style={{ flex: 1 }} />
-        {messages.length > 0 && !category && (
-          <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={removeAll} disabled={busy === "all"}>Delete all</button>
+        {(data?.messages || []).length > 0 && !category && (
+          <button type="button" className="dht-link" onClick={removeAll} disabled={busy === "all"}>Delete all</button>
         )}
-      </div>
-      {msg && data && <p role="status" style={{ ...muted, margin: 0 }}>{msg}</p>}
-
-      {data && messages.length === 0 && (
-        <p style={{ ...muted, margin: 0 }}>{category ? `No ${LABEL[category] || category} messages.` : "No messages yet."}</p>
-      )}
-      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-        {messages.map(m => (
-          <li key={m.id} data-inbox-message={m.id} style={{ padding: "10px 12px", borderRadius: 12, background: theme.surface,
-            border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: 6 }}>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <b style={{ fontSize: ts(13), color: theme.text, flex: "1 1 200px", minWidth: 0 }}>{m.subject || "(no subject)"}</b>
-              <span style={muted}>{when(m.receivedAt)}</span>
-            </div>
-            <span style={muted}>{m.from}{m.source === "gmail" ? " · via Gmail" : ""}{m.applicationId ? " · linked to an application" : ""}{m.code ? ` · code ${m.code}` : ""}</span>
-            {m.preview && <span style={{ fontSize: ts(12), color: theme.text }}>{m.preview}</span>}
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <label style={muted}>File as{" "}
-                <select value={m.category} disabled={busy === `f${m.id}`} onChange={(e) => refile(m, e.target.value)}>
-                  {(data.categories || []).map(c => <option key={c} value={c}>{LABEL[c] || c}</option>)}
-                </select>
-              </label>
-              <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => remove(m)} disabled={busy === `d${m.id}`}>Delete</button>
-            </div>
-          </li>
-        ))}
-      </ul>
+      </section>
     </div>
   );
 }

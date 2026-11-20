@@ -880,10 +880,15 @@ const STYLE_PROBES = {
       canvas: cs(document.documentElement).getPropertyValue("--c-canvas").trim(),
       title: { ...font(title), ...box(title) },
       line: font(q("[data-house-header] .dh-head__say")),   /* 45s: D182 (45n) removed the [data-house-line] sentence; the line under the title is the daily question's */
-      mode: fill(q(".dh-head__ctl .dh-mode")), modeOn: { ...fill(q('[data-mode][aria-pressed="true"]')), ...font(q('[data-mode][aria-pressed="true"]')) },
-      quiet: { ...fill(q("[data-settings-open]")), ...font(q("[data-settings-open]")) },
+      /* ⭐ 46y (home-sketch.html): the mode sits in the auto-apply bar; the header's quiet button is Import (Settings is the bar's link) */
+      mode: fill(q(".dh-auto .dh-mode")), modeOn: { ...fill(q('[data-mode][aria-pressed="true"]')), ...font(q('[data-mode][aria-pressed="true"]')) },
+      quiet: { ...fill(q("[data-import-open]")), ...font(q("[data-import-open]")) },
+      bar: { ...fill(q("[data-home-auto]")), ...box(q("[data-home-auto]")) }, need: { ...fill(q("[data-home-need]")), ...box(q("[data-home-need]")) },
+      needKinds: [...document.querySelectorAll("[data-home-need]")].map(e => e.getAttribute("data-home-need")),
+      tabs: { ...fill(q("[data-home-tabs]")), ...box(q("[data-home-tabs]")) }, tabOn: { ...fill(q('[data-home-tab][aria-pressed="true"]')), ...font(q('[data-home-tab][aria-pressed="true"]')) },
       send: { ...fill(q("[data-send-all-ready]")), ...font(q("[data-send-all-ready]")) },
-      count: font(q("[data-tracker-counts] b")), countWord: font(q("[data-tracker-counts] span")), countHot: font(q('[data-tracker-counts] [data-accent="true"] b')),
+      /* ⭐ 46y (home-sketch.html): the counts row is gone — each filter button carries its count */
+      counts: !!q("[data-tracker-counts]"), count: font(q(".trk-chip__n")), countText: q('[data-filter="all"] .trk-chip__n')?.textContent ?? null,
       filter: { ...fill(q('[data-filter="needs"]')), ...font(q('[data-filter="needs"]')) }, filterOn: fill(q('[data-filter][aria-pressed="true"]')),
       table: { ...fill(tbl), ...box(tbl) },
       th: font(q("[data-tracker-table] thead .trk-sort")), thTransform: cs(q("[data-tracker-table] thead .trk-sort"))?.textTransform,

@@ -7,11 +7,8 @@
    --c-accent · the row hover #2A2A2A → --c-surface-tint. Sizes in px × the user's text size. ⛔ No borders on the
    cards, no capsules (D60): the dot is a circle; every control a rounded rectangle. */
 
-/* the sketch's .cnt — a large number over a small grey word */
-.trk-counts { display: flex; flex-wrap: wrap; gap: 28px; margin: 24px 0 14px; }
-.trk-counts b { display: block; font-size: calc(30px * var(--type-scale, 1)); font-weight: 500; letter-spacing: -0.03em; color: var(--c-ink); font-variant-numeric: tabular-nums; }
-.trk-counts span { color: var(--c-ink-faint); font-size: calc(13px * var(--type-scale, 1)); }
-.trk-counts [data-accent="true"] b { color: var(--c-accent-ink); }
+/* ⭐ 46y · home-sketch.html: the counts row (.cnt) is gone — each filter button carries its count (.filters button span:
+   12.5 → 13.5 × the muted grey, 500, 5 px in), and the line under Home's title says the month / replies / interviews. */
 
 /* the sketch's .flt — quiet buttons on the card colour; the pressed one raised */
 .trk-filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 14px; }
@@ -21,6 +18,7 @@
   font-size: calc(13.5px * var(--type-scale, 1)); font-weight: 600; color: var(--c-ink-muted); cursor: pointer;
 }
 .trk-chip[aria-pressed="true"] { background: var(--c-fh-well); color: var(--c-ink); }
+.trk-chip__n { margin-left: 5px; color: var(--c-ink-faint); font-weight: 500; }
 .trk-chip:focus-visible, .trk-sort:focus-visible, .trk-row:focus-visible, .trk-period:focus-visible, .trk-od:focus-visible, .trk-btn:focus-visible {
   outline: 2px solid var(--c-accent); outline-offset: 3px;
 }
