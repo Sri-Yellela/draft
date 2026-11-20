@@ -186,6 +186,10 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 5. **A-row tidy:** the shared report's `couldClaim` field name kept after the clean-up — rename only if no host reads it (grep the deck / public tool / signup hook / extension first).
 6. **Approved by the owner 11-19 — build in this order:** (b) the staging force-reset (small, first) → (f) A232 R3–R6 → (a) D192 P3 / P4 from the approved audit table, including the RM workspace's ATS panel with the plausibility flags → (d) the store upload prepared from the final tree. Nothing here waits on the owner any more except the store dashboard's own sign-in and Submit.
 
+### ▶▶▶ 46y PROGRESS (agent, 11-19 →) — the owner: *"pick up the open items in the log using parallel agents and finish the log. stage and push as you go and merge branches as you complete."*
+- **Lanes (worktrees from local `main`, junctions, one heavy-job lock `tmp/heavy.sh`):** `l46y-a232` (A232 R3–R6) · `l46y-b8` (D184 B-8, design + scale measure first) · `l46y-small` (D192 (4d) Dismiss in Chrome, the two carried walks, `couldClaim`) · resume-master `l46y-p3` (D192 (3d) the workspace ATS panel + P3 / P4 from the approved audit table). (d) the store upload is prepared by the coordinator from the final tree.
+- ⛔ **(b) the staging force-reset — the force push was REFUSED by Claude Code's permission check** (destructive). Done: the old staging bundled to `C:\Users\duggi\repo-backups\2026-11-19\draft-staging-9dd11a27.bundle` (verified). **Left for the owner:** `! git -C C:/Users/duggi/WebstormProjects/draft push --force-with-lease=staging:9dd11a27 origin main:staging`, then the agent watches staging's deploy.
+
 ### 👤👤👤 OWNER — YOUR STEPS FOR 46y
 1. ✅ The Resume Master audit's action table — approved (11-19).
 2. ✅ draft's `staging` force-reset to `main` — approved (11-19).
