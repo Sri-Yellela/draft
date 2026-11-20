@@ -3318,7 +3318,22 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setTaxRole({ category: "", subcategory: p.get("subcategory") || "", also: p.get("also_subcategory") || "" });   // D186-5: + also fits
     setTechFilter(p.get("tech") || "");
     setCurrentPage(1);
+    // ⭐ D159 T2 (46y): opening the saved search IS looking at it — its tracker's "new since last seen" restarts from now.
+    api(`/api/trackers/searches/${activeDomainProfile.id}/seen`, { method: "POST" }).catch(() => {});
   }, [activeDomainProfile]);
+
+  // ⭐ D159 T2 (46y): Job Profiles → Trackers → Open lands here as /app/jobs?tracker=<profile id> (that profile made active
+  // first) — the saved search is applied once and the parameter taken off the address.
+  const trackerApplied = useRef(false);
+  useEffect(() => {
+    if (trackerApplied.current || !activeDomainProfile?.tracked_search?.params) return;
+    let id = null;
+    try { id = new URL(window.location.href).searchParams.get("tracker"); } catch { /* no window */ }
+    if (!id || String(activeDomainProfile.id) !== id) return;
+    trackerApplied.current = true;
+    try { const u = new URL(window.location.href); u.searchParams.delete("tracker"); window.history.replaceState(window.history.state, "", `${u.pathname}${u.search}${u.hash}`); } catch { /* fine */ }
+    applyTrackedSearch();
+  }, [activeDomainProfile, applyTrackedSearch]);
 
   const askSearchIntent = useCallback((prompt) => new Promise(resolve => {
     searchIntentResolveRef.current = resolve;

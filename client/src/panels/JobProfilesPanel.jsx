@@ -1,5 +1,6 @@
 // SCRAPING — SCHEDULED FOR REMOVAL AFTER MIGRATION
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";   // D159 T2 (46y): a tracker's Open goes to the board
 import { api } from "../lib/api.js";
 import { parseResumeFile } from "../lib/parseResumeFile.js";
 import { useTheme } from "../styles/theme.jsx";
@@ -325,6 +326,9 @@ export function JobProfilesPanel() {
             No job profiles yet. Add your first one and draft starts finding jobs that fit it.
           </div>
         )}
+        {/* ⭐ D159 T2–T4 (46y): no sketch exists for trackers — the smallest UI, in this existing panel (beside the job
+            profiles the saved searches belong to). */}
+        <Trackers profiles={profiles} onActivate={setActiveProfileId} />
       </div>
 
       {wizardMode && (
@@ -345,5 +349,124 @@ export function JobProfilesPanel() {
         />
       )}
     </div>
+  );
+}
+
+// ── ⭐ D159 T2–T4 (46y) · TRACKERS ─────────────────────────────────────────────────────────────────────────────────
+// A saved search (the board's More filters → Save Search, one per job profile), a followed company (its page's Follow) and
+// a pasted careers page / board — each with what is NEW since you last looked (GET /api/trackers; routes/trackers.js).
+// Open marks it seen. No sketch: the smallest UI, plain rows and words (no pills — D60).
+const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const PAGE_STATUS = {
+  pending: "Waiting for review — we'll follow it once its board is added",
+  unsupported: "We can't read this page yet — paste the job board link from its Apply button (Greenhouse, Lever, Ashby …)",
+};
+function Trackers({ profiles, onActivate }) {
+  const navigate = useNavigate();
+  const [data, setData] = useState(null);
+  const [state, setState] = useState("loading");
+  const [url, setUrl] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(async () => {
+    try { setData(await api("/api/trackers", { timeoutMs: 20000 })); setState("ready"); }
+    catch { setState("error"); }
+  }, []);
+  useEffect(() => { load(); }, [load, profiles.length]);
+
+  const openSearch = async (s) => {
+    try {
+      if (!s.active) { await api(`/api/domain-profiles/${s.profileId}/activate`, { method: "POST" }); onActivate?.(s.profileId); }
+      navigate(`/app/jobs?tracker=${s.profileId}`);
+    } catch (e) { setNote(e.message || "Could not open that search."); }
+  };
+  const openCompany = async (c) => {
+    try { await api(`/api/trackers/companies/${c.companyId}/seen`, { method: "POST" }); } catch { /* the page still opens */ }
+    navigate(`/companies/${c.slug}`);
+  };
+  const unfollow = async (c) => {
+    try { await api(`/api/companies/${c.slug}/follow`, { method: "POST", body: JSON.stringify({ on: false }) }); load(); }
+    catch (e) { setNote(e.message || "Could not unfollow."); }
+  };
+  const dropPage = async (pg) => {
+    try { await api(`/api/trackers/pages/${pg.id}`, { method: "DELETE" }); load(); }
+    catch (e) { setNote(e.message || "Could not remove it."); }
+  };
+  const track = async (e) => {
+    e.preventDefault();
+    if (!url.trim()) return;
+    setBusy(true); setNote("");
+    try {
+      const r = await api("/api/trackers/pages", { method: "POST", body: JSON.stringify({ url: url.trim() }) });
+      setNote(r.status === "following" ? `Following ${r.company?.name || r.label}. New postings there show here.`
+        : r.status === "pending" ? `${r.label || "That board"} isn't on draft yet — it's been sent for review. You'll follow it once it's added.`
+        : PAGE_STATUS.unsupported);
+      setUrl(""); load();
+    } catch (err) { setNote(err.message || "Could not track that page."); }
+    finally { setBusy(false); }
+  };
+
+  const row = { display:"flex", alignItems:"center", gap:12, flexWrap:"wrap", padding:"10px 0", borderTop:"1px solid var(--color-border)" };
+  const muted = { fontSize:ts(12), color:"var(--color-text-muted)" };
+  const fresh = (n) => n == null ? <span style={muted}>count unavailable</span>
+    : n > 0 ? <span data-tracker-new={n} style={{ fontSize:ts(13), fontWeight:700, color:"var(--c-accent-ink)" }}>{plural(n, "new posting")} since you last looked</span>
+    : <span style={muted}>nothing new since you last looked</span>;
+  const empty = data && !data.searches.length && !data.companies.length && !data.pages.length;
+
+  return (
+    <section data-trackers aria-labelledby="trackers-title" style={{ marginTop:28 }}>
+      <div className="rm-section-label" id="trackers-title">Trackers</div>
+      <p style={{ ...muted, fontSize:ts(13), margin:"6px 0 12px", maxWidth:640 }}>
+        What's new at the searches, companies and job boards you follow. Save a search from the board's filters, press
+        Follow on a company's page, or paste a careers page or job board link here.
+      </p>
+      <form onSubmit={track} style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:8, maxWidth:640 }}>
+        <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} aria-label="A careers page or job board link"
+          placeholder="https://jobs.lever.co/company or a careers page"
+          style={{ flex:"1 1 260px", minWidth:0, padding:"9px 12px", borderRadius:8, border:"1px solid var(--color-border)",
+                   background:"var(--color-surface)", color:"var(--color-text)", fontSize:ts(13), fontFamily:"inherit" }} />
+        <button type="submit" className="rm-btn rm-btn-sm rm-btn-primary" disabled={busy || !url.trim()} style={{ margin:0 }}>
+          {busy ? "Checking…" : "Track"}
+        </button>
+      </form>
+      {note && <div role="status" style={{ ...muted, marginBottom:8 }}>{note}</div>}
+      {state === "loading" && <div style={muted}>Loading your trackers…</div>}
+      {state === "error" && <div style={muted}>Your trackers could not be loaded. <button type="button" className="rm-btn rm-btn-sm" onClick={load}>Try again</button></div>}
+      {empty && <div style={muted}>Nothing tracked yet.</div>}
+      {data && (
+        <div style={{ maxWidth:900 }}>
+          {data.searches.map((s) => (
+            <div key={`s${s.profileId}`} data-tracker-search={s.profileId} style={row}>
+              <div style={{ flex:"1 1 320px", minWidth:0 }}>
+                <div style={{ fontSize:ts(14), fontWeight:600 }}>{s.label}</div>
+                <div style={muted}>Saved search · {s.profileName}</div>
+              </div>
+              {fresh(s.newCount)}
+              <button type="button" className="rm-btn rm-btn-sm" style={{ margin:0 }} onClick={() => openSearch(s)}>Open</button>
+            </div>
+          ))}
+          {data.companies.map((c) => (
+            <div key={`c${c.companyId}`} data-tracker-company={c.slug} style={row}>
+              <div style={{ flex:"1 1 320px", minWidth:0 }}>
+                <div style={{ fontSize:ts(14), fontWeight:600 }}>{c.name}</div>
+                <div style={muted}>Company you follow</div>
+              </div>
+              {fresh(c.newCount)}
+              <button type="button" className="rm-btn rm-btn-sm" style={{ margin:0 }} onClick={() => openCompany(c)}>Open</button>
+              <button type="button" className="rm-btn rm-btn-sm" style={{ margin:0 }} onClick={() => unfollow(c)}>Unfollow</button>
+            </div>
+          ))}
+          {data.pages.map((pg) => (
+            <div key={`p${pg.id}`} data-tracker-page={pg.status} style={row}>
+              <div style={{ flex:"1 1 320px", minWidth:0 }}>
+                <div style={{ fontSize:ts(14), fontWeight:600, overflowWrap:"anywhere" }}>{pg.label || pg.url}</div>
+                <div style={muted}>{PAGE_STATUS[pg.status] || pg.status}</div>
+              </div>
+              <button type="button" className="rm-btn rm-btn-sm" style={{ margin:0 }} onClick={() => dropPage(pg)}>Remove</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
