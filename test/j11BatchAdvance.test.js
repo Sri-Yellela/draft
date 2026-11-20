@@ -82,7 +82,7 @@ async function pressNext() {                  // the overlay's "Next application
   return new Promise((resolve) => {
     let answered = false;
     for (const fn of listeners.onMessage) {
-      const r = fn({ type: 'GATE_BATCH_NEXT' }, { tab: { id: TAB, url: h.tabUrl } }, (v) => { answered = true; resolve(v); });
+      const r = fn({ type: 'GATE_BATCH_NEXT', trigger: 'click' }, { tab: { id: TAB, url: h.tabUrl }, frameId: 0 }, (v) => { answered = true; resolve(v); });
       if (r === true && !answered) continue;
     }
   });

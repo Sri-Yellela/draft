@@ -785,11 +785,13 @@ export function renderOverlay(model, meta) {
     // ⭐ T26: a press's progress and outcome are the control's NAME (aria-label + tooltip) — the icon stays.
     const name = (b, words) => { b.setAttribute('aria-label', words); b.title = words; };
     if (role === 'next') {
+      // D173 R2: only the person's own (trusted) click moves the batch on; a page script's click sends nothing.
+      if (!ev.isTrusted) return;
       btn.disabled = true;
       name(btn, 'opening the next one…');
       // The reply is read, not discarded. A batch that cannot advance used to leave this button
       // sitting on "opening…" forever, which is indistinguishable from slow.
-      const reply = await send({ type: 'GATE_BATCH_NEXT' });
+      const reply = await send({ type: 'GATE_BATCH_NEXT', trigger: 'click' });
       if (!reply?.ok) {
         btn.disabled = false;
         name(btn, 'Could not open the next one — try again');
@@ -832,7 +834,7 @@ export function renderOverlay(model, meta) {
       const msg = root.querySelector('[data-role="submitted-msg"]');
       btn.disabled = true;
       name(btn, 'recording…');
-      const reply = await send({ type: 'GATE_SUBMITTED' });
+      const reply = await send({ type: 'GATE_SUBMITTED', trigger: 'click' });   // D173 R2: after the person's own Yes (above)
       const ok = !!reply?.ok;
       name(btn, ok ? 'recorded' : 'I submitted it');
       btn.className = ok ? 'rm-btn done' : 'rm-btn';

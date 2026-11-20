@@ -377,7 +377,18 @@ async function diagnostics() {
 /** ⭐ T26 / T29 · the settings page's sections a dock control may open it at (options.html's own ids). */
 const SETTINGS_SECTIONS = Object.freeze(['permissions', 'account', 'auto-read', 'intent', 'answers', 'details', 'shortcuts']);
 
+// ⭐ D173 R1 (46z, docs/D173_EXTENSION_HARDENING.md) · THE POPUP-ERA HANDLERS ANSWER ONLY THE EXTENSION'S OWN PAGES. The toolbar
+// popup that sent them was retired in T31; they act on the ACTIVE tab and checked nothing, so any of the extension's own
+// content scripts (some run on every https page) could send SUBMITTED_ACTIVE_TAB and record a submission for whatever tab
+// was in front. The toolbar press, the context menu and the hotkeys call the same functions directly, not through these
+// messages, so nothing a person does is lost. A content script's sender.url is the web page's, never this origin.
+const POPUP_ERA = Object.freeze(new Set(['CAPTURE_ACTIVE_TAB', 'PREVIEW_ACTIVE_TAB', 'POPUP_CONTEXT', 'FILL_ACTIVE_TAB',
+  'PREPARE_ACTIVE_TAB', 'SUBMITTED_ACTIVE_TAB', 'COPY_SHEET_PANEL', 'DOCK_OPEN', 'REPORT_FORM']));
+const fromOwnPage = (sender) => typeof sender?.url === 'string' && sender.url.startsWith(chrome.runtime.getURL(''))
+  && (sender.id == null || sender.id === chrome.runtime.id);
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (POPUP_ERA.has(message?.type) && !fromOwnPage(sender)) { sendResponse({ ok: false, reason: 'not_allowed' }); return false; }   // D173 R1
   // Capture, from the popup button. The hotkey reaches the same function through onCommand below;
   // neither trigger has an implementation of its own.
   if (message.type === 'CAPTURE_ACTIVE_TAB') {
@@ -664,6 +675,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type === 'GATE_BATCH_NEXT') {
     const tabId = sender.tab?.id;
     if (!tabId) { sendResponse({ ok: false, reason: 'no_tab' }); return true; }
+    // ⭐ D173 R2 (46z): the review panel's own click, from the page's TOP frame — as DOCK_SUBMITTED and GATE_SEND require.
+    if (msg.trigger !== 'click' || sender?.frameId !== 0) { sendResponse({ ok: false, reason: 'not_allowed' }); return true; }
     advanceBatch(tabId).then(r => sendResponse(r)).catch(e => sendResponse({ ok: false, reason: e.message }));
     return true;
   }
@@ -700,6 +713,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg?.type === 'GATE_SUBMITTED') {
     if (!sender.tab?.id) { sendResponse({ ok: false, message: 'No tab.' }); return true; }
+    // ⭐ D173 R2 (46z): recorded only on the person's own Yes in the review panel, from the page's TOP frame.
+    if (msg.trigger !== 'click' || sender?.frameId !== 0) { sendResponse({ ok: false, message: 'Record it from the review panel.' }); return true; }
     recordSubmitted({ serverUrl: RESUME_MASTER_URL, tab: sender.tab })
       .then(r => sendResponse(r)).catch(() => sendResponse({ ok: false, message: 'Could not record it.' }));
     return true;
@@ -886,8 +901,9 @@ async function saveLinkToDraft(linkUrl, tab) {
 // shows the host and how many labels before anything is sent); SEND reads them again and posts
 // host + labels. The page is re-read rather than the preview trusted, so nothing the popup holds
 // can widen what is sent — buildFormReport() emits only host, labels, fieldCount and the version.
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type !== 'REPORT_FORM') return false;
+  if (!fromOwnPage(sender)) { sendResponse({ ok: false, message: 'Report the form from the extension.' }); return false; }   // D173 R1
   chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => reportForm(tab, msg.phase))
     .then(sendResponse, () => sendResponse({ ok: false, message: 'Could not send the report.' }));
   return true;
