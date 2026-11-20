@@ -81,3 +81,11 @@ export function wholeModules(course, marks = {}) {
 /** ⭐ A155 · the course's lessons as the route builder's pieces (the circle's own needs), in course order. */
 export const coursePieces = (course, circle) => (course?.modules || []).flatMap(m => m.lessons)
   .map(l => ({ id: l.id, needs: circle?.pieces?.[l.id]?.needs || [] }));
+
+/** ⭐ D150 T14 (46y) · a piece's questions heading (PieceQuestions.jsx): "Checked · all 4 right" · "2 of 4 right" · signed out
+ *  "4 questions on this lesson". `state` is GET /api/learn/piece/:id/questions' own (null signed out). */
+export function pieceCheckLine(state, total) {
+  if (!state) return `${total} question${total === 1 ? "" : "s"} on this lesson`;
+  if (state.checked) return `Checked · all ${state.total} right`;
+  return `${state.right} of ${state.total} right`;
+}

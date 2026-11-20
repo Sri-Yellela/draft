@@ -21,6 +21,7 @@ import { useMemo, useState } from "react";
 import DepthButton from "../../components/DepthButton.jsx";
 import ResourceTile, { ResourceGrid, useLearnThumbs } from "../../components/ResourceTile.jsx";
 import LearnWheel from "./LearnWheel.jsx";
+import PieceQuestions from "./PieceQuestions.jsx";   // ⭐ D150 T14 (46y)
 import {
   stepState, checkpointId, circleState, circleLayout, pointAt, chordPath, routePath, arcPath, GEO, circleViewBox, partLabelLines, LABEL, needsMap, goBackTo, routeStart, routeClosure,
   routesFor, pieceForConcept, whereLine, pieceOf, barLine, pasteVerdict, wordCount, EXPLAIN_MIN_WORDS,
@@ -244,6 +245,8 @@ export function PieceBody({ piece, pieces, states, marks = {}, explanations = {}
           {signedIn && <p className="atl__quiet">Private: only you read what you write here. Nothing grades it.</p>}
         </div>
       )}
+      {/* ⭐ D150 T14 (46y): the piece's approved bank questions and its checked state (nothing when it has none). */}
+      <PieceQuestions pieceId={piece.id} signedIn={signedIn} />
       {st.build && <BuildLink piece={piece} saved={builds[piece.id]} signedIn={signedIn} onBuild={onBuild} />}
       {!signedIn && <p className="atl__quiet" data-learn-signin="">Sign in and the bar fills as you open, explain and build.</p>}
       {!compact && (

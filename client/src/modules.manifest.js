@@ -72,6 +72,9 @@ export const MODULES = Object.freeze({
       "pages/atlas/AtlasTree.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js", "pages/atlas/YourMap.jsx",
       "pages/atlas/Navigator.jsx", "pages/atlas/ReadinessCheck.jsx",
       "pages/atlas/AtlasPanels.jsx", "pages/atlas/atlasPanels.js",
+      // ⭐ D150 T14 (46y): a bank item's match / order answer + the local day, ONE implementation (moved out of AtlasPanels.jsx)
+      // for the daily question and Learn's piece questions; PieceQuestions is a piece's questions and its checked state.
+      "pages/atlas/BankAnswers.jsx", "pages/atlas/PieceQuestions.jsx",
       "pages/atlas/CompetePanels.jsx", "pages/atlas/competeModel.js",
       // ⭐ A228 (46r): Your map is the skill map — the page, its four graphics (one piece each) and its pure model.
       "pages/atlas/SkillMap.jsx", "pages/atlas/SkillMapBits.jsx", "pages/atlas/JobsHistogram.jsx", "pages/atlas/SkillTreemap.jsx",

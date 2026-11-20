@@ -10,6 +10,10 @@
 //   POST /api/learn/opened              { id } — the item's link was opened FROM DRAFT (the page sends it on the click)
 //   PUT  /api/learn/explained           { id, text, pasted } — a checkpoint in the user's own words (≥ 25, no paste ≥ 25)
 //   PUT  /api/learn/built               { step, url, kind } — the link to what was built (a required Build / Project)
+// ⭐ D150 T14 (46y) · QUESTIONS INSIDE LEARN (services/learn/pieceChecks.js — the owner-approved bank's items only):
+//   GET  /api/learn/checks              ?day= — per piece { total, right, checked, due } + the review line { count, pieces }
+//   GET  /api/learn/piece/:id/questions ?day= — the piece's items (no answer key); signed in, its state and the next to ask
+//   POST /api/learn/piece/:id/answer    { questionId, chosen | response, day } — judged on the server (surface 'learn')
 //   ⛔ Nothing a user can send marks an item or a piece done: D115's PUT /progress and POST /progress/import now answer
 //   410 (C8 replaced self-ticks). GET /progress still reads the old ticks, which are kept, never counted.
 // ⭐ D118 P2: the content is the DATABASE's (learnContent(db), learn_content) — an import from Admin → Atlas → Import
@@ -24,6 +28,7 @@ import { courseOf, COURSE_ID, patternCourseOf, PATTERN_COURSE_ID } from "../serv
 import { guides, deckOf, pathwaysPlan, howItWorks } from "../services/learn/learnDecks.js";
 import { questions, recordAnswer } from "../services/learn/learnQuestions.js";
 import { loadRegistry } from "../services/atlas/sourceRegistry.js";
+import { learnChecks, pieceQuestions, answerPieceQuestion } from "../services/learn/pieceChecks.js";   // ⭐ D150 T14 (46y)
 
 export const LEARN_CACHE = "public, max-age=60";
 export const TICKS_GONE = Object.freeze({ error: "earned_not_ticked",
@@ -102,6 +107,25 @@ export function createLearnRouter(db, { requireAuth }) {
     const { step, url, kind } = req.body || {};
     if (typeof step !== "string" || typeof url !== "string") return res.status(400).json({ ok: false, error: "step and url (strings) are required" });
     send(res, saveBuild(db, req.user.id, step, { url, kind: kind || "repository" }));
+  });
+  // ⭐ D150 T14 (46y) · questions inside Learn (services/learn/pieceChecks.js): a piece's approved bank items, its "checked"
+  // state, and the Learn home's quiet "N to review" (the ONE review rule — the daily question's). ?day= is the person's local day.
+  const fail = (res, e) => res.status(e.status || 400).json({ error: e.code || "failed", message: e.message });
+  router.get("/checks", requireAuth, (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    try { res.json(learnChecks(db, req.user.id, String(req.query.day || ""))); } catch (e) { fail(res, e); }
+  });
+  // Public like a deck's check: signed out, the questions (no answer key); signed in, also the state and the next to ask.
+  router.get("/piece/:id/questions", (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    try { res.json(pieceQuestions(db, String(req.params.id).slice(0, 40), req.user?.id ?? null, String(req.query.day || ""))); } catch (e) { fail(res, e); }
+  });
+  router.post("/piece/:id/answer", requireAuth, (req, res) => {
+    const b = req.body || {};
+    try {
+      res.json(answerPieceQuestion(db, req.user.id, String(req.params.id).slice(0, 40), { questionId: String(b.questionId || ""),
+        chosen: b.chosen, response: Array.isArray(b.response) ? b.response : null, ms: Number(b.ms) || null, day: String(b.day || "") }));
+    } catch (e) { fail(res, e); }
   });
   router.get("/progress", requireAuth, (req, res) => res.json({ marks: readProgress(db, req.user.id) }));
   router.put("/progress", requireAuth, (_req, res) => res.status(410).json(TICKS_GONE));

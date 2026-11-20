@@ -29,16 +29,30 @@ const bad = (status, code, message) => Object.assign(new Error(message), { statu
 const dayOf = (sec) => new Date(sec * 1000).toISOString().slice(0, 10);
 const daysBetween = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
 
-/** The person's answer history per question: { id → { last (day), streak (right in a row, newest first) } }. */
-function history(db, userId) {
-  const rows = db.prepare(`SELECT question_id, correct, answered_at FROM learn_question_answers WHERE user_id = ? ORDER BY answered_at DESC`).all(userId);
+/** The person's answer history per question: { id → { last (day), streak (right in a row, newest first), right (the latest
+ *  answer was right) } }. ⭐ T14 (46y): exported — Learn's pieces read the same history (services/learn/pieceChecks.js). */
+export function answerHistory(db, userId) {
+  const rows = db.prepare(`SELECT question_id, correct, answered_at FROM learn_question_answers WHERE user_id = ? ORDER BY answered_at DESC, id DESC`).all(userId);
   const h = new Map();
   for (const r of rows) {
     const e = h.get(r.question_id);
-    if (!e) h.set(r.question_id, { last: dayOf(r.answered_at), streak: r.correct ? 1 : 0, open: !!r.correct });
+    if (!e) h.set(r.question_id, { last: dayOf(r.answered_at), streak: r.correct ? 1 : 0, open: !!r.correct, right: !!r.correct });
     else if (e.open) { if (r.correct) e.streak++; else e.open = false; }
   }
   return h;
+}
+const history = answerHistory;
+
+/**
+ * ⭐ T14 (46y) · THE ONE REVIEW RULE — the questions due for review on `day`: answered before, and `day` is at least
+ * REVIEW_DAYS[right in a row] days after the last answer (a miss: 1 day). The most overdue first, a miss before a right
+ * answer. `ids` (optional) limits it to those questions (the live bank). The daily question and Learn's "N to review" both
+ * read this, so they can never disagree.
+ */
+export function dueReviews(h, day, ids = null) {
+  return [...h].filter(([id]) => !ids || ids.has(id))
+    .map(([id, e]) => ({ id, over: daysBetween(e.last, day) - REVIEW_DAYS[Math.min(e.streak, REVIEW_DAYS.length - 1)], streak: e.streak }))
+    .filter(x => x.over >= 0).sort((a, b) => a.streak - b.streak || b.over - a.over);
 }
 
 // A bank skill is an Atlas slug ("apache-kafka"); an ATS term is the posting's word ("Apache Kafka") — compared as words.
@@ -72,8 +86,7 @@ export function pickDaily(db, userId, day, { aimRole = null, aimGaps = null } = 
   const byId = new Map(live.map(q => [q.id, q]));
   const h = history(db, userId);
   // 1 · a due review — the most overdue first, a miss (streak 0) before a right answer.
-  const due = [...h].filter(([id]) => byId.has(id)).map(([id, e]) => ({ id, over: daysBetween(e.last, day) - REVIEW_DAYS[Math.min(e.streak, REVIEW_DAYS.length - 1)], streak: e.streak }))
-    .filter(x => x.over >= 0).sort((a, b) => a.streak - b.streak || b.over - a.over);
+  const due = dueReviews(h, day, new Set(byId.keys()));
   if (due.length) return { item: byId.get(due[0].id), reason: "review" };
   const unseen = live.filter(q => !h.has(q.id));
   // 2 · a skill missed in a kept audit.
@@ -160,7 +173,9 @@ export function todaysQuestion(db, userId, day, { aimRole = null, aimGaps = null
   return out;
 }
 
-function resultOf(db, item, chosen, correct, response = null) {
+/** An answer's result — the why of the chosen choice and of the right one (MC), or per pair / position (match / order), with
+ *  the item's lessons and decks. ⭐ T14 (46y): exported — Learn's piece questions answer in the same shape. */
+export function resultOf(db, item, chosen, correct, response = null) {
   // ⭐ D154 P2: a match / order answer → per pair / position right or not, the key, and the why.
   if (isStructured(item)) {
     const j = response ? judgeStructured(item, response) : { parts: [], answer: item.answer, why: item.why };

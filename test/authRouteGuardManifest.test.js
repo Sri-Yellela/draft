@@ -63,6 +63,9 @@ const PUBLIC = new Set([
   "GET /api/learn/pathways",
   "GET /api/learn/how-it-works",   // A154 (45o): each approved deck's idea as one flow — the decks' own words, public like them
   "GET /api/learn/deck/:id",
+  // D150 T14 (46y): a Learn piece's approved bank items, served WITHOUT the answer key (as a deck's check); a signed-in
+  // reader also gets their own state on it — never anyone else's.
+  "GET /api/learn/piece/:id/questions",
   // A deck's check answer: public like the deck (recorded with no user when signed out, as the audit's answers are); no points.
   "POST /api/learn/deck/:id/answer",
   "GET /api/auth/me",                      // reports authenticated:false rather than 401 by design
@@ -312,6 +315,8 @@ const AUTHENTICATED = new Set([
   // draft, a checkpoint explained, a build linked; C5: the route from the user's own map.
   "GET /api/learn/earned", "POST /api/learn/opened", "PUT /api/learn/explained", "PUT /api/learn/built",
   "GET /api/learn/circle/my-route",
+  // D150 T14 (46y): a piece's checked state and the review line — the learner's own answers; an answer to a piece's question.
+  "GET /api/learn/checks", "POST /api/learn/piece/:id/answer",
   "GET /api/auth/extension-token",
   "POST /api/auth/revoke-extension-token",
   // AJ1 6b. Exchanges a session-bound login token for a sessionLess one, so it needs the same

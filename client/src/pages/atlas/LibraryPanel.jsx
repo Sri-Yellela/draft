@@ -18,6 +18,32 @@ import { artForPathway } from "./PathwayArt.jsx";   // A154: a drawing per pathw
 import { pastelVar } from "../../../../shared/pastel.js";   // 46u: a course keeps its colour
 import "./LibraryPanel.css";
 import { Facts } from "../../components/TextBlocks.jsx";   // A233: meta lines as figures
+import { localDay } from "./BankAnswers.jsx";   // ⭐ D150 T14 (46y)
+
+/** ⭐ D150 T14 (46y) · the learner's checks (GET /api/learn/checks): per piece { total, right, checked, due } and the review
+ *  line { count, pieces } — the daily question's one review rule. Signed out: nothing. */
+function useChecks(signedIn) {
+  const [c, setC] = useState(null);
+  useEffect(() => {
+    let live = true;
+    if (!signedIn) { setC(null); return undefined; }
+    api(`/api/learn/checks?day=${localDay()}`).then(x => live && setC(x)).catch(() => live && setC(null));
+    return () => { live = false; };
+  }, [signedIn]);
+  return c;
+}
+
+/** ⭐ D150 T14 (46y) · the one quiet line on the Learn home: "3 to review", to the piece with the most due. Nothing when none. */
+export function ReviewLine({ base, review }) {
+  if (!review?.count) return null;
+  const first = review.pieces?.[0];
+  const words = `${review.count} to review`;
+  return (
+    <p className="atl__quiet" data-learn-review={review.count}>
+      {first ? <Link to={learnStepHref(base, first)} className="atl__link">{words}</Link> : words}
+    </p>
+  );
+}
 
 // ⭐ D178: the LeetCode pattern atlas is its own course (kind "patterns": no earned progress — a pattern has no check yet).
 export const COURSES = Object.freeze([
@@ -100,11 +126,13 @@ export function LibraryShelf({ base, signedIn = false }) {
   const p = course ? courseProgress(course, marks) : null;
   const guides = useGuides();
   const [wantPathway, setWantPathway] = useState(null);   // A154: a pathway's cover opens its plan
+  const checks = useChecks(signedIn);   // ⭐ D150 T14 (46y)
   return (
     <div className="atl-pan" data-atlas-panel-body="library">
       <header className="atl__head">
         <h1 className="atl__title">Guides and courses</h1>
         <p className="atl__lede">Your level's guide first, then the shelf. Each lesson is the best material we found on it and a quick check.</p>
+        <ReviewLine base={base} review={checks?.review} />
       </header>
       {/* ⭐ D172 (2b): the ladder of guides (approved decks), above the shelf of courses. */}
       <GuideLadder base={base} guides={guides} />
@@ -201,6 +229,7 @@ export function PatternCoursePage({ base, id }) {
 /** /atlas/library/<id> — a course: its modules, one open at a time; each lesson its links and its check. */
 export function CoursePage({ base, id, signedIn = false }) {
   const { course, marks, error } = useCourse(id, signedIn);
+  const checks = useChecks(signedIn);   // ⭐ D150 T14 (46y): a lesson's questions checked
   const progress = useMemo(() => (course ? courseProgress(course, marks) : null), [course, marks]);
   const [open, setOpen] = useState(null);
   // ⭐ D178-3: the half ring's selected module (the deck below shows its lessons); starts where the list starts.
@@ -299,6 +328,8 @@ export function CoursePage({ base, id, signedIn = false }) {
                         {st.complete
                           ? <span className="mark mark--ok">✓ checked</span>
                           : <Link to={learnStepHref(base, l.id)} className="atl__link">Check · {l.checks.length} question{l.checks.length === 1 ? "" : "s"}</Link>}
+                        {checks?.pieces?.[l.id] && <span className="atl__quiet" data-lesson-questions={checks.pieces[l.id].checked ? "checked" : "open"}>
+                          {checks.pieces[l.id].checked ? " · questions checked" : ` · questions ${checks.pieces[l.id].right} of ${checks.pieces[l.id].total} right`}</span>}
                       </span>
                     </li>
                   );

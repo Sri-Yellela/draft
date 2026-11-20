@@ -123,3 +123,6 @@
 [data-contrast="aaa"] .lrc__toast { outline: 2px solid var(--c-border-strong); }
 [data-contrast="aaa"] .lrc__tick.is-dim { opacity: .45; }
 [data-contrast="aaa"] .lrc__sq { stroke-width: 2.4; }
+/* ⭐ D150 T14 (46y): a piece's questions from the approved bank (PieceQuestions.jsx) — the daily question's answer look. */
+.lrc__q-stem { margin: 2px 0 0; font-weight: 600; color: var(--c-ink); line-height: 1.45; }
+.lrc__box--qs .atl-dq__why { margin-top: 4px; }

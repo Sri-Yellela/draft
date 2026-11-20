@@ -8,6 +8,7 @@ import fs from "node:fs";
 import express from "express";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
+import { at } from "../test-support/sourceAnchors.js";
 import interviewRoutes from "../routes/interview.js";
 import { defendQuestions, defendFor, TEMPLATES, MAX_QUESTIONS } from "../services/defendResume.js";
 import { DEFEND_START, defendNext, defendAnotherLine, clockWords } from "../client/src/pages/interview/interviewModel.js";
@@ -110,7 +111,7 @@ test("d142DefendNoModel · D190: the service and the panel call no model and sen
   const svc = read("services/defendResume.js");
   assert.doesNotMatch(svc, /anthropic|callTask|modelClient|fetch\(|INSERT|UPDATE /i);
   const page = read("client/src/pages/interview/InterviewPage.jsx");
-  const panel = page.slice(page.indexOf("function Defend()"), page.indexOf("function Debrief()"));
+  const panel = page.slice(at(page, "function Defend()"), at(page, "function Debrief()"));
   assert.match(panel, /useRead\("\/api\/interview\/defend"\)/);
   assert.doesNotMatch(panel, /method: "POST"|getUserMedia|SpeechRecognition/, "typed answers stay in the tab; nothing listens");
   // the approved sketch's words (docs/sketches/Interview.html → Defend)
