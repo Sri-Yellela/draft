@@ -58,6 +58,20 @@ test("A232 R4: the six one-walk files are ONE file of six walks; j2ExtensionHarn
   assert.equal([...w.matchAll(/await mod\.default\(h, /g)].length, 1);
 });
 
+test("A232 R5: the pure halves of the five mixed files are fast; their real-Chrome halves are browser files of their own", () => {
+  const pairs = { bindingFirst: "bindingFirstWalk", t24IntentModel: "t24IntentModelWalk", t31ToolbarPress: "t31ToolbarPressWalk",
+    d99Bridge: "d99BridgeWalk", t9AtsReportComponent: "t9AtsReportChrome" };
+  for (const [pure, walk] of Object.entries(pairs)) {
+    assert.equal(tierOf(`test/${pure}.test.js`), "fast", pure);
+    assert.equal(tierOf(`test/${walk}.test.js`), "browser", walk);
+    assert.doesNotMatch(read(`test/${pure}.test.js`), /runScenario\(|launchExtensionBrowser\(|findChrome\(/, `${pure} keeps no Chrome`);
+  }
+  // the walks' API is importable without the browser harness, and the harness still re-exports it for the walks
+  assert.equal(tierOf("test/bindingFirst.test.js"), "fast");
+  assert.match(read("test-support/extensionBrowser.mjs"), /import \{ DEFAULT_PAYLOAD, defaultSeed, startApi \} from '\.\/walkApi\.mjs';/);
+  assert.doesNotMatch(read("test-support/walkApi.mjs"), /puppeteer|launchBrowser|launchExtensionBrowser\(/);
+});
+
 test("R1: the runner and the npm scripts read the one rule", () => {
   const runner = read("scripts/testTier.mjs"), pkg = JSON.parse(read("package.json"));
   assert.match(runner, /import \{ filesFor \} from "\.\.\/test-support\/testTiers\.mjs";/);

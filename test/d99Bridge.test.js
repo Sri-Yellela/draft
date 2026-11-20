@@ -5,13 +5,13 @@
 //   extension/boardOpen.js         — the worker: asks draft's server, opens the SERVER's address, binds the tab
 //
 // Synthetic jobs only.
+// ⭐ A232 R5 (46y, owner 11-19 "all four approved"): the J11 real-Chrome walk (boardBridge) moved to test/d99BridgeWalk.test.js;
+// every test left here is pure or in-process and runs in the fast tier.
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
-import { findChrome } from "../test-support/extensionBrowser.mjs";
-import { runScenario } from "../test-support/walkExtension.mjs";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const DRAFT = "https://jobsviadraft.com";
@@ -319,13 +319,4 @@ test("⛔ every <a> to a posting hands over through postingClick (or is the one 
   for (const f of ["components/JobCard.jsx", "panels/JobsPanel.jsx", "panels/DatabasePanel.jsx"]) {
     assert.match(read(`${SRC}/${f}`), /openPosting\(/, `${f} opens postings through the helper`);
   }
-});
-
-// ── the real thing: the extension, its content script, the real lookup route and the web app's real helper ─────────
-const chromeBin = await findChrome();
-test("⛔ J11 walk: a trusted click opens the SERVER's address bound 'via board'; no click, nothing; not on the board → the page's link — in a real Chrome", { skip: chromeBin.skip || false, timeout: 300000 }, async () => {
-  const lines = [];
-  const r = await runScenario("boardBridge", { log: (l) => lines.push(l) });
-  if (r.skipped) return;
-  assert.equal(r.failures, 0, lines.filter(l => l.startsWith("FAIL")).join("\n"));
 });

@@ -4,6 +4,8 @@
 // extension/toolbarPress.js: relayFor (what the press says about a page — the popups, or nothing), fillRelay (what a
 // fill says that only a popup can carry), toolbarPress (the toggle, the read, the relay — its browser work handed in).
 // background.js: the press is chrome.action.onClicked; the popups' buttons are DOCK_ACT, the person's click only.
+// ⭐ A232 R5 (46y, owner 11-19 "all four approved"): the real-extension press (toolbarPress walk) moved to test/t31ToolbarPressWalk.test.js;
+// every test left here (①–⑥) is pure and runs in the fast tier.
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -98,16 +100,6 @@ test("T31 ⑤ the page-side relay: a press reaches DOCK_ACT on the person's own 
   assert.doesNotMatch(r, /innerHTML/, "it draws nothing itself — the popup layer escapes every word");
 });
 
-// ═══ the real extension, pressed ═════════════════════════════════════════════════════════════════════════════
-const { findChrome } = await import("../test-support/extensionBrowser.mjs");
-const chromeFound = await findChrome();
-test("T31 · the toolbar press on the REAL extension — asked about a posting draft does not hold, Capture on the person's click (a script's sends nothing), the toggle, a job of yours said once", { skip: chromeFound.skip || false, timeout: 300000 }, async () => {
-  const { runScenario } = await import("../test-support/walkExtension.mjs");
-  const lines = [];
-  const r = await runScenario("toolbarPress", { log: (l) => lines.push(l) });
-  if (r.skipped) return;
-  assert.equal(r.failures, 0, lines.filter(l => l.startsWith("FAIL") || l.startsWith("OBSERVED")).join("\n"));
-});
 
 test("T31 ⑥ automatic reading is OFFERED by the press only where it would work — a site you might choose, or the one-time setup on a preset site — and set up in Settings", async () => {
   const signed = { authenticated: true };

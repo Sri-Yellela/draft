@@ -11,14 +11,15 @@
 //   · background.js popupContext — identify-first; the questions after it go WITH the binding.
 //   · T15 — the popup's "prepared" is the server packet (made / expires / field count), never a local count.
 //   · T16 — a repo-wide guard: no user-facing string instructs the user to run an earlier step.
-//   · The scenario matrix runs in a REAL Chrome: test-support/walks/bindingFirst.mjs (SKIP, with the reason, without one).
+//   · The scenario matrix runs in a REAL Chrome: test/bindingFirstWalk.test.js (the `bindingFirst` walk).
 // Synthetic people only.
+// ⭐ A232 R5 (46y, owner 11-19 "all four approved"): the real-Chrome scenario matrix moved to test/bindingFirstWalk.test.js;
+// every test left here is pure (or starts the walks' API in-process) and runs in the fast tier.
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { findChrome, startApi, defaultSeed } from "../test-support/extensionBrowser.mjs";
-import { runScenario } from "../test-support/walkExtension.mjs";
+import { startApi, defaultSeed } from "../test-support/walkApi.mjs";   // the walks' API alone — no Chrome (A232 R5)
 import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
@@ -372,13 +373,3 @@ test("⛔ T16: a repo-wide guard — no user-facing string tells the user to run
     assert.ok(!INSTRUCTS.some(re => re.test(s)), s);
   }
 });
-
-// ── the real Chrome: the scenario matrix ───────────────────────────────────────────────────────────────────────────
-const chromeBin = await findChrome();
-test("⭐ BINDING FIRST in a REAL Chrome — the matrix: on your board · a board job not yet yours · not on the board → Capture · not a job · unreachable / signed out; (a) a page naming no job keeps the binding; T15 expired / absent → one press; identify before any prepare or mint",
-  { skip: chromeBin.skip || false, timeout: 600000 }, async () => {
-    const lines = [];
-    const r = await runScenario("bindingFirst", { log: (l) => lines.push(l) });
-    if (r.skipped) return;
-    assert.equal(r.failures, 0, lines.filter(l => l.startsWith("FAIL")).join("\n") || lines.slice(-20).join("\n"));
-  });
