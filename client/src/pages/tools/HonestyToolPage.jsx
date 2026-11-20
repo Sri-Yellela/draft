@@ -12,6 +12,14 @@ import ScrollDock from "../../components/ScrollDock.jsx";
 import { C } from "../../styles/colorTokens.js";
 import { markStyle } from "../../styles/mark.js";
 import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
+import { carryResume } from "../../lib/signupCarry.js";   // D141 (46y): sign up to save and fix — the ATS hook's carry, reused
+
+/** The checked résumé as a File the account's upload reads (a pasted text becomes resume.txt). Memory only. */
+function checkedResumeFile(file, text) {
+  if (file) return file;
+  const t = String(text || "").trim();
+  return t ? new File([t], "resume.txt", { type: "text/plain" }) : null;
+}
 
 const RISK = { high: { label: "High risk", colour: C.DANGER }, medium: { label: "Medium risk", colour: C.WARNING } };
 
@@ -75,6 +83,9 @@ export function HonestyToolPage() {
       const d = await r.json();
       if (!r.ok) throw new Error(d.message || d.error || "The check failed");
       setResult(d);
+      // D141 (46y): "sign up to save and fix" — the checked résumé rides into the account made next (lib/signupCarry.js,
+      // memory only; the server still keeps nothing — d141NoStorageWithoutSignup).
+      carryResume(checkedResumeFile(resume, resumeText), { from: "honesty", flagged: d.flagged ?? 0 });
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   };
@@ -157,9 +168,16 @@ export function HonestyToolPage() {
                 </li>
               ))}
             </ol>
-            <div style={{ padding: "14px 18px", borderRadius: 8, background: theme.surfaceHigh, fontSize: ts(13), border: `1px solid ${theme.border}` }}>
-              Want a résumé tailored from what you've actually done?{" "}
-              <Link to="/register" style={{ color: theme.accentText, fontWeight: 700, textDecoration: "none" }}>Try draft →</Link>
+            {/* ⭐ D141 (46y): SIGN UP TO SAVE AND FIX. The <Link> keeps this page session, so the résumé carried above reaches
+                Job Profiles in the new account (offered as a profile's base résumé, with what to fix). A reload drops it. */}
+            <div data-honesty-signup="" style={{ padding: "14px 18px", borderRadius: 8, background: theme.surfaceHigh, fontSize: ts(13), border: `1px solid ${theme.border}`, lineHeight: 1.55 }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>Save it and fix it in draft</div>
+              <div style={{ color: theme.textMuted, marginBottom: 8 }}>
+                Create an account and this résumé comes with you as your profile's base résumé
+                {result.flagged ? <>, with the {result.flagged} line{result.flagged === 1 ? "" : "s"} to fix</> : null}
+                {" "}— tailored from what you've actually done from then on. Nothing is kept until you sign up.
+              </div>
+              <Link to="/register" data-honesty-signup-link="" style={{ color: theme.accentText, fontWeight: 700, textDecoration: "none" }}>Sign up to save and fix →</Link>
             </div>
           </div>
         )}

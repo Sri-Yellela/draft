@@ -168,6 +168,10 @@ export function JobProfilesPanel() {
                                             color:C.INK, fontSize:ts(13), lineHeight:1.5, display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
             <span style={{ flex:1, minWidth:220 }}>
               <strong>{carried.file.name}</strong> — the résumé you checked before signing up.{" "}
+              {/* D141 (46y): from the honesty check — say what there is to fix once it is the base résumé. */}
+              {carried.from === "honesty" && carried.flagged > 0 && (
+                <span data-carried-honesty>{`The honesty check flagged ${carried.flagged} line${carried.flagged === 1 ? "" : "s"} you may not be able to defend — open it in the editor from your profile to fix them. `}</span>
+              )}
               {profiles.some(p => !p.has_base_resume)
                 ? "Use it as a profile's base résumé below."
                 : "Add a profile and it will be offered as that profile's base résumé."}
