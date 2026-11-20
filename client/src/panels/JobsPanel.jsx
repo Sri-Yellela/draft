@@ -2543,7 +2543,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (tiersInclude.length)   p.set("tiers_include",   tiersInclude.join(","));
     if (tiersExclude.length)   p.set("tiers_exclude",   tiersExclude.join(","));
     // D24: the fit clause. Its param name is the contract's (FIT_BANDS.param), read by the server
-    // half's GET /api/jobs and /api/jobs/facets — test/d24FilterSentenceClient.test.js holds the
+    // half's GET /api/jobs and /api/jobs/facets — test/d35FullHouseHeader.test.js (d24's block, A232 R6) holds the
     // server to reading it once that half is merged.
     if (fitBands.length)       p.set(FIT_BANDS.param,   fitBands.join(","));
     // D30: the domain and location dials, by the contract's param names (D29's tag dimensions).

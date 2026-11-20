@@ -4,7 +4,7 @@
 // contract the server half builds to) and nothing else. No option value, label or param name is
 // written here: the clauses come from SENTENCE_CLAUSES, their options from each clause's `dim`, the
 // sort rows from SORT_PANEL. That is jobFilterOptions.js's rule 2 ("no literal option value anywhere
-// else"), and test/d24FilterSentenceClient.test.js holds this file to it.
+// else"), and test/d35FullHouseHeader.test.js (d24's block, A232 R6) holds this file to it.
 //
 // Plain functions with no React in them, so the decisions — what a token reads, which option is
 // dimmed, which one warns that it would empty the board, what the footer promises — are tested
