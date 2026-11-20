@@ -10,9 +10,13 @@
 // which is the safe failure.
 let carried = null;
 
-/** Hold the scored résumé (a File) and what it was scored against. */
-export function carryResume(file, { jobTitle = "", band = null } = {}) {
-  carried = file ? { file, jobTitle, band, at: Date.now() } : null;
+// ⭐ D141 (46y): the honesty check (/tools/honesty) hands off the same way — "sign up to save and fix": the résumé it
+// checked is carried here with `from: "honesty"` and how many lines it flagged, so Job Profiles can say what to fix.
+// One carry for both public tools (A93): never a second hand-off.
+
+/** Hold the checked résumé (a File) and what it was checked by / against. */
+export function carryResume(file, { jobTitle = "", band = null, from = "ats", flagged = null } = {}) {
+  carried = file ? { file, jobTitle, band, from, flagged, at: Date.now() } : null;
 }
 
 /** What the visitor scored before signing up, or null. */

@@ -9,7 +9,7 @@ import { useRef, useState } from "react";
 import { C } from "../styles/colorTokens.js";
 import { glass } from "../styles/glass.js";
 import { AtsBandCard, fromStandaloneResult } from "./AtsReport.jsx";
-import { carryResume } from "../lib/signupCarry.js";
+import { carryResume, carriedResume } from "../lib/signupCarry.js";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export default function SignupAtsHook({ onKeep }) {
@@ -19,6 +19,9 @@ export default function SignupAtsHook({ onKeep }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const fileRef = useRef(null);
+  // ⭐ D141 (46y): a visitor who came from the honesty check (/tools/honesty → "Sign up to save and fix") already has
+  // their résumé carried — say so here instead of asking for it again. Read once: the carry is memory only.
+  const [fromHonesty] = useState(() => { const c = carriedResume(); return c?.from === "honesty" ? c : null; });
 
   const score = async (e) => {
     e.preventDefault();
@@ -50,7 +53,19 @@ export default function SignupAtsHook({ onKeep }) {
         Your résumé and one posting, read the way an applicant-tracking system reads them. Free, no account,
         and nothing is kept.
       </p>
-      {!result ? (
+      {fromHonesty ? (
+        <div data-ats-hook-carried="" style={{ display: "grid", gap: 10 }}>
+          <p style={{ fontSize: ts(13.5), color: C.INK, lineHeight: 1.55, margin: 0 }}>
+            <strong>{fromHonesty.file.name}</strong> comes with you — the résumé you just checked for honesty. Create your
+            account and it is offered as your profile's base résumé{fromHonesty.flagged ? `, with the ${fromHonesty.flagged} flagged line${fromHonesty.flagged === 1 ? "" : "s"} to fix` : ""}.
+          </p>
+          <button className="dbx-depth" type="button" onClick={onKeep}
+            style={{ background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`, justifySelf: "start",
+                     padding: "10px 18px", fontWeight: 800, fontSize: ts(14), cursor: "pointer" }}>
+            Create my account →
+          </button>
+        </div>
+      ) : !result ? (
         <form onSubmit={score} style={{ display: "grid", gap: 10 }}>
           <button type="button" onClick={() => fileRef.current?.click()}
             style={{ ...field, padding: "12px 14px", textAlign: "left", cursor: "pointer", borderStyle: "dashed", fontWeight: 700 }}>
