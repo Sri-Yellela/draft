@@ -50,7 +50,7 @@ test("e1 the ATS tab draws the card (number, parts, bars, gain, flags) before th
   assert.match(src, /const ac = m\.report\?\.card \|\| null;/);
   assert.match(src, /ac \? acHtml : card \? '<div data-role="ats-card"><\/div>'/);
   for (const role of ["ats-card-score", "ats-card-gain", "plausibility"]) assert.ok(src.includes(`data-role="${role}"`), role);
-  assert.match(src, /\.ac \.bar \{ height: 6px; border-radius: 2px;/);
+  assert.match(src, /\.ac \.bar \{ height: 6px; border-radius: 1px;/);
   assert.match(src, /--c-band-strong/);
 });
 

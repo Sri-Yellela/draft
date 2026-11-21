@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { resumePanelModel } from "../extension/resumePanel.js";
 import { compareResumes } from "../services/resumeChanges.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const JOB = { jobId: "j1", title: "Data Engineer", company: "Kestrel" };
@@ -22,7 +23,7 @@ test("e2 the Résumé tab: Tailor when none exists, Try again after a refusal / 
 
 test("e3 the fill: an attached résumé first, else this job's READY tailored one (asked as Attach asks), else the packet's", () => {
   const src = read("extension/gated-handoff.js");
-  const fn = src.slice(src.indexOf("export async function tailoredPdfPath("), src.indexOf("/** The panel meta's `files`"));
+  const fn = src.slice(at(src, "export async function tailoredPdfPath("), at(src, "/** The panel meta's `files`"));
   assert.match(fn, /if \(b\?\.id !== id \|\| b\.status !== 'ready'\) return null;/, "refused / failed / unfinished are never filled in");
   assert.match(fn, /authedFetch\(serverUrl, `\$\{base\}\/pdf`, \{ method: 'POST'/);
   assert.match(fn, /pdf\.url\.startsWith\(`\$\{base\}\/pdf`\)/, "only draft's own stored-file route");

@@ -344,14 +344,15 @@ export function renderResumePanel(model, meta) {
     .ln { margin: 0; font-size: 12.5px; }
     .rpt { display: grid; gap: 6px; }
     /* ⭐ 47a E1 · the ATS card (the web's AtsCard.jsx): the number painted by band, four parts with a 6 px bar (2 px corner, D60),
-       their line and figures, the biggest gain. No band word — the colour says it. */
+       their line and figures, the biggest gain. No band word — the colour says it. The extension's D60 guard holds a corner
+       to ≤ 30 % of the height, so 1 px here (the web's 2 px on 6 px is 33 %). */
     .ac { display: grid; gap: 12px; } .ac [data-band="strong"] { color: var(--c-band-strong); }
     .ac [data-band="moderate"] { color: var(--c-band-moderate); } .ac [data-band="weak"] { color: var(--c-band-weak); }
     .ac .big { font-size: 36px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
     .ac .fx { font-size: 11.5px; color: var(--c-ink-muted); overflow-wrap: anywhere; }
     .ac .pt { display: grid; grid-template-columns: minmax(64px, 84px) minmax(0, 1fr) 28px; gap: 10px; align-items: start; }
     .ac .pn { font-size: 12.5px; } .ac .pv { font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
-    .ac .bar { height: 6px; border-radius: 2px; background: var(--c-border); overflow: hidden; margin-top: 5px; }
+    .ac .bar { height: 6px; border-radius: 1px; background: var(--c-border); overflow: hidden; margin-top: 5px; }
     .ac .bar i { display: block; height: 6px; background: currentColor; }
     .ac .gn { border-top: 1px solid var(--c-border); padding-top: 10px; font-size: 12.5px; }
     .ac .pl { display: grid; gap: 6px; font-size: 12px; } .ac .pl .fl { color: var(--c-warning); }
