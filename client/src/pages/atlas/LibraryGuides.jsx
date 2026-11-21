@@ -197,7 +197,28 @@ export function DeckPage({ base, id }) {
           {!last && <DepthButton primary onClick={() => setI(i + 1)}>Next →</DepthButton>}
         </div>
       </>) : <DeckPlay deck={deck} mode={mode} onMode={setMode} renderCheck={() => face(deck.slides.length - 1)} />}
+      <DeckWorld deck={deck} />
     </article>
+  );
+}
+
+/**
+ * ⭐ D195 (3) (47a) · "and here's where you'll see this" — the deck's layer 3 under it, in every mode: its skills on the
+ * board (each one's Atlas page and the live count of open postings asking for it), the named real case, and the Try step
+ * (an open source from the register). Only what the server sent; a deck with none of the three shows nothing.
+ */
+function DeckWorld({ deck }) {
+  const market = (deck.market || []).slice(0, 3);
+  if (!market.length && !deck.realWorld && !deck.try) return null;
+  const ext = { target: "_blank", rel: "noopener noreferrer", className: "atl__link" };
+  return (
+    <div className="atl__quiet" data-deck-world="">
+      {market.length > 0 && <p data-deck-market="">On the board: {market.map((m, k) => (
+        <span key={m.slug}>{k > 0 && " · "}<Link to={`/atlas/${encodeURIComponent(m.slug)}`} className="atl__link">{m.name}</Link> in {m.postings.toLocaleString()} open postings</span>
+      ))}</p>}
+      {deck.realWorld && <p data-deck-real="">Where it runs: <a href={deck.realWorld.url} {...ext}>{deck.realWorld.name}</a></p>}
+      {deck.try && <p data-deck-try="">Try it: <a href={deck.try.url} {...ext}>{deck.try.label}</a></p>}
+    </div>
   );
 }
 

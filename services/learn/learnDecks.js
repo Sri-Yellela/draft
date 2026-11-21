@@ -9,6 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { questions, servedQuestion, importQuestions } from "./learnQuestions.js";
+import { resolveTerms } from "../atlas/atlasStore.js";
 
 export const DECKS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../content/decks");
 /** The ladder (the Library's levels — the same names as Your run's levels, services/atlas/points.js LEVELS). */
@@ -95,9 +96,35 @@ export function deckOf(db, id, { dir } = {}) {
   if (!d) return null;
   const live = db ? safe(() => questions(db, { ids: d.questions || [] }), []).filter(q => Array.isArray(q.choices)) : [];
   const level = (d.pathway || "software") === "software" ? (LADDER.find(l => l.stage === d.stage) || null) : null;
+  // ⭐ D195 (47a): a deck written under the content rule keeps its layers, its named real case and its Try step — layer 3
+  // is what the learner sees last, so dropping them here would leave the rule's deck without its real world.
+  const httpsLink = (o) => (o && /^https:\/\//.test(String(o.url || "")) ? o : null);
   return { id: d.id, title: d.title, skills: d.skills || [], guide: level ? { id: level.id, name: level.name, level: level.level } : null,
-    slides: (d.slides || []).map(s => ({ tag: s.tag, title: s.title, points: s.points || [] })),
+    slides: (d.slides || []).map(s => ({ tag: s.tag, title: s.title, points: s.points || [], ...(s.layer ? { layer: s.layer } : {}) })),
+    realWorld: httpsLink(d.realWorld) ? { name: String(d.realWorld.name), url: d.realWorld.url } : null,
+    try: httpsLink(d.try) ? { label: String(d.try.label || d.try.source), url: d.try.url, source: d.try.source || null } : null,
+    market: db ? marketOf(db, d.skills || []) : [],
     check: live.length ? { question: servedQuestion(live[0]) } : { waiting: (d.questions || []).length > 0 } };
+}
+
+/**
+ * ⭐ D195 (3) (47a) · "and here's where you'll see this" from the board: each of the deck's skills that has a PUBLISHED
+ * Atlas page, with the live "asked for in N open postings" (atlas_node_stats — moved per posting by atlasLive.js, never
+ * recounted here). One indexed read per skill (a deck names ≤ 6) — no board scan on the request path (D151). A skill
+ * with no page or no postings is left out; nothing is invented.
+ */
+export function marketOf(db, skills) {
+  try {
+    const slugs = resolveTerms(db, (skills || []).slice(0, 6));
+    const stat = db.prepare(`SELECT n.name, s.postings FROM atlas_nodes n JOIN atlas_node_stats s ON s.node_id = n.id WHERE n.slug = ?`);
+    const seen = new Set();
+    return Object.entries(slugs).flatMap(([skill, slug]) => {
+      if (seen.has(slug)) return [];
+      seen.add(slug);
+      const r = stat.get(slug);
+      return r && r.postings > 0 ? [{ skill, name: r.name, slug, postings: r.postings }] : [];
+    }).sort((a, b) => b.postings - a.postings);
+  } catch { return []; }   // a database without the Atlas tables: the deck still opens
 }
 
 /**

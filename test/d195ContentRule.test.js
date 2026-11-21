@@ -92,3 +92,30 @@ test("d195 the batch writer refuses a deck that breaks the rule (it is sent back
   assert.match(src, /ruleProblems\(d, reg\)/);
   assert.match(src, /throw new Error\(`D195:/);
 });
+
+test("d195 the deck API serves layer 3 — the layers, the named case, the Try step, and the skills' live board counts (no board scan)", async () => {
+  const { default: Database } = await import("better-sqlite3");
+  const { deckOf, marketOf, _resetDecks } = await import("../services/learn/learnDecks.js");
+  const { termOf } = await import("../services/atlas/atlasStore.js");
+  const dir = fs.mkdtempSync(path.join((await import("node:os")).tmpdir(), "d195-decks-"));
+  try {
+    fs.writeFileSync(path.join(dir, "decks-v25.json"), JSON.stringify({ decks: [{ ...clone(), status: "approved", title: "T", stage: "foundations",
+      skills: ["kafka", "go", "not-a-node"], questions: [] }] }));
+    const db = new Database(":memory:");
+    db.exec(`CREATE TABLE atlas_nodes (id INTEGER PRIMARY KEY, slug TEXT, name TEXT, term TEXT, status TEXT);
+      CREATE TABLE atlas_node_stats (node_id INTEGER PRIMARY KEY, postings INTEGER NOT NULL);
+      CREATE TABLE learn_questions (id TEXT PRIMARY KEY, choices_json TEXT, status TEXT)`);
+    db.prepare(`INSERT INTO atlas_nodes VALUES (1, 'kafka', 'Kafka', ?, 'published'), (2, 'go', 'Go', ?, 'draft')`).run(termOf("kafka"), termOf("go"));
+    db.prepare(`INSERT INTO atlas_node_stats VALUES (1, 1240), (2, 900)`).run();
+    _resetDecks();
+    const d = deckOf(db, "t-01", { dir });
+    assert.deepEqual(d.slides.slice(0, 3).map(s => s.layer), ["concept", "proof", "realWorld"]);
+    assert.equal(d.realWorld.name, "Kubernetes deployments");
+    assert.equal(d.try.url, good.try.url);
+    assert.deepEqual(d.market, [{ skill: "kafka", name: "Kafka", slug: "kafka", postings: 1240 }], "a draft node (go) and an unknown skill are left out");
+    assert.deepEqual(marketOf(new Database(":memory:"), ["kafka"]), [], "no Atlas tables: the deck still opens");
+    const ui = fs.readFileSync("client/src/pages/atlas/LibraryGuides.jsx", "utf8");
+    assert.match(ui, /<DeckWorld deck=\{deck\} \/>/);
+    assert.match(ui, /data-deck-market=""/);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); _resetDecks(); }
+});
