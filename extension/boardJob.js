@@ -24,9 +24,34 @@ export function atsFacts(ats) {
   // T9: the scorer's own report — the JSON the web app's ATS panel draws — for the one component; absent from an
   // older server, and then the panel shows the summary lines it showed before.
   const report = ats.report ? globalThis.__draftAtsReport?.cleanReport(ats.report) ?? null : null;
+  const card = cardOf(ats);
   return { state: 'ready', score: Number.isFinite(ats.score) ? Math.round(ats.score) : null,
            band: typeof ats.band === 'string' ? ats.band.slice(0, 40) : null, scorable: ats.scorable !== false,
-           matched: words(ats.matched), missing: words(ats.missing), ...(report ? { report } : {}) };
+           matched: words(ats.matched), missing: words(ats.missing), ...(report ? { report } : {}), ...(card ? { card } : {}) };
+}
+
+/**
+ * ⭐ 47a (owner 11-21, E1) · THE ATS CARD — the web's card (client AtsCard.jsx), from the SAME words: shared/contextualView.js
+ * atsCardView, bundled in atsReport.js. Read from the scorer's report and the 2.0.0 `contextual` block the server passes
+ * through (routes/extensionJob.js reportOf); kept here to the view's named words and numbers — the contextual block itself
+ * never leaves the service worker. Each number carries its band (the board's cutpoints) so the panel paints it, no band word.
+ */
+export function cardOf(ats) {
+  const A = globalThis.__draftAtsReport;
+  if (!ats || typeof A?.atsCardView !== 'function') return null;
+  let v = null;
+  try { v = A.atsCardView({ report: ats.report && typeof ats.report === 'object' ? ats.report : null,
+    contextual: ats.contextual && typeof ats.contextual === 'object' ? ats.contextual : null }); } catch { v = null; }
+  if (!v) return null;
+  const s = (x, n = 160) => (typeof x === 'string' ? x.replace(/\s+/g, ' ').trim().slice(0, n) : '');
+  const n = (x) => (Number.isFinite(x) ? Math.max(0, Math.min(100, Math.round(x))) : null);
+  const band = (x) => { try { return n(x) == null ? null : String(A.atsBandFor(n(x)) || '').slice(0, 20) || null; } catch { return null; } };
+  if (v.declined) return { declined: true, reason: s(v.reason, 200) };
+  const facts = (xs) => (Array.isArray(xs) ? xs.map(f => s(f, 120)).filter(Boolean).slice(0, 6) : []);
+  return { declined: false, score: n(v.score), band: band(v.score), facts: facts(v.facts),
+    parts: (Array.isArray(v.parts) ? v.parts : []).slice(0, 4).map(p => ({ id: s(p.id, 30), name: s(p.name, 30), score: n(p.score), band: band(p.score),
+      line: s(p.line, 200), facts: facts(p.facts) })).filter(p => p.score != null),
+    gain: v.gain?.text ? { text: s(v.gain.text, 160), tech: s(v.gain.tech || '', 60) || null } : null };
 }
 
 const safePath = (p) => (typeof p === 'string' && p.startsWith('/') && !p.startsWith('//') ? p.slice(0, 200) : null);

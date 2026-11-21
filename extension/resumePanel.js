@@ -155,6 +155,9 @@ export function reportModel(ats) {
     // ⭐ T9: the scorer's own report (boardJob.js atsFacts, already kept to the component's named fields). When it is
     // here the panel draws THE web app's ATS report from it (the shared component), not the two lines above.
     report: ats.report && typeof ats.report === 'object' ? ats.report : null,
+    // ⭐ 47a (owner 11-21, E1): THE ATS CARD (boardJob.js cardOf — the web's atsCardView words). When it is here the ATS tab
+    // draws the card (the number, its four parts with their figures, the biggest gain), as the web's posting panel does.
+    card: ats.card && typeof ats.card === 'object' ? ats.card : null,
     // ⭐ D105 P5: the report's terms that have a PUBLISHED Atlas page ({ base, slugs } — atlasForReport), or null.
     atlas: ats.atlas && typeof ats.atlas === 'object' && ats.atlas.slugs ? { base: String(ats.atlas.base || ''), slugs: ats.atlas.slugs } : null,
     action: fromPage ? null : { role: 'report', label: 'Full report in draft' } };
@@ -334,6 +337,19 @@ export function renderResumePanel(model, meta) {
     .sc { overflow: auto; padding: 8px 14px; flex: 1; min-height: 0; display: grid; gap: 8px; align-content: start; }
     .ln { margin: 0; font-size: 12.5px; }
     .rpt { display: grid; gap: 6px; }
+    /* ⭐ 47a E1 · the ATS card (the web's AtsCard.jsx): the number painted by band, four parts with a 6 px bar (2 px corner, D60),
+       their line and figures, the biggest gain. No band word — the colour says it. */
+    .ac { display: grid; gap: 12px; } .ac [data-band="strong"] { color: var(--c-band-strong); }
+    .ac [data-band="moderate"] { color: var(--c-band-moderate); } .ac [data-band="weak"] { color: var(--c-band-weak); }
+    .ac .big { font-size: 36px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+    .ac .fx { font-size: 11.5px; color: var(--c-ink-muted); overflow-wrap: anywhere; }
+    .ac .pt { display: grid; grid-template-columns: minmax(64px, 84px) minmax(0, 1fr) 28px; gap: 10px; align-items: start; }
+    .ac .pn { font-size: 12.5px; } .ac .pv { font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+    .ac .bar { height: 6px; border-radius: 2px; background: var(--c-border); overflow: hidden; margin-top: 5px; }
+    .ac .bar i { display: block; height: 6px; background: currentColor; }
+    .ac .gn { border-top: 1px solid var(--c-border); padding-top: 10px; font-size: 12.5px; }
+    .ac .pl { display: grid; gap: 6px; font-size: 12px; } .ac .pl .fl { color: var(--c-warning); }
+    .ac .pl button { font: inherit; font-size: 11.5px; background: none; border: 0; padding: 0; color: var(--c-accent-ink); cursor: pointer; }
     .prog { display: inline-flex; align-items: center; gap: 8px; flex: 1; }
     .pb { flex: 1; min-width: 40px; height: 4px; border-radius: 1px; background: var(--c-surface-solid); overflow: hidden; position: relative; }
     .pb i { position: absolute; top: 0; bottom: 0; width: 34%; background: var(--c-accent); animation: rm-slide 1.4s ease-in-out infinite; }
@@ -431,6 +447,28 @@ export function renderResumePanel(model, meta) {
   let m = model;
   const elapsed = (from) => { const s = Math.max(0, Math.round((Date.now() - from) / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 
+  // ⭐ 47a (owner 11-21, E1) · "Does it add up?" — the base résumé's flags under the card (D192 (4d)), each with Dismiss
+  // (the person's click; kept across re-scores). Asked of the service worker when the card is drawn; nothing is stored here.
+  let flagsAsk = 0;
+  function drawFlags() {
+    const ask = ++flagsAsk;
+    send({ type: 'RESUME_FLAGS' }).then((r) => {
+      const box = atsRoot.querySelector('[data-role="plausibility"]');
+      if (!box || ask !== flagsAsk) return;
+      const flags = Array.isArray(r?.flags) ? r.flags : [];
+      box.innerHTML = !flags.length ? '' : `<div class="pn"><b>Does it add up?</b></div>${flags.map((f, i) => `<div data-flag="${i}">
+          <div class="fl">⚠ ${esc(f.company ? `${f.company}: ` : '')}${esc(f.bullet)}</div>
+          <div class="fx">${esc(f.reason)}</div><button type="button" data-dismiss="${i}">Dismiss</button></div>`).join('')}`;
+      box.querySelectorAll('[data-dismiss]').forEach((b) => b.addEventListener('click', async (e) => {
+        if (!e.isTrusted) return;
+        const f = flags[Number(b.dataset.dismiss)];
+        b.disabled = true;
+        const d = await send({ type: 'RESUME_FLAG_DISMISS', key: f?.key, trigger: 'click' });
+        if (d?.ok) b.closest('[data-flag]')?.remove(); else b.disabled = false;
+      }));
+    });
+  }
+
   // ── the ATS tab: draft's report for this tab's job ──
   const ACTIONS_READ = { role: 'read', label: 'Read this page now', primary: true, icon: 'read' };
   const drawAts = () => {
@@ -442,6 +480,21 @@ export function renderResumePanel(model, meta) {
     const ATS = globalThis.__draftAtsReport;
     const card = !!(m.report?.report && typeof ATS?.mountAtsReport === 'function');
     const nojob = !m.report && m.state === 'nojob';
+    // ⭐ 47a (owner 11-21, E1): THE ATS CARD when the server sent the contextual block — the web's card, the same words
+    // (boardJob.js cardOf ← shared/contextualView.js atsCardView); the older report stays the fallback for an older server.
+    const ac = m.report?.card || null;
+    const acHtml = !ac ? '' : ac.declined
+      ? `<div class="ac" data-role="ats-card-view" data-declined=""><div class="pn"><b>Not enough signal</b></div><p class="fx">${esc(ac.reason)}</p></div>`
+      : `<div class="ac" data-role="ats-card-view">
+          <div class="big" data-role="ats-card-score" data-band="${esc(ac.band || '')}">${esc(ac.score)}%</div>
+          ${ac.facts?.length ? `<div class="fx" data-role="ats-card-facts">${esc(ac.facts.join(' · '))}</div>` : ''}
+          ${(ac.parts || []).map(p => `<div class="pt" data-ats-part="${esc(p.id)}"><div class="pn">${esc(p.name)}</div>
+            <div><div class="bar" aria-hidden="true" data-band="${esc(p.band || '')}"><i style="width:${Number(p.score) || 0}%"></i></div>
+              ${p.line ? `<div class="fx">${esc(p.line)}</div>` : ''}${p.facts?.length ? `<div class="fx">${esc(p.facts.join(' · '))}</div>` : ''}</div>
+            <div class="pv" data-band="${esc(p.band || '')}">${esc(p.score)}</div></div>`).join('')}
+          ${ac.gain ? `<div class="gn" data-role="ats-card-gain">Biggest gain: ${esc(ac.gain.text)}</div>` : ''}
+          <div class="pl" data-role="plausibility"></div>
+        </div>`;
     // ⭐ T26: the title and the job are hidden words; the report (T9's shared component, or its summary marks) is the view
     atsPanel.innerHTML = `
       <div class="hd">
@@ -452,7 +505,7 @@ export function renderResumePanel(model, meta) {
         ${m.report ? `<div class="rpt" data-role="ats-report" data-state="${esc(m.report.state)}">${
           // ⭐ T9: THE web app's ATS report — the shared component, mounted below into its own shadow root — when the
           // scorer's report came with the answer and the component was injected; else the summary lines, as before.
-          card ? '<div data-role="ats-card"></div>' : `${
+          ac ? acHtml : card ? '<div data-role="ats-card"></div>' : `${
           m.report.head ? `<div class="marks"><span class="mark ${esc(m.report.tone || '')}" data-role="ats-score">${esc(m.report.head)}</span></div>` : ''}${
           m.report.matched?.length ? `<p class="ln" data-role="ats-matched"><b>Matched:</b> ${esc(m.report.matched.join(', '))}</p>` : ''}${
           m.report.missing?.length ? `<p class="ln" data-role="ats-missing"><b>Missing:</b> ${esc(m.report.missing.join(', '))}</p>` : ''}`}${
@@ -465,7 +518,8 @@ export function renderResumePanel(model, meta) {
         ${m.job ? `<div class="acts">${ibtn({ role: 'unbind', label: `Unlink this page from ${m.job}`, icon: 'unlink' })}</div>` : ''}
         <div class="say" data-role="say" aria-live="polite"></div>
       </div>`;
-    if (card) { const cardHost = atsRoot.querySelector('[data-role="ats-card"]'); try { ATS.mountAtsReport(cardHost, m.report.report, m.report.atlas ? { atlas: m.report.atlas } : {}); } catch { cardHost?.remove(); } }
+    if (ac) drawFlags();
+    if (card && !ac) { const cardHost = atsRoot.querySelector('[data-role="ats-card"]'); try { ATS.mountAtsReport(cardHost, m.report.report, m.report.atlas ? { atlas: m.report.atlas } : {}); } catch { cardHost?.remove(); } }
   };
 
   // ── the Résumé tab: the generation's state, a preview, Attach ──
@@ -1011,6 +1065,31 @@ export function handlersFor(serverUrl = null) {
         path = found.ok && found.job.reportPath ? found.job.reportPath : `/app/jobs?job=${encodeURIComponent(job.jobId)}`;
       }
       try { await chrome.tabs.create({ url: `${url()}${path}` }); return { ok: true }; } catch { return refuse('Could not open draft.'); }
+    },
+
+    /**
+     * ⭐ 47a (owner 11-21, E1) · the ATS tab's plausibility flags (D192 (4d)): the base résumé's bullets that don't line up
+     * with what draft knows about their employers — warnings, never in the number. Read only for the panel on a web page's
+     * tab; the answer is the server's named words (routes/extensionJob.js flagsForExtension), kept to them again here.
+     */
+    RESUME_FLAGS: async (_msg, sender) => {
+      if (!tabOf(sender)) return refuse('Open the ATS tab on the job page.');
+      if (!url()) return refuse('Not configured.');
+      const r = await json(url(), '/api/extension/plausibility');
+      if (!r.ok) return { ok: false, flags: [] };
+      const s = (x, n) => (typeof x === 'string' ? x.slice(0, n) : '');
+      return { ok: true, dismissed: Number(r.body?.dismissed) || 0,
+        flags: (Array.isArray(r.body?.flags) ? r.body.flags : []).slice(0, 12).map(f => ({ key: s(f.key, 400), company: s(f.company, 80), bullet: s(f.bullet, 160), reason: s(f.reason, 200) })).filter(f => f.key) };
+    },
+    /** Dismiss — the person's own click on the flag, from the panel; kept across re-scores (the server's record). */
+    RESUME_FLAG_DISMISS: async (msg, sender) => {
+      if (msg?.trigger !== 'click') return refuse('A flag is dismissed only from its button.');
+      if (!tabOf(sender)) return refuse('Open the ATS tab on the job page.');
+      if (!url()) return refuse('Not configured.');
+      const key = typeof msg.key === 'string' ? msg.key.slice(0, 400) : '';
+      if (!key) return refuse('That flag is not known.');
+      const r = await post(url(), '/api/extension/plausibility/dismiss', { key, ...(msg.undo === true ? { undo: true } : {}) });
+      return r.ok ? { ok: true, dismissed: r.body?.dismissed !== false } : refuse('Could not dismiss it right now.');
     },
 
     /** Edit in a full page: the server's openUrl for this job, on draft's own site, in a new tab. */

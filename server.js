@@ -16989,7 +16989,12 @@ app.use(createExtensionResumeRouter({ service: extensionResume, requireAuth, isE
 app.use(createExtensionJobRouter({ db, requireAuth, isExtension: isExtensionCredential,
   scoreFor: (userId, jobId) => scoreBaseResumeForApply(userId, jobId, { withReport: true }),
   scoreText: (userId, job) => scorePageTextForBase(userId, job),
-  hasBaseResume: (userId) => !!extensionBaseResumeFor(db, userId), yourSkillStates }));
+  hasBaseResume: (userId) => !!extensionBaseResumeFor(db, userId), yourSkillStates,
+  // ⭐ 47a (owner 11-21, E1): the ATS tab's plausibility flags — the web's GET /api/resume/plausibility, for the extension's token
+  plausibility: (userId) => { const profile = getOrRepairActiveProfile(userId);
+    const text = profile?.id ? getBaseResumeRecord(db, { userId, profileId: profile.id })?.content : null;
+    return text ? plausibilityFor(db, { userId, text }) : null; },
+  dismissFlag: (userId, key, undo) => dismissFlag(db, userId, key, { undo }) }));
 // ⭐ T24 · the extension's Draft button IS the board's Draft (routes/apply.js startRun via draftForExtension) and queues the
 // résumé through the same generation as above (extensionResume.start — once per job and base). The tells only the server
 // holds, and the account's two intent settings (migration 168), in routes/extensionDraft.js.

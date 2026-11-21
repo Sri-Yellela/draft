@@ -29,6 +29,20 @@ import { getKnownLogoUrl } from "../shared/companyLogos.js";
 import { extensionHome, badgeText, companyCard } from "../services/extensionHome.js";   // D191: home, badge, company card (no model)
 import { jobFactsForExtension } from "../services/extensionJobFacts.js";   // D191 (2a)/(2c)/(2d): the side panel's facts (no model)
 
+/** ⭐ 47a E1 · the flags the extension shows: per flag, the employer, the bullet (short), the reason and its key. Pure. */
+export function flagsForExtension(r) {
+  const s = (x, n) => (typeof x === "string" ? x.replace(/\s+/g, " ").trim().slice(0, n) : "");
+  const out = [];
+  for (const e of Array.isArray(r?.entries) ? r.entries : []) {
+    for (const f of Array.isArray(e?.flags) ? e.flags : []) {
+      if (!f?.key) continue;
+      out.push({ key: s(f.key, 400), company: s(e.company || e.employer || "", 80), bullet: s(f.bullet || f.text || "", 160), reason: s(f.reason || f.why || f.message || "", 200) });
+      if (out.length >= 12) return out;
+    }
+  }
+  return out;
+}
+
 /** ⚠ provisional: a board click is one lookup; 60 a minute is far above a person and far below a script. */
 export const LOOKUP_LIMIT = Object.freeze({ limit: 60, windowMs: 60_000 });
 
@@ -135,7 +149,7 @@ export function pageJobForExtension(db, userId, { url = "", text = "", frameUrls
 // ⭐ D191 (2d): the employer's card rides with the press's answer — a read, never a failure of the press
 function cardOf(db, company, url) { try { return companyCard(db, { company, url: typeof url === "string" ? url : null }); } catch { return null; } }
 
-export function createExtensionJobRouter({ db, requireAuth, isExtension, scoreFor, scoreText = null, hasBaseResume, yourSkillStates = null, limit = LOOKUP_LIMIT, now }) {
+export function createExtensionJobRouter({ db, requireAuth, isExtension, scoreFor, scoreText = null, hasBaseResume, yourSkillStates = null, plausibility = null, dismissFlag = null, limit = LOOKUP_LIMIT, now }) {
   const router = express.Router();
   const ok = createRateLimiter({ ...limit, ...(now ? { now } : {}) });
   router.get("/api/extension/job/:id", requireAuth, (req, res) => {
@@ -162,6 +176,24 @@ export function createExtensionJobRouter({ db, requireAuth, isExtension, scoreFo
     const date = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.date || "")) ? String(req.query.date) : undefined;
     const home = extensionHome(db, req.user.id, { date });
     res.set("Cache-Control", "private, no-store").json({ ...home, badge: badgeText(home) });
+  });
+  // ⭐ 47a (owner 11-21, E1) · THE ATS TAB'S PLAUSIBILITY FLAGS (D192 (4d)) for the extension's token: the base résumé's bullets
+  // that don't line up with what draft knows about their employers — warnings only, never in a score — and the person's
+  // Dismiss (kept across re-scores). The same service as the web's /api/resume/plausibility; the answer is kept to named
+  // words here (company, the bullet, the reason, the key) — no employer record goes to the page.
+  const okFlags = createRateLimiter({ ...limit, ...(now ? { now } : {}) });
+  router.get("/api/extension/plausibility", requireAuth, (req, res) => {
+    if (!isExtension(req)) return res.status(403).json({ error: "extension_only", message: "This is for the draft extension." });
+    if (!okFlags(String(req.user.id))) return res.status(429).json({ error: "rate_limited", message: "Too many requests — try again in a minute." });
+    const r = typeof plausibility === "function" ? (() => { try { return plausibility(req.user.id); } catch { return null; } })() : null;
+    if (!r) return res.status(404).json({ error: "no_base_resume" });
+    res.set("Cache-Control", "private, no-store").json({ flags: flagsForExtension(r), dismissed: Number(r.dismissed) || 0 });
+  });
+  router.post("/api/extension/plausibility/dismiss", requireAuth, (req, res) => {
+    if (!isExtension(req)) return res.status(403).json({ error: "extension_only", message: "This is for the draft extension." });
+    if (typeof dismissFlag !== "function") return res.status(503).json({ error: "unavailable" });
+    try { res.json(dismissFlag(req.user.id, req.body?.key, req.body?.undo === true)); }
+    catch (e) { res.status(e.status || 500).json({ error: "bad_flag", message: e.message }); }
   });
   // ⭐ D191 P4 · SIGNED OUT, the extension is still useful: a posting's employer card from draft's PUBLIC data (the D179
   // company pages are public). No account, no cookie read, nothing stored; limited per address.

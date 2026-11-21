@@ -71,7 +71,8 @@ export async function renderAtsReportTokens() {
 
 // ── the strict mini-bundler ──────────────────────────────────────────────────────────────────────────────────────
 /** The modules, in dependency order. Each may import only modules before it. */
-export const BUNDLE_MODULES = ["atsBands.js", "profileSignals.js", "atsReportTokens.js", "atsReportModel.js", "atsReportStyles.js", "atsReportElement.js"];
+// ⭐ 47a (owner 11-21, E1): contextualView.js — the web ATS card's words (atsCardView), the same code in the extension.
+export const BUNDLE_MODULES = ["atsBands.js", "contextualView.js", "profileSignals.js", "atsReportTokens.js", "atsReportModel.js", "atsReportStyles.js", "atsReportElement.js"];
 
 /** One module's source → a function body returning its exports. Throws on any form it does not understand. */
 export function transformModule(name, source, known) {
@@ -110,7 +111,7 @@ export async function renderAtsReportBundle({ tokensSource = null } = {}) {
     `// imports it for its side effect). It sets globalThis.__draftAtsReport and, where custom elements exist (the\n` +
     `// popup — NOT a content script's isolated world, where customElements is null), defines <draft-ats-report>.\n` +
     `(() => {\n"use strict";\nconst __m = {};\n${parts.join("\n")}\n` +
-    `const api = Object.freeze({ ...__m["atsReportModel.js"], ...__m["atsReportElement.js"] });\n` +
+    `const api = Object.freeze({ ...__m["atsReportModel.js"], ...__m["atsReportElement.js"], atsCardView: __m["contextualView.js"].atsCardView, atsBandFor: __m["atsBands.js"].atsBandFor });\n` +
     `globalThis.__draftAtsReport = api;\n` +
     `api.defineAtsReportElement();\n})();\n`;
 }
