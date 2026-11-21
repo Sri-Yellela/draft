@@ -69,7 +69,22 @@ export default async function run(h, { check, observe, section }) {
   const r2 = await waitUntil(async () => { const r = await resumeRow(h); return r?.group === 'ok' ? r : null; }, BUSY_MS, 150);
   check('the row moves to Filled with the file\'s name', r2?.value === 'Ada_Example_Resume.pdf', JSON.stringify(r2));
 
-  section('3 · Generate and attach — one start, the user\'s click; the Résumé tab opens on it');
+  // ⭐ 47a E3 (owner 11-21, moved on purpose): a READY tailored résumé now goes into the FILL itself ("prepare the payload
+  // required to fill in") — so Skip is walked first, before any generation exists, and the last section checks that the
+  // next fill carries the generation from 4 into the upload with no press on the row.
+  section('3 · Skip on the REQUIRED upload keeps it under Needs you (before any tailored résumé exists)');
+  await h.page.click('#rm-draft-dock >>> [data-role="close"]').catch(() => {});
+  await fresh(h);
+  await h.goStep('myExperience');
+  await prepareAndRead(h);
+  const r4 = await waitUntil(() => resumeRow(h), BUSY_MS, 150);
+  await h.page.click(`#${OVERLAY} >>> .rm-row[data-idx="${r4?.idx}"] [data-role="skip"]`);
+  // the Skip's own effect (its line on the row), not 300 ms
+  const r5 = await waitUntil(async () => { const r = await resumeRow(h); return /Skipped/.test(r?.note || '') ? r : null; }, BUSY_MS, 150) || await resumeRow(h);
+  check('still Needs you, saying the upload is required', r5?.group === 'need' && /this upload is required; attach a file on the page/.test(r5?.note || ''), JSON.stringify(r5));
+  check('…and nothing was attached', (await files(h)) === 0);
+
+  section('4 · Generate and attach — one start, the user\'s click; the Résumé tab opens on it');
   await h.page.click('#rm-draft-dock >>> [data-role="close"]').catch(() => {});
   await fresh(h);
   await h.goStep('myExperience');
@@ -88,41 +103,23 @@ export default async function run(h, { check, observe, section }) {
   const tab = shownGen?.state || await h.readShadow('rm-resume-panel', (root, host) => `${host.dataset.state} (${host.dataset.id || 'no id'})`).catch(() => null);
   check('…and the dock\'s Résumé tab shows it', !!shownGen && ['queued', 'generating', 'ready'].includes(shownGen.state), `${tab} — want ${want}`);
 
-  section('4 · Skip on the REQUIRED upload keeps it under Needs you');
-  await h.page.click('#rm-draft-dock >>> [data-role="close"]').catch(() => {});
-  await fresh(h);
-  await h.goStep('myExperience');
-  await prepareAndRead(h);
-  const r4 = await waitUntil(() => resumeRow(h), BUSY_MS, 150);
-  await h.page.click(`#${OVERLAY} >>> .rm-row[data-idx="${r4?.idx}"] [data-role="skip"]`);
-  // the Skip's own effect (its line on the row), not 300 ms
-  const r5 = await waitUntil(async () => { const r = await resumeRow(h); return /Skipped/.test(r?.note || '') ? r : null; }, BUSY_MS, 150) || await resumeRow(h);
-  check('still Needs you, saying the upload is required', r5?.group === 'need' && /this upload is required; attach a file on the page/.test(r5?.note || ''), JSON.stringify(r5));
-  check('…and nothing was attached', (await files(h)) === 0);
-  section('5 · Attach tailored — the generation from 3, once ready, attached on the row and verified (open item 5)');
+  section('5 · 47a E3 — the next fill carries the generation from 4, once ready, into the upload (no press on the row)');
   await h.page.click('#rm-draft-dock >>> [data-role="close"]').catch(() => {});
   const ready = await waitUntil(() => { const g = CTL.generations(); return g.length === 1 && g[0].status === 'ready' ? g[0] : null; }, BUSY_MS, 150);
-  check('the ONE generation from 3 is ready', !!ready && ready.id === want, JSON.stringify(CTL.generations()));
+  check('the ONE generation from 4 is ready', !!ready && ready.id === want, JSON.stringify(CTL.generations()));
   const rendersBefore = CTL.rendered.length;
   await fresh(h);
   await h.goStep('myExperience');
   await prepareAndRead(h);
-  const r6 = await waitUntil(async () => { const r = await resumeRow(h); return r?.choices?.includes('Attach tailored') ? r : null; }, BUSY_MS, 150) || await resumeRow(h);
-  check('the row now offers Attach tailored first — and no second Generate', r6?.choices.join(' · ') === 'Attach tailored · Attach my résumé · Skip', r6?.choices.join(' · '));
-  await h.page.click(`#${OVERLAY} >>> .rm-row[data-idx="${r6?.idx}"] [data-role="attach"][data-which="tailored"]`);
   const shownT = await waitUntil(async () => { const s = await status(h); return /Successfully Uploaded/.test(s) ? s : null; }, BUSY_MS, 150);
   observe('the drop zone', shownT);
   const pdfs = CTL.pdfs();
   const tailoredName = pdfs[0]?.file_name || '';
   check('ONE PDF made from the generation, named for the person and the job', pdfs.length === 1 && /^Ada_Example_.+\.pdf$/.test(tailoredName) && tailoredName !== 'Ada_Example_Resume.pdf', JSON.stringify(pdfs));
-  check('the page shows the TAILORED file\'s name', !!shownT && shownT.startsWith(`${tailoredName} · Successfully Uploaded!`), shownT);
-  check('…the server recorded it as attached', pdfs[0]?.attached_at != null);
+  check('the page shows the TAILORED file\'s name — put there by the fill', !!shownT && shownT.startsWith(`${tailoredName} · Successfully Uploaded!`), shownT);
   check('…printed from the SANITISED generated HTML (the script never reaches the renderer)', CTL.rendered.length === rendersBefore + 1 && /payments ledger/.test(CTL.rendered.at(-1)) && !/__ranFromResume|<script/i.test(CTL.rendered.at(-1)));
   check('…through the generation\'s own PDF route', h.api.requests.some(q => q.method === 'POST' && q.path === `/api/extension/resume/${want}/pdf`));
-  // ⛔ the row's own answer, not the live watcher's "answered on the page": RESUME_ATTACH's reply names the outcome
-  const r7 = await waitUntil(async () => { const r = await resumeRow(h); return r?.group === 'ok' && r.value ? r : null; }, BUSY_MS, 150) || await resumeRow(h);
-  check('the row moves to Filled with the tailored file\'s name — "the page shows it"', r7?.value === tailoredName && /the page shows it/.test(r7?.note || ''), JSON.stringify(r7));
-  check('…and still ONE generation, ONE slot — attaching spends nothing', CTL.generations().length === 1 && CTL.slots() === 1, `${CTL.generations().length} generations, ${CTL.slots()} slots`);
+  check('…and still ONE generation, ONE slot — filling spends nothing', CTL.generations().length === 1 && CTL.slots() === 1, `${CTL.generations().length} generations, ${CTL.slots()} slots`);
 
   check('the fixture recorded no submission (draft never submits)', (await h.submissions()).length === 0);
   await h.screenshot(`t18-resume-field-${h.theme()}`);
