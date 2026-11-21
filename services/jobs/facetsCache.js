@@ -33,14 +33,14 @@ export function facetsKey(userId, profileId, query = {}) {
  * request workers and their own next reads queued 40 s behind them. Through one gate (shared by the board's caches) at most
  * `limit` recounts run at a time and the rest wait their turn — a person waiting on a MISS never goes through it.
  */
-export function createRefreshGate(limit = 1) {
+export function createRefreshGate(limit = 1, { wrap = null } = {}) {   // wrap: run each recount in a context (server.js: runInBackground)
   let running = 0;
   const queue = [];
   const next = () => {
     while (running < limit && queue.length) {
       const { fn, resolve, reject } = queue.shift();
       running++;
-      Promise.resolve().then(fn).then(resolve, reject).finally(() => { running--; next(); });
+      Promise.resolve().then(() => (wrap ? wrap(fn) : fn())).then(resolve, reject).finally(() => { running--; next(); });
     }
   };
   return { run: (fn) => new Promise((resolve, reject) => { queue.push({ fn, resolve, reject }); next(); }), status: () => ({ running, waiting: queue.length }) };

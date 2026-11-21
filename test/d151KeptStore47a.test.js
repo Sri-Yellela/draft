@@ -87,7 +87,7 @@ test("d151KeptStore: the recounts BEHIND stale answers go one at a time through 
   assert.equal(peak, 1, "one recount at a time");
   const miss = await c.get("8|1|fresh", slow);
   assert.equal(miss.cache, "miss");
-  assert.match(read("server.js"), /const boardRefreshGate = createRefreshGate\(1\);/);
+  assert.match(read("server.js"), /const boardRefreshGate = createRefreshGate\(1, \{ wrap: runInBackground \}\);/);
 });
 
 test("d151KeptStore: the held count — 'none being matched' fresh 5 min, its refresh through the gate, kept across a restart (long keys hashed)", async () => {
@@ -146,4 +146,18 @@ test("d151KeptStore: a stored answer read AGAIN is still stale at once — it ne
   assert.notEqual(second, "waited", "the second read must not wait for the queued refresh");
   assert.equal(second.cache, "stale");
   release(); await blocker;
+});
+
+test("d151KeptStore: the recounts behind stale answers read on the BACKGROUND pool (routedPool + the gate's runInBackground); a person's read stays on the request pool", async () => {
+  const { routedPool, runInBackground, inBackground } = await import("../services/db/backgroundContext.js");
+  const seen = [];
+  const pool = (name) => ({ get: async () => { seen.push(name); return { n: 1 }; }, all: async () => { seen.push(name); return []; }, status: () => ({ name }), close: async () => {} });
+  const r = routedPool(pool("request"), pool("background"));
+  await r.get("SELECT 1");
+  await runInBackground(() => r.all("SELECT 1"));
+  const gate = createRefreshGate(1, { wrap: runInBackground });
+  await gate.run(async () => { assert.equal(inBackground(), true); await new Promise(res => setTimeout(res, 1)); return r.get("SELECT 1"); });
+  assert.deepEqual(seen, ["request", "background", "background"], "the context follows the async chain");
+  assert.equal(r.status().name, "request");
+  assert.equal(inBackground(), false);
 });

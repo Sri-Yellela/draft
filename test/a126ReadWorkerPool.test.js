@@ -81,7 +81,8 @@ test("A126 · the event loop stays free while a pooled read runs", async () => {
 
 test("A126 · server.js reads the board's list and counts through the pool, with a kill switch", () => {
   const src = fs.readFileSync("server.js", "utf8");
-  assert.match(src, /const readPool = createReadPool\(\{/);
+  assert.match(src, /const requestReadPool = createReadPool\(\{/);   // 47a (moved on purpose): readPool is now its routed handle
+  assert.match(src, /const readPool = routedPool\(requestReadPool, bgReadPool\);/);
   assert.match(src, /DRAFT_READ_WORKERS/);
   assert.match(src, /readPool\.all\(\s*`SELECT sj\.job_id AS id \$\{joinClause\}/);   // A175: the page chosen by id in the pool, its columns after
   assert.match(src, /readPool\.all\(\s*`SELECT sj\.job_id AS id, COUNT\(\*\) OVER \(\) AS n \$\{joinClause\}/);   // …and the kept order

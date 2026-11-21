@@ -335,7 +335,8 @@ import {
 // D24 · GET /api/jobs/facets — the sentence's counts, measured through boardPageResponse itself.
 import { boardFacetsResponse } from "./services/jobs/boardFacets.js";
 import { createFacetsCache, facetsKey, createRefreshGate, looseCountKey } from "./services/jobs/facetsCache.js";
-import { createKeptStore } from "./services/jobs/keptStore.js";   // ⭐ 47a (D151 Rule 5): the kept answers survive a restart (migration 280)
+import { createKeptStore } from "./services/jobs/keptStore.js";
+import { runInBackground, routedPool } from "./services/db/backgroundContext.js";   // ⭐ 47a: background recounts on the background pool   // ⭐ 47a (D151 Rule 5): the kept answers survive a restart (migration 280)
 import { keptOrderAfterDecision } from "./services/jobs/keptOrderDecision.js";   // A195 leftover (46m): a pass / save, in place
 // ⭐ D151 (45k) · the board's held read ("N more being matched"), kept per user + statement, refreshed behind the answer.
 import { createHeldCountCache, heldKey } from "./services/jobs/heldCountCache.js";
@@ -627,7 +628,7 @@ console.log(`[boot] database ready: ${DB_PATH}`);
 // ⛔ A126 (hotfix 11-05) · the board's heavy reads (GET /api/jobs, /api/jobs/facets, the daily deal) run in worker threads
 // with their own read-only connections, so one person's board never freezes everyone's site (services/db/readWorker.js).
 // Any failure there falls back to this connection. DRAFT_READ_WORKERS=off turns it off without a deploy of code.
-const readPool = createReadPool({
+const requestReadPool = createReadPool({
   dbPath: DB_PATH, fallbackDb: db,
   enabled: String(process.env.DRAFT_READ_WORKERS || "on").toLowerCase() !== "off",
   // A187 Stage 0 (46i): the cap 4 -> 8 so read workers can be measured up to the box's cores (staging 8 vCPU, production 24);
@@ -643,6 +644,9 @@ const bgReadPool = createReadPool({
   enabled: String(process.env.DRAFT_READ_WORKERS || "on").toLowerCase() !== "off",
   size: Math.max(1, Math.min(2, Number(process.env.DRAFT_BG_READ_WORKERS_SIZE) || 1)),
 });
+// ⭐ 47a (D151 Rule 5, 250k × 20): `readPool` is the request pool's HANDLE — a read made inside runInBackground (the recounts behind
+// stale board answers, through boardRefreshGate) goes to bgReadPool, so both request workers stay free for people.
+const readPool = routedPool(requestReadPool, bgReadPool);
 // ⛔ A158 (45r, 11-09) · whole-board work that is not a person's request — the taxonomy re-read, the sitemaps, the landing
 // pages — runs on ONE more worker thread with its own read-only connection (services/db/offloadWorker.js). It never falls
 // back to this connection: a sitemap / landing page it cannot answer is a 503 + Retry-After, the taxonomy walk drops to
@@ -10922,7 +10926,7 @@ const _boardMatch = new Map();   // "user:profile" -> { ids: Set, running: boole
 // A175 (46d): fresh for 2 minutes (was 20 s) — at 100k each recount is a 0.4–1.5 s read, and 20 people recounting every 20 s
 // kept a read worker busy on its own; new postings still reach the match queue within 2 minutes of being asked for.
 // ⭐ 47a (D151 Rule 5): ONE recount behind a stale board answer at a time, across the board caches and the held count — a worker stays free for people.
-const boardRefreshGate = createRefreshGate(1);
+const boardRefreshGate = createRefreshGate(1, { wrap: runInBackground });
 const heldCounts = createHeldCountCache({ freshMs: 120_000, store: createKeptStore(db, "held"), storeStaleMs: 6 * 3600 * 1000, refreshGate: boardRefreshGate });   // ⭐ 47a (D151 Rule 5): kept across a restart, refreshed one at a time, "none held" fresh 5 min
 function enqueueBoardMatch(userId, profile, jobIds) {
   if (!boardFitAutomationEnabled() || !userId || !profile?.id || !jobIds?.length) return;
