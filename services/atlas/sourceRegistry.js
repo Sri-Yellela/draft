@@ -19,6 +19,23 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const REGISTRY_PATH = path.join(HERE, "..", "..", "content", "sources", "registry.json");
 export const LICENCE_CLASSES = Object.freeze(["open-reuse", "share-alike", "link-only", "gated", "to-verify"]);
 export const LINK_CHECK_EVERY_DAYS = 30;
+// ⭐ D195 (47a) · which layer of the content rule a source serves (concept → proof → realWorld, and the hands-on Try).
+// Derived from the row's recorded types (scripts/d195TeachingUse.mjs writes it); a row may serve several.
+export const TEACHING_USES = Object.freeze(["concept", "proof", "realWorld", "try"]);
+const USE_BY_TYPE = Object.freeze({
+  concept: ["video", "talk", "video course", "interactive"],
+  proof: ["textbook", "book", "lecture notes", "course", "video course", "module", "learning path", "reference", "standard",
+    "handbook", "research", "journal", "classification", "data", "database"],
+  realWorld: ["article", "docs", "report", "talk", "guide", "interview", "fact sheet", "legislation", "guidance", "guideline",
+    "design system", "pattern", "certification", "training"],
+  try: ["tutorial", "code", "lab", "codelab", "notebook", "interactive", "exercise", "project", "template", "play", "docs"],
+});
+/** The layers a source serves, in the rule's order, from its types (an untyped row is read as an article: realWorld). */
+export function teachingUseOf(source) {
+  const types = (source?.types || []).map(t => String(t).toLowerCase());
+  const uses = TEACHING_USES.filter(u => USE_BY_TYPE[u].some(t => types.includes(t)));
+  return uses.length ? uses : ["realWorld"];
+}
 
 export function loadRegistry(file = REGISTRY_PATH) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
@@ -54,6 +71,9 @@ export function validateRegistry(reg) {
     }
     if (!Array.isArray(s?.pathways) || !s.pathways.length) problems.push(`${id}: at least one pathway`);
     if (typeof s?.vendorNeutral !== "boolean") problems.push(`${id}: vendorNeutral must be true or false`);
+    if (s?.teachingUse !== undefined && (!Array.isArray(s.teachingUse) || !s.teachingUse.length || s.teachingUse.some(u => !TEACHING_USES.includes(u)))) {
+      problems.push(`${id}: teachingUse must list layers from ${TEACHING_USES.join(" / ")} (D195)`);
+    }
   }
   return { ok: problems.length === 0, problems };
 }
