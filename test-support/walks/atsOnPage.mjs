@@ -128,34 +128,36 @@ export default async function run(h, { check, section }) {
   check('…with its report', p4?.score === 'ATS 72 · Strong match', p4?.score);
   check('⛔ only the trusted click read the page — ONE identify', identifies(h) - id0 === 1, `${identifies(h) - id0} identify request(s)`);
 
-  section('4 · T9 — a FULL report: the panel draws the web app\'s ATS component');
+  // ⭐ 47a E1 (owner 11-21, moved on purpose): the ATS tab draws the web's ATS CARD (shared/contextualView.js atsCardView) — it
+  // replaced the T9 report on the web in 46x (option C), and now in the extension: the number, its parts, the biggest gain.
+  section('4 · 47a E1 — a FULL report: the panel draws the web\'s ATS card');
   scoreNow = FULL;
   const before4 = lookups(h);
   await h.send({ type: 'RESUME_PANEL_OPEN', tab: 'ats' });
   const p5 = await waitUntil(async () => {
     const c = await h.readShadow(ATS, (root) => {
-      const host = root.querySelector('[data-role="ats-card"]');
-      const card = host?.shadowRoot;
-      if (!card?.querySelector('[data-ats-root]')) return null;
+      const card = root.querySelector('[data-role="ats-card-view"]');
+      if (!card) return null;
       return {
-        score: card.querySelector('[data-ats-score]')?.textContent.replace(/\s+/g, ' ').trim() || null,
-        text: card.querySelector('[data-ats-root]').textContent.replace(/\s+/g, ' '),   // the card's words, not its stylesheet
+        score: card.querySelector('[data-role="ats-card-score"]')?.textContent.replace(/\s+/g, ' ').trim() || null,
+        band: card.querySelector('[data-role="ats-card-score"]')?.getAttribute('data-band') || null,
+        parts: [...card.querySelectorAll('[data-ats-part]')].map(e => e.getAttribute('data-ats-part')),
+        text: card.textContent.replace(/\s+/g, ' '),
         imgs: card.querySelectorAll('img').length,
-        style: !!card.querySelector('style[data-ats-style]'),
+        oldComponent: !!root.querySelector('[data-role="ats-card"]'),
         summaryLines: !!root.querySelector('[data-role="ats-score"], [data-role="ats-matched"], [data-role="ats-missing"]'),
         buttons: [...root.querySelectorAll('button')].map(b => (b.getAttribute('aria-label') || b.textContent).trim()).filter(Boolean),
-        width: Math.round(host.getBoundingClientRect().width),
+        width: Math.round(card.getBoundingClientRect().width),
       };
     });
     return c || null;
   }, BUSY_MS);
-  check('the panel mounts the component in its own shadow root, with its stylesheet', !!p5 && p5.style, JSON.stringify(p5));
-  check('…the scorer\'s number', /72/.test(p5?.score || ''), p5?.score);
-  check('…the matched and missing terms as the web app words them', /distributed systems/.test(p5?.text || '') && /kubernetes/.test(p5?.text || ''), p5?.text?.slice(0, 300));
-  check('…the experience line', /meets 4\+ year requirement/.test(p5?.text || ''));
-  check('⛔ the markup term prints as characters — no element made from it', p5?.imgs === 0 && /<img src=x onerror=alert\(1\)>/.test(p5?.text || ''), `${p5?.imgs}`);
+  check('the panel draws the web\'s ATS card (no older component beside it)', !!p5 && p5.oldComponent === false, JSON.stringify(p5));
+  check('…the scorer\'s number, painted by its band', /72%/.test(p5?.score || '') && !!p5?.band, `${p5?.score} ${p5?.band}`);
+  check('…its Skills part', (p5?.parts || []).includes('skill_match'), JSON.stringify(p5?.parts));
+  check('⛔ no element made from a term (markup prints as characters)', p5?.imgs === 0, `${p5?.imgs}`);
   check('⛔ a field the card does not draw stays out', !/for the card/.test(p5?.text || ''));
-  check('the summary lines give way to the component (no second report)', p5?.summaryLines === false);
+  check('the summary lines give way to the card (no second report)', p5?.summaryLines === false);
   check('…and the panel keeps its own "Full report in draft"', (p5?.buttons || []).includes('Full report in draft'), JSON.stringify(p5?.buttons));
   check('…laid out (not a zero-width box)', (p5?.width || 0) > 200, `${p5?.width}`);
   check('asked of draft\'s server once more', lookups(h) - before4 === 1, `${lookups(h) - before4}`);
