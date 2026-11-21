@@ -70,7 +70,9 @@ test("⛔ T22: every removed action is still reachable — Ctrl+Shift+K and Ctrl
 });
 
 // ── 3 · no résumé is started from the Résumé tab, or anywhere but its two places ───────────────────────────────────
-test("⛔ T22: the dock's Résumé tab is a VIEW — no Generate, Try again or Regenerate in any state; the review row only shows the tab", () => {
+// ⭐ 47a E2 (owner 11-21, moved on purpose: "generate the resume then and there"): the tab offers ONE start again — Tailor
+// when none exists, Try again after a refusal / failure / cancel — and never Regenerate; the rest of the view is unchanged.
+test("⛔ T22 → 47a E2: the dock's Résumé tab — Tailor / Try again only where nothing usable exists, never Regenerate; the review row only shows the tab", () => {
   const JOB = { jobId: "j1", title: "Software Engineer", company: "Zoom" };
   const ID = "erg_0123456789abcdef01234567";
   const states = [
@@ -80,10 +82,12 @@ test("⛔ T22: the dock's Résumé tab is a VIEW — no Generate, Try again or R
     resumePanelModel({ job: JOB, view: { id: ID, status: "ready", job: JOB, pdf: { attached: true, fileName: "a.pdf" } } }),
     resumePanelModel({ job: JOB, view: { id: ID, status: "ready", job: JOB }, attach: { outcome: "fallback", fileName: "a.pdf" } }),
   ];
+  const STARTS = { none: "Tailor my résumé for this job", refused: "Try again", failed: "Try again", cancelled: "Try again" };
   for (const m of states) {
     const roles = (m.actions || []).map(a => a.role);
-    assert.ok(!roles.some(r => /generate/.test(r)), `${m.state}: ${roles.join(", ")}`);
-    assert.ok(!(m.actions || []).some(a => /Generate|Try again|Regenerate/.test(a.label)), `${m.state}: ${JSON.stringify(m.actions)}`);
+    if (STARTS[m.state]) assert.deepEqual((m.actions || []).filter(a => a.role === "generate").map(a => a.label), [STARTS[m.state]], m.state);
+    else assert.ok(!roles.some(r => /generate/.test(r)), `${m.state}: ${roles.join(", ")}`);
+    assert.ok(!(m.actions || []).some(a => /Regenerate/.test(a.label)), `${m.state}: ${JSON.stringify(m.actions)}`);
   }
   assert.equal(states[0].state, "none");
   assert.deepEqual(states[0].lines.map(l => l.text), ["No résumé has been made for this job yet."]);
@@ -93,7 +97,8 @@ test("⛔ T22: the dock's Résumé tab is a VIEW — no Generate, Try again or R
   // the view's code sends no RESUME_GENERATE; the ONE handler stays for the two places T24 / T18 wire
   const src = read("extension/resumePanel.js");
   const view = stripJs(src.slice(at(src, "export function renderResumePanel("), at(src, "// ── the injected attach")));
-  assert.doesNotMatch(view, /RESUME_GENERATE|role === 'generate'|role === 'regenerate'/);
+  assert.doesNotMatch(view, /role === 'regenerate'/);
+  assert.equal((view.match(/RESUME_GENERATE/g) || []).length, 1, "the tab's one start (47a E2)");
   assert.match(src, /RESUME_GENERATE: async \(msg, sender\) => \{/);
   // ⭐ T18 wired the SECOND of the two places: the review panel's résumé row ("Generate and attach") — and nothing else
   for (const f of fs.readdirSync("extension").filter(f => f.endsWith(".js") && f !== "resumePanel.js" && f !== "review-overlay.js")) {

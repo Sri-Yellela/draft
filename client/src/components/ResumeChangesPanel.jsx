@@ -196,7 +196,14 @@ export default function ResumeChangesPanel({ jobId, jobLabel = "", onClose, init
               <div className="rc__num"><div className="v">{sum.removed}</div><div className="l">removed</div></div>
               <div className="rc__num"><div className="v">{sum.unchanged}</div><div className="l">unchanged</div></div>
               <div className="rc__num"><div className="v">{sum.requirementsMissing.length}</div><div className="l">still missing</div></div>
+              {/* ⭐ 47a (owner 11-21, E4): against the JOB — of its must-haves, how many each side shows */}
+              {d.againstJob && <div className="rc__num" data-against-job=""><div className="v">{d.againstJob.before} → {d.againstJob.after}</div><div className="l">of the job's {d.againstJob.asked} must-haves</div></div>}
             </div>
+            {d.againstJob?.terms?.some(t => t.after && !t.before) && (
+              <div className="rc__strip" aria-label="Against the job" data-against-job-terms="">
+                {d.againstJob.terms.filter(t => t.after && !t.before).map(t => <span key={t.term} className="mark mark--ok">now shows {t.term}</span>)}
+              </div>
+            )}
             <div className="rc__strip" aria-label="ATS history">
               {(d.scores || []).map((x, i) => <span key={x.ref}>{i ? "→ " : ""}<span className="s">{x.label} <b>{x.atsScore ?? "—"}</b></span></span>)}
               {sum.requirementsMissing.map(t => <span key={t} className="mark mark--dim">still missing: {t}</span>)}

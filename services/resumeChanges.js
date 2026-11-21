@@ -163,7 +163,17 @@ export function compareResumes({ before, after, base = before, claims = {}, afte
   for (const [k, s] of beforeSecs) if (!seen.has(k)) sections.push({ type: s.type, title: s.title, status: "removed" });
 
   const termsGained = gainedIn(beforeText, plainText(Aft));
+  // ⭐ 47a (owner 11-21, E4: "review changes and compare to jd and base resume") · AGAINST THE JOB: each of the posting's
+  // must-haves (the after report's tier 1, matched + missing — the scorer's own list, nothing new judged here), whether the
+  // before résumé and the after résumé show it. The panel says "n of m before → n of m now" and names what is still missing.
+  const afterText = plainText(Aft);
+  const asked = [...new Set([...(afterReport?.tier1_matched || []), ...(afterReport?.tier1_missing || [])].map(String).filter(Boolean))].slice(0, 40);
+  const againstJob = asked.length ? (() => {
+    const terms = asked.map(t => ({ term: t, before: hasTerm(beforeText, t), after: hasTerm(afterText, t) }));
+    return { asked: terms.length, before: terms.filter(t => t.before).length, after: terms.filter(t => t.after).length, terms };
+  })() : null;
   return {
+    againstJob,
     summary: {
       ...counts,
       termsGained,

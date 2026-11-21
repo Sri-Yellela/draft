@@ -2076,12 +2076,18 @@ async function fillFromPacket({ tab, origin, frame = null, released, serverUrl, 
   // /pdf/file). Otherwise the packet's own résumé, as before.
   let resume = null;
   const panelResume = serverUrl ? await resumeFor(released.packet?.jobId).catch(() => null) : null;
-  const resumePath = panelResume?.attached ? `/api/extension/resume/${encodeURIComponent(panelResume.id)}/pdf/file` : released.resumeUrl;
+  // ⭐ 47a (owner 11-21, E3: "prepare the payload required to fill in"): a résumé TAILORED on the page for this job (the
+  // Résumé tab's Tailor, E2) goes into the fill when the server says it is READY — not only once Attach was pressed. Its PDF
+  // is asked of the server exactly as Attach asks it (POST …/pdf → the stored file's path); a refused, failed or unfinished
+  // generation is never used (tailoredPdfPath → null), and the packet's own résumé stands.
+  const tailoredPath = !panelResume?.attached && panelResume?.id && serverUrl ? await tailoredPdfPath(serverUrl, panelResume.id).catch(() => null) : null;
+  const fromPanel = !!(panelResume?.attached || tailoredPath);
+  const resumePath = panelResume?.attached ? `/api/extension/resume/${encodeURIComponent(panelResume.id)}/pdf/file` : tailoredPath || released.resumeUrl;
   if (resumePath && serverUrl) {
     const packetName = `resume-${released.packet?.jobId || 'application'}.pdf`;
     const pdf = await fetchPdf(serverUrl, resumePath, packetName);
     if (pdf) {
-      resume = panelResume?.attached
+      resume = fromPanel
         ? { base64: pdf.base64, filename: pdf.fileName, mimeType: 'application/pdf', fromPanel: true }
         : { base64: pdf.base64, filename: packetName, mimeType: 'application/pdf' };
     }
@@ -2461,6 +2467,22 @@ export async function resumeFilesFor(serverUrl, jobId, { setting = 'on_cue' } = 
   // ⛔ a generation is made FROM the base résumé: with none, "Generate and attach" could only be refused (T10 row 18)
   out.generate = jobId != null && out.base && offerGenerateOnCue({ setting, tailoredReady: !!out.tailored, inFlight: out.inFlight });
   return out;
+}
+
+/**
+ * ⭐ 47a (owner 11-21, E3) · the stored PDF of THIS job's tailored résumé, when draft's server says the generation is READY:
+ * GET /api/extension/resume/:id (status), then POST …/pdf (the same call Attach makes) → its /pdf/file path. null for any
+ * other status (a refused, failed, cancelled or unfinished one is never filled in) or an answer that is not that route.
+ */
+export async function tailoredPdfPath(serverUrl, id) {
+  if (!serverUrl || !/^erg_[a-f0-9]{8,64}$/.test(String(id || ''))) return null;
+  const base = `/api/extension/resume/${encodeURIComponent(id)}`;
+  const r = await authedFetch(serverUrl, base);
+  const b = r?.ok ? await r.json().catch(() => null) : null;
+  if (b?.id !== id || b.status !== 'ready') return null;
+  const p = await authedFetch(serverUrl, `${base}/pdf`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  const pdf = p?.ok ? (await p.json().catch(() => null))?.pdf : null;
+  return typeof pdf?.url === 'string' && pdf.url.startsWith(`${base}/pdf`) ? pdf.url : null;
 }
 
 /** The panel meta's `files`, only when a row is an empty résumé or cover-letter upload (no request otherwise). */

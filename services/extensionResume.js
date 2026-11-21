@@ -344,7 +344,9 @@ export function createExtensionResumeService({ db, generate, preflight = () => n
       regenerated: !!g.regenerate, fromExisting: !!g.reused, ...(reusedRequest ? { alreadyRequested: true } : {}),
       slot: { spent: g.slot_use_id != null && g.slot_refunded_at == null, refunded: g.slot_refunded_at != null },
       allowance: allowance(g.user_id),
-      openUrl: `/app/jobs?job=${encodeURIComponent(g.job_id)}`,
+      // ⭐ 47a (owner 11-21, E4: "a view resume with the same pdf sandbox as draft"): the job's résumé in draft's sandbox —
+      // /draft/resume/<job> reopens it in the RM editor with What we changed (vs the base and against the job) docked beside it.
+      openUrl: `/draft/resume/${encodeURIComponent(g.job_id)}`,
     };
     const guard = parseJson(g.guard_json);
     if (g.status === "refused") out.guard = { passed: false, reasons: guard?.reasons || [] };

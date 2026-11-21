@@ -129,9 +129,11 @@ test("⛔ J6 → T22: a résumé is started only by ONE handler, from a page's t
   for (const role of ["'download'", "'cancel'", "'attach'", "'edit'"]) {
     assert.ok(at(click, `role === ${role}`) > trusted, `${role} is handled before the trusted-click check`);
   }
-  // ⭐ T22 REVISED: the view starts nothing — its Generate / Regenerate are gone; the handler above is the one start,
-  // for the Draft button (T24) and the résumé row (T18) to send
-  assert.doesNotMatch(click, /role === 'generate'|role === 'regenerate'|RESUME_GENERATE/);
+  // ⭐ 47a E2 (owner 11-21, moved on purpose — "generate the resume then and there"): the tab's Tailor / Try again is a
+  // start again, AFTER the trusted-click check, through the ONE handler with the click's trigger; no Regenerate here
+  assert.ok(at(click, "if (role === 'generate')") > trusted, "Tailor is handled after the trusted-click check");
+  assert.match(click, /send\(\{ type: 'RESUME_GENERATE', trigger: 'click' \}\)/);
+  assert.doesNotMatch(click, /role === 'regenerate'/);
   // the ONE start is the RESUME_GENERATE handler — no other code in the extension POSTs it
   const starts = [...src.matchAll(/'\/api\/extension\/resume',/g)];
   assert.equal(starts.length, 1, "one place starts a generation");
@@ -175,7 +177,8 @@ test("⛔ J6: every request goes to draft's own server — never a model, never 
     assert.doesNotMatch(read(`extension/${f}`).replace(/\/\/.*$/gm, ""), /api\.anthropic|api\.openai|generativelanguage|\/v1\/resumes\/generate|RESUME_MASTER_API/i, `${f} reaches a model or the résumé service directly`);
   }
   // the opened editor is draft's own site
-  assert.deepEqual(out.opened, [s.origin + "/app/jobs?job=wd-zoom-1"]);
+  // ⭐ 47a E4 (owner 11-21, moved on purpose): View résumé opens draft's sandbox for the job (the server's openUrl)
+  assert.deepEqual(out.opened, [s.origin + "/draft/resume/wd-zoom-1"], "draft's own site: the job's résumé in its sandbox");
 });
 
 // ── ⛔ NO MONEY, TOKENS OR MODEL NAMES ───────────────────────────────────────────────────────────────────────────
@@ -266,7 +269,7 @@ test("⛔ J6: Attach — the PDF set on the page and VERIFIED reads 'Attached: <
   assert.match(ready.model.changes, /^What we changed — /);
   assert.deepEqual(ready.model.score, { before: 62, after: 81 });
   assert.match(ready.model.guard.text, /Checked against your profile/);
-  assert.deepEqual(ready.model.actions.map(a => a.label), ["Attach", "Download PDF", "Edit in a full page"], "⭐ T22: no Regenerate — a view");
+  assert.deepEqual(ready.model.actions.map(a => a.label), ["Attach", "Download PDF", "View résumé"], "⭐ 47a E4: View résumé (draft's sandbox); no Regenerate");
 
   // verified
   const a = await h.RESUME_ATTACH({ id: g.model.id }, fromTab);
@@ -372,8 +375,9 @@ test("⛔ J6: once attached, the résumé is part of the payload — the Copy sh
   assert.equal(Buffer.from(pdf.base64, "base64").toString(), PDF_BYTES.toString());
   const fill = read("extension/gated-handoff.js");
   const block = fill.slice(at(fill, "const panelResume = serverUrl ? await resumeFor(released.packet?.jobId)"), at(fill, "// ── D55 (l): A FORM WE DO NOT RECOGNISE"));
-  assert.match(block, /const resumePath = panelResume\?\.attached \? `\/api\/extension\/resume\/\$\{encodeURIComponent\(panelResume\.id\)\}\/pdf\/file` : released\.resumeUrl;/);
-  assert.match(block, /\? \{ base64: pdf\.base64, filename: pdf\.fileName, mimeType: 'application\/pdf', fromPanel: true \}/);
+  // ⭐ 47a E3 (moved on purpose): an attached résumé first; else this job's READY tailored one (tailoredPdfPath); else the packet's
+  assert.match(block, /const resumePath = panelResume\?\.attached \? `\/api\/extension\/resume\/\$\{encodeURIComponent\(panelResume\.id\)\}\/pdf\/file` : tailoredPath \|\| released\.resumeUrl;/);
+  assert.match(block, /resume = fromPanel\s*\? \{ base64: pdf\.base64, filename: pdf\.fileName, mimeType: 'application\/pdf', fromPanel: true \}/);
   assert.equal(s.ctl.calls.length, 1, "nothing was generated again");
   // the review panel's row says it
   const { panelRowsForStep } = await import("../extension/review-overlay.js");

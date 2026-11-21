@@ -106,7 +106,7 @@ test("⛔ J6: the panel in both themes — the site's tokens, no capsule, the pr
     assert.equal(facts.score, "ATS 62 → 81");
     assert.equal(facts.changes, "What we changed — 9 rewritten · 2 added · +16 job terms");
     assert.match(facts.guard, /Checked against your profile/);
-    assert.deepEqual(facts.actions, ["Attach", "Download PDF", "Edit in a full page"], "⭐ T22: a view — no Regenerate");
+    assert.deepEqual(facts.actions, ["Attach", "Download PDF", "View résumé"], "⭐ 47a E4 (moved on purpose): View résumé — no Regenerate");
     // ⛔ the preview: its own shadow root, inside the panel's — the page's light DOM never holds it
     assert.equal(facts.previewShadow, true, "the preview is not in a shadow root of its own");
     assert.equal(facts.inLightDom, false);

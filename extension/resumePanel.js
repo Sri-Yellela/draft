@@ -125,11 +125,17 @@ const ACTION = {
   cancel: { role: 'cancel', label: 'Cancel', icon: 'close' },
   attach: { role: 'attach', label: 'Attach', primary: true, icon: 'attach' },
   attachAgain: { role: 'attach', label: 'Attach again', icon: 'attach' },
-  edit: { role: 'edit', label: 'Edit in a full page', icon: 'edit' },
+  // ⭐ 47a (owner 11-21, E4): View résumé — draft's own sandbox (the RM editor) with What we changed against the base and the job
+  edit: { role: 'edit', label: 'View résumé', icon: 'edit' },
   download: { role: 'download', label: 'Download PDF', icon: 'download' },
   downloadPrimary: { role: 'download', label: 'Download PDF', primary: true, icon: 'download' },
   // D99: an unlinked tab's message is a button, not an instruction to go somewhere else
   readPage: { role: 'read', label: 'Read this page now', primary: true, icon: 'read' },
+  // ⭐ 47a (owner 11-21, E2: "generate the resume then and there") — the start comes back to this tab, as ONE primary press:
+  // the person's click → RESUME_GENERATE (the one start: the server's generation, the claim guard, the scorer). T22's
+  // "a view only" is revised on the owner's word; nothing here starts on a load, a timer or a fill.
+  generate: { role: 'generate', label: 'Tailor my résumé for this job', primary: true, icon: 'resume' },
+  tryAgain: { role: 'generate', label: 'Try again', icon: 'resume' },
 };
 
 // ⭐ D99 J12 · ATS ON THE PAGE — draft's own report on the user's base résumé, for the tab's job, shown at once. A
@@ -204,7 +210,7 @@ function modelCore({ job = null, view = null, allowance = null, error = null, at
   const status = view?.status || null;
   if (!status) {
     line('No résumé has been made for this job yet.');
-    return { ...base, state: 'none', title: 'Résumé for this job', actions: [] };
+    return { ...base, state: 'none', title: 'Résumé for this job', actions: [ACTION.generate] };
   }
   if (status === 'queued' || status === 'generating') {
     line(`Generating your résumé for ${jobWords(j)} — usually 10–20 seconds.`);
@@ -218,17 +224,17 @@ function modelCore({ job = null, view = null, allowance = null, error = null, at
     line('draft withheld this résumé: it claimed something your profile does not support.', 'warn');
     line('Nothing was attached.');
     if (refunded) line('Your Draft slot was given back.');
-    return { ...base, state: 'refused', title: 'Withheld by the claim guard', reasons, actions: [] };
+    return { ...base, state: 'refused', title: 'Withheld by the claim guard', reasons, actions: [ACTION.tryAgain] };
   }
   if (status === 'failed') {
     line(safe(view.error?.message, UNAVAILABLE), 'warn');
     line(refunded ? 'Nothing was attached, and your Draft slot was given back.' : 'Nothing was attached.');
-    return { ...base, state: 'failed', title: 'It did not finish', actions: [] };
+    return { ...base, state: 'failed', title: 'It did not finish', actions: [ACTION.tryAgain] };
   }
   if (status === 'cancelled') {
     line('Cancelled — nothing was attached.');
     line(refunded ? 'Your Draft slot was given back.' : 'The work had already started, so the slot was used.');
-    return { ...base, state: 'cancelled', title: 'Cancelled', actions: [] };
+    return { ...base, state: 'cancelled', title: 'Cancelled', actions: [ACTION.tryAgain] };
   }
   // ready
   const ready = {
@@ -634,7 +640,8 @@ export function renderResumePanel(model, meta) {
     if (role === 'download') return download(r);
     btn.disabled = true;
     const say = (t, w) => sayIn(r, t, w);
-    // ⭐ T22 REVISED: no Generate / Regenerate here — this tab is a view; nothing in it starts a résumé.
+    // ⭐ 47a E2 (owner 11-21): Tailor / Try again — the person's trusted click is the one start (RESUME_GENERATE, trigger 'click').
+    if (role === 'generate') { say('Tailoring your résumé…'); return take(r, await send({ type: 'RESUME_GENERATE', trigger: 'click' }), 'Could not start — try again.'); }
     if (role === 'cancel') { say('Cancelling…'); return take(r, await send({ type: 'RESUME_CANCEL', id: m.id }), 'Could not cancel — try again.'); }
     if (role === 'attach') { say('Attaching…'); return take(r, await send({ type: 'RESUME_ATTACH', id: m.id }), 'Could not attach — try Download PDF.'); }
     if (role === 'edit') { const got = await send({ type: 'RESUME_OPEN_EDITOR', id: m.id }); btn.disabled = false; if (!got?.ok) say(got?.message || 'Could not open draft.', true); else say('Opened in a new tab.'); }
