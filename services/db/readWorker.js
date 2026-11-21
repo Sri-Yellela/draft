@@ -64,6 +64,9 @@ if (!isMainThread && workerData?.__draftReadWorker) {
  * @param {number} [o.timeoutMs]   a read the pool has not answered by then runs on the main connection (default 60 s)
  * @param {boolean} [o.enabled]    false → every read runs on the main connection (DRAFT_READ_WORKERS=off)
  */
+/** ⭐ 47a: a read still waiting this many timeouts after it was queued is rejected — never run on the main connection. */
+export const HARD_TIMEOUT_FACTOR = 10;
+
 export function createReadPool({ dbPath, fallbackDb, size = 2, timeoutMs = 60_000, enabled = true, log = console } = {}) {
   const waitMs = Number(process.env.READ_SLOW_MS) || 0;   // A175: the round-trip log's threshold (off unless READ_SLOW_MS)
   const workers = [];
@@ -94,7 +97,7 @@ export function createReadPool({ dbPath, fallbackDb, size = 2, timeoutMs = 60_00
       if (m?.ready) { entry.ready = true; return; }
       const p = pending.get(m.id);
       if (!p) return;
-      pending.delete(m.id); clearTimeout(p.timer); entry.inflight--;
+      pending.delete(m.id); clearTimeout(p.timer); clearTimeout(p.hard); entry.inflight--;
       if (m.ok) {
         stats.served++;
         // ⭐ A175 (46d) · READ_SLOW_MS also names the reads that WAITED: the whole round trip (queued behind the worker's
@@ -111,7 +114,7 @@ export function createReadPool({ dbPath, fallbackDb, size = 2, timeoutMs = 60_00
       // Every read this worker held is answered by the main connection — nobody sees the crash.
       for (const [id, p] of pending) {
         if (p.entry !== entry) continue;
-        pending.delete(id); clearTimeout(p.timer);
+        pending.delete(id); clearTimeout(p.timer); clearTimeout(p.hard);
         try { p.resolve(fallback(p.op, p.sql, p.params)); } catch (e) { p.reject(e); }
       }
       if (closed) return;
@@ -137,12 +140,25 @@ export function createReadPool({ dbPath, fallbackDb, size = 2, timeoutMs = 60_00
     if (!entry) return Promise.resolve().then(() => fallback(op, sql, params));
     return new Promise((resolve, reject) => {
       const id = nextId++;
+      // ⛔ 47a (D151 Rule 5, measured at 250k × 20 users): a SLOW read is never re-run on the main connection. The timer
+      // starts when the read is QUEUED, so under a queue every waiting read "timed out" and the fallback re-ran the same
+      // whole-board statement synchronously on the main thread — five 28 s facet heads froze the whole site for 141.6 s
+      // (event-loop max). Now the timeout is a note (logged once, counted in `slow`) and the read keeps its worker's answer;
+      // only past HARD_TIMEOUT_FACTOR × timeoutMs is it rejected (an error the route answers), never run here. A worker that
+      // CRASHES still hands its reads to the main connection (the exit handler) — that is rare and immediate, not a queue.
       const timer = setTimeout(() => {
-        // Too slow in the pool — answer on the main connection rather than leave the person waiting forever.
         if (!pending.has(id)) return;
-        pending.delete(id); entry.inflight--;
-        stats.lastError = `timeout after ${timeoutMs} ms`;
-        try { resolve(fallback(op, sql, params)); } catch (e) { reject(e); }
+        stats.slow = (stats.slow || 0) + 1;
+        stats.lastError = `slow: still waiting after ${timeoutMs} ms`;
+        const hard = setTimeout(() => {
+          const p = pending.get(id);
+          if (!p) return;
+          pending.delete(id); entry.inflight--;
+          stats.lastError = `timeout after ${timeoutMs * HARD_TIMEOUT_FACTOR} ms`;
+          reject(Object.assign(new Error(`read pool: no answer in ${timeoutMs * HARD_TIMEOUT_FACTOR} ms`), { code: "read_timeout" }));
+        }, timeoutMs * (HARD_TIMEOUT_FACTOR - 1));
+        hard.unref?.();
+        const p = pending.get(id); if (p) p.hard = hard;
       }, timeoutMs);
       timer.unref?.();
       pending.set(id, { resolve, reject, timer, entry, op, sql, params, at: Date.now() });

@@ -100,7 +100,7 @@ test("a175: server.js chooses the page by id, reads its columns by id in the pag
   const bind = at(SRC, "app.use(bindAuthContext);");
   const clear = at(SRC, "boardOrderCache.clearUser(req.user.id);");
   assert.ok(clear > bind);
-  assert.match(SRC, /const boardOrderCache = createFacetsCache\(\{ ttlMs: 5 \* 60 \* 1000, max: 300, staleMs: 15 \* 60 \* 1000 \}\);/);
+  assert.match(SRC, /const boardOrderCache = createFacetsCache\(\{ ttlMs: 5 \* 60 \* 1000, max: 300, staleMs: 15 \* 60 \* 1000, store: createKeptStore\(db, "order"\), storeStaleMs: 6 \* 3600 \* 1000, refreshGate: boardRefreshGate \}\);/);
   // the columns' read is keyed by an alias the page drops before mapping
   assert.match(BOARD, /\.map\(\(\{ __page_job_id, \.\.\.r \}\) => r\)/);
 });
@@ -138,5 +138,5 @@ test("a175 facets: a recount older than the TTL is answered at once (stale) whil
   let u = 0; const plain = createFacetsCache({ now: () => u, ttlMs: 100 });
   await plain.get("1|1|", () => ({ status: 200, body: {} })); u = 500;
   assert.equal((await plain.get("1|1|", () => ({ status: 200, body: {} }))).cache, "miss");
-  assert.match(SRC, /const facetsCache = createFacetsCache\(\{ ttlMs: 5 \* 60 \* 1000, staleMs: 15 \* 60 \* 1000 \}\);/);
+  assert.match(SRC, /const facetsCache = createFacetsCache\(\{ ttlMs: 5 \* 60 \* 1000, staleMs: 15 \* 60 \* 1000, store: createKeptStore\(db, "facets"\), storeStaleMs: 6 \* 3600 \* 1000, refreshGate: boardRefreshGate \}\);/);
 });

@@ -377,6 +377,8 @@ export const MERGE_PLAN = Object.freeze({
   daily_reminders: "keepInto",
   // 45n (250): a cache of the public page for search — rebuilt from INTO's page after a merge, never carried over.
   people_index: "drop",
+  // ⭐ 47a (280): the board's kept answers (order, counts) — a cache keyed to FROM's own board; INTO counts its own.
+  board_kept_cache: "drop",
   atlas_prefs: "drop",   // A155: a preference only — the surviving account keeps its own
   // D180 P2 (253): a read mark / mute per Network thread. FROM's threads are keyed by its id (low_id / high_id), not
   // user_id, and go with FROM's row by cascade — so its read marks go too. (45p: merge refused every merge without it.)

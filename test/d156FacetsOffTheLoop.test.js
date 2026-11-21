@@ -91,7 +91,7 @@ test("d156FacetsYieldBetweenAggregates: the loop is given back before each view 
 
 test("server.js: the route is cached and says so; the user's writes clear it after their auth context is bound", () => {
   const s = read("server.js");
-  assert.match(s, /import \{ createFacetsCache, facetsKey \} from "\.\/services\/jobs\/facetsCache\.js";/);
+  assert.match(s, /import \{ createFacetsCache, facetsKey, createRefreshGate \} from "\.\/services\/jobs\/facetsCache\.js";/);
   assert.match(s, /const key = facetsKey\(req\.user\.id, profileId, \{ \.\.\.req\.query, "~visit": visitMark\(db, req\.user\.id\) \?\? "first" \}\);/,
     "the visit mark rolls on a GET, so it is part of the key — the stored mark, never the fallback that moves with now");
   assert.match(s, /await facetsCache\.get\(key, \(\) => facetsAnswer\(req, lens\)\);/);

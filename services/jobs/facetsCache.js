@@ -23,7 +23,30 @@ export function facetsKey(userId, profileId, query = {}) {
 // ⭐ A175 (46d) · `staleMs` (default 0 = off): a kept answer past ttlMs but younger than staleMs is answered AT ONCE
 // (cache "stale", with its asOf) while ONE refresh runs behind it — the person never waits for a recount they had a
 // minute ago. Their own writes still drop it (clearUser), so a stale answer never outlives their own change.
-export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTRIES, now = () => Date.now(), staleMs = 0 } = {}) {
+// ⭐ 47a (D151 Rule 5) · `store` (services/jobs/keptStore.js, optional): a second level that survives a restart. On a miss in
+// memory a stored answer younger than `storeStaleMs` is taken in and answered as "stale" (one recount behind it), so a
+// first load after a deploy never waits on a whole-board recount; a counted answer is written through; every way an entry
+// leaves for the person's own write (clearUser / markStale / updateUser) deletes their stored rows too.
+/**
+ * ⭐ 47a (D151 Rule 5, measured at 250k × 20 after a restart): a gate for the recounts that run BEHIND a stale answer. Each
+ * stale answer started its whole-board recount at once (12–22 s each at 123k candidates), so 20 people's recounts held both
+ * request workers and their own next reads queued 40 s behind them. Through one gate (shared by the board's caches) at most
+ * `limit` recounts run at a time and the rest wait their turn — a person waiting on a MISS never goes through it.
+ */
+export function createRefreshGate(limit = 1) {
+  let running = 0;
+  const queue = [];
+  const next = () => {
+    while (running < limit && queue.length) {
+      const { fn, resolve, reject } = queue.shift();
+      running++;
+      Promise.resolve().then(fn).then(resolve, reject).finally(() => { running--; next(); });
+    }
+  };
+  return { run: (fn) => new Promise((resolve, reject) => { queue.push({ fn, resolve, reject }); next(); }), status: () => ({ running, waiting: queue.length }) };
+}
+
+export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTRIES, now = () => Date.now(), staleMs = 0, store = null, storeStaleMs = staleMs, refreshGate = null } = {}) {
   const done = new Map();       // key → { at, value }
   const flying = new Map();     // key → Promise<value>
   const userOf = (key) => key.slice(0, key.indexOf("|"));
@@ -33,13 +56,20 @@ export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTR
      * Resolves to { value, cache: "hit" | "shared" | "miss", asOf } — asOf the time the kept answer was counted.
      */
     async get(key, compute) {
-      const kept = done.get(key);
+      let kept = done.get(key);
+      let fromStore = false;
+      if (!kept && store && !flying.has(key)) {
+        let s = null;
+        try { s = store.read(key); } catch { s = null; }
+        if (s && s.value?.status === 200 && Number.isFinite(s.at) && now() - s.at < Math.max(storeStaleMs, ttlMs)) { kept = s; fromStore = true; done.set(key, s); }
+      }
+      const staleFor = fromStore ? Math.max(storeStaleMs, staleMs) : staleMs;
       if (kept && now() - kept.at < ttlMs) return { value: kept.value, cache: "hit", asOf: kept.at };
-      if (kept && staleMs > ttlMs && now() - kept.at < staleMs) {
+      if (kept && staleFor > ttlMs && now() - kept.at < staleFor) {
         if (!flying.has(key)) {
-          const p = (async () => compute())();
+          const p = refreshGate ? refreshGate.run(compute) : (async () => compute())();
           flying.set(key, p);
-          p.then(value => { if (value?.status === 200 && flying.get(key) === p) done.set(key, { at: now(), value }); })
+          p.then(value => { if (value?.status === 200 && flying.get(key) === p) { const at = now(); done.set(key, { at, value }); try { store?.write(key, value, at); } catch { /* memory stands */ } } })
             .catch(() => { /* the stale answer stands until the next ask */ })
             .finally(() => { if (flying.get(key) === p) flying.delete(key); });
         }
@@ -55,6 +85,7 @@ export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTR
         if (value?.status === 200 && flying.get(key) === p) {
           if (done.size >= max) done.delete(done.keys().next().value);   // the oldest entry first
           done.set(key, { at: started, value });
+          try { store?.write(key, value, started); } catch { /* memory stands */ }
         }
         return { value, cache: "miss", asOf: started };
       } finally {
@@ -70,6 +101,7 @@ export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTR
      */
     markStale(userId) {
       if (!(staleMs > ttlMs)) return this.clearUser(userId);
+      try { store?.clearUser(userId); } catch { /* memory is aged regardless */ }
       const u = String(userId), aged = now() - ttlMs;
       for (const [k, v] of done) if (userOf(k) === u && v.at > aged) done.set(k, { ...v, at: aged });
       for (const k of [...flying.keys()]) if (userOf(k) === u) flying.delete(k);
@@ -81,6 +113,7 @@ export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTR
      */
     updateUser(userId, fn) {
       const u = String(userId);
+      try { store?.clearUser(userId); } catch { /* memory is updated regardless */ }
       for (const [k, v] of [...done]) {
         if (userOf(k) !== u) continue;
         let next;
@@ -93,6 +126,7 @@ export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTR
     /** Drop every entry (kept or in flight) of one user — called on each of their writes. */
     clearUser(userId) {
       const u = String(userId);
+      try { store?.clearUser(userId); } catch { /* memory is cleared regardless */ }
       for (const k of [...done.keys()]) if (userOf(k) === u) done.delete(k);
       for (const k of [...flying.keys()]) if (userOf(k) === u) flying.delete(k);   // a count started before the write is not kept
     },

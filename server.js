@@ -334,7 +334,8 @@ import {
 } from "./services/jobs/jobQuery.js";
 // D24 · GET /api/jobs/facets — the sentence's counts, measured through boardPageResponse itself.
 import { boardFacetsResponse } from "./services/jobs/boardFacets.js";
-import { createFacetsCache, facetsKey } from "./services/jobs/facetsCache.js";
+import { createFacetsCache, facetsKey, createRefreshGate } from "./services/jobs/facetsCache.js";
+import { createKeptStore } from "./services/jobs/keptStore.js";   // ⭐ 47a (D151 Rule 5): the kept answers survive a restart (migration 280)
 import { keptOrderAfterDecision } from "./services/jobs/keptOrderDecision.js";   // A195 leftover (46m): a pass / save, in place
 // ⭐ D151 (45k) · the board's held read ("N more being matched"), kept per user + statement, refreshed behind the answer.
 import { createHeldCountCache, heldKey } from "./services/jobs/heldCountCache.js";
@@ -8124,6 +8125,27 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_tracked_pages_pair ON tracked_pages(ats_type, ats_slug) WHERE status = 'pending';
       `,
     },
+    {
+      // ⭐ 47a (D151 Rule 5, measured at 250k × 20 users): THE BOARD'S KEPT ANSWERS SURVIVE A RESTART. The kept order (A175), the
+      // Full House counts (A184) and the filter sentence's counts (D156 (6)) lived only in memory, so a fresh process — every
+      // deploy — rebuilt each person's whole-board order (2–5 s at 123k candidates) and facet head (up to 30 s) on the two
+      // request workers as they arrived: deck p95 44 s, board p95 22 s. Each answer is now also written here under the SAME
+      // key as in memory (the person, the profile, the query, the score epoch, the gate's basis, the visit mark — so a new
+      // score or résumé is a new key, never a stale hit); a first load after a restart reads one row and is answered at once
+      // (as "stale", one recount behind it). Any write of the person's deletes their rows, as it clears memory. A cache: it
+      // goes with the account (ON DELETE CASCADE) and is never merged (MERGE_PLAN drop). Only ADDS a table.
+      id: "280_board_kept_cache",
+      sql: `
+        CREATE TABLE IF NOT EXISTS board_kept_cache (
+          cache_key   TEXT    PRIMARY KEY,
+          user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          kind        TEXT    NOT NULL,
+          value_json  TEXT    NOT NULL,
+          written_at  INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_board_kept_cache_user ON board_kept_cache(user_id);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -11010,7 +11032,9 @@ app.use(passport.session());
 // (Its middleware runs after bindAuthContext, below — a token-authenticated request's user is bound there.)
 // ⭐ A175 (46d): stale-while-revalidate for 10 minutes — a recount older than the TTL is answered at once (X-Facets-Cache: stale)
 // while one refresh runs behind it; the person's own writes still drop theirs (below).
-const facetsCache = createFacetsCache({ ttlMs: 5 * 60 * 1000, staleMs: 15 * 60 * 1000 });   // A175: fresh 5 min, then stale-while-revalidate to 15
+// ⭐ 47a (D151 Rule 5): ONE recount behind a stale board answer at a time, across the three board caches — a worker stays free for people.
+const boardRefreshGate = createRefreshGate(1);
+const facetsCache = createFacetsCache({ ttlMs: 5 * 60 * 1000, staleMs: 15 * 60 * 1000, store: createKeptStore(db, "facets"), storeStaleMs: 6 * 3600 * 1000, refreshGate: boardRefreshGate });   // A175: fresh 5 min, then stale-while-revalidate to 15
 // ⭐ A175 (46d) · the board's kept order (boardPageResponse): the first BOARD_ORDER_KEEP ids + the total per person and board,
 // 60 s, dropped on the person's writes with facetsCache. Measured 46d at 100k (one user, 49k candidates): the page + count
 // were 2.5–13 s a load; a kept order answers a page from 51 rows read by id.
@@ -11018,9 +11042,11 @@ const BOARD_ORDER_KEEP = 1000;
 // A175 (46d, later): + stale-while-revalidate for 10 minutes — the key carries the score epoch and the gate's basis, so a
 // stale answer is never one from before a scoring pass or a new résumé; only the board's own churn (a crawl's new or
 // expired postings) can be up to 10 minutes behind, and one refresh runs behind it.
-const boardOrderCache = createFacetsCache({ ttlMs: 5 * 60 * 1000, max: 300, staleMs: 15 * 60 * 1000 });   // A175: the key moves with the scores
+const boardOrderCache = createFacetsCache({ ttlMs: 5 * 60 * 1000, max: 300, staleMs: 15 * 60 * 1000, store: createKeptStore(db, "order"), storeStaleMs: 6 * 3600 * 1000, refreshGate: boardRefreshGate });   // A175: the key moves with the scores
 // ⭐ A184 (46f) · the Full House's include_facets counts, kept with the same rules (boardPageResponse; dropped with the order).
-const boardDimFacetsCache = createFacetsCache({ ttlMs: 5 * 60 * 1000, max: 300, staleMs: 15 * 60 * 1000 });
+const boardDimFacetsCache = createFacetsCache({ ttlMs: 5 * 60 * 1000, max: 300, staleMs: 15 * 60 * 1000, store: createKeptStore(db, "dim"), storeStaleMs: 6 * 3600 * 1000, refreshGate: boardRefreshGate });
+// ⭐ 47a (D151 Rule 5, 250k × 20): the three keep a second level in the database (services/jobs/keptStore.js) — a first load after a
+// deploy reads its stored answer (up to 6 h old, the key moving with every score and résumé) as "stale", one recount behind it.
 // ⭐ A177 (46d) · a person's FIRST board load was always a miss (1.5–3 s of read-worker time at 100k; 20 users = 20 misses
 // queued on 2 workers). The order is now WARMED in the background — after their scoring lands (the match queue's
 // board_scored, whose refetch then hits) and on sign-in — for the default board and the deck's ATS order, on the read

@@ -7453,4 +7453,25 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_tracked_pages_pair ON tracked_pages(ats_type, ats_slug) WHERE status = 'pending';
       `,
     },
+    {
+      // ⭐ 47a (D151 Rule 5, measured at 250k × 20 users): THE BOARD'S KEPT ANSWERS SURVIVE A RESTART. The kept order (A175), the
+      // Full House counts (A184) and the filter sentence's counts (D156 (6)) lived only in memory, so a fresh process — every
+      // deploy — rebuilt each person's whole-board order (2–5 s at 123k candidates) and facet head (up to 30 s) on the two
+      // request workers as they arrived: deck p95 44 s, board p95 22 s. Each answer is now also written here under the SAME
+      // key as in memory (the person, the profile, the query, the score epoch, the gate's basis, the visit mark — so a new
+      // score or résumé is a new key, never a stale hit); a first load after a restart reads one row and is answered at once
+      // (as "stale", one recount behind it). Any write of the person's deletes their rows, as it clears memory. A cache: it
+      // goes with the account (ON DELETE CASCADE) and is never merged (MERGE_PLAN drop). Only ADDS a table.
+      id: "280_board_kept_cache",
+      sql: `
+        CREATE TABLE IF NOT EXISTS board_kept_cache (
+          cache_key   TEXT    PRIMARY KEY,
+          user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          kind        TEXT    NOT NULL,
+          value_json  TEXT    NOT NULL,
+          written_at  INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_board_kept_cache_user ON board_kept_cache(user_id);
+      `,
+    },
   ];

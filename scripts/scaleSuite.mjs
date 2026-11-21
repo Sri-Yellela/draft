@@ -28,6 +28,9 @@ const PROF_DIR = arg("--cpu-prof", null) ? path.resolve(arg("--cpu-prof")) : nul
 const JSON_OUT = arg("--json", null);
 // ⭐ D151 (45k): --server-log <file> → the server's whole stdout / stderr written there at the end (READ_SLOW_MS lines included).
 const SERVER_LOG = arg("--server-log", null);
+// ⭐ 47a (D151 Rule 5): --keep-copy <dir> → the run's database is KEPT there (not deleted), so a second run on it measures a
+// RESTART — a deploy — with everything the first boot wrote (migration 280's kept board answers among it).
+const KEEP_COPY = arg("--keep-copy", null) ? path.resolve(arg("--keep-copy")) : null;
 const PASSWORD = "Scale-Fixture-2026!x";
 const ADMIN_EMAIL = "scale-admin@example.com";
 export const BUDGETS = { listenMs: 3000, readyMs: 30000, p95Ms: 300, loopP99Ms: 100, sliceMs: 100 };
@@ -232,7 +235,10 @@ try {
 } finally {
   await stop();
   if (SERVER_LOG) try { fs.writeFileSync(SERVER_LOG, log); } catch {}
-  try { fs.rmSync(RUN, { recursive: true, force: true }); } catch {}
+  if (KEEP_COPY) {
+    try { fs.rmSync(KEEP_COPY, { recursive: true, force: true }); fs.renameSync(RUN, KEEP_COPY); console.log(`(the run's copy kept at ${KEEP_COPY})`); }
+    catch (e) { console.error(`could not keep the copy: ${e.message}`); try { fs.rmSync(RUN, { recursive: true, force: true }); } catch {} }
+  } else try { fs.rmSync(RUN, { recursive: true, force: true }); } catch {}
 }
 console.log(failures.length ? `\n${failures.length} budget(s) FAILED: ${failures.join(" · ")}` : "\nall budgets met");
 process.exit(failures.length ? 1 : 0);
