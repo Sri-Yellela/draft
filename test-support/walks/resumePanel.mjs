@@ -99,7 +99,8 @@ export default async function run(h, { check, observe, section }) {
   check('Not made yet: "Résumé for this job"', p1?.title === 'Résumé for this job', p1?.title);
   check('…it names the job', p1?.job === 'Software Engineer at Zoom', p1?.job);
   check('…"No résumé has been made for this job yet."', /No résumé has been made for this job yet\./.test(p1?.text || ''), p1?.text);
-  check('⛔ T22: no Generate — the tab is not a place to start one', !p1?.actions.some(a => /Generate|Try again|Regenerate/.test(a)) && !(await h.readShadow(HOST, (root) => !!root.querySelector('[data-role="generate"], [data-role="regenerate"]'))), JSON.stringify(p1?.actions));
+  // ⭐ 47a E2 (owner 11-21, moved on purpose): ONE start in the tab — Tailor — and never Regenerate; opening it starts nothing
+  check('47a E2: the one start is "Tailor my résumé for this job" (no Regenerate)', JSON.stringify(p1?.actions) === JSON.stringify(['Tailor my résumé for this job']) && !(await h.readShadow(HOST, (root) => !!root.querySelector('[data-role="regenerate"]'))), JSON.stringify(p1?.actions));
   const menu = (theme === 'dark' ? C_DARK : C_LIGHT).SURFACE_MENU;
   const flat = (c) => String(c || '').replace(/\s+/g, '').toLowerCase();
   check(`painted from the ${theme} tokens`, /^#/.test(menu) ? hex(p1?.bg) === menu.toUpperCase().slice(0, 7) : flat(p1?.bg) === flat(menu), `${p1?.bg} vs ${menu}`);
@@ -141,7 +142,7 @@ export default async function run(h, { check, observe, section }) {
   check('ATS before → after', p4?.score === 'ATS 62 → 81', p4?.score);
   check('"What we changed — …"', /^What we changed — /.test(p4?.changes || ''), p4?.changes);
   check('the guard\'s result in plain words', /Checked against your profile/.test(p4?.guard || ''), p4?.guard);
-  check('Attach · Download PDF · Edit in a full page — no Regenerate (T22: a view)', p4?.actions.join(' · ') === 'Attach · Download PDF · Edit in a full page', p4?.actions.join(' · '));
+  check('Attach · Download PDF · View résumé — no Regenerate (47a E4: draft\'s sandbox)', p4?.actions.join(' · ') === 'Attach · Download PDF · View résumé', p4?.actions.join(' · '));
   const words = `${p4?.title} ${p4?.text} ${p4?.actions.join(' ')}`;
   check('⛔ no cost, token or model word anywhere on it', !/\$|\bcost|\bprice|\btokens?\b|\bmodel\b|claude|sonnet|anthropic|openai|credit/i.test(words), words.match(/\$|cost|price|token|model|claude|sonnet|credit/i)?.[0]);
 
@@ -186,7 +187,7 @@ export default async function run(h, { check, observe, section }) {
   await click(h, '[data-role="cancel"]');
   const p7b = await waitState(h, ['cancelled']);
   check('Cancel (the tab still cancels a running one) → "Cancelled — nothing was attached."', /Cancelled — nothing was attached\./.test(p7b?.text || ''), p7b?.text);
-  check('…and offers no Try again (T22)', !(p7b?.actions || []).some(a => /Try again|Generate/.test(a)), JSON.stringify(p7b?.actions));
+  check('…and offers Try again, nothing else that starts (47a E2)', JSON.stringify(p7b?.actions) === JSON.stringify(['Try again']), JSON.stringify(p7b?.actions));
   release2();
   await sleep(300);
   check('…and a cancelled one never turns into a résumé', (await readPanel(h))?.state === 'cancelled' && CTL.pdfs().length === 1);
