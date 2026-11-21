@@ -21,13 +21,21 @@
 export const HELD_FRESH_MS = 20_000;
 export const HELD_STALE_MS = 300_000;
 export const HELD_MAX_ENTRIES = 1000;
+// ⭐ 47a (D151 Rule 5, measured at 250k × 20 after a restart): on a fully scored board the held read finds NOTHING and so
+// walks every active posting (123k: 9 s on a request worker) — and it re-ran every freshMs per person, 16 such reads in one
+// minute holding the pool (the Full House p95 18 s). "Nothing being matched" is kept fresh this long (a new posting is
+// scored by the background passes meanwhile); the refresh behind a stale answer goes through the board's shared refresh
+// gate (one at a time); and the answer survives a restart (services/jobs/keptStore.js, kind "held").
+export const HELD_EMPTY_FRESH_MS = 300_000;
 
 export function heldKey(userId, sql, args) {
   return `${userId}|${sql}|${JSON.stringify(args)}`;
 }
 
 export function createHeldCountCache({ freshMs = HELD_FRESH_MS, staleMs = HELD_STALE_MS, max = HELD_MAX_ENTRIES,
-  now = () => Date.now(), onRefreshError = (e) => console.warn("[board-match] held refresh:", e?.message) } = {}) {
+  now = () => Date.now(), onRefreshError = (e) => console.warn("[board-match] held refresh:", e?.message),
+  emptyFreshMs = HELD_EMPTY_FRESH_MS, store = null, storeStaleMs = staleMs, refreshGate = null } = {}) {
+  const isEmpty = (v) => v && Number(v.count) === 0 && !v.more;
   const done = new Map();      // key → { at, value }
   const flying = new Map();    // key → Promise<value>
   const userOf = (key) => key.slice(0, key.indexOf("|"));
@@ -36,12 +44,12 @@ export function createHeldCountCache({ freshMs = HELD_FRESH_MS, staleMs = HELD_S
     if (done.size >= max) done.delete(done.keys().next().value);
     done.set(key, { at, value });
   };
-  const run = (key, compute) => {
+  const run = (key, compute, { behind = false } = {}) => {
     if (flying.has(key)) return flying.get(key);
     const started = now();
-    const p = (async () => compute())();
+    const p = behind && refreshGate ? refreshGate.run(compute) : (async () => compute())();
     flying.set(key, p);
-    p.then((value) => { if (flying.get(key) === p) keep(key, value, started); },
+    p.then((value) => { if (flying.get(key) === p) { keep(key, value, started); try { store?.write(key, { status: 200, value }, started); } catch { /* memory stands */ } } },
            () => {})
      .finally(() => { if (flying.get(key) === p) flying.delete(key); });
     return p;
@@ -49,11 +57,17 @@ export function createHeldCountCache({ freshMs = HELD_FRESH_MS, staleMs = HELD_S
   return {
     /** Resolves to { value, cache: "hit" | "stale" | "miss" | "shared" }. `compute` reads (and queues) — its value is kept. */
     async get(key, compute) {
-      const kept = done.get(key);
+      let kept = done.get(key);
+      let fromStore = false;
+      if (!kept && store && !flying.has(key)) {
+        let s = null;
+        try { s = store.read(key); } catch { s = null; }
+        if (s?.value?.status === 200 && Number.isFinite(s.at) && now() - s.at <= storeStaleMs) { kept = { at: s.at, value: s.value.value }; fromStore = true; keep(key, kept.value, kept.at); }
+      }
       const age = kept ? now() - kept.at : Infinity;
-      if (kept && age <= freshMs) return { value: kept.value, cache: "hit" };
-      if (kept && age <= staleMs) {
-        if (!flying.has(key)) run(key, compute).catch(onRefreshError);
+      if (kept && age <= (isEmpty(kept.value) ? Math.max(freshMs, emptyFreshMs) : freshMs)) return { value: kept.value, cache: "hit" };
+      if (kept && age <= (fromStore ? Math.max(staleMs, storeStaleMs) : staleMs)) {
+        if (!flying.has(key)) run(key, compute, { behind: true }).catch(onRefreshError);
         return { value: kept.value, cache: "stale" };
       }
       if (kept) done.delete(key);
@@ -63,6 +77,7 @@ export function createHeldCountCache({ freshMs = HELD_FRESH_MS, staleMs = HELD_S
     /** Drop one user's entries (kept and in flight) — their scoring landed, so the held set moved. */
     clearUser(userId) {
       const u = String(userId);
+      try { store?.clearUser(userId); } catch { /* memory is cleared regardless */ }
       for (const k of [...done.keys()]) if (userOf(k) === u) done.delete(k);
       for (const k of [...flying.keys()]) if (userOf(k) === u) flying.delete(k);
     },

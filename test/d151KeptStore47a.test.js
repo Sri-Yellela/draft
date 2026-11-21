@@ -89,3 +89,28 @@ test("d151KeptStore: the recounts BEHIND stale answers go one at a time through 
   assert.equal(miss.cache, "miss");
   assert.match(read("server.js"), /const boardRefreshGate = createRefreshGate\(1\);/);
 });
+
+test("d151KeptStore: the held count — 'none being matched' fresh 5 min, its refresh through the gate, kept across a restart (long keys hashed)", async () => {
+  const { createHeldCountCache, heldKey, HELD_EMPTY_FRESH_MS } = await import("../services/jobs/heldCountCache.js");
+  const db = dbWithTable();
+  let t = 1_000_000_000_000; const now = () => t;
+  const key = heldKey(7, "SELECT sj.job_id AS id FROM scraped_jobs sj " + "x".repeat(500), [1, 2]);
+  let reads = 0;
+  const none = async () => { reads++; return { count: 0, more: false }; };
+  const gate = createRefreshGate(1);
+  const a = createHeldCountCache({ freshMs: 120_000, now, store: createKeptStore(db, "held", { now }), storeStaleMs: 6 * 3600_000, refreshGate: gate });
+  assert.equal((await a.get(key, none)).cache, "miss");
+  t += 200_000;   // past freshMs, inside the empty answer's 5 min
+  assert.equal(HELD_EMPTY_FRESH_MS, 300_000);
+  assert.equal((await a.get(key, none)).cache, "hit", "nothing held: no 9 s walk every 2 min");
+  assert.equal(reads, 1);
+  const row = db.prepare("SELECT cache_key FROM board_kept_cache WHERE kind = 'held'").get();
+  assert.match(row.cache_key, /^held:7\|#[0-9a-f]{40}$/, "a long key stored as the user + a hash");
+  t += 3600_000;  // a restart an hour later
+  const b = createHeldCountCache({ freshMs: 120_000, now, store: createKeptStore(db, "held", { now }), storeStaleMs: 6 * 3600_000, refreshGate: gate });
+  assert.equal((await b.get(key, none)).cache, "stale", "answered at once after a restart");
+  while (gate.status().running || gate.status().waiting) await new Promise(r => setTimeout(r, 5));
+  assert.equal(reads, 2, "one refresh behind it, through the gate");
+  b.clearUser(7);
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM board_kept_cache WHERE kind = 'held'").get().n, 0, "their scoring landing clears it");
+});

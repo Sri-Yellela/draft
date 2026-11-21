@@ -10921,7 +10921,9 @@ const _boardMatch = new Map();   // "user:profile" -> { ids: Set, running: boole
 // ⭐ D151 (45k) · the held read's kept answers (services/jobs/heldCountCache.js); dropped when the person's scoring lands.
 // A175 (46d): fresh for 2 minutes (was 20 s) — at 100k each recount is a 0.4–1.5 s read, and 20 people recounting every 20 s
 // kept a read worker busy on its own; new postings still reach the match queue within 2 minutes of being asked for.
-const heldCounts = createHeldCountCache({ freshMs: 120_000 });
+// ⭐ 47a (D151 Rule 5): ONE recount behind a stale board answer at a time, across the board caches and the held count — a worker stays free for people.
+const boardRefreshGate = createRefreshGate(1);
+const heldCounts = createHeldCountCache({ freshMs: 120_000, store: createKeptStore(db, "held"), storeStaleMs: 6 * 3600 * 1000, refreshGate: boardRefreshGate });   // ⭐ 47a (D151 Rule 5): kept across a restart, refreshed one at a time, "none held" fresh 5 min
 function enqueueBoardMatch(userId, profile, jobIds) {
   if (!boardFitAutomationEnabled() || !userId || !profile?.id || !jobIds?.length) return;
   const key = `${userId}:${profile.id}`;
@@ -11032,8 +11034,6 @@ app.use(passport.session());
 // (Its middleware runs after bindAuthContext, below — a token-authenticated request's user is bound there.)
 // ⭐ A175 (46d): stale-while-revalidate for 10 minutes — a recount older than the TTL is answered at once (X-Facets-Cache: stale)
 // while one refresh runs behind it; the person's own writes still drop theirs (below).
-// ⭐ 47a (D151 Rule 5): ONE recount behind a stale board answer at a time, across the three board caches — a worker stays free for people.
-const boardRefreshGate = createRefreshGate(1);
 const facetsCache = createFacetsCache({ ttlMs: 5 * 60 * 1000, staleMs: 15 * 60 * 1000, store: createKeptStore(db, "facets"), storeStaleMs: 6 * 3600 * 1000, refreshGate: boardRefreshGate });   // A175: fresh 5 min, then stale-while-revalidate to 15
 // ⭐ A175 (46d) · the board's kept order (boardPageResponse): the first BOARD_ORDER_KEEP ids + the total per person and board,
 // 60 s, dropped on the person's writes with facetsCache. Measured 46d at 100k (one user, 49k candidates): the page + count

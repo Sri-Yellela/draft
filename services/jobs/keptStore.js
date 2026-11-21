@@ -9,12 +9,16 @@
 // The cache answers a stored entry as "stale" (one recount behind it, off the person's wait) — see facetsCache's `store`.
 // Writes: one small upsert after a count finishes (main thread, a single row); reads: one primary-key row on a miss.
 // ⛔ Never a source of truth: any failure here (no table yet, a locked database) is swallowed and the cache counts as before.
+import crypto from "node:crypto";
+
 export const KEPT_STORE_MAX_AGE_S = 24 * 3600;   // rows older than a day are pruned (a stale answer past this is not served)
 export const PRUNE_EVERY_WRITES = 500;
 
 /** A store for createFacetsCache: { read(key) → { at, value } | null, write(key, value, at), clearUser(userId) }. */
 export function createKeptStore(db, kind, { now = () => Date.now() } = {}) {
-  const k = (key) => `${kind}:${key}`;
+  // a key past 200 characters (the held count's carries its whole statement) is stored as its user + a sha1 of the rest
+  const k = (key) => { const s = String(key); if (s.length <= 200) return `${kind}:${s}`; const i = s.indexOf("|");
+    return `${kind}:${s.slice(0, i)}|#${crypto.createHash("sha1").update(s.slice(i + 1)).digest("hex")}`; };
   const userOf = (key) => { const n = Number(String(key).slice(0, String(key).indexOf("|"))); return Number.isInteger(n) && n > 0 ? n : null; };
   let writes = 0;
   const stmt = (() => {
