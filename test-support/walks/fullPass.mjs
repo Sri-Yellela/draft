@@ -297,9 +297,12 @@ export default async function run(h, { check, observe, section }) {
   check('the Résumé tab opens on the page — not made yet', opened?.ok === true && opened.state === 'none', JSON.stringify(opened));
   await waitUntil(() => h.readShadow('rm-resume-panel', (root, host) => host.dataset.state === 'none'), BUSY_MS);
   check('opening it started nothing', CTL.generations().length === 0);
-  check('⛔ T22: the tab offers no Generate', !(await h.readShadow('rm-resume-panel', (root) => !!root.querySelector('[data-role="generate"]'))));
-  const started = await h.pageSend({ type: 'RESUME_GENERATE', trigger: 'click' });
-  check('the one start answers', started?.ok === true, JSON.stringify(started)?.slice(0, 160));
+  // ⭐ 47a E2 (owner 11-21, moved on purpose): the tab's ONE start — "Tailor my résumé for this job" — pressed with a real,
+  // trusted click (the person's), which sends the one RESUME_GENERATE with the click's trigger
+  check('47a E2: the tab offers its one start, Tailor', !!(await h.readShadow('rm-resume-panel', (root) => !!root.querySelector('[data-role="generate"]'))));
+  await h.page.click('#rm-resume-panel >>> [data-role="generate"]');
+  const started = await waitUntil(() => (CTL.generations().length === 1 ? true : null), BUSY_MS);
+  check('the person\'s click on Tailor starts it — the one start, one generation', started === true, `${CTL.generations().length} generation(s)`);
   await h.send({ type: 'RESUME_PANEL_OPEN', tab: 'resume' });
   const ready = await waitUntil(() => h.readShadow('rm-resume-panel', (root, host) => (host.dataset.state === 'ready' ? true : null)), BUSY_MS);
   check('one press → Ready (one generation, one slot)', ready === true && CTL.generations().length === 1 && CTL.slots() === 1, `${CTL.generations().length} / ${CTL.slots()}`);
