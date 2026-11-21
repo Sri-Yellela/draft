@@ -39,10 +39,10 @@ export function createHeldCountCache({ freshMs = HELD_FRESH_MS, staleMs = HELD_S
   const done = new Map();      // key → { at, value }
   const flying = new Map();    // key → Promise<value>
   const userOf = (key) => key.slice(0, key.indexOf("|"));
-  const keep = (key, value, at) => {
+  const keep = (key, value, at, fromStore = false) => {
     done.delete(key);
     if (done.size >= max) done.delete(done.keys().next().value);
-    done.set(key, { at, value });
+    done.set(key, { at, value, ...(fromStore ? { fromStore: true } : {}) });
   };
   const run = (key, compute, { behind = false } = {}) => {
     if (flying.has(key)) return flying.get(key);
@@ -58,11 +58,11 @@ export function createHeldCountCache({ freshMs = HELD_FRESH_MS, staleMs = HELD_S
     /** Resolves to { value, cache: "hit" | "stale" | "miss" | "shared" }. `compute` reads (and queues) — its value is kept. */
     async get(key, compute) {
       let kept = done.get(key);
-      let fromStore = false;
+      let fromStore = !!kept?.fromStore;   // ⭐ 47a: a stored answer keeps the store's window on every later read
       if (!kept && store && !flying.has(key)) {
         let s = null;
         try { s = store.read(key); } catch { s = null; }
-        if (s?.value?.status === 200 && Number.isFinite(s.at) && now() - s.at <= storeStaleMs) { kept = { at: s.at, value: s.value.value }; fromStore = true; keep(key, kept.value, kept.at); }
+        if (s?.value?.status === 200 && Number.isFinite(s.at) && now() - s.at <= storeStaleMs) { kept = { at: s.at, value: s.value.value, fromStore: true }; fromStore = true; keep(key, kept.value, kept.at, true); }
       }
       const age = kept ? now() - kept.at : Infinity;
       if (kept && age <= (isEmpty(kept.value) ? Math.max(freshMs, emptyFreshMs) : freshMs)) return { value: kept.value, cache: "hit" };

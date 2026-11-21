@@ -71,14 +71,16 @@ export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTR
      */
     async get(key, compute) {
       let kept = done.get(key);
-      let fromStore = false;
+      // ⭐ 47a: an answer taken in from the store keeps its mark, so EVERY later read uses the store's window too — without
+      // it the second read found an "expired" entry, dropped it and awaited the refresh queued in the gate (85 s, measured)
+      let fromStore = !!kept?.fromStore;
       if (!kept && store && !flying.has(key)) {
         let s = null;
         let viaLoose = false;
         try { s = store.read(key); if (!s && loose(key)) { s = store.read(loose(key)); viaLoose = !!s; } } catch { s = null; }
         // an answer under the loose key belongs to an older score / visit mark: never fresh — aged past ttlMs, so it is stale
         if (s && viaLoose) s = { ...s, at: Math.min(s.at, now() - ttlMs - 1) };
-        if (s && s.value?.status === 200 && Number.isFinite(s.at) && now() - s.at < Math.max(storeStaleMs, ttlMs)) { kept = s; fromStore = true; done.set(key, s); }
+        if (s && s.value?.status === 200 && Number.isFinite(s.at) && now() - s.at < Math.max(storeStaleMs, ttlMs)) { kept = { ...s, fromStore: true }; fromStore = true; done.set(key, kept); }
       }
       const staleFor = fromStore ? Math.max(storeStaleMs, staleMs) : staleMs;
       if (kept && now() - kept.at < ttlMs) return { value: kept.value, cache: "hit", asOf: kept.at };

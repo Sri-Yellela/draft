@@ -130,3 +130,20 @@ test("d151KeptStore: a count whose score / visit mark moved is answered from the
   assert.equal(looseCountKey("7|3|a=1&~score=9&~visit=x"), "7|3|a=1#loose");
   assert.doesNotMatch(read("server.js"), /store: createKeptStore\(db, "order"\)[^\n]*looseKey/, "the order keeps its exact key (the cursor's epoch check)");
 });
+
+test("d151KeptStore: a stored answer read AGAIN is still stale at once — it never waits behind the refresh queued in the gate", async () => {
+  const db = dbWithTable();
+  let t = 1_000_000_000_000; const now = () => t;
+  const key = facetsKey(7, 3, { "~kind": "dim" });
+  createKeptStore(db, "dim", { now }).write(key, { status: 200, n: 1 }, t - 3600_000);   // an hour old: past staleMs, inside the store window
+  const gate = createRefreshGate(1);
+  let release;
+  const blocker = gate.run(() => new Promise(r => { release = r; }));   // the gate is busy until released
+  const c = createFacetsCache({ ttlMs: 300_000, staleMs: 900_000, now, store: createKeptStore(db, "dim", { now }), storeStaleMs: 6 * 3600_000, refreshGate: gate });
+  const first = await c.get(key, async () => ({ status: 200, n: 2 }));
+  const second = await Promise.race([c.get(key, async () => ({ status: 200, n: 3 })), new Promise(r => setTimeout(() => r("waited"), 200))]);
+  assert.equal(first.cache, "stale");
+  assert.notEqual(second, "waited", "the second read must not wait for the queued refresh");
+  assert.equal(second.cache, "stale");
+  release(); await blocker;
+});
