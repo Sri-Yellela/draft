@@ -46,7 +46,21 @@ export function createRefreshGate(limit = 1) {
   return { run: (fn) => new Promise((resolve, reject) => { queue.push({ fn, resolve, reject }); next(); }), status: () => ({ running, waiting: queue.length }) };
 }
 
-export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTRIES, now = () => Date.now(), staleMs = 0, store = null, storeStaleMs = staleMs, refreshGate = null } = {}) {
+/** ⭐ 47a · the loose key for a count: the score mark and the visit mark taken out (facetsKey's `~score` / `~visit`). */
+export function looseCountKey(key) {
+  const s = String(key);
+  const i = s.indexOf("|"), j = s.indexOf("|", i + 1);
+  if (j < 0) return null;
+  const q = s.slice(j + 1).split("&").filter(p => p && !/^~(score|visit)=/.test(p)).join("&");
+  return `${s.slice(0, j + 1)}${q}#loose`;
+}
+
+export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTRIES, now = () => Date.now(), staleMs = 0, store = null, storeStaleMs = staleMs, refreshGate = null, looseKey = null } = {}) {
+  // ⭐ 47a (D151 Rule 5): `looseKey(key)` (counts only, never an order): the key without the parts that move on their own —
+  // the score mark, the visit mark. On a miss of the exact key the newest stored answer under the loose key is answered as
+  // STALE (one recount behind it, through the gate) — measured at 250k: after scoring landed every exact count key missed,
+  // and 20 people's whole-board recounts filled the request workers (Full House p95 122 s).
+  const loose = (key) => { try { const l = looseKey ? looseKey(key) : null; return l && l !== key ? l : null; } catch { return null; } };
   const done = new Map();       // key → { at, value }
   const flying = new Map();     // key → Promise<value>
   const userOf = (key) => key.slice(0, key.indexOf("|"));
@@ -60,7 +74,10 @@ export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTR
       let fromStore = false;
       if (!kept && store && !flying.has(key)) {
         let s = null;
-        try { s = store.read(key); } catch { s = null; }
+        let viaLoose = false;
+        try { s = store.read(key); if (!s && loose(key)) { s = store.read(loose(key)); viaLoose = !!s; } } catch { s = null; }
+        // an answer under the loose key belongs to an older score / visit mark: never fresh — aged past ttlMs, so it is stale
+        if (s && viaLoose) s = { ...s, at: Math.min(s.at, now() - ttlMs - 1) };
         if (s && s.value?.status === 200 && Number.isFinite(s.at) && now() - s.at < Math.max(storeStaleMs, ttlMs)) { kept = s; fromStore = true; done.set(key, s); }
       }
       const staleFor = fromStore ? Math.max(storeStaleMs, staleMs) : staleMs;
@@ -69,7 +86,7 @@ export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTR
         if (!flying.has(key)) {
           const p = refreshGate ? refreshGate.run(compute) : (async () => compute())();
           flying.set(key, p);
-          p.then(value => { if (value?.status === 200 && flying.get(key) === p) { const at = now(); done.set(key, { at, value }); try { store?.write(key, value, at); } catch { /* memory stands */ } } })
+          p.then(value => { if (value?.status === 200 && flying.get(key) === p) { const at = now(); done.set(key, { at, value }); try { store?.write(key, value, at); if (loose(key)) store?.write(loose(key), value, at); } catch { /* memory stands */ } } })
             .catch(() => { /* the stale answer stands until the next ask */ })
             .finally(() => { if (flying.get(key) === p) flying.delete(key); });
         }
@@ -85,7 +102,7 @@ export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTR
         if (value?.status === 200 && flying.get(key) === p) {
           if (done.size >= max) done.delete(done.keys().next().value);   // the oldest entry first
           done.set(key, { at: started, value });
-          try { store?.write(key, value, started); } catch { /* memory stands */ }
+          try { store?.write(key, value, started); if (loose(key)) store?.write(loose(key), value, started); } catch { /* memory stands */ }
         }
         return { value, cache: "miss", asOf: started };
       } finally {

@@ -138,5 +138,5 @@ test("a175 facets: a recount older than the TTL is answered at once (stale) whil
   let u = 0; const plain = createFacetsCache({ now: () => u, ttlMs: 100 });
   await plain.get("1|1|", () => ({ status: 200, body: {} })); u = 500;
   assert.equal((await plain.get("1|1|", () => ({ status: 200, body: {} }))).cache, "miss");
-  assert.match(SRC, /const facetsCache = createFacetsCache\(\{ ttlMs: 5 \* 60 \* 1000, staleMs: 15 \* 60 \* 1000, store: createKeptStore\(db, "facets"\), storeStaleMs: 6 \* 3600 \* 1000, refreshGate: boardRefreshGate \}\);/);
+  assert.match(SRC, /const facetsCache = createFacetsCache\(\{ ttlMs: 5 \* 60 \* 1000, staleMs: 15 \* 60 \* 1000, store: createKeptStore\(db, "facets"\), storeStaleMs: 6 \* 3600 \* 1000, refreshGate: boardRefreshGate, looseKey: looseCountKey \}\);/);
 });

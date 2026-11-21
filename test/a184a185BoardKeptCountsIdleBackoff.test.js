@@ -12,7 +12,7 @@ import { at } from "../test-support/sourceAnchors.js";
 const SRC = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
 
 test("a184: the Full House's include_facets counts are KEPT — keyed on the board, the dimensions, the score mark and the gate", () => {
-  assert.match(SRC, /const boardDimFacetsCache = createFacetsCache\(\{ ttlMs: 5 \* 60 \* 1000, max: 300, staleMs: 15 \* 60 \* 1000, store: createKeptStore\(db, "dim"\), storeStaleMs: 6 \* 3600 \* 1000, refreshGate: boardRefreshGate \}\);/);
+  assert.match(SRC, /const boardDimFacetsCache = createFacetsCache\(\{ ttlMs: 5 \* 60 \* 1000, max: 300, staleMs: 15 \* 60 \* 1000, store: createKeptStore\(db, "dim"\), storeStaleMs: 6 \* 3600 \* 1000, refreshGate: boardRefreshGate, looseKey: looseCountKey \}\);/);
   const block = SRC.slice(at(SRC, "if (facetDims.length) {"), at(SRC, "responseBody.facets = kept.value?.facets ?? {};"));
   assert.match(block, /return \{ status: 200, facets \};/, "facetsCache keeps only a 200 answer — a bare value was never kept (46f's first try)");
   assert.match(block, /const kept = await boardDimFacetsCache\.get\(boardKeyOf\("dims", \{ include_facets: facetDims\.join\(","\) \}\), async \(\) => \{/);

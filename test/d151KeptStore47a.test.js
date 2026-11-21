@@ -114,3 +114,19 @@ test("d151KeptStore: the held count — 'none being matched' fresh 5 min, its re
   b.clearUser(7);
   assert.equal(db.prepare("SELECT COUNT(*) n FROM board_kept_cache WHERE kind = 'held'").get().n, 0, "their scoring landing clears it");
 });
+
+test("d151KeptStore: a count whose score / visit mark moved is answered from the loose key (stale, one recount behind); an order never is", async () => {
+  const { looseCountKey } = await import("../services/jobs/facetsCache.js");
+  const db = dbWithTable();
+  let t = 1_000_000_000_000; const now = () => t;
+  let counts = 0;
+  const count = async () => { counts++; return { status: 200, n: counts }; };
+  const mk = () => createFacetsCache({ ttlMs: 300_000, staleMs: 900_000, now, store: createKeptStore(db, "dim", { now }), storeStaleMs: 6 * 3600_000, looseKey: looseCountKey });
+  await mk().get(facetsKey(7, 3, { "~kind": "dim", "~score": 55 }), count);
+  t += 60_000;
+  const moved = await mk().get(facetsKey(7, 3, { "~kind": "dim", "~score": 56 }), count);   // scoring landed: a new score mark
+  assert.equal(moved.cache, "stale", "the near-right count at once");
+  assert.equal(moved.value.n, 1);
+  assert.equal(looseCountKey("7|3|a=1&~score=9&~visit=x"), "7|3|a=1#loose");
+  assert.doesNotMatch(read("server.js"), /store: createKeptStore\(db, "order"\)[^\n]*looseKey/, "the order keeps its exact key (the cursor's epoch check)");
+});
