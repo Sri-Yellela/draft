@@ -143,6 +143,19 @@ export default async function run(h, { check, observe, section }) {
   check('"What we changed — …"', /^What we changed — /.test(p4?.changes || ''), p4?.changes);
   check('the guard\'s result in plain words', /Checked against your profile/.test(p4?.guard || ''), p4?.guard);
   check('Attach · Download PDF · View résumé — no Regenerate (47a E4: draft\'s sandbox)', p4?.actions.join(' · ') === 'Attach · Download PDF · View résumé', p4?.actions.join(' · '));
+  // ⭐ 47b (47a's unknown: View résumé was not pressed in a real Chrome) — a page script's click opens nothing; the person's
+  // press opens ONE tab on draft's own origin at the job's sandbox page (/draft/resume/<job>, the server's openUrl).
+  const tabsNow = async () => (await h.browser.pages()).map(p => p.url());
+  const sandboxTabs = async () => (await tabsNow()).filter(u => u.includes('/draft/resume/'));
+  await page.evaluate(() => document.getElementById('rm-resume-panel').shadowRoot.querySelector('[data-role="edit"]')?.click());
+  await sleep(600);   // expects NOTHING
+  check('⛔ a page script\'s click on View résumé opens nothing', (await sandboxTabs()).length === 0, JSON.stringify(await tabsNow()));
+  await click(h, '[data-role="edit"]');
+  const sandbox = await waitUntil(async () => { const t = await sandboxTabs(); return t.length ? t : null; }, BUSY_MS);
+  const job = h.db.prepare("SELECT job_id FROM extension_resume_generations ORDER BY rowid DESC LIMIT 1").pluck().get();
+  check('the person\'s View résumé opens ONE tab at draft\'s sandbox page for this job', (sandbox || []).length === 1 && sandbox[0] === `${h.api.origin}/draft/resume/${encodeURIComponent(job)}`, JSON.stringify({ sandbox, job, origin: h.api.origin }));
+  for (const p of await h.browser.pages()) if (p.url().includes('/draft/resume/')) await p.close().catch(() => {});
+  await page.bringToFront().catch(() => {});
   const words = `${p4?.title} ${p4?.text} ${p4?.actions.join(' ')}`;
   check('⛔ no cost, token or model word anywhere on it', !/\$|\bcost|\bprice|\btokens?\b|\bmodel\b|claude|sonnet|anthropic|openai|credit/i.test(words), words.match(/\$|cost|price|token|model|claude|sonnet|credit/i)?.[0]);
 

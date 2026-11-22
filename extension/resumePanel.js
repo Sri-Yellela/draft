@@ -350,8 +350,10 @@ export function renderResumePanel(model, meta) {
     .ac [data-band="moderate"] { color: var(--c-band-moderate); } .ac [data-band="weak"] { color: var(--c-band-weak); }
     .ac .big { font-size: 36px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
     .ac .fx { font-size: 11.5px; color: var(--c-ink-muted); overflow-wrap: anywhere; }
+    /* ⭐ 47b: the part's figure is .pf — .pv is the résumé preview's paper (816 px, zoom .42, paper background), and the card's
+       figure took it: a paper-white strip past the panel's edge (seen in the J12 walk's shot). */
     .ac .pt { display: grid; grid-template-columns: minmax(64px, 84px) minmax(0, 1fr) 28px; gap: 10px; align-items: start; }
-    .ac .pn { font-size: 12.5px; } .ac .pv { font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+    .ac .pn { font-size: 12.5px; } .ac .pf { font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
     .ac .bar { height: 6px; border-radius: 1px; background: var(--c-border); overflow: hidden; margin-top: 5px; }
     .ac .bar i { display: block; height: 6px; background: currentColor; }
     .ac .gn { padding-top: 6px; font-size: 12.5px; }
@@ -498,7 +500,7 @@ export function renderResumePanel(model, meta) {
           ${(ac.parts || []).map(p => `<div class="pt" data-ats-part="${esc(p.id)}"><div class="pn">${esc(p.name)}</div>
             <div><div class="bar" aria-hidden="true" data-band="${esc(p.band || '')}"><i style="width:${Number(p.score) || 0}%"></i></div>
               ${p.line ? `<div class="fx">${esc(p.line)}</div>` : ''}${p.facts?.length ? `<div class="fx">${esc(p.facts.join(' · '))}</div>` : ''}</div>
-            <div class="pv" data-band="${esc(p.band || '')}">${esc(p.score)}</div></div>`).join('')}
+            <div class="pf" data-band="${esc(p.band || '')}">${esc(p.score)}</div></div>`).join('')}
           ${ac.gain ? `<div class="gn" data-role="ats-card-gain">Biggest gain: ${esc(ac.gain.text)}</div>` : ''}
           <div class="pl" data-role="plausibility"></div>
         </div>`;

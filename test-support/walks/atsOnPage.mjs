@@ -12,6 +12,9 @@
  *      binds the tab, and the panel shows the job and its report; a page script's synthetic click reads nothing
  *   4. ⭐ T9: a FULL report (the scorer's own JSON, as the live route passes it through): the panel draws the web app's
  *      ATS component (<draft-ats-report>'s renderer, in its own shadow root) instead of the summary lines — terms as text
+ *   5. ⭐ 47b: a REAL plausibility flag (the real services/atsPlausibility.js on the base résumé, wired as server.js wires
+ *      it): "Does it add up?" shows it; a page script's click dismisses nothing; the person's trusted Dismiss records it on
+ *      draft's server and the row leaves; reopened, it stays dismissed
  * Synthetic person (Ada Example).
  */
 import fs from 'node:fs';
@@ -21,6 +24,7 @@ import { waitUntil, sleep, defaultSeed, BUSY_MS } from '../extensionBrowser.mjs'
 import { mountExtensionResume, seedBaseResume } from '../extensionResumeStub.mjs';
 import { createExtensionJobRouter } from '../../routes/extensionJob.js';
 import { baseResumeFor } from '../../services/extensionResume.js';
+import { plausibilityFor, dismissFlag } from '../../services/atsPlausibility.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const REPORT = { score: 72, band: 'strong', scorable: true, matched: ['distributed systems', 'go'], missing: ['kubernetes'] };
@@ -46,7 +50,10 @@ export const options = {
     mount: async (app, db) => {
       mountExtensionResume(app, db);
       app.use(createExtensionJobRouter({ db, requireAuth: (q, r, n) => n(), isExtension: () => true,
-        scoreFor: () => scoreNow, hasBaseResume: (userId) => !!baseResumeFor(db, userId) }));
+        scoreFor: () => scoreNow, hasBaseResume: (userId) => !!baseResumeFor(db, userId),
+        // ⭐ 47b: the flags as server.js wires them — the real service on the active profile's base résumé
+        plausibility: (userId) => { const b = baseResumeFor(db, userId); return b ? plausibilityFor(db, { userId, text: b.text }) : null; },
+        dismissFlag: (userId, key, undo) => dismissFlag(db, userId, key, { undo }) }));
     },
   },
 };
@@ -148,6 +155,9 @@ export default async function run(h, { check, section }) {
         summaryLines: !!root.querySelector('[data-role="ats-score"], [data-role="ats-matched"], [data-role="ats-missing"]'),
         buttons: [...root.querySelectorAll('button')].map(b => (b.getAttribute('aria-label') || b.textContent).trim()).filter(Boolean),
         width: Math.round(card.getBoundingClientRect().width),
+        // ⭐ 47b: each part's figure inside the card (it took the preview's .pv — an 816 px paper strip past the edge)
+        figures: [...card.querySelectorAll('[data-ats-part]')].map(pt => { const f = pt.lastElementChild, r = f.getBoundingClientRect(), c = card.getBoundingClientRect();
+          return { text: f.textContent.trim(), inside: r.left >= c.left - 1 && r.right <= c.right + 1, w: Math.round(r.width), bg: getComputedStyle(f).backgroundColor }; }),
       };
     });
     return c || null;
@@ -160,9 +170,44 @@ export default async function run(h, { check, section }) {
   check('the summary lines give way to the card (no second report)', p5?.summaryLines === false);
   check('…and the panel keeps its own "Full report in draft"', (p5?.buttons || []).includes('Full report in draft'), JSON.stringify(p5?.buttons));
   check('…laid out (not a zero-width box)', (p5?.width || 0) > 200, `${p5?.width}`);
+  check('…each part\'s figure is its number, inside the card, on no paper of its own', (p5?.figures || []).length > 0 && p5.figures.every(f => /^\d+$/.test(f.text) && f.inside && f.w <= 40 && /rgba\(0, 0, 0, 0\)|transparent/.test(f.bg)), JSON.stringify(p5?.figures));
   check('asked of draft\'s server once more', lookups(h) - before4 === 1, `${lookups(h) - before4}`);
   const local4 = JSON.stringify(await h.storage.local()) + JSON.stringify(await h.storage.session());
   check('nothing of the full report is stored', !/kubernetes|mentoring|onerror/.test(local4));
   await h.screenshot(`atsOnPage-full-report-${h.theme()}`).catch(() => null);
+
+  // ⭐ 47b (47a's unknown: "the flags' Dismiss was not walked end to end in a real Chrome") — a REAL flag from the real
+  // service: GPT-4 named in a role that ended in 2021 (the timeline check needs no employer record), Dismiss pressed for real.
+  section('5 · 47b — a real plausibility flag, and the person\'s Dismiss');
+  const base0 = h.db.prepare('SELECT content FROM profile_base_resumes WHERE user_id = 1').get()?.content;
+  h.db.prepare('UPDATE profile_base_resumes SET content = ? WHERE user_id = 1').run(`${base0}\nExperience\nSoftware Engineer — Kestrel Labs\nJan 2019 – Dec 2021\n- Built GPT-4 pipelines for support triage\n- Built services in Go`);
+  const flagRows = (root) => [...root.querySelectorAll('[data-role="plausibility"] [data-flag]')].map(e => e.textContent.replace(/\s+/g, ' ').trim());
+  const dismissals = () => h.db.prepare('SELECT flag_key FROM ats_flag_dismissals WHERE user_id = 1').pluck().all();
+  await h.send({ type: 'RESUME_PANEL_OPEN', tab: 'ats' });
+  const f1 = await waitUntil(async () => { const r = await h.readShadow(ATS, flagRows); return r?.length ? r : null; }, BUSY_MS);
+  check('"Does it add up?" shows the real flag', (f1 || []).some(t => /GPT-4 came out in 2023, after this role ended \(2021\)/.test(t)), JSON.stringify(f1));
+  check('…naming the employer and the bullet', (f1 || []).some(t => /Kestrel Labs: Built GPT-4 pipelines/.test(t)), JSON.stringify(f1));
+  check('…once (Go in 2019 is not flagged)', (f1 || []).length === 1, JSON.stringify(f1));
+  check('…with its Dismiss button', !!(await h.readShadow(ATS, (root) => !!root.querySelector('[data-role="plausibility"] [data-dismiss="0"]'))));
+  await h.screenshot(`atsOnPage-flag-${h.theme()}`).catch(() => null);
+  await h.page.evaluate(() => document.getElementById('rm-ats-panel').shadowRoot.querySelector('[data-dismiss="0"]').click());
+  await sleep(500);   // expects NOTHING
+  check('⛔ a page script\'s synthetic click dismisses nothing', dismissals().length === 0 && (await h.readShadow(ATS, flagRows))?.length === 1, JSON.stringify(dismissals()));
+  await h.page.click(`#${ATS} >>> [data-dismiss="0"]`);
+  const keys = await waitUntil(async () => (dismissals().length ? dismissals() : null), BUSY_MS);
+  check('the person\'s trusted Dismiss is recorded on draft\'s server', (keys || []).length === 1 && /^timeline\|kestrel labs\|built gpt 4 pipelines/.test(keys[0]), JSON.stringify(keys));
+  const gone = await waitUntil(async () => ((await h.readShadow(ATS, flagRows))?.length === 0 ? true : null), BUSY_MS);
+  check('…and the row leaves the panel', gone === true, JSON.stringify(await h.readShadow(ATS, flagRows)));
+  await h.send({ type: 'RESUME_PANEL_OPEN', tab: 'ats' });
+  await waitUntil(async () => (await h.readShadow(ATS, (root) => !!root.querySelector('[data-role="ats-card-view"]'))) || null, BUSY_MS);
+  await sleep(800);   // the flags are asked after the card is drawn — give them the time to come back (expects none)
+  const again = await h.send({ type: 'RESUME_FLAGS' }).catch(() => null);
+  check('reopened, it stays dismissed (the panel and the server\'s answer)', (await h.readShadow(ATS, flagRows))?.length === 0, JSON.stringify(await h.readShadow(ATS, flagRows)));
+  const direct = plausibilityFor(h.db, { userId: 1, text: baseResumeFor(h.db, 1).text });
+  check('…the service counts it dismissed, kept across a re-score', direct.flags === 0 && direct.dismissed === 1, JSON.stringify({ flags: direct.flags, dismissed: direct.dismissed, viaWorker: again }));
+  const local5 = JSON.stringify(await h.storage.local()) + JSON.stringify(await h.storage.session());
+  check('nothing of the flag is stored in the extension', !/GPT-4|Kestrel/.test(local5));
+  h.db.prepare('UPDATE profile_base_resumes SET content = ? WHERE user_id = 1').run(base0);
+  h.db.prepare('DELETE FROM ats_flag_dismissals').run();
   scoreNow = REPORT;
 }
