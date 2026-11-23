@@ -15,9 +15,17 @@ import { PlausibilityFlags } from "./PlausibilityFlags.jsx";   // D192 (4d): doe
 import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
 import { ts } from "../themes/shapes.js";
 
+// ⭐ 47b (owner 11-22: "we can have a detailed analysis on demand") — the card opens SHORT: the number, each part's name, bar
+// and number, the biggest gain. The analysis (the score's facts line, each part's line and figures) waits behind one quiet
+// toggle; the choice is remembered per viewer (a convenience — the card reads right without it).
+const DETAIL_KEY = "draft:ats-card-detail";
+const readDetail = () => { try { return localStorage.getItem(DETAIL_KEY) === "1"; } catch { return false; } };
+
 export function AtsCard({ report = null, jobId = null, history = null, contextual: given = null }) {
   const [contextual, setContextual] = useState(given);
   const [showHistory, setShowHistory] = useState(false);
+  const [detail, setDetail] = useState(readDetail);
+  const toggleDetail = () => setDetail(v => { const next = !v; try { localStorage.setItem(DETAIL_KEY, next ? "1" : "0"); } catch { /* this visit only */ } return next; });
   useEffect(() => {
     if (given || !jobId) return undefined;
     let live = true;
@@ -39,7 +47,7 @@ export function AtsCard({ report = null, jobId = null, history = null, contextua
       ) : (
         <>
           <div data-ats-card-score style={{ fontSize: ts(44), fontWeight: 700, lineHeight: 1, color: atsInk(view.score) }}>{view.score}%</div>
-          {view.facts?.length > 0 && <div data-ats-card-facts="card" style={{ fontSize: ts(12.5), color: "var(--color-text-muted)", marginTop: -8, overflowWrap: "anywhere" }}>{view.facts.join(" · ")}</div>}
+          {detail && view.facts?.length > 0 && <div data-ats-card-facts="card" style={{ fontSize: ts(12.5), color: "var(--color-text-muted)", marginTop: -8, overflowWrap: "anywhere" }}>{view.facts.join(" · ")}</div>}
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {view.parts.map(p => (
               <div key={p.id} data-ats-card-part={p.id} style={{ display: "grid", gridTemplateColumns: "minmax(84px, 110px) minmax(0, 1fr) 36px", alignItems: "center", gap: 12 }}>
@@ -48,9 +56,9 @@ export function AtsCard({ report = null, jobId = null, history = null, contextua
                   <div aria-hidden="true" style={{ height: 6, borderRadius: 2, background: "var(--color-border)", overflow: "hidden" }}>
                     <div style={{ height: 6, width: `${p.score}%`, background: atsInk(p.score) }} />
                   </div>
-                  {p.line && <div style={{ fontSize: ts(12.5), color: "var(--color-text-muted)", overflowWrap: "anywhere" }}>{p.line}</div>}
+                  {detail && p.line && <div data-ats-card-line={p.id} style={{ fontSize: ts(12.5), color: "var(--color-text-muted)", overflowWrap: "anywhere" }}>{p.line}</div>}
                   {/* ⭐ 46z (owner 11-20): the part's figures, stated — counts, shares, its weight */}
-                  {p.facts?.length > 0 && <div data-ats-card-facts={p.id} style={{ fontSize: ts(11.5), color: "var(--color-text-muted)", opacity: 0.85, overflowWrap: "anywhere" }}>{p.facts.join(" · ")}</div>}
+                  {detail && p.facts?.length > 0 && <div data-ats-card-facts={p.id} style={{ fontSize: ts(11.5), color: "var(--color-text-muted)", opacity: 0.85, overflowWrap: "anywhere" }}>{p.facts.join(" · ")}</div>}
                 </div>
                 <div style={{ fontSize: ts(14), fontWeight: 700, textAlign: "right", color: atsInk(p.score) }}>{p.score}</div>
               </div>
@@ -64,6 +72,12 @@ export function AtsCard({ report = null, jobId = null, history = null, contextua
                 <Link to={atlasHref(slugs[view.gain.tech])} style={{ fontWeight: 600, color: "var(--color-primary-text)", textDecoration: "none", flex: "none" }}>Learn</Link>
               )}
             </div>
+          )}
+          {view.parts.some(p => p.line || p.facts?.length) && (
+            <button type="button" data-ats-card-detail aria-expanded={detail} onClick={toggleDetail}
+              style={{ alignSelf: "flex-start", font: "inherit", fontSize: ts(12.5), color: "var(--color-text-muted)", background: "none", border: 0, padding: 0, cursor: "pointer" }}>
+              {detail ? "Hide the analysis" : "Show the analysis"}
+            </button>
           )}
         </>
       )}

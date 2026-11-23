@@ -357,6 +357,10 @@ export function renderResumePanel(model, meta) {
     .ac .bar { height: 6px; border-radius: 1px; background: var(--c-border); overflow: hidden; margin-top: 5px; }
     .ac .bar i { display: block; height: 6px; background: currentColor; }
     .ac .gn { padding-top: 6px; font-size: 12.5px; }
+    /* ⭐ 47b (owner 11-22: "a detailed analysis on demand") — the card opens short; the facts line and each part's line and
+       figures show only after "Show the analysis" (the web card's toggle, AtsCard.jsx). */
+    .ac[data-detail="0"] [data-detail-line] { display: none; }
+    .ac .dt { justify-self: start; font: inherit; font-size: 11.5px; background: none; border: 0; padding: 0; color: var(--c-ink-muted); cursor: pointer; }
     .ac .pl { display: grid; gap: 6px; font-size: 12px; } .ac .pl .fl { color: var(--c-warning); }
     .ac .pl button { font: inherit; font-size: 11.5px; background: none; border: 0; padding: 0; color: var(--c-accent-ink); cursor: pointer; }
     .prog { display: inline-flex; align-items: center; gap: 8px; flex: 1; }
@@ -459,6 +463,8 @@ export function renderResumePanel(model, meta) {
   // ⭐ 47a (owner 11-21, E1) · "Does it add up?" — the base résumé's flags under the card (D192 (4d)), each with Dismiss
   // (the person's click; kept across re-scores). Asked of the service worker when the card is drawn; nothing is stored here.
   let flagsAsk = 0;
+  // ⭐ 47b: the card's analysis on demand — held for this panel's life, kept across redraws; nothing stored
+  let atsDetail = false;
   function drawFlags() {
     const ask = ++flagsAsk;
     send({ type: 'RESUME_FLAGS' }).then((r) => {
@@ -494,14 +500,15 @@ export function renderResumePanel(model, meta) {
     const ac = m.report?.card || null;
     const acHtml = !ac ? '' : ac.declined
       ? `<div class="ac" data-role="ats-card-view" data-declined=""><div class="pn"><b>Not enough signal</b></div><p class="fx">${esc(ac.reason)}</p></div>`
-      : `<div class="ac" data-role="ats-card-view">
+      : `<div class="ac" data-role="ats-card-view" data-detail="${atsDetail ? '1' : '0'}">
           <div class="big" data-role="ats-card-score" data-band="${esc(ac.band || '')}">${esc(ac.score)}%</div>
-          ${ac.facts?.length ? `<div class="fx" data-role="ats-card-facts">${esc(ac.facts.join(' · '))}</div>` : ''}
+          ${ac.facts?.length ? `<div class="fx" data-role="ats-card-facts" data-detail-line="">${esc(ac.facts.join(' · '))}</div>` : ''}
           ${(ac.parts || []).map(p => `<div class="pt" data-ats-part="${esc(p.id)}"><div class="pn">${esc(p.name)}</div>
             <div><div class="bar" aria-hidden="true" data-band="${esc(p.band || '')}"><i style="width:${Number(p.score) || 0}%"></i></div>
-              ${p.line ? `<div class="fx">${esc(p.line)}</div>` : ''}${p.facts?.length ? `<div class="fx">${esc(p.facts.join(' · '))}</div>` : ''}</div>
+              ${p.line ? `<div class="fx" data-detail-line="">${esc(p.line)}</div>` : ''}${p.facts?.length ? `<div class="fx" data-detail-line="">${esc(p.facts.join(' · '))}</div>` : ''}</div>
             <div class="pf" data-band="${esc(p.band || '')}">${esc(p.score)}</div></div>`).join('')}
           ${ac.gain ? `<div class="gn" data-role="ats-card-gain">Biggest gain: ${esc(ac.gain.text)}</div>` : ''}
+          ${(ac.parts || []).some(p => p.line || p.facts?.length) ? `<button type="button" class="dt" data-role="ats-card-detail" aria-expanded="${atsDetail}">${atsDetail ? 'Hide the analysis' : 'Show the analysis'}</button>` : ''}
           <div class="pl" data-role="plausibility"></div>
         </div>`;
     // ⭐ T26: the title and the job are hidden words; the report (T9's shared component, or its summary marks) is the view
@@ -528,6 +535,14 @@ export function renderResumePanel(model, meta) {
         <div class="say" data-role="say" aria-live="polite"></div>
       </div>`;
     if (ac) drawFlags();
+    // ⭐ 47b: "Show the analysis" — flips this card's details in place (no redraw, no request)
+    atsRoot.querySelector('[data-role="ats-card-detail"]')?.addEventListener('click', (e) => {
+      atsDetail = !atsDetail;
+      const b = e.currentTarget;
+      b.closest('[data-role="ats-card-view"]')?.setAttribute('data-detail', atsDetail ? '1' : '0');
+      b.setAttribute('aria-expanded', String(atsDetail));
+      b.textContent = atsDetail ? 'Hide the analysis' : 'Show the analysis';
+    });
     if (card && !ac) { const cardHost = atsRoot.querySelector('[data-role="ats-card"]'); try { ATS.mountAtsReport(cardHost, m.report.report, m.report.atlas ? { atlas: m.report.atlas } : {}); } catch { cardHost?.remove(); } }
   };
 
@@ -638,6 +653,8 @@ export function renderResumePanel(model, meta) {
     const btn = ev.target.closest('button');
     if (!btn) return;
     const role = btn.dataset.role;
+    // ⭐ 47b: the card's "Show the analysis" is local (its own listener flips the view) — never disabled here, nothing sent
+    if (role === 'ats-card-detail') return;
     // ⛔ Everything here reaches draft's server or the page: a page script's synthetic click is never enough.
     if (!ev.isTrusted) return;
     if (role === 'download') return download(r);

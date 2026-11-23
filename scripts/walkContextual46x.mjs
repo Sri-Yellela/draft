@@ -121,6 +121,13 @@ try {
       await box.click();
       const sec = await page.waitForSelector("[data-ats-card-part='tech_stack']", { timeout: 45000 }).then(() => page.$("[data-ats-card]")).catch(() => null);
       if (!sec) { say(`${tag}: the ATS card`, false, "not drawn"); await page.screenshot({ path: path.join(SHOTS, `walk46x-atscard-${theme}-${w}-none.png`) }); continue; }
+      // ⭐ 47b (owner 11-22: "a detailed analysis on demand") — the card opens SHORT; "Show the analysis" brings the lines + figures
+      const short = await page.evaluate(() => { const s = document.querySelector("[data-ats-card]"); const b = s.querySelector("[data-ats-card-detail]");
+        return { facts: s.querySelectorAll("[data-ats-card-facts], [data-ats-card-line]").length, button: b?.innerText.trim() || null, bars: s.querySelectorAll("[data-ats-card-part]").length }; });
+      say(`${tag}: 47b — opens short (number, four bars, gain; no analysis)`, short.facts === 0 && short.bars === 4 && short.button === "Show the analysis", JSON.stringify(short));
+      await page.screenshot({ path: path.join(SHOTS, `walk47b-atscard-short-${theme}-${w}.png`) }).catch(() => {});
+      await page.$eval("[data-ats-card-detail]", b => b.scrollIntoView({ block: "center" })); await page.click("[data-ats-card-detail]");   // centred: at 400 px the sticky action bar covers the fold
+      await page.waitForSelector("[data-ats-card-facts='tech_stack']", { timeout: 10000 }).catch(() => null);
       const r = await page.evaluate(() => {
         const s = document.querySelector("[data-ats-card]");
         const n = s.querySelector("[data-ats-card-score]");
@@ -138,6 +145,10 @@ try {
       // ⭐ 46z (owner 11-20): each part states its figures, and the card one row
       say(`${tag}: the figures — every part and the card`, ['card', 'skill_match', 'role_fit', 'responsibility_overlap', 'tech_stack'].every(k => r.facts.some(f => f[0] === k && f[1].trim())) && r.facts.some(f => f[0] === 'tech_stack' && /% of their jobs/.test(f[1])), r.facts.map(f => `${f[0]}: ${f[1]}`).join(' | ').slice(0, 400));
       say(`${tag}: the biggest gain`, /Biggest gain: Terraform — in 41% of their jobs/.test(r.gain), r.gain);
+      await page.screenshot({ path: path.join(SHOTS, `walk47b-atscard-analysis-${theme}-${w}.png`) }).catch(() => {});
+      await page.$eval("[data-ats-card-detail]", b => b.scrollIntoView({ block: "center" })); await page.click("[data-ats-card-detail]");   // centred: at 400 px the sticky action bar covers the fold   // 47b: back to short — the choice is remembered, so the next combination opens short
+      const folded = await page.waitForFunction(() => !document.querySelector("[data-ats-card-facts]") && document.querySelector("[data-ats-card-detail]")?.innerText.trim() === "Show the analysis", { timeout: 5000 }).then(() => true).catch(() => false);
+      say(`${tag}: 47b — "Hide the analysis" folds it again`, folded, folded ? "folded" : "still open");
       const plaus = await page.waitForSelector("[data-plausibility]", { timeout: 20000 }).then(() => page.evaluate(() => document.querySelector("[data-plausibility]").innerText)).catch(() => "");
       say(`${tag}: does it add up — Salesforce at Kestrel flagged, with a Dismiss`, /You list Salesforce at Kestrel Payments/.test(plaus) && /Dismiss/.test(plaus), plaus.replace(/\s+/g, " ").slice(0, 160));
       say(`${tag}: fits, no side-scroll, no page errors`, r.w > 0 && r.w <= w && !r.side && errors.length === 0, `${r.w}px · ${errors.slice(0, 2).join(" | ") || "no errors"}`);

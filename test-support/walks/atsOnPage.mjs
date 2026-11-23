@@ -172,6 +172,26 @@ export default async function run(h, { check, section }) {
   check('…laid out (not a zero-width box)', (p5?.width || 0) > 200, `${p5?.width}`);
   check('…each part\'s figure is its number, inside the card, on no paper of its own', (p5?.figures || []).length > 0 && p5.figures.every(f => /^\d+$/.test(f.text) && f.inside && f.w <= 40 && /rgba\(0, 0, 0, 0\)|transparent/.test(f.bg)), JSON.stringify(p5?.figures));
   check('asked of draft\'s server once more', lookups(h) - before4 === 1, `${lookups(h) - before4}`);
+  // ⭐ 47b (owner 11-22: "a detailed analysis on demand") — the card opens SHORT; one quiet toggle shows the analysis
+  const detailState = () => h.readShadow(ATS, (root) => {
+    const card = root.querySelector('[data-role="ats-card-view"]');
+    const lines = [...card.querySelectorAll('[data-detail-line]')];
+    const btn = card.querySelector('[data-role="ats-card-detail"]');
+    return { shown: lines.filter(e => getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().height > 0).length, lines: lines.length,
+      button: btn?.textContent.trim() || null, expanded: btn?.getAttribute('aria-expanded') || null };
+  });
+  const d0 = await detailState();
+  check('47b: the card opens short — the analysis is hidden', d0?.lines > 0 && d0.shown === 0 && d0.button === 'Show the analysis' && d0.expanded === 'false', JSON.stringify(d0));
+  await h.screenshot(`atsOnPage-card-short-${h.theme()}`).catch(() => null);
+  const asked4 = lookups(h);
+  await h.page.click(`#${ATS} >>> [data-role="ats-card-detail"]`);
+  const d1 = await waitUntil(async () => { const d = await detailState(); return d?.shown ? d : null; }, BUSY_MS);
+  check('…"Show the analysis" shows every line in place', d1?.shown === d1?.lines && d1?.button === 'Hide the analysis' && d1?.expanded === 'true', JSON.stringify(d1));
+  check('…without asking draft\'s server again', lookups(h) === asked4, `${lookups(h) - asked4}`);
+  await h.screenshot(`atsOnPage-card-analysis-${h.theme()}`).catch(() => null);
+  await h.page.click(`#${ATS} >>> [data-role="ats-card-detail"]`);
+  const d2 = await waitUntil(async () => { const d = await detailState(); return d && d.shown === 0 ? d : null; }, BUSY_MS);
+  check('…and "Hide the analysis" folds it again', d2?.button === 'Show the analysis', JSON.stringify(d2));
   const local4 = JSON.stringify(await h.storage.local()) + JSON.stringify(await h.storage.session());
   check('nothing of the full report is stored', !/kubernetes|mentoring|onerror/.test(local4));
   await h.screenshot(`atsOnPage-full-report-${h.theme()}`).catch(() => null);
