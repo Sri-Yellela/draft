@@ -21,7 +21,6 @@ const deck = (n, title, skills, slides, realWorld, tryStep, check) =>
 
 writeBatch({
   version: 26,
-  dir: "docs/review",
   title: "AI engineering, the new lessons (D193-3)",
   note: "Drafted by the agent 2026-11-23 for the owner's review (D193-3, the AI engineering outline approved 11-23). 14 decks, ml-ai-08 … ml-ai-21 (pathway ml-ai, stage ai-engineering), in D195's three layers. Real cases are papers (linked to their arXiv abstracts), a tribunal decision and official docs; every Try is an open register source. General knowledge in our own words. Nothing is live until approved (status: draft).",
   decks: [

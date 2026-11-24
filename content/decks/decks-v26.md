@@ -1,6 +1,6 @@
 # Decks v26 — AI engineering, the new lessons (D193-3) (for your review)
 
-Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 14 five-slide decks; each ends with one new question (drafts for the bank). **Nothing is live until you approve** — say "approve decks-v26" (or name the decks to change).
+Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 14 five-slide decks, each with one new question. **APPROVED by the owner 2026-11-24** — served in the Library; the questions are live in the bank.
 
 ## ml-ai-08 · Context engineering
 *Skills:* context engineering, prompting, llms · *Check yourself:* ml-ai-08-q1

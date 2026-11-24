@@ -1,6 +1,6 @@
 {
  "version": 26,
- "note": "Drafted by the agent 2026-11-23 for the owner's review (D193-3, the AI engineering outline approved 11-23). 14 decks, ml-ai-08 … ml-ai-21 (pathway ml-ai, stage ai-engineering), in D195's three layers. Real cases are papers (linked to their arXiv abstracts), a tribunal decision and official docs; every Try is an open register source. General knowledge in our own words. Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-23 for the owner's review (D193-3, the AI engineering outline approved 11-23). 14 decks, ml-ai-08 … ml-ai-21 (pathway ml-ai, stage ai-engineering), in D195's three layers. Real cases are papers (linked to their arXiv abstracts), a tribunal decision and official docs; every Try is an open register source. General knowledge in our own words. Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-24 (\"v26 decks approved\").",
  "decks": [
   {
    "id": "ml-ai-08",
@@ -64,7 +64,7 @@
     "ml-ai-08-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "Lost in the Middle (Liu et al., 2023)",
     "url": "https://arxiv.org/abs/2307.03172"
@@ -138,7 +138,7 @@
     "ml-ai-09-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "FAISS: billion-scale similarity search (Johnson et al., 2017)",
     "url": "https://arxiv.org/abs/1702.08734"
@@ -212,7 +212,7 @@
     "ml-ai-10-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "Cormack et al., Reciprocal Rank Fusion (SIGIR 2009)",
     "url": "https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf"
@@ -286,7 +286,7 @@
     "ml-ai-11-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "ReAct (Yao et al., 2022)",
     "url": "https://arxiv.org/abs/2210.03629"
@@ -360,7 +360,7 @@
     "ml-ai-12-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "MemGPT (Packer et al., 2023)",
     "url": "https://arxiv.org/abs/2310.08560"
@@ -434,7 +434,7 @@
     "ml-ai-13-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "Moffatt v. Air Canada, 2024 BCCRT 149",
     "url": "https://www.canlii.org/en/bc/bccrt/doc/2024/2024bccrt149/2024bccrt149.html"
@@ -508,7 +508,7 @@
     "ml-ai-14-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "LIMA: Less Is More for Alignment (Zhou et al., 2023)",
     "url": "https://arxiv.org/abs/2305.11206"
@@ -582,7 +582,7 @@
     "ml-ai-15-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "LoRA: Low-Rank Adaptation (Hu et al., 2021)",
     "url": "https://arxiv.org/abs/2106.09685"
@@ -656,7 +656,7 @@
     "ml-ai-16-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "QLoRA (Dettmers et al., 2023)",
     "url": "https://arxiv.org/abs/2305.14314"
@@ -730,7 +730,7 @@
     "ml-ai-17-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "Chatbot Arena (Chiang et al., 2024)",
     "url": "https://arxiv.org/abs/2403.04132"
@@ -804,7 +804,7 @@
     "ml-ai-18-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "Chen et al., 2023: How is ChatGPT's behavior changing over time?",
     "url": "https://arxiv.org/abs/2307.09009"
@@ -878,7 +878,7 @@
     "ml-ai-19-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "PostgreSQL GRANT",
     "url": "https://www.postgresql.org/docs/current/sql-grant.html"
@@ -952,7 +952,7 @@
     "ml-ai-20-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "Cloudflare's outage of 2 July 2019",
     "url": "https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/"
@@ -1026,7 +1026,7 @@
     "ml-ai-21-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "Google's SRE book, error budgets",
     "url": "https://sre.google/sre-book/embracing-risk/"
@@ -1066,7 +1066,7 @@
     "Without instructions the model no longer knows the task or the format."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-09-q1",
@@ -1095,7 +1095,7 @@
     "Fast, but the other 49 million passages can never be found."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-10-q1",
@@ -1124,7 +1124,7 @@
     "It removes the one term that identifies the page."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-11-q1",
@@ -1153,7 +1153,7 @@
     "Two loops can run without limit as easily as one."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-12-q1",
@@ -1182,7 +1182,7 @@
     "Output length has nothing to do with what the model remembers."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-13-q1",
@@ -1211,7 +1211,7 @@
     "Being right most of the time still means some wrong, irreversible sends."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-14-q1",
@@ -1240,7 +1240,7 @@
     "At this volume, the repeated tokens are the main cost."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-15-q1",
@@ -1269,7 +1269,7 @@
     "Far beyond the data and compute a single GPU offers."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-16-q1",
@@ -1298,7 +1298,7 @@
     "A few hand-picked examples are not a measurement."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-17-q1",
@@ -1327,7 +1327,7 @@
     "Four points is well inside a ± 9-point margin."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-18-q1",
@@ -1356,7 +1356,7 @@
     "Doesn't detect anything."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-19-q1",
@@ -1385,7 +1385,7 @@
     "Afterwards is too late for a write."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-20-q1",
@@ -1414,7 +1414,7 @@
     "Users find problems late and only some report them."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-21-q1",
@@ -1443,7 +1443,7 @@
     "Benchmarks say nothing about this feature's latency."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

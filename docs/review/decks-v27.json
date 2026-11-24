@@ -1,0 +1,112 @@
+{
+ "version": 27,
+ "note": "Drafted by the agent 2026-11-24 for the owner's review (D193-5: the roadmap's station 7, the owner's 11-24 \"do the spark lesson\"). da-b-07, pathway data, stage building-blocks, in D195's three layers. General knowledge in our own words. Nothing is live until approved (status: draft).",
+ "decks": [
+  {
+   "id": "da-b-07",
+   "pathway": "data",
+   "stage": "building-blocks",
+   "title": "Spark",
+   "skills": [
+    "spark",
+    "batch processing",
+    "partitioning",
+    "databricks"
+   ],
+   "pieces": [
+    "b1"
+   ],
+   "slides": [
+    {
+     "layer": "concept",
+     "tag": "What it is",
+     "title": "One job, many machines",
+     "points": [
+      "Spark splits a dataset too big for one machine into partitions and runs the same steps on each, in parallel.",
+      "You write it once; managed platforms such as Databricks, Amazon EMR or Google Dataproc run the cluster for you."
+     ]
+    },
+    {
+     "layer": "proof",
+     "tag": "Why it works",
+     "title": "Partitions, waves and the shuffle",
+     "points": [
+      "1 TB in 128 MB partitions is 8,192 tasks; on 200 cores that's about 41 waves of work.",
+      "A filter or a map stays on its machine. A groupBy or a join must move rows with the same key together: the shuffle.",
+      "The shuffle crosses the network, so filter and aggregate first and shuffle as little as you can."
+     ]
+    },
+    {
+     "layer": "realWorld",
+     "tag": "Where it runs",
+     "title": "Zaharia's RDD paper",
+     "points": [
+      "Zaharia and colleagues (NSDI 2012) kept data in memory between steps instead of rereading it from disk.",
+      "For iterative algorithms and interactive queries, they report it can improve performance by an order of magnitude."
+     ]
+    },
+    {
+     "layer": "realWorld",
+     "tag": "Try it",
+     "title": "Spark's quick start",
+     "points": [
+      "Follow Spark's quick start: count words in a file, then cache it and run the count twice."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-b-07-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft",
+   "realWorld": {
+    "name": "Zaharia et al., Resilient Distributed Datasets (NSDI 2012)",
+    "url": "https://www.usenix.org/conference/nsdi12/technical-sessions/presentation/zaharia"
+   },
+   "try": {
+    "source": "spark-docs",
+    "url": "https://spark.apache.org/docs/latest/quick-start.html",
+    "label": "Quick start"
+   },
+   "rule": "D195"
+  }
+ ],
+ "newQuestions": [
+  {
+   "id": "da-b-07-q1",
+   "type": "scenario",
+   "role": "Data Engineer",
+   "level": "entry",
+   "skills": [
+    "spark",
+    "partitioning"
+   ],
+   "pieces": [
+    "b1"
+   ],
+   "stem": "A nightly Spark job joins 2 TB of click events to a small table of 300 campaigns, and most of its time goes to the shuffle. What should the team try first?",
+   "choices": [
+    "Broadcast the small campaigns table to every machine, so the large side is joined where it already sits",
+    "Add more machines and keep the join as it is",
+    "Write the events to one big file first",
+    "Run the job twice and keep the faster result"
+   ],
+   "correct": 0,
+   "why": [
+    "A broadcast join sends the small table once to each machine, so the 2 TB never moves across the network.",
+    "More machines can help, but the same 2 TB still crosses the network in the shuffle.",
+    "One file removes the parallelism Spark depends on.",
+    "Runs vary a little; the shuffle stays the cost."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ]
+}

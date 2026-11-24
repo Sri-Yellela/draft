@@ -24,7 +24,7 @@ export const STATIONS = Object.freeze([
   { n: 4, name: "Data modelling", line: "Choose the grain, then shape facts and dimensions.", decks: ["da-f-02", "da-p-03"] },
   { n: 5, name: "Warehousing", line: "Where analytical data lives, and one definition per metric.", decks: ["da-b-03", "da-p-05"] },
   { n: 6, name: "ETL and ELT", line: "Move and transform data you can re-run and trust.", decks: ["da-b-04", "da-p-01", "da-f-05", "da-b-05"] },
-  { n: 7, name: "Spark", line: "Process data too big for one machine — and run it on a managed platform such as Databricks.", decks: [] },
+  { n: 7, name: "Spark", line: "Process data too big for one machine — and run it on a managed platform such as Databricks.", decks: ["da-b-07"] },   // 47c: drafted in decks-v27; linked once approved
   { n: 8, name: "Cloud", line: "Compute, storage and identity: the building blocks every pipeline runs on.", decks: ["cl-b-05"] },
   { n: 9, name: "Orchestration (Airflow)", line: "Run each step in order, on time, and retry what fails.", decks: ["da-b-02"] },
   { n: 10, name: "Streaming (Kafka)", line: "Events as they happen, and what to do with the late ones.", decks: ["da-b-06", "da-b-01", "da-p-02"] },

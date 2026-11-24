@@ -569,6 +569,76 @@
               "title": "safety and guardrails",
               "deck": "ml-ai-07",
               "status": "approved"
+            },
+            {
+              "title": "context engineering",
+              "deck": "ml-ai-08",
+              "status": "approved"
+            },
+            {
+              "title": "embeddings and vector search",
+              "deck": "ml-ai-09",
+              "status": "approved"
+            },
+            {
+              "title": "hybrid search and reranking",
+              "deck": "ml-ai-10",
+              "status": "approved"
+            },
+            {
+              "title": "agent loops: plans and stopping",
+              "deck": "ml-ai-11",
+              "status": "approved"
+            },
+            {
+              "title": "agent memory",
+              "deck": "ml-ai-12",
+              "status": "approved"
+            },
+            {
+              "title": "human in the loop",
+              "deck": "ml-ai-13",
+              "status": "approved"
+            },
+            {
+              "title": "fine-tune or prompt",
+              "deck": "ml-ai-14",
+              "status": "approved"
+            },
+            {
+              "title": "LoRA and small models",
+              "deck": "ml-ai-15",
+              "status": "approved"
+            },
+            {
+              "title": "a fine-tuning run from a config",
+              "deck": "ml-ai-16",
+              "status": "approved"
+            },
+            {
+              "title": "evals from real use",
+              "deck": "ml-ai-17",
+              "status": "approved"
+            },
+            {
+              "title": "regression suites for prompts and models",
+              "deck": "ml-ai-18",
+              "status": "approved"
+            },
+            {
+              "title": "text-to-SQL that can't drop a table",
+              "deck": "ml-ai-19",
+              "status": "approved"
+            },
+            {
+              "title": "model migration and canary rollout",
+              "deck": "ml-ai-20",
+              "status": "approved"
+            },
+            {
+              "title": "monitoring an LLM feature",
+              "deck": "ml-ai-21",
+              "status": "approved"
             }
           ]
         },
