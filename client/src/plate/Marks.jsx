@@ -27,7 +27,7 @@ export function Stamp({ children, tone = "region", rotate = -8, land = true, cla
   );
 }
 
-const STATUS_KIND = { "NEEDS YOU": "needs", SENT: "sent", "HELD · FIXED": "held", NEW: "new" };
+const STATUS_KIND = { "NEEDS YOU": "needs", SENT: "sent", "HELD · FIXED": "held", NEW: "new", DRAFTED: "drafted" };   // DRAFTED: white, ink border (the base)
 /** A status tag — the word carries the state, the fill only repeats it. */
 export function StatusTag({ children, kind, ...s }) {
   const gate = plateState(s, { height: 28, radius: "status", lines: 1 });

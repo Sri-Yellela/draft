@@ -14,10 +14,11 @@ const DECK = read("client/src/panels/DeckView.jsx");
 
 test("d152OneHomeScreen: /app and /app/jobs both draw the one Home grid — the deck, then the board", () => {
   assert.match(APP, /const home = activeTab === "today" \|\| activeTab === "console";/);
-  const grid = APP.slice(at(APP, '<div className="home" data-home="">'));
-  const end = grid.indexOf("</div>\n            )}");
-  const body = grid.slice(0, end);
-  assert.ok(body.indexOf("<DeckView") < body.indexOf("<JobsConsole"), "the deck's column comes before the board's");
+  // 47f: since 47e (D196 P1) the deck and the board are built ONCE as elements (homeDeck, homeBoard) that both the classic
+  // grid and the plate market render; the grid draws them in that order, and the pieces live in the two elements.
+  assert.ok(APP.includes('<div className="home" data-home="">{homeDeck}{homeBoard}</div>'), "the deck's column comes before the board's");
+  const body = APP.slice(at(APP, "const homeDeck = ("), at(APP, "    <JobBoardProvider>"));
+  assert.ok(body.indexOf("<DeckView") < body.indexOf("<JobsConsole"), "the deck's element is built before the board's");
   assert.match(body, /<DeckView canUseAPlusResume=\{canUseAPlusResumeHere\} home\/>/);
   for (const part of ["<BoardHeadlineSlot />", "<BoardBar />", "<BoardCounts />", "<JobsConsole"]) assert.ok(body.includes(part), part);
   // no second copy of either screen outside Home

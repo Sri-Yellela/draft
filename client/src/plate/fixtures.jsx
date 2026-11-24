@@ -11,7 +11,8 @@ import MarketOpenings, { MarketTickets } from "./MarketOpenings.jsx";
 import { publishFrontCard } from "./marketPlate.js";
 import { DRAWINGS } from "./drawings/index.js";
 import { FieldCard } from "./Cards.jsx";
-import { PlateDeckStill } from "../panels/DeckView.jsx";   // FIX-2: the Deck tab is the real FanCard, at the board's size
+import { PlateDeckStill } from "../panels/DeckView.jsx";
+import { MarketIndexTable, RowBubble, indexRow } from "./MarketIndex.jsx";   // FIX-7 / FIX-8   // FIX-2: the Deck tab is the real FanCard, at the board's size
 
 const MARKET_VIEWS = [
   { id: "picks", label: "Today’s picks", href: "#picks", icon: "picks" },
@@ -115,6 +116,35 @@ export function MarketOpeningsBoard() {
   );
 }
 
+// the market board's index rows (its six, as a board job carries them; the stack's ✓ count from the board's own rows)
+const INDEX_JOBS = [
+  ["Frontend Engineer II, Checkout", "Kestrel Payments", 91, 5, 4, true, "NEW"],
+  ["Software Engineer, Frontend (Dashboards)", "Northwind Analytics", 86, 4, 3, false, "NEW"],
+  ["UI Engineer, Fleet Console", "Halcyon Robotics", 79, 4, 2, true, "NEW"],
+  ["Software Engineer, Design Systems", "Brightline Health", 77, 6, 4, true, "DRAFTED"],
+  ["Frontend Engineer", "Sailor Health", 74, 5, 3, true, "NEEDS YOU"],
+  ["Web Engineer, Growth", "Orbital Works", 71, 4, 2, false, "SENT"],
+];
+// what the Index's handlers were called with — read by test/d196IndexBrowser.test.js (the gallery and F5 ignore it)
+const note = (kind, id) => { globalThis.__plateIndexCalls = [...(globalThis.__plateIndexCalls || []), `${kind}:${id}`]; };
+/** The openings' Index tab (FIX-7 / FIX-8): the Gazetteer over the board's six rows, each with its row bubble. */
+export function MarketIndexBoard() {
+  const { marginLeft, marginTop } = subpixel();
+  const many = Number(new URLSearchParams((globalThis.location?.hash || "").slice(1)).get("rows")) || INDEX_JOBS.length;
+  const rows = Array.from({ length: many }, (_, k) => INDEX_JOBS[k % INDEX_JOBS.length]).map(([title, company, score, n, yours, h1b, status], i) => indexRow(
+    { jobId: `ix-${i}`, title, company, url: "#", skills: Array.from({ length: n }, (_, k) => `s${k}`), isH1bSponsor: h1b ? true : null }, i,
+    { score, status, yours }));
+  return (
+    <MemoryRouter>
+      <div style={{ width: Number(new URLSearchParams((globalThis.location?.hash || "").slice(1)).get("w")) || 1182, paddingLeft: marginLeft, paddingTop: marginTop, boxSizing: "content-box" }}>
+        <MarketOpenings count={412} initialTab="index" deck={<div/>}
+          index={<MarketIndexTable rows={rows} onOpen={(job) => note("open", job.jobId)}
+            bubble={(r) => <RowBubble job={r.job} drafted={r.status === "DRAFTED"} onSave={() => note("save", r.id)} onDraft={() => note("draft", r.id)}/>}/>}/>
+      </div>
+    </MemoryRouter>
+  );
+}
+
 /** Tickets out (P1) with Kestrel on top of the deck and one draft needing you (the interchange needs a fetched gap). */
 export function MarketTicketsBoard() {
   publishFrontCard(BOARD_CARD);
@@ -129,4 +159,4 @@ export function PortedDrawing() {
   return <PlateRoot><div style={{ position: "relative", width: w, height: q.get("h") ? Number(q.get("h")) : undefined, lineHeight: 0, marginLeft: Number(q.get("ox")) || 0, marginTop: Number(q.get("oy")) || 0 }}>{D ? <D/> : null}</div></PlateRoot>;
 }
 
-export const FIXTURES = { ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketTicketsBoard, PortedDrawing };
+export const FIXTURES = { ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing };

@@ -1,29 +1,68 @@
 // ⭐ D196 F3 · lists and lines: the gazetteer (index), the register (ledger-ruled, bulk actions, virtualised past 60 rows —
 // R2's 500), the trail rail, the route line and the code plate. Wide things scroll inside their own box, never the page.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { plateState } from "./PlateState.jsx";
 import { LetterTile, StatusTag } from "./Marks.jsx";
 
-/** The gazetteer: an ink mono header row, ruled rows; a row with `href` is a link (Enter / click). cols = [{ key, label, kind }]. */
-export function Gazetteer({ cols = [], rows = [], label = "Index", onRow, ...s }) {
+/** The gazetteer: an ink mono header row, ruled rows; a row with `href` is a link (Enter / click). cols = [{ key, label, kind }].
+ *  ⭐ D196 FIX-7 (47f, the market's Index): four optional additions, none of which changes the markup without them —
+ *  `c.render(r)` draws a cell itself (a link, a status tag); `onRow` with `rowClick` makes EVERY row open (not only one
+ *  with an href); `rowExtra(r)` is drawn inside the row's last cell as an overlay (the row bubble — FIX-8: it never shifts
+ *  the row's layout); `rowProps(r)` adds attributes to a row; `windowAfter` windows the rows past that many (R3: the index stays smooth at thousands), the page's
+ *  own scroll moving the window. */
+export function Gazetteer({ cols = [], rows = [], label = "Index", onRow, rowClick = false, rowExtra, rowProps, windowAfter = 0, rowPx = 49, ...s }) {
+  const [win, setWin] = useState({ first: 0, count: windowAfter || rows.length });
+  const bodyRef = useRef(null);
+  const windowed = windowAfter > 0 && rows.length > windowAfter;
+  useEffect(() => {
+    if (!windowed || typeof window === "undefined") return undefined;
+    const read = () => {
+      const el = bodyRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      const first = Math.max(0, Math.floor(-top / rowPx) - 40);
+      const count = Math.ceil(window.innerHeight / rowPx) + 80;
+      setWin((w) => (w.first === first && w.count === count ? w : { first, count }));
+    };
+    read();
+    window.addEventListener("scroll", read, { passive: true });
+    window.addEventListener("resize", read);
+    return () => { window.removeEventListener("scroll", read); window.removeEventListener("resize", read); };
+  }, [windowed, rowPx, rows.length]);
   const gate = plateState(s, { height: 320, radius: "card", label: `Loading ${label}`, lines: 5 });
   if (gate) return gate;
+  const first = windowed ? Math.min(win.first, Math.max(0, rows.length - 1)) : 0;
+  const shown = windowed ? rows.slice(first, first + win.count) : rows;
+  const above = windowed ? first * rowPx : 0, below = windowed ? Math.max(0, (rows.length - first - shown.length) * rowPx) : 0;
+  const last = cols.length - 1;
+  const fixed = cols.some((c) => c.width || c.col);
   return (
-    <div className="pl-gazetteer" role="region" aria-label={label} tabIndex={0}>
-      <table>
+    <div className="pl-gazetteer" role="region" aria-label={label} tabIndex={0} data-windowed={windowed ? "" : undefined}>
+      <table data-fixed={fixed ? "" : undefined}>
+        {/* c.width (a share of the table) or c.col (a class that sets one): fixed columns — they never jump as more rows load
+            or the window moves */}
+        {fixed ? <colgroup>{cols.map((c) => <col key={c.key} className={c.col || undefined} style={c.width ? { width: c.width } : undefined}/>)}</colgroup> : null}
         <thead><tr>{cols.map((c) => <th key={c.key} scope="col">{c.label}</th>)}</tr></thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={r.id ?? i} data-href={r.href || undefined} onClick={r.href ? () => onRow?.(r) : undefined}>
-              {cols.map((c) => (
-                <td key={c.key} data-kind={c.kind}>
-                  {c.kind === "status" ? <StatusTag>{r[c.key]}</StatusTag>
-                    : c.kind === "title" && r.href ? <a href={r.href} style={{ color: "var(--pl-ink)", fontWeight: 700 }}>{r[c.key]}</a>
-                      : c.kind === "title" ? <b>{r[c.key]}</b> : r[c.key] ?? "—"}
-                </td>
-              ))}
-            </tr>
-          ))}
+        <tbody ref={bodyRef}>
+          {above ? <tr aria-hidden="true" className="pl-gz__spacer"><td colSpan={cols.length} style={{ height: above, padding: 0 }}/></tr> : null}
+          {shown.map((r, i) => {
+            const opens = rowClick ? !!onRow : !!r.href;
+            return (
+              <tr key={r.id ?? first + i} data-href={r.href || undefined} data-row-opens={rowClick && onRow ? "" : undefined} {...rowProps?.(r)}
+                onClick={opens ? (e) => { if (e.target.closest("a, button")) return; onRow?.(r); } : undefined}>
+                {cols.map((c, j) => (
+                  <td key={c.key} data-kind={c.kind} className={j === last && rowExtra ? "pl-gz__last" : undefined}>
+                    {c.render ? c.render(r)
+                      : c.kind === "status" ? <StatusTag>{r[c.key]}</StatusTag>
+                      : c.kind === "title" && r.href ? <a href={r.href} style={{ color: "var(--pl-ink)", fontWeight: 700 }}>{r[c.key]}</a>
+                        : c.kind === "title" ? <b>{r[c.key]}</b> : r[c.key] ?? "—"}
+                    {j === last && rowExtra ? rowExtra(r) : null}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
+          {below ? <tr aria-hidden="true" className="pl-gz__spacer"><td colSpan={cols.length} style={{ height: below, padding: 0 }}/></tr> : null}
         </tbody>
       </table>
     </div>

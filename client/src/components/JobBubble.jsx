@@ -25,21 +25,13 @@ import { ATS_NUMBER_SHOWN } from "../../../shared/atsBands.js";
 import { salaryLabel, workstyleOf } from "../../../shared/postingFacts.js";
 import { ghostLine } from "../../../shared/ghostScore.js";
 import { DraftMark } from "./DraftMark.jsx";
+import { StarMark } from "./StarMark.jsx";   // 47f: shared with the plate market's row bubble (D196 FIX-8)
 import { draftButtonState } from "../lib/jobDecisions.js";
 import "./JobBubble.css";
 
 
 // D71: the shared label.
 const salary = salaryLabel;
-
-function StarMark({ filled }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M12 3.2l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17.2l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"
-        fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 /** (11) 45q · the Send mark — a plain arrow out of a box, drawn in the rail's own ink. */
 function SendMark() {

@@ -105,8 +105,8 @@ export function MarketTickets({ needsYou = 0, ledgerHref = "/app/auto-apply" }) 
   );
 }
 
-export default function MarketOpenings({ deck, index, count = null, field = null, tickets = null }) {   // field: the gallery / F5 fixture's own card
-  const [tab, setTab] = useState("deck");
+export default function MarketOpenings({ deck, index, count = null, field = null, tickets = null, initialTab = "deck" }) {   // field: the gallery / F5 fixture's own card
+  const [tab, setTab] = useState(initialTab);
   return (
     <PlateRoot className="pl-marketopenings" data-plate-market-openings="">
       <section className="pl-section" aria-labelledby="mk-openings" id="openings">

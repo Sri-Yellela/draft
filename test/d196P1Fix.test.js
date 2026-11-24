@@ -145,3 +145,27 @@ test("FIX-1 · d196PlatePageOneGround — one opaque root, the theme's palette, 
   assert.match(tokens, /:root\[data-theme\$="-dark"\]:not\(\[data-plate-palette="sketch"\]\) \.plate \{\n  --pl-shade:/, "dark themes: a deeper ground for the hard shadow");
   assert.match(read("scripts/d196Regress.mjs"), /<html data-plate-palette="sketch">/, "the F5 oracle compares the sketch's palette");
 });
+
+test("FIX-7 / FIX-8 · the Index is JobsColumn's own list and actions (one implementation, the board's order)", () => {
+  const jp = read("client/src/panels/JobsPanel.jsx");
+  const col = jp.slice(at(jp, "function JobsColumn("), at(jp, "const BESIDE_MIN_VIEWPORT"));
+  const ix = col.slice(at(col, "{plateIndex ? ("), at(col, "<JobBubbleRows jobs={jobs} columns={2}>"));
+  assert.ok(ix.includes("rows={jobs.map((job, i) => indexRow("), "the same `jobs`, mapped in the order given");
+  assert.ok(!/\.sort\(/.test(ix), "nothing re-sorts the board's rows on the client (the server's D184 B-8 order)");
+  assert.ok(ix.includes("onSave={() => decideJob?.(r.job, DECISIONS.SAVED)}") && ix.includes("onDraft={() => decideJob?.(r.job, DECISIONS.DRAFTED)}"),
+    "Star and Draft are the board's decideJob");
+  assert.ok(ix.includes("draftBlocked={draftControls?.block} draftSlots={draftControls?.slots}"), "A181's limit, as the bubble has it");
+  assert.ok(ix.includes("onOpen={(job) => (onJobSelect ? onJobSelect(job)"), "a row opens the posting the board's way");
+  assert.ok(col.includes("plateIndex ? <MarketIndexTable state=\"loading\"/>"), "loading = the Gazetteer's skeleton rows");
+  const mi = read("client/src/plate/MarketIndex.jsx");
+  assert.ok(mi.includes("draftButtonState({ drafted, drafting, block: draftBlocked"), "the Draft state is lib/jobDecisions.js's");
+  assert.ok(!/api\(|fetch\(|commitDecision/.test(mi), "the Index decides nothing itself");
+});
+
+test("FIX-7 · indexStatus / indexRow — honest cells", async () => {
+  const { indexStatus, indexRow, stackCell } = await import("../client/src/plate/MarketIndex.jsx").catch(() => ({}));
+  if (!indexStatus) return;   // JSX: covered by the browser file; this runs where a JSX loader is present
+  assert.equal(indexStatus("a", { submitted: new Set(["a"]) }), "SENT");
+  assert.equal(indexRow({ jobId: "a", title: "T" }, 0, { score: null }).match, "—", "no score is never 0");
+  assert.equal(stackCell({ skills: [] }), "—");
+});

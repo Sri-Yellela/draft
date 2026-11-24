@@ -65,6 +65,16 @@ export const PAIRS = {
     // line: the build's ‹ is disabled on the first card — honest — where the board's wraps round)
     cropTo: { 390: 1495 },
     masksAt: { 390: [[80, 90, 160, 16], [40, 604, 160, 16], [20, 1150, 250, 70], [20, 560, 272, 22], [246, 560, 46, 840], [0, 1400, 292, 95]] } },
+  // FIX-7 / FIX-8 (47f): the Index tab as the board's Gazetteer — a GATE, the board's Index tab pressed first. Compared as
+  // they are (both inside the gate): the STACK · YOURS cells (the board writes "5 / 5 · 4 ✓"; draft's rows carry the
+  // posting's skills, and the ✓ only when a report has them: "5 · 4 ✓") and each row's 32 px bubble (D182's carve-out — the
+  // board doesn't draw it; the owner kept it). Masked: only "· EXAMPLE DATA".
+  "market-index": { board: "The market · draft", fixture: "MarketIndexBoard", boardSel: "section:nth-of-type(3)", buildSel: "#openings", pad: 0, reduced: true, subpixel: true,
+    boardTab: "Index", masks: [[300, 0, 200, 22]],
+    // at 390 the gate stops at the table's header row: on the board's squeezed artboard its "5 / 5 · 4 ✓" overruns the
+    // 106 px STACK column by a pixel and wraps, so every board row is ~5 px taller (draft's "5 · 4 ✓" doesn't wrap); the
+    // rows are gated at 1280 and are a look here
+    cropTo: { 390: 610 }, masksAt: { 390: [[0, 78, 292, 24]] } },
   "market-field": { board: "The market · draft", fixture: "MarketOpeningsBoard", boardSel: 'aside[aria-label="Why this opening fits you"]', buildSel: 'aside[aria-label="Why this opening fits you"]', pad: 6, reduced: true, look: true },
   // v2 (47e, order item 4): each ported drawing against its own element on the v2 boards, drawn at the board's width
   // (`matchWidth`: the build page reads the board element's width from its address) — the port's fidelity, pixel for pixel.
@@ -118,10 +128,12 @@ export async function buildFixturePage(name) {
   return pathToFileURL(file).href;
 }
 
-async function shot(page, url, sel, width, pad, waitMs, reduced = false, ground = null, hide = null) {
+async function shot(page, url, sel, width, pad, waitMs, reduced = false, ground = null, hide = null, clickText = null) {
   await page.setViewport({ width, height: 900, deviceScaleFactor: 1 });
   await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: reduced ? "reduce" : "no-preference" }]);
   await page.goto(url, { waitUntil: "load", timeout: 60000 });
+  // clickText (47f): press the board's own control first (its Index tab) — the board is a live page with state
+  if (clickText) { await page.evaluate((t) => { const b = [...document.querySelectorAll('button[role="tab"]')].find((x) => x.textContent.includes(t)); b?.click(); }, clickText); await new Promise((r) => setTimeout(r, 400)); }
   await page.waitForSelector(sel, { timeout: 30000 });
   await page.evaluate(() => document.fonts && document.fonts.ready);
   // let the board's entrance animations finish (draw-on 3.5 s, view-in .35 s) — and stop the loops for a still frame
@@ -173,7 +185,7 @@ export async function runPair(name, { width = 1280, threshold = THRESHOLD_PCT, b
   const boardUrl = pathToFileURL(path.join(src ? src.out : CANVAS, row.file)).href;
   let buildUrl = await buildFixturePage(p.fixture);
   const page = await browser.newPage();
-  const board = await shot(page, boardUrl, p.boardSel, width, p.pad, 4000, !!p.reduced, p.ground, p.hideOnBoard);
+  const board = await shot(page, boardUrl, p.boardSel, width, p.pad, 4000, !!p.reduced, p.ground, p.hideOnBoard, p.boardTab || null);
   // matchWidth: the build draws at the board element's EXACT width and at the same sub-pixel offset inside its first pixel,
   // so both rasterise on the same grid (the board's signpost sits at x = 994.73, 260.27 wide — drawn at 261 from x = 0 every
   // outline landed a fraction off and read as a difference)

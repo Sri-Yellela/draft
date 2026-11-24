@@ -310,6 +310,47 @@
 .pl-gazetteer td[data-kind="mono"] { font-family: var(--pl-mono); font-size: var(--pl-t-mono-num); }
 .pl-gazetteer td[data-kind="num"] { font-family: var(--pl-mono); font-size: var(--pl-t-mono-num); font-weight: 700; }
 .pl-gazetteer td[data-kind="serif"] { font-family: var(--pl-serif); font-size: var(--pl-t-letter-sm); }
+.pl-gazetteer .pl-status { height: 26px; padding: 0 9px; }   /* the market board's index tags (26 px, 9 px) */
+/* ── D196 FIX-7 · the market's Index (plate/MarketIndex.jsx): the title bold, the company its survey sheet's link ── */
+.pl-marketindex .pl-gz__title, .plate .pl-marketindex a.pl-gz__title { color: var(--pl-ink); font-weight: 700; text-decoration: none; }
+.pl-marketindex .pl-gz__title:hover { text-decoration: underline; text-underline-offset: 3px; }
+.pl-marketindex .pl-gz__co, .plate .pl-marketindex a.pl-gz__co { color: var(--pl-ink); text-decoration: none; }   /* the board draws it plain; it underlines on hover / focus */
+.pl-marketindex .pl-gz__co:hover, .pl-marketindex .pl-gz__co:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+.pl-marketindex tbody tr[data-row-opens] { cursor: pointer; }
+.pl-marketindex tbody tr[data-row-opens]:hover { background: var(--pl-paper-warm); }
+.pl-gazetteer table[data-fixed] { table-layout: fixed; }
+.pl-gazetteer td.pl-gz__last { position: relative; }
+/* the board's own columns (fixed): at 1280 its 1132 px table; below 860 px its 390 artboard's 760 px table */
+.pl-gzc--n { width: 4.15%; } .pl-gzc--title { width: 35.58%; } .pl-gzc--co { width: 17.6%; } .pl-gzc--match { width: 7.55%; }
+.pl-gzc--stack { width: 14.34%; } .pl-gzc--h1b { width: 7.55%; } .pl-gzc--status { width: 13.24%; }
+@media (max-width: 860px) {
+  .pl-gzc--n { width: 4.63%; } .pl-gzc--title { width: 32.87%; } .pl-gzc--co { width: 17.52%; } .pl-gzc--match { width: 8.42%; }
+  .pl-gzc--stack { width: 13.88%; } .pl-gzc--h1b { width: 8.42%; } .pl-gzc--status { width: 14.25%; }
+  .pl-rowbubble__dot { display: none; }   /* a 108 px status column: the circle would cover the tag; hover / focus / a tap open the pill */
+}
+/* ── D196 FIX-8 · the row bubble: a 32 px circle at rest; on hover / focus within the row a pill grows LEFTWARDS over the
+   row's last cell (an overlay — the row never moves), Star and Draft inside; open on touch; no grow under Reduce motion ── */
+.pl-rowbubble { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; z-index: 1; }
+.pl-rowbubble__dot { width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; border: var(--pl-border); background: var(--pl-card);
+  color: var(--pl-ink); display: inline-flex; align-items: center; justify-content: center; font-size: var(--pl-t-13); transition: opacity var(--pl-hover) var(--pl-ease); }
+.pl-rowbubble__pill { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; gap: 6px; align-items: center; padding: 4px;
+  background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-input); box-shadow: var(--pl-s3); white-space: nowrap;
+  clip-path: inset(-6px -6px -6px 100% round 12px); opacity: 0; pointer-events: none;
+  transition: clip-path var(--pl-hover) var(--pl-ease), opacity var(--pl-hover) var(--pl-ease); }
+.pl-marketindex tr:hover .pl-rowbubble__pill, .pl-marketindex tr:focus-within .pl-rowbubble__pill { clip-path: inset(-6px -6px -6px -6px round 12px); opacity: 1; pointer-events: auto; }
+.pl-marketindex tr:hover .pl-rowbubble__dot, .pl-marketindex tr:focus-within .pl-rowbubble__dot { opacity: 0; }
+.pl-rowbubble__star, .pl-rowbubble__draft { all: unset; box-sizing: border-box; cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  border: var(--pl-border); border-radius: var(--pl-r-btn); font-weight: 700; font-size: var(--pl-t-small); }
+.pl-rowbubble__star { width: 44px; background: var(--pl-card); color: var(--pl-ink); }
+.pl-rowbubble__draft { padding: 0 16px; background: var(--pl-clay); color: var(--pl-on-clay); }
+.pl-rowbubble__draft:hover { background: var(--pl-clay-hover); }
+.pl-rowbubble__draft[disabled], .pl-rowbubble__draft[aria-disabled="true"] { opacity: .5; cursor: default; }
+.pl-rowbubble__draft[data-draft-state="drafted"] { background: var(--pl-card); color: var(--pl-ink); }
+.pl-rowbubble__star:focus-visible, .pl-rowbubble__draft:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 2px; }
+/* touch (no hover): the first tap on a row arms it (MarketIndexTable) and its pill opens; the second opens the posting */
+.pl-marketindex tr[data-armed] .pl-rowbubble__pill { clip-path: inset(-6px -6px -6px -6px round 12px); opacity: 1; pointer-events: auto; }
+.pl-marketindex tr[data-armed] .pl-rowbubble__dot { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .pl-rowbubble__pill, .pl-rowbubble__dot { transition: none; } }
 
 /* ── Register (ledger-ruled rows, ink head bar with bulk actions) ── */
 .pl-register { margin-top: 16px; border: var(--pl-border); border-radius: var(--pl-r-card); background-color: var(--pl-card); background-image: var(--pl-ledger-lines); box-shadow: var(--pl-s5); overflow: hidden; }

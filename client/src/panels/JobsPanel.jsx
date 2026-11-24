@@ -11,6 +11,8 @@ import { useMonetisationEnabled } from "../lib/monetisation.jsx";
 import { GENERATE_TOOL, A_PLUS_TOOL, TOOL_LABELS, normalizeTool } from "../lib/applyTools.js";
 import { planPageFetch, recordPageCursor } from "../lib/boardPaging.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
+import { useMarketPlate } from "../plate/marketPlate.js";   // ⭐ D196 FIX-7: the plate market's Index draws this board's rows
+import { MarketIndexTable, RowBubble, indexRow, indexStatus } from "../plate/MarketIndex.jsx";
 import { DECISIONS, DECISION_SURFACES, DECISION_TOAST_MS, commitDecision, undoDecision, undoFlagsFor, flagsFor, isDrafted, draftBlock } from "../lib/jobDecisions.js";
 import { registerAssistantActions } from "../lib/assistantBridge.js";   // D190: Ask draft calls the board's own decisions
 import { PREREQUISITE_LABELS } from "../lib/applyObstacles.js";
@@ -4616,6 +4618,12 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       emptyReason = null, canRankByFit = true, onAddResume, resumeReadState = "ready", onRetryResume,
                       savedTab = false, importedTab = false, boardLoading = false, beingMatched = 0, beingMatchedMore = false,
                       cardTier = 1, containerRef }) {
+  // ⭐ D196 FIX-7 (owner 11-24, 47f): in the plate market the Index tab IS this list, drawn as the board's Gazetteer — the
+  // same rows, order, paging, empty states and actions; only the look changes (R6). Its status tags read the apply feeds.
+  const plateIndex = useMarketPlate();
+  const { applySubmitted = [], applyGatedJobs = [], applyReviewJobs = [] } = useAutoApply() || {};
+  const submittedIds = useMemo(() => new Set(applySubmitted.map((j) => j?.jobId).filter(Boolean)), [applySubmitted]);
+  const needsYouIds = useMemo(() => new Set([...applyGatedJobs, ...applyReviewJobs].map((j) => j?.jobId).filter(Boolean)), [applyGatedJobs, applyReviewJobs]);
   // ⭐ (11) 45q · D180's Send on the list rows — only while the network is on (the deck's own rule), through the ONE picker.
   const [networkOn, setNetworkOn] = useState(false);
   const [sending, setSending] = useState(null);
@@ -4673,8 +4681,9 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
         </p>
       )}
       {boardLoading ? (
-        // D45: the card's own geometry from the first frame, until this view answers.
-        <JobBubbleRows jobs={SKELETON_CARDS}>{(_, i) => <JobBubbleSkeleton key={i} />}</JobBubbleRows>
+        // D45: the card's own geometry from the first frame, until this view answers (FIX-7: the Gazetteer's skeleton rows).
+        plateIndex ? <MarketIndexTable state="loading"/>
+          : <JobBubbleRows jobs={SKELETON_CARDS}>{(_, i) => <JobBubbleSkeleton key={i} />}</JobBubbleRows>
       ) : shouldShowEmptyState ? (
         // ⭐ 45s: held back because they are being matched — never "nothing matches your filters" (they DO match).
         beingMatched > 0 ? (
@@ -4730,7 +4739,21 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
               hover / focus-within, and is always shown on touch. components/JobBubble.jsx carries the spec.
               Generate and the posting link are off the card (D1): Apply is the company name (A63), and
               generating lives on the job's detail panel. */}
-          {/* ⭐ D152 (5): two columns of resizing bubbles; one while a posting is open beside the list. */}
+          {/* ⭐ D196 FIX-7 / FIX-8: the plate market's Index — the same jobs as the Gazetteer, each row's bubble the board's
+              Star (Save) and Draft, wired to the same decideJob / draftControls as the bubble below. */}
+          {plateIndex ? (
+            <MarketIndexTable
+              rows={jobs.map((job, i) => indexRow(job, i, { score: scoresFor(job, generated[job.jobId]).shown,
+                status: indexStatus(job.jobId, { drafted: isJobDrafted(job.jobId), submitted: submittedIds, needsYou: needsYouIds }) }))}
+              onOpen={(job) => (onJobSelect ? onJobSelect(job) : job.url ? visitUrl(job) : null)}
+              bubble={(r) => (
+                <RowBubble job={r.job} saved={!!(r.job._user?.starred ?? r.job.starred)} drafted={isJobDrafted(r.id)} drafting={draftingIds.has(r.id)}
+                  onSave={() => decideJob?.(r.job, DECISIONS.SAVED)} onDraft={() => decideJob?.(r.job, DECISIONS.DRAFTED)}
+                  onViewDraft={draftControls?.onView} draftBlocked={draftControls?.block} draftSlots={draftControls?.slots}
+                  onExplainDraft={(reason) => draftControls?.onExplain(r.job, reason)}/>
+              )}/>
+          ) : (
+          /* ⭐ D152 (5): two columns of resizing bubbles; one while a posting is open beside the list. */
           <JobBubbleRows jobs={jobs} columns={2}>
           {(job) => {
             const key = job.jobId, g = generated[key];
@@ -4764,6 +4787,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
             );
           }}
           </JobBubbleRows>
+          )}
           {sending && <SendJobPicker job={sending} onClose={() => setSending(null)} />}
 
           {/* ⭐ D147 · scrolling, not page numbers: the next page loads as the list's end comes into view. */}
