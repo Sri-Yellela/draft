@@ -54,13 +54,13 @@ export function AtsCard({ report = null, jobId = null, history = null, contextua
                 <div style={{ fontSize: ts(14) }}>{p.name}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
                   <div aria-hidden="true" style={{ height: 6, borderRadius: 2, background: "var(--color-border)", overflow: "hidden" }}>
-                    <div style={{ height: 6, width: `${p.score}%`, background: atsInk(p.score) }} />
+                    {p.score != null && <div style={{ height: 6, width: `${p.score}%`, background: atsInk(p.score) }} />}
                   </div>
-                  {detail && p.line && <div data-ats-card-line={p.id} style={{ fontSize: ts(12.5), color: "var(--color-text-muted)", overflowWrap: "anywhere" }}>{p.line}</div>}
+                  {(detail || p.pending) && p.line && <div data-ats-card-line={p.id} style={{ fontSize: ts(12.5), color: "var(--color-text-muted)", overflowWrap: "anywhere" }}>{p.line}</div>}
                   {/* ⭐ 46z (owner 11-20): the part's figures, stated — counts, shares, its weight */}
                   {detail && p.facts?.length > 0 && <div data-ats-card-facts={p.id} style={{ fontSize: ts(11.5), color: "var(--color-text-muted)", opacity: 0.85, overflowWrap: "anywhere" }}>{p.facts.join(" · ")}</div>}
                 </div>
-                <div style={{ fontSize: ts(14), fontWeight: 700, textAlign: "right", color: atsInk(p.score) }}>{p.score}</div>
+                <div style={{ fontSize: ts(14), fontWeight: 700, textAlign: "right", color: p.score != null ? atsInk(p.score) : "var(--color-text-muted)" }}>{p.score ?? "—"}</div>
               </div>
             ))}
           </div>

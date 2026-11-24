@@ -69,6 +69,8 @@ export const MODULES = Object.freeze({
   // panel); AtlasPanels.css is the panels' look.
   atlas: { why: "the Atlas pages (D105) — search, one node's page, its neighbourhood graph; Learn, the owner's path (D115); Your map, the tree (D116); its own navigation of panels (D167)", css: ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/LearnCircle.css", "pages/atlas/AtlasTree.css", "pages/atlas/AtlasPanels.css", "pages/atlas/LibraryPanel.css", "pages/atlas/YourRun.css", "pages/atlas/TrackBoard.css", "pages/atlas/CompetePanels.css", "pages/atlas/SkillMap.css"],
     members: ["App.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/atlasModel.js", "pages/atlas/LearnView.jsx", "pages/atlas/learnModel.js", "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/LibraryPanel.jsx", "pages/atlas/PathwayArt.jsx", "pages/atlas/libraryModel.js", "pages/atlas/YourRun.jsx", "pages/atlas/yourRunModel.js", "pages/atlas/TrackBoard.jsx", "pages/atlas/trackModel.js", "pages/atlas/LibraryGuides.jsx", "pages/atlas/LessonDeck.jsx", "pages/atlas/DeckPlay.jsx", "pages/atlas/deckPlay.js",
+      // ⚠ D194 P4 (47c): the feed plays a shared deck with the Library's own player — a decided reuse, so FeedDeck is a member here too.
+      "pages/network/FeedDeck.jsx",
       "pages/atlas/AtlasTree.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js", "pages/atlas/YourMap.jsx",
       "pages/atlas/Navigator.jsx", "pages/atlas/ReadinessCheck.jsx",
       "pages/atlas/AtlasPanels.jsx", "pages/atlas/atlasPanels.js",
@@ -93,7 +95,7 @@ export const MODULES = Object.freeze({
     // ⛔ A157 (45q, owner 11-09): the Companies tab (CompaniesView) is removed — search and the company's name reach a page.
     css: ["pages/companies/CompanyPage.css"], members: ["App.jsx", "pages/companies/CompanyPage.jsx"] },
   network: { why: "D180 P1 — the Network place (People: connections, requests, suggestions, blocked), behind the network switch; 46f — Feed (/app/feed) and Messages (/app/messages) as their own places, under the same switch",
-    css: ["pages/network/NetworkPage.css"], members: ["App.jsx", "pages/network/NetworkPage.jsx", "pages/network/MessagesPane.jsx", "pages/network/FeedPane.jsx", "pages/network/FeedPage.jsx", "pages/network/MessagesPage.jsx", "pages/network/networkSwitch.js"] },
+    css: ["pages/network/NetworkPage.css"], members: ["App.jsx", "pages/network/NetworkPage.jsx", "pages/network/MessagesPane.jsx", "pages/network/FeedPane.jsx", "pages/network/FeedPage.jsx", "pages/network/MessagesPage.jsx", "pages/network/networkSwitch.js", "pages/network/FeedDeck.jsx"] },
 });
 
 // ── SHARED: every file under components/, styles/, lib/, hooks/, contexts/, themes/, consoles/.

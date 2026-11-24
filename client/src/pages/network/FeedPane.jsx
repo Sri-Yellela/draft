@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
 import DepthButton from "../../components/DepthButton.jsx";
+import FeedDeck, { deckIdFromLink } from "./FeedDeck.jsx";   // ⭐ D194 P4: a shared deck plays inline
 
 const when = (s) => new Date(s * 1000).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 const REASONS = [["spam", "Spam"], ["harassment", "Harassment"], ["scam", "A scam"], ["inappropriate", "Inappropriate"], ["other", "Something else"]];
@@ -89,6 +90,7 @@ function Post({ p, onChanged }) {
       {post.proof && <p className="feed-proof" data-feed-proof={post.proof.kind}>{post.proof.kind === "check" ? `Passed the ${post.proof.label} check on Atlas` : post.proof.label}</p>}
       {post.text && <p className="msg__text">{post.text}</p>}
       {post.link && <p className="net__quiet feed-link">{post.link}</p>}
+      {deckIdFromLink(post.link) && <FeedDeck id={deckIdFromLink(post.link)} />}
       {post.kind === "job" && <FeedJob job={post.job} />}
       {reporting && (
         <div className="msg-report">

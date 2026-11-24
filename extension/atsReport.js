@@ -349,6 +349,9 @@ function atsCardView({ report = null, contextual = null } = {}) {
   parts.push({ id: "skill_match", name: "Skills", score: skill, line, facts: skillFacts(report, c?.parts?.skill_match) });
   const role = c?.parts?.role_fit, work = c?.parts?.responsibility_overlap, stack = c?.parts?.tech_stack;
   if (role?.status === "ok" && num(role.score) != null) parts.push({ id: "role_fit", name: "Role", score: num(role.score), line: roleLine(role), facts: roleFacts(role) });
+  // ⭐ 47c (owner 11-24): a résumé with no role placed left Role off the card (weights read 63 / 19 / 19 with no word why).
+  // It stays on the card, with no number and the one step that gives it one; it never counts in the score.
+  else if (role?.status === "no_data" && role.reason === "resume_not_placed") parts.push({ id: "role_fit", name: "Role", score: null, pending: true, line: "Pick your role in Your profile to compare", facts: [] });
   if (work?.status === "ok" && num(work.score) != null) parts.push({ id: "responsibility_overlap", name: "The work", score: num(work.score), line: workLine(work), facts: workFacts(work) });
   if (stack?.status === "ok" && num(stack.score) != null) parts.push({ id: "tech_stack", name: "Their stack", score: num(stack.score), line: stackLine(stack), facts: stackFacts(stack) });
 

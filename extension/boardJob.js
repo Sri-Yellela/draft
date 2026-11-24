@@ -50,8 +50,18 @@ export function cardOf(ats) {
   const facts = (xs) => (Array.isArray(xs) ? xs.map(f => s(f, 120)).filter(Boolean).slice(0, 6) : []);
   return { declined: false, score: n(v.score), band: band(v.score), facts: facts(v.facts),
     parts: (Array.isArray(v.parts) ? v.parts : []).slice(0, 4).map(p => ({ id: s(p.id, 30), name: s(p.name, 30), score: n(p.score), band: band(p.score),
-      line: s(p.line, 200), facts: facts(p.facts) })).filter(p => p.score != null),
-    gain: v.gain?.text ? { text: s(v.gain.text, 160), tech: s(v.gain.tech || '', 60) || null } : null };
+      line: s(p.line, 200), facts: facts(p.facts), pending: p.pending === true })).filter(p => p.score != null || p.pending),   // 47c: Role waiting on a placement
+    gain: v.gain?.text ? { text: s(v.gain.text, 160), tech: s(v.gain.tech || '', 60) || null } : null,
+    // ⭐ D194 P4 (47c): the lesson for the biggest gain (routes/extensionJob.js lessonFor) — an approved deck's id, title and
+    // first three points, kept to their shape here; the panel plays them in the expanded view.
+    lesson: lessonOf(ats.lesson) };
+}
+const DECK_ID = /^[a-z]+(?:-[a-z]+)*-\d{2}$/;
+function lessonOf(l) {
+  if (!l || typeof l !== 'object' || typeof l.id !== 'string' || !DECK_ID.test(l.id)) return null;
+  const s = (x, n) => (typeof x === 'string' ? x.replace(/\s+/g, ' ').trim().slice(0, n) : '');
+  const points = (Array.isArray(l.points) ? l.points : []).map(p => s(p, 240)).filter(Boolean).slice(0, 3);
+  return points.length ? { id: l.id, title: s(l.title, 120), points } : null;
 }
 
 const safePath = (p) => (typeof p === 'string' && p.startsWith('/') && !p.startsWith('//') ? p.slice(0, 200) : null);

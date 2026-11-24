@@ -360,6 +360,14 @@ export function renderResumePanel(model, meta) {
     /* ⭐ 47b (owner 11-22: "a detailed analysis on demand") — the card opens short; the facts line and each part's line and
        figures show only after "Show the analysis" (the web card's toggle, AtsCard.jsx). */
     .ac[data-detail="0"] [data-detail-line] { display: none; }
+    /* ⭐ D194 P4 (47c): the lesson for the biggest gain — its first three points one at a time (CSS only, no sound) */
+    .ac .ls { display: grid; gap: 4px; padding-top: 6px; border-top: 1px solid var(--c-border); font-size: 12px; }
+    .ac .ls .lt { font-weight: 600; }
+    .ac .ls .lp { margin: 0; opacity: 0; animation: rm-lesson .35s ease-out forwards; }
+    .ac .ls .lp:nth-of-type(2) { animation-delay: 2.4s; } .ac .ls .lp:nth-of-type(3) { animation-delay: 4.8s; }
+    .ac .ls .lo { justify-self: start; font: inherit; font-size: 11.5px; background: none; border: 0; padding: 0; color: var(--c-accent-ink, inherit); text-decoration: underline; cursor: pointer; }
+    @keyframes rm-lesson { from { opacity: 0; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .ac .ls .lp { animation: none; opacity: 1; } }
     .ac .dt { justify-self: start; font: inherit; font-size: 11.5px; background: none; border: 0; padding: 0; color: var(--c-ink-muted); cursor: pointer; }
     .ac .pl { display: grid; gap: 6px; font-size: 12px; } .ac .pl .fl { color: var(--c-warning); }
     .ac .pl button { font: inherit; font-size: 11.5px; background: none; border: 0; padding: 0; color: var(--c-accent-ink); cursor: pointer; }
@@ -505,9 +513,12 @@ export function renderResumePanel(model, meta) {
           ${ac.facts?.length ? `<div class="fx" data-role="ats-card-facts" data-detail-line="">${esc(ac.facts.join(' · '))}</div>` : ''}
           ${(ac.parts || []).map(p => `<div class="pt" data-ats-part="${esc(p.id)}"><div class="pn">${esc(p.name)}</div>
             <div><div class="bar" aria-hidden="true" data-band="${esc(p.band || '')}"><i style="width:${Number(p.score) || 0}%"></i></div>
-              ${p.line ? `<div class="fx" data-detail-line="">${esc(p.line)}</div>` : ''}${p.facts?.length ? `<div class="fx" data-detail-line="">${esc(p.facts.join(' · '))}</div>` : ''}</div>
-            <div class="pf" data-band="${esc(p.band || '')}">${esc(p.score)}</div></div>`).join('')}
+              ${p.line ? `<div class="fx"${p.pending ? ' data-pending=""' : ' data-detail-line=""'}>${esc(p.line)}</div>` : ''}${p.facts?.length ? `<div class="fx" data-detail-line="">${esc(p.facts.join(' · '))}</div>` : ''}</div>
+            <div class="pf" data-band="${esc(p.band || '')}">${p.score == null ? '—' : esc(p.score)}</div></div>`).join('')}
           ${ac.gain ? `<div class="gn" data-role="ats-card-gain">Biggest gain: ${esc(ac.gain.text)}</div>` : ''}
+          ${ac.lesson ? `<div class="ls" data-role="ats-card-lesson" data-deck="${esc(ac.lesson.id)}" data-detail-line=""><div class="lt">A short lesson: ${esc(ac.lesson.title)}</div>
+            ${ac.lesson.points.map(p => `<p class="lp">${esc(p)}</p>`).join('')}
+            <button type="button" class="lo" data-role="lesson" data-deck="${esc(ac.lesson.id)}">Open the lesson in draft</button></div>` : ''}
           ${(ac.parts || []).some(p => p.line || p.facts?.length) ? `<button type="button" class="dt" data-role="ats-card-detail" aria-expanded="${atsDetail}">${atsDetail ? 'Hide the analysis' : 'Show the analysis'}</button>` : ''}
           <div class="pl" data-role="plausibility"></div>
         </div>`;
@@ -664,6 +675,8 @@ export function renderResumePanel(model, meta) {
     if (role === 'generate') { say('Tailoring your résumé…'); return take(r, await send({ type: 'RESUME_GENERATE', trigger: 'click' }), 'Could not start — try again.'); }
     if (role === 'cancel') { say('Cancelling…'); return take(r, await send({ type: 'RESUME_CANCEL', id: m.id }), 'Could not cancel — try again.'); }
     if (role === 'attach') { say('Attaching…'); return take(r, await send({ type: 'RESUME_ATTACH', id: m.id }), 'Could not attach — try Download PDF.'); }
+    // ⭐ D194 P4 (47c): the lesson opens in draft's Library — the person's trusted press, one tab
+    if (role === 'lesson') { const got = await send({ type: 'RESUME_OPEN_LESSON', trigger: 'click', deck: btn.dataset.deck }); btn.disabled = false; if (!got?.ok) say(got?.message || 'Could not open draft.', true); else say('Opened in a new tab.'); return; }
     if (role === 'edit') { const got = await send({ type: 'RESUME_OPEN_EDITOR', id: m.id }); btn.disabled = false; if (!got?.ok) say(got?.message || 'Could not open draft.', true); else say('Opened in a new tab.'); }
     if (role === 'read') { say('Reading this page…'); return readPage(r); }
     // ⭐ T31: "Unlink this page" — off the retired toolbar popup, here where the tab's job is named: forget which job this
@@ -1117,6 +1130,16 @@ export function handlersFor(serverUrl = null) {
       if (!key) return refuse('That flag is not known.');
       const r = await post(url(), '/api/extension/plausibility/dismiss', { key, ...(msg.undo === true ? { undo: true } : {}) });
       return r.ok ? { ok: true, dismissed: r.body?.dismissed !== false } : refuse('Could not dismiss it right now.');
+    },
+
+    /** ⭐ D194 P4 (47c) · the card's lesson, in draft's Library, in a new tab — only from the press, only a deck's id. */
+    RESUME_OPEN_LESSON: async (msg, sender) => {
+      if (msg?.trigger !== 'click') return refuse('A lesson opens only from its button.');
+      if (!tabOf(sender)) return refuse('Open the ATS tab on the job page.');
+      if (!url()) return refuse('Not configured.');
+      const id = typeof msg.deck === 'string' ? msg.deck : '';
+      if (!/^[a-z]+(?:-[a-z]+)*-\d{2}$/.test(id)) return refuse('That lesson is not known.');
+      try { await chrome.tabs.create({ url: `${url()}/app/atlas/library/${id}` }); return { ok: true }; } catch { return refuse('Could not open draft.'); }
     },
 
     /** Edit in a full page: the server's openUrl for this job, on draft's own site, in a new tab. */

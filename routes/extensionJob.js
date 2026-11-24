@@ -27,7 +27,8 @@ import { previewIngest } from "../services/jobs/jobGateway.js";
 import { createRateLimiter } from "../services/extensionResume.js";
 import { getKnownLogoUrl } from "../shared/companyLogos.js";
 import { extensionHome, badgeText, companyCard } from "../services/extensionHome.js";   // D191: home, badge, company card (no model)
-import { jobFactsForExtension } from "../services/extensionJobFacts.js";   // D191 (2a)/(2c)/(2d): the side panel's facts (no model)
+import { jobFactsForExtension } from "../services/extensionJobFacts.js";
+import { approvedDecks } from "../services/learn/learnDecks.js";   // ⭐ D194 P4 (47c): the card's lesson   // D191 (2a)/(2c)/(2d): the side panel's facts (no model)
 
 /** ⭐ 47a E1 · the flags the extension shows: per flag, the employer, the bullet (short), the reason and its key. Pure. */
 export function flagsForExtension(r) {
@@ -48,6 +49,24 @@ export const LOOKUP_LIMIT = Object.freeze({ limit: 60, windowMs: 60_000 });
 
 const httpsOnly = (u) => { try { const x = new URL(String(u || "")); return x.protocol === "https:" ? x.href : null; } catch { return null; } };
 
+/**
+ * ⭐ D194 P4 (47c, owner 11-24) · the extension's one-deck preview: the APPROVED deck that teaches the card's biggest gain —
+ * their most-used technology you don't show (the contextual block's first stack gap), else the first skill the posting asks
+ * for that the résumé lacks — matched to a deck's own skills, exactly (case aside). Its first three points, as the panel
+ * plays them; null when no approved deck teaches it. Read from the deck files: no database, no model.
+ */
+export function lessonFor(r, decks = null) {
+  const gap = (r?.contextual?.dissimilarities || []).find(d => d?.kind === "stack_gap")?.tech ?? (r?.report?.tier1_missing || [])[0];
+  if (typeof gap !== "string" || !gap.trim()) return null;
+  const k = gap.trim().toLowerCase();
+  let d = null;
+  try { d = (decks || approvedDecks()).find(x => (x.skills || []).some(s => String(s).toLowerCase() === k)) || null; } catch { return null; }
+  if (!d) return null;
+  const points = (d.slides || []).flatMap(sl => (sl.points || []).map(p => (typeof p === "string" ? p : String(p?.text || ""))))
+    .map(p => p.trim()).filter(Boolean).slice(0, 3);
+  return points.length ? { id: d.id, title: String(d.title || "").slice(0, 120), term: gap.slice(0, 60), points: points.map(p => p.slice(0, 240)) } : null;
+}
+
 /** The extension's `ats`: the summary, and (T9) the scorer's own report whenever the scorer handed one over. */
 export const reportOf = (r) => (r ? { state: "ready", score: r.score ?? null, band: r.band ?? null, scorable: r.scorable !== false,
   matched: (r.matched || []).slice(0, 40), missing: (r.missing || []).slice(0, 40),
@@ -55,7 +74,8 @@ export const reportOf = (r) => (r ? { state: "ready", score: r.score ?? null, ba
   // ⭐ D192 (4): the contextual block (ATS contract 2.0.0) beside the report — the panel's % is the skill match until it reads this
   ...(r.contextual && typeof r.contextual === "object" ? { contextual: r.contextual,
     // the owner, 11-19: "the font color on the ats number should do it" — the panel paints the number it shows by this band
-    contextualBand: atsBandFor(r.contextual.score ?? null) } : {}) } : { state: "unavailable" });
+    contextualBand: atsBandFor(r.contextual.score ?? null) } : {}),
+  ...(() => { const l = lessonFor(r); return l ? { lesson: l } : {}; })() } : { state: "unavailable" });
 
 /** The job the extension may open, and its report — or null when it is not on this user's board. */
 export function boardJobForExtension(db, userId, jobId, { scoreFor, hasBaseResume }) {
