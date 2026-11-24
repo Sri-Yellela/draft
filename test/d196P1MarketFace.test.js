@@ -6,6 +6,8 @@
 //                               match signal, Open the posting with Enter, the company link);
 //   d196P1FaceHonestData      — R2: no pay → "Pay not posted", no sponsorship data → no stamp, no logo → the letter tile,
 //                               a 120-character title kept whole in the markup (CSS clamps it), ✓ only on matched tech;
+//   d196P1BearingSameControls — the cartouche is BoardHeadline's sentence with BoardHeadline's controls (same words, slots,
+//                               aria-pressed / aria-expanded / aria-controls, id) — only the look differs (R6);
 //   d196P1SwitchOffByDefault  — the plate market is OFF until the owner's ok; ?plate=1 / ?plate=0 and the stored value.
 // ⛔ Verified to fail before it was committed: the CardBack line removed from the plate branch, data-deck-open-posting
 // dropped from the face, MARKET_PLATE_DEFAULT set true — each failed, naming it.
@@ -34,6 +36,10 @@ async function load() {
     import { MemoryRouter } from "react-router-dom";
     import MarketCardFace, { openingFromCard, pickStack } from ${JSON.stringify(path.join(CLIENT, "src/plate/MarketCardFace.jsx"))};
     export { openingFromCard, pickStack };
+    import PlateBearing from ${JSON.stringify(path.join(CLIENT, "src/plate/PlateBearing.jsx"))};
+    import BoardHeadline from ${JSON.stringify(path.join(CLIENT, "src/components/BoardHeadline.jsx"))};
+    export const renderBearing = (props) => renderToStaticMarkup(React.createElement(PlateBearing, props));
+    export const renderHeadline = (props) => renderToStaticMarkup(React.createElement(BoardHeadline, props));
     export const render = (props) => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(MarketCardFace, props)));
   `;
   await esbuild.build({
@@ -123,4 +129,27 @@ test("D196 P1 · d196P1SwitchOffByDefault", () => {
   assert.equal(sectorRegion("Business and finance"), "V");
   assert.equal(sectorRegion("Design"), "VI");
   assert.equal(sectorRegion("Nursing"), "IV", "a sector with no ramp falls back to IV");
+});
+
+test("D196 P1 · d196P1BearingSameControls — the cartouche is the same sentence and the same controls (R6)", async () => {
+  const { renderBearing, renderHeadline } = await load();
+  const strip = (h) => h.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+  const controls = (h) => [...h.matchAll(/<button[^>]*data-slot="([^"]+)"[^>]*>/g)].map((m) => {
+    const a = (k) => (m[0].match(new RegExp(`${k}="([^"]*)"`)) || [])[1] ?? null;
+    return [m[1], a("aria-pressed"), a("aria-expanded"), a("aria-controls")];
+  });
+  const sentenceOf = (h) => h.slice(at(h, 'id="fh-sentence"'), at(h, "</h1>"));
+  for (const [params, open] of [[{}, null], [{ tech: "React", location: "Boston" }, "location"], [{ level: "mid" }, "level"]]) {
+    const old = renderHeadline({ params, open });
+    const plate = renderBearing({ params, open, allSlot: "all" });
+    assert.ok(plate.includes('id="fh-sentence"'), "the sentence keeps its id");
+    assert.ok(plate.includes('id="fh-all-filters"'), "All filters keeps its id");
+    assert.equal(strip(sentenceOf(plate).replace(/^[^>]*>/, "")), strip(sentenceOf(old).replace(/^[^>]*>/, "")), "the same words");
+    assert.deepEqual(controls(sentenceOf(plate)), controls(sentenceOf(old)), "the same controls and states");
+  }
+  const app = read("client/src/App.jsx");
+  const slot = app.slice(at(app, "function BoardHeadlineSlot()"), at(app, "function RouteCommitSignal()"));
+  assert.ok(slot.includes("if (!plate) return"), "the switch picks the cartouche");
+  const plateBranch = slot.slice(at(slot, "<PlateBearing "));
+  assert.ok(at(plateBranch, "<PlateBearing ") < at(plateBranch, "<WordPanel "), "WordPanel opens beneath the cartouche, as beneath the sentence");
 });

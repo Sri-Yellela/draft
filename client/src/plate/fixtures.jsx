@@ -6,6 +6,7 @@ import PlateRoot from "./PlateRoot.jsx";
 import { AreaNav, Dock } from "./Shell.jsx";
 import { MemoryRouter } from "react-router-dom";
 import MarketCardFace from "./MarketCardFace.jsx";
+import PlateBearing from "./PlateBearing.jsx";
 
 const MARKET_VIEWS = [
   { id: "picks", label: "Today’s picks", href: "#picks", icon: "picks" },
@@ -58,4 +59,13 @@ export function MarketFace() {
   );
 }
 
-export const FIXTURES = { ShellMarket, MarketFace };
+/** The bearing (P1) with the board's clauses where the sentence model has them (React, Boston), 1280 wide. */
+export function MarketBearing() {
+  return (
+    <div data-market-bearing-fixture="" style={{ width: 860, padding: 24 }}>
+      <PlateBearing params={{ tech: "React", location: "Boston" }} allSlot="all"/>
+    </div>
+  );
+}
+
+export const FIXTURES = { ShellMarket, MarketFace, MarketBearing };

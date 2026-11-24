@@ -31,6 +31,9 @@ export const PAIRS = {
   // P1 · the card face: the owner kept the deck's form factor (11-24), so the face can never be the board's size — this pair
   // is a LOOK for the owner (pair.png), not a pixel gate; its report says so instead of passing or failing.
   "market-face": { board: "The market · draft", fixture: "MarketFace", boardSel: "article[aria-label]", buildSel: "[data-market-face-fixture]", pad: 6, look: true },
+  // P1 · the bearing: the board's sentence carries clauses the live model words differently (the résumé's own role, level,
+  // sponsorship), so this too is a look at the cartouche's frame and type, not a pixel gate.
+  "market-bearing": { board: "The market · draft", fixture: "MarketBearing", boardSel: "section:nth-of-type(2)", buildSel: "[data-market-bearing-fixture]", pad: 0, look: true },
 };
 
 /** Pure: compare two RGBA buffers of the same size → { differing, compared, pct }. Masks are [x, y, w, h]. */

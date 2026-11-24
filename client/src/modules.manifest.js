@@ -35,7 +35,7 @@ export const MODULES = Object.freeze({
     css: ["components/FullHouse.css"],
     // ⚠ D93: the Customise preview draws the sentence and the bar with this module's classes — a decided reuse
     // (the preview must be the real look, not a copy of it), so it is a member.
-    members: ["App.jsx", "components/BoardBar.jsx", "components/BoardHeadline.jsx", "components/SortPanel.jsx", "components/WordPanel.jsx",
+    members: ["App.jsx", "components/BoardBar.jsx", "components/BoardHeadline.jsx", "plate/PlateBearing.jsx" /* D196 P1: the sentence as a cartouche */, "components/SortPanel.jsx", "components/WordPanel.jsx",
       "components/CustomisePreview.jsx"] },
   searchBar: { why: "the search suggest and its look — the board's well (BoardBar), the open board, the dock (46v: the landing's bar is gone)",
     css: ["components/UnifiedSearchBar.css"],
@@ -65,7 +65,7 @@ export const MODULES = Object.freeze({
       "plate/Cards.jsx", "plate/Lists.jsx", "plate/Drawings.jsx", "plate/icons.jsx", "plate/motion.js", "plate/registry.js", "plate/fonts.js",
       "plate/drawings/index.js", "plate/fixtures.jsx", "pages/dev/PlateGallery.jsx",
       // P1 (the market): the switch, the card face, and the deck that wears it
-      "plate/marketPlate.js", "plate/MarketCardFace.jsx", "panels/DeckView.jsx"] },
+      "plate/marketPlate.js", "plate/MarketCardFace.jsx", "plate/PlateBearing.jsx", "panels/DeckView.jsx"] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminGateway.jsx", "panels/adminFlags.jsx","panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "panels/adminReports.jsx", "panels/adminCompanyRecords.jsx", "panels/adminNetwork.jsx", "panels/adminRuns.jsx", "panels/adminPhase1.jsx", "panels/adminDiagnostics.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.

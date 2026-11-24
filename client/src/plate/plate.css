@@ -465,3 +465,9 @@
 .pl-mface__foot { flex: none; display: flex; align-items: center; padding: 4px 18px 6px; }
 .pl-mface__open { min-height: 44px; background: transparent; border: 0; padding: 0; cursor: pointer; color: var(--pl-clay-text); font-weight: 700; font-size: var(--pl-t-meta); }
 .pl-mface__open:hover { color: var(--pl-clay-hover); }
+
+/* ── D196 P1 · the bearing (plate/PlateBearing.jsx): the cartouche over the board, its parts' two states ── */
+.pl-bearing { background: transparent; margin: 0 0 14px; }
+.pl-bearing .pl-cartouche__text { font-weight: 400; }   /* an h1 here (the sentence is the page's heading, D34), lettered as the board's p */
+.pl-bearing .pl-cartouche__part[aria-expanded="true"] { background: var(--pl-region-tint); outline: var(--pl-line) solid var(--pl-region); outline-offset: 1px; }
+.pl-bearing .pl-cartouche__part:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 3px; }
