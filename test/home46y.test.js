@@ -4,6 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { at } from "../test-support/sourceAnchors.js";
 import { filterCounts, homeSummary, homeNeeds, TRACKER_FILTERS } from "../client/src/lib/trackerRows.js";
 
 const NOW = Date.parse("2026-11-20T15:00:00Z");
@@ -42,11 +43,11 @@ test("home46y · homeNeeds — Needs you, the next interview, Ready to send, in 
 
 test("home46y · Home draws the bar, the cards and the two parts (AutoApplyPanel)", () => {
   const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
-  const head = panel.slice(panel.indexOf('<header className="dh-head"'), panel.indexOf("</header>"));
+  const head = panel.slice(at(panel, '<header className="dh-head"'), at(panel, "</header>"));
   assert.doesNotMatch(head, /data-mode="ask"/, "the mode left the header");
   assert.doesNotMatch(head, /data-settings-open=""/, "Settings left the header");
   assert.match(head, /data-home-summary=""/);
-  const bar = panel.slice(panel.indexOf('data-home-auto=""'), panel.indexOf('data-home-needs=""'));
+  const bar = panel.slice(at(panel, 'data-home-auto=""'), at(panel, 'data-home-needs=""'));
   for (const piece of ['data-mode="ask"', 'data-mode="auto"', 'data-stop-everything=""', 'data-settings-open=""', '"Auto-apply is running"', '"Auto-apply is paused"'])
     assert.ok(bar.includes(piece), `the auto-apply bar holds ${piece}`);
   assert.equal(panel.split('data-stop-everything=""').length - 1, 1, "ONE Pause (A93): it moved, it was not copied");
@@ -60,9 +61,9 @@ test("home46y · Home draws the bar, the cards and the two parts (AutoApplyPanel
 });
 
 test("home46y · the Inbox list: rows open in place, the category as a dot + word, the select only inside", () => {
-  const ui = fs.readFileSync("client/src/components/ApplicationInbox.jsx", "utf8");
+  const ui = fs.readFileSync("client/src/components/ApplicationInbox.jsx", "utf8").replace(/\r\n/g, "\n");
   assert.match(ui, /<StatusDot ring=\{RING\[m\.category\] \|\| "stop"\} word=\{LABEL\[m\.category\] \|\| m\.category\} \/>/);
-  const det = ui.slice(ui.indexOf("{open && ("), ui.indexOf("</div>\r\n              )}") > 0 ? ui.indexOf("</div>\r\n              )}") : ui.indexOf("</div>\n              )}"));
+  const det = ui.slice(at(ui, "{open && ("), at(ui, "</div>\n              )}"));
   assert.match(det, /File as/, "re-filing lives in the opened row");
   assert.match(ui, /placeholder="Search the Inbox"/);
 });
