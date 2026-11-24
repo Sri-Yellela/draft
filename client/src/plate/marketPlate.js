@@ -78,5 +78,5 @@ export function publishFrontCard(card) {
   frontListeners.forEach((f) => f());
 }
 export function useFrontCard() {
-  return useSyncExternalStore((f) => { frontListeners.add(f); return () => frontListeners.delete(f); }, () => front, () => null);
+  return useSyncExternalStore((f) => { frontListeners.add(f); return () => frontListeners.delete(f); }, () => front, () => front);   // the same value on a static render (the gallery, the tests)
 }

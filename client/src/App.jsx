@@ -435,7 +435,9 @@ function MarketBearingSlot() {
 }
 function MarketOpeningsSlot({ deck, index }) {
   const { boardHeadline } = useJobBoard();
-  return <MarketOpenings deck={deck} index={index} count={marketFigures(boardHeadline?.facets).fit} />;
+  const { needsAttentionCount = 0 } = useAutoApply();   // the dock's own "needs you" number
+  return <MarketOpenings deck={deck} index={index} count={marketFigures(boardHeadline?.facets).fit}
+    tickets={{ needsYou: needsAttentionCount, ledgerHref: "/app/auto-apply" }} />;
 }
 
 function BoardCounts() {

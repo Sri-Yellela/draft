@@ -40,6 +40,7 @@ export const PAIRS = {
     masks: [[400, 345, 100, 18]] },
   // P1 · the openings: the deck card keeps the deck's form factor (600 wide, not the board's 760), so the section is a look
   "market-openings": { board: "The market · draft", fixture: "MarketOpeningsBoard", boardSel: "section:nth-of-type(3)", buildSel: "#openings", pad: 0, look: true, reduced: true },
+  "market-tickets": { board: "The market · draft", fixture: "MarketTicketsBoard", boardSel: "section:nth-of-type(4)", buildSel: "section[aria-labelledby=mk-onward]", pad: 0, look: true },
 };
 
 /** Pure: compare two RGBA buffers of the same size → { differing, compared, pct }. Masks are [x, y, w, h]. */

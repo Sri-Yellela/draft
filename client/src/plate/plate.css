@@ -217,7 +217,7 @@
 /* ── Ticket (perforations at 62 %, 2 px dashed tear line) ── */
 .pl-ticket, .plate a.pl-ticket { flex: 1 1 280px; min-width: 0; text-decoration: none; color: var(--pl-ink); background-color: var(--pl-card); background-image: var(--pl-perf);
   border: var(--pl-border); border-radius: var(--pl-r-plate); box-shadow: var(--pl-s6); display: flex; flex-direction: column; }
-.pl-ticket[data-tone="clay-tint"] { background-color: var(--pl-clay-tint); box-shadow: var(--pl-s6-clay); }
+.pl-ticket[data-tone="clay-tint"], .plate a.pl-ticket[data-tone="clay-tint"] { background-color: var(--pl-clay-tint); box-shadow: var(--pl-s6-clay); }   /* a link ticket too (P1's look caught .plate a.pl-ticket outranking it) */
 .pl-ticket[data-tone="clay"], .plate a.pl-ticket[data-tone="clay"] { background-color: var(--pl-clay); color: var(--pl-on-clay); border-radius: var(--pl-r-card); }
 .pl-ticket__head { padding: 16px 18px 12px; display: flex; flex-direction: column; gap: 6px; }
 .pl-ticket__title { font-family: var(--pl-serif); font-size: var(--pl-t-card); line-height: 1.05; overflow-wrap: anywhere; }
@@ -490,3 +490,6 @@
 .pl-market-deck > :first-child { flex: 0 1 auto; min-width: 0; }
 .pl-market-deck__side { flex: 1 1 270px; max-width: 300px; min-width: 0; }
 .pl-tabpanel[hidden] { display: none; }
+/* the market's last section and its lead (the board: 72 px under the tickets; a 16 px body lead under "Tickets out") */
+.pl-section--last { padding-bottom: 72px; }
+.pl-lead.pl-lead--body { margin: 14px 0 0; max-width: 720px; font-size: var(--pl-t-body); font-weight: 400; line-height: 1.55; }

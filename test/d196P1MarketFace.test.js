@@ -13,6 +13,8 @@
 //   d196ExistingBubblesAndHoverKept — the plate market's Index tab IS the app's board element (JobsConsole, its bubbles and
 //                               hover buttons) and the Deck tab the app's DeckView; both stay mounted under the tabs;
 //   d196P1FieldCardWords      — the field card's lines are templates over the scorer's fields; no data → no line;
+//   d196P1TicketsBacked       — Tickets out: the ledger always (its count = the dock's), the survey sheet only for a company
+//                               on top of the deck, the Atlas interchange only for a gap with an Atlas page;
 //   d196P1SwitchOffByDefault  — the plate market is OFF until the owner's ok; ?plate=1 / ?plate=0 and the stored value.
 // ⛔ Verified to fail before it was committed: the CardBack line removed from the plate branch, data-deck-open-posting
 // dropped from the face, MARKET_PLATE_DEFAULT set true — each failed, naming it.
@@ -48,8 +50,11 @@ async function load() {
     export { marketCells, youOnPlate, SECTOR_SPOTS };
     export const renderHero = (props) => renderToStaticMarkup(React.createElement(MarketHero, props));
     export const renderPlate = (props) => renderToStaticMarkup(React.createElement(MarketSurveyPlate, props));
-    import MarketOpenings, { MARKET_TABS } from ${JSON.stringify(path.join(CLIENT, "src/plate/MarketOpenings.jsx"))};
+    import { publishFrontCard } from ${JSON.stringify(path.join(CLIENT, "src/plate/marketPlate.js"))};
+    export { publishFrontCard };
+    import MarketOpenings, { MARKET_TABS, MarketTickets } from ${JSON.stringify(path.join(CLIENT, "src/plate/MarketOpenings.jsx"))};
     export { MARKET_TABS };
+    export const renderTickets = (props) => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(MarketTickets, props)));
     export const renderOpenings = (props) => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(MarketOpenings, props)));
     export const renderBearing = (props) => renderToStaticMarkup(React.createElement(PlateBearing, props));
     export const renderHeadline = (props) => renderToStaticMarkup(React.createElement(BoardHeadline, props));
@@ -227,4 +232,40 @@ test("D196 P1 · d196P1FieldCardWords — templates over the scorer's fields, no
   assert.deepEqual(bare.alike, ["Skills: Go"]);
   assert.deepEqual(bare.gaps, []);
   assert.equal(bare.figures, null, "no contextual parts → no figures line");
+});
+
+test("D196 P1 · d196P1TicketsBacked — each onward ticket only when the page can back it", async () => {
+  const { renderTickets, publishFrontCard } = await load();
+  publishFrontCard(null);
+  let html = renderTickets({ needsYou: 0 });
+  assert.equal((html.match(/class="pl-ticket[ "]/g) || []).length, 1, "with nothing on the deck: the ledger only");
+  assert.match(html, /Your applications/);
+  assert.match(html, /href="\/app\/auto-apply"/);
+  html = renderTickets({ needsYou: 2 });
+  assert.match(html, /THE LEDGER · 2 NEEDS YOU/);
+  assert.match(html, /2 drafts need you/);
+  assert.match(html, /data-tone="clay-tint"/, "the one primary ticket when something needs you");
+  publishFrontCard({ job: { id: "j9", company: "Northwind Analytics" } });
+  html = renderTickets({ needsYou: 1 });
+  assert.match(html, /1 draft needs you/);
+  assert.match(html, /SURVEY SHEET · NORTHWIND ANALYTICS/);
+  assert.match(html, /href="\/app\/companies\/northwind-analytics"/);
+  assert.ok(!/INTERCHANGE/.test(html), "no gap known (nothing fetched in a static render) → no interchange");
+  assert.ok(!/Sailor|Kestrel|In 4 of your/.test(html), "none of the board's example words");
+  publishFrontCard(null);
+});
+
+test("D196 P1 · d196BoardBudgetsHold (A175) — the plate market adds no board request and never remounts the board", () => {
+  const plateFiles = fs.readdirSync("client/src/plate").filter((f) => /\.(jsx?|mjs)$/.test(f)).map((f) => `client/src/plate/${f}`);
+  const calls = plateFiles.flatMap((f) => [...read(f).matchAll(/api\(\s*`([^`]*)`|api\(\s*"([^"]*)"/g)].map((m) => `${f}: ${m[1] || m[2]}`));
+  assert.deepEqual(calls, ["client/src/plate/MarketOpenings.jsx: /api/jobs/${encodeURIComponent(jobId)}/contextual"],
+    "the plate market's ONE request is the card-on-top's contextual block (the posting's ATS card makes the same one)");
+  const open = read("client/src/plate/MarketOpenings.jsx");
+  assert.ok(open.includes("contextualCache.has(jobId)"), "one request per card, shared by the field card and the tickets");
+  assert.ok(/panels=\{\{/.test(open), "the deck and the board stay mounted under the tabs (no reload on a switch)");
+  for (const f of plateFiles) assert.ok(!/\/api\/jobs\/facets|\/api\/jobs\?|\/api\/deck/.test(read(f)), `${f} must not read the board, its facets or the deck itself`);
+  const app = read("client/src/App.jsx");
+  const hero = app.slice(at(app, "function MarketHeroSlot()"), at(app, "function BoardCounts()"));
+  assert.ok(hero.includes("marketFigures(boardHeadline?.facets)"), "the hero's figures are the facets answer the board already fetched");
+  assert.ok(!/\bapi\(/.test(hero), "the hero and the bearing / openings slots fetch nothing");
 });

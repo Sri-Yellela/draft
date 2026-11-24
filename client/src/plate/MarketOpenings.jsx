@@ -10,6 +10,9 @@ import { useEffect, useMemo, useState } from "react";
 import PlateRoot from "./PlateRoot.jsx";
 import { BinderTabs, LegHeader } from "./Plates.jsx";
 import { FieldCard } from "./Cards.jsx";
+import { Ticket } from "./Tickets.jsx";
+import { useNavigate } from "react-router-dom";
+import { companyPath } from "../lib/companySlug.js";
 import { Drawer } from "./PlateState.jsx";
 import { useFrontCard } from "./marketPlate.js";
 import { api } from "../lib/api.js";
@@ -22,8 +25,20 @@ export const MARKET_TABS = Object.freeze([
   { id: "index", label: "Index", sub: "EVERY OPENING" },
 ]);
 
-/** The field card for the card on top of the deck: D192's contextual block, fetched once per card (as the ATS card does). */
-export function MarketField() {
+// One request per card on top, shared by the field card and the onward tickets (a failed answer is not kept, so Try again
+// asks again).
+const contextualCache = new Map();
+function contextualFor(jobId) {
+  if (!contextualCache.has(jobId)) {
+    const p = api(`/api/jobs/${encodeURIComponent(jobId)}/contextual`).then((r) => r?.contextual || null);
+    p.catch(() => contextualCache.delete(jobId));
+    contextualCache.set(jobId, p);
+  }
+  return contextualCache.get(jobId);
+}
+
+/** The card on top and its field-card view: { front, status: idle | loading | ready | error, view, retry }. */
+export function useFrontField() {
   const front = useFrontCard();
   const [state, setState] = useState({ jobId: null, status: "idle", contextual: null });
   const [nonce, setNonce] = useState(0);   // Try again
@@ -31,24 +46,66 @@ export function MarketField() {
     if (!front?.jobId) { setState({ jobId: null, status: "idle", contextual: null }); return undefined; }
     let live = true;
     setState({ jobId: front.jobId, status: "loading", contextual: null });
-    api(`/api/jobs/${encodeURIComponent(front.jobId)}/contextual`)
-      .then((r) => { if (live) setState({ jobId: front.jobId, status: "ready", contextual: r?.contextual || null }); })
+    contextualFor(front.jobId)
+      .then((c) => { if (live) setState({ jobId: front.jobId, status: "ready", contextual: c }); })
       .catch(() => { if (live) setState({ jobId: front.jobId, status: "error", contextual: null }); });
     return () => { live = false; };
   }, [front?.jobId, nonce]);
   const view = useMemo(() => (state.status === "ready" ? fieldCardView({ report: front?.report || null, contextual: state.contextual }) : null),
     [state, front?.report]);
+  return { front, status: state.status, view, retry: () => setNonce((n) => n + 1) };
+}
+
+/** The field card for the card on top of the deck: D192's contextual block, fetched once per card (as the ATS card does). */
+export function MarketField() {
+  const { front, status, view, retry } = useFrontField();
   const techs = useMemo(() => (view?.gaps || []).map((g) => g.tech).filter(Boolean), [view]);
   const slugs = useAtlasSlugs(techs);
   if (!front?.jobId) return <FieldCard state="empty" emptyText="The field card fills in for the opening on top of the deck."/>;
-  if (state.status === "loading" || state.status === "idle") return <FieldCard state="loading"/>;
-  if (state.status === "error") return <FieldCard state="error" errorText="Why it fits didn't load." onRetry={() => setNonce((n) => n + 1)}/>;
+  if (status === "loading" || status === "idle") return <FieldCard state="loading"/>;
+  if (status === "error") return <FieldCard state="error" errorText="Why it fits didn't load." onRetry={retry}/>;
   if (!view) return <FieldCard state="partial" alike={[]} gaps={[]}/>;
   const gaps = view.gaps.map((g) => ({ text: g.text, link: g.tech && slugs[g.tech] ? { label: "Learn it →", href: atlasHref(slugs[g.tech]) } : null }));
   return <FieldCard alike={view.alike} gaps={gaps} figures={view.figures}/>;
 }
 
-export default function MarketOpenings({ deck, index, count = null, field = null }) {   // field: the gallery / F5 fixture's own card
+/**
+ * Section 03, "Tickets out" — where the market leads next, each ticket only when the page can back it:
+ *   the ledger (always; its kicker counts what needs you, from the apply pipeline — the dock's own number),
+ *   the survey sheet of the company on top of the deck (when there is one),
+ *   an interchange to Atlas for the gap the field card names (when that technology has an Atlas page).
+ * The board's "Sailor Health is waiting" / "In 4 of your top openings" need a per-application and an across-openings count
+ * the page doesn't have; the tickets say what the page knows instead.
+ */
+export function MarketTickets({ needsYou = 0, ledgerHref = "/app/auto-apply" }) {
+  const navigate = useNavigate();
+  const { front, view } = useFrontField();
+  const gapTech = (view?.gaps || []).map((g) => g.tech).find(Boolean) || null;
+  const slugs = useAtlasSlugs(useMemo(() => (gapTech ? [gapTech] : []), [gapTech]));
+  const go = (href) => (e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return; e.preventDefault(); navigate(href); };
+  const co = front?.company ? companyPath(front.company) : null;
+  const atlas = gapTech && slugs[gapTech] ? atlasHref(slugs[gapTech]) : null;
+  const n = Number(needsYou) || 0;
+  return (
+    <section className="pl-section pl-section--last" aria-labelledby="mk-onward">
+      <LegHeader n={3} meta="ONWARD · FROM THE MARKET" title={<span id="mk-onward">Tickets out</span>}/>
+      <p className="pl-lead pl-lead--body">Where this page leads next.</p>
+      <div className="pl-tickets" data-market-tickets="">
+        <Ticket tone={n ? "clay-tint" : "plain"} href={ledgerHref} onClick={go(ledgerHref)}
+          kicker={n ? `THE LEDGER · ${n} NEEDS YOU` : "THE LEDGER"}
+          title={n ? `${n} ${n === 1 ? "draft needs" : "drafts need"} you` : "Your applications"}
+          line={n ? "Answers only you can give, and drafts to approve before they send." : "Everything you’ve drafted, sent and heard back on."}
+          go="Open the ledger →"/>
+        {co ? <Ticket href={co} onClick={go(co)} kicker={`SURVEY SHEET · ${String(front.company).toUpperCase()}`} title="Who you’d be joining"
+          line="Their stack, their hiring, their H-1B history." go="Open the survey sheet →"/> : null}
+        {atlas ? <Ticket href={atlas} onClick={go(atlas)} kicker="⇄ INTERCHANGE · ATLAS" title={gapTech}
+          line="The opening on top uses it, and your résumé doesn’t show it yet." go="Learn it in Atlas →"/> : null}
+      </div>
+    </section>
+  );
+}
+
+export default function MarketOpenings({ deck, index, count = null, field = null, tickets = null }) {   // field: the gallery / F5 fixture's own card
   const [tab, setTab] = useState("deck");
   return (
     <PlateRoot className="pl-marketopenings" data-plate-market-openings="">
@@ -63,6 +120,7 @@ export default function MarketOpenings({ deck, index, count = null, field = null
             index,
           }}/>
       </section>
+      {tickets ? <MarketTickets {...tickets}/> : null}
     </PlateRoot>
   );
 }

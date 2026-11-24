@@ -8,7 +8,8 @@ import { MemoryRouter } from "react-router-dom";
 import MarketCardFace from "./MarketCardFace.jsx";
 import PlateBearing from "./PlateBearing.jsx";
 import MarketHero from "./MarketHero.jsx";
-import MarketOpenings from "./MarketOpenings.jsx";
+import MarketOpenings, { MarketTickets } from "./MarketOpenings.jsx";
+import { publishFrontCard } from "./marketPlate.js";
 import { FieldCard } from "./Cards.jsx";
 
 const MARKET_VIEWS = [
@@ -74,7 +75,7 @@ export function MarketBearing() {
 /** The market's hero (P1) with the board's figures and best match (Maya Chen's example: 412 · 179 · 167, Kestrel 91 %). */
 export function MarketHeroBoard() {
   return (
-    <div style={{ width: 1182 }}>
+    <div style={{ maxWidth: 1182 }}>
       <MarketHero figures={{ fit: 412, newToday: 179, filed: 167, strong: 23 }} sector="Software engineering" role="Frontend" level="mid" week={47}
         from="From Maya_Chen.pdf · Boston" place="Boston & Remote" best={{ match: "91%", company: "Kestrel Payments", title: "Frontend Engineer II, Checkout" }} onBest={() => {}} onBearing={() => {}}/>
     </div>
@@ -96,4 +97,10 @@ export function MarketOpeningsBoard() {
   );
 }
 
-export const FIXTURES = { ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard };
+/** Tickets out (P1) with Kestrel on top of the deck and one draft needing you (the interchange needs a fetched gap). */
+export function MarketTicketsBoard() {
+  publishFrontCard(BOARD_CARD);
+  return <MemoryRouter><div style={{ width: 1182 }} className="plate"><MarketTickets needsYou={1}/></div></MemoryRouter>;
+}
+
+export const FIXTURES = { ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketTicketsBoard };
