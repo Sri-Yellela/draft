@@ -12,7 +12,7 @@ const row = (o) => ({ key: o.key, stage: o.stage, filter: o.filter, company: o.c
   status: o.status || "", at: o.at ?? NOW - 3600000, node: o.node || null });
 const ROWS = [
   row({ key: "q", stage: "question", filter: "needs", company: "Halcyon", node: { question: { question: "Are you open to relocating?" } } }),
-  row({ key: "r", stage: "ready", filter: "needs", company: "Quanta", title: "Data Engineer" }),
+  row({ key: "r", stage: "ready", filter: "ready", company: "Quanta", title: "Data Engineer" }),
   row({ key: "w", stage: "working", filter: "progress" }),
   row({ key: "i", stage: "interview", filter: "replies", company: "Vireo", title: "Platform Engineer", status: "Interview Tue 24 Nov, 2 PM",
     node: { ref: { interview: { ymd: "2026-11-24", time: "14:00" } } } }),
@@ -23,7 +23,7 @@ const ROWS = [
 test("home46y · filterCounts — every filter's count, All = every row", () => {
   const c = filterCounts(ROWS);
   assert.deepEqual(Object.keys(c), TRACKER_FILTERS.map(([id]) => id));
-  assert.deepEqual(c, { all: 6, needs: 2, progress: 1, sent: 1, replies: 2, stopped: 0 });
+  assert.deepEqual(c, { all: 6, needs: 1, ready: 1, progress: 1, sent: 1, replies: 2, stopped: 0 });   // 47c: Ready to send is its own filter (the sketch)
 });
 
 test("home46y · homeSummary — this month · replies · interviews coming up; a 0 part is left out", () => {

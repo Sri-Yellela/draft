@@ -17,8 +17,10 @@
 import { RINGS } from "../styles/rings.js";
 import { interviewLine } from "./draftHouseTree.js";
 
+// ⭐ 47c (home-sketch.html, approved 11-23): Ready to send is its own filter beside Needs you, as the sketch draws it; the
+// counts row and the dock badge still count it as needing the person (trackerCounts).
 export const TRACKER_FILTERS = Object.freeze([
-  ["all", "All"], ["needs", "Needs you"], ["progress", "In progress"], ["sent", "Sent"], ["replies", "Replies"], ["stopped", "Stopped"],
+  ["all", "All"], ["needs", "Needs you"], ["ready", "Ready to send"], ["progress", "In progress"], ["sent", "Sent"], ["replies", "Replies"], ["stopped", "Stopped"],
 ]);
 /** The one row of counts, in order. `accent` marks the one drawn in the accent. */
 export const TRACKER_COUNTS = Object.freeze([
@@ -40,7 +42,7 @@ export const TRACKER_PERIODS = Object.freeze([["any", "Any time", null], ["7", "
 export const STAGES = Object.freeze({
   question:     { filter: "needs",    word: "Needs you",      ring: "need",   eyebrow: "Only you can answer this", actions: ["answer", "skip"] },
   needs:        { filter: "needs",    word: "Needs you",      ring: "need",   eyebrow: "Waiting for you",          actions: ["open", "signin", "prepare", "again", "check", "yourself", "skip"] },
-  ready:        { filter: "needs",    word: "Ready to send",  ring: "review", eyebrow: null,                       actions: ["approve", "edit", "form", "reject", "skip"] },
+  ready:        { filter: "ready",    word: "Ready to send",  ring: "review", eyebrow: null,                       actions: ["approve", "edit", "form", "reject", "skip"] },
   picked:       { filter: "needs",    word: "Picked",         ring: "pick",   eyebrow: "Picked for you",           actions: ["apply", "pass"] },
   working:      { filter: "progress", word: "Filling",        ring: "work",   eyebrow: "Working on it",            actions: ["stop"] },
   waiting:      { filter: "progress", word: "Waiting in line", ring: "work",  eyebrow: "In line",                  actions: ["remove"] },
@@ -238,7 +240,7 @@ export function whenWord(at, now = Date.now()) {
 export function trackerCounts(rows = []) {
   const c = { needs: 0, progress: 0, sent: 0, replied: 0, interview: 0 };
   for (const r of rows) {
-    if (r.filter === "needs") c.needs++;
+    if (r.filter === "needs" || r.filter === "ready") c.needs++;   // 47c: ready waits on the person's Submit — still theirs to act on
     else if (r.filter === "progress") c.progress++;
     else if (r.filter === "sent") c.sent++;
     if (r.filter === "replies") c.replied++;
