@@ -185,52 +185,56 @@
 }
 
 /* ⭐ D196 THEMES (owner 11-24, 47f: "dusk and plain are themes or wrappers over ui elements, just color palette variants,
-   the plate has to land for every theme"). Inside the app (<html data-theme>, set by themes/index.js), the plate keeps its
-   STRUCTURE — the 1.5 px lines, the hard shadows, the serif, the tickets, the perforations — and takes its COLOURS from
-   the theme the person chose: paper = the theme's canvas, the card = its solid surface, ink = its ink, clay = its accent,
-   proven = its success. The literal values above are the sketch's palette: a standalone page (the F5 harness, the
-   gallery's export pairs — no data-theme) and `<html data-plate-palette="sketch">` keep them, so the F5 diff compares like with like.
-   ⛔ Every plate surface is opaque in every theme (FIX-1): nothing on a plate page is transparent to the app shell. */
-:root[data-theme]:not([data-plate-palette="sketch"]) .plate {
-  --pl-paper: var(--c-canvas);
-  --pl-paper-deep: color-mix(in srgb, var(--c-canvas) 94%, var(--c-ink));
-  --pl-paper-warm: color-mix(in srgb, var(--c-canvas) 45%, var(--c-surface-solid));
-  --pl-paper-hover: color-mix(in srgb, var(--c-canvas) 88%, var(--c-ink));
-  --pl-tab-off: color-mix(in srgb, var(--c-canvas) 86%, var(--c-ink));
-  --pl-card: var(--c-surface-solid);
-  --pl-card-veil: color-mix(in srgb, var(--c-surface-solid) 85%, transparent);
-  --pl-ink: var(--c-ink);
-  --pl-ink-soft: color-mix(in srgb, var(--c-ink) 82%, var(--c-ink-muted));
-  --pl-muted: var(--c-ink-muted);
-  --pl-muted-2: var(--c-ink-faint);
-  --pl-rule: var(--c-border);
-  --pl-rule-2: var(--c-border);
-  --pl-clay: var(--c-accent);
-  --pl-clay-hover: var(--c-accent-hover);
-  --pl-clay-text: var(--c-accent-ink);
-  --pl-clay-tint: var(--c-accent-quiet);
-  --pl-lit: var(--c-success);
-  --pl-on-ink: var(--c-canvas);
-  --pl-on-clay: var(--c-on-accent);
+   the plate has to land for every theme"). Inside the app the plate keeps its STRUCTURE — the 1.5 px lines, the hard
+   shadows, the serif, the tickets, the perforations — and takes its COLOURS from the theme the person chose, through the
+   theme's own tokens (themes/index.js — the one place a theme is decided — writes them as --c-* on the root): paper = the
+   canvas, the card = the solid surface, ink = the ink, clay = the accent, proven = the success colour. Each falls back to
+   the sketch's literal value above, so a page with no theme tokens (a standalone render) is the sketch; the F5 build page
+   pins the sketch with <html data-plate-palette="sketch">, so the diff compares like with like.
+   Dark schemes: light-dark() picks the second value whenever the theme's scheme is dark — the hard shadow becomes a deeper
+   step of the ground (a white offset shadow reads as a second border), the region colours lift toward the ink so an
+   outlined numeral or a navy stamp holds >= 4.5 : 1, and their tints sink toward the ground.
+   ⛔ Every plate surface is opaque in every theme (FIX-1): nothing on a plate page is transparent to the app shell.
+   ⚠ Plain's "no tints" (D181) is not mapped yet: telling Plain apart takes a flag from themes/index.js (logged, 47f). */
+:root:not([data-plate-palette="sketch"]) .plate {
+  --pl-paper: var(--c-canvas, #F4EFE9);
+  --pl-paper-deep: color-mix(in srgb, var(--c-canvas, #F4EFE9) 94%, var(--c-ink, #1B1B1B));
+  --pl-paper-warm: color-mix(in srgb, var(--c-canvas, #F4EFE9) 45%, var(--c-surface-solid, #FFFFFF));
+  --pl-paper-hover: color-mix(in srgb, var(--c-canvas, #F4EFE9) 88%, var(--c-ink, #1B1B1B));
+  --pl-tab-off: color-mix(in srgb, var(--c-canvas, #F4EFE9) 86%, var(--c-ink, #1B1B1B));
+  --pl-card: var(--c-surface-solid, #FFFFFF);
+  --pl-card-veil: color-mix(in srgb, var(--c-surface-solid, #FFFFFF) 85%, transparent);
+  --pl-ink: var(--c-ink, #1B1B1B);
+  --pl-ink-soft: color-mix(in srgb, var(--c-ink, #1B1B1B) 82%, var(--c-ink-muted, #55504C));
+  --pl-muted: var(--c-ink-muted, #55504C);
+  --pl-muted-2: var(--c-ink-faint, #6F6964);
+  --pl-rule: var(--c-border, #E6DED8);
+  --pl-rule-2: var(--c-border, #E0D6CF);
+  --pl-clay: var(--c-accent, #C2593A);
+  --pl-clay-hover: var(--c-accent-hover, #AD4C30);
+  --pl-clay-text: var(--c-accent-ink, #8A3A22);
+  --pl-clay-tint: var(--c-accent-quiet, #FBEFEA);
+  --pl-lit: var(--c-success, #3E6B5A);
+  --pl-on-ink: var(--c-canvas, #F4EFE9);
+  --pl-on-clay: var(--c-on-accent, #FFFFFF);
+  --pl-shade: light-dark(var(--pl-ink), color-mix(in srgb, var(--c-canvas, #1B1B1B) 55%, black));
+  --pl-r1: light-dark(#C2593A, color-mix(in srgb, #C2593A 55%, var(--c-ink, #FFFFFF)));
+  --pl-r1-tint: light-dark(#FBEFEA, color-mix(in srgb, #C2593A 18%, var(--c-canvas, #1B1B1B))); --pl-r1-ring: light-dark(#F6E1D8, color-mix(in srgb, #C2593A 18%, var(--c-canvas, #1B1B1B)));
+  --pl-r2: light-dark(#4B3FA8, color-mix(in srgb, #4B3FA8 45%, var(--c-ink, #FFFFFF)));
+  --pl-r2-tint: light-dark(#F0EEFA, color-mix(in srgb, #4B3FA8 22%, var(--c-canvas, #1B1B1B))); --pl-r2-ring: light-dark(#E6E3F6, color-mix(in srgb, #4B3FA8 22%, var(--c-canvas, #1B1B1B)));
+  --pl-r3: light-dark(#B4532A, color-mix(in srgb, #B4532A 55%, var(--c-ink, #FFFFFF)));
+  --pl-r3-tint: light-dark(#FAEEE6, color-mix(in srgb, #B4532A 18%, var(--c-canvas, #1B1B1B))); --pl-r3-ring: light-dark(#F5E2D6, color-mix(in srgb, #B4532A 18%, var(--c-canvas, #1B1B1B)));
+  --pl-r4: light-dark(#1F3A63, color-mix(in srgb, #1F3A63 40%, var(--c-ink, #FFFFFF)));
+  --pl-r4-tint: light-dark(#EDF1F7, color-mix(in srgb, #1F3A63 30%, var(--c-canvas, #1B1B1B))); --pl-r4-ring: light-dark(#DFE6F0, color-mix(in srgb, #1F3A63 30%, var(--c-canvas, #1B1B1B)));
+  --pl-r5: light-dark(#6A3E73, color-mix(in srgb, #6A3E73 45%, var(--c-ink, #FFFFFF)));
+  --pl-r5-tint: light-dark(#F4EDF5, color-mix(in srgb, #6A3E73 24%, var(--c-canvas, #1B1B1B))); --pl-r5-ring: light-dark(#EDE2EF, color-mix(in srgb, #6A3E73 24%, var(--c-canvas, #1B1B1B)));
+  --pl-r6: light-dark(#2F6B7A, color-mix(in srgb, #2F6B7A 50%, var(--c-ink, #FFFFFF)));
+  --pl-r6-tint: light-dark(#EAF3F5, color-mix(in srgb, #2F6B7A 24%, var(--c-canvas, #1B1B1B))); --pl-r6-ring: light-dark(#DDEDF0, color-mix(in srgb, #2F6B7A 24%, var(--c-canvas, #1B1B1B)));
+  --pl-r7: light-dark(#7A5A2A, color-mix(in srgb, #7A5A2A 50%, var(--c-ink, #FFFFFF)));
+  --pl-r7-tint: light-dark(#F5EFE5, color-mix(in srgb, #7A5A2A 24%, var(--c-canvas, #1B1B1B))); --pl-r7-ring: light-dark(#EFE6D6, color-mix(in srgb, #7A5A2A 24%, var(--c-canvas, #1B1B1B)));
+  --pl-r8: light-dark(#5A5F2E, color-mix(in srgb, #5A5F2E 50%, var(--c-ink, #FFFFFF)));
+  --pl-r8-tint: light-dark(#F1F2E8, color-mix(in srgb, #5A5F2E 24%, var(--c-canvas, #1B1B1B))); --pl-r8-ring: light-dark(#E9EBDB, color-mix(in srgb, #5A5F2E 24%, var(--c-canvas, #1B1B1B)));
 }
-/* Dark themes: the hard shadow is a darker step of the ground, not the (light) ink — a white offset shadow reads as a
-   second border. The region colours lift toward the ink so an outlined numeral or a navy stamp holds ≥ 4.5 : 1 on a dark
-   ground; their tints sink toward the ground. */
-:root[data-theme$="-dark"]:not([data-plate-palette="sketch"]) .plate {
-  --pl-shade: color-mix(in srgb, var(--c-canvas) 55%, black);
-  --pl-r1: color-mix(in srgb, #C2593A 55%, var(--c-ink)); --pl-r2: color-mix(in srgb, #4B3FA8 45%, var(--c-ink));
-  --pl-r3: color-mix(in srgb, #B4532A 55%, var(--c-ink)); --pl-r4: color-mix(in srgb, #1F3A63 40%, var(--c-ink));
-  --pl-r5: color-mix(in srgb, #6A3E73 45%, var(--c-ink)); --pl-r6: color-mix(in srgb, #2F6B7A 50%, var(--c-ink));
-  --pl-r7: color-mix(in srgb, #7A5A2A 50%, var(--c-ink)); --pl-r8: color-mix(in srgb, #5A5F2E 50%, var(--c-ink));
-  --pl-r1-tint: color-mix(in srgb, #C2593A 18%, var(--c-canvas)); --pl-r2-tint: color-mix(in srgb, #4B3FA8 22%, var(--c-canvas));
-  --pl-r3-tint: color-mix(in srgb, #B4532A 18%, var(--c-canvas)); --pl-r4-tint: color-mix(in srgb, #1F3A63 30%, var(--c-canvas));
-  --pl-r5-tint: color-mix(in srgb, #6A3E73 24%, var(--c-canvas)); --pl-r6-tint: color-mix(in srgb, #2F6B7A 24%, var(--c-canvas));
-  --pl-r7-tint: color-mix(in srgb, #7A5A2A 24%, var(--c-canvas)); --pl-r8-tint: color-mix(in srgb, #5A5F2E 24%, var(--c-canvas));
-  --pl-r1-ring: var(--pl-r1-tint); --pl-r2-ring: var(--pl-r2-tint); --pl-r3-ring: var(--pl-r3-tint); --pl-r4-ring: var(--pl-r4-tint);
-  --pl-r5-ring: var(--pl-r5-tint); --pl-r6-ring: var(--pl-r6-tint); --pl-r7-ring: var(--pl-r7-tint); --pl-r8-ring: var(--pl-r8-tint);
-}
-/* Plain (D181) in the app: no tints, whichever of its two schemes. */
-:root[data-theme^="plain-"]:not([data-plate-palette="sketch"]) .plate { --pl-region-tint: var(--pl-paper-warm); --pl-region-ring: var(--pl-rule); --pl-clay-tint: var(--pl-paper-warm); }
 
 /* Region palettes a page or a component can wear. Clay (I) is a REGION here only on Atlas pages — never a sector. */
 .plate [data-region="I"], .plate[data-region="I"]       { --pl-region: var(--pl-r1); --pl-region-tint: var(--pl-r1-tint); --pl-region-ring: var(--pl-r1-ring); }

@@ -38,7 +38,7 @@ test("⭐ the fan and the action row live in the card's column", () => {
   assert.match(col, /data-deck-actions/, "and so does the action row");
   // No per-card shift: nothing positions the card for the expansion.
   // ⭐ D152 (2), changed on purpose: Home's card turns about its lower-left corner (homeFanTransform); the arc is the rest.
-  assert.match(deckSrc, /const t = home \? homeFanTransform\(offset, geometry\) : fanTransform\(offset, orientation, geometry\);/);
+  assert.match(deckSrc, /const t = plate \? plateFanTransform\(offset\) : home \? homeFanTransform\(offset, geometry\) : fanTransform\(offset, orientation, geometry\);/);
 });
 
 test("⛔ ONE CLOCK, NO STAGGER: every movement reads --deck-t / --deck-ease, set once; reduced motion zeroes it", () => {

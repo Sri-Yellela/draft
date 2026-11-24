@@ -140,9 +140,11 @@ test("FIX-1 · d196PlatePageOneGround — one opaque root, the theme's palette, 
     assert.doesNotMatch(css, new RegExp(`\\.${sec} \\{ background: transparent`), `${sec} is never transparent`);
   }
   const tokens = read("client/src/styles/plate.css");
-  assert.match(tokens, /:root\[data-theme\]:not\(\[data-plate-palette="sketch"\]\) \.plate \{\n  --pl-paper: var\(--c-canvas\);/);
-  for (const t of ["--pl-card: var(--c-surface-solid)", "--pl-ink: var(--c-ink)", "--pl-clay: var(--c-accent)", "--pl-lit: var(--c-success)"]) assert.ok(tokens.includes(t), t);
-  assert.match(tokens, /:root\[data-theme\$="-dark"\]:not\(\[data-plate-palette="sketch"\]\) \.plate \{\n  --pl-shade:/, "dark themes: a deeper ground for the hard shadow");
+  // the theme's own tokens, the sketch's value as each fallback; no file but themes/index.js decides a theme (inkPairD32)
+  assert.match(tokens, /:root:not\(\[data-plate-palette="sketch"\]\) \.plate \{\n  --pl-paper: var\(--c-canvas, #F4EFE9\);/);
+  for (const t of ["--pl-card: var(--c-surface-solid, #FFFFFF)", "--pl-ink: var(--c-ink, #1B1B1B)", "--pl-clay: var(--c-accent, #C2593A)", "--pl-lit: var(--c-success, #3E6B5A)"]) assert.ok(tokens.includes(t), t);
+  assert.match(tokens, /--pl-shade: light-dark\(var\(--pl-ink\), color-mix/, "dark schemes: a deeper ground for the hard shadow");
+  assert.doesNotMatch(tokens, /data-theme|color-scheme/, "the plate never decides a theme itself");
   assert.match(read("scripts/d196Regress.mjs"), /<html data-plate-palette="sketch">/, "the F5 oracle compares the sketch's palette");
 });
 

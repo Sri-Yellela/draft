@@ -536,60 +536,6 @@ export function HomeCardBackStill({ job, size = HOME_CARD }) {
 }
 export { CardBackDefs };
 
-/**
- * ⭐ D196 FIX-2 · the plate market's deck, STILL — the same FanCard (its frame, the deck's own CardBack behind, the board's
- * size and poses) for three dealt cards, with nothing to decide. The F5 fixture (plate/fixtures.jsx) draws the Deck tab
- * with it, so the pixel diff compares the deck DeckView actually renders, never a stand-in. It fills its column's width.
- */
-/** ⭐ D196 FIX-4 · below the plate ticket: the board's position line and its two 44 px squares (‹ › = J / K and the wheel). */
-function PlatePosRow({ at, of, order, prev, next, onFlip }) {
-  return (
-    <div className="plate pl-deckpos" data-deck-count-row="">
-      <span className="pl-label pl-muted" data-deck-count="">
-        {at} OF {of} TODAY · {order === "best" ? "BEST MATCH FIRST" : order === "ats" ? "ATS MATCH FIRST" : "AS DEALT"}
-      </span>
-      <span className="pl-deckpos__flip">
-        <FlipButton dir={-1} disabled={!prev} onFlip={onFlip} plate />
-        <FlipButton dir={1} disabled={!next} onFlip={onFlip} plate />
-      </span>
-    </div>
-  );
-}
-
-export function PlateDeckStill({ cards = [], of = cards.length, order = "best" }) {
-  const faceRef = useRef(null), boxRef = useRef(null);
-  const [h, setH] = useState(0);
-  const [w, setW] = useState(0);
-  useLayoutEffect(() => {
-    const face = faceRef.current, box = boxRef.current;
-    const read = () => { if (face) setH(face.offsetHeight); if (box) setW(box.clientWidth); };
-    read();
-    if (typeof ResizeObserver === "undefined") return undefined;
-    const ro = new ResizeObserver(read);
-    if (face) ro.observe(face);
-    if (box) ro.observe(box);
-    return () => ro.disconnect();
-  }, []);
-  const size = plateTicketSize(w || 600, h);
-  const noop = () => {};
-  return (
-    <div data-plate-deck-still="" ref={boxRef} style={{ isolation: "isolate" }}>   {/* the backs' negative tiers stay inside, as in DeckView's column */}
-      <CardBackDefs />
-      <div className="pl-deckstage">
-        <div style={{ position: "relative", height: size.height }}>
-          {cards.slice(0, 3).map((card, i) => (
-            <FanCard key={card.job.id} entry={{ card, offset: i, i }} orientation="vertical" geometry={HOME_FAN} size={size} home plate
-              expanded={false} dimmed={false} dealing={false} appear={false} reduced dealRank={0} dealTotal={1}
-              onDecide={noop} onSend={noop} onExpand={noop} onCollapse={noop} onReport={noop} onSignal={noop} onGoto={noop} onOpenPost={noop}
-              headingRef={null} faceRef={i === 0 ? faceRef : undefined} />
-          ))}
-        </div>
-      </div>
-      <PlatePosRow at={1} of={of} order={order} prev={false} next={cards.length > 1} onFlip={noop} />
-    </div>
-  );
-}
-
 // The expanded card's type — version A's (the D145 row: the accent eyebrow 14, the large tight headline 46 / 500 /
 // −0.035 em (36 on phones), the lead in body grey 19, the stat cards' value 34 in the accent).
 const WHY = {
@@ -722,6 +668,60 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
         </motion.div>
       </div>
     </motion.div>
+  );
+}
+
+/**
+ * ⭐ D196 FIX-2 · the plate market's deck, STILL — the same FanCard (its frame, the deck's own CardBack behind, the board's
+ * size and poses) for three dealt cards, with nothing to decide. The F5 fixture (plate/fixtures.jsx) draws the Deck tab
+ * with it, so the pixel diff compares the deck DeckView actually renders, never a stand-in. It fills its column's width.
+ */
+/** ⭐ D196 FIX-4 · below the plate ticket: the board's position line and its two 44 px squares (‹ › = J / K and the wheel). */
+function PlatePosRow({ at, of, order, prev, next, onFlip }) {
+  return (
+    <div className="plate pl-deckpos" data-deck-count-row="">
+      <span className="pl-label pl-muted" data-deck-count="">
+        {at} OF {of} TODAY · {order === "best" ? "BEST MATCH FIRST" : order === "ats" ? "ATS MATCH FIRST" : "AS DEALT"}
+      </span>
+      <span className="pl-deckpos__flip">
+        <FlipButton dir={-1} disabled={!prev} onFlip={onFlip} plate />
+        <FlipButton dir={1} disabled={!next} onFlip={onFlip} plate />
+      </span>
+    </div>
+  );
+}
+
+export function PlateDeckStill({ cards = [], of = cards.length, order = "best" }) {
+  const faceRef = useRef(null), boxRef = useRef(null);
+  const [h, setH] = useState(0);
+  const [w, setW] = useState(0);
+  useLayoutEffect(() => {
+    const face = faceRef.current, box = boxRef.current;
+    const read = () => { if (face) setH(face.offsetHeight); if (box) setW(box.clientWidth); };
+    read();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(read);
+    if (face) ro.observe(face);
+    if (box) ro.observe(box);
+    return () => ro.disconnect();
+  }, []);
+  const size = plateTicketSize(w || 600, h);
+  const noop = () => {};
+  return (
+    <div data-plate-deck-still="" ref={boxRef} style={{ isolation: "isolate" }}>   {/* the backs' negative tiers stay inside, as in DeckView's column */}
+      <CardBackDefs/>
+      <div className="pl-deckstage">
+        <div style={{ position: "relative", height: size.height }}>
+          {cards.slice(0, 3).map((card, i) => (
+            <FanCard key={card.job.id} entry={{ card, offset: i, i }} orientation="vertical" geometry={HOME_FAN} size={size} home plate
+              expanded={false} dimmed={false} dealing={false} appear={false} reduced dealRank={0} dealTotal={1}
+              onDecide={noop} onSend={noop} onExpand={noop} onCollapse={noop} onReport={noop} onSignal={noop} onGoto={noop} onOpenPost={noop}
+              headingRef={null} faceRef={i === 0 ? faceRef : undefined} />
+          ))}
+        </div>
+      </div>
+      <PlatePosRow at={1} of={of} order={order} prev={false} next={cards.length > 1} onFlip={noop} />
+    </div>
   );
 }
 
@@ -1384,7 +1384,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
         </div>
 
         {load.status === "ready" && (current || order.length > 0) && !isFinished(s) && (
-            <div data-deck-col ref={colRef} style={{ minWidth: 0 }}>
+            <div data-deck-col style={{ minWidth: 0 }} ref={colRef}>
               {/* ⭐ D152 (3): home-sketch.html's .count — where you are in today's picks, and in what order. */}
               {/* ⭐ D156 (1b): ‹ › beside it turn the fan one card (as J / K, ↑ ↓ and the wheel do). */}
               {home && !plateDeck && (
