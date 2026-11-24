@@ -71,8 +71,10 @@ test("a111ComputingScoresUnchanged: no new term occurs in the graded 30, every n
   }
   // Recorded 11-02 on the pre-A111 registry (1.3.0): each graded posting against sample A (software) and sample B (data).
   const before = {
-    A: [20, 25, 26, 5, 34, 31, 20, 42, 40, 26, 20, 51, 32, 16, 13, 20, 51, 33, 36, 14, 30, 20, 13, 33, 41, 30, 25, 13, 5, 39],
-    B: [20, 20, 33, 5, 22, 20, 19, 25, 29, 17, 19, 24, 20, 25, 14, 19, 50, 26, 24, 14, 25, 20, 14, 33, 34, 25, 25, 13, 5, 26],
+    // ⭐ 47c (owner 11-24, moved on purpose): planning / reporting / coordination / analytical thinking are competencies now —
+    // the two OpenAI postings (17 Applied AI Engineer, 18 Full Stack, API Experience) gain 1 point each for both samples.
+    A: [20, 25, 26, 5, 34, 31, 20, 42, 40, 26, 20, 51, 32, 16, 13, 20, 51, 34, 37, 14, 30, 20, 13, 33, 41, 30, 25, 13, 5, 39],
+    B: [20, 20, 33, 5, 22, 20, 19, 25, 29, 17, 19, 24, 20, 25, 14, 19, 50, 27, 25, 14, 25, 20, 14, 33, 34, 25, 25, 13, 5, 26],
   };
   for (const id of ["A", "B"]) {
     assert.deepEqual(GRADED.map(p => scoreAtsLocally({ job: p, resumeText: samples()[id].resumeText }).score), before[id], `sample ${id}`);

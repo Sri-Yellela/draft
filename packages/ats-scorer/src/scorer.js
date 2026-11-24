@@ -202,6 +202,9 @@ const COMPETENCY_REGISTRY_TERMS = new Set([
   "strategy", "strategic thinking", "problem solving", "problem-solving",
   "stakeholder management", "relationship building", "attention to detail",
   "mentoring", "mentorship", "coaching", "ownership", "adaptability", "culture",
+  // ⭐ 47c (owner 11-24): the general keywords that name a way of working, not a skill — "missing Planning" on a card
+  // read as a skill gap. (project management and budgeting stay skills: they are trained and tooled.)
+  "planning", "reporting", "coordination", "analytical thinking",
 ]);
 
 /**
@@ -498,6 +501,8 @@ function stripLinks(text) {
 const AMBIGUOUS_SKILL_WORDS = new Set([
   "go", "r", "c", "swift", "rust", "dart", "ruby", "scratch", "processing", "spring", "struts",
   "unity", "shell", "bash", "spark", "hive", "pig", "storm", "kafka", "flink", "beam", "arrow",
+  // ⭐ 47c (owner 11-24): CSI's slab-design program "SAFE" (civil tools) was admitted from "keep our members safe".
+  "safe",
 ]);
 
 function isAmbiguousUncorroborated(key, enrichedKeys) {

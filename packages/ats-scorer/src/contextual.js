@@ -100,6 +100,13 @@ const STOP = new Set(("a an and or the of to in on for with by at as from into a
   "new including include such like etc help work working strong well within also both day company role through " +
   "ensure responsible responsibilities opportunity looking join plus").split(" "));
 const RESP_HEAD = /^\s*(responsibilities|key responsibilities|what you('| wi)ll do|what you will do|the role|in this role|your role|day[- ]to[- ]day|you will|what you'll be doing|about the role|duties)\b/i;
+// ⭐ 47c (owner 11-24, the card's "At Rula, exceptional patient outcomes are…"): "About the role" / "The role" / "Your role" /
+// "In this role" often open with the company's own pitch. Under those SOFT headings a bullet is still a duty, but a prose
+// sentence counts only when it speaks to the reader ("you", "you'll", "you will") — the pitch never does. Anywhere, a
+// sentence that opens "At <Company>, …" is the company introducing itself, not a duty.
+const SOFT_HEAD = /^\s*(the role|in this role|your role|about the role)\b/i;
+const ADDRESSES_READER = /(^|[^a-z])you(\s|['’]ll\b|['’]re\b|r\b)/i;
+const COMPANY_OPENER = /^[Aa]t\s+[A-Z][\w&.'’-]*(\s+[A-Z][\w&.'’-]*){0,3}\s*,/;
 const OTHER_HEAD = /^\s*(requirements|qualifications|minimum qualifications|preferred qualifications|what you('| wi)ll bring|about you|who you are|benefits|perks|compensation|about us|nice to have|bonus points|skills)\b/i;
 const BULLET = /^\s*(?:[-•*·▪◦‣–]|\d+[.)])\s+/;
 
@@ -121,17 +128,18 @@ function phraseText(raw) {
 
 export function responsibilityPhrases(postingText) {
   const lines = String(postingText || "").split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  let inResp = false;
+  let inResp = false, soft = false;
   const inSection = [], bullets = [];
   for (const line of lines) {
-    if (RESP_HEAD.test(line) && line.length < 60) { inResp = true; continue; }
+    if (RESP_HEAD.test(line) && line.length < 60) { inResp = true; soft = SOFT_HEAD.test(line); continue; }
     if (OTHER_HEAD.test(line) && line.length < 60) { inResp = false; continue; }
     if (BULLET.test(line)) (inResp ? inSection : bullets).push(line.replace(BULLET, ""));
-    else if (inResp) inSection.push(...line.split(/(?<=[.;])\s+/));
+    else if (inResp) inSection.push(...line.split(/(?<=[.;])\s+/).filter(t => !soft || ADDRESSES_READER.test(t)));
   }
   const pool = inSection.length ? inSection : bullets;
   const out = [], seen = new Set();
   for (const raw of pool) {
+    if (COMPANY_OPENER.test(String(raw).trim())) continue;
     const tokens = contentTokens(raw).slice(0, PHRASE_TOKENS);
     if (tokens.length < 3) continue;
     const key = tokens.join(" ");
