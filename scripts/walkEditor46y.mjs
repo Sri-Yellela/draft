@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ⭐ 46y · D157 — draft's EMBEDDED résumé editor (rm-editor/1) against a LOCAL Resume Master checkout, in a real Chrome.
+// ⭐ 46y · D157 — draft's EMBEDDED résumé editor (rm-editor/1) against a LOCAL checkout of the tools service, in a real Chrome.
 //   node scripts/walkEditor46y.mjs [--rm C:/…/resume-master] [--out tmp/walk46y-editor]
 // Serves the checkout's editor as its site does (public/ at /, src/ at /lib/) on :5196 — no RM server, no database, no
 // model; boots draft's client on vite (:5195) with STUBBED /api answers (a synthetic account; /api/resume-editor points
