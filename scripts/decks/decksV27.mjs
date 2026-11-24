@@ -12,7 +12,6 @@ import { layeredDeck, question, writeBatch } from "./deckKit.mjs";
 
 writeBatch({
   version: 27,
-  dir: "docs/review",
   title: "Spark (the data-engineering roadmap's station 7)",
   note: "Drafted by the agent 2026-11-24 for the owner's review (D193-5: the roadmap's station 7, the owner's 11-24 \"do the spark lesson\"). da-b-07, pathway data, stage building-blocks, in D195's three layers. General knowledge in our own words. Nothing is live until approved (status: draft).",
   decks: [

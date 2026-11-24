@@ -65,7 +65,7 @@ test("d155PathwaysPlanShown: decks-v2 … v24 APPROVED by the owner 11-08 (chang
   assert.ok(v2.decks.every(d => d.status === "approved" && d.pathway === "software" && d.stage === "building-blocks" && d.slides.length === 5));
   assert.ok(v2.newQuestions.every(q => q.status === "live" && q.choices[q.correct] && q.why.length === q.choices.length));
   const plan = pathwaysPlan();
-  assert.deepEqual([plan.written, plan.drafted, plan.planned], [223, 0, 0]);   // 47c: + decks-v25's ml-f-05 and cl-b-06 (approved 11-23) + decks-v26's 14 (approved 11-24)
+  assert.deepEqual([plan.written, plan.drafted, plan.planned], [224, 0, 0]);   // 47c: + decks-v25's ml-f-05 and cl-b-06 (approved 11-23) + decks-v26's 14 + decks-v27's da-b-07 (approved 11-24)
   const bb = plan.pathways[0].stages.find(s => s.id === "building-blocks");
   assert.ok(bb.topics.every(t => typeof t.deck === "string"), "linked once approved");
   // the review copy says it is approved

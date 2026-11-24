@@ -350,6 +350,11 @@
               "title": "Kafka",
               "deck": "da-b-06",
               "status": "approved"
+            },
+            {
+              "title": "Spark",
+              "deck": "da-b-07",
+              "status": "approved"
             }
           ]
         },

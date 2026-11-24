@@ -12,13 +12,13 @@ import { reviewQuestion } from "../services/learn/learnQuestions.js";
 
 const fresh = () => { const db = new Database(":memory:"); for (const m of MIGRATIONS) db.exec(m.sql); return db; };
 
-test("d155DeckQuestionsIntoBank: the real batches — 209 (decks-v1's 1 + v2–v24's 192 + v25's 2, approved 11-23 + v26's 14, approved 11-24), all valid, all live (every batch approved)", () => {
+test("d155DeckQuestionsIntoBank: the real batches — 209 (decks-v1's 1 + v2–v24's 192 + v25's 2, approved 11-23 + v26's 14 + v27's 1, approved 11-24), all valid, all live (every batch approved)", () => {
   const db = fresh();
   const r = importDeckQuestions(db);
   assert.ok(r.every(x => !x.error && !x.refused.length), JSON.stringify(r.filter(x => x.error || x.refused?.length)).slice(0, 300));
   const n = db.prepare("SELECT COUNT(*) FROM learn_questions WHERE imported_from LIKE 'content/decks/%'").pluck().get();
   const live = db.prepare("SELECT COUNT(*) FROM learn_questions WHERE imported_from LIKE 'content/decks/%' AND status = 'live'").pluck().get();
-  assert.equal(n, 209); assert.equal(live, 209);
+  assert.equal(n, 210); assert.equal(live, 210);
   assert.match(db.prepare("SELECT reviewed_by FROM learn_questions WHERE id = 'sw-b-01-q1'").pluck().get(), /^owner \(decks-v2 review\)$/);
   // a deck now serves its check (the question, without its answer)
   const d = deckOf(db, "sw-b-01");

@@ -1,6 +1,6 @@
 {
  "version": 27,
- "note": "Drafted by the agent 2026-11-24 for the owner's review (D193-5: the roadmap's station 7, the owner's 11-24 \"do the spark lesson\"). da-b-07, pathway data, stage building-blocks, in D195's three layers. General knowledge in our own words. Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-24 for the owner's review (D193-5: the roadmap's station 7, the owner's 11-24 \"do the spark lesson\"). da-b-07, pathway data, stage building-blocks, in D195's three layers. General knowledge in our own words. Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-24 (\"approve v27\").",
  "decks": [
   {
    "id": "da-b-07",
@@ -65,7 +65,7 @@
     "da-b-07-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "Zaharia et al., Resilient Distributed Datasets (NSDI 2012)",
     "url": "https://www.usenix.org/conference/nsdi12/technical-sessions/presentation/zaharia"
@@ -106,7 +106,7 @@
     "Runs vary a little; the shuffle stays the cost."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }
