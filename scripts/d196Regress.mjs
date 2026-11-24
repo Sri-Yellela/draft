@@ -18,6 +18,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { unpackCanvas, DEFAULT_OUT as CANVAS } from "./d196UnpackCanvas.mjs";
+import { SOURCES } from "./d196PortDrawings.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = path.join(ROOT, "tmp", "d196-regress");
@@ -40,6 +41,16 @@ export const PAIRS = {
     masks: [[400, 345, 100, 18]] },
   // P1 · the openings: the deck card keeps the deck's form factor (600 wide, not the board's 760), so the section is a look
   "market-openings": { board: "The market · draft", fixture: "MarketOpeningsBoard", boardSel: "section:nth-of-type(3)", buildSel: "#openings", pad: 0, look: true, reduced: true },
+  // v2 (47e, order item 4): each ported drawing against its own element on the v2 boards, drawn at the board's width
+  // (`matchWidth`: the build page reads the board element's width from its address) — the port's fidelity, pixel for pixel.
+  "v2-elevation": { source: "v2", board: "Atlas place: Webhooks, Region IV grid D3", fixture: "PortedDrawing", drawing: "PlaceElevationProfile", boardSel: 'svg[aria-label^="Elevation profile"]', buildSel: "svg[role=img]", pad: 0, matchWidth: true, reduced: true, ground: "#FFFFFF", cornerMasks: 24 },
+  "v2-signpost": { source: "v2", board: "Atlas place: Webhooks, Region IV grid D3", fixture: "PortedDrawing", drawing: "PlaceSignpost", boardSel: 'svg[aria-label^="A trailhead signpost"]', buildSel: "svg[role=img]", pad: 0, matchWidth: true, reduced: true, ground: "#FFFFFF", cornerMasks: 24 },
+  "v2-volume": { source: "v2", board: "Atlas home: Volume I, Computing", fixture: "PortedDrawing", drawing: "AtlasVolumePlate", boardSel: 'svg[aria-label^="Plate of Volume I"]', buildSel: "svg[role=img]", pad: 0, matchWidth: true, reduced: true, ground: "#FFFFFF", cornerMasks: 24,
+    hideOnBoard: '.at-bob1, .at-bob2, .at-bob3, svg[aria-label^="Plate of Volume I"] ~ *' },
+  "v2-tile": { source: "v2", board: "Atlas place: Webhooks, Region IV grid D3", fixture: "PortedDrawing", drawing: "PlaceIsometricTile", boardSel: 'svg[aria-label^="An isometric map tile"]', buildSel: "svg[role=img]", pad: 0, matchWidth: true, reduced: true, ground: "#FFFFFF", cornerMasks: 24 },
+  "v2-seal": { source: "v2", board: "Atlas place: Webhooks, Region IV grid D3", fixture: "PortedDrawing", drawing: "PlaceHazardSeal", boardSel: 'svg[aria-label^="A door with a wax seal"]', buildSel: "svg[role=img]", pad: 0, matchWidth: true, reduced: true, ground: "#FFFFFF", cornerMasks: 24 },
+  "v2-timeout": { source: "v2", board: "Atlas place: Webhooks, Region IV grid D3", fixture: "PortedDrawing", drawing: "PlaceHazardTimeout", boardSel: 'svg[aria-label^="A stopwatch beside"]', buildSel: "svg[role=img]", pad: 0, matchWidth: true, reduced: true, ground: "#FFFFFF", cornerMasks: 24 },
+  "v2-duplicate": { source: "v2", board: "Atlas place: Webhooks, Region IV grid D3", fixture: "PortedDrawing", drawing: "PlaceHazardDuplicate", boardSel: 'svg[aria-label^="Two identical letters"]', buildSel: "svg[role=img]", pad: 0, matchWidth: true, reduced: true, ground: "#FFFFFF", cornerMasks: 24 },
   "market-tickets": { board: "The market · draft", fixture: "MarketTicketsBoard", boardSel: "section:nth-of-type(4)", buildSel: "section[aria-labelledby=mk-onward]", pad: 0, look: true },
 };
 
@@ -80,7 +91,7 @@ async function buildFixturePage(name) {
   return pathToFileURL(file).href;
 }
 
-async function shot(page, url, sel, width, pad, waitMs, reduced = false) {
+async function shot(page, url, sel, width, pad, waitMs, reduced = false, ground = null, hide = null) {
   await page.setViewport({ width, height: 900, deviceScaleFactor: 1 });
   await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: reduced ? "reduce" : "no-preference" }]);
   await page.goto(url, { waitUntil: "load", timeout: 60000 });
@@ -89,9 +100,14 @@ async function shot(page, url, sel, width, pad, waitMs, reduced = false) {
   // let the board's entrance animations finish (draw-on 3.5 s, view-in .35 s) — and stop the loops for a still frame
   await new Promise((r) => setTimeout(r, waitMs));
   await page.addStyleTag({ content: "*,*::before,*::after{animation-play-state:paused!important;transition:none!important}" });
+  // a drawing compared on its own: the same ground behind it on both sides (the board's container tint and corner are the
+  // page's, not the drawing's)
+  if (ground) await page.addStyleTag({ content: `${sel}{background:${ground}!important}` });
+  // the board page's HTML overlays on a drawing (callout tags, a moving token) are the page's, not the drawing's
+  if (hide) await page.addStyleTag({ content: `${hide}{visibility:hidden!important}` });
   const box = await page.$eval(sel, (el) => { const r = el.getBoundingClientRect(); return { x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height }; });
   const clip = { x: Math.max(0, Math.floor(box.x - pad)), y: Math.max(0, Math.floor(box.y - pad)), width: Math.ceil(box.w + 2 * pad), height: Math.ceil(box.h + 2 * pad) };
-  return { png: await page.screenshot({ clip, captureBeyondViewport: true }), clip };
+  return { png: await page.screenshot({ clip, captureBeyondViewport: true }), clip, box };
 }
 
 /** Decode both PNGs in the page and diff them there (no image library in the repo). */
@@ -123,14 +139,25 @@ async function compareInPage(page, aPng, bPng, masks) {
 export async function runPair(name, { width = 1280, threshold = THRESHOLD_PCT, browser } = {}) {
   const p = PAIRS[name];
   if (!p) throw new Error(`no pair "${name}" (have: ${Object.keys(PAIRS).join(", ")})`);
-  const index = unpackCanvas();
+  const src = p.source ? SOURCES[p.source] : null;
+  const index = src ? unpackCanvas(src.file, src.out) : unpackCanvas();
   const row = index.find((r) => r.title === p.board);
-  const boardUrl = pathToFileURL(path.join(CANVAS, row.file)).href;
-  const buildUrl = await buildFixturePage(p.fixture);
+  if (!row) throw new Error(`no board "${p.board}" in ${src ? src.name : "the v3 export"}`);
+  const boardUrl = pathToFileURL(path.join(src ? src.out : CANVAS, row.file)).href;
+  let buildUrl = await buildFixturePage(p.fixture);
   const page = await browser.newPage();
-  const board = await shot(page, boardUrl, p.boardSel, width, p.pad, 4000, !!p.reduced);
-  const build = await shot(page, buildUrl, p.buildSel, width, p.pad, p.waitBuild || 600, !!p.reduced);
-  const r = await compareInPage(page, board.png, build.png, p.masks || []);
+  const board = await shot(page, boardUrl, p.boardSel, width, p.pad, 4000, !!p.reduced, p.ground, p.hideOnBoard);
+  // matchWidth: the build draws at the board element's EXACT width and at the same sub-pixel offset inside its first pixel,
+  // so both rasterise on the same grid (the board's signpost sits at x = 994.73, 260.27 wide — drawn at 261 from x = 0 every
+  // outline landed a fraction off and read as a difference)
+  const frac = (v) => +(v - Math.floor(v)).toFixed(4);
+  if (p.matchWidth || p.drawing) buildUrl += `#${new URLSearchParams({ ...(p.drawing ? { name: p.drawing } : {}),
+    ...(p.matchWidth ? { w: String(board.box.w), h: String(board.box.h), ox: String(frac(board.box.x - p.pad)), oy: String(frac(board.box.y - p.pad)) } : {}) })}`;
+  const build = await shot(page, buildUrl, p.buildSel, width, p.pad, p.waitBuild || 600, !!p.reduced, p.ground);
+  // cornerMasks: the board container's rounded corners clip the drawing's corners there (the page's frame, not the drawing)
+  const cm = p.cornerMasks, bw = board.clip.width, bh = board.clip.height;
+  const masks = [...(p.masks || []), ...(cm ? [[0, 0, cm, cm], [bw - cm, 0, cm, cm], [0, bh - cm, cm, cm], [bw - cm, bh - cm, cm, cm]] : [])];
+  const r = await compareInPage(page, board.png, build.png, masks);
   await page.close();
   const dir = path.join(OUT, name);
   fs.mkdirSync(dir, { recursive: true });

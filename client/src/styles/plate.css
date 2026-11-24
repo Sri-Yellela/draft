@@ -44,6 +44,20 @@
   --pl-r7: #7A5A2A; --pl-r7-tint: #F5EFE5; --pl-r7-ring: #EFE6D6;
   --pl-r8: #5A5F2E; --pl-r8-tint: #F1F2E8; --pl-r8-ring: #E9EBDB;
 
+  /* ── The v2 drawings' region shades (canvas v2: the region emblems, Home's volume plate, Place's drawings — ported in 47e,
+     D196 F2). Each is a step of its region's colour, darker (-d) or lighter (-l), read from the export; the port maps every
+     canvas hex to a token or stops. ── */
+  --pl-r1-d2: #8E3D25; --pl-r1-d1: #A84A2E; --pl-r1-l1: #EBC8B9;              /* I · Foundations (the chip) */
+  --pl-r2-d2: #2E2675; --pl-r2-d1: #3B3290; --pl-r2-l1: #8A80DA;              /* II · the stacked layers */
+  --pl-r3-l1: #D9AE97;                                                        /* III · Algorithms (the tree) */
+  --pl-r5-d1: #4E2C56; --pl-r5-l1: #9C74A3;                                   /* V · Security and money (the lock) */
+  --pl-r7-l1: #B99B6A; --pl-r7-l2: #C9AF83; --pl-r7-l3: #E2D2B6;              /* VII · the physical world; the signpost's wood */
+  --pl-r8-l1: #9FA67A; --pl-r8-l2: #B7BA92;                                   /* VIII · Intelligence */
+  --pl-coin: #B8913A; --pl-coin-hi: #E3BE62;                                  /* the lock emblem's coins */
+  --pl-lit-deep: #2F5446; --pl-lit-soft: #9FD3BE;                             /* the isometric tile's queue (proven, deep / soft) */
+  --pl-road: #C9BFB6;                                                         /* the isometric tile's road */
+  --pl-r4-plate: #C9D2DF; --pl-contour-1: #CDBFB3; --pl-contour-2: #D9CBBE;   /* Home's volume plate: IV's ground, paper contours */
+
   /* ── Region IV's hypsometric ramp, light → deep (report). Every other sector palette gets its 10 steps
      here BEFORE its page is built (D196 F1); a sector with no ramp falls back to IV's (R2). ── */
   --pl-iv-0: #E9EEF4; --pl-iv-1: #DCE4EE; --pl-iv-2: #CDD8E7; --pl-iv-3: #B9C8DC; --pl-iv-4: #9FB3CE;

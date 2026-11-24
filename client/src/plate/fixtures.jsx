@@ -10,6 +10,7 @@ import PlateBearing from "./PlateBearing.jsx";
 import MarketHero from "./MarketHero.jsx";
 import MarketOpenings, { MarketTickets } from "./MarketOpenings.jsx";
 import { publishFrontCard } from "./marketPlate.js";
+import { DRAWINGS } from "./drawings/index.js";
 import { FieldCard } from "./Cards.jsx";
 
 const MARKET_VIEWS = [
@@ -103,4 +104,12 @@ export function MarketTicketsBoard() {
   return <MemoryRouter><div style={{ width: 1182 }} className="plate"><MarketTickets needsYou={1}/></div></MemoryRouter>;
 }
 
-export const FIXTURES = { ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketTicketsBoard };
+/** One ported drawing at the board element's width (the regression run passes #name=…&w=… in the address). */
+export function PortedDrawing() {
+  const q = new URLSearchParams((globalThis.location?.hash || "").slice(1));
+  const D = DRAWINGS[q.get("name")];
+  const w = Number(q.get("w")) || 600;
+  return <PlateRoot><div style={{ position: "relative", width: w, height: q.get("h") ? Number(q.get("h")) : undefined, lineHeight: 0, marginLeft: Number(q.get("ox")) || 0, marginTop: Number(q.get("oy")) || 0 }}>{D ? <D/> : null}</div></PlateRoot>;
+}
+
+export const FIXTURES = { ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketTicketsBoard, PortedDrawing };

@@ -3,10 +3,24 @@
 //     numbers made props — the same circle (r 58, 1.5 ink), the same ticks (64,10 → 64,20; lit 3 px green, the rest 1.5 ink),
 //     the same needle (ink with its clay half) and hub. At 4 of 12 it draws the board's dial exactly
 //     (test/d196Drawings… compares the two).
-//   · RegionEmblem, IsometricTile and ElevationProfile are canvas v2 drawings (the Atlas pages). The export in the repo
-//     holds only the v3 boards, so they are NOT drawn yet: each renders the "not yet" drawer naming what it waits for.
-//     They are ported by scripts/d196PortDrawings.mjs the day the v2 boards are exported (WORKLOG D196, owner step).
-import { plateState, Drawer } from "./PlateState.jsx";
+//   · RegionEmblem, IsometricTile and ElevationProfile are canvas v2 drawings (the Atlas pages), ported from the owner's
+//     v2 export (docs/sketches/Atlas plate system v2.html, 47e): the emblem board's eight kinds, the Place page's tile (its
+//     walk-through's seven live values are props, at rest by default) and its elevation profile. These wrap them with the
+//     states every component has (R1); the drawings themselves are the generator's (drawings/*.jsx).
+import { plateState } from "./PlateState.jsx";
+import EmblemFound from "./drawings/EmblemFound.jsx";
+import EmblemBits from "./drawings/EmblemBits.jsx";
+import EmblemTree from "./drawings/EmblemTree.jsx";
+import EmblemNet from "./drawings/EmblemNet.jsx";
+import EmblemLock from "./drawings/EmblemLock.jsx";
+import EmblemCode from "./drawings/EmblemCode.jsx";
+import EmblemWorld from "./drawings/EmblemWorld.jsx";
+import EmblemMind from "./drawings/EmblemMind.jsx";
+import PlaceIsometricTile from "./drawings/PlaceIsometricTile.jsx";
+import PlaceElevationProfile from "./drawings/PlaceElevationProfile.jsx";
+
+/** The emblem board's `kind` order (the report: found, bits, tree, net, lock, code, world, mind). */
+const EMBLEM_KINDS = Object.freeze({ found: EmblemFound, bits: EmblemBits, tree: EmblemTree, net: EmblemNet, lock: EmblemLock, code: EmblemCode, world: EmblemWorld, mind: EmblemMind });
 
 /** The compass dial: one tick per item (lit = proven, green), the needle at lit / total of the way round. */
 export function CompassDial({ lit = 0, total = 12, label, size = 128, ...s }) {
@@ -32,25 +46,27 @@ export function CompassDial({ lit = 0, total = 12, label, size = 128, ...s }) {
   );
 }
 
-const AWAITING = "Drawn on the canvas's v2 boards, which the export in the repo doesn't hold yet. It is ported path for path once they're exported — never redrawn by hand.";
-
-/** A region's 120 × 120 duotone emblem (kind: found, bits, tree, net, lock, code, world, mind). ⏸ awaiting the v2 export. */
-export function RegionEmblem({ kind = "net", region = "IV", size = 120, ...s }) {
+/** A region's 120 × 120 duotone emblem (kind: found, bits, tree, net, lock, code, world, mind), at `size` px. `eight` shows
+ *  all eight kinds side by side (the gallery). An unknown kind falls back to net (IV — the v3 boards' region). */
+export function RegionEmblem({ kind = "net", region = "IV", size = 120, label, eight = false, ...s }) {
   const gate = plateState(s, { height: size, radius: "small", lines: 1 });
   if (gate) return gate;
-  return <div data-region={region} data-kind={kind} style={{ maxWidth: 360 }}><Drawer text={`The ${kind} emblem (region ${region}). ${AWAITING}`}/></div>;
+  if (eight) return <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>{Object.keys(EMBLEM_KINDS).map((k) => <RegionEmblem key={k} kind={k} size={56}/>)}</div>;
+  const E = EMBLEM_KINDS[kind] || EMBLEM_KINDS.net;
+  return <div data-region={region} data-kind={kind} style={{ width: size, height: size, lineHeight: 0, flex: "0 0 auto" }}><E {...(label ? { label } : null)}/></div>;
 }
 
-/** The isometric tile (a 2:1 diamond ground plate, hatched sides, a moving token). ⏸ awaiting the v2 export. */
-export function IsometricTile(props) {
-  const gate = plateState(props, { height: 240, radius: "plate" });
+/** The isometric tile (Place · Webhooks): your server, Stripe, the road; the walk-through drives its seven live values
+ *  (arcOp, beaconR, beaconFill, beaconOp, queueOp, serverLed, tallyOp — colours as plate tokens); at rest by default. */
+export function IsometricTile({ label, state, emptyText, emptyAction, errorText, onRetry, ...live }) {
+  const gate = plateState({ state, emptyText, emptyAction, errorText, onRetry }, { height: 240, radius: "plate" });
   if (gate) return gate;
-  return <Drawer text={`The isometric tile. ${AWAITING}`}/>;
+  return <div style={{ aspectRatio: "600 / 300", width: "100%", maxWidth: 600 }}><PlaceIsometricTile {...(label ? { label } : null)} {...live}/></div>;
 }
 
-/** A place's elevation profile (hypsometric fill, hatched walked part, the flag). ⏸ awaiting the v2 export. */
-export function ElevationProfile(props) {
-  const gate = plateState(props, { height: 200, radius: "plate" });
+/** A place's elevation profile (Region IV's, from Place · Webhooks: lit foothills, you in the highlands, the summit last). */
+export function ElevationProfile({ label, ...s }) {
+  const gate = plateState(s, { height: 200, radius: "plate" });
   if (gate) return gate;
-  return <Drawer text={`The elevation profile. ${AWAITING}`}/>;
+  return <div style={{ width: "100%" }}><PlaceElevationProfile {...(label ? { label } : null)}/></div>;
 }

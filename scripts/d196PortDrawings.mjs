@@ -17,18 +17,39 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { unpackCanvas, DEFAULT_OUT } from "./d196UnpackCanvas.mjs";
+import { unpackCanvas, DEFAULT_OUT, DEFAULT_EXPORT } from "./d196UnpackCanvas.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const OUT_DIR = path.join(ROOT, "client", "src", "plate", "drawings");
 const TOKENS = path.join(ROOT, "client", "src", "styles", "plate.css");
 
-// The boards and their drawings, in document order. `name` is the drawing's atlas name (D196 vocabulary).
+// The two exports: v3 (the market, the ledger, the survey sheet) and v2 (the owner's 11-24 file: Atlas's Home, Region IV,
+// Library, the Region emblem, Place · Webhooks, How the drafts come in).
+export const SOURCES = {
+  v3: { file: DEFAULT_EXPORT, out: DEFAULT_OUT, name: "docs/sketches/Atlas plate system.html" },
+  v2: { file: path.join(ROOT, "docs", "sketches", "Atlas plate system v2.html"), out: path.join(ROOT, "tmp", "d196-canvas-v2"), name: "docs/sketches/Atlas plate system v2.html" },
+};
+
+// The boards and their drawings, in document order. `name` is the drawing's atlas name (D196 vocabulary). A board's
+// drawings are its role="img" SVGs, in order; `source` is its export (v3 when not given).
 export const BOARDS = [
   { title: "The market · draft", drawings: ["MarketSurveyPlate", "MarketBoardOrder", "MarketTerrain"] },
   { title: "The ledger · draft", drawings: ["LedgerRunRoute"] },
   { title: "Survey sheet · Kestrel Payments · draft", drawings: ["SurveyTeamDiorama", "SurveyHiringProfile", "SurveyRoleLine", "SurveyMatchDial"] },
+  // v2 (order item 4, 47e): the eight region emblems (the emblem board's `kind` order), Home's volume plate, and the
+  // Place page's six drawings — the elevation profile, the signpost, the isometric tile and the three hazard plates.
+  { source: "v2", title: "Region emblem", drawings: ["EmblemFound", "EmblemBits", "EmblemTree", "EmblemNet", "EmblemLock", "EmblemCode", "EmblemWorld", "EmblemMind"] },
+  { source: "v2", title: "Atlas home: Volume I, Computing", drawings: ["AtlasVolumePlate"] },
+  { source: "v2", title: "Atlas place: Webhooks, Region IV grid D3", drawings: ["PlaceElevationProfile", "PlaceSignpost", "PlaceIsometricTile", "PlaceHazardSeal", "PlaceHazardTimeout", "PlaceHazardDuplicate"] },
 ];
+
+// ⭐ A drawing's TEMPLATE BINDINGS ({{ name }} on the canvas — the live detail a page drives) become props, each with the
+// value it takes at rest. A binding with no default here stops the port. Colour values are plate tokens.
+//   PlaceIsometricTile — the Place page's two-way walk-through moves these (the arc, the beacon, the queue, the tally, the
+//   server's light); at rest nothing has happened yet: no arc, the beacon small and unlit, no queue, no tally, the light off.
+export const BINDINGS = {
+  PlaceIsometricTile: { arcOp: 0, beaconR: 4, beaconFill: "var(--pl-iv-0)", beaconOp: 0, queueOp: 0, serverLed: "var(--pl-card)", tallyOp: 0 },
+};
 
 // ⭐ D196 P1 · THE LIVE PARTS — a drawing's data, made props AFTER the port, by exact substitution on the generated JSX
 // (each `from` must occur exactly once, or the port stops). The paths stay the canvas's; only the named coordinates move,
@@ -137,15 +158,48 @@ export function portSvg(svg, map, where) {
     return m && ids.has(m[1]) ? "`url(#${uid}" + m[1] + ")`" : null;
   };
   let depth = 0, label = null, viewBox = null, animates = 0;
+  const bindings = new Set();
   const lines = [];
+  const openAt = [];   // the line index of each open tag, innermost last
+  let skipClose = 0;   // a colour <animate> folded into its parent: its closing tag is dropped too
   const pad = () => "  ".repeat(depth + 2);
   for (const t of toks) {
     if (t.text !== undefined) { lines.push(pad() + "{" + jsString(t.text) + "}"); continue; }
-    if (t.close) { depth--; lines.push(pad() + `</${t.tag}>`); if (t.tag === "animate") lines.push(pad() + "</>)}"); continue; }
+    if (t.close) {
+      if (t.tag === "animate" && skipClose) { skipClose--; continue; }
+      depth--; openAt.pop(); lines.push(pad() + `</${t.tag}>`); if (t.tag === "animate") lines.push(pad() + "</>)}"); continue;
+    }
+    // ⭐ A COLOUR <animate> (fill A → B → A): SMIL animates the presentation ATTRIBUTE, which the port's inline style (where
+    // every colour token must live) outranks — the blink would never show, and its values are raw hexes. It becomes the same
+    // blink as a CSS animation on its parent: plFillBlink in plate/plate.css, its two colours as tokens in custom properties,
+    // the same duration, and nothing under reduced motion (the `motion` flag the SMIL used).
+    const attrName = t.tag === "animate" ? (t.attrs.find(([k]) => k === "attributeName" || k === "sc-camel-attribute-name") || [])[1] : null;
+    if (attrName && COLOUR_PROPS.has(attrName)) {
+      const get = (k) => (t.attrs.find(([a]) => a === k || a === `sc-camel-${k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase())}`) || [])[1];
+      const vals = String(get("values") || "").split(";").map((x) => x.trim()).filter(Boolean);
+      if (attrName !== "fill" || vals.length !== 3 || vals[0].toUpperCase() !== vals[2].toUpperCase() || get("repeatCount") !== "indefinite") {
+        throw new Error(`a colour animation the port can't fold in ${where}: ${attrName} ${vals.join(";")}`);
+      }
+      const a = colour(vals[0], map, where), b2 = colour(vals[1], map, where);
+      const pi = openAt[openAt.length - 1];
+      if (pi == null || !/style=\{\{/.test(lines[pi])) throw new Error(`a colour animation with no styled parent in ${where}`);
+      lines[pi] = lines[pi].replace(/style=\{\{/, `style={{...(motion ? {"--pl-blink-a":${JSON.stringify(a)},"--pl-blink-b":${JSON.stringify(b2)},"animation":${JSON.stringify(`plFillBlink ${get("dur")} infinite`)}} : {}),`);
+      animates++;
+      if (!t.self) skipClose++;
+      continue;
+    }
     const props = [];
     const style = {};
+    const styleExpr = {};
     for (const [k, raw] of t.attrs) {
       const v = decode(raw);
+      const bound = v.match(/^\{\{\s*(\w+)\s*\}\}$/);
+      if (bound) {
+        bindings.add(bound[1]);
+        if (COLOUR_PROPS.has(k)) styleExpr[camel(k)] = bound[1]; else props.push(`${jsxAttr(k)}={${bound[1]}}`);
+        continue;
+      }
+      if (/\{\{/.test(v)) throw new Error(`a template expression the port can't read in ${where}: "${v}"`);
       if (t.tag === "svg" && k === "aria-label") { label = v; props.push("aria-label={label}"); continue; }
       if (t.tag === "svg" && k === "sc-camel-view-box") viewBox = v;
       if (k === "style") {
@@ -171,30 +225,37 @@ export function portSvg(svg, map, where) {
       props.push(`${jsxAttr(k)}=${JSON.stringify(v)}`);
     }
     if (t.tag === "svg") props.push("className={className}");
-    if (Object.keys(style).length) props.push(`style={${JSON.stringify(style)}}`);
+    if (Object.keys(style).length || Object.keys(styleExpr).length) {
+      const parts = [...Object.entries(style).map(([k, v]) => `${JSON.stringify(k)}:${JSON.stringify(v)}`), ...Object.entries(styleExpr).map(([k, e]) => `${JSON.stringify(k)}:${e}`)];
+      props.push(`style={{${parts.join(",")}}}`);
+    }
     if (t.tag === "animate") { animates++; lines.push(pad() + "{motion && (<>"); }
     const open = `<${t.tag}${props.length ? " " + props.join(" ") : ""}${t.self ? " />" : ">"}`;
     lines.push(pad() + open);
     if (t.self) { if (t.tag === "animate") lines.push(pad() + "</>)}"); continue; }
+    openAt.push(lines.length - 1);
     depth++;
   }
   if (depth !== 0) throw new Error(`unbalanced SVG in ${where}`);
-  return { jsx: lines.join("\n"), ids: [...ids], label, viewBox, animates };
+  return { jsx: lines.join("\n"), ids: [...ids], label, viewBox, animates, bindings: [...bindings] };
 }
 
-const HEADER = (name, board, viewBox) => `// ⛔ GENERATED by scripts/d196PortDrawings.mjs from docs/sketches/Atlas plate system.html — do not edit.
+const HEADER = (name, board, viewBox, src = SOURCES.v3.name) => `// ⛔ GENERATED by scripts/d196PortDrawings.mjs from ${src} — do not edit.
 // D196 F2: "${board}", the drawing ${name} (viewBox ${viewBox}), ported path for path; colours are plate tokens.
 // To change the drawing, change the canvas, re-export it and re-run the script (test/d196DrawingsPorted… holds this).
 `;
 
-export function render(name, board, ported) {
-  return HEADER(name, board, ported.viewBox) + `import { useId } from "react";
+export function render(name, board, ported, src) {
+  const bound = ported.bindings || [];
+  for (const b of bound) if (!BINDINGS[name] || !(b in BINDINGS[name])) throw new Error(`${name}: the binding {{ ${b} }} has no default in BINDINGS`);
+  const boundProps = bound.length ? ", " + bound.map((b) => `${b} = ${JSON.stringify(BINDINGS[name][b])}`).join(", ") : "";
+  return HEADER(name, board, ported.viewBox, src) + `import { useId } from "react";
 import { usePlateMotion } from "../motion.js";
 
 export const ${name}Label = ${JSON.stringify(ported.label || name)};
 
 /** ${(ported.label || name).replace(/\*\//g, "")} */
-export default function ${name}({ label = ${name}Label, className${LIVE[name] ? ", " + LIVE[name].props : ""} }) {
+export default function ${name}({ label = ${name}Label, className${LIVE[name] ? ", " + LIVE[name].props : ""}${boundProps} }) {
   const uid = useId().replace(/:/g, "");
   const motion = usePlateMotion();
   void uid; void motion;${LIVE[name]?.pre ? "\n  " + LIVE[name].pre : ""}
@@ -205,24 +266,26 @@ ${applyLive(name, ported.jsx)}
 `;
 }
 
-export function boardDrawings(index) {
+export function boardDrawings(indexes) {
   const out = [];
   for (const b of BOARDS) {
+    const src = SOURCES[b.source || "v3"];
+    const index = indexes[b.source || "v3"];
     const row = index.find((r) => r.title === b.title);
-    if (!row) throw new Error(`the export has no board "${b.title}"`);
-    const tpl = fs.readFileSync(path.join(DEFAULT_OUT, row.id, "template.html"), "utf8");
+    if (!row) throw new Error(`the export ${src.name} has no board "${b.title}"`);
+    const tpl = fs.readFileSync(path.join(src.out, row.id, "template.html"), "utf8");
     const body = tpl.slice(tpl.indexOf("<x-dc>"));
     const svgs = [...body.matchAll(/<svg[^>]*role="img"[\s\S]*?<\/svg>/g)].map((m) => m[0]);
     if (svgs.length !== b.drawings.length) throw new Error(`"${b.title}" has ${svgs.length} drawings, the port expects ${b.drawings.length}`);
-    svgs.forEach((svg, i) => out.push({ name: b.drawings[i], board: b.title, svg }));
+    svgs.forEach((svg, i) => out.push({ name: b.drawings[i], board: b.title, svg, src: src.name }));
   }
   return out;
 }
 
 export function generate() {
-  const index = unpackCanvas();
+  const indexes = Object.fromEntries(Object.entries(SOURCES).map(([k, v]) => [k, unpackCanvas(v.file, v.out)]));
   const map = tokenMap();
-  const files = boardDrawings(index).map((d) => ({ ...d, source: render(d.name, d.board, portSvg(d.svg, map, `${d.board} / ${d.name}`)) }));
+  const files = boardDrawings(indexes).map((d) => ({ ...d, source: render(d.name, d.board, portSvg(d.svg, map, `${d.board} / ${d.name}`), d.src) }));
   const names = files.map((f) => f.name);
   files.push({ name: "index", ext: ".js", source: `// ⛔ GENERATED with the drawings by scripts/d196PortDrawings.mjs — the v3 drawings by name.\n`
     + names.map((n) => `import ${n} from "./${n}.jsx";`).join("\n") + `\n\nexport const DRAWINGS = { ${names.join(", ")} };\n` });

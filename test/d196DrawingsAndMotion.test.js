@@ -21,7 +21,7 @@ import { at } from "../test-support/sourceAnchors.js";
 
 test("D196 F2 · d196DrawingsPorted — the drawings are the generator's output from the committed export", () => {
   const files = generate();
-  assert.equal(files.filter((f) => f.name !== "index").length, 8);
+  assert.equal(files.filter((f) => f.name !== "index").length, 23, "v3's 8 + v2's 15");
   assert.deepEqual(files.filter((f) => f.name !== "index").map((f) => f.name), PORTED_DRAWINGS);
   for (const f of files) {
     const p = path.join(OUT_DIR, f.name + (f.ext || ".jsx"));

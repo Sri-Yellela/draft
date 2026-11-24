@@ -182,13 +182,16 @@ export const PLATE_REGISTRY = [
 
   // ── drawings ──
   { name: "CompassDial", file: "Drawings.jsx", group: "Drawings", states: four({ lit: 4, total: 12, label: "Compass dial: you have 4 of their top 12 technologies on your résumé" }, "No technologies found yet."), extremes: { lit: 412, total: 10000 } },
-  { name: "RegionEmblem", file: "Drawings.jsx", group: "Drawings", awaiting: "v2", states: four({ kind: "net", region: "IV" }, "No region.") },
-  { name: "IsometricTile", file: "Drawings.jsx", group: "Drawings", awaiting: "v2", states: four({}, "No walk-through.") },
-  { name: "ElevationProfile", file: "Drawings.jsx", group: "Drawings", awaiting: "v2", states: four({}, "No profile.") },
+  { name: "RegionEmblem", file: "Drawings.jsx", group: "Drawings", states: four({ kind: "net", region: "IV" }, "No region.", { partial: { eight: true } }), extremes: { kind: "no-such-kind", label: LONG } },
+  { name: "IsometricTile", file: "Drawings.jsx", group: "Drawings", states: four({}, "No walk-through.", { partial: { arcOp: 1, beaconR: 7, beaconFill: "var(--pl-clay)", beaconOp: 1, queueOp: 1, serverLed: "var(--pl-lit)", tallyOp: 0 } }), extremes: { label: LONG, arcOp: 1, tallyOp: 1, queueOp: 1 } },
+  { name: "ElevationProfile", file: "Drawings.jsx", group: "Drawings", states: four({}, "No profile."), extremes: { label: LONG } },
 ];
 
-/** The eight drawings ported path for path from the v3 boards (scripts/d196PortDrawings.mjs). */
-export const PORTED_DRAWINGS = ["MarketSurveyPlate", "MarketBoardOrder", "MarketTerrain", "LedgerRunRoute", "SurveyTeamDiorama", "SurveyHiringProfile", "SurveyRoleLine", "SurveyMatchDial"];
+/** The drawings ported path for path (scripts/d196PortDrawings.mjs): the v3 boards' eight, then v2's fifteen (47e) — the
+ *  eight region emblems, Home's volume plate and the Place page's six. */
+export const PORTED_DRAWINGS = ["MarketSurveyPlate", "MarketBoardOrder", "MarketTerrain", "LedgerRunRoute", "SurveyTeamDiorama", "SurveyHiringProfile", "SurveyRoleLine", "SurveyMatchDial",
+  "EmblemFound", "EmblemBits", "EmblemTree", "EmblemNet", "EmblemLock", "EmblemCode", "EmblemWorld", "EmblemMind", "AtlasVolumePlate",
+  "PlaceElevationProfile", "PlaceSignpost", "PlaceIsometricTile", "PlaceHazardSeal", "PlaceHazardTimeout", "PlaceHazardDuplicate"];
 
 /** The states every entry with data must have (R1). */
 export const REQUIRED_STATES = Object.freeze(["ready", "loading", "empty", "error"]);

@@ -11,6 +11,9 @@
 @keyframes plIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes plStamp { from { opacity: 0; transform: rotate(-10deg) scale(1.9); } to { opacity: 1; transform: rotate(var(--pl-stamp-rot, -8deg)) scale(1); } }
 @keyframes plLight { 0% { transform: scale(.4); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
+/* a ported colour blink (scripts/d196PortDrawings.mjs folds a SMIL fill A → B → A into this; the drawing sets the two
+   colours and leaves the animation out under reduced motion) */
+@keyframes plFillBlink { 0%, 100% { fill: var(--pl-blink-a); } 50% { fill: var(--pl-blink-b); } }
 @keyframes plFlip { from { opacity: 0; transform: translateY(60%) rotate(-2deg); } to { opacity: 1; transform: rotate(-2deg); } }
 /* the class names the ported drawings carry (the export's own) */
 .plate .at-bob1 { animation: plBob 5.5s ease-in-out infinite; }
