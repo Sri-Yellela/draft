@@ -99,7 +99,7 @@ const STOP = new Set(("a an and or the of to in on for with by at as from into a
   "we you they it is are be will can able who which what when where while using use via per all any each other more most " +
   "new including include such like etc help work working strong well within also both day company role through " +
   "ensure responsible responsibilities opportunity looking join plus").split(" "));
-const RESP_HEAD = /^\s*(responsibilities|key responsibilities|what you('| wi)ll do|what you will do|the role|in this role|your role|day[- ]to[- ]day|you will|what you'll be doing|about the role|duties)\b/i;
+const RESP_HEAD = /^\s*(responsibilities|key responsibilities|what you(['’]| wi)ll do|what you will do|the role|in this role|your role|day[- ]to[- ]day|you will|what you['’]ll be doing|about the role|duties|how you(['’]| wi)ll make (a|an) (difference|impact)|what you(['’]| wi)ll work on|the impact you(['’]| wi)ll (have|make))\b/i;
 // ⭐ 47c (owner 11-24, the card's "At Rula, exceptional patient outcomes are…"): "About the role" / "The role" / "Your role" /
 // "In this role" often open with the company's own pitch. Under those SOFT headings a bullet is still a duty, but a prose
 // sentence counts only when it speaks to the reader ("you", "you'll", "you will") — the pitch never does. Anywhere, a
@@ -107,7 +107,30 @@ const RESP_HEAD = /^\s*(responsibilities|key responsibilities|what you('| wi)ll 
 const SOFT_HEAD = /^\s*(the role|in this role|your role|about the role)\b/i;
 const ADDRESSES_READER = /(^|[^a-z])you(\s|['’]ll\b|['’]re\b|r\b)/i;
 const COMPANY_OPENER = /^[Aa]t\s+[A-Z][\w&.'’-]*(\s+[A-Z][\w&.'’-]*){0,3}\s*,/;
-const OTHER_HEAD = /^\s*(requirements|qualifications|minimum qualifications|preferred qualifications|what you('| wi)ll bring|about you|who you are|benefits|perks|compensation|about us|nice to have|bonus points|skills)\b/i;
+const OTHER_HEAD = /^\s*(requirements|qualifications|minimum qualifications|preferred qualifications|what you(['’]| wi)ll bring|about you|who you are|benefits|perks|compensation|about us|nice to have|bonus points|skills|our values|what we offer|why join us|why you(['’]| wi)ll love|equal (employment )?opportunity|life at|our mission|the team|meet the team|how we work)\b/i;
+// ⭐ 47f (D196 FIX-6, owner 11-24: the field card said *Not on your résumé yet: "How You'll Make a Difference"*): a posting's
+// SECTION TITLE is never a duty. A line is a heading when it is short (≤ 8 words, < 60 characters), carries no sentence
+// ending (. ! ;) and either ends with ":" or "?", or is Title Case (most of its longer words capitalised) — the shape every
+// heading above takes, and the shape of the ones no list can name ("The Work You'll Own", "Life at Northwind"). It is
+// skipped wherever it sits; a bullet is a heading only by the colon / question rule (a duty bullet can be Title Case).
+// Boilerplate is not a duty either: the equal-opportunity paragraph, the benefits list, the company's blurb.
+const HEAD_WORD = /^[A-Z0-9&]/;
+const SMALL_WORD = /^(a|an|and|or|the|of|to|in|on|for|with|by|at|as|from|into|&)$/i;
+const ACRONYM = /[A-Z].*[A-Z]/;   // APIs, AWS, iOS: a proper name in a duty, not the sign of a heading
+export function looksLikeHeading(line, { bullet = false } = {}) {
+  const t = String(line || "").trim();
+  if (!t || t.length >= 60 || /[.!;]$/.test(t)) return false;
+  const words = t.replace(/[:?]$/, "").split(/\s+/).filter(Boolean);
+  if (!words.length || words.length > 8) return false;
+  if (/[:?]$/.test(t)) return true;
+  if (bullet) return false;
+  // Title Case: EVERY longer word capitalised (acronyms aside) — three or more of them, or two in a line of at most three
+  // words ("Our Values"). "Build APIs in Go" (two, in four words) stays a duty.
+  const big = words.filter((w) => !SMALL_WORD.test(w.replace(/[^\w&]/g, "")) && !ACRONYM.test(w));
+  if (big.length < 2 || (big.length === 2 && words.length > 3)) return false;
+  return big.every((w) => HEAD_WORD.test(w));
+}
+const BOILERPLATE = /(equal (employment )?opportunity|\beeo\b|regardless of (race|gender|age|religion)|reasonable accommodation|without regard to|protected (veteran|characteristic)|401\(?k\)?|health(, dental)? (and|&) (dental|vision)|paid time off|parental leave|benefits include|we offer (competitive|a competitive)|^(we are|we['’]re) (a|an|the) |^founded in \d{4}|^our mission is)/i;
 const BULLET = /^\s*(?:[-•*·▪◦‣–]|\d+[.)])\s+/;
 
 const stem = (w) => w.replace(/(ings?|ed|es|s)$/, "").replace(/e$/, "");
@@ -133,13 +156,17 @@ export function responsibilityPhrases(postingText) {
   for (const line of lines) {
     if (RESP_HEAD.test(line) && line.length < 60) { inResp = true; soft = SOFT_HEAD.test(line); continue; }
     if (OTHER_HEAD.test(line) && line.length < 60) { inResp = false; continue; }
-    if (BULLET.test(line)) (inResp ? inSection : bullets).push(line.replace(BULLET, ""));
+    const isBullet = BULLET.test(line);
+    if (looksLikeHeading(isBullet ? line.replace(BULLET, "") : line, { bullet: isBullet })) continue;   // 47f FIX-6
+    if (BOILERPLATE.test(line)) continue;
+    if (isBullet) (inResp ? inSection : bullets).push(line.replace(BULLET, ""));
     else if (inResp) inSection.push(...line.split(/(?<=[.;])\s+/).filter(t => !soft || ADDRESSES_READER.test(t)));
   }
   const pool = inSection.length ? inSection : bullets;
   const out = [], seen = new Set();
   for (const raw of pool) {
     if (COMPANY_OPENER.test(String(raw).trim())) continue;
+    if (looksLikeHeading(raw, { bullet: true }) || BOILERPLATE.test(String(raw).trim())) continue;   // 47f FIX-6: a split sentence too
     const tokens = contentTokens(raw).slice(0, PHRASE_TOKENS);
     if (tokens.length < 3) continue;
     const key = tokens.join(" ");
