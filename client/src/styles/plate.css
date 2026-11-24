@@ -62,6 +62,9 @@
      here BEFORE its page is built (D196 F1); a sector with no ramp falls back to IV's (R2). ── */
   --pl-iv-0: #E9EEF4; --pl-iv-1: #DCE4EE; --pl-iv-2: #CDD8E7; --pl-iv-3: #B9C8DC; --pl-iv-4: #9FB3CE;
   --pl-iv-5: #7F96B6; --pl-iv-6: #5D79A3; --pl-iv-7: #1F3A63; --pl-iv-8: #16294A; --pl-iv-9: #0F1E36;
+  /* Region III's ramp (D198, canvas v4's explainer — built first for the cost scale: light = 1, mid = 3, deep = 7) */
+  --pl-iii-0: #FBF1EA; --pl-iii-1: #F5E2D6; --pl-iii-2: #EFD0BE; --pl-iii-3: #E6BA9F; --pl-iii-4: #D99C78;
+  --pl-iii-5: #C97F55; --pl-iii-6: #B4532A; --pl-iii-7: #8F4122; --pl-iii-8: #6B3119; --pl-iii-9: #4A2211;
 
   /* ── Stage colours on Route and Index (report) ── */
   --pl-stage-start: #3E6B5A; --pl-stage-build: #1F3A63; --pl-stage-deepen: #C2593A; --pl-stage-master: #6A3E73;
@@ -106,6 +109,10 @@
   --pl-t-12: calc(12px * var(--pl-scale));         /* a callout tag's third line (the v3 boards) */
   --pl-t-mono-num: calc(12px * var(--pl-scale));   /* the index's mono cells */
   --pl-t-10: calc(10px * var(--pl-scale));         /* the dock avatar's initials */
+  --pl-t-xp-title: calc(34px * var(--pl-scale));   /* D198: the explainer's serif title (9:16 at 405 px) */
+  --pl-t-xp-caption: calc(17px * var(--pl-scale)); /* D198: the explainer's captions (the voice) */
+  --pl-t-xp-head: calc(8.5px * var(--pl-scale));   /* D198: the cost table's ink header */
+  --pl-t-xp-tiny: calc(7.5px * var(--pl-scale));   /* D198: the one-word reasons, the small print */
   --pl-track-mono: .12em;
   --pl-track-tag: .08em;
   --pl-track-stamp: .16em;

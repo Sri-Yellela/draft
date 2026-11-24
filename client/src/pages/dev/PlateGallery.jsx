@@ -12,9 +12,10 @@ import * as Tickets from "../../plate/Tickets.jsx";
 import * as Cards from "../../plate/Cards.jsx";
 import * as Lists from "../../plate/Lists.jsx";
 import * as Drawings from "../../plate/Drawings.jsx";
+import * as Explainer from "../../plate/explainer/Explainer.jsx";
 import { DRAWINGS } from "../../plate/drawings/index.js";
 
-const LIB = { ...Shell, ...Marks, ...Plates, ...Tickets, ...Cards, ...Lists, ...Drawings };
+const LIB = { ...Shell, ...Marks, ...Plates, ...Tickets, ...Cards, ...Lists, ...Drawings, ...Explainer };
 
 function params() {
   if (typeof window === "undefined") return new URLSearchParams();

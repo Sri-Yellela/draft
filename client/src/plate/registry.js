@@ -7,6 +7,7 @@
 //   · every entry with data has an `extremes` fixture (R2: 120-character names, no logo, no pay, 0 / 1 / 412 / 10,000).
 // Plain data only (no JSX) so a node test can read it; the gallery supplies children and callbacks.
 
+import PILOT_EXPLAINER from "../../../content/explainers/big-o-acted-out/script.json" with { type: "json" };   // D198 E1: the pilot is the gallery's data
 const LONG = "Senior Staff Software Engineer, Frontend Platform and Design Systems Infrastructure (Payments, Checkout, Billing and Risk)";   // ≥ 120
 const LONG_CO = "The Extremely Long Name Company of Massachusetts Holdings, Incorporated, a Wholly Owned Subsidiary of Another Long Parent";   // ≥ 120
 
@@ -185,6 +186,11 @@ export const PLATE_REGISTRY = [
   { name: "RegionEmblem", file: "Drawings.jsx", group: "Drawings", states: four({ kind: "net", region: "IV" }, "No region.", { partial: { eight: true } }), extremes: { kind: "no-such-kind", label: LONG } },
   { name: "IsometricTile", file: "Drawings.jsx", group: "Drawings", states: four({}, "No walk-through.", { partial: { arcOp: 1, beaconR: 7, beaconFill: "var(--pl-clay)", beaconOp: 1, queueOp: 1, serverLed: "var(--pl-lit)", tallyOp: 0 } }), extremes: { label: LONG, arcOp: 1, tallyOp: 1, queueOp: 1 } },
   { name: "ElevationProfile", file: "Drawings.jsx", group: "Drawings", states: four({}, "No profile."), extremes: { label: LONG } },
+
+  // ── the explainer (D198 E1) ──
+  { name: "Explainer", file: "explainer/Explainer.jsx", group: "Explainer", width: 405,
+    states: four({ script: PILOT_EXPLAINER, openings: 412 }, "No explainer here yet.", { at_beat_7: { script: PILOT_EXPLAINER, openings: 412, at: 40000 }, unknown_count: { script: PILOT_EXPLAINER, at: 40000 } }),
+    extremes: { script: { ...PILOT_EXPLAINER, title: { text: LONG, tape: LONG } }, openings: 10000 } },
 ];
 
 /** The drawings ported path for path (scripts/d196PortDrawings.mjs): the v3 boards' eight, then v2's fifteen (47e) — the

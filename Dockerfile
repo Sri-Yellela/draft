@@ -65,6 +65,8 @@ COPY registry/ ./registry/
 # D190: Ask draft bundles the assistant's command vocabulary (content/assistant/commands-v1.json — shared with the PDF-tools
 # site). test/dockerClientBuildInputs.test.js fails when the client imports a folder that is not copied before the build.
 COPY content/assistant/ ./content/assistant/
+# D198 E1: the gallery's explainer reads the pilot script (client/src/plate/registry.js imports it)
+COPY content/explainers/ ./content/explainers/
 RUN cd client && npm run build
 
 # Copy remaining server source
