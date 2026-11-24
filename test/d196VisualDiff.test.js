@@ -1,0 +1,21 @@
+// ⭐ D196 F5 · THE GATE, in the browser tier: every pair in scripts/d196Regress.mjs (a built composition from the plate
+// library vs its artboard in the canvas export, rendered in headless Chrome) differs by ≤ 2 % at the same size.
+// P0's pairs: the market board's dock and area nav. P1–P5 add a pair per page (d196VisualDiffMarket / Ledger / Survey /
+// AtlasHome / AtlasRegion / AtlasLibrary / AtlasPlace at 1280 and 390) as each page is built.
+// First measured 11-24 (47d): the nav read 6.46 %, then 6.02 % — the fixture page lacked Inter Tight 500 (plate/fonts.js now
+// carries every weight), the current link's 700 was overridden, and the squares were border-box where the board's are
+// content-box. Fixed in the components; then the dock 0 % and the nav 0.001 %.
+import test from "node:test";
+import assert from "node:assert/strict";
+import { launchBrowser } from "../services/browserLauncher.js";
+import { PAIRS, runPair, THRESHOLD_PCT } from "../scripts/d196Regress.mjs";
+
+test("⛔ D196 F5 · every built piece is within 2 % of its sketch", { timeout: 600000 }, async () => {
+  const browser = await launchBrowser({ headless: "new" });
+  const results = [];
+  try {
+    for (const name of Object.keys(PAIRS)) results.push(await runPair(name, { browser }));
+  } finally { await browser.close(); }
+  const failing = results.filter((r) => !r.pass).map((r) => `${r.pair}: ${r.pct} % (board ${r.sizeBoard.join("×")}, build ${r.sizeBuild.join("×")}) — see tmp/d196-regress/${r.pair}/pair.png`);
+  assert.deepEqual(failing, [], `over ${THRESHOLD_PCT} % or a different size — fix the component, never the threshold`);
+});

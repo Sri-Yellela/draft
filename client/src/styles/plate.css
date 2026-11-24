@@ -1,0 +1,182 @@
+/* ⭐ D196 F1 · THE PLATE SYSTEM'S TOKENS — the one file a plate page's colour, type, line, shadow, radius, space and
+   motion come from. Source: docs/design/plate-system.md (the design report, rev 14 + the 11-24 addendum); where the
+   report gives a range, the value is the one the canvas export's v3 boards use (measured from
+   docs/sketches/Atlas plate system.html by scripts/d196UnpackCanvas.mjs: 846 × #1B1B1B, shadows 3 / 4 / 5 / 6 / 8 / 10,
+   radii 6 / 7 / 10 / 12 / 14 / 18 / 20 / 22 / 24, the mono label at 10–11 px with .12em).
+   ⛔ Nothing outside this file writes a hex, a px shadow or a font-family for a plate page —
+   test/d196NoRawStylesOutsideTokens.test.js fails the build (D181's rule widened). Add a token here instead.
+   Scope: `.plate` — the plate system is a light paper look for its own pages (D196 THEMES); Dusk and Plain keep the
+   rest of the app until a dark plate variant is sketched. Plain's "no tints" maps to `.plate[data-plain]`: region
+   tints off, ink and paper only. */
+
+.plate {
+  /* ── Core (report § Color) ── */
+  --pl-paper: #F4EFE9;            /* page ground, nav bar */
+  --pl-paper-deep: #EFE8E1;       /* alternate section bands */
+  --pl-paper-warm: #FBF8F4;       /* plate interiors, caption strips */
+  --pl-paper-hover: #EDE5DE;      /* .at-link:hover on the boards */
+  --pl-tab-off: #E8E0D8;          /* an inactive binder tab */
+  --pl-card: #FFFFFF;
+  --pl-card-veil: rgba(255, 255, 255, .85);   /* a stamp's ground over a drawing */
+  --pl-ink: #1B1B1B;              /* text, every border, every hard shadow */
+  --pl-ink-soft: #3F3A36;         /* body copy on paper */
+  --pl-muted: #55504C;            /* secondary text, mono metadata */
+  --pl-muted-2: #6F6964;          /* the kicker's separators */
+  --pl-rule: #E6DED8;             /* hairlines inside cards */
+  --pl-rule-2: #E0D6CF;
+  --pl-clay: #C2593A;             /* you / next / the one primary action — never a sector colour */
+  --pl-clay-hover: #AD4C30;
+  --pl-clay-text: #8A3A22;        /* clay text on its tint */
+  --pl-clay-tint: #FBEFEA;
+  --pl-lit: #3E6B5A;              /* proven — never a button or a hover */
+  --pl-on-ink: #F4EFE9;           /* paper text on an ink fill */
+  --pl-on-clay: #FFFFFF;
+  --pl-poster: #111111;           /* field-note posters only */
+  --pl-poster-hi: #FACC15;
+
+  /* ── Region palettes I–VIII: colour · tint · ring (report § Color) ── */
+  --pl-r1: #C2593A; --pl-r1-tint: #FBEFEA; --pl-r1-ring: #F6E1D8;
+  --pl-r2: #4B3FA8; --pl-r2-tint: #F0EEFA; --pl-r2-ring: #E6E3F6;
+  --pl-r3: #B4532A; --pl-r3-tint: #FAEEE6; --pl-r3-ring: #F5E2D6;
+  --pl-r4: #1F3A63; --pl-r4-tint: #EDF1F7; --pl-r4-ring: #DFE6F0;
+  --pl-r5: #6A3E73; --pl-r5-tint: #F4EDF5; --pl-r5-ring: #EDE2EF;
+  --pl-r6: #2F6B7A; --pl-r6-tint: #EAF3F5; --pl-r6-ring: #DDEDF0;
+  --pl-r7: #7A5A2A; --pl-r7-tint: #F5EFE5; --pl-r7-ring: #EFE6D6;
+  --pl-r8: #5A5F2E; --pl-r8-tint: #F1F2E8; --pl-r8-ring: #E9EBDB;
+
+  /* ── Region IV's hypsometric ramp, light → deep (report). Every other sector palette gets its 10 steps
+     here BEFORE its page is built (D196 F1); a sector with no ramp falls back to IV's (R2). ── */
+  --pl-iv-0: #E9EEF4; --pl-iv-1: #DCE4EE; --pl-iv-2: #CDD8E7; --pl-iv-3: #B9C8DC; --pl-iv-4: #9FB3CE;
+  --pl-iv-5: #7F96B6; --pl-iv-6: #5D79A3; --pl-iv-7: #1F3A63; --pl-iv-8: #16294A; --pl-iv-9: #0F1E36;
+
+  /* ── Stage colours on Route and Index (report) ── */
+  --pl-stage-start: #3E6B5A; --pl-stage-build: #1F3A63; --pl-stage-deepen: #C2593A; --pl-stage-master: #6A3E73;
+
+  /* ── The page's region (a page sets data-region; IV is the default the v3 boards wear) ── */
+  --pl-region: var(--pl-r4); --pl-region-tint: var(--pl-r4-tint); --pl-region-ring: var(--pl-r4-ring);
+
+  /* ── Type (report § Typography): three faces, three jobs. Sizes follow the text-size setting (A116). ── */
+  --pl-serif: 'Instrument Serif', Georgia, serif;
+  --pl-sans: 'Inter Tight', system-ui, sans-serif;
+  --pl-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --pl-scale: var(--type-scale, 1);
+  --pl-t-place: calc(100px * var(--pl-scale));     /* place / page title, 0.9, −0.02em (boards: 100) */
+  --pl-t-hero: calc(82px * var(--pl-scale));
+  --pl-t-region: calc(56px * var(--pl-scale));
+  --pl-t-section: calc(46px * var(--pl-scale));    /* leg / section title, 1.0 (boards: 46) */
+  --pl-t-question: calc(44px * var(--pl-scale));   /* Needs you, one question at a time */
+  --pl-t-numeral: calc(88px * var(--pl-scale));    /* outlined leg numeral, 0.8 */
+  --pl-t-card-xl: calc(36px * var(--pl-scale));    /* an opening's title */
+  --pl-t-bearing: calc(34px * var(--pl-scale));    /* the cartouche sentence, 1.35 */
+  --pl-t-card: calc(28px * var(--pl-scale));       /* card / ticket title, stats number */
+  --pl-t-num-sm: calc(22px * var(--pl-scale));
+  --pl-t-lead: calc(18px * var(--pl-scale));
+  --pl-t-body: calc(16px * var(--pl-scale));
+  --pl-t-ui-lg: calc(15px * var(--pl-scale));
+  --pl-t-ui: calc(14.5px * var(--pl-scale));
+  --pl-t-small: calc(14px * var(--pl-scale));
+  --pl-t-meta: calc(13.5px * var(--pl-scale));
+  --pl-t-tiny: calc(12.5px * var(--pl-scale));
+  --pl-t-dock: calc(11.5px * var(--pl-scale));
+  --pl-t-mono-lg: calc(11px * var(--pl-scale));    /* kicker row, section meta */
+  --pl-t-mono-tag: calc(10.5px * var(--pl-scale));
+  --pl-t-mono: calc(10px * var(--pl-scale));       /* labels, figcaptions, stats labels */
+  --pl-t-mono-xs: calc(9.5px * var(--pl-scale));   /* dock badges */
+  --pl-t-code: calc(14.5px * var(--pl-scale));
+  --pl-t-match: calc(40px * var(--pl-scale));      /* an opening's match % */
+  --pl-t-letter: calc(26px * var(--pl-scale));     /* the 50 px letter tile */
+  --pl-t-cat: calc(24px * var(--pl-scale));        /* a catalogue card's title */
+  --pl-t-letter-sm: calc(20px * var(--pl-scale));  /* the 38 px letter tile, the index's match */
+  --pl-t-co: calc(15.5px * var(--pl-scale));       /* an opening's company */
+  --pl-t-13: calc(13px * var(--pl-scale));         /* chips, register actions */
+  --pl-t-mono-num: calc(12px * var(--pl-scale));   /* the index's mono cells */
+  --pl-t-10: calc(10px * var(--pl-scale));         /* the dock avatar's initials */
+  --pl-track-mono: .12em;
+  --pl-track-tag: .08em;
+  --pl-track-stamp: .16em;
+
+  /* ── Linework (report § Linework) ── */
+  --pl-line: 1.5px;
+  --pl-line-thin: 1px;
+  --pl-line-mark: 2px;
+  --pl-border: var(--pl-line) solid var(--pl-ink);
+  --pl-border-dashed: var(--pl-line) dashed var(--pl-ink);   /* "not yet" */
+  --pl-border-rule: var(--pl-line-thin) solid var(--pl-rule);
+  --pl-tear: var(--pl-line-mark) dashed var(--pl-ink);       /* a ticket's tear line */
+
+  /* ── Hard shadows, no blur (report): chips 3 · cards 4 · section cards 5 · plates 6 · hero / open menu 8 · main hero 10 ── */
+  --pl-s1: 2px 2px 0 var(--pl-ink);
+  --pl-s3: 3px 3px 0 var(--pl-ink);
+  --pl-s4: 4px 4px 0 var(--pl-ink);
+  --pl-s5: 5px 5px 0 var(--pl-ink);
+  --pl-s6: 6px 6px 0 var(--pl-ink);
+  --pl-s8: 8px 8px 0 var(--pl-ink);
+  --pl-s10: 10px 10px 0 var(--pl-ink);
+  --pl-s-hover: 7px 7px 0 var(--pl-ink);           /* .at-plate:hover — 4 + 3 */
+  --pl-s6-clay: 6px 6px 0 var(--pl-clay);          /* the one primary ticket */
+  --pl-s3-clay: 3px 3px 0 var(--pl-clay);          /* an active filter chip */
+  --pl-s3-region: 3px 3px 0 var(--pl-region);
+  --pl-s4-region: 4px 4px 0 var(--pl-region);
+  --pl-s5-region: 5px 5px 0 var(--pl-region);
+  --pl-s8-lit: 8px 8px 0 var(--pl-lit);
+  --pl-s-tab: 3px -3px 0 var(--pl-region);          /* the open binder tab */
+
+  /* ── Radii (report + boards) ── */
+  --pl-r-sq: 2px;      /* lit squares (10 px) */
+  --pl-r-sq-lg: 3px;   /* lit squares (12–14 px) */
+  --pl-r-tag: 6px;     /* mono tags, badges, kbd */
+  --pl-r-status: 7px;  /* status tags */
+  --pl-r-stamp: 8px;
+  --pl-r-chip: 9px;    /* stack chips */
+  --pl-r-btn: 10px;    /* buttons, nav links */
+  --pl-r-input: 12px;  /* inputs, chips, logo tiles */
+  --pl-r-small: 14px;  /* stats strip, binder tab top, dock items */
+  --pl-r-q: 16px;      /* answer tickets */
+  --pl-r-card: 18px;   /* register, run-now ticket */
+  --pl-r-plate: 20px;  /* field card, onward ticket, dock rail */
+  --pl-r-sheet: 22px;  /* opening ticket, cartouche */
+  --pl-r-hero: 24px;   /* hero plate, the question */
+
+  /* ── Space and layout (report § Layout) ── */
+  --pl-page: 1280px;
+  --pl-nav-width: 1180px;
+  --pl-gutter: 24px;
+  --pl-target: 44px;
+  --pl-dock-width: 84px;
+  --pl-dock-item: 58px;
+
+  /* ── Motion (report § Motion) ── */
+  --pl-ease: cubic-bezier(.2, .8, .2, 1);
+  --pl-ease-draw: cubic-bezier(.4, 0, .2, 1);
+  --pl-hover: .25s;
+  --pl-view-in: .35s;
+  --pl-drop: .28s;
+  --pl-stamp: .3s;
+  --pl-draw: 3.2s;
+  --pl-march: 1.4s;
+
+  /* ── Patterns: the ruler (12 px, ticks at 16 / 80) and a ticket's perforations (at 62 %) ── */
+  --pl-ruler: repeating-linear-gradient(90deg, var(--pl-ink) 0 1px, transparent 1px 80px),
+              repeating-linear-gradient(90deg, var(--pl-ink) 0 1px, transparent 1px 16px);
+  --pl-perf: radial-gradient(circle at 0 62%, var(--pl-paper) 11px, transparent 12px),
+             radial-gradient(circle at 100% 62%, var(--pl-paper) 11px, transparent 12px);
+  --pl-ledger-lines: repeating-linear-gradient(180deg, transparent 0 63px, var(--pl-rule) 63px 64px);
+  --pl-hatch: repeating-linear-gradient(45deg, var(--pl-rule) 0 1px, transparent 1px 7px);
+
+  background: var(--pl-paper);
+  color: var(--pl-ink);
+  font-family: var(--pl-sans);
+}
+
+/* Region palettes a page or a component can wear. Clay (I) is a REGION here only on Atlas pages — never a sector. */
+.plate [data-region="I"], .plate[data-region="I"]       { --pl-region: var(--pl-r1); --pl-region-tint: var(--pl-r1-tint); --pl-region-ring: var(--pl-r1-ring); }
+.plate [data-region="II"], .plate[data-region="II"]     { --pl-region: var(--pl-r2); --pl-region-tint: var(--pl-r2-tint); --pl-region-ring: var(--pl-r2-ring); }
+.plate [data-region="III"], .plate[data-region="III"]   { --pl-region: var(--pl-r3); --pl-region-tint: var(--pl-r3-tint); --pl-region-ring: var(--pl-r3-ring); }
+.plate [data-region="IV"], .plate[data-region="IV"]     { --pl-region: var(--pl-r4); --pl-region-tint: var(--pl-r4-tint); --pl-region-ring: var(--pl-r4-ring); }
+.plate [data-region="V"], .plate[data-region="V"]       { --pl-region: var(--pl-r5); --pl-region-tint: var(--pl-r5-tint); --pl-region-ring: var(--pl-r5-ring); }
+.plate [data-region="VI"], .plate[data-region="VI"]     { --pl-region: var(--pl-r6); --pl-region-tint: var(--pl-r6-tint); --pl-region-ring: var(--pl-r6-ring); }
+.plate [data-region="VII"], .plate[data-region="VII"]   { --pl-region: var(--pl-r7); --pl-region-tint: var(--pl-r7-tint); --pl-region-ring: var(--pl-r7-ring); }
+.plate [data-region="VIII"], .plate[data-region="VIII"] { --pl-region: var(--pl-r8); --pl-region-tint: var(--pl-r8-tint); --pl-region-ring: var(--pl-r8-ring); }
+
+/* Plain (D181): no tints — region grounds become paper, ink and paper only. */
+.plate[data-plain] { --pl-region-tint: var(--pl-paper-warm); --pl-region-ring: var(--pl-rule); --pl-clay-tint: var(--pl-paper-warm); }

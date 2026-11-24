@@ -42,7 +42,11 @@ export const THEME_FILES = new Set([...fs.readFileSync("client/src/themes/index.
 // ⭐ T9: the ATS report component's token VALUES are GENERATED from the registry (scripts/buildAtsReport.mjs) — a copy
 // the generator writes and test/t9AtsReportComponent.test.js holds byte-equal to the theme files, not a palette.
 export const GENERATED_TOKEN_FILES = new Set(["shared/atsReportTokens.js"]);
-const TOKEN_FILES = new Set([TOKEN_FILE, ...THEME_FILES, ...GENERATED_TOKEN_FILES]);
+// ⭐ D196 F1 (owner 11-24): the plate system's tokens are their own token file, scoped to `.plate` (a light paper look for its
+// own pages until a dark plate variant is sketched) — the design report's values, held to the report by
+// test/d196NoRawStylesOutsideTokens.test.js, which also forbids any literal in the plate library itself.
+export const PLATE_TOKEN_FILES = new Set(["client/src/styles/plate.css"]);
+const TOKEN_FILES = new Set([TOKEN_FILE, ...THEME_FILES, ...GENERATED_TOKEN_FILES, ...PLATE_TOKEN_FILES]);
 // Plus the two NAMED colours this client actually used as paint — quoted "white"/"black" in JS, and
 // `: white;` in CSS. They were added to the scan after the first pass MISSED them: the login button
 // and the "your next" hero tile carried color:"white" on the orange fill (3.47:1, fails AA),

@@ -1,5 +1,5 @@
 // REVAMP v1 — App.jsx
-import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api, setAuthContext }   from "./lib/api.js";
 import { notePerson, onPersonChangedElsewhere } from "./lib/personalState.js";   // A148
@@ -12,6 +12,9 @@ import AuthScreen                from "./components/AuthScreen.jsx";
 import AdminLayout               from "./components/AdminLayout.jsx";
 import AdminLoginPage, { AdminSetPasswordPage } from "./pages/AdminLoginPage.jsx";
 import DBInspector               from "./pages/admin/DBInspector.jsx";
+// ⭐ D196 F4: the plate system's gallery (/dev/plate, Admin only) — its own chunk, so the plate library adds nothing to the
+// app's first load (R3) until a plate page ships.
+const PlateGallery = lazy(() => import("./pages/dev/PlateGallery.jsx"));
 import TopBar                     from "./components/TopBar.jsx";
 import AppShell                  from "./components/AppShell.jsx";
 import { useChromeHeight }       from "./hooks/useChromeHeight.js";
@@ -1031,6 +1034,13 @@ function AppRouter() {
         <Route path="/admin/db" element={
           <AdminRouteGate authStatus={authStatus} authUser={authUser} adminSession={adminSession}>
             <AdminLayout user={adminDisplay} onLogout={handleAdminLogout}><DBInspector/></AdminLayout>
+          </AdminRouteGate>
+        }/>
+
+        {/* ⭐ D196 F4 · the plate gallery — every plate component in every state, beside its sketch (Admin only) */}
+        <Route path="/dev/plate" element={
+          <AdminRouteGate authStatus={authStatus} authUser={authUser} adminSession={adminSession}>
+            <Suspense fallback={null}><PlateGallery/></Suspense>
           </AdminRouteGate>
         }/>
 

@@ -22,7 +22,7 @@ export function companySlug(name) {
  */
 export const RESERVED = Object.freeze(new Set([
   "about", "account", "admin", "api", "app", "apply", "assets", "atlas", "ats-score", "audit", "auth", "blog", "careers",
-  "companies", "company", "contact", "crawler", "docs", "draft", "edit", "email", "extension", "faq", "features", "health",
+  "companies", "company", "contact", "crawler", "dev", "docs", "draft", "edit", "email", "extension", "faq", "features", "health",
   "help", "home", "how-it-works", "in", "interview", "job", "jobs", "legal", "login", "logout", "me", "network", "new",
   "oauth", "p", "press", "pricing", "privacy", "products", "profile", "public", "register", "resume", "search", "security",
   "settings", "signup", "static", "status", "support", "survey", "team", "terms", "tools", "try", "user", "users", "www",
