@@ -17,7 +17,8 @@ import {
   SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, wouldEmpty, activeClauseCount,
   OPEN_SET_CLAUSES, chosenValues, slotText, sentenceParts, sentenceText, panelWord, panelAnyWord, LOCATION_REMOTE, TECHNOLOGY,
 } from "../../../shared/filterSentence.js";
-import { SORTS, POSTING_AGE } from "../../../shared/jobFilterOptions.js";
+import { SORTS, POSTING_AGE, COMPANY_SPONSORSHIP } from "../../../shared/jobFilterOptions.js";
+import { ATS_BAND } from "../../../shared/atsBands.js";
 
 export { SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, activeClauseCount, OPEN_SET_CLAUSES, slotText, sentenceParts, sentenceText, TECHNOLOGY };
 
@@ -334,6 +335,18 @@ export function boardCounts(facets) {
   const day = POSTING_AGE.options.find(o => o.days === 1)?.value;
   const posted = facetsUsable(facets) && day ? (facets.clauses?.posted || []).find(o => o.value === day) : null;
   return { jobs: v.all, newToday: Number.isFinite(posted?.count) ? posted.count : null, saved: v.saved };
+}
+
+/**
+ * ⭐ D196 P1 · the market hero's figures, from the same facets answer — fit (the board's total), new today, employers with
+ * H-1B filings (the sponsorship clause's "filed" option) and strong fits (the fit clause's strong band). A figure the
+ * answer doesn't carry is null — the hero leaves its cell out rather than drawing a 0.
+ */
+export function marketFigures(facets) {
+  const c = boardCounts(facets);
+  const opt = (key, value) => facetsUsable(facets) ? (facets.clauses?.[key] || []).find(o => o.value === value) : null;
+  const n = (o) => (Number.isFinite(o?.count) ? o.count : null);
+  return { fit: Number.isFinite(c.jobs) ? c.jobs : null, newToday: c.newToday, filed: n(opt("sponsorship", COMPANY_SPONSORSHIP.options[0].value)), strong: n(opt("fit", ATS_BAND.STRONG)) };
 }
 
 // ── The sort panel ──────────────────────────────────────────────────────────────────────────────

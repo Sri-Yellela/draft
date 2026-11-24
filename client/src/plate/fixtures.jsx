@@ -7,6 +7,7 @@ import { AreaNav, Dock } from "./Shell.jsx";
 import { MemoryRouter } from "react-router-dom";
 import MarketCardFace from "./MarketCardFace.jsx";
 import PlateBearing from "./PlateBearing.jsx";
+import MarketHero from "./MarketHero.jsx";
 
 const MARKET_VIEWS = [
   { id: "picks", label: "Today’s picks", href: "#picks", icon: "picks" },
@@ -68,4 +69,14 @@ export function MarketBearing() {
   );
 }
 
-export const FIXTURES = { ShellMarket, MarketFace, MarketBearing };
+/** The market's hero (P1) with the board's figures and best match (Maya Chen's example: 412 · 179 · 167, Kestrel 91 %). */
+export function MarketHeroBoard() {
+  return (
+    <div style={{ width: 1182 }}>
+      <MarketHero figures={{ fit: 412, newToday: 179, filed: 167, strong: 23 }} sector="Software engineering" role="Frontend" level="mid" week={47}
+        from="From Maya_Chen.pdf · Boston" place="Boston & Remote" best={{ match: "91%", company: "Kestrel Payments", title: "Frontend Engineer II, Checkout" }} onBest={() => {}} onBearing={() => {}}/>
+    </div>
+  );
+}
+
+export const FIXTURES = { ShellMarket, MarketFace, MarketBearing, MarketHeroBoard };

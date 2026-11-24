@@ -30,7 +30,7 @@ export function StatsStrip({ cells = [], label, ...s }) {
  * The plate hero: a framed drawing at a fixed aspect ratio (nothing shifts as data arrives — CLS ≈ 0), a 10 px shadow,
  * an optional figcaption strip and callout tags placed in % of the viewBox (hidden below 980 px).
  */
-export function PlateHero({ children, aspect = "640 / 520", caption, tags = [], ...s }) {
+export function PlateHero({ children, aspect = "640 / 520", caption, captionBox = false, tags = [], ...s }) {
   const gate = plateState(s, { height: 360, radius: "hero", label: "Loading the plate" });
   return (
     <figure className="pl-platehero">
@@ -38,19 +38,20 @@ export function PlateHero({ children, aspect = "640 / 520", caption, tags = [], 
         <div className="pl-platehero__frame" style={{ "--pl-aspect": aspect }}>{children}</div>
       )}
       {!gate && tags.map((t, i) => <CalloutTag key={i} {...t} index={i}/>)}
-      {!gate && caption ? <figcaption className="pl-platehero__cap">{caption}</figcaption> : null}
+      {!gate && caption ? <figcaption className={`pl-platehero__cap${captionBox ? " pl-platehero__cap--box" : ""}`}>{caption}</figcaption> : null}
     </figure>
   );
 }
 
 /** A callout tag pinned on a plate: mono kicker (YOU ARE HERE / NEXT / AHEAD) + a bold line; floats (one of three bobs). */
-export function CalloutTag({ kicker, line, x = 50, y = 50, kind, index = 0, children, ...s }) {
+export function CalloutTag({ kicker, line, sub, x = 50, y = 50, kind, index = 0, children, ...s }) {
   const gate = plateState(s, { height: 64, radius: "input", lines: 2 });
   if (gate) return gate;
   return (
     <div className={`pl-callout pl-hide-sm at-bob${(index % 3) + 1}`} data-kind={kind} style={{ left: `${x}%`, top: `${y}%` }}>
       <span className="pl-label">{kicker}</span>
       <span className="pl-callout__line">{line}</span>
+      {sub ? <span className="pl-callout__sub">{sub}</span> : null}
       {children}
     </div>
   );

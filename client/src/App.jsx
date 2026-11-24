@@ -45,11 +45,12 @@ import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
 import BoardHeadline, { ALL_FILTERS_ID } from "./components/BoardHeadline.jsx";   // A146: the All filters word
 import PlateBearing from "./plate/PlateBearing.jsx";   // ⭐ D196 P1: the bearing as a cartouche (off until the owner's ok)
 import { useMarketPlate } from "./plate/marketPlate.js";
+import MarketHero from "./plate/MarketHero.jsx";   // ⭐ D196 P1: the market's hero on real data
 import WordPanel                 from "./components/WordPanel.jsx";
 import SortPanel                 from "./components/SortPanel.jsx";
 import { ViewSegment, BoardSearch, SortIcon, ImportJobBox } from "./components/BoardBar.jsx";
 import StickyBar from "./components/StickyBar.jsx";
-import { nextBoardPanel, sortRows, isSortChosen, DEFAULT_SORT, BOARD_PANEL, viewCounts, boardCounts } from "./lib/filterSentenceModel.js";
+import { nextBoardPanel, sortRows, isSortChosen, DEFAULT_SORT, BOARD_PANEL, viewCounts, boardCounts, marketFigures, sentenceParts } from "./lib/filterSentenceModel.js";
 import { ATSToolPage }           from "./pages/tools/ATSToolPage.jsx";
 import { GenerateToolPage }      from "./pages/tools/GenerateToolPage.jsx";
 import { ApplyToolPage }         from "./pages/tools/ApplyToolPage.jsx";
@@ -394,6 +395,27 @@ function BoardViews({ onImported }) {
 
 // ⭐ D147 (D145's minimal counts) · "746 jobs · 38 new today · 12 saved" — each from the facets answer (views.all, the
 // Posted clause's Past 24h count, views.saved); a count the answer does not hold is not drawn, never a 0 in its place.
+// ⭐ D196 P1 · THE MARKET'S HERO (plate switch on): the board's own facet counts, the résumé's placement as the sentence
+// carries it (role_label, the level word when chosen), the ISO week. No best match yet — the deck holds it, and the hero
+// draws no pin it can't back (MarketHero).
+export function isoWeek(d = new Date()) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - day);
+  return Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 86400e3 + 1) / 7);
+}
+function MarketHeroSlot() {
+  const { boardHeadline } = useJobBoard();
+  const params = boardHeadline?.params || {};
+  const level = sentenceParts(params, {}).slots.find((s) => s.key === "level" && s.active)?.text || null;
+  return (
+    <MarketHero figures={marketFigures(boardHeadline?.facets)} sector={params.role_label || null} role={params.role_label || null}
+      level={level} week={isoWeek()}
+      onBest={() => document.querySelector("[data-home-deck]")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+      onBearing={() => document.querySelector("#fh-sentence button")?.focus()} />
+  );
+}
+
 function BoardCounts() {
   const { boardHeadline } = useJobBoard();
   const c = boardCounts(boardHeadline?.facets);
@@ -415,6 +437,7 @@ function AppDashboard({ authUser, setAuthUser }) {
   // With the lever off the tool is simply AVAILABLE — the tier is never consulted. This mirrors the
   // server, where requireToolEntitlement returns true before it looks at a plan, so the button the
   // client offers and the answer the server gives cannot disagree.
+  const marketPlate = useMarketPlate();   // ⭐ D196 P1: the market in plates (off until the owner's ok)
   const canUseAPlusResumeHere =
     !monetisationEnabled || String(authUser?.planTier || "BASIC").toUpperCase() === "PRO";
   const { theme } = useTheme();
@@ -694,6 +717,7 @@ function AppDashboard({ authUser, setAuthUser }) {
           <main style={{ flex:1, paddingTop: activeTab === "console" || activeTab === "today" || activeTab === "auto-apply" ? 0 : 24 }}>
             {/* ⭐ D152 (1) · HOME — one grid, laid out by CSS (FullHouse.css .home): the deck's column is sticky in its
                 own track and the board's column takes the rest; on a phone one column, the deck first. No page titles. */}
+            {home && marketPlate && <MarketHeroSlot />}
             {home && (
               <div className="home" data-home="">
                 <section className="home__deck" aria-label="Today's picks" data-home-deck="">

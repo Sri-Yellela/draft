@@ -34,6 +34,10 @@ export const PAIRS = {
   // P1 · the bearing: the board's sentence carries clauses the live model words differently (the résumé's own role, level,
   // sponsorship), so this too is a look at the cartouche's frame and type, not a pixel gate.
   "market-bearing": { board: "The market · draft", fixture: "MarketBearing", boardSel: "section:nth-of-type(2)", buildSel: "[data-market-bearing-fixture]", pad: 0, look: true },
+  "market-hero": { board: "The market · draft", fixture: "MarketHeroBoard", boardSel: 'section[aria-labelledby="mk-title"]', buildSel: 'section[aria-labelledby="mk-title"]', pad: 0, waitBuild: 4000, reduced: true,   // both at rest: the tags' float stops under reduced motion on each side
+    // the one figure the build words differently on purpose: the board's "MATCH ≥ 85%" — draft counts the strong band
+    // (shared/atsBands.js), which is not ≥ 85 %, so the cell says STRONG FIT; its label is masked, its number is not
+    masks: [[400, 345, 100, 18]] },
 };
 
 /** Pure: compare two RGBA buffers of the same size → { differing, compared, pct }. Masks are [x, y, w, h]. */
@@ -73,8 +77,9 @@ async function buildFixturePage(name) {
   return pathToFileURL(file).href;
 }
 
-async function shot(page, url, sel, width, pad, waitMs) {
+async function shot(page, url, sel, width, pad, waitMs, reduced = false) {
   await page.setViewport({ width, height: 900, deviceScaleFactor: 1 });
+  await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: reduced ? "reduce" : "no-preference" }]);
   await page.goto(url, { waitUntil: "load", timeout: 60000 });
   await page.waitForSelector(sel, { timeout: 30000 });
   await page.evaluate(() => document.fonts && document.fonts.ready);
@@ -120,8 +125,8 @@ export async function runPair(name, { width = 1280, threshold = THRESHOLD_PCT, b
   const boardUrl = pathToFileURL(path.join(CANVAS, row.file)).href;
   const buildUrl = await buildFixturePage(p.fixture);
   const page = await browser.newPage();
-  const board = await shot(page, boardUrl, p.boardSel, width, p.pad, 4000);
-  const build = await shot(page, buildUrl, p.buildSel, width, p.pad, 600);
+  const board = await shot(page, boardUrl, p.boardSel, width, p.pad, 4000, !!p.reduced);
+  const build = await shot(page, buildUrl, p.buildSel, width, p.pad, p.waitBuild || 600, !!p.reduced);
   const r = await compareInPage(page, board.png, build.png, p.masks || []);
   await page.close();
   const dir = path.join(OUT, name);

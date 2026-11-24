@@ -179,13 +179,17 @@
 .pl-platehero__frame { aspect-ratio: var(--pl-aspect, 640 / 520); border: var(--pl-border); border-radius: var(--pl-r-hero); overflow: hidden; background: var(--pl-paper-warm); box-shadow: var(--pl-s10); }
 .pl-platehero__frame > svg { display: block; width: 100%; height: 100%; }
 .pl-platehero__cap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 10px 16px; border-top: var(--pl-border); }
+.pl-platehero__cap--box { margin-top: 16px; padding: 8px 12px; border: var(--pl-border); border-radius: var(--pl-r-btn); background: var(--pl-paper-warm); }   /* the market board's caption: its own box under the plate */
 .pl-figure { margin: 0; border: var(--pl-border); border-radius: var(--pl-r-sheet); overflow: hidden; background: var(--pl-paper-warm); box-shadow: var(--pl-s6); }
 .pl-figure > svg { display: block; width: 100%; height: auto; }
 
 /* ── Callout tag (pinned on a plate, % placed, floats; hidden below 980 px) ── */
-.pl-callout { position: absolute; width: 170px; box-sizing: border-box; background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-input); box-shadow: var(--pl-s4); padding: 10px 12px;
+.pl-callout { position: absolute; width: 176px; box-sizing: border-box; background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-input); box-shadow: var(--pl-s4); padding: 10px 12px;
   display: flex; flex-direction: column; gap: 4px; }
-.pl-callout__line { font-weight: 700; font-size: var(--pl-t-meta); line-height: 1.3; overflow-wrap: anywhere; }
+.pl-callout__line { font-weight: 700; font-size: var(--pl-t-small); line-height: 1.25; overflow-wrap: anywhere; }
+.pl-callout .pl-label { font-size: var(--pl-t-mono-xs); }   /* the v3 boards: 9.5 px */
+.pl-callout__sub { font-size: var(--pl-t-12); color: var(--pl-muted); overflow-wrap: anywhere; }
+.pl-callout[data-kind="here"] { background: var(--pl-clay-tint); }
 .pl-callout[data-kind="here"] .pl-label, .pl-callout[data-kind="next"] .pl-label { color: var(--pl-clay-text); }
 
 /* ── Label tape (rotating word, italic serif, 6 px ink shadow, −2°) ── */
@@ -471,3 +475,8 @@
 .pl-bearing .pl-cartouche__text { font-weight: 400; }   /* an h1 here (the sentence is the page's heading, D34), lettered as the board's p */
 .pl-bearing .pl-cartouche__part[aria-expanded="true"] { background: var(--pl-region-tint); outline: var(--pl-line) solid var(--pl-region); outline-offset: 1px; }
 .pl-bearing .pl-cartouche__part:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 3px; }
+
+/* ── D196 P1 · the market's hero (plate/MarketHero.jsx): its primary is the market board's (20 px padding, 700), not the
+   ledger's heavier one ── */
+.pl-markethero { background: transparent; }
+.pl-markethero .pl-btn--primary { padding: 0 20px; font-weight: 700; }

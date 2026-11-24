@@ -8,6 +8,8 @@
 //                               a 120-character title kept whole in the markup (CSS clamps it), ✓ only on matched tech;
 //   d196P1BearingSameControls — the cartouche is BoardHeadline's sentence with BoardHeadline's controls (same words, slots,
 //                               aria-pressed / aria-expanded / aria-controls, id) — only the look differs (R6);
+//   d196P1HeroHonest          — the hero's figures are only the ones the facets counted; the plate marks you in your sector;
+//                               no best match → no route, no pin, no BEST MATCH tag; with the defaults the plate is the board's;
 //   d196P1SwitchOffByDefault  — the plate market is OFF until the owner's ok; ?plate=1 / ?plate=0 and the stored value.
 // ⛔ Verified to fail before it was committed: the CardBack line removed from the plate branch, data-deck-open-posting
 // dropped from the face, MARKET_PLATE_DEFAULT set true — each failed, naming it.
@@ -38,6 +40,11 @@ async function load() {
     export { openingFromCard, pickStack };
     import PlateBearing from ${JSON.stringify(path.join(CLIENT, "src/plate/PlateBearing.jsx"))};
     import BoardHeadline from ${JSON.stringify(path.join(CLIENT, "src/components/BoardHeadline.jsx"))};
+    import MarketHero, { marketCells, youOnPlate, SECTOR_SPOTS } from ${JSON.stringify(path.join(CLIENT, "src/plate/MarketHero.jsx"))};
+    import MarketSurveyPlate from ${JSON.stringify(path.join(CLIENT, "src/plate/drawings/MarketSurveyPlate.jsx"))};
+    export { marketCells, youOnPlate, SECTOR_SPOTS };
+    export const renderHero = (props) => renderToStaticMarkup(React.createElement(MarketHero, props));
+    export const renderPlate = (props) => renderToStaticMarkup(React.createElement(MarketSurveyPlate, props));
     export const renderBearing = (props) => renderToStaticMarkup(React.createElement(PlateBearing, props));
     export const renderHeadline = (props) => renderToStaticMarkup(React.createElement(BoardHeadline, props));
     export const render = (props) => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(MarketCardFace, props)));
@@ -152,4 +159,29 @@ test("D196 P1 · d196P1BearingSameControls — the cartouche is the same sentenc
   assert.ok(slot.includes("if (!plate) return"), "the switch picks the cartouche");
   const plateBranch = slot.slice(at(slot, "<PlateBearing "));
   assert.ok(at(plateBranch, "<PlateBearing ") < at(plateBranch, "<WordPanel "), "WordPanel opens beneath the cartouche, as beneath the sentence");
+});
+
+test("D196 P1 · d196P1HeroHonest — the hero draws only what the board counted", async () => {
+  const { renderHero, renderPlate, marketCells, youOnPlate, SECTOR_SPOTS } = await load();
+  const { marketFigures } = await import("../client/src/lib/filterSentenceModel.js");
+  assert.deepEqual(marketCells({ fit: 412, newToday: null, filed: 167, strong: undefined }).map((c) => c.label), ["FIT YOUR BEARING", "FILED H-1B"]);
+  assert.deepEqual(marketCells({}), []);
+  assert.deepEqual(marketFigures(null), { fit: null, newToday: null, filed: null, strong: null }, "no facets answer → no figures, never zeros");
+  assert.deepEqual(youOnPlate("Data and AI · Machine learning").spot, SECTOR_SPOTS.VIII);
+  assert.deepEqual(youOnPlate(null).spot, SECTOR_SPOTS.IV);
+  // the board's plate with no props is the board's: the route and pin at the canvas's coordinates
+  const board = renderPlate({});
+  assert.match(board, /d="M192 166 C 250 150, 300 120, 352 102"/);
+  assert.match(board, /translate\(352 102\)/);
+  assert.match(board, /translate\(192 166\)/);
+  assert.ok(!/visibility="hidden"/.test(board));
+  const html = renderHero({ figures: { fit: 412, newToday: 179 }, sector: "Data and AI", role: "Data and AI", level: "mid", week: 47 });
+  assert.match(html, /The market/);
+  assert.match(html, /FIT YOUR BEARING/);
+  assert.ok(!html.includes("FILED H-1B"), "a figure the facets didn't count is left out");
+  assert.ok(!html.includes("BEST MATCH"), "no best match known → no tag");
+  assert.match(html, /translate\(480 120\)/, "you are marked in your sector");
+  assert.equal((html.match(/visibility="hidden"/g) || []).length, 2, "no route and no pin without a best match");
+  assert.match(html, /YOU ARE HERE/);
+  assert.ok(!/Kestrel|Maya|Boston/.test(html), "none of the board's example data reaches the real page");
 });

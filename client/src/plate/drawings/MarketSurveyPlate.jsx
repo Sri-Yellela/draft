@@ -7,10 +7,11 @@ import { usePlateMotion } from "../motion.js";
 export const MarketSurveyPlateLabel = "The market as a survey plate: sectors drawn as territories, you marked in Software engineering, Frontend, with a route to your best match at Kestrel Payments";
 
 /** The market as a survey plate: sectors drawn as territories, you marked in Software engineering, Frontend, with a route to your best match at Kestrel Payments */
-export default function MarketSurveyPlate({ label = MarketSurveyPlateLabel, className }) {
+export default function MarketSurveyPlate({ label = MarketSurveyPlateLabel, className, you = [192, 166], best = [352, 102] }) {
   const uid = useId().replace(/:/g, "");
   const motion = usePlateMotion();
   void uid; void motion;
+  const route = best ? `M${you[0]} ${you[1]} C ${you[0] + 58} ${you[1] - 16}, ${best[0] - 52} ${best[1] + 18}, ${best[0]} ${best[1]}` : null;
   return (
     <svg role="img" aria-label={label} viewBox="0 0 640 520" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" className={className} style={{"display":"block"}}>
       <defs>
@@ -189,10 +190,10 @@ export default function MarketSurveyPlate({ label = MarketSurveyPlateLabel, clas
         {"HELD · NOT SURVEYED"}
       </text>
       {"!-- route ahead: you -> best match (clay marching) -->\n"}
-      <path className="at-march" d="M192 166 C 250 150, 300 120, 352 102" fill="none" strokeWidth="2.4" strokeDasharray="7 7" strokeLinecap="round" style={{"stroke":"var(--pl-clay)"}}>
+      <path className="at-march" d={route || undefined} visibility={route ? undefined : "hidden"} fill="none" strokeWidth="2.4" strokeDasharray="7 7" strokeLinecap="round" style={{"stroke":"var(--pl-clay)"}}>
       </path>
       {"!-- best match pin -->\n"}
-      <g transform="translate(352 102)">
+      <g transform={`translate(${(best || you)[0]} ${(best || you)[1]})`} visibility={best ? undefined : "hidden"}>
         <circle r="9" strokeWidth="2" style={{"fill":"var(--pl-card)","stroke":"var(--pl-ink)"}}>
         </circle>
         <circle r="3.5" style={{"fill":"var(--pl-ink)"}}>
@@ -218,7 +219,7 @@ export default function MarketSurveyPlate({ label = MarketSurveyPlateLabel, clas
         </circle>
       </g>
       {"!-- you are here: beacon -->\n"}
-      <g transform="translate(192 166)">
+      <g transform={`translate(${you[0]} ${you[1]})`}>
         <circle r="10" fill="none" strokeWidth="2" style={{"stroke":"var(--pl-clay)"}}>
           {motion && (<>
           <animate attributeName="r" values="10;24" dur="2s" repeatCount="indefinite">

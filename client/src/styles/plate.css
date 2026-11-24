@@ -89,6 +89,7 @@
   --pl-t-letter-sm: calc(20px * var(--pl-scale));  /* the 38 px letter tile, the index's match */
   --pl-t-co: calc(15.5px * var(--pl-scale));       /* an opening's company */
   --pl-t-13: calc(13px * var(--pl-scale));         /* chips, register actions */
+  --pl-t-12: calc(12px * var(--pl-scale));         /* a callout tag's third line (the v3 boards) */
   --pl-t-mono-num: calc(12px * var(--pl-scale));   /* the index's mono cells */
   --pl-t-10: calc(10px * var(--pl-scale));         /* the dock avatar's initials */
   --pl-track-mono: .12em;

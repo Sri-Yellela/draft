@@ -30,6 +30,37 @@ export const BOARDS = [
   { title: "Survey sheet · Kestrel Payments · draft", drawings: ["SurveyTeamDiorama", "SurveyHiringProfile", "SurveyRoleLine", "SurveyMatchDial"] },
 ];
 
+// ⭐ D196 P1 · THE LIVE PARTS — a drawing's data, made props AFTER the port, by exact substitution on the generated JSX
+// (each `from` must occur exactly once, or the port stops). The paths stay the canvas's; only the named coordinates move,
+// and each prop's DEFAULT is the board's value, so with no props the drawing is the board's, byte for byte in the SVG.
+//   MarketSurveyPlate: `you` = the beacon's centre [x, y] in the viewBox (the page puts it in the person's sector);
+//   `best` = the best match's pin, or null (no route, no pin — nothing drawn that the page can't back with data).
+//   The route keeps the board's curve: its control points sit at you + (58, −16) and best + (−52, 18), which at the
+//   defaults is the board's "M192 166 C 250 150, 300 120, 352 102".
+export const LIVE = {
+  MarketSurveyPlate: {
+    props: "you = [192, 166], best = [352, 102]",
+    pre: "const route = best ? `M${you[0]} ${you[1]} C ${you[0] + 58} ${you[1] - 16}, ${best[0] - 52} ${best[1] + 18}, ${best[0]} ${best[1]}` : null;",
+    subs: [
+      ['<path className="at-march" d="M192 166 C 250 150, 300 120, 352 102"', '<path className="at-march" d={route || undefined} visibility={route ? undefined : "hidden"}'],
+      ['<g transform="translate(352 102)">', '<g transform={`translate(${(best || you)[0]} ${(best || you)[1]})`} visibility={best ? undefined : "hidden"}>'],
+      ['<g transform="translate(192 166)">', '<g transform={`translate(${you[0]} ${you[1]})`}>'],
+    ],
+  },
+};
+
+export function applyLive(name, jsx) {
+  const live = LIVE[name];
+  if (!live) return jsx;
+  let out = jsx;
+  for (const [from, to] of live.subs) {
+    const n = out.split(from).length - 1;
+    if (n !== 1) throw new Error(`${name}: a live substitution matched ${n} times (expected 1): ${from.slice(0, 60)}`);
+    out = out.replace(from, () => to);
+  }
+  return out;
+}
+
 /** hex (upper-case, #RRGGBB) → `--pl-*`, the FIRST token in plate.css that holds it (core before regions). */
 export function tokenMap(css = fs.readFileSync(TOKENS, "utf8")) {
   const map = new Map();
@@ -163,12 +194,12 @@ import { usePlateMotion } from "../motion.js";
 export const ${name}Label = ${JSON.stringify(ported.label || name)};
 
 /** ${(ported.label || name).replace(/\*\//g, "")} */
-export default function ${name}({ label = ${name}Label, className }) {
+export default function ${name}({ label = ${name}Label, className${LIVE[name] ? ", " + LIVE[name].props : ""} }) {
   const uid = useId().replace(/:/g, "");
   const motion = usePlateMotion();
-  void uid; void motion;
+  void uid; void motion;${LIVE[name]?.pre ? "\n  " + LIVE[name].pre : ""}
   return (
-${ported.jsx}
+${applyLive(name, ported.jsx)}
   );
 }
 `;
