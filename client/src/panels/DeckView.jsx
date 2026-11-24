@@ -63,7 +63,7 @@ import { cardFacts } from "../lib/deckCardFacts.js";
 import { shape, ts, TYPE_SCALE_VAR } from "../themes/shapes.js";
 import SendJobPicker from "../components/SendJobPicker.jsx";
 import MarketCardFace from "../plate/MarketCardFace.jsx";   // ⭐ D196 P1: the face in plates (off until the owner's ok)
-import { useMarketPlate } from "../plate/marketPlate.js";   // D180 P2: Send to a connection
+import { useMarketPlate, publishFrontCard } from "../plate/marketPlate.js";   // D180 P2: Send to a connection
 
 const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SOFT_OFFSET
 const TOAST_MS = DECISION_TOAST_MS;
@@ -932,6 +932,10 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   const s = state;
   deckBusyRef.current = !!expanded || !!s.flight;
   const current = s.cards[s.index];
+  // ⭐ D196 P1: the field card beside the deck reads the card on top (plate market only; nothing else listens).
+  const plateMarket = useMarketPlate();
+  const currentId = current && !current.decision ? current.job?.id : null;
+  useEffect(() => { if (home && plateMarket) publishFrontCard(currentId ? current : null); }, [home, plateMarket, currentId]); // eslint-disable-line react-hooks/exhaustive-deps
   const order = useMemo(() => fanOrder(s), [s]);
   const tally = counts(s);
   const tool = canUseAPlusResume ? A_PLUS_TOOL : GENERATE_TOOL;

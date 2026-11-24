@@ -24,7 +24,7 @@ export function FieldCard({ kicker = "FIELD CARD · WHY IT FITS", note = "NO AI"
           <span className="pl-label pl-tone-clay">DOESN’T, YET</span>
           {gaps.length ? gaps.map((g, i) => (
             <div key={i} className="pl-card__item"><span aria-hidden="true" className="pl-card__mark" data-yet=""/>
-              <span>{g.text}{g.link ? <> <a href={g.link.href} style={{ fontWeight: 700 }}>{g.link.label}</a></> : null}</span></div>
+              <span>{g.text}{g.link ? <a href={g.link.href} style={{ display: "block", fontWeight: 700 }}>{g.link.label}</a> : null}</span></div>
           )) : <NoData>NOTHING MISSING</NoData>}
         </div>
         {figures ? <>

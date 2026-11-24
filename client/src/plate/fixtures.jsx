@@ -8,6 +8,8 @@ import { MemoryRouter } from "react-router-dom";
 import MarketCardFace from "./MarketCardFace.jsx";
 import PlateBearing from "./PlateBearing.jsx";
 import MarketHero from "./MarketHero.jsx";
+import MarketOpenings from "./MarketOpenings.jsx";
+import { FieldCard } from "./Cards.jsx";
 
 const MARKET_VIEWS = [
   { id: "picks", label: "Today’s picks", href: "#picks", icon: "picks" },
@@ -79,4 +81,19 @@ export function MarketHeroBoard() {
   );
 }
 
-export const FIXTURES = { ShellMarket, MarketFace, MarketBearing, MarketHeroBoard };
+/** The openings (P1): the deck's landscape card in its own frame + the board's field card (Kestrel's lines). */
+export function MarketOpeningsBoard() {
+  return (
+    <MemoryRouter>
+      <div style={{ width: 1182 }}>
+        <MarketOpenings count={412}
+          deck={<article style={{ position: "relative", width: 600, height: 372, borderRadius: 26, overflow: "hidden" }}><MarketCardFace card={BOARD_CARD} isFront size={{ width: 600, height: 372 }} landscape/></article>}
+          index={<div/>}
+          field={<FieldCard alike={["Role and level: frontend, mid — same as yours", "Their stack: React, TypeScript, Next.js all on your résumé", "Duties: “rebuild checkout” ≈ your Toast checkout rebuild"]}
+            gaps={[{ text: "They monitor with Datadog RUM.", link: { label: "Learn it →", href: "#atlas" } }]} figures={{ label: "ROLE FIT · STACK · DUTIES", value: "88 · 75 · 72" }}/>}/>
+      </div>
+    </MemoryRouter>
+  );
+}
+
+export const FIXTURES = { ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard };

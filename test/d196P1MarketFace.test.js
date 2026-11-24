@@ -10,6 +10,9 @@
 //                               aria-pressed / aria-expanded / aria-controls, id) — only the look differs (R6);
 //   d196P1HeroHonest          — the hero's figures are only the ones the facets counted; the plate marks you in your sector;
 //                               no best match → no route, no pin, no BEST MATCH tag; with the defaults the plate is the board's;
+//   d196ExistingBubblesAndHoverKept — the plate market's Index tab IS the app's board element (JobsConsole, its bubbles and
+//                               hover buttons) and the Deck tab the app's DeckView; both stay mounted under the tabs;
+//   d196P1FieldCardWords      — the field card's lines are templates over the scorer's fields; no data → no line;
 //   d196P1SwitchOffByDefault  — the plate market is OFF until the owner's ok; ?plate=1 / ?plate=0 and the stored value.
 // ⛔ Verified to fail before it was committed: the CardBack line removed from the plate branch, data-deck-open-posting
 // dropped from the face, MARKET_PLATE_DEFAULT set true — each failed, naming it.
@@ -45,6 +48,9 @@ async function load() {
     export { marketCells, youOnPlate, SECTOR_SPOTS };
     export const renderHero = (props) => renderToStaticMarkup(React.createElement(MarketHero, props));
     export const renderPlate = (props) => renderToStaticMarkup(React.createElement(MarketSurveyPlate, props));
+    import MarketOpenings, { MARKET_TABS } from ${JSON.stringify(path.join(CLIENT, "src/plate/MarketOpenings.jsx"))};
+    export { MARKET_TABS };
+    export const renderOpenings = (props) => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(MarketOpenings, props)));
     export const renderBearing = (props) => renderToStaticMarkup(React.createElement(PlateBearing, props));
     export const renderHeadline = (props) => renderToStaticMarkup(React.createElement(BoardHeadline, props));
     export const render = (props) => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(MarketCardFace, props)));
@@ -184,4 +190,41 @@ test("D196 P1 · d196P1HeroHonest — the hero draws only what the board counted
   assert.equal((html.match(/visibility="hidden"/g) || []).length, 2, "no route and no pin without a best match");
   assert.match(html, /YOU ARE HERE/);
   assert.ok(!/Kestrel|Maya|Boston/.test(html), "none of the board's example data reaches the real page");
+});
+
+test("D196 P1 · d196ExistingBubblesAndHoverKept — the tabs hold the app's own deck and board, both mounted (R6)", async () => {
+  const { renderOpenings, MARKET_TABS } = await load();
+  assert.deepEqual(MARKET_TABS.map((t) => [t.label, t.sub]), [["Deck", "ONE AT A TIME"], ["Terrain", "BY SKILLS MATCHED"], ["Index", "EVERY OPENING"]]);
+  const html = renderOpenings({ deck: "DECK-ELEMENT", index: "BOARD-ELEMENT", count: 412 });
+  assert.ok(html.includes("DECK-ELEMENT") && html.includes("BOARD-ELEMENT"), "both views are in the page at once");
+  assert.match(html, /data-tab="index"[^>]*>BOARD-ELEMENT|hidden=""[^>]*data-tab="index"/, "the board is mounted while hidden");
+  assert.match(html, /role="tab"[^>]*aria-selected="true"[^>]*>.*Deck/s);
+  assert.match(html, /412 FIT YOUR BEARING/);
+  assert.match(html, /NOT YET/, "Terrain says what it waits for instead of drawing positions it can't back");
+  const app = read("client/src/App.jsx");
+  const fromBoard = app.slice(at(app, "const homeBoard = ("));
+  const board = fromBoard.slice(0, at(fromBoard, "</section>"));   // the board element ends at its section
+  for (const piece of ["<JobsConsole", "<BoardBar />", "<BoardViews", "<BoardCounts />"]) assert.ok(board.includes(piece), `the board element keeps ${piece}`);
+  assert.ok(app.includes("<MarketOpeningsSlot deck={homeDeck} index={homeBoard} />"), "the plate market passes the SAME elements");
+  assert.ok(app.includes('<div className="home" data-home="">{homeDeck}{homeBoard}</div>'), "the classic grid renders the same elements");
+  const deck = read("client/src/panels/DeckView.jsx");
+  assert.ok(deck.includes("if (home && plateMarket) publishFrontCard("), "only the plate market publishes the front card");
+});
+
+test("D196 P1 · d196P1FieldCardWords — templates over the scorer's fields, nothing invented", async () => {
+  const { fieldCardView } = await import("../shared/contextualView.js");
+  const contextual = { score: 84, parts: {
+    skill_match: { score: 80 },
+    role_fit: { status: "ok", score: 88, relation: "same_role", level_gap: 0, posting: { subcategory: "swe.frontend", level: "mid" }, resume: { subcategory: "swe.frontend", level: "mid" } },
+    tech_stack: { status: "ok", score: 75, exact: [{ tech: "react" }, { tech: "typescript" }], gaps: [{ tech: "Datadog RUM", share: 0.4 }], ecosystem: [] },
+    responsibility_overlap: { status: "ok", score: 72, phrases: 3, matched: ["rebuild checkout flows"], missing: ["own the design system"] } } };
+  const v = fieldCardView({ report: { score: 80 }, contextual });
+  assert.deepEqual(v.alike, ["Role and level: Frontend, mid level — the same as the job", "Their stack: React and TypeScript both on your résumé", "Duties: “rebuild checkout flows” — on your résumé"]);
+  assert.deepEqual(v.gaps, [{ text: "They use Datadog RUM (in 40% of their jobs).", tech: "Datadog RUM" }, { text: "Not on your résumé yet: “own the design system”" }]);
+  assert.deepEqual(v.figures, { label: "ROLE FIT · STACK · DUTIES", value: "88 · 75 · 72" });
+  assert.equal(fieldCardView({}), null, "no report, no block → no card");
+  const bare = fieldCardView({ report: { score: 60, tier1_matched: ["go"], tier1_missing: [] }, contextual: null });
+  assert.deepEqual(bare.alike, ["Skills: Go"]);
+  assert.deepEqual(bare.gaps, []);
+  assert.equal(bare.figures, null, "no contextual parts → no figures line");
 });

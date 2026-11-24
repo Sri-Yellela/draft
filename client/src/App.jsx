@@ -46,6 +46,9 @@ import BoardHeadline, { ALL_FILTERS_ID } from "./components/BoardHeadline.jsx"; 
 import PlateBearing from "./plate/PlateBearing.jsx";   // ⭐ D196 P1: the bearing as a cartouche (off until the owner's ok)
 import { useMarketPlate } from "./plate/marketPlate.js";
 import MarketHero from "./plate/MarketHero.jsx";   // ⭐ D196 P1: the market's hero on real data
+import MarketOpenings from "./plate/MarketOpenings.jsx";   // ⭐ D196 P1: Deck · Terrain · Index + the field card
+import PlateRoot from "./plate/PlateRoot.jsx";
+import { LegHeader } from "./plate/Plates.jsx";
 import WordPanel                 from "./components/WordPanel.jsx";
 import SortPanel                 from "./components/SortPanel.jsx";
 import { ViewSegment, BoardSearch, SortIcon, ImportJobBox } from "./components/BoardBar.jsx";
@@ -416,6 +419,25 @@ function MarketHeroSlot() {
   );
 }
 
+// ⭐ D196 P1 · section 01, the bearing: the board's leg header and lead over the cartouche (BoardHeadlineSlot picks it) and
+// WordPanel beneath, inside `.fh` so the panel keeps its look. The board's "How the board is ordered" aside is NOT drawn: it
+// explains a skills-band order, and draft's deck is ranked by A133 (ATS · best bets · role similarity, with rotation).
+function MarketBearingSlot() {
+  return (
+    <PlateRoot className="pl-marketbearing" data-plate-market-bearing="">
+      <section className="pl-section" id="bearing" aria-labelledby="mk-bearing">
+        <LegHeader n={1} meta="THE BEARING · SET FROM YOUR RÉSUMÉ · YOURS TO CHANGE" title={<span id="mk-bearing">Where you’re headed</span>}/>
+        <p className="pl-lead">Your résumé set this when you uploaded it. Tap any part to change it; your change holds until your next résumé.</p>
+        <header className="fh" data-fh-d147=""><BoardHeadlineSlot /></header>
+      </section>
+    </PlateRoot>
+  );
+}
+function MarketOpeningsSlot({ deck, index }) {
+  const { boardHeadline } = useJobBoard();
+  return <MarketOpenings deck={deck} index={index} count={marketFigures(boardHeadline?.facets).fit} />;
+}
+
 function BoardCounts() {
   const { boardHeadline } = useJobBoard();
   const c = boardCounts(boardHeadline?.facets);
@@ -659,6 +681,35 @@ function AppDashboard({ authUser, setAuthUser }) {
   // permanently 0 here, and it re-rendered this component on every scroll event — which is how a
   // trivial scroll reset the job board (see JobsPanel's boot-effect note and PlanConsoles' memo).
 
+  // ⭐ D152 (1) · HOME — the deck and the board, as elements, so the classic grid and the plate market (D196 P1) render
+  // the very same ones.
+  const homeDeck = (
+    <section className="home__deck" aria-label="Today's picks" data-home-deck="">
+      <DeckView canUseAPlusResume={canUseAPlusResumeHere} home/>
+    </section>
+  );
+  const homeBoard = (
+    <section className="home__board" aria-label="Every job" data-home-board="">
+      <BoardOrCompanies
+        head={<>
+          {/* ⭐ D196 P1: in the plate market the bearing is its own section above the openings (MarketBearingSlot) */}
+          {!marketPlate && <header className="fh" data-fh-d147="">
+            <BoardHeadlineSlot />
+          </header>}
+          <StickyBar top="var(--app-chrome-height, 74px)" className="fh fh--bar-row" data-board-sticky="">
+            <BoardBar />
+          </StickyBar>
+        </>}
+        views={<BoardViews onImported={() => setJobBoardRefreshKey(k => k + 1)} />}
+        board={<>
+          <BoardCounts />
+          <ExtensionFirstRunPrompt />
+          <JobsConsole user={authUser} onUserChange={setAuthUser}
+            refreshKey={jobBoardRefreshKey} isActive={home}/>
+        </>} />
+    </section>
+  );
+
   return (
     <JobBoardProvider>
     {/* The apply pipeline's state sits ABOVE the board and above the tab switch, deliberately.
@@ -718,31 +769,10 @@ function AppDashboard({ authUser, setAuthUser }) {
             {/* ⭐ D152 (1) · HOME — one grid, laid out by CSS (FullHouse.css .home): the deck's column is sticky in its
                 own track and the board's column takes the rest; on a phone one column, the deck first. No page titles. */}
             {home && marketPlate && <MarketHeroSlot />}
-            {home && (
-              <div className="home" data-home="">
-                <section className="home__deck" aria-label="Today's picks" data-home-deck="">
-                  <DeckView canUseAPlusResume={canUseAPlusResumeHere} home/>
-                </section>
-                <section className="home__board" aria-label="Every job" data-home-board="">
-                  <BoardOrCompanies
-                    head={<>
-                      <header className="fh" data-fh-d147="">
-                        <BoardHeadlineSlot />
-                      </header>
-                      <StickyBar top="var(--app-chrome-height, 74px)" className="fh fh--bar-row" data-board-sticky="">
-                        <BoardBar />
-                      </StickyBar>
-                    </>}
-                    views={<BoardViews onImported={() => setJobBoardRefreshKey(k => k + 1)} />}
-                    board={<>
-                      <BoardCounts />
-                      <ExtensionFirstRunPrompt />
-                      <JobsConsole user={authUser} onUserChange={setAuthUser}
-                        refreshKey={jobBoardRefreshKey} isActive={home}/>
-                    </>} />
-                </section>
-              </div>
-            )}
+            {home && (marketPlate
+              // ⭐ D196 P1: the same deck and board (the same elements, the same requests), under the market's binder tabs
+              ? <><MarketBearingSlot /><MarketOpeningsSlot deck={homeDeck} index={homeBoard} /></>
+              : <div className="home" data-home="">{homeDeck}{homeBoard}</div>)}
             {/* ⭐ D49 · THE BOARD'S BAR STICKS (StickyBar, above in Home's board column): sticky only works inside its
                 parent's box, so it sits in the column with the jobs, not in the header. D12's ExtensionFirstRunPrompt
                 says where jobs from elsewhere come from until the extension is connected. */}

@@ -65,3 +65,18 @@ export function sectorRegion(name) {
   for (const [re, r] of SECTOR_REGION) if (re.test(String(name))) return r;
   return "IV";
 }
+
+// ⭐ D196 P1 · THE FRONT CARD, for the field card beside the deck. DeckView owns the deck; when the plate market is on it
+// publishes the card on top here (only its job id, the card's frozen `why` and `report`) and the field card reads it.
+// One value, no history; null when the deck is empty or finished.
+let front = null;
+const frontListeners = new Set();
+export function publishFrontCard(card) {
+  const next = card?.job?.id ? { jobId: card.job.id, company: card.job.company || null, why: card.why || null, report: card.report || null } : null;
+  if ((front?.jobId ?? null) === (next?.jobId ?? null)) return;
+  front = next;
+  frontListeners.forEach((f) => f());
+}
+export function useFrontCard() {
+  return useSyncExternalStore((f) => { frontListeners.add(f); return () => frontListeners.delete(f); }, () => front, () => null);
+}

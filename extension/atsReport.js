@@ -363,7 +363,44 @@ function atsCardView({ report = null, contextual = null } = {}) {
   else if ((work?.missing || []).length) gain = { text: `Show “${short(work.missing[0])}” on your résumé` };
   return { declined: false, score: num(c?.score) ?? skill, parts, gain, facts: cardFacts(report, c, skill) };
 }
-return { atsCardView };
+
+// ⭐ D196 P1 · THE FIELD CARD's words (the market's "why it fits", the board's FIELD CARD · WHY IT FITS · NO AI): the same
+// report and contextual block as the ATS card, split into what lines up and what doesn't yet. Every line is a template over
+// the scorer's own fields (D190: no model); a part with no data says nothing (never an invented line).
+//   fieldCardView({ report, contextual }) → null | { alike: [string], gaps: [{ text, tech? }], figures: { label, value } | null }
+function fieldCardView({ report = null, contextual = null } = {}) {
+  const view = atsCardView({ report, contextual });
+  if (!view || view.declined) return null;
+  const c = contextual && contextual.parts ? contextual : null;
+  const role = c?.parts?.role_fit, work = c?.parts?.responsibility_overlap, stack = c?.parts?.tech_stack;
+  const alike = [], gaps = [];
+  if (role?.status === "ok") {
+    const line = roleLine(role);
+    if ((role.relation === "same_role" || role.relation === "also_fits") && !role.level_gap) alike.push(`Role and level: ${line}`);
+    else gaps.push({ text: `Role: ${line}` });
+  }
+  if (stack?.status === "ok") {
+    const yes = (stack.exact || []).slice(0, 3).map((x) => bare(display(x.tech)));
+    if (yes.length) alike.push(`Their stack: ${join(yes)} ${yes.length === 1 ? "is" : yes.length === 2 ? "both" : "all"} on your résumé`);
+    const gap = [...(stack.gaps || [])].sort((a, b) => shareOf(b) - shareOf(a))[0];
+    if (gap) gaps.push({ text: `They use ${bare(display(gap.tech))}${shareOf(gap) ? ` (in ${pct(shareOf(gap))} of their jobs)` : ""}.`, tech: clean(gap.tech, 60) });
+  }
+  if (work?.status === "ok") {
+    if ((work.matched || []).length) alike.push(`Duties: “${short(work.matched[0], 56)}” — on your résumé`);
+    if ((work.missing || []).length) gaps.push({ text: `Not on your résumé yet: “${short(work.missing[0], 56)}”` });
+  }
+  if (!alike.length) {
+    const have = words(report?.tier1_matched, 4);
+    if (have.length) alike.push(`Skills: ${join(have)}`);
+  }
+  if (!gaps.length) {
+    const miss = words(report?.tier1_missing, 1)[0];
+    if (miss) gaps.push({ text: `The posting asks for ${miss}.`, tech: miss });
+  }
+  const fig = [["ROLE FIT", role], ["STACK", stack], ["DUTIES", work]].filter(([, p]) => p?.status === "ok" && num(p.score) != null);
+  return { alike: alike.slice(0, 3), gaps: gaps.slice(0, 2), figures: fig.length ? { label: fig.map(([l]) => l).join(" · "), value: fig.map(([, p]) => num(p.score)).join(" · ") } : null };
+}
+return { atsCardView, fieldCardView };
 })();
 
 // ── shared/profileSignals.js ───────────────────────────────────────────────────────────────────────────────────

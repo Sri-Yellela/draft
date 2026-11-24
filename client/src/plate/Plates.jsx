@@ -107,7 +107,10 @@ export function TitleBlock({ kickers = [], title, titleId, lead, stats, actions 
  * Binder tabs: the tabs sit on the panel's top edge — the open one white with the region's shadow, the others 4 px lower.
  * Real tabs (role=tablist / tab / tabpanel, arrow keys move between them).
  */
-export function BinderTabs({ tabs = [], selected, onSelect, label = "Views", idBase = "pl-tab", children }) {
+// `panels` (optional) = { [tabId]: content }: every panel stays MOUNTED and only the selected one shows (`hidden` on the
+// rest) — for views whose content must keep its state and its requests while another tab is open (the market's deck and
+// board, D196 P1). Without it, the one panel holds `children` and re-renders on each switch.
+export function BinderTabs({ tabs = [], selected, onSelect, label = "Views", idBase = "pl-tab", panels = null, children }) {
   const keys = (e, i) => {
     const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
     if (!d) return;
@@ -121,12 +124,15 @@ export function BinderTabs({ tabs = [], selected, onSelect, label = "Views", idB
       <div className="pl-tabs" role="tablist" aria-label={label}>
         {tabs.map((t, i) => (
           <button key={t.id} id={`${idBase}-${t.id}`} type="button" role="tab" className="pl-tab" aria-selected={selected === t.id}
-            aria-controls={`${idBase}-panel`} tabIndex={selected === t.id ? 0 : -1} onClick={() => onSelect?.(t.id)} onKeyDown={(e) => keys(e, i)}>
+            aria-controls={panels ? `${idBase}-panel-${t.id}` : `${idBase}-panel`} tabIndex={selected === t.id ? 0 : -1} onClick={() => onSelect?.(t.id)} onKeyDown={(e) => keys(e, i)}>
             <span className="pl-tab__label">{t.label}</span>{t.sub ? <span className="pl-tab__sub">{t.sub}</span> : null}
           </button>
         ))}
       </div>
-      <div id={`${idBase}-panel`} role="tabpanel" aria-labelledby={`${idBase}-${selected}`} className="pl-tabpanel pl-in" key={selected}>{children}</div>
+      {panels ? tabs.map((t) => (
+        <div key={t.id} id={`${idBase}-panel-${t.id}`} role="tabpanel" aria-labelledby={`${idBase}-${t.id}`} className="pl-tabpanel"
+          hidden={selected !== t.id} data-tab={t.id}>{panels[t.id]}</div>
+      )) : <div id={`${idBase}-panel`} role="tabpanel" aria-labelledby={`${idBase}-${selected}`} className="pl-tabpanel pl-in" key={selected}>{children}</div>}
     </>
   );
 }

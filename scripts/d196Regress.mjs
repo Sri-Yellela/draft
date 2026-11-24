@@ -38,6 +38,8 @@ export const PAIRS = {
     // the one figure the build words differently on purpose: the board's "MATCH ≥ 85%" — draft counts the strong band
     // (shared/atsBands.js), which is not ≥ 85 %, so the cell says STRONG FIT; its label is masked, its number is not
     masks: [[400, 345, 100, 18]] },
+  // P1 · the openings: the deck card keeps the deck's form factor (600 wide, not the board's 760), so the section is a look
+  "market-openings": { board: "The market · draft", fixture: "MarketOpeningsBoard", boardSel: "section:nth-of-type(3)", buildSel: "#openings", pad: 0, look: true, reduced: true },
 };
 
 /** Pure: compare two RGBA buffers of the same size → { differing, compared, pct }. Masks are [x, y, w, h]. */

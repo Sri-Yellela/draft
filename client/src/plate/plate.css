@@ -458,6 +458,7 @@
 .pl-mface__title { margin: auto 0; font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-card); line-height: 1.05; letter-spacing: -.01em; outline: none;
   overflow-wrap: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .pl-mface[data-tier="lg"] .pl-mface__title { font-size: var(--pl-t-card-xl); margin: 2px 0; -webkit-line-clamp: 2; }
+.pl-mface[data-tier="lg"] .pl-mface__main { flex: none; }   /* the board's order: the chips follow the facts; the spare height sits below them */
 .pl-mface[data-tier="sm"] .pl-mface__title { font-size: var(--pl-t-num-sm); }
 .pl-mface__facts { font-size: var(--pl-t-small); gap: 4px 16px; max-height: 44px; overflow: hidden; }
 .pl-mface__stack { flex: none; display: flex; flex-direction: column; gap: 6px; max-height: 84px; overflow: hidden; }
@@ -480,3 +481,12 @@
    ledger's heavier one ── */
 .pl-markethero { background: transparent; }
 .pl-markethero .pl-btn--primary { padding: 0 20px; font-weight: 700; }
+
+/* ── D196 P1 · the market's openings (plate/MarketOpenings.jsx): the deck with the field card beside it (the board's
+   flex row: the card's own column, the 270 px field card; they stack on a phone) ── */
+.pl-marketopenings { background: transparent; }
+.pl-marketopenings .pl-lead { margin: 10px 0 18px; }
+.pl-market-deck { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+.pl-market-deck > :first-child { flex: 0 1 auto; min-width: 0; }
+.pl-market-deck__side { flex: 1 1 270px; max-width: 300px; min-width: 0; }
+.pl-tabpanel[hidden] { display: none; }
