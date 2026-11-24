@@ -55,7 +55,8 @@ test("atsCardDetailOnDemand — the web card opens short: number, parts, gain; t
 test("atsCardDetailOnDemand — the toggle reveals the same analysis and remembers it per viewer (never required)", () => {
   const src = fs.readFileSync("client/src/components/AtsCard.jsx", "utf8");
   assert.match(src, /\{detail && view\.facts\?\.length > 0 && <div data-ats-card-facts="card"/);
-  assert.match(src, /\{detail && p\.line && <div data-ats-card-line=\{p\.id\}/);
+  // 47c (moved on purpose): a pending part (Role with no placement) shows its one step in the short view too
+  assert.match(src, /\{\(detail \|\| p\.pending\) && p\.line && <div data-ats-card-line=\{p\.id\}/);
   assert.match(src, /\{detail && p\.facts\?\.length > 0 && <div data-ats-card-facts=\{p\.id\}/);
   assert.match(src, /const readDetail = \(\) => \{ try \{ return localStorage\.getItem\(DETAIL_KEY\) === "1"; \} catch \{ return false; \} \};/);
   assert.match(src, /\{detail \? "Hide the analysis" : "Show the analysis"\}/);
@@ -65,7 +66,9 @@ test("atsCardDetailOnDemand — the extension's mirror: the same default and tog
   const src = fs.readFileSync("extension/resumePanel.js", "utf8");
   assert.match(src, /data-role="ats-card-view" data-detail="\$\{atsDetail \? '1' : '0'\}"/);
   assert.match(src, /\.ac\[data-detail="0"\] \[data-detail-line\] \{ display: none; \}/);
-  assert.equal((src.match(/class="fx" data-(role="ats-card-facts" data-)?detail-line=""/g) || []).length, 3, "the facts line, each part's line and its figures");
+  assert.equal((src.match(/class="fx" data-(role="ats-card-facts" data-)?detail-line=""/g) || []).length, 2, "the facts line and each part's figures");
+  // 47c (moved on purpose): each part's line is on demand too, except a pending part's (its one step shows in the short view)
+  assert.match(src, /class="fx"\$\{p\.pending \? ' data-pending=""' : ' data-detail-line=""'\}/);
   assert.match(src, /let atsDetail = false;/);
   assert.match(src, /if \(role === 'ats-card-detail'\) return;\s*\/\/ ⛔ Everything here reaches draft's server/, "the panel's delegated click never disables the local toggle (it did: the second click was dead)");
   assert.match(src, /b\.textContent = atsDetail \? 'Hide the analysis' : 'Show the analysis';/);
