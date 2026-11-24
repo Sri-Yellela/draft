@@ -61,7 +61,9 @@ import { readDeckOrder } from "../lib/deckOrder.js";
 import { postingClick } from "../lib/openPosting.js";
 import { cardFacts } from "../lib/deckCardFacts.js";
 import { shape, ts, TYPE_SCALE_VAR } from "../themes/shapes.js";
-import SendJobPicker from "../components/SendJobPicker.jsx";   // D180 P2: Send to a connection
+import SendJobPicker from "../components/SendJobPicker.jsx";
+import MarketCardFace from "../plate/MarketCardFace.jsx";   // ⭐ D196 P1: the face in plates (off until the owner's ok)
+import { useMarketPlate } from "../plate/marketPlate.js";   // D180 P2: Send to a connection
 
 const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SOFT_OFFSET
 const TOAST_MS = DECISION_TOAST_MS;
@@ -565,6 +567,7 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
   const passStamp = useTransform(x, [-SWIPE_COMMIT_PX - 40, -20], [1, 0]);
   const dragged = useRef(false);
   const showFace = Math.abs(offset) <= 1;   // only a card that is, or is about to be, face-up needs one
+  const plateFace = useMarketPlate();   // ⭐ D196 P1: the FACE only — the frame, the backs and the flip below stay as they are
   const stamp = { position: "absolute", top: 28, right: 26, padding: "6px 14px", borderRadius: 10, fontWeight: 900, fontSize: ts(22),
                   letterSpacing: "0.12em", border: "3px solid", pointerEvents: "none" };
   // The deal arrives from the pivot's side, face-down, one card at a time; the front turns over last.
@@ -628,7 +631,9 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
                        border: "none", boxShadow: C.SHADOW_GLASS,
                        transition: "none", transform: "none",
                        cursor: isFront && !expanded ? "pointer" : "auto", visibility: showFace ? "visible" : "hidden" }}>
-              {showFace && home && <HomeCardFace card={card} headingRef={headingRef} isFront={isFront} onSignal={onSignal} onOpenPost={onOpenPost}
+              {showFace && home && plateFace && <MarketCardFace card={card} headingRef={headingRef} isFront={isFront} onSignal={onSignal} onOpenPost={onOpenPost}
+                                                 size={size} landscape={landscape} />}
+              {showFace && home && !plateFace && <HomeCardFace card={card} headingRef={headingRef} isFront={isFront} onSignal={onSignal} onOpenPost={onOpenPost}
                                                  size={size} landscape={landscape} />}
               {showFace && !home && <CardFace card={card} headingRef={headingRef} isFront={isFront} expanded={isFront && expanded}
                                      why={isFront && why} onWhy={onWhy}

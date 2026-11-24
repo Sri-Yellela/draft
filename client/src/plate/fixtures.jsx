@@ -4,6 +4,8 @@
 // board's data.
 import PlateRoot from "./PlateRoot.jsx";
 import { AreaNav, Dock } from "./Shell.jsx";
+import { MemoryRouter } from "react-router-dom";
+import MarketCardFace from "./MarketCardFace.jsx";
 
 const MARKET_VIEWS = [
   { id: "picks", label: "Today’s picks", href: "#picks", icon: "picks" },
@@ -35,4 +37,25 @@ export function ShellMarket() {
   );
 }
 
-export const FIXTURES = { ShellMarket };
+// the market board's first opening (Kestrel), as a dealt card carries it — posted 2 h before the fixture's clock
+const BOARD_CARD = {
+  score: 91, why: { matched: ["React", "TypeScript", "Next.js", "Playwright"], missing: ["Datadog RUM"] },
+  job: { id: "kestrel-1", company: "Kestrel Payments", location: "Boston, MA", title: "Frontend Engineer II, Checkout",
+    postedAt: new Date(Date.now() - 2 * 3600e3).toISOString(), salaryMin: 150000, salaryMax: 180000, contractType: "Full-time", workplaceType: "hybrid",
+    worksWith: ["React", "TypeScript", "Next.js", "Playwright", "Datadog RUM"], sponsorship: { level: "often" } },
+};
+/** The market's card face (P1) in the deck's OWN frames — landscape 600 × 372 and portrait 300 × 420 (the owner's form
+ *  factor), corner 26 — side by side with the board's opening (a look, not a pixel gate: the sizes differ on purpose). */
+export function MarketFace() {
+  const frame = (w, h) => ({ position: "relative", width: w, height: h, borderRadius: 26, overflow: "hidden" });
+  return (
+    <MemoryRouter>
+      <div data-market-face-fixture="" style={{ display: "flex", gap: 32, alignItems: "flex-start", padding: 24 }}>
+        <article style={frame(600, 372)}><MarketCardFace card={BOARD_CARD} isFront size={{ width: 600, height: 372 }} landscape/></article>
+        <article style={frame(300, 420)}><MarketCardFace card={BOARD_CARD} isFront size={{ width: 300, height: 420 }} landscape={false}/></article>
+      </div>
+    </MemoryRouter>
+  );
+}
+
+export const FIXTURES = { ShellMarket, MarketFace };

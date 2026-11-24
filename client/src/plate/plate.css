@@ -434,3 +434,34 @@
 .pl-ruler--phone { height: 8px; background-size: 100% 8px, 100% 4px; }
 .pl-sq--run { width: 10px; }
 .pl-btn--flat { box-shadow: none; }
+
+/* ── D196 P1 · the market's card face (plate/MarketCardFace.jsx) — the opening ticket inside the deck's own card. The
+   frame (size, corner, shadow, backs, flip) is DeckView's (the owner's three keeps); this paints the face only and fills
+   the box it is given. Tiers: lg = the 600 × 372 landscape card, md = 300 × 420, sm = the phone's. ── */
+.pl-mface { box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; border-radius: inherit; border: var(--pl-border);
+  background-color: var(--pl-card); background-image: var(--pl-perf); color: var(--pl-ink); font-family: var(--pl-sans); }
+.pl-mface__strip { flex: none; display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 9px 18px; border-bottom: var(--pl-border); background: var(--pl-region-tint); }
+.pl-mface__body { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 14px 18px 10px; }
+.pl-mface[data-tier="lg"] .pl-mface__body { gap: 12px; padding: 18px 24px 10px; }
+.pl-mface__main { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.pl-mface__top { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; }
+.pl-mface__who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pl-mface__who .pl-opening__coname, .pl-mface__who .pl-opening__place { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
+.pl-mface__match { flex: none; display: flex; flex-direction: column; align-items: flex-end; background: transparent; border: 0; padding: 0; color: var(--pl-ink); cursor: pointer; min-height: 44px; }
+.pl-mface__pct { font-family: var(--pl-serif); font-size: var(--pl-t-card); line-height: 1; }
+.pl-mface[data-tier="lg"] .pl-mface__pct { font-size: var(--pl-t-match); }
+.pl-mface[data-tier="sm"] .pl-mface__pct { font-size: var(--pl-t-cat); }
+.pl-mface__title { margin: auto 0; font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-card); line-height: 1.05; letter-spacing: -.01em; outline: none;
+  overflow-wrap: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pl-mface[data-tier="lg"] .pl-mface__title { font-size: var(--pl-t-card-xl); margin: 2px 0; -webkit-line-clamp: 2; }
+.pl-mface[data-tier="sm"] .pl-mface__title { font-size: var(--pl-t-num-sm); }
+.pl-mface__facts { font-size: var(--pl-t-small); gap: 4px 16px; max-height: 44px; overflow: hidden; }
+.pl-mface__stack { flex: none; display: flex; flex-direction: column; gap: 6px; max-height: 84px; overflow: hidden; }
+.pl-mface[data-tier="lg"] .pl-mface__stack { max-height: 50px; }
+.pl-mface__stamp { flex: none; margin-left: auto; pointer-events: none; }
+.pl-mface[data-tier="lg"] .pl-mface__stamp { position: absolute; right: 24px; bottom: -22px; z-index: 1; }   /* on the tear line, as the board */
+.pl-mface[data-tier="sm"] .pl-stamp { font-size: var(--pl-t-mono-tag); padding: 4px 7px; }
+.pl-mface .pl-opening__tear { flex: none; margin: 0 18px; }
+.pl-mface__foot { flex: none; display: flex; align-items: center; padding: 4px 18px 6px; }
+.pl-mface__open { min-height: 44px; background: transparent; border: 0; padding: 0; cursor: pointer; color: var(--pl-clay-text); font-weight: 700; font-size: var(--pl-t-meta); }
+.pl-mface__open:hover { color: var(--pl-clay-hover); }

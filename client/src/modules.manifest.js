@@ -63,7 +63,9 @@ export const MODULES = Object.freeze({
   plate: { why: "D196's plate component library and its gallery (F3 / F4)", css: ["plate/plate.css"],
     members: ["App.jsx", "plate/PlateRoot.jsx", "plate/PlateState.jsx", "plate/Shell.jsx", "plate/Marks.jsx", "plate/Plates.jsx", "plate/Tickets.jsx",
       "plate/Cards.jsx", "plate/Lists.jsx", "plate/Drawings.jsx", "plate/icons.jsx", "plate/motion.js", "plate/registry.js", "plate/fonts.js",
-      "plate/drawings/index.js", "plate/fixtures.jsx", "pages/dev/PlateGallery.jsx"] },
+      "plate/drawings/index.js", "plate/fixtures.jsx", "pages/dev/PlateGallery.jsx",
+      // P1 (the market): the switch, the card face, and the deck that wears it
+      "plate/marketPlate.js", "plate/MarketCardFace.jsx", "panels/DeckView.jsx"] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminGateway.jsx", "panels/adminFlags.jsx","panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "panels/adminReports.jsx", "panels/adminCompanyRecords.jsx", "panels/adminNetwork.jsx", "panels/adminRuns.jsx", "panels/adminPhase1.jsx", "panels/adminDiagnostics.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.

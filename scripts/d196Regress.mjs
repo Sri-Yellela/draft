@@ -28,6 +28,9 @@ export const TOLERANCE = 40;   // per channel, 0–255
 export const PAIRS = {
   "shell-market-dock": { board: "The market · draft", fixture: "ShellMarket", boardSel: 'nav[aria-label="Main"]', buildSel: 'nav[aria-label="Main"]', pad: 6 },
   "shell-market-nav": { board: "The market · draft", fixture: "ShellMarket", boardSel: "header", buildSel: "header.pl-areanav", pad: 0 },
+  // P1 · the card face: the owner kept the deck's form factor (11-24), so the face can never be the board's size — this pair
+  // is a LOOK for the owner (pair.png), not a pixel gate; its report says so instead of passing or failing.
+  "market-face": { board: "The market · draft", fixture: "MarketFace", boardSel: "article[aria-label]", buildSel: "[data-market-face-fixture]", pad: 6, look: true },
 };
 
 /** Pure: compare two RGBA buffers of the same size → { differing, compared, pct }. Masks are [x, y, w, h]. */
@@ -125,7 +128,9 @@ export async function runPair(name, { width = 1280, threshold = THRESHOLD_PCT, b
   fs.writeFileSync(path.join(dir, "diff.png"), Buffer.from(r.diff, "base64"));
   fs.writeFileSync(path.join(dir, "pair.png"), Buffer.from(r.pair, "base64"));
   const report = { pair: name, width, board: board.clip, build: build.clip, sizeBoard: r.sizeA, sizeBuild: r.sizeB,
-    differing: r.differing, compared: r.compared, pct: +r.pct.toFixed(3), threshold, pass: r.pct <= threshold && r.sizeA.join() === r.sizeB.join() };
+    differing: r.differing, compared: r.compared, pct: +r.pct.toFixed(3), threshold,
+    ...(p.look ? { look: true, pass: true, note: "side by side for the owner's look — sizes differ on purpose (the deck's form factor)" }
+      : { pass: r.pct <= threshold && r.sizeA.join() === r.sizeB.join() }) };
   fs.writeFileSync(path.join(dir, "report.json"), JSON.stringify(report, null, 2));
   return report;
 }
@@ -140,7 +145,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     for (const n of names) {
       const r = await runPair(n, { width: Number(arg("--width", 1280)), threshold: Number(arg("--threshold", THRESHOLD_PCT)), browser });
       if (!r.pass) failed++;
-      console.log(`${r.pass ? "PASS" : "FAIL"} ${n}: ${r.pct} % differ (${r.differing} / ${r.compared}), board ${r.sizeBoard.join("×")} vs build ${r.sizeBuild.join("×")} → tmp/d196-regress/${n}/pair.png`);
+      console.log(`${r.look ? "LOOK" : r.pass ? "PASS" : "FAIL"} ${n}: ${r.pct} % differ (${r.differing} / ${r.compared}), board ${r.sizeBoard.join("×")} vs build ${r.sizeBuild.join("×")} → tmp/d196-regress/${n}/pair.png`);
     }
   } finally { await browser.close(); }
   process.exit(failed ? 1 : 0);
