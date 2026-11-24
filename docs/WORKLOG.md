@@ -172,7 +172,25 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
-### ⛔⛔⛔ NEW SESSION (47d) STARTS HERE (end of 47c, 11-24 — the owner: "log next work at the top and prepare for a new session")
+### ⛔⛔⛔ NEW SESSION (47e) STARTS HERE (end of 47d, 11-24 — the owner: "push to production and prepare for a new session")
+
+**STATE AT THE END OF 47d (measured 11-24 — re-measure before quoting):** ✅ **PUSHED on the owner's word (11-24):** draft `755cd386..85354bea` → production **`85354be`** (`/api/version`: started 15:24:11Z, migration 281, listening 2.2 s, ready 6.3 s, read pool 0 fallbacks; `/api/health/ready`, `/`, `/app`, `/jobs`, `/dev/plate` (the shell; the client gate sends a non-admin to /admin/login), `/learn/data-engineering-roadmap` all 200 in 0.2–0.5 s). No migration (still **281**; the next free is **282**). resume-master unchanged (`719ac43`, scorer 1.7.0). Fast tier on `00e30831`: **6,369 — 6,368 / 0 red + 1 skip** (the later commits are docs + the v2 export only). ⚠ **The browser tier has NOT run since 47b** (0.76 GB free with Chrome open, all of 47d); only D196's own two browser files ran (green). CLAUDE.md's count is still 47b's 6,643. Worktrees: `main` only.
+
+**WHAT 47d DID (▶▶▶ 47d PROGRESS below):** **D196 P0 built and approved** — the plate tokens + lint (F1), the 8 v3 drawings ported by a generator (F2), the component library with every state (F3 / R1), `/dev/plate` (F4, Admin), the regression gate vs the canvas export (F5: the dock 0 %, the area nav 0.001 %). The owner added `docs/sketches/Atlas plate system v2.html` (the v2 boards).
+
+**THE ORDER FOR 47e (agent):**
+1. **Whatever the owner says first.**
+2. **The browser tier on `85354bea`** — only on an idle machine (≥ 2 GB free): refill the probes in the FOREGROUND, then `node scripts/testTier.mjs browser --batch i/6` one per call (batch 4 in its groups); includes `d196VisualDiff` + `d196GalleryBrowser`; `fidelityTracker` (Home) still never run since 47c. Update CLAUDE.md's count. Under ~2 GB: ask the owner to close Chrome.
+3. **D196 P1 — the market on real data** (P0 approved 11-24). ⛔ **The owner's three keeps:** the deck card's CURRENT **form factor** (DeckView's size / proportions / geometry setting), **the card backs behind it** (the deck's own, not `DeckPile`'s plain sheets), **the flip animation** — the plate restyles the card's FACE only. Then: the survey-plate hero (`MarketSurveyPlate` with data props), the bearing as the Cartouche over D184 B-7's sentence, Binder tabs Deck · Terrain · Index, the field card with D192's Lines up / Doesn't, yet, onward tickets. Keep R6 (gestures, Pass / Save / Send / Draft, the search dropdown, the postings' bubbles and hover buttons, D186 profiles); add F5 pairs for the market's card face, bearing, field card, tabs at 1280 + 390; `d196BoardBudgetsHold` (A175) and `d196ExistingBubblesAndHoverKept`. Each phase ends with the owner's look at the side-by-sides.
+4. **D196 F2 for v2:** teach `scripts/d196PortDrawings.mjs` a second source (`Atlas plate system v2.html` — it unpacks to Home · Region IV · Library · Region emblem · Place · Webhooks · How the drafts come in v2) and port the emblems ×8, the isometric tile and the elevation profile, replacing the three "not yet" drawers; P4 (Atlas v2) reads them.
+5. Owner-gated, unchanged: the v1.7.0 zip upload, the ATS card look, the 28 OPEN-OWNER rows.
+
+### 👤👤👤 OWNER — YOUR STEPS FROM 47d (end) · tick each when done
+1. ☐ **Close Chrome** before the next session's browser tier (or say when the machine is idle).
+2. ☐ After P1: look at the market's side-by-sides and say ok / what's off.
+3. ☐ Still open from 47c: the store upload (`extension/submission/resume-master-extension-v1.7.0.zip`), the ATS card look, the 28 OPEN-OWNER rows.
+
+### ⛔⛔⛔ (47e's predecessor, kept as history) NEW SESSION (47d) STARTS HERE (end of 47c, 11-24 — the owner: "log next work at the top and prepare for a new session")
 
 **STATE AT THE END OF 47c (measured 11-24 ~06:05Z — re-measure before quoting):** ✅ **PUSHED on the owner's "push" (11-24):** draft `cdc5618d..977178cd` → production **`977178c`** (`/api/version`: started 05:59:32Z, **migration 281** `281_learn_route_data_engineering`, ready 5.1 s; `/api/health/ready`, `/app`, `/jobs`, `/learn/data-engineering-roadmap` 200; the sitemap lists the roadmap; Railway's log: `[indexnow] on for jobsviadraft.com (daily cap 10000)`). resume-master `2c3ffe4..719ac43` → **`719ac43`**, scorer `@draft/ats-scorer@1.7.0` (`/v1/version`). **The next free migration is 282.** Worktrees: `main` only (`l46y-fidelity` removed safely; its branch stays on origin). ⚠ **The browser tier has NOT run since 47b** (memory, Chrome open); the fast tier on 47c's tree 6,354 with 4 reds, all fixed; CLAUDE.md's count is still 47b's 6,643.
 
@@ -198,9 +216,9 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ### 👤👤👤 OWNER — YOUR STEPS FROM 47d (11-24) · tick each when done (the 47c list below still stands)
 1. ☐ **Close Chrome, then say "run the browser tier"** — 0.76 GB free with Chrome open; the tier has not run since 47b.
-2. ☐ **Look at D196 P0:** `docs/d196-shots/p0-shell-market-nav-pair.png` and `p0-shell-market-dock-pair.png` (sketch | build), `p0-gallery-opening.png`, `p0-gallery-question.png`; or `/dev/plate` after a push (Admin). Say **ok** (P1 the market starts) or what's off.
-3. ☐ **Re-export the canvas WITH the v2 boards** (Home · Region IV · Library · Place · Webhooks · Emblem) over `docs/sketches/Atlas plate system.html` — the export holds only v3, so the emblems, the isometric tile and the elevation profile wait on it.
-4. ☐ Say **"push"** when you want `00e30831` + this log on production (no migration; the gallery is Admin-only).
+2. ☑ ~~Look at D196 P0~~ — approved 11-24 with three keeps for P1 (form factor, backs behind the card, the flip). **Look at D196 P0:** `docs/d196-shots/p0-shell-market-nav-pair.png` and `p0-shell-market-dock-pair.png` (sketch | build), `p0-gallery-opening.png`, `p0-gallery-question.png`; or `/dev/plate` after a push (Admin). Say **ok** (P1 the market starts) or what's off.
+3. ☑ ~~Re-export WITH v2~~ — added 11-24 as `docs/sketches/Atlas plate system v2.html`. **Re-export the canvas WITH the v2 boards** (Home · Region IV · Library · Place · Webhooks · Emblem) over `docs/sketches/Atlas plate system.html` — the export holds only v3, so the emblems, the isometric tile and the elevation profile wait on it.
+4. ☑ ~~Say push~~ — pushed 11-24. Say **"push"** when you want `00e30831` + this log on production (no migration; the gallery is Admin-only).
 
 ### 👤👤👤 OWNER — YOUR STEPS FROM 47c (11-24) · tick each when done
 1. ☐ **The store upload:** `extension/submission/resume-master-extension-v1.7.0.zip` — rebuilt in 47c round 2 (536,516 bytes: the lesson preview, Role pending); upload THIS one. Same listing / privacy / rationale texts — no new permission, host or data.
