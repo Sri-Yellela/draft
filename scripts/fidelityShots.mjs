@@ -21,6 +21,10 @@ import puppeteer from "puppeteer-core";
 import { LOGO_HOST } from "../shared/companyLogos.js";
 import { resolveBrowserExecutable } from "../services/browserLauncher.js";
 
+// 47g: the plate market is Home's default since 4fe6fe15 (owner 11-24). These probes measure the CLASSIC market (its
+// [data-home-board] grid, the Full House bar, the deck under it), so they pin it with ?plate=0 until the classic branch is
+// retired (the 47g order, item 1); the plate market is gated by its own D196 files (d196VisualDiff, d196P1FixBrowser, …).
+const CLASSIC_MARKET = "/app/jobs?plate=0";
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\//, "")), "..");
 // ⭐ A232 R2 (46t): FIDELITY_OUT sends the shots elsewhere — the tests' shared probe writes to tmp/, so a suite run no longer
 // rewrites the tracked docs/fidelity-shots/*.png (they changed on every run). Run the script yourself to refresh them.
@@ -168,24 +172,24 @@ const PROFILE163 = { ...SETTINGS,
 const SKETCH_CONTROLS = ".ctl, .lay-ctl, .switch, .note, #note";
 const SCREENS = {
   // ⭐ D152 · HOME. The sketch opens its dock for 1.5 s on load — shot after it has slid away.
-  home: { sketch: "home-sketch.html", app: "/app", fixtures: HOME, ready: "[data-home-board]",
+  home: { sketch: "home-sketch.html", app: CLASSIC_MARKET, fixtures: HOME, ready: "[data-home-board]",
     sketchPrep: async () => { await sleep(1700); } },
   // The same screen with the dock out (the sketch shows it for 1.5 s on load; the app's pointer at the left edge).
-  "home-dock": { sketch: "home-sketch.html", app: "/app", fixtures: HOME, ready: "[data-home-board]",
+  "home-dock": { sketch: "home-sketch.html", app: CLASSIC_MARKET, fixtures: HOME, ready: "[data-home-board]",
     sketchPrep: async () => { await sleep(100); },
     appPrep: async (page) => { await sleep(1200); await page.mouse.move(4, 300); await sleep(700); } },
   // D152 (6): the first posting open, in place of the list (the sketch's .bub click → its .pp layer).
-  "home-open": { sketch: "home-sketch.html", app: "/app", fixtures: HOME, ready: "[data-home-board]",
+  "home-open": { sketch: "home-sketch.html", app: CLASSIC_MARKET, fixtures: HOME, ready: "[data-home-board]",
     sketchPrep: async (page) => { await sleep(1700); await page.evaluate(() => document.querySelector(".bub")?.click()); await sleep(700); },
     appPrep: async (page) => { await sleep(1700); await page.evaluate(() => document.querySelector(".jb__title")?.click()); await sleep(900); } },
   // D152 (8): the posting open with its match open under the facts (ats-options.html option A).
-  "home-match": { sketch: "ats-options.html", app: "/app", fixtures: HOME, ready: "[data-home-board]",
+  "home-match": { sketch: "ats-options.html", app: CLASSIC_MARKET, fixtures: HOME, ready: "[data-home-board]",
     sketchPrep: async (page) => { await page.evaluate(() => document.querySelector('[data-o="inline"]')?.click()); await sleep(300);
       await page.evaluate(() => document.querySelector("#mbox")?.click()); await sleep(600); },
     appPrep: async (page) => { await sleep(1700); await page.evaluate(() => document.querySelector(".jb__title")?.click()); await sleep(900);
       await page.evaluate(() => document.querySelector("[data-posting-match] button, [data-posting-match] [role=button]")?.click()); await sleep(700); } },
   // ⭐ D156 · Home revised — measured, not compared (`--styles home156`), at 1440 (the landscape card), 1280 and 390.
-  home156: { sketch: null, app: "/app", fixtures: HOME156, ready: "[data-home-board]",
+  home156: { sketch: null, app: CLASSIC_MARKET, fixtures: HOME156, ready: "[data-home-board]",
     sizes: { wide: [1440, 900], desktop: [1280, 800], phone: [390, 844] },
     shoot: true,
     appPrep: async () => { await sleep(1200); },
@@ -216,7 +220,7 @@ const SCREENS = {
   // ⭐ D168 · ONE WAY TO OPEN, ONE JOB FOR THE WHEEL (owner 11-06, concept B) — measured with MOTION ON (`--styles home168`):
   // the page probe samples the swap frame by frame and opens / folds 50 times fast; the node probe drives a REAL wheel
   // and a real hover (puppeteer's mouse), which a dispatched event cannot (an untrusted wheel scrolls nothing).
-  home168: { sketch: null, app: "/app", fixtures: HOME156, ready: "[data-home-board]", motion: true,
+  home168: { sketch: null, app: CLASSIC_MARKET, fixtures: HOME156, ready: "[data-home-board]", motion: true,
     sizes: { wide: [1440, 900], desktop: [1280, 800] },
     appPrep: async () => { await sleep(1200); },
     nodeProbe: async (page) => {
@@ -266,7 +270,7 @@ const SCREENS = {
       await page.mouse.move(2, 790);
       return { node: out };
     } },
-  home163: { sketch: null, app: "/app", fixtures: HOME156, ready: "[data-home-board]", shoot: true,
+  home163: { sketch: null, app: CLASSIC_MARKET, fixtures: HOME156, ready: "[data-home-board]", shoot: true,
     sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], phone: [390, 844] },
     appPrep: async () => { await sleep(1200); } },
   // ⭐ A201 (46k, owner 11-13: "the content of the home panel rows are garbled when shrunken probe the site and fix this across
@@ -277,15 +281,15 @@ const SCREENS = {
   shrink201: { sketch: null,
     sizes: { "1440": [1440, 900], "1280": [1280, 800], "1024": [1024, 768], "900": [900, 800], "768": [768, 1024], "600": [600, 900], "390": [390, 844] },
     routes: {
-      home: { app: "/app", fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } } }, ready: "[data-nav-dock]", appPrep: async () => { await sleep(1200); } },
+      home: { app: CLASSIC_MARKET, fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } } }, ready: "[data-nav-dock]", appPrep: async () => { await sleep(1200); } },
       draft: { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr", appPrep: async () => { await sleep(600); } },
       "draft-held": { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr",
         appPrep: async (page) => { await sleep(500); await page.evaluate(() => { const r = [...document.querySelectorAll("[data-tracker-table] tbody tr.trk-row")].find(tr => /Halcyon/.test(tr.textContent)); (r || document.querySelector("[data-tracker-table] tbody tr.trk-row"))?.click(); }); await sleep(900); } },
       "draft-posting": { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr",
         appPrep: async (page) => { await sleep(500); await page.evaluate(() => document.querySelector("[data-tracker-table] tbody tr.trk-row")?.click()); await sleep(300);
           await page.evaluate(() => document.querySelector('[data-row-detail] [data-pane="posting"]')?.click()); await sleep(700); } },
-      board: { app: "/app/jobs", fixtures: FULLHOUSE, ready: "[data-fh-title]", appPrep: async () => { await sleep(900); } },
-      posting: { app: "/app/jobs", fixtures: FACTS, ready: "[data-fh-title]",
+      board: { app: CLASSIC_MARKET, fixtures: FULLHOUSE, ready: "[data-fh-title]", appPrep: async () => { await sleep(900); } },
+      posting: { app: CLASSIC_MARKET, fixtures: FACTS, ready: "[data-fh-title]",
         appPrep: async (page) => { await page.evaluate(() => { const t = [...document.querySelectorAll("*")].find(e => e.children.length === 0 && e.textContent.trim() === "Senior Data Engineer"); t?.click(); }); await sleep(900); } },
       atlas: { app: "/app/atlas", fixtures: ATLAS163, ready: "main", appPrep: async () => { await sleep(900); } },
       profile: { app: "/app/profile/about", fixtures: PROFILE163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
@@ -369,7 +373,7 @@ const SCREENS = {
   // ⭐ D167 · THE DOCK GOES WHERE THE SPACE IS (owner 11-06) — `--styles dock167place`: at each width, where the dock is
   // (side / top / phone), its box, the page's content box and the gaps between them; a resize across the threshold
   // re-places it; the peek's place beside a side dock / below a top one.
-  dock167place: { sketch: null, app: "/app", fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } } },
+  dock167place: { sketch: null, app: CLASSIC_MARKET, fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } } },
     ready: "[data-nav-dock]", shoot: true, motion: true,
     sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], phone: [390, 844] },
     appPrep: async () => { await sleep(1400); },
@@ -421,7 +425,7 @@ const SCREENS = {
   // places, names only, every icon centred in the rail, the /d mark drawing out into /draft without changing size, what
   // animates, the page moving over only when it has no room, Ask draft pushing the page, and the Profile quick peek
   // (opens on a press and on a rest, closes on Esc, a press outside, leaving it). Shots: docs/fidelity-shots/dock167-*.png.
-  dock167: { sketch: null, app: "/app", fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } },
+  dock167: { sketch: null, app: CLASSIC_MARKET, fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } },
       // the auto-apply mode: Apply for me selectable; choosing it answers with the bar in FULL AUTO
       "/api/apply/run-bar": SETTINGS["/api/apply/run-bar"],
       "/api/apply/mode": { ...SETTINGS["/api/apply/run-bar"], mode: { current: "auto", auto: { locked: false } } } },
@@ -544,7 +548,7 @@ const SCREENS = {
       out.log = await q(() => window.__dockLog);
       return { dock: out };
     } },
-  "home-wide": { sketch: "home-sketch.html", app: "/app", fixtures: HOME156, ready: "[data-home-board]",
+  "home-wide": { sketch: "home-sketch.html", app: CLASSIC_MARKET, fixtures: HOME156, ready: "[data-home-board]",
     sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440] },
     sketchPrep: async () => { await sleep(1700); }, appPrep: async () => { await sleep(1200); } },
   // ⭐ D163 · USE THE SPACE, the other screens — measured, not compared (`--styles screens163 [route,…]`): the tracker
@@ -568,14 +572,14 @@ const SCREENS = {
       admin: { app: "/admin", fixtures: { "/api/admin/auth/me": { authenticated: true, enforced: true, admin: { email: "admin@example.invalid" } },
         "/api/auth/me": { authenticated: false } }, strict: true, ready: "h1", probe: { root: "[data-admin-page]" }, appPrep: async () => { await sleep(900); } },
     } },
-  deck: { sketch: "declutter-v7.html", app: "/app", fixtures: DECK, ready: "[data-deck-face]" },
-  fullhouse: { sketch: "fullhouse-declutter.html", app: "/app/jobs", fixtures: FULLHOUSE, ready: "[data-fh-title]",
+  deck: { sketch: "declutter-v7.html", app: CLASSIC_MARKET, fixtures: DECK, ready: "[data-deck-face]" },
+  fullhouse: { sketch: "fullhouse-declutter.html", app: CLASSIC_MARKET, fixtures: FULLHOUSE, ready: "[data-fh-title]",
     appPrep: async (page) => {   // the sketch shows the first posting open beside the list
       await page.evaluate(() => { const t = [...document.querySelectorAll("*")].find(e => e.children.length === 0 && e.textContent.trim() === "Senior Data Engineer"); t?.click(); });
       await sleep(900);
     } },
   // D153 (5): the facts box measured, not compared (no sketch of its own) — `--styles posting-facts` only.
-  "posting-facts": { sketch: null, app: "/app/jobs", fixtures: FACTS, ready: "[data-fh-title]",
+  "posting-facts": { sketch: null, app: CLASSIC_MARKET, fixtures: FACTS, ready: "[data-fh-title]",
     appPrep: async (page) => {
       await page.evaluate(() => { const t = [...document.querySelectorAll("*")].find(e => e.children.length === 0 && e.textContent.trim() === "Senior Data Engineer"); t?.click(); });
       await sleep(900);

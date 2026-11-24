@@ -134,7 +134,9 @@ try {
       req.respond({ status: 200, contentType: "application/json", body: JSON.stringify(FIXTURES[u.pathname] ?? {}) });
     });
     await page.evaluateOnNewDocument((t) => { try { localStorage.setItem("draft-theme", t); localStorage.setItem("draft:extension-prompt-seen", "1"); } catch {} }, theme);
-    await page.goto(`${vite.url}/app/jobs`, { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
+    // 47g: the plate market is Home's default since 4fe6fe15; A131 is about the CLASSIC board's stuck bar, which stays
+    // reachable with ?plate=0 until the classic branch is retired (47g item 1) — then this walk goes with it.
+    await page.goto(`${vite.url}/app/jobs?plate=0`, { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
     await page.evaluateHandle("document.fonts.ready").catch(() => {});
     await page.waitForSelector("[data-home-board]", { timeout: 30000 }).catch(() => {});
     await sleep(1500);

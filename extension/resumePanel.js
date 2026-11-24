@@ -361,7 +361,7 @@ export function renderResumePanel(model, meta) {
        figures show only after "Show the analysis" (the web card's toggle, AtsCard.jsx). */
     .ac[data-detail="0"] [data-detail-line] { display: none; }
     /* ⭐ D194 P4 (47c): the lesson for the biggest gain — its first three points one at a time (CSS only, no sound) */
-    .ac .ls { display: grid; gap: 4px; padding-top: 6px; border-top: 1px solid var(--c-border); font-size: 12px; }
+    .ac .ls { display: grid; gap: 4px; padding-top: 8px; font-size: 12px; }   /* T26 ⑦: no rule in the panel — space alone sets it off (47g) */
     .ac .ls .lt { font-weight: 600; }
     .ac .ls .lp { margin: 0; opacity: 0; animation: rm-lesson .35s ease-out forwards; }
     .ac .ls .lp:nth-of-type(2) { animation-delay: 2.4s; } .ac .ls .lp:nth-of-type(3) { animation-delay: 4.8s; }
