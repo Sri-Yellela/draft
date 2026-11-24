@@ -10,6 +10,7 @@ import { spawnSync } from "node:child_process";
 import { at } from "../test-support/sourceAnchors.js";
 import { pathwaysFrom, withDecks, buildPlan } from "../scripts/pathwaysFromPlaybook.mjs";
 import { pathwaysPlan } from "../services/learn/learnDecks.js";
+import { underRule, threeLayerProblems } from "../services/learn/deckLayers.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 
@@ -64,7 +65,7 @@ test("d155PathwaysPlanShown: decks-v2 … v24 APPROVED by the owner 11-08 (chang
   assert.ok(v2.decks.every(d => d.status === "approved" && d.pathway === "software" && d.stage === "building-blocks" && d.slides.length === 5));
   assert.ok(v2.newQuestions.every(q => q.status === "live" && q.choices[q.correct] && q.why.length === q.choices.length));
   const plan = pathwaysPlan();
-  assert.deepEqual([plan.written, plan.drafted, plan.planned], [207, 0, 0]);
+  assert.deepEqual([plan.written, plan.drafted, plan.planned], [209, 0, 0]);   // 47c: + decks-v25's ml-f-05 and cl-b-06 (approved 11-23)
   const bb = plan.pathways[0].stages.find(s => s.id === "building-blocks");
   assert.ok(bb.topics.every(t => typeof t.deck === "string"), "linked once approved");
   // the review copy says it is approved
@@ -81,7 +82,12 @@ test("d155PathwaysPlanShown: every deck batch holds the format — five slides, 
     for (const d of b.decks) {
       assert.ok(!ids.has(d.id), `${d.id} once`); ids.add(d.id);
       assert.ok(["draft", "approved"].includes(d.status), `${f} ${d.id} status`);
-      assert.equal(d.slides.map(s => s.tag).join("|"), "What it is|Core ideas|The trade-offs|In practice|Check yourself", `${d.id} slides`);
+      // 47c: a batch under D195 (decks-v25 on) is written in the three layers — D195's own lint is its shape;
+      // the older batches keep the five-slide tags.
+      if (underRule(b.version)) {
+        assert.deepEqual(threeLayerProblems(d), [], `${d.id} three layers`);
+        assert.equal(d.slides.at(-1).tag, "Check yourself", `${d.id} ends in its check`);
+      } else assert.equal(d.slides.map(s => s.tag).join("|"), "What it is|Core ideas|The trade-offs|In practice|Check yourself", `${d.id} slides`);
       const stage = plan.find(p => p.id === d.pathway)?.stages.find(s => s.id === d.stage);
       assert.ok(stage, `${d.id}: ${d.pathway} / ${d.stage} is in Part C`);
       const pos = Number(d.id.match(/-(\d+)$/)[1]);

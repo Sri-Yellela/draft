@@ -16,7 +16,6 @@ import { layeredDeck, question, writeBatch } from "./deckKit.mjs";
 
 writeBatch({
   version: 25,
-  dir: "docs/review",
   title: "research gaps, Picking an ML algorithm, Deployment patterns compared",
   note: "Drafted by the agent 2026-11-20 for the owner's review (D193-6, from the owner's 11-14 research gaps; D154 P4 format). ml-f-05 (pathway ml-ai, stage foundations) and cl-b-06 (pathway cloud, stage building-blocks). General knowledge in our own words. Re-drafted 47a to D195's three layers (concept, the math, the real world). Nothing is live until approved (status: draft).",
   decks: [

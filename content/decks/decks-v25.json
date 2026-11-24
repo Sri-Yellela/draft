@@ -1,6 +1,6 @@
 {
  "version": 25,
- "note": "Drafted by the agent 2026-11-20 for the owner's review (D193-6, from the owner's 11-14 research gaps; D154 P4 format). ml-f-05 (pathway ml-ai, stage foundations) and cl-b-06 (pathway cloud, stage building-blocks). General knowledge in our own words. Re-drafted 47a to D195's three layers (concept, the math, the real world). Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-20 for the owner's review (D193-6, from the owner's 11-14 research gaps; D154 P4 format). ml-f-05 (pathway ml-ai, stage foundations) and cl-b-06 (pathway cloud, stage building-blocks). General knowledge in our own words. Re-drafted 47a to D195's three layers (concept, the math, the real world). Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-23 (\"decks-v25 APPROVED (reviewed everything, approve all and get started)\").",
  "decks": [
   {
    "id": "ml-f-05",
@@ -65,7 +65,7 @@
     "ml-f-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "XGBoost on Kaggle (Chen & Guestrin, 2016)",
     "url": "https://arxiv.org/abs/1603.02754"
@@ -140,7 +140,7 @@
     "cl-b-06-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft",
+   "status": "approved",
    "realWorld": {
     "name": "Cloudflare's outage of 2 July 2019",
     "url": "https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/"
@@ -181,7 +181,7 @@
     "Unscaled features let the largest-valued ones dominate the distance, and predicting is slow on many payments."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "cl-b-06-q1",
@@ -210,7 +210,7 @@
     "Rollback is fast, but every user hits the risky change at once."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

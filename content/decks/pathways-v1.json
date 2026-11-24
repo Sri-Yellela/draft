@@ -497,6 +497,11 @@
               "title": "metrics",
               "deck": "ml-f-04",
               "status": "approved"
+            },
+            {
+              "title": "picking an algorithm",
+              "deck": "ml-f-05",
+              "status": "approved"
             }
           ]
         },
@@ -677,6 +682,11 @@
             {
               "title": "cloud building blocks (compute, storage, identity)",
               "deck": "cl-b-05",
+              "status": "approved"
+            },
+            {
+              "title": "deployment patterns",
+              "deck": "cl-b-06",
               "status": "approved"
             }
           ]

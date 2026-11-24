@@ -1,6 +1,6 @@
 # Decks v25 — research gaps, Picking an ML algorithm, Deployment patterns compared (for your review)
 
-Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 2 five-slide decks; each ends with one new question (drafts for the bank). **Nothing is live until you approve** — say "approve decks-v25" (or name the decks to change).
+Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 2 five-slide decks, each with one new question. **APPROVED by the owner 2026-11-23** — served in the Library; the questions are live in the bank.
 
 ## ml-f-05 · Picking an ML algorithm
 *Skills:* machine learning, model selection, classification, regression · *Check yourself:* ml-f-05-q1
