@@ -220,6 +220,13 @@ try {
       for (const x of lines.filter(x => x.t >= st.end - st.ms - 3000 && x.t <= st.end + 200).slice(-12)) console.log(`   ${x.l.slice(0, 220)}`);
     }
   } catch { /* no stalls recorded */ }
+  // ⭐ 47c: a worker's long task (a read-pool query, an offload page) is NOT a server freeze — information only, per thread.
+  try {
+    const ws = fs.readFileSync(`${LOOP}.worker-stalls`, "utf8").trim().split(/\r?\n/).filter(Boolean).map(l => JSON.parse(l));
+    const by = {};
+    for (const w of ws) { const b = (by[w.thread] ||= { n: 0, max: 0, at: 0 }); b.n++; if (w.ms > b.max) { b.max = w.ms; b.at = w.end; } }
+    for (const [th, b] of Object.entries(by)) console.log(`info worker ${th}: ${b.n} tasks over 1 s, longest ${b.max} ms ending at t=${b.at} (off the main thread)`);
+  } catch { /* no worker long tasks */ }
   const v1 = await version();
   check("the read pool never fell back", (v1.readPool?.fallback || 0) === 0, JSON.stringify({ served: v1.readPool?.served, fallback: v1.readPool?.fallback }));
   const slices = { "classify page": v1.classify?.maxPageMs, "classify write": v1.classify?.maxWriteMs, "classify read": v1.classify?.maxReadMs };
