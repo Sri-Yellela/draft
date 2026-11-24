@@ -7,7 +7,9 @@
 import { useSyncExternalStore } from "react";
 
 export const MARKET_PLATE_KEY = "draft.plate.market";
-export const MARKET_PLATE_DEFAULT = false;
+// ⭐ 47f (owner 11-24, after the P1 FIX: "looked and approved") — ON for everyone; `?plate=0` still turns it off for one browser
+// until the classic market is retired (after the browser tier and the first signed-in walk — the 47g order).
+export const MARKET_PLATE_DEFAULT = true;
 const listeners = new Set();
 
 function readParam(search) {
