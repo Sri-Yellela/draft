@@ -7474,4 +7474,15 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_board_kept_cache_user ON board_kept_cache(user_id);
       `,
     },
+    {
+      // ⭐ D193-5 (owner 11-23: "GO AHEAD") · the data-engineering roadmap as a guided route inside the existing course — the
+      // roadmap's stations in order over the circle's pieces: SQL (b1) → Python (c3) → the toolkit and Linux (c5, lx1) →
+      // data modelling (b2) → the cloud (o4) → queues and system design (x2). Data like the four routes seeded in 202:
+      // INSERT OR IGNORE, so an edit made in Admin → Routes is never overwritten. Only ADDS a row.
+      id: "281_learn_route_data_engineering",
+      sql: `
+        INSERT OR IGNORE INTO learn_routes (id, name, targets, position, updated_by) VALUES
+          ('data-engineering', 'Data engineering roadmap', '["b1","c3","c5","lx1","b2","o4","x2"]', 4, 'seed:281');
+      `,
+    },
   ];

@@ -112,6 +112,7 @@ import { createCompanyFacts } from "./services/companies/companyFacts.js";
 import { createCompanyGithub } from "./services/companies/companyGithub.js";
 import { createCompanyWebSignals } from "./services/companies/companyWebSignals.js";
 import { renderLandingPage, landingSitemapRoutes } from "./services/jobs/landingPages.js";
+import { renderRoadmapPage, ROADMAP_PATH } from "./services/learn/roadmapPage.js";   // ⭐ D193-5 (47c)
 import { startAudit, answerAudit, auditResult, claimAudit } from "./services/audit/auditSession.js";
 import { todaysQuestion, answerToday } from "./services/learn/dailyQuestion.js";
 import { readReminder, setReminder, runDailyReminders } from "./services/learn/dailyReminder.js";
@@ -8150,6 +8151,17 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_board_kept_cache_user ON board_kept_cache(user_id);
       `,
     },
+    {
+      // ⭐ D193-5 (owner 11-23: "GO AHEAD") · the data-engineering roadmap as a guided route inside the existing course — the
+      // roadmap's stations in order over the circle's pieces: SQL (b1) → Python (c3) → the toolkit and Linux (c5, lx1) →
+      // data modelling (b2) → the cloud (o4) → queues and system design (x2). Data like the four routes seeded in 202:
+      // INSERT OR IGNORE, so an edit made in Admin → Routes is never overwritten. Only ADDS a row.
+      id: "281_learn_route_data_engineering",
+      sql: `
+        INSERT OR IGNORE INTO learn_routes (id, name, targets, position, updated_by) VALUES
+          ('data-engineering', 'Data engineering roadmap', '["b1","c3","c5","lx1","b2","o4","x2"]', 4, 'seed:281');
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -11271,6 +11283,12 @@ app.get("/jobs/role/:id/in/:metro", landingRoute("role-metro", (p) => ({ role: p
 app.get("/jobs/sponsor-h1b/:id", landingRoute("sponsor", (p) => ({ role: p.id })));
 app.get("/jobs/sponsor-h1b/:id/in/:metro", landingRoute("sponsor-metro", (p) => ({ role: p.id, metro: p.metro })));
 app.get("/jobs/tech/:slug", landingRoute("tech", (p) => p.slug));
+// ⭐ D193-5 (47c, owner 11-23 "GO AHEAD") · the data-engineering roadmap, public: the stations and their approved decks, read
+// from the deck files (no database read); D194 P4's preview plays the first deck's first three points, CSS only, no sound.
+app.get(ROADMAP_PATH, (req, res) => {
+  const page = renderRoadmapPage({ base: appBaseUrl(req) });
+  res.set("Cache-Control", "public, max-age=3600").status(page.status).type("html").send(page.html);
+});
 app.get("/sitemap-landing.xml", async (req, res) => {
   let routes; try { routes = await sitemapPart("landing", "sitemapLanding"); } catch { return offloadBusy(res); }
   res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(sitemapXml(appBaseUrl(req), routes));
@@ -11308,6 +11326,7 @@ app.get("/sitemap.xml", (req, res) => {
     { path: "/", changefreq: "weekly", priority: "1.0" },
     { path: "/jobs", changefreq: "hourly", priority: "0.9" },   // D179 P3: the open board
     { path: "/audit", changefreq: "weekly", priority: "0.8" },  // D150 T08: the 3-minute audit
+    { path: ROADMAP_PATH, changefreq: "monthly", priority: "0.7" },   // D193-5: the data-engineering roadmap
     { path: "/login", changefreq: "monthly", priority: "0.8" },
     { path: "/features", changefreq: "monthly", priority: "0.6" },
     { path: "/pricing", changefreq: "monthly", priority: "0.6" },
