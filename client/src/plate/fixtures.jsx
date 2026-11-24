@@ -5,13 +5,13 @@
 import PlateRoot from "./PlateRoot.jsx";
 import { AreaNav, Dock } from "./Shell.jsx";
 import { MemoryRouter } from "react-router-dom";
-import MarketCardFace from "./MarketCardFace.jsx";
 import PlateBearing from "./PlateBearing.jsx";
 import MarketHero from "./MarketHero.jsx";
 import MarketOpenings, { MarketTickets } from "./MarketOpenings.jsx";
 import { publishFrontCard } from "./marketPlate.js";
 import { DRAWINGS } from "./drawings/index.js";
 import { FieldCard } from "./Cards.jsx";
+import { PlateDeckStill } from "../panels/DeckView.jsx";   // FIX-2: the Deck tab is the real FanCard, at the board's size
 
 const MARKET_VIEWS = [
   { id: "picks", label: "Today’s picks", href: "#picks", icon: "picks" },
@@ -50,16 +50,29 @@ const BOARD_CARD = {
     postedAt: new Date(Date.now() - 2 * 3600e3).toISOString(), salaryMin: 150000, salaryMax: 180000, contractType: "Full-time", workplaceType: "hybrid",
     worksWith: ["React", "TypeScript", "Next.js", "Playwright", "Datadog RUM"], sponsorship: { level: "often" } },
 };
-/** The market's card face (P1) in the deck's OWN frames — landscape 600 × 372 and portrait 300 × 420 (the owner's form
- *  factor), corner 26 — side by side with the board's opening (a look, not a pixel gate: the sizes differ on purpose). */
+// the board's next two openings (their backs sit behind Kestrel's ticket)
+const BOARD_NEXT = [
+  { score: 86, why: { matched: ["React", "TypeScript", "GraphQL"], missing: ["D3"] },
+    job: { id: "northwind-1", company: "Northwind Analytics", location: "Remote (US)", title: "Software Engineer, Frontend (Dashboards)",
+      postedAt: new Date(Date.now() - 5 * 3600e3).toISOString(), salaryMin: 140000, salaryMax: 165000, contractType: "Full-time", remote: true, worksWith: ["React", "TypeScript", "D3", "GraphQL"] } },
+  { score: 79, why: { matched: ["React", "TypeScript"], missing: ["WebGL", "Rust"] },
+    job: { id: "halcyon-1", company: "Halcyon Robotics", location: "Somerville, MA", title: "UI Engineer, Fleet Console",
+      postedAt: new Date(Date.now() - 26 * 3600e3).toISOString(), contractType: "Full-time", workplaceType: "onsite", worksWith: ["React", "TypeScript", "WebGL", "Rust"], sponsorship: { level: "often" } } },
+];
+const BOARD_FIGURES = { label: "ROLE FIT · STACK · DUTIES", value: "91 · 88 · 80", items: [
+  { label: "ROLE FIT", key: "role", value: 91 }, { label: "STACK", key: "stack", value: 88 }, { label: "DUTIES", key: "duties", value: 80 }] };
+/** The market's ticket (FIX-2 / FIX-4) alone, as DeckView's plate deck draws it in the board's deck column (826 px — the
+ *  board's ticket measures 808 + the backs' 18). */
+/** The board element's sub-pixel offset, passed by the regression run (#ox=…&oy=…), as a margin so text lays out on it. */
+function subpixel() {
+  const q = new URLSearchParams((globalThis.location?.hash || "").slice(1));
+  // w = the board ticket's own width: the column is that + the backs' 18 px
+  return { marginLeft: Number(q.get("ox")) || 0, marginTop: Number(q.get("oy")) || 0, ...(Number(q.get("w")) ? { width: Number(q.get("w")) + 18 } : null) };
+}
 export function MarketFace() {
-  const frame = (w, h) => ({ position: "relative", width: w, height: h, borderRadius: 26, overflow: "hidden" });
   return (
     <MemoryRouter>
-      <div data-market-face-fixture="" style={{ display: "flex", gap: 32, alignItems: "flex-start", padding: 24 }}>
-        <article style={frame(600, 372)}><MarketCardFace card={BOARD_CARD} isFront size={{ width: 600, height: 372 }} landscape/></article>
-        <article style={frame(300, 420)}><MarketCardFace card={BOARD_CARD} isFront size={{ width: 300, height: 420 }} landscape={false}/></article>
-      </div>
+      <div data-market-face-fixture="" className="plate" style={{ width: 826, padding: 24, boxSizing: "content-box", ...subpixel() }}><PlateDeckStill cards={[BOARD_CARD, ...BOARD_NEXT]} of={412}/></div>
     </MemoryRouter>
   );
 }
@@ -83,16 +96,20 @@ export function MarketHeroBoard() {
   );
 }
 
-/** The openings (P1): the deck's landscape card in its own frame + the board's field card (Kestrel's lines). */
+/** The openings (P1 + FIX-2 / FIX-4 / FIX-5): the deck as DeckView draws it in the plate market (the real FanCard, the
+ *  deck's own backs, at the column's width) + the board's field card (Kestrel's lines, its three labelled numbers). */
 export function MarketOpeningsBoard() {
+  const { marginLeft, marginTop } = subpixel();
+  const w = Number(new URLSearchParams((globalThis.location?.hash || "").slice(1)).get("w")) || 1182;   // the board section's width (1182 at 1280, 292 at 390)
   return (
     <MemoryRouter>
-      <div style={{ width: 1182 }}>
+      {/* the offset as PADDING: a margin collapses into the section's own 64 px top margin and is lost */}
+      <div style={{ width: w, paddingLeft: marginLeft, paddingTop: marginTop, boxSizing: "content-box" }}>
         <MarketOpenings count={412}
-          deck={<article style={{ position: "relative", width: 600, height: 372, borderRadius: 26, overflow: "hidden" }}><MarketCardFace card={BOARD_CARD} isFront size={{ width: 600, height: 372 }} landscape/></article>}
+          deck={<PlateDeckStill cards={[BOARD_CARD, ...BOARD_NEXT]} of={412}/>}
           index={<div/>}
           field={<FieldCard alike={["Role and level: frontend, mid — same as yours", "Their stack: React, TypeScript, Next.js all on your résumé", "Duties: “rebuild checkout” ≈ your Toast checkout rebuild"]}
-            gaps={[{ text: "They monitor with Datadog RUM.", link: { label: "Learn it →", href: "#atlas" } }]} figures={{ label: "ROLE FIT · STACK · DUTIES", value: "88 · 75 · 72" }}/>}/>
+            gaps={[{ text: "They monitor with Datadog RUM.", link: { label: "Learn it →", href: "#atlas" } }]} figures={BOARD_FIGURES}/>}/>
       </div>
     </MemoryRouter>
   );

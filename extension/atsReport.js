@@ -397,8 +397,13 @@ function fieldCardView({ report = null, contextual = null } = {}) {
     const miss = words(report?.tier1_missing, 1)[0];
     if (miss) gaps.push({ text: `The posting asks for ${miss}.`, tech: miss });
   }
-  const fig = [["ROLE FIT", role], ["STACK", stack], ["DUTIES", work]].filter(([, p]) => p?.status === "ok" && num(p.score) != null);
-  return { alike: alike.slice(0, 3), gaps: gaps.slice(0, 2), figures: fig.length ? { label: fig.map(([l]) => l).join(" · "), value: fig.map(([, p]) => num(p.score)).join(" · ") } : null };
+  // ⭐ D196 FIX-5 (owner 11-24, 47f): the board's THREE numbers, always all three and each labelled (ROLE FIT · STACK ·
+  // DUTIES) — a part the scorer didn't score shows "—" in its own place, so a number is never read as another's.
+  const items = [["ROLE FIT", "role", role], ["STACK", "stack", stack], ["DUTIES", "duties", work]].map(([label, key, p]) => ({
+    label, key, value: p?.status === "ok" ? num(p.score) : null }));
+  const any = items.some((f) => f.value != null);
+  return { alike: alike.slice(0, 3), gaps: gaps.slice(0, 2), figures: any ? { label: items.map((f) => f.label).join(" · "),
+    value: items.map((f) => (f.value == null ? "—" : f.value)).join(" · "), items } : null };
 }
 return { atsCardView, fieldCardView };
 })();

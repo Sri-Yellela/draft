@@ -72,7 +72,9 @@ test("D196 F1 · the token file holds every hex the design report's tables give"
 
 test("D196 F1 · the scales are the report's: shadows 3 / 4 / 5 / 6 / 8 / 10 hard (no blur), the ruler 16 / 80, the easing", () => {
   const t = strip(fs.readFileSync(TOKENS, "utf8"));
-  for (const n of [3, 4, 5, 6, 8, 10]) assert.match(t, new RegExp(`--pl-s${n}:\\s*${n}px ${n}px 0 var\\(--pl-ink\\)`), `shadow ${n}`);
+  // 47f (D196 THEMES): the hard shadows read --pl-shade, which IS the ink on paper (a deeper ground in a dark theme)
+  assert.match(t, /--pl-shade:\s*var\(--pl-ink\)/, "the shadow's colour is the ink by default");
+  for (const n of [3, 4, 5, 6, 8, 10]) assert.match(t, new RegExp(`--pl-s${n}:\\s*${n}px ${n}px 0 var\\(--pl-shade\\)`), `shadow ${n}`);
   for (const m of t.matchAll(/--pl-s(?:\d+(?:-[a-z]+)?|-hover|-tab):\s*([^;]+);/g)) assert.match(m[1], /^-?\d+px -?\d+px 0 /, `a shadow with blur: ${m[1]}`);
   assert.match(t, /transparent 1px 80px/); assert.match(t, /transparent 1px 16px/);
   assert.match(t, /--pl-ease:\s*cubic-bezier\(\.2, \.8, \.2, 1\)/);

@@ -8,13 +8,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { launchBrowser } from "../services/browserLauncher.js";
-import { PAIRS, runPair, THRESHOLD_PCT } from "../scripts/d196Regress.mjs";
+import { PAIRS, runPair, THRESHOLD_PCT, LAUNCH_ARGS } from "../scripts/d196Regress.mjs";
 
 test("⛔ D196 F5 · every built piece is within 2 % of its sketch", { timeout: 600000 }, async () => {
-  const browser = await launchBrowser({ headless: "new" });
+  const browser = await launchBrowser({ headless: "new", extraArgs: LAUNCH_ARGS });   // 47f: both sides greyscale text
   const results = [];
   try {
     for (const name of Object.keys(PAIRS)) results.push(await runPair(name, { browser }));
+    // 47f (the owner's FIX acceptance: "F5 diff ≤ 2 % at 1280 and 390"): the market's Deck tab at 390 too
+    for (const name of ["market-face", "market-openings"]) results.push({ ...(await runPair(name, { browser, width: 390 })), pair: `${name}@390` });
   } finally { await browser.close(); }
   const failing = results.filter((r) => !r.pass).map((r) => `${r.pair}: ${r.pct} % (board ${r.sizeBoard.join("×")}, build ${r.sizeBuild.join("×")}) — see tmp/d196-regress/${r.pair}/pair.png`);
   assert.deepEqual(failing, [], `over ${THRESHOLD_PCT} % or a different size — fix the component, never the threshold`);

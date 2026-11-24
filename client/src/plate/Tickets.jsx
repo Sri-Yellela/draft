@@ -29,12 +29,17 @@ export function Ticket({ kicker, title, line, go, href, tone = "plain", onClick,
  * R2: long titles and names wrap; no logo → the letter tile; no pay → "Pay not posted"; no sponsorship data → no stamp
  * (nothing says "no"). The actions are the caller's (R6: the deck keeps its own Pass / Save / Send / Draft).
  */
-export function Opening({ opening = {}, actions, ...s }) {
+// ⭐ D196 FIX-4 (47f): the deck draws its ticket with THIS component (A93 — built once), through four optional slots that
+// leave the gallery's markup unchanged when absent: `as` (the deck's FanCard is already the <article>, so its face is a
+// div), `company` (the deck's router Link with its data-company-link hook), `match` (the deck's button that opens the
+// report) and `titleProps` (+ `titleTag`: the deck's h2 with its id, ref and view-transition name). `rest` lands on the root.
+export function Opening({ opening = {}, actions, as: Root = "article", company, match, titleProps, titleTag: TitleTag = "h3", rootProps, ...s }) {
   const gate = plateState(s, { height: 420, radius: "sheet", label: "Loading the opening", lines: 4 });
   if (gate) return gate;
   const o = opening;
+  const label = Root === "article" ? `${o.title || "Opening"} at ${o.company || "a company"}${o.match == null ? "" : `, ${o.match}% match`}` : undefined;
   return (
-    <article className="pl-opening" aria-label={`${o.title || "Opening"} at ${o.company || "a company"}${o.match == null ? "" : `, ${o.match}% match`}`} data-region={o.region}>
+    <Root className="pl-opening" aria-label={label} data-region={o.region} {...rootProps}>
       <div className="pl-opening__strip">
         <span className="pl-label">OPENING{o.posted ? ` · ${o.posted}` : ""}</span>
         {o.live ? <span className="pl-label pl-tone-lit">{o.live}</span> : null}
@@ -44,28 +49,28 @@ export function Opening({ opening = {}, actions, ...s }) {
           <div className="pl-opening__co">
             <LetterTile name={o.company} logo={o.logo} region={o.region}/>
             <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-              {o.companyHref ? <a className="pl-opening__coname" href={o.companyHref}>{o.company}</a> : <span className="pl-opening__coname">{o.company}</span>}
-              {o.place ? <span className="pl-opening__place">{o.place}</span> : null}
+              {company || (o.companyHref ? <a className="pl-opening__coname" href={o.companyHref}>{o.company}</a> : <span className="pl-opening__coname">{o.company}</span>)}
+              {o.place ? <span className="pl-opening__place" data-deck-location="">{o.place}</span> : null}
             </div>
           </div>
-          {o.match == null ? null : (
+          {match !== undefined ? match : o.match == null ? null : (
             <div className="pl-opening__match"><span className="pl-opening__pct">{o.match}%</span><span className="pl-label">MATCH</span></div>
           )}
         </div>
-        <h3 className="pl-opening__title">{o.title}</h3>
-        <div className="pl-opening__facts">
+        <TitleTag className="pl-opening__title" {...titleProps}>{o.title}</TitleTag>
+        <div className="pl-opening__facts" data-deck-info="">
           <b>{o.pay || "Pay not posted"}</b>{o.type ? <span>{o.type}</span> : null}{o.mode ? <span>{o.mode}</span> : null}
         </div>
         {o.stack?.length ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }} data-works-with="">
             <span className="pl-label pl-muted">WORKS WITH · ✓ ON YOUR RÉSUMÉ</span>
             <div className="pl-stackchips">{o.stack.map((t) => <StackChip key={t.name} name={t.name} yours={t.yours}/>)}</div>
           </div>
         ) : s.state === "partial" ? <NoData>STACK · NO DATA YET</NoData> : null}
-        {o.sponsors ? <span style={{ position: "absolute", right: 26, bottom: 6 }}><Stamp>{o.sponsorLabel || "FILED H-1B"}</Stamp></span> : null}
+        {o.sponsors ? <span className="pl-opening__stamp"><Stamp land={o.stampLand !== false}>{o.sponsorLabel || "FILED H-1B"}</Stamp></span> : null}
       </div>
-      {actions ? <><div aria-hidden="true" className="pl-opening__tear"/><div className="pl-opening__actions">{actions}</div></> : null}
-    </article>
+      {actions ? <><div aria-hidden="true" className="pl-opening__tear"/><div className="pl-opening__actions" data-deck-actions="">{actions}</div></> : null}
+    </Root>
   );
 }
 

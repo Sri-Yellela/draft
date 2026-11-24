@@ -120,14 +120,15 @@
   --pl-tear: var(--pl-line-mark) dashed var(--pl-ink);       /* a ticket's tear line */
 
   /* ── Hard shadows, no blur (report): chips 3 · cards 4 · section cards 5 · plates 6 · hero / open menu 8 · main hero 10 ── */
-  --pl-s1: 2px 2px 0 var(--pl-ink);
-  --pl-s3: 3px 3px 0 var(--pl-ink);
-  --pl-s4: 4px 4px 0 var(--pl-ink);
-  --pl-s5: 5px 5px 0 var(--pl-ink);
-  --pl-s6: 6px 6px 0 var(--pl-ink);
-  --pl-s8: 8px 8px 0 var(--pl-ink);
-  --pl-s10: 10px 10px 0 var(--pl-ink);
-  --pl-s-hover: 7px 7px 0 var(--pl-ink);           /* .at-plate:hover — 4 + 3 */
+  --pl-shade: var(--pl-ink);                       /* the hard shadow's colour (dark themes: a deeper ground) */
+  --pl-s1: 2px 2px 0 var(--pl-shade);
+  --pl-s3: 3px 3px 0 var(--pl-shade);
+  --pl-s4: 4px 4px 0 var(--pl-shade);
+  --pl-s5: 5px 5px 0 var(--pl-shade);
+  --pl-s6: 6px 6px 0 var(--pl-shade);
+  --pl-s8: 8px 8px 0 var(--pl-shade);
+  --pl-s10: 10px 10px 0 var(--pl-shade);
+  --pl-s-hover: 7px 7px 0 var(--pl-shade);           /* .at-plate:hover — 4 + 3 */
   --pl-s6-clay: 6px 6px 0 var(--pl-clay);          /* the one primary ticket */
   --pl-s3-clay: 3px 3px 0 var(--pl-clay);          /* an active filter chip */
   --pl-s3-region: 3px 3px 0 var(--pl-region);
@@ -182,6 +183,54 @@
   color: var(--pl-ink);
   font-family: var(--pl-sans);
 }
+
+/* ⭐ D196 THEMES (owner 11-24, 47f: "dusk and plain are themes or wrappers over ui elements, just color palette variants,
+   the plate has to land for every theme"). Inside the app (<html data-theme>, set by themes/index.js), the plate keeps its
+   STRUCTURE — the 1.5 px lines, the hard shadows, the serif, the tickets, the perforations — and takes its COLOURS from
+   the theme the person chose: paper = the theme's canvas, the card = its solid surface, ink = its ink, clay = its accent,
+   proven = its success. The literal values above are the sketch's palette: a standalone page (the F5 harness, the
+   gallery's export pairs — no data-theme) and `<html data-plate-palette="sketch">` keep them, so the F5 diff compares like with like.
+   ⛔ Every plate surface is opaque in every theme (FIX-1): nothing on a plate page is transparent to the app shell. */
+:root[data-theme]:not([data-plate-palette="sketch"]) .plate {
+  --pl-paper: var(--c-canvas);
+  --pl-paper-deep: color-mix(in srgb, var(--c-canvas) 94%, var(--c-ink));
+  --pl-paper-warm: color-mix(in srgb, var(--c-canvas) 45%, var(--c-surface-solid));
+  --pl-paper-hover: color-mix(in srgb, var(--c-canvas) 88%, var(--c-ink));
+  --pl-tab-off: color-mix(in srgb, var(--c-canvas) 86%, var(--c-ink));
+  --pl-card: var(--c-surface-solid);
+  --pl-card-veil: color-mix(in srgb, var(--c-surface-solid) 85%, transparent);
+  --pl-ink: var(--c-ink);
+  --pl-ink-soft: color-mix(in srgb, var(--c-ink) 82%, var(--c-ink-muted));
+  --pl-muted: var(--c-ink-muted);
+  --pl-muted-2: var(--c-ink-faint);
+  --pl-rule: var(--c-border);
+  --pl-rule-2: var(--c-border);
+  --pl-clay: var(--c-accent);
+  --pl-clay-hover: var(--c-accent-hover);
+  --pl-clay-text: var(--c-accent-ink);
+  --pl-clay-tint: var(--c-accent-quiet);
+  --pl-lit: var(--c-success);
+  --pl-on-ink: var(--c-canvas);
+  --pl-on-clay: var(--c-on-accent);
+}
+/* Dark themes: the hard shadow is a darker step of the ground, not the (light) ink — a white offset shadow reads as a
+   second border. The region colours lift toward the ink so an outlined numeral or a navy stamp holds ≥ 4.5 : 1 on a dark
+   ground; their tints sink toward the ground. */
+:root[data-theme$="-dark"]:not([data-plate-palette="sketch"]) .plate {
+  --pl-shade: color-mix(in srgb, var(--c-canvas) 55%, black);
+  --pl-r1: color-mix(in srgb, #C2593A 55%, var(--c-ink)); --pl-r2: color-mix(in srgb, #4B3FA8 45%, var(--c-ink));
+  --pl-r3: color-mix(in srgb, #B4532A 55%, var(--c-ink)); --pl-r4: color-mix(in srgb, #1F3A63 40%, var(--c-ink));
+  --pl-r5: color-mix(in srgb, #6A3E73 45%, var(--c-ink)); --pl-r6: color-mix(in srgb, #2F6B7A 50%, var(--c-ink));
+  --pl-r7: color-mix(in srgb, #7A5A2A 50%, var(--c-ink)); --pl-r8: color-mix(in srgb, #5A5F2E 50%, var(--c-ink));
+  --pl-r1-tint: color-mix(in srgb, #C2593A 18%, var(--c-canvas)); --pl-r2-tint: color-mix(in srgb, #4B3FA8 22%, var(--c-canvas));
+  --pl-r3-tint: color-mix(in srgb, #B4532A 18%, var(--c-canvas)); --pl-r4-tint: color-mix(in srgb, #1F3A63 30%, var(--c-canvas));
+  --pl-r5-tint: color-mix(in srgb, #6A3E73 24%, var(--c-canvas)); --pl-r6-tint: color-mix(in srgb, #2F6B7A 24%, var(--c-canvas));
+  --pl-r7-tint: color-mix(in srgb, #7A5A2A 24%, var(--c-canvas)); --pl-r8-tint: color-mix(in srgb, #5A5F2E 24%, var(--c-canvas));
+  --pl-r1-ring: var(--pl-r1-tint); --pl-r2-ring: var(--pl-r2-tint); --pl-r3-ring: var(--pl-r3-tint); --pl-r4-ring: var(--pl-r4-tint);
+  --pl-r5-ring: var(--pl-r5-tint); --pl-r6-ring: var(--pl-r6-tint); --pl-r7-ring: var(--pl-r7-tint); --pl-r8-ring: var(--pl-r8-tint);
+}
+/* Plain (D181) in the app: no tints, whichever of its two schemes. */
+:root[data-theme^="plain-"]:not([data-plate-palette="sketch"]) .plate { --pl-region-tint: var(--pl-paper-warm); --pl-region-ring: var(--pl-rule); --pl-clay-tint: var(--pl-paper-warm); }
 
 /* Region palettes a page or a component can wear. Clay (I) is a REGION here only on Atlas pages — never a sector. */
 .plate [data-region="I"], .plate[data-region="I"]       { --pl-region: var(--pl-r1); --pl-region-tint: var(--pl-r1-tint); --pl-region-ring: var(--pl-r1-ring); }

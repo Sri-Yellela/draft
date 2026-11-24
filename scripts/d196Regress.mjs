@@ -24,6 +24,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = path.join(ROOT, "tmp", "d196-regress");
 export const THRESHOLD_PCT = 2;
 export const TOLERANCE = 40;   // per channel, 0–255
+export const LAUNCH_ARGS = Object.freeze(["--disable-lcd-text"]);
 
 /** The pairs: a board, the element to crop on each side, and the fixture that builds it. */
 export const PAIRS = {
@@ -31,7 +32,17 @@ export const PAIRS = {
   "shell-market-nav": { board: "The market · draft", fixture: "ShellMarket", boardSel: "header", buildSel: "header.pl-areanav", pad: 0 },
   // P1 · the card face: the owner kept the deck's form factor (11-24), so the face can never be the board's size — this pair
   // is a LOOK for the owner (pair.png), not a pixel gate; its report says so instead of passing or failing.
-  "market-face": { board: "The market · draft", fixture: "MarketFace", boardSel: "article[aria-label]", buildSel: "[data-market-face-fixture]", pad: 6, look: true },
+  // FIX-2 (47f, the owner: "retain the frame and flip but also make it pixel diffable"): the ticket at the board's size, drawn
+  // by DeckView's own FanCard (PlateDeckStill) — now a GATE. The pad takes in the 6 px shadow; the backs' slivers above and
+  // to the right are the deck's own CardBack (the owner's keep), compared as they are.
+  "market-face": { board: "The market · draft", fixture: "MarketFace", boardSel: "article[aria-label]", buildSel: '[data-fan-offset="0"] article', pad: 6, reduced: true, subpixel: true,
+    // the two strings the build can't back (D196 R2: never invented): the board's "· CHECKED TODAY" (a dealt card has no
+    // check date) and the stamp's "· FY25" (no filing year on the card) — masked; everything else is compared
+    // + the back sheets' slivers in the 6 px pad above and right of the ticket (the deck's own CardBack — the keep)
+    masks: [[600, 12, 200, 16], [588, 226, 206, 56], [0, 0, 820, 7], [813, 0, 7, 376]],
+    // at 390 (the board's artboard, its desktop dock kept: a 226 px ticket): CHECKED TODAY on the strip's second line, and
+    // the stamp — the board's covers the last chip, the build's hangs on the tear line (the noted deviation)
+    masksAt: { 390: [[60, 34, 150, 16], [0, 566, 238, 76], [0, 0, 238, 7], [231, 0, 7, 829]] } },
   // P1 · the bearing: the board's sentence carries clauses the live model words differently (the résumé's own role, level,
   // sponsorship), so this too is a look at the cartouche's frame and type, not a pixel gate.
   "market-bearing": { board: "The market · draft", fixture: "MarketBearing", boardSel: "section:nth-of-type(2)", buildSel: "[data-market-bearing-fixture]", pad: 0, look: true },
@@ -40,7 +51,21 @@ export const PAIRS = {
     // (shared/atsBands.js), which is not ≥ 85 %, so the cell says STRONG FIT; its label is masked, its number is not
     masks: [[400, 345, 100, 18]] },
   // P1 · the openings: the deck card keeps the deck's form factor (600 wide, not the board's 760), so the section is a look
-  "market-openings": { board: "The market · draft", fixture: "MarketOpeningsBoard", boardSel: "section:nth-of-type(3)", buildSel: "#openings", pad: 0, look: true, reduced: true },
+  // FIX-2 / FIX-4 / FIX-5 (47f): the Deck tab as DeckView draws it — a GATE (D196: "no page is called landed without its F5").
+  "market-openings": { board: "The market · draft", fixture: "MarketOpeningsBoard", boardSel: "section:nth-of-type(3)", buildSel: "#openings", pad: 0, reduced: true, subpixel: true,
+    // masked: the field card (x ≥ 868) — FIX-5 replaced the board's wrapped "ROLE FIT · STACK · DUTIES / 91 · 88 · 80" foot
+    // with a labelled row on the owner's word, so it is its own LOOK pair (market-field); and the strings the board has and
+    // the build can't back: "· EXAMPLE DATA", "· CHECKED TODAY", the stamp's "· FY25", the position line's sort words
+    // ... and the two back sheets' slivers above and right of the ticket: the board draws plain white sheets, the build the
+    // deck's OWN CardBack (the owner's keep, 11-24) at the board's exact poses — compared everywhere else
+    masks: [[868, 230, 314, 461], [300, 0, 200, 22], [600, 280, 230, 18], [580, 490, 250, 70], [0, 650, 420, 30],
+      [24, 236, 844, 32], [832, 236, 36, 405]],
+    // at 390 the field card wraps under the deck: the gate stops at its top (cropTo — it is market-field's look), and the
+    // same kinds of mask apply where the parts land there (EXAMPLE DATA, CHECKED TODAY, the stamp, the backs, the position
+    // line: the build's ‹ is disabled on the first card — honest — where the board's wraps round)
+    cropTo: { 390: 1495 },
+    masksAt: { 390: [[80, 90, 160, 16], [40, 604, 160, 16], [20, 1150, 250, 70], [20, 560, 272, 22], [246, 560, 46, 840], [0, 1400, 292, 95]] } },
+  "market-field": { board: "The market · draft", fixture: "MarketOpeningsBoard", boardSel: 'aside[aria-label="Why this opening fits you"]', buildSel: 'aside[aria-label="Why this opening fits you"]', pad: 6, reduced: true, look: true },
   // v2 (47e, order item 4): each ported drawing against its own element on the v2 boards, drawn at the board's width
   // (`matchWidth`: the build page reads the board element's width from its address) — the port's fidelity, pixel for pixel.
   "v2-elevation": { source: "v2", board: "Atlas place: Webhooks, Region IV grid D3", fixture: "PortedDrawing", drawing: "PlaceElevationProfile", boardSel: 'svg[aria-label^="Elevation profile"]', buildSel: "svg[role=img]", pad: 0, matchWidth: true, reduced: true, ground: "#FFFFFF", cornerMasks: 24 },
@@ -68,7 +93,7 @@ export function diffRgba(a, b, width, height, { tolerance = TOLERANCE, masks = [
   return { differing, compared, pct: compared ? (100 * differing) / compared : 0, mark };
 }
 
-async function buildFixturePage(name) {
+export async function buildFixturePage(name) {
   const require = createRequire(path.join(ROOT, "client", "package.json"));
   const esbuild = require("esbuild");
   const dir = path.join(OUT, "_build");
@@ -84,7 +109,9 @@ async function buildFixturePage(name) {
     bundle: true, format: "iife", outfile: path.join(dir, `${name}.js`), jsx: "automatic", logLevel: "warning",
     loader: { ".woff2": "file", ".woff": "file" }, define: { "process.env.NODE_ENV": '"production"' },
   });
-  const html = `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="${name}.css">
+  // 47f (D196 THEMES): inside the app the plate takes the person's theme; the oracle is the SKETCH's palette, so the build
+  // page pins it (styles/plate.css: html[data-plate-palette="sketch"] keeps the report's literal values) — like with like.
+  const html = `<!doctype html><html data-plate-palette="sketch"><head><meta charset="utf-8"><link rel="stylesheet" href="${name}.css">
     <style>html,body{margin:0;background:var(--pl-paper, #F4EFE9)}</style></head><body><div id="root"></div><script src="${name}.js"></script></body></html>`;
   const file = path.join(dir, `${name}.html`);
   fs.writeFileSync(file, html);
@@ -153,10 +180,23 @@ export async function runPair(name, { width = 1280, threshold = THRESHOLD_PCT, b
   const frac = (v) => +(v - Math.floor(v)).toFixed(4);
   if (p.matchWidth || p.drawing) buildUrl += `#${new URLSearchParams({ ...(p.drawing ? { name: p.drawing } : {}),
     ...(p.matchWidth ? { w: String(board.box.w), h: String(board.box.h), ox: String(frac(board.box.x - p.pad)), oy: String(frac(board.box.y - p.pad)) } : {}) })}`;
+  // subpixel (47f): a composed fixture (the deck's ticket) placed at the board element's own sub-pixel offset — the board's
+  // ticket sits at a fractional y, and one whole pixel apart every glyph's edge read as a difference (7 % on FIX-2's run)
+  else if (p.subpixel) buildUrl += `#${new URLSearchParams({ ox: String(frac(board.box.x)), oy: String(frac(board.box.y)), w: String(board.box.w) })}`;
   const build = await shot(page, buildUrl, p.buildSel, width, p.pad, p.waitBuild || 600, !!p.reduced, p.ground);
   // cornerMasks: the board container's rounded corners clip the drawing's corners there (the page's frame, not the drawing)
   const cm = p.cornerMasks, bw = board.clip.width, bh = board.clip.height;
-  const masks = [...(p.masks || []), ...(cm ? [[0, 0, cm, cm], [bw - cm, 0, cm, cm], [0, bh - cm, cm, cm], [bw - cm, bh - cm, cm, cm]] : [])];
+  // masksAt[width]: a pair's masks at another width (the board lays the same parts out elsewhere at 390)
+  const masks = [...((p.masksAt && p.masksAt[width]) || p.masks || []), ...(cm ? [[0, 0, cm, cm], [bw - cm, 0, cm, cm], [0, bh - cm, cm, cm], [bw - cm, bh - cm, cm, cm]] : [])];
+  // cropTo[width]: compare only the top N px of both (what lies below is another pair's)
+  const cut = p.cropTo && p.cropTo[width];
+  const [bPng, uPng] = cut ? await Promise.all([board, build].map((x) => page.evaluate(async (b64, hh) => {
+    const im = await new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = "data:image/png;base64," + b64; });
+    const c = new OffscreenCanvas(im.width, Math.min(hh, im.height)); c.getContext("2d").drawImage(im, 0, 0);
+    const buf = new Uint8Array(await (await c.convertToBlob({ type: "image/png" })).arrayBuffer());
+    let s = ""; for (let k = 0; k < buf.length; k += 32768) s += String.fromCharCode.apply(null, buf.subarray(k, k + 32768)); return btoa(s);
+  }, x.png.toString("base64"), cut).then((b64) => Buffer.from(b64, "base64")))) : [board.png, build.png];
+  if (cut) { board.png = bPng; build.png = uPng; }
   const r = await compareInPage(page, board.png, build.png, masks);
   await page.close();
   const dir = path.join(OUT, name);
@@ -177,7 +217,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
   const names = arg("--pair") ? [arg("--pair")] : Object.keys(PAIRS);
   const { launchBrowser } = await import("../services/browserLauncher.js");
-  const browser = await launchBrowser({ headless: "new" });
+  // 47f: text in a composited layer (the deck's 3-D flip — the owner's keep) rasterises in greyscale, the board's flat page
+  // in LCD sub-pixel colour; the run compares the DESIGN, so both sides render greyscale (one Chrome flag for both).
+  const browser = await launchBrowser({ headless: "new", extraArgs: LAUNCH_ARGS });
   let failed = 0;
   try {
     for (const n of names) {

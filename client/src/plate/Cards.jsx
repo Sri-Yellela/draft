@@ -29,7 +29,17 @@ export function FieldCard({ kicker = "FIELD CARD · WHY IT FITS", note = "NO AI"
         </div>
         {figures ? <>
           <div className="pl-card__rule"/>
-          <div className="pl-card__foot"><span className="pl-label pl-muted">{figures.label}</span><span className="pl-card__num">{figures.value ?? "—"}</span></div>
+          {/* D196 FIX-5: the three numbers as a labelled row (role · stack · duties), each its own cell — never bare numbers */}
+          {Array.isArray(figures.items) ? (
+            <dl className="pl-card__figs" data-field-figures="">
+              {figures.items.map((f) => (
+                <div key={f.label} className="pl-card__fig" data-fig={f.key}>
+                  <dt className="pl-label pl-muted">{f.label}</dt>
+                  <dd className="pl-card__num">{f.value ?? <><span aria-hidden="true">—</span><span className="pl-sr">not scored yet</span></>}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : <div className="pl-card__foot"><span className="pl-label pl-muted">{figures.label}</span><span className="pl-card__num">{figures.value ?? "—"}</span></div>}
         </> : null}
       </div>
     </aside>

@@ -5,7 +5,7 @@
 //   d196P1FaceKeepsDeckHooks  — the hooks the deck and its tests read are on the plate face (title line + heading id, the
 //                               match signal, Open the posting with Enter, the company link);
 //   d196P1FaceHonestData      — R2: no pay → "Pay not posted", no sponsorship data → no stamp, no logo → the letter tile,
-//                               a 120-character title kept whole in the markup (CSS clamps it), ✓ only on matched tech;
+//                               a 120-character title kept whole in the markup (47f: it wraps, never clamped), ✓ only on matched tech;
 //   d196P1BearingSameControls — the cartouche is BoardHeadline's sentence with BoardHeadline's controls (same words, slots,
 //                               aria-pressed / aria-expanded / aria-controls, id) — only the look differs (R6);
 //   d196P1HeroHonest          — the hero's figures are only the ones the facets counted; the plate marks you in your sector;
@@ -98,13 +98,17 @@ test("D196 P1 · d196P1KeepsFrameBacksFlip — the plate branch swaps the face o
 test("D196 P1 · d196P1FaceKeepsDeckHooks", async () => {
   const { render } = await load();
   const html = render({ card: card(), isFront: true, size: SIZE, landscape: false, headingRef: null });
-  for (const hook of ["data-deck-face", "data-deck-title-line", 'id="deck-title-j1"', "data-deck-signal", "data-deck-open-posting", 'aria-keyshortcuts="Enter"', "data-company-link", "data-plate-face"]) {
+  // 47f FIX-4: the board's ticket carries Pass · Save · Send · Draft this job (DeckView's decide / sendTop); "Open the
+  // posting" left it on purpose — the title opens the long post, and Enter still does (DeckView's key handler).
+  for (const hook of ["data-deck-face", "data-deck-title-line", 'id="deck-title-j1"', "data-deck-signal", 'data-deck-action="pass"', 'data-deck-action="save"',
+                      'data-deck-action="send"', 'data-deck-action="draft"', ">Draft this job<", 'aria-keyshortcuts="D ArrowRight"', "data-company-link", "data-plate-face"]) {
     assert.ok(html.includes(hook), `missing ${hook}`);
   }
+  assert.ok(!html.includes("data-deck-open-posting"), "FIX-4: no Open the posting on the board's ticket");
   assert.match(html, /91%/);
   assert.match(html, /class="plate pl-mface/);
   const back = render({ card: card(), isFront: false, size: SIZE, landscape: false });
-  assert.match(back, /data-deck-open-posting="" tabindex="-1"/, "a card behind the front is not in the tab order");
+  assert.match(back, /data-deck-action="pass"[^>]*tabindex="-1"/, "a card behind the front is not in the tab order");
   const bare = render({ card: card(), isFront: false, size: SIZE, landscape: false, bare: true });
   assert.ok(!bare.includes("data-deck-signal"), "bare = no match corner");
 });
@@ -112,7 +116,7 @@ test("D196 P1 · d196P1FaceKeepsDeckHooks", async () => {
 test("D196 P1 · d196P1FaceHonestData — nothing invented (R2)", async () => {
   const { render, openingFromCard } = await load();
   const o = openingFromCard(card(), NOW);
-  assert.equal(o.posted, "24 HOURS AGO");
+  assert.equal(o.posted, "POSTED 24 H AGO", "47f FIX-4: the board's strip words");
   assert.deepEqual(o.stack.map((t) => [t.name, t.yours]), [["React", true], ["TypeScript", true], ["GraphQL", false]]);
   assert.equal(o.region, "IV", "no sector on the card → IV");
   const { pickStack } = await load();
@@ -226,7 +230,8 @@ test("D196 P1 · d196P1FieldCardWords — templates over the scorer's fields, no
   const v = fieldCardView({ report: { score: 80 }, contextual });
   assert.deepEqual(v.alike, ["Role and level: Frontend, mid level — the same as the job", "Their stack: React and TypeScript both on your résumé", "Duties: “rebuild checkout flows” — on your résumé"]);
   assert.deepEqual(v.gaps, [{ text: "They use Datadog RUM (in 40% of their jobs).", tech: "Datadog RUM" }, { text: "Not on your résumé yet: “own the design system”" }]);
-  assert.deepEqual(v.figures, { label: "ROLE FIT · STACK · DUTIES", value: "88 · 75 · 72" });
+  assert.deepEqual(v.figures, { label: "ROLE FIT · STACK · DUTIES", value: "88 · 75 · 72", items: [
+    { label: "ROLE FIT", key: "role", value: 88 }, { label: "STACK", key: "stack", value: 75 }, { label: "DUTIES", key: "duties", value: 72 }] });
   assert.equal(fieldCardView({}), null, "no report, no block → no card");
   const bare = fieldCardView({ report: { score: 60, tier1_matched: ["go"], tier1_missing: [] }, contextual: null });
   assert.deepEqual(bare.alike, ["Skills: Go"]);

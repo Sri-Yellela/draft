@@ -240,7 +240,8 @@ export async function probeBrowserAvailability() {
  * @param {boolean} options.isWindows   Override platform detection
  * @returns {Promise<import('puppeteer-core').Browser>}
  */
-export async function launchBrowser({ headless = "new", mode = "auto", viewport = null, isWindows = null } = {}) {
+// extraArgs (47f): flags one caller needs on top of the mode's (the D196 regression run's --disable-lcd-text); none by default.
+export async function launchBrowser({ headless = "new", mode = "auto", viewport = null, isWindows = null, extraArgs = [] } = {}) {
   if (isWindows === null) isWindows = process.platform === "win32";
 
   const resolution = await resolveBrowserExecutable();
@@ -252,7 +253,7 @@ export async function launchBrowser({ headless = "new", mode = "auto", viewport 
     throw err;
   }
 
-  const args = buildLaunchArgs({ mode });
+  const args = [...buildLaunchArgs({ mode }), ...extraArgs];
   const defaultVp = viewport || DEFAULT_VIEWPORT;
 
   console.log(`[browserLauncher] launching — source=${resolution.source} headless=${headless}`);

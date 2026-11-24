@@ -770,10 +770,11 @@ function AppDashboard({ authUser, setAuthUser }) {
           <main style={{ flex:1, paddingTop: activeTab === "console" || activeTab === "today" || activeTab === "auto-apply" ? 0 : 24 }}>
             {/* ⭐ D152 (1) · HOME — one grid, laid out by CSS (FullHouse.css .home): the deck's column is sticky in its
                 own track and the board's column takes the rest; on a phone one column, the deck first. No page titles. */}
-            {home && marketPlate && <MarketHeroSlot />}
             {home && (marketPlate
-              // ⭐ D196 P1: the same deck and board (the same elements, the same requests), under the market's binder tabs
-              ? <><MarketBearingSlot /><MarketOpeningsSlot deck={homeDeck} index={homeBoard} /></>
+              // ⭐ D196 P1: the same deck and board (the same elements, the same requests), under the market's binder tabs.
+              // FIX-1 (owner 11-24): ONE plate root under the whole page — paper (in the person's theme's palette), full
+              // height, so no section is ever transparent to the app shell's ground.
+              ? <PlateRoot className="pl-marketpage" data-plate-page="market"><MarketHeroSlot /><MarketBearingSlot /><MarketOpeningsSlot deck={homeDeck} index={homeBoard} /></PlateRoot>
               : <div className="home" data-home="">{homeDeck}{homeBoard}</div>)}
             {/* ⭐ D49 · THE BOARD'S BAR STICKS (StickyBar, above in Home's board column): sticky only works inside its
                 parent's box, so it sits in the column with the jobs, not in the header. D12's ExtensionFirstRunPrompt

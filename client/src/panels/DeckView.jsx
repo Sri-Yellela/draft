@@ -63,7 +63,8 @@ import { cardFacts } from "../lib/deckCardFacts.js";
 import { shape, ts, TYPE_SCALE_VAR } from "../themes/shapes.js";
 import SendJobPicker from "../components/SendJobPicker.jsx";
 import MarketCardFace from "../plate/MarketCardFace.jsx";   // ⭐ D196 P1: the face in plates (off until the owner's ok)
-import { useMarketPlate, publishFrontCard } from "../plate/marketPlate.js";   // D180 P2: Send to a connection
+import { useMarketPlate, publishFrontCard } from "../plate/marketPlate.js";
+import { plateTicketSize, plateFanTransform } from "../plate/deckGeometry.js";   // ⭐ D196 FIX-2: the board's ticket size and backs   // D180 P2: Send to a connection
 
 const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SOFT_OFFSET
 const TOAST_MS = DECISION_TOAST_MS;
@@ -154,7 +155,14 @@ export function ActionButton({ label, onClick, primary, disabled, ariaKeys, comp
 
 // ⭐ D156 (1b) · ‹ › — turn Home's fan one card back or on (a depth box, D60: never a capsule). ⭐ (1c): the keys that do
 // the same are J / K and ↓ / ↑ — the arrows ← → decide (X / D), as the deck always had them.
-function FlipButton({ dir, disabled, onFlip }) {
+function FlipButton({ dir, disabled, onFlip, plate = false }) {
+  if (plate) return (   // ⭐ D196 FIX-4: the board's 44 px square, 1.5 px ink, 3 px hard shadow, a line chevron
+    <button type="button" className="pl-deckpos__btn" data-deck-flip={dir > 0 ? "next" : "prev"} disabled={disabled}
+      aria-label={dir > 0 ? "Next opening" : "Previous opening"} aria-keyshortcuts={dir > 0 ? "J ArrowDown" : "K ArrowUp"} onClick={() => onFlip(dir)}>
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d={dir > 0 ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6"}/></svg>
+    </button>
+  );
   return (
     <button type="button" data-deck-flip={dir > 0 ? "next" : "prev"} disabled={disabled}
       aria-label={dir > 0 ? "Next card" : "Previous card"} aria-keyshortcuts={dir > 0 ? "J ArrowDown" : "K ArrowUp"} onClick={() => onFlip(dir)}
@@ -528,6 +536,60 @@ export function HomeCardBackStill({ job, size = HOME_CARD }) {
 }
 export { CardBackDefs };
 
+/**
+ * ⭐ D196 FIX-2 · the plate market's deck, STILL — the same FanCard (its frame, the deck's own CardBack behind, the board's
+ * size and poses) for three dealt cards, with nothing to decide. The F5 fixture (plate/fixtures.jsx) draws the Deck tab
+ * with it, so the pixel diff compares the deck DeckView actually renders, never a stand-in. It fills its column's width.
+ */
+/** ⭐ D196 FIX-4 · below the plate ticket: the board's position line and its two 44 px squares (‹ › = J / K and the wheel). */
+function PlatePosRow({ at, of, order, prev, next, onFlip }) {
+  return (
+    <div className="plate pl-deckpos" data-deck-count-row="">
+      <span className="pl-label pl-muted" data-deck-count="">
+        {at} OF {of} TODAY · {order === "best" ? "BEST MATCH FIRST" : order === "ats" ? "ATS MATCH FIRST" : "AS DEALT"}
+      </span>
+      <span className="pl-deckpos__flip">
+        <FlipButton dir={-1} disabled={!prev} onFlip={onFlip} plate />
+        <FlipButton dir={1} disabled={!next} onFlip={onFlip} plate />
+      </span>
+    </div>
+  );
+}
+
+export function PlateDeckStill({ cards = [], of = cards.length, order = "best" }) {
+  const faceRef = useRef(null), boxRef = useRef(null);
+  const [h, setH] = useState(0);
+  const [w, setW] = useState(0);
+  useLayoutEffect(() => {
+    const face = faceRef.current, box = boxRef.current;
+    const read = () => { if (face) setH(face.offsetHeight); if (box) setW(box.clientWidth); };
+    read();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(read);
+    if (face) ro.observe(face);
+    if (box) ro.observe(box);
+    return () => ro.disconnect();
+  }, []);
+  const size = plateTicketSize(w || 600, h);
+  const noop = () => {};
+  return (
+    <div data-plate-deck-still="" ref={boxRef} style={{ isolation: "isolate" }}>   {/* the backs' negative tiers stay inside, as in DeckView's column */}
+      <CardBackDefs />
+      <div className="pl-deckstage">
+        <div style={{ position: "relative", height: size.height }}>
+          {cards.slice(0, 3).map((card, i) => (
+            <FanCard key={card.job.id} entry={{ card, offset: i, i }} orientation="vertical" geometry={HOME_FAN} size={size} home plate
+              expanded={false} dimmed={false} dealing={false} appear={false} reduced dealRank={0} dealTotal={1}
+              onDecide={noop} onSend={noop} onExpand={noop} onCollapse={noop} onReport={noop} onSignal={noop} onGoto={noop} onOpenPost={noop}
+              headingRef={null} faceRef={i === 0 ? faceRef : undefined} />
+          ))}
+        </div>
+      </div>
+      <PlatePosRow at={1} of={of} order={order} prev={false} next={cards.length > 1} onFlip={noop} />
+    </div>
+  );
+}
+
 // The expanded card's type — version A's (the D145 row: the accent eyebrow 14, the large tight headline 46 / 500 /
 // −0.035 em (36 on phones), the lead in body grey 19, the stat cards' value 34 in the accent).
 const WHY = {
@@ -554,20 +616,21 @@ const POSITION_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const FLIP_EASE = "cubic-bezier(0.34, 1.32, 0.5, 1)";   // a touch of overshoot: the card settles face-up
 
 function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing, appear, dealRank, dealTotal, reduced, home = false, landscape = false,
+                   plate = false, onSend,
                    onDecide, onExpand, onCollapse, onReport, onSignal, onGoto, onOpenPost, headingRef, faceRef, why = false, onWhy }) {
   const { card, offset } = entry;
   const isFront = offset === 0;
   // The arc's position. Opening a card does not move it here: the fan lives in the card's grid column,
   // and that column is what moves (A40) — so the arc rides right on the expansion's own clock.
   // ⭐ D152 (2): Home's fan turns each back about the card's lower-left corner (lib/fanGeometry.js homeFanTransform).
-  const t = home ? homeFanTransform(offset, geometry) : fanTransform(offset, orientation, geometry);
+  const t = plate ? plateFanTransform(offset) : home ? homeFanTransform(offset, geometry) : fanTransform(offset, orientation, geometry);
   const x = useMotionValue(0);
   const tilt = useTransform(x, [-320, 0, 320], [-10, 0, 10]);
   const draftStamp = useTransform(x, [20, SWIPE_COMMIT_PX + 40], [0, 1]);
   const passStamp = useTransform(x, [-SWIPE_COMMIT_PX - 40, -20], [1, 0]);
   const dragged = useRef(false);
   const showFace = Math.abs(offset) <= 1;   // only a card that is, or is about to be, face-up needs one
-  const plateFace = useMarketPlate();   // ⭐ D196 P1: the FACE only — the frame, the backs and the flip below stay as they are
+  const plateFace = plate;   // ⭐ D196 P1: the plate face; FIX-2: the same frame, backs and flip, at the board's size and poses
   const stamp = { position: "absolute", top: 28, right: 26, padding: "6px 14px", borderRadius: 10, fontWeight: 900, fontSize: ts(22),
                   letterSpacing: "0.12em", border: "3px solid", pointerEvents: "none" };
   // The deal arrives from the pivot's side, face-down, one card at a time; the front turns over last.
@@ -615,14 +678,21 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
                    userSelect: expanded ? "text" : "none" }}>
           <div data-flip
             // ⭐ THE FLIP: a card reaching the front turns face-up as it arrives.
-            style={{ position: "relative", transformStyle: "preserve-3d", minHeight: size.height, height: isFront && !home ? "auto" : size.height,
+            // D196 FIX-2: the plate front is the face's own height (nothing cut); a back is the board's sheet, 12 px shorter.
+            style={{ position: "relative", transformStyle: "preserve-3d", ...(plate
+                       ? { height: isFront ? "auto" : Math.max(0, size.height - 12), width: isFront ? undefined : size.width + (t.dw || 0) }
+                       : { minHeight: size.height, height: isFront && !home ? "auto" : size.height }),
                      transform: `perspective(1800px) rotateY(${faceUp ? 0 : 180}deg)`,
                      transition: reduced ? "none" : `transform 520ms ${FLIP_EASE} 40ms` }}>
             <article ref={isFront ? faceRef : undefined} aria-labelledby={`deck-title-${card.job.id}`} aria-hidden={!isFront}
+              className={plate ? "plate pl-deckticket" : undefined}
               // ⭐ D156 (1c): a press on Home's front card opens it into the long post (the deck's press opened "Why this job").
               onClick={isFront && !expanded && !why ? (e) => { if (!dragged.current && !isInteractive(e.target)) { if (home) onOpenPost?.(); else onWhy?.(true); } } : undefined}
               // D152 (2): Home's card corner is the sketch's 26. ⭐ D156 (1b): and its box is FIXED — nothing grows or scrolls in it.
-              style={{ position: "relative", minHeight: size.height, borderRadius: home ? 26 : 28, ...(home ? { height: size.height, overflow: "hidden" } : null), backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
+              style={plate ? { position: "relative", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transition: "none", transform: "none",
+                               ...(isFront ? null : { height: "100%" }),
+                               cursor: isFront && !expanded ? "pointer" : "auto", visibility: showFace ? "visible" : "hidden" }
+                     : { position: "relative", minHeight: size.height, borderRadius: home ? 26 : 28, ...(home ? { height: size.height, overflow: "hidden" } : null), backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
                        // OPAQUE, not see-through glass: over a fan, a translucent face shows the backs
                        // through it (Android found the same with the next card's text, 09-30).
                        ...glass({ radius: home ? 26 : 28 }), backgroundColor: C.SURFACE_SOLID, backdropFilter: "none", WebkitBackdropFilter: "none",
@@ -632,7 +702,7 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
                        transition: "none", transform: "none",
                        cursor: isFront && !expanded ? "pointer" : "auto", visibility: showFace ? "visible" : "hidden" }}>
               {showFace && home && plateFace && <MarketCardFace card={card} headingRef={headingRef} isFront={isFront} onSignal={onSignal} onOpenPost={onOpenPost}
-                                                 size={size} landscape={landscape} />}
+                                                 size={size} landscape={landscape} onDecide={onDecide} onSend={onSend} />}
               {showFace && home && !plateFace && <HomeCardFace card={card} headingRef={headingRef} isFront={isFront} onSignal={onSignal} onOpenPost={onOpenPost}
                                                  size={size} landscape={landscape} />}
               {showFace && !home && <CardFace card={card} headingRef={headingRef} isFront={isFront} expanded={isFront && expanded}
@@ -640,8 +710,9 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
                                      onExpand={onExpand} onCollapse={onCollapse} onReport={onReport} onSignal={onSignal}
                                      orientation={orientation} />}
             </article>
-            <div style={{ position: "absolute", inset: 0, transform: "rotateY(180deg)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
-                          borderRadius: home ? 26 : 28, maxHeight: size.height }}>
+            <div className={plate ? "plate pl-deckback" : undefined}
+              style={{ position: "absolute", inset: 0, transform: "rotateY(180deg)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
+                          ...(plate ? null : { borderRadius: home ? 26 : 28, maxHeight: size.height }) }}>
               <CardBack company={card.job.company} iconUrl={card.job.companyIconUrl} />
             </div>
           </div>
@@ -771,7 +842,6 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   // ⭐ D145: "Why this job?" — the layer between the folded card and the full posting.
   const [why, setWhy] = useState(false);
   const [leave, setLeave] = useState(null);
-  const [frontH, setFrontH] = useState(0);
   // ⭐ D156 (1c) · THE CARD BECOMES THE LONG POST. On Home the opened posting (the board's JobDetailPanel) is drawn in the
   // deck's slot, in the front card's place; the board says which one (POSTING_ON_DECK_EVENT, lib/jobUrl.js). While it is
   // there the deck is READING: the fan is put away, the column stops being sticky, the page scrolls to read it.
@@ -814,6 +884,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   // arrives later — an undo, a refusal — fades into its slot.
   const firstPaint = useRef(true);
 
+  const [frontH, setFrontH] = useState(0);   // the face-up card's measured height (moved up: D196 FIX-2's size reads it)
   const { w: viewportW } = useViewport();
   const vw = home ? Math.min(viewportW, HOME_DECK_COLUMN) : viewportW;
   const orientation = home ? "vertical" : orientationFor(vw);
@@ -822,7 +893,14 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   const [deckPref] = useDeckGeometry();
   const landscape = home && homeLandscape(viewportW);
   const geometry = home ? (landscape ? HOME_FAN_WIDE : HOME_FAN) : { ...geometryFor(orientation, deckPref, { reduced: !!reduced }), ...(DEV_FAN?.[orientation] || null) };
-  const size = home ? homeCardSize(viewportW) : cardSize(orientation, vw);
+  // ⭐ D196 FIX-2 (owner 11-24, 47f: "retain the frame and flip but also make it pixel diffable"): in the plate market the
+  // deck keeps its frame — FanCard, the deck's own CardBack behind, the flip — but the card takes the BOARD's size: the
+  // column's width less the 18 px the backs sit in (lib/fanGeometry.js plateTicketSize), and the face's own height, so the
+  // title wraps and nothing on the ticket is ever cut.
+  const plateDeck = useMarketPlate() && home;
+  const [plateColW, setPlateColW] = useState(0);
+  const size = plateDeck ? plateTicketSize(plateColW || homeDeckColumn(viewportW), frontH)
+    : home ? homeCardSize(viewportW) : cardSize(orientation, vw);
 
   const scoringTries = useRef(0);
   const loadStatusRef = useRef(load.status);
@@ -933,7 +1011,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   deckBusyRef.current = !!expanded || !!s.flight;
   const current = s.cards[s.index];
   // ⭐ D196 P1: the field card beside the deck reads the card on top (plate market only; nothing else listens).
-  const plateMarket = useMarketPlate();
+  const plateMarket = plateDeck;
   const currentId = current && !current.decision ? current.job?.id : null;
   useEffect(() => { if (home && plateMarket) publishFrontCard(currentId ? current : null); }, [home, plateMarket, currentId]); // eslint-disable-line react-hooks/exhaustive-deps
   const order = useMemo(() => fanOrder(s), [s]);
@@ -1112,6 +1190,17 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   useEffect(() => { setExpanded(false); setWhy(false); }, [s.index]);
   useEffect(() => { if (load.status === "ready") firstPaint.current = false; }, [load.status]);
 
+  // ⭐ D196 FIX-2: the plate market's ticket is as wide as the deck's column (less the backs' 18 px).
+  const colRef = useRef(null);
+  useLayoutEffect(() => {
+    const el = colRef.current;
+    if (!plateDeck || !el || typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(() => setPlateColW(el.clientWidth));
+    ro.observe(el);
+    setPlateColW(el.clientWidth);
+    return () => ro.disconnect();
+  }, [plateDeck, load.status]);
+
   // The stage is as tall as the face-up card — which is what lets the expansion push the page.
   useLayoutEffect(() => {
     const el = faceRef.current;
@@ -1188,7 +1277,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       <div data-deck-clip style={{ overflowX: "clip" }}>
       {/* isolation: the fan's tiers are below CONTENT, and this keeps them above the page itself. */}
       <div data-deck-orientation={orientation} data-deck-home={home ? "" : undefined} data-deck-reading={home && showPost ? "true" : undefined}
-        style={{ maxWidth: home ? homeDeckColumn(viewportW) : vertical ? 560 : 760, margin: "0 auto",
+        style={{ maxWidth: plateDeck ? "none" : home ? homeDeckColumn(viewportW) : vertical ? 560 : 760, margin: plateDeck ? 0 : "0 auto",
                  // ⭐ D149: the card's top at the sketch's 90 px — the chrome's 74 + 16 (App.jsx gives the deck no main padding).
                  // D152: on Home the column's own padding places it, and the fan's room is above the buttons (HOME_CARD.below).
                  padding: home ? 0 : vertical ? "16px 12px 120px" : "16px 16px 140px",
@@ -1295,10 +1384,10 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
         </div>
 
         {load.status === "ready" && (current || order.length > 0) && !isFinished(s) && (
-            <div data-deck-col style={{ minWidth: 0 }}>
+            <div data-deck-col ref={colRef} style={{ minWidth: 0 }}>
               {/* ⭐ D152 (3): home-sketch.html's .count — where you are in today's picks, and in what order. */}
               {/* ⭐ D156 (1b): ‹ › beside it turn the fan one card (as J / K, ↑ ↓ and the wheel do). */}
-              {home && (
+              {home && !plateDeck && (
                 <div data-deck-count-row="" style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 0 10px", maxWidth: size.width }}>
                   <p data-deck-count="" style={{ margin: 0, color: C.INK_MUTED, fontSize: ts(13.5), flex: 1, minWidth: 0 }}>
                     {Math.min(s.index + 1, s.size)} of {s.size} today · {deckOrder === "best" ? "best match first" : deckOrder === "ats" ? "ATS match first" : "as dealt"}
@@ -1307,6 +1396,8 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                   <FlipButton dir={1} disabled={stepTarget(s, 1) == null} onFlip={step} />
                 </div>
               )}
+              {/* D196 FIX-2: the board's backs sit up and to the right of the ticket, inside 14 px above and 18 px beside it */}
+              <div className={plateDeck ? "pl-deckstage" : undefined}>
               <div ref={stageRef} data-deck-stage
                 // The stage is the face-up card's box; the fan overflows it on purpose, behind the
                 // header above and the action row below. Its height FOLLOWS the card (measured each
@@ -1317,6 +1408,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                 <AnimatePresence initial custom={leave}>
                   {order.map((e) => (
                     <FanCard key={e.card.job.id} entry={e} orientation={orientation} geometry={geometry} size={size} home={home} landscape={landscape} onOpenPost={openPost}
+                      plate={plateDeck} onSend={sendTop}
                       expanded={expanded} dimmed={expanded} dealing={dealing} appear={!firstPaint.current} reduced={!!reduced} dealRank={Math.max(0, dealTotal - 1 - Math.abs(e.offset))}
                       dealTotal={dealTotal} onDecide={decide} onExpand={() => setExpanded(true)} onCollapse={() => setExpanded(false)}
                       why={why} onWhy={(v) => { setWhy(v); if (!v) setExpanded(false); }}
@@ -1327,11 +1419,16 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                   ))}
                 </AnimatePresence>
               </div>
+              </div>
+              {/* ⭐ D196 FIX-4: below the ticket, the board's position line and ‹ › (the same step as J / K and the wheel) */}
+              {plateDeck && <PlatePosRow at={Math.min(s.index + 1, s.size)} of={s.size} order={deckOrder}
+                prev={stepTarget(s, -1) != null} next={stepTarget(s, 1) != null} onFlip={step} />}
+              {plateDeck && sent && <span role="status" data-deck-sent="" className="plate pl-decksent">{sent}</span>}
 
               {/* ⛔ The action row STICKS: an expanded card is tall, and Pass / Save / Draft must stay
                   reachable without scrolling back. It is above the fan by tier, and in the card's own
                   column, so it travels with the card when the report opens. */}
-              <div data-deck-actions style={{ position: "sticky", bottom: "calc(16px + var(--appnav-lift, 0px))", transition: "bottom .3s ease", zIndex: Z.NAV, display: "flex", gap: 12,
+              {!plateDeck && <div data-deck-actions style={{ position: "sticky", bottom: "calc(16px + var(--appnav-lift, 0px))", transition: "bottom .3s ease", zIndex: Z.NAV, display: "flex", gap: 12,
                                               // D152 (2) / D153 (1): on Home, under the fan's sweep (HOME_CARD.below), at the card's left.
                                               // ⭐ D156 (1): and NOT sticky there — the card is a fixed box, so the row sits under the
                                               // card and its fan and never rides over the card's content on a short screen.
@@ -1342,7 +1439,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                 <ActionButton label="Send" compact={vertical} onClick={sendTop} />
                 <ActionButton label="Draft" ariaKeys="D ArrowRight" compact={vertical} primary onClick={() => decide(DECISIONS.DRAFTED)} />
                 {sent && <span role="status" data-deck-sent="" style={{ alignSelf: "center", fontSize: ts(13), color: C.INK_MUTED }}>{sent}</span>}
-              </div>
+              </div>}
               {picking && <SendJobPicker job={picking} onClose={() => setPicking(null)} />}
             </div>
         )}
