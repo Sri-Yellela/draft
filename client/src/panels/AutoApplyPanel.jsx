@@ -1658,7 +1658,7 @@ export function AutoApplyPanel({ user = null } = {}) {
     if (id != null) answersCache.current.open(id, () => rerender(n => n + 1));
   }, [lgNeedRow?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const lgFilledRows = lgAnswers?.state === "ready" ? answerRows(lgAnswers.data.answers, lgAnswers.data.openQuestions) : null;
-  const lgFilled = lgNeedRow ? {
+  const lgFilled = lgNeedRow && !(lgFilledRows && !lgFilledRows.some(a => a.value != null)) ? {
     kicker: lgFilledRows ? `FILLED FOR YOU · ${lgFilledRows.filter(a => a.value != null).length} OF ${lgFilledRows.length}` : "FILLED FOR YOU",
     label: "What draft filled for you", foot: "From your résumé and profile. Nothing here is guessed.",
     ...(lgFilledRows ? { rows: lgFilledRows.filter(a => a.value != null).slice(0, 6).map(a => ({ label: a.label, value: a.value })) }

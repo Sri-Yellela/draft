@@ -1695,7 +1695,7 @@ if (process.argv[2] === "--look") {
   const browser = await puppeteer.launch({ executablePath: resolution.path, headless: "new", pipe: true, args: ["--no-first-run", "--no-default-browser-check"] });
   try {
     const s = SCREENS[id];
-    const ap = await shoot(browser, `${vite.url}${address}`, [Number(w), Number(h)], { fixtures: s.fixtures, ready: process.env.LOOK_READY || "[data-house-header]",
+    const ap = await shoot(browser, `${vite.url}${address}`, [Number(w), Number(h)], { fixtures: { ...s.fixtures, ...(process.env.LOOK_FIXTURES ? JSON.parse(fs.readFileSync(process.env.LOOK_FIXTURES, "utf8")) : {}) }, ready: process.env.LOOK_READY || "[data-house-header]",
       prep: async (page) => { await sleep(3000); globalThis.__lookDom = await page.evaluate(() => ({ url: location.href, root: document.getElementById("root")?.innerHTML.length ?? -1,
         text: (document.body?.innerText || "").slice(0, 400), plate: !!document.querySelector("[data-plate-page]") })); } });
     fs.writeFileSync(outPng, ap.buf);

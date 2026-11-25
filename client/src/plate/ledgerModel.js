@@ -55,7 +55,10 @@ export function tagOf(row) {
   if (row.stage === "question" || row.stage === "needs") return "NEEDS YOU";
   if (row.stage === "working" || row.stage === "waiting" || row.stage === "picked" || row.stage === "pending_self") return "IN PROGRESS";
   if (row.node?.kind === "held" && row.node?.ref?.fixedSince) return "HELD · FIXED";
-  return String(row.status || "").toUpperCase() || "—";
+  // the stage's own word, short (the line beside the squares says the rest — a date, a count)
+  const WORD = { ready: "READY TO SEND", sent: "SENT", no_reply: "NO REPLY", interview: "INTERVIEW", assessment: "ASSESSMENT", offer: "OFFER",
+    rejected: "NOT SELECTED", withdrawn: "WITHDRAWN", not_applied: "NOT APPLIED", stopped: "STOPPED" };
+  return WORD[row.stage] || String(row.status || "").toUpperCase() || "—";
 }
 
 /** The row's one button in the register (it opens the row in place, where every stage action lives). */
