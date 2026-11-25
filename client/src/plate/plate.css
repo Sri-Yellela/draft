@@ -796,7 +796,8 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
 .pl-op__stamp .pl-stamp { font-size: var(--pl-t-small); padding: 6px 11px; background: var(--pl-card-veil); }
 .pl-op__fig { flex: 1 1 420px; min-width: 0; max-width: 560px; margin: 0; position: relative; }
 .pl-op__plate { aspect-ratio: 640 / 460; border: var(--pl-border); border-radius: var(--pl-r-hero); overflow: hidden; background: var(--pl-paper-warm); box-shadow: var(--pl-s10); }
-.pl-op__dial { position: absolute; right: -10px; bottom: -26px; background: var(--pl-card); border: var(--pl-border); border-radius: 50%; box-shadow: var(--pl-s5); }
+.pl-op__dial { position: absolute; right: -10px; bottom: -26px; width: 143px; height: 143px; box-sizing: border-box; background: var(--pl-card); border: var(--pl-border); border-radius: 50%; box-shadow: var(--pl-s5); }
+.pl-op__dial > svg { display: block; }   /* a circle, square by its own size (D60); the board's inline svg left a line's descent under it */
 .pl-op__cap { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; border: var(--pl-border); border-radius: var(--pl-r-btn); background: var(--pl-paper-warm); padding: 8px 12px; }
 .pl-op__section { max-width: 1280px; margin: 60px auto 0; padding: 0 24px; box-sizing: border-box; }
 .pl-op__section--last { padding-bottom: 140px; }

@@ -185,7 +185,8 @@ export function FitCard({ jobId = null, data: given = null, alike, gaps, figures
   const [plaus, setPlaus] = useState(givenPlaus);
 
   useEffect(() => {
-    if (given) { setState({ status: "ready", data: given }); setClaimed(initialClaims(given.report)); return undefined; }
+    // given (the sheet's own read, or the fixture) until a claim asks for a fresh one
+    if (given && nonce === 0) { setState({ status: "ready", data: given, jobId }); setClaimed(initialClaims(given.report)); return undefined; }
     if (!jobId) { setState({ status: "idle", data: null }); return undefined; }
     let live = true;
     setState((s) => (s.data && s.jobId === jobId ? s : { status: "loading", data: null, jobId }));

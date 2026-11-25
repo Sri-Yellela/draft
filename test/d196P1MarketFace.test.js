@@ -270,8 +270,20 @@ test("D196 P1 · d196P1TicketsBacked — each onward ticket only when the page c
 test("D196 P1 · d196BoardBudgetsHold (A175) — the plate market adds no board request and never remounts the board", () => {
   const plateFiles = fs.readdirSync("client/src/plate").filter((f) => /\.(jsx?|mjs)$/.test(f)).map((f) => `client/src/plate/${f}`);
   const calls = plateFiles.flatMap((f) => [...read(f).matchAll(/api\(\s*`([^`]*)`|api\(\s*"([^"]*)"/g)].map((m) => `${f}: ${m[1] || m[2]}`));
-  assert.deepEqual(calls, ["client/src/plate/MarketOpenings.jsx: /api/jobs/${encodeURIComponent(jobId)}/contextual"],
-    "the plate market's ONE request is the card-on-top's contextual block (the posting's ATS card makes the same one)");
+  // ⭐ 47h (the card lane, D202 / D199 C7 — moved on purpose): FitCard's ONE read per opening (/fit-card — the report, the
+  // contextual block and where the words sit; it replaces the field card's /contextual when the market mounts it), the
+  // plausibility check only when its Context tab opens, and the opening sheet's own page reads (its own route, not the market)
+  assert.deepEqual(calls, [
+    "client/src/plate/FitCard.jsx: /api/jobs/${encodeURIComponent(jobId)}/fit-card",
+    "client/src/plate/FitCard.jsx: /api/resume/plausibility",
+    "client/src/plate/MarketOpenings.jsx: /api/jobs/${encodeURIComponent(jobId)}/contextual",
+    "client/src/plate/OpeningSheet.jsx: /api/jobs/by-id/${encodeURIComponent(jobId)}",
+    "client/src/plate/OpeningSheet.jsx: /api/network/status",
+    "client/src/plate/OpeningSheet.jsx: /api/public/companies/${encodeURIComponent(slug)}?job=${encodeURIComponent(jobId)}",
+  ], "the plate market's ONE request is the card-on-top's contextual block (the posting's ATS card makes the same one)");
+  const fit = read("client/src/plate/FitCard.jsx");
+  assert.ok(fit.includes("if (!cache.has(jobId))"), "one fit-card read per opening, shared by every FitCard on the page");
+  assert.ok(/face !== "back" \|\| tab !== "context"/.test(fit), "the plausibility check is read only when the Context tab opens");
   const open = read("client/src/plate/MarketOpenings.jsx");
   assert.ok(open.includes("contextualCache.has(jobId)"), "one request per card, shared by the field card and the tickets");
   assert.ok(/panels=\{\{/.test(open), "the deck and the board stay mounted under the tabs (no reload on a switch)");

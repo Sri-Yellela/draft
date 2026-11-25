@@ -22,7 +22,7 @@ import PlateRoot from "./PlateRoot.jsx";
 import { LegHeader } from "./Plates.jsx";
 import { Breadcrumb, LetterTile, Stamp } from "./Marks.jsx";
 import { Ticket } from "./Tickets.jsx";
-import FitCard from "./FitCard.jsx";
+import FitCard, { fitCardFor } from "./FitCard.jsx";
 import TeamDiorama from "./TeamDiorama.jsx";
 import { TicketActions, openingFromCard } from "./MarketCardFace.jsx";
 import { sectorRegion } from "./marketPlate.js";
@@ -276,6 +276,7 @@ export default function OpeningSheet({ jobId }) {
   const [job, setJob] = useState(null);
   const [err, setErr] = useState(null);
   const [company, setCompany] = useState(null);
+  const [fit, setFit] = useState(null);   // the FitCard's one read (shared cache): the card, 01's duty lines and 03's marks
   const [said, setSaid] = useState("");
   const [picking, setPicking] = useState(null);
   const [networkOn, setNetworkOn] = useState(false);
@@ -283,7 +284,8 @@ export default function OpeningSheet({ jobId }) {
   const back = useCallback(() => { if (window.history.length > 1) navigate(-1); else navigate("/app/jobs"); }, [navigate]);
   useEffect(() => {
     let live = true;
-    setJob(null); setErr(null); setCompany(null);
+    setJob(null); setErr(null); setCompany(null); setFit(null);
+    fitCardFor(jobId).then((d) => { if (live) setFit(d || null); }).catch(() => {});
     api(`/api/jobs/by-id/${encodeURIComponent(jobId)}`).then((r) => { if (live) setJob(r?.job || null); })
       .catch((e) => { if (live) setErr(e?.status === 404 ? "missing" : "failed"); });
     api("/api/network/status").then((r) => live && setNetworkOn(!!r?.enabled)).catch(() => {});
@@ -324,7 +326,7 @@ export default function OpeningSheet({ jobId }) {
       {err ? <PlateRoot className="pl-op"><div className="pl-op__top"><p className="pl-op__quiet">{err === "missing" ? "This opening isn’t on the board any more." : "The opening didn’t load."}</p>
         <a className="pl-op__back" href="/app/jobs" onClick={(e) => { e.preventDefault(); back(); }}>← Back to the market</a></div></PlateRoot>
         : !opening ? <PlateRoot className="pl-op"><div className="pl-op__top" role="status"><p className="pl-op__quiet">Opening the sheet…</p></div></PlateRoot>
-        : <OpeningSheetView data={opening} company={company} onDecide={decide} onSend={send} onBack={back}/>}
+        : <OpeningSheetView data={opening} company={company} fit={fit} onDecide={decide} onSend={send} onBack={back}/>}
       {said ? <p className="pl-op__said" role="status">{said}</p> : null}
       {picking ? <SendJobPicker job={picking} onClose={() => setPicking(null)}/> : null}
     </div>
