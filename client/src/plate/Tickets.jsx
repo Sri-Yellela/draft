@@ -90,13 +90,24 @@ export function DeckPile({ children }) {
 /**
  * Needs you — one question at a time, 44 px serif, big Yes / No tickets, or a draft to check (a 2,000-character draft
  * grows its box; nothing clips — R2). `progress` = squares (lit = answered, today = this one).
+ * ⭐ 47h (D197 #3, Home's held stepper wears this face): optional, controlled — `options` (the form's own Yes / No words),
+ * `pressed` (the answer given), `saved` + `onSaved` (the keep-it box), kind "choice" (a select of `options`) or "text" (an
+ * input) with `value` / `onChange`, `onNext` + `nextLabel` + `canNext` (the step's own button), `backDisabled`, `children`
+ * (a line under the answer). Without them the markup is the gallery's.
  */
-export function QuestionTicket({ kicker, n, text, kind = "yesno", draft, onAnswer, onBack, progress = [], saveLabel = "Save this answer for next time", more, ...s }) {
+export function QuestionTicket({ kicker, n, text, kind = "yesno", draft, onAnswer, onBack, progress = [], saveLabel = "Save this answer for next time", more,
+  options, pressed, saved, onSaved, value, onChange, onNext, nextLabel = "Next", canNext = true, backDisabled = false, children, rootProps, ...s }) {
   const gate = plateState(s, { height: 380, radius: "hero", label: "Loading the question", lines: 4 });
   if (gate) return gate;
   const done = progress.filter((p) => p === "lit").length;
+  const save = saveLabel ? (
+    <label style={{ display: "inline-flex", alignItems: "center", gap: 10, minHeight: 44 }} data-save-for-next-time="">
+      {onSaved ? <input type="checkbox" className="pl-check" checked={saved !== false} onChange={(e) => onSaved(e.target.checked)}/> : <input type="checkbox" className="pl-check" defaultChecked/>}{saveLabel}
+    </label>
+  ) : null;
+  const yn = options?.length ? options : ["Yes", "No"];
   return (
-    <article className="pl-question pl-in" aria-live="polite">
+    <article className="pl-question pl-in" aria-live="polite" {...rootProps}>
       <div className="pl-question__strip">
         <span className="pl-label">{kicker}</span>
         <span className="pl-squares pl-squares--gap4" role="img" aria-label={`${done} of ${progress.length} answered`}>
@@ -104,34 +115,54 @@ export function QuestionTicket({ kicker, n, text, kind = "yesno", draft, onAnswe
         </span>
       </div>
       <div className="pl-question__body">
-        {n ? <span className="pl-kicker pl-muted">{n}</span> : null}
-        <h3 className="pl-question__text">{text}</h3>
+        {n ? <span className="pl-kicker pl-muted" data-held-progress="">{n}</span> : null}
+        <h3 className="pl-question__text" data-held-question="">{text}</h3>
         {kind === "yesno" ? (
           <>
-            <div className="pl-answers">
-              <button type="button" className="pl-answer" onClick={() => onAnswer?.("yes")}>Yes</button>
-              <button type="button" className="pl-answer" onClick={() => onAnswer?.("no")}>No</button>
+            <div className="pl-answers" role="group" aria-label={text}>
+              {yn.map((o) => <button key={o} type="button" className="pl-answer" data-yes-no={o} aria-pressed={pressed == null ? undefined : pressed === o}
+                onClick={() => onAnswer?.(options?.length || pressed !== undefined ? o : o.toLowerCase())}>{o}</button>)}
             </div>
-            <label style={{ display: "inline-flex", alignItems: "center", gap: 10, minHeight: 44 }}><input type="checkbox" className="pl-check" defaultChecked/>{saveLabel}</label>
+            {save}
+          </>
+        ) : kind === "choice" || kind === "text" ? (
+          <>
+            {kind === "choice"
+              ? <select className="pl-q-select" aria-label={text} value={value ?? ""} onChange={(e) => onChange?.(e.target.value)}>
+                  <option value="">Choose…</option>{(options || []).map((o) => <option key={o} value={o}>{o}</option>)}</select>
+              : <input className="pl-q-input" aria-label={text} value={value ?? ""} onChange={(e) => onChange?.(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && canNext) onNext?.(); }}/>}
+            {save}
           </>
         ) : (
           <>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <span className="pl-label pl-muted">DRAFTED FROM YOUR PROFILE AND THE POSTING · EDIT ANYTHING</span>
               <label className="pl-sr" htmlFor="pl-q-draft">Your answer</label>
-              <textarea id="pl-q-draft" className="pl-textarea" rows={Math.min(14, Math.max(4, Math.ceil((draft || "").length / 90)))} defaultValue={draft}/>
+              {onChange ? <textarea id="pl-q-draft" className="pl-textarea" rows={Math.min(14, Math.max(4, Math.ceil((value || "").length / 90)))} value={value ?? ""}
+                  placeholder="In your own words…" onChange={(e) => onChange(e.target.value)}/>
+                : <textarea id="pl-q-draft" className="pl-textarea" rows={Math.min(14, Math.max(4, Math.ceil((draft || "").length / 90)))} defaultValue={draft}/>}
             </div>
-            <div className="pl-actions">
-              <button type="button" className="pl-btn pl-btn--ink" style={{ minHeight: 48, padding: "0 22px", borderRadius: "var(--pl-r-input)" }}
-                onClick={() => onAnswer?.(document.getElementById("pl-q-draft")?.value ?? draft)}>Use this</button>
-              <span className="pl-muted" style={{ alignSelf: "center", fontSize: "var(--pl-t-meta)" }}>or edit it above first</span>
-            </div>
+            {onNext ? null : (
+              <div className="pl-actions">
+                <button type="button" className="pl-btn pl-btn--ink" style={{ minHeight: 48, padding: "0 22px", borderRadius: "var(--pl-r-input)" }}
+                  onClick={() => onAnswer?.(document.getElementById("pl-q-draft")?.value ?? draft)}>Use this</button>
+                <span className="pl-muted" style={{ alignSelf: "center", fontSize: "var(--pl-t-meta)" }}>or edit it above first</span>
+              </div>
+            )}
           </>
         )}
+        {children}
+        {onNext && kind !== "yesno" ? (
+          <div className="pl-actions">
+            <button type="button" className="pl-btn pl-btn--ink" data-action="next-question" disabled={!canNext} style={{ minHeight: 48, padding: "0 22px", borderRadius: "var(--pl-r-input)" }}
+              onClick={onNext}>{nextLabel}</button>
+          </div>
+        ) : null}
       </div>
       <div aria-hidden="true" className="pl-opening__tear"/>
       <div className="pl-question__foot">
-        {onBack ? <button type="button" className="pl-btn" onClick={onBack}>← Back</button> : null}
+        {onBack ? <button type="button" className="pl-btn" onClick={onBack} disabled={backDisabled} data-action="back-question">← Back</button> : null}
         <span className="pl-grow"/>
         {more}
       </div>
