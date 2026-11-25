@@ -166,6 +166,9 @@ const query = (q) => { try { return !!defaultMM()?.call(window, q)?.matches; } c
 export const ACTIVE_THEME = resolve();
 /** The live theme's scheme, "light" or "dark". */
 export const THEME = ACTIVE_THEME.scheme;
+/** ⭐ 47h (47f's gap 4 (a)): the live theme is Plain — D181's no-tints mapping on plate pages (PlateRoot's `plain`). Decided
+ *  here, the one file that decides a theme (inkPairD32); a plate page only reads it. */
+export const NO_TINTS = PLAIN_IDS.includes(ACTIVE_THEME.id);
 export const CUES = appearance().cues;
 /** prefers-reduced-transparency: the glass resolves to its opaque composite (and backdrop-filter is off, cues.css). */
 export const REDUCED_TRANSPARENCY = query("(prefers-reduced-transparency: reduce)");
