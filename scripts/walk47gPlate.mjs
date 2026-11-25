@@ -107,6 +107,17 @@ try {
       await page.goto(`${BASE}/app/jobs${process.env.WALK_PLATE === "0" ? "?plate=0" : ""}`, { waitUntil: "networkidle2", timeout: 180000 }).catch(() => {});
       await waitDeck();
       await sleep(1500);
+      // ⭐ 47h: the plate pieces built in 47h, on the live page — the hero's BEST MATCH pin (the deck's best undecided card), the
+      // bearing's "FROM <FILE> · <DATE>" (the résumé this view uploaded), the ticket's "LIVE · CHECKED …" (the crawl's sighting)
+      {
+        const h = await page.evaluate(() => ({
+          best: !!document.querySelector("[data-plate-market-hero]") && /BEST MATCH/.test(document.querySelector("[data-plate-market-hero]").innerText),
+          from: document.querySelector("[data-bearing-from]")?.textContent?.trim() || null,
+          live: [...document.querySelectorAll("[data-fan-offset='0'] .pl-tone-lit")].map((e) => e.textContent.trim()).filter(Boolean).pop() || null }));
+        say(`${tag}: the hero pins the best match (47h)`, h.best, h.best ? "BEST MATCH drawn" : "no BEST MATCH in the hero");
+        say(`${tag}: the bearing says which résumé set it (47h)`, !!h.from && h.from.startsWith("FROM ") && h.from.includes(".TXT"), h.from || "no FROM line");
+        say(`${tag}: the ticket says when it was checked (47h)`, !!h.live && /^LIVE · CHECKED (TODAY|YESTERDAY|\d+ DAYS AGO)$/.test(h.live), h.live || "no LIVE strip");
+      }
       const s = await page.evaluate(() => {
         const plate = !!document.querySelector(".pl-marketpage");
         const front = document.querySelector("[data-fan-offset='0']");
