@@ -4,7 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cache = new Map();
@@ -16,18 +16,18 @@ export async function renderFixture(name) {
   const esbuild = require("esbuild");
   const dir = path.join(ROOT, "tmp", "plate-render");
   fs.mkdirSync(dir, { recursive: true });
-  const out = path.join(dir, `${name}-${process.pid}.mjs`);
+  const out = path.join(dir, `${name}-${process.pid}.cjs`);
   await esbuild.build({
     stdin: { contents: `
-      import { renderToStaticMarkup } from "react-dom/server";
+      import { renderToStaticMarkup } from "react-dom/server.node";
       import { createElement } from "react";
       import { FIXTURES } from ${JSON.stringify(path.join(ROOT, "client/src/plate/fixtures.jsx"))};
       export const html = renderToStaticMarkup(createElement(FIXTURES[${JSON.stringify(name)}]));`, resolveDir: path.join(ROOT, "client"), loader: "jsx" },
-    bundle: true, platform: "node", format: "esm", outfile: out, jsx: "automatic", logLevel: "error",
+    bundle: true, platform: "node", format: "cjs", outfile: out, jsx: "automatic", logLevel: "error",
     loader: { ".css": "empty", ".woff2": "empty", ".woff": "empty", ".json": "json" }, define: { "process.env.NODE_ENV": '"production"' },
   });
   try {
-    const { html } = await import(pathToFileURL(out).href);
+    const { html } = createRequire(import.meta.url)(out);
     cache.set(name, html);
     return html;
   } finally { fs.rmSync(out, { force: true }); }
