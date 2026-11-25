@@ -28,6 +28,9 @@ const CLASSIC_MARKET = "/app/jobs?plate=0";
 // ⭐ 47i: the plate probes pin ?plate=1 too. The switch is REMEMBERED (marketPlate.js, localStorage) and the fill runs every
 // probe in ONE Chrome profile, so a probe after a CLASSIC_MARKET one landed on the classic deck (A238 red only inside the fill).
 const PLATE_MARKET = "/app/jobs?plate=1";
+// ⭐ 47h (D197 #3): the plate ledger is Home with the plate market; these probes measure the CLASSIC tracker against its
+// sketches (tracker-options.html, home-sketch.html), so they pin ?plate=0 until the classic Home is retired, as the market's do.
+const CLASSIC_HOME = "/app/auto-apply?plate=0";
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\//, "")), "..");
 // ⭐ A232 R2 (46t): FIDELITY_OUT sends the shots elsewhere — the tests' shared probe writes to tmp/, so a suite run no longer
 // rewrites the tracked docs/fidelity-shots/*.png (they changed on every run). Run the script yourself to refresh them.
@@ -330,10 +333,10 @@ const SCREENS = {
     sizes: { "1440": [1440, 900], "1280": [1280, 800], "1024": [1024, 768], "900": [900, 800], "768": [768, 1024], "600": [600, 900], "390": [390, 844] },
     routes: {
       home: { app: PLATE_MARKET, fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } } }, ready: "[data-nav-dock]", appPrep: async () => { await sleep(1200); } },
-      draft: { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr", appPrep: async () => { await sleep(600); } },
-      "draft-held": { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr",
+      draft: { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr", appPrep: async () => { await sleep(600); } },
+      "draft-held": { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr",
         appPrep: async (page) => { await sleep(500); await page.evaluate(() => { const r = [...document.querySelectorAll("[data-tracker-table] tbody tr.trk-row")].find(tr => /Halcyon/.test(tr.textContent)); (r || document.querySelector("[data-tracker-table] tbody tr.trk-row"))?.click(); }); await sleep(900); } },
-      "draft-posting": { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr",
+      "draft-posting": { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr",
         appPrep: async (page) => { await sleep(500); await page.evaluate(() => document.querySelector("[data-tracker-table] tbody tr.trk-row")?.click()); await sleep(300);
           await page.evaluate(() => document.querySelector('[data-row-detail] [data-pane="posting"]')?.click()); await sleep(700); } },
       // 47g R1: the home / board / posting routes on the PLATE market (the page people use) — the board is the Index tab,
@@ -348,7 +351,7 @@ const SCREENS = {
       profile: { app: "/app/profile/about", fixtures: PROFILE163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
       account: { app: "/app/profile/account", fixtures: ACCOUNT163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
       answers: { app: "/app/profile/answers", fixtures: SETTINGS, ready: "main", appPrep: async () => { await sleep(900); } },
-      settings: { app: "/app/auto-apply", fixtures: TRK, ready: "[data-settings-open]",
+      settings: { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-settings-open]",
         appPrep: async (page) => { await page.click("[data-settings-open]").catch(() => {}); await page.waitForSelector("[data-fold-top]", { timeout: 8000 }).catch(() => {}); await sleep(700); } },
       admin: { app: "/admin", fixtures: { "/api/admin/auth/me": { authenticated: true, enforced: true, admin: { email: "admin@example.invalid" } },
         "/api/auth/me": { authenticated: false } }, strict: true, ready: "h1", appPrep: async () => { await sleep(900); } },
@@ -371,7 +374,7 @@ const SCREENS = {
   // ⭐ A200 (46k) · ASK DRAFT'S QUESTIONS THREAD — measured, not compared (`--styles ask200`): at each width, with a held
   // application's three questions open in Ask draft (synthetic: Yes / No, a choice, a written answer), nothing of the panel
   // sits under the dock, the question is in the stepper's large type, the timeline column is folded away, no sideways scroll.
-  ask200: { sketch: null, app: "/app/auto-apply", fixtures: { ...TRK,
+  ask200: { sketch: null, app: CLASSIC_HOME, fixtures: { ...TRK,
       "/api/apply/questions/greenhouse%3A%3A4000001/draft": { draft: "I built the alerting for a payments service and kept its on-call quiet for a year." } },
     ready: "[data-nav-dock]", shoot: true,
     sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], phone: [390, 844] },
@@ -610,8 +613,8 @@ const SCREENS = {
   screens163: { sketch: null, shoot: true,
     sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], phone: [390, 844] },
     routes: {
-      tracker: { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr", appPrep: async () => { await sleep(600); } },
-      settings: { app: "/app/auto-apply", fixtures: TRK, ready: "[data-settings-open]", probe: { root: "[data-settings-drawer]" },
+      tracker: { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr", appPrep: async () => { await sleep(600); } },
+      settings: { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-settings-open]", probe: { root: "[data-settings-drawer]" },
         appPrep: async (page) => { await page.click("[data-settings-open]").catch(() => {}); await page.waitForSelector("[data-fold-top]", { timeout: 8000 }).catch(() => {}); await sleep(700); } },
       atlas: { app: "/app/atlas", fixtures: ATLAS163, ready: "main", appPrep: async () => { await sleep(900); } },
       // ⭐ D167: the settings pages are Profile's panels now (each at /app/profile/<panel>); Interview is its own place.
@@ -644,20 +647,20 @@ const SCREENS = {
       await page.waitForSelector("[data-deck-post-slot] [data-posting-facts]", { timeout: 20000 }).catch(() => {});
       await sleep(900);
     } },
-  settings: { sketch: "settings-declutter.html", app: "/app/auto-apply", fixtures: SETTINGS, ready: "[data-settings-open]",
+  settings: { sketch: "settings-declutter.html", app: CLASSIC_HOME, fixtures: SETTINGS, ready: "[data-settings-open]",
     appPrep: async (page) => { await page.click("[data-settings-open]").catch(() => {}); await page.waitForSelector("[data-fold-top]", { timeout: 8000 }).catch(() => {}); await sleep(600); },
     // ⭐ D149 settings: --styles opens the drawer first too; and the comparison that matters is the DRAWER (the page behind
     // it is a stand-in in the sketch) — its 520 px at the right edge on a computer, the whole screen on a phone.
     stylesWithPrep: true, region: ([w, h]) => (w >= 520 ? [w - 520, 0, 520, h] : null) },
   // ⭐ D149 · TRACKER — the owner's pick: layout 1 (table + timeline beside) on a computer, layout 3 (the switch) on phones.
-  tracker: { sketch: "tracker-options.html", app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr",
+  tracker: { sketch: "tracker-options.html", app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr",
     sketchPrep: async (page) => {
       await page.evaluate(() => document.querySelector(`[data-l="${window.innerWidth < 700 ? "tabs" : "side"}"]`)?.click());
       await sleep(400);
     } },
   // The two states the first screen does not show: the first row opened (its posting pane chosen, as the sketch opens
   // it), and on a phone the switch's other side, the timeline.
-  "tracker-open": { sketch: "tracker-options.html", app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr",
+  "tracker-open": { sketch: "tracker-options.html", app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr",
     sketchPrep: async (page) => {
       await page.evaluate(() => { document.querySelector(`[data-l="${window.innerWidth < 700 ? "tabs" : "side"}"]`)?.click(); document.querySelector(".tr")?.click(); });
       await sleep(700);
@@ -666,7 +669,7 @@ const SCREENS = {
       await page.evaluate(() => document.querySelector("[data-tracker-table] tbody tr.trk-row")?.click()); await sleep(300);
       await page.evaluate(() => document.querySelector('[data-row-detail] [data-pane="posting"]')?.click()); await sleep(700);
     } },
-  "tracker-timeline": { sketch: "tracker-options.html", app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr",
+  "tracker-timeline": { sketch: "tracker-options.html", app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr",
     sketchPrep: async (page) => {
       await page.evaluate(() => { document.querySelector(`[data-l="${window.innerWidth < 700 ? "tabs" : "side"}"]`)?.click(); document.querySelector('[data-tv="tl"]')?.click(); });
       await sleep(400);

@@ -1605,7 +1605,10 @@ export function AutoApplyPanel({ user = null } = {}) {
   const lgNode = lgFront?.node || null;
   const lgHeldQs = lgNode ? heldQuestionsFor(lgNode) : [];
   const lgStepsOf = (node) => (node ? heldFor(node)?.steps || runSteps(node) : []);
-  const lgStops = lgNode ? runStops(lgStepsOf(lgNode), { answers: lgHeldQs.length }) : [];
+  // "only you can give": the questions that are yours to state (a free-text one is drafted for you in Ask draft)
+  const lgOwnQs = lgHeldQs.filter(x => x.kind !== "draft");
+  const lgOwnCount = lgOwnQs.length || lgHeldQs.length;
+  const lgStops = lgNode ? runStops(lgStepsOf(lgNode), { answers: lgOwnCount }) : [];
   const lgWho = lgFront ? [companyLabel(lgFront.company), lgFront.title].filter(Boolean).join(" · ").toUpperCase() : "";
   const lgCap = sub ? `${sub.used} OF ${settings?.dailyCap ?? sub.limit} SENT TODAY` : null;
   const lgRunNow = held ? null : {
@@ -1664,7 +1667,7 @@ export function AutoApplyPanel({ user = null } = {}) {
   const lgNeeds = (
     <LedgerNeeds
       meta={lgNeedRow ? `NEEDS YOU · ${lgWho}` : lgReady ? `READY TO SEND · ${[companyLabel(lgReady.company), lgReady.title].filter(Boolean).join(" · ").toUpperCase()}` : "NEEDS YOU"}
-      title={lgNeedRow && lgHeldQs.length ? `${numWord(lgHeldQs.length, true)} answer${lgHeldQs.length === 1 ? "" : "s"} only you can give`
+      title={lgNeedRow && lgHeldQs.length ? `${numWord(lgOwnCount, true)} answer${lgOwnCount === 1 ? "" : "s"} only you can give`
         : lgNeedRow ? `${companyLabel(lgNeedRow.company)} is waiting for you` : lgReady ? "Ready for you to send" : "Nothing needs you right now"}
       lead={lgNeedRow && lgHeldQs.length ? "Everything else is filled. One question at a time; each one goes away once you’ve answered it."
         : lgNeedRow ? lgNeedRow.node?.say || "One step only you can take." : lgReady ? "Everything is filled. Submit when you’re happy." : "Every answer is in. New drafts that need you show here first."}
@@ -1687,8 +1690,16 @@ export function AutoApplyPanel({ user = null } = {}) {
   // 02 · the register: Home's tabs, filters and find over the board's register; a row opens IN PLACE (the same RowOpen)
   const lgRows = shownRows.map(r => ({ id: r.key, row: r, company: companyLabel(r.company), role: r.title, region: sectorRegion(r.title),
     steps: squaresOf(r, r.node ? runStops(lgStepsOf(r.node)) : []), where: r.headline || r.status, status: tagOf(r),
-    action: { label: actOf(r), onClick: () => step(open?.type === "job" && open.key === r.key ? { type: "close" } : { type: "job", key: r.key }) },
-    attrs: { "data-row": r.key } }));
+    action: lgActOf(r), attrs: { "data-row": r.key } }));
+  // the row's one button = the board's: its stage's cancel / stop / run-again (the same handlers the opened row shows), else View;
+  // the company opens the row in place either way
+  const lgToggle = (key) => step(open?.type === "job" && open.key === key ? { type: "close" } : { type: "job", key });
+  function lgActOf(r) {
+    const acts = rowActions(r);
+    const a = acts.find(x => x.id === "cancel" || x.id === "stop" || x.id === "remove") || acts.find(x => x.id === "again");
+    if (a && typeof a.onClick === "function") return { label: a.id === "again" ? "Re-run · free" : "Cancel", onClick: a.onClick, attrs: { "data-action": a.id, title: a.label } };
+    return { label: actOf(r), onClick: () => lgToggle(r.key) };
+  }
   const lgBulk = (kind, ids) => {
     const keys = new Set(ids);
     const jobIds = new Set(rows.filter(r => keys.has(r.key)).map(r => String(r.jobId)));
@@ -1702,10 +1713,9 @@ export function AutoApplyPanel({ user = null } = {}) {
   const lgRegister = (
     <LedgerRegister count={rows.length} lead="Each line says what really happened. Re-running a draft is free; cancelling one gives the day’s credit back."
       banner={applySlots?.heldBeforeUpdate > 0 && lgHeldAll.length > 0 && !bannerGone ? (
-        <LedgerBanner action={<>
-          <button type="button" className="pl-btn pl-btn--ink" onClick={() => { rerunHeld(lgHeldAll); setBannerGone(true); }}>Re-run all {lgHeldAll.length}</button>
-          <button type="button" className="pl-btn pl-btn--flat" onClick={() => setBannerGone(true)}>Not now</button>
-        </>}><b>{applySlots.heldBeforeUpdate} draft{applySlots.heldBeforeUpdate === 1 ? " was" : "s were"} held by a problem we’ve fixed.</b> Re-run {applySlots.heldBeforeUpdate === 1 ? "it" : "them"} with the fix, free.</LedgerBanner>
+        <LedgerBanner action={<button type="button" className="pl-btn pl-btn--ink" onClick={() => { rerunHeld(lgHeldAll); setBannerGone(true); }}>Re-run all {lgHeldAll.length}</button>}>
+          <b>{applySlots.heldBeforeUpdate} draft{applySlots.heldBeforeUpdate === 1 ? " was" : "s were"} held by a problem we’ve fixed.</b> Re-run {applySlots.heldBeforeUpdate === 1 ? "it" : "them"} with the fix, free.{" "}
+          <button type="button" className="pl-q-link pl-lg-notnow" onClick={() => setBannerGone(true)}>Not now</button></LedgerBanner>
       ) : null}
       controls={listView === "sheet" ? null : (
         <div className="pl-lg-controls" data-home-tabs="">
@@ -1731,6 +1741,7 @@ export function AutoApplyPanel({ user = null } = {}) {
       ) : homeTab === "inbox" ? <div style={{ marginTop: 16 }}><ApplicationInbox theme={theme} onSeen={inboxSeen} /></div> : (
         <div data-tracker-table="">
           <Register label="Your applications" rows={lgRows} openId={open?.type === "job" ? open.key : null} renderOpen={(a) => renderRow(a.row)} message={bulkMsg || null}
+            onRowOpen={(a) => lgToggle(a.id)}
             barExtra={<select className="pl-register__sort" aria-label="Sort the register" value={`${sort.key}:${sort.dir}`}
               onChange={(e) => { const [key, dir] = e.target.value.split(":"); setSort({ key, dir }); }}>
               {lgSorts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>}
