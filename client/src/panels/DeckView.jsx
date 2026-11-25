@@ -700,7 +700,7 @@ function PlatePosRow({ at, of, order, prev, next, onFlip, pager = null, sortChos
   );
 }
 
-export function PlateDeckStill({ cards = [], of = cards.length, order = "best" }) {
+export function PlateDeckStill({ cards = [], of = cards.length, order = "best", pager = null }) {   // pager: the D199 position line
   const faceRef = useRef(null), boxRef = useRef(null);
   const [h, setH] = useState(0);
   const [w, setW] = useState(0);
@@ -729,7 +729,7 @@ export function PlateDeckStill({ cards = [], of = cards.length, order = "best" }
           ))}
         </div>
       </div>
-      <PlatePosRow at={1} of={of} order={order} prev={false} next={cards.length > 1} onFlip={noop} />
+      <PlatePosRow at={1} of={of} order={order} prev={false} next={cards.length > 1} onFlip={noop} pager={pager} />
     </div>
   );
 }

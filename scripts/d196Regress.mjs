@@ -61,35 +61,8 @@ export const PAIRS = {
   // P1 · the bearing: the board's sentence carries clauses the live model words differently (the résumé's own role, level,
   // sponsorship), so this too is a look at the cartouche's frame and type, not a pixel gate.
   "market-bearing": { board: "The market · draft", fixture: "MarketBearing", boardSel: "section:nth-of-type(2)", buildSel: "[data-market-bearing-fixture]", pad: 0, look: true },
-  "market-hero": { board: "The market · draft", fixture: "MarketHeroBoard", boardSel: 'section[aria-labelledby="mk-title"]', buildSel: 'section[aria-labelledby="mk-title"]', pad: 0, waitBuild: 4000, reduced: true,   // both at rest: the tags' float stops under reduced motion on each side
-    // the one figure the build words differently on purpose: the board's "MATCH ≥ 85%" — draft counts the strong band
-    // (shared/atsBands.js), which is not ≥ 85 %, so the cell says STRONG FIT; its label is masked, its number is not
-    masks: [[400, 345, 100, 18]] },
-  // P1 · the openings: the deck card keeps the deck's form factor (600 wide, not the board's 760), so the section is a look
-  // FIX-2 / FIX-4 / FIX-5 (47f): the Deck tab as DeckView draws it — a GATE (D196: "no page is called landed without its F5").
-  "market-openings": { board: "The market · draft", fixture: "MarketOpeningsBoard", boardSel: "section:nth-of-type(3)", buildSel: "#openings", pad: 0, reduced: true, subpixel: true,
-    // masked: the field card (x ≥ 868) — FIX-5 replaced the board's wrapped "ROLE FIT · STACK · DUTIES / 91 · 88 · 80" foot
-    // with a labelled row on the owner's word, so it is its own LOOK pair (market-field); and the strings the board has and
-    // the build can't back: "· EXAMPLE DATA", "· CHECKED TODAY", the stamp's "· FY25", the position line's sort words
-    // ... and the two back sheets' slivers above and right of the ticket: the board draws plain white sheets, the build the
-    // deck's OWN CardBack (the owner's keep, 11-24) at the board's exact poses — compared everywhere else
-    masks: [[868, 230, 314, 461], [300, 0, 200, 22], [600, 280, 230, 18], [580, 490, 250, 70], [0, 650, 420, 30],
-      [24, 236, 844, 32], [832, 236, 36, 405]],
-    // at 390 the field card wraps under the deck: the gate stops at its top (cropTo — it is market-field's look), and the
-    // same kinds of mask apply where the parts land there (EXAMPLE DATA, CHECKED TODAY, the stamp, the backs, the position
-    // line: the build's ‹ is disabled on the first card — honest — where the board's wraps round)
-    cropTo: { 390: 1495 },
-    masksAt: { 390: [[80, 90, 160, 16], [40, 604, 160, 16], [20, 1150, 250, 70], [20, 560, 272, 22], [246, 560, 46, 840], [0, 1400, 292, 95]] } },
-  // FIX-7 / FIX-8 (47f): the Index tab as the board's Gazetteer — a GATE, the board's Index tab pressed first. Compared as
-  // they are (both inside the gate): the STACK · YOURS cells (the board writes "5 / 5 · 4 ✓"; draft's rows carry the
-  // posting's skills, and the ✓ only when a report has them: "5 · 4 ✓") and each row's 32 px bubble (D182's carve-out — the
-  // board doesn't draw it; the owner kept it). Masked: only "· EXAMPLE DATA".
-  "market-index": { board: "The market · draft", fixture: "MarketIndexBoard", boardSel: "section:nth-of-type(3)", buildSel: "#openings", pad: 0, reduced: true, subpixel: true,
-    boardTab: "Index", masks: [[300, 0, 200, 22]],
-    // at 390 the gate stops at the table's header row: on the board's squeezed artboard its "5 / 5 · 4 ✓" overruns the
-    // 106 px STACK column by a pixel and wraps, so every board row is ~5 px taller (draft's "5 · 4 ✓" doesn't wrap); the
-    // rows are gated at 1280 and are a look here
-    cropTo: { 390: 610 }, masksAt: { 390: [[0, 78, 292, 24]] } },
+  // ⛔ 47h (D199 / D200): the v3 board's market-hero / market-openings / market-index GATES are retired — the approved `Market`
+  // board supersedes that export and the page was rebuilt to it; their gates are the final-market-* pairs below.
   "market-field": { board: "The market · draft", fixture: "MarketOpeningsBoard", boardSel: 'aside[aria-label="Why this opening fits you"]', buildSel: 'aside[aria-label="Why this opening fits you"]', pad: 6, reduced: true, look: true },
   // v2 (47e, order item 4): each ported drawing against its own element on the v2 boards, drawn at the board's width
   // (`matchWidth`: the build page reads the board element's width from its address) — the port's fidelity, pixel for pixel.
@@ -120,8 +93,9 @@ export const PAIRS = {
     // card (disabled — honest; the board's wraps round)
     masks: [[0, 0, 560, 22], [538, 0, 22, 425], [316, 286, 206, 62], [56, 438, 290, 22], [460, 426, 56, 48]] },
   "final-market-pager": { source: "final", board: "Market", fixture: "MarketSectionFinal", boardSel: 'nav[aria-label="Pages"]', buildSel: 'nav[aria-label="Pages"]', pad: 4, subpixel: true, reduced: true,
-    // the page line and the last tile: the board's 24 per page (469 pages) vs the owner's "use 50" (225) — the only change
-    masks: [] },
+    // the page line and the last tile: the board's 24 per page (469 pages) vs the owner's "use 50" (225) — the only change;
+    // at 1280 they differ by under 2 % unmasked, at 390 (two lines of the line, the tiles wrapped) they're masked
+    masks: [], masksAt: { 390: [[0, 0, 252, 34], [48, 86, 56, 50]] } },
   "final-market-index": { source: "final", board: "Market", fixture: "MarketSectionFinal", boardTab: "Index", buildHash: "tab=index", boardSel: "section:nth-of-type(2) .at-in", buildSel: ".pl-tabpanel:not([hidden])", pad: 0, subpixel: true, reduced: true },
   // ⭐ D198 E1 (47h) · THE EXPLAINER, BEAT BY BEAT — v4's *Explainer · Big O, acted out* (the board scales its 405 × 720 inner
   // frame by 1.12 into its column; the run takes the scale off, so both sides are the frame at its own size). Each side's

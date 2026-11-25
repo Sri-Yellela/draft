@@ -114,11 +114,11 @@ export function MarketOpeningsBoard() {
     <MemoryRouter>
       {/* the offset as PADDING: a margin collapses into the section's own 64 px top margin and is lost */}
       <div style={{ width: w, paddingLeft: marginLeft, paddingTop: marginTop, boxSizing: "content-box" }}>
-        <MarketOpenings count={412}
+        <PlateRoot><MarketOpenings count={412}
           deck={<PlateDeckStill cards={[BOARD_CARD, ...BOARD_NEXT]} of={412}/>}
           index={<div/>}
           field={<FieldCard alike={["Role and level: frontend, mid — same as yours", "Their stack: React, TypeScript, Next.js all on your résumé", "Duties: “rebuild checkout” ≈ your Toast checkout rebuild"]}
-            gaps={[{ text: "They monitor with Datadog RUM.", link: { label: "Learn it →", href: "#atlas" } }]} figures={BOARD_FIGURES}/>}/>
+            gaps={[{ text: "They monitor with Datadog RUM.", link: { label: "Learn it →", href: "#atlas" } }]} figures={BOARD_FIGURES}/>}/></PlateRoot>
       </div>
     </MemoryRouter>
   );
@@ -145,9 +145,10 @@ export function MarketIndexBoard() {
   return (
     <MemoryRouter>
       <div style={{ width: Number(new URLSearchParams((globalThis.location?.hash || "").slice(1)).get("w")) || 1182, paddingLeft: marginLeft, paddingTop: marginTop, boxSizing: "content-box" }}>
-        <MarketOpenings count={412} initialTab="index" deck={<div/>}
+        {/* D199 C1 (47h): the openings no longer carry their own plate root (they sit in the one section's) — the fixture gives one */}
+        <PlateRoot><MarketOpenings count={412} initialTab="index" deck={<div/>}
           index={<MarketIndexTable rows={rows} onOpen={(job) => note("open", job.jobId)}
-            bubble={(r) => <RowBubble job={r.job} drafted={r.status === "DRAFTED"} onSave={() => note("save", r.id)} onDraft={() => note("draft", r.id)}/>}/>}/>
+            bubble={(r) => <RowBubble job={r.job} drafted={r.status === "DRAFTED"} onSave={() => note("save", r.id)} onDraft={() => note("draft", r.id)}/>}/>}/></PlateRoot>
       </div>
     </MemoryRouter>
   );
@@ -307,11 +308,12 @@ export function MarketSectionFinal() {
     { score, status, yours, saved: i === 1 || i === 3 }));
   return (
     <MemoryRouter>
-      <PlateRoot className="pl-marketbearing" style={{ width: 1182, marginLeft, paddingTop: marginTop }}>
+      {/* the board's content column: the page less its 98 px dock (1182 at 1280, 292 at 390) */}
+      <PlateRoot className="pl-marketbearing" style={{ width: Math.min(1182, (globalThis.innerWidth || 1280) - 98), marginLeft, paddingTop: marginTop }}>
         <section className="pl-section" id="bearing" aria-labelledby="mk-bearing" data-market-section="">
           <LegHeader n={1} meta="YOUR BEARING AND OPENINGS · ONE SECTION" title={<span id="mk-bearing">Where you’re headed, and what’s there</span>}/>
           <p className="pl-lead">Set the bearing, search or filter; the counts and the openings follow. Pass, save or send any of them; Draft starts the application and it moves to your ledger.</p>
-          <header className="fh">
+          <header className="fh" data-fh-d147="">
             <PlateBearing params={{}} allSlot="all">
               <MarketSearchRow search={<BoardSearch placeholder="Search a company, role, technology or title" value=""/>} sort={<MarketSortButton label="Best match"/>}/>
               <MarketFilterRow params={{}}/>
@@ -319,7 +321,7 @@ export function MarketSectionFinal() {
             </PlateBearing>
           </header>
           <MarketOpenings initialTab={tab}
-            deck={<PlateDeckStill cards={[card, ...BOARD_NEXT]} of={412}/>}
+            deck={<PlateDeckStill cards={[card, ...BOARD_NEXT]} of={412} pager={{ page: 1, pageSize: 50, total: 412 }}/>}
             index={<MarketIndexTable rows={rows} bubble={(r) => <RowBubble job={r.job} saved={r.saved} drafted={r.status === "DRAFTED"}/>}/>}
             field={<FieldCard alike={["Role and level: frontend, mid — same as yours", "Their stack: React, TypeScript, Next.js all on your résumé", "Duties: “rebuild checkout” ≈ your Toast checkout rebuild"]}
               gaps={[{ text: "They monitor with Datadog RUM.", link: { label: "Learn it →", href: "#atlas" } }]} figures={BOARD_FIGURES}>

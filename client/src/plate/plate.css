@@ -568,6 +568,8 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
 .pl-market-deck > :first-child { flex: 0 1 560px; width: 560px; max-width: 100%; min-width: 0; }
 .pl-market-deck__side { flex: 1 1 360px; min-width: 0; }
 .pl-market-deck__side .pl-fieldcard { max-width: none; }
+.pl-market-deck__side .pl-card__strip { flex-wrap: nowrap; }
+.pl-market-deck__side .pl-card__strip > * { white-space: nowrap; flex-shrink: 0; }   /* the board's strip keeps NO AI on its line */
 /* the Market board's field card scores: 9 px labels over 26 px serif numbers, 6 px apart */
 .pl-market-deck__side .pl-card__figs { gap: 6px; }
 .pl-market-deck__side .pl-card__fig { gap: 0; }
@@ -931,7 +933,7 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
 /* the one section: the board's 56 px above, 72 below; the cartouche 22 px under the lead */
 .pl-marketbearing > .pl-section[data-market-section] { margin-top: 56px; padding-bottom: 72px; }
 .pl-marketbearing > .pl-section[data-market-section] > .pl-lead { margin: 14px 0 0; max-width: 720px; font-size: var(--pl-t-body); font-weight: 400; line-height: 1.55; }
-.pl-marketbearing > .pl-section[data-market-section] > .fh { margin-top: 22px; }
+.pl-marketbearing > .pl-section[data-market-section] > .fh { margin-top: 22px; padding: 0; max-width: none; font-family: var(--pl-sans); }   /* the board header's FullHouse gutter and face never reach the cartouche */
 .pl-marketbearing .pl-bearing { margin: 0; }
 .pl-cartouche__controls .pl-cartouche__text { padding-bottom: 18px; }
 .pl-bearing:has(.pl-cartouche__controls) .pl-cartouche__text { font-size: var(--pl-t-cartouche); padding-bottom: 18px; }
@@ -1021,6 +1023,7 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
 .pl-ixc--h1b { flex: 0 0 56px; font-family: var(--pl-mono); font-size: var(--pl-t-mono-num); }
 .pl-ixc--status { flex: 0 0 88px; }
 .pl-ixrow--head .pl-ixc { font-family: var(--pl-mono); font-size: var(--pl-t-mono); }
+.pl-ixrow--head .pl-ixc--title { white-space: normal; min-width: auto; }   /* the header's word wraps on a phone, never vanishes */
 .pl-ixc--act { flex: 0 0 auto; display: flex; justify-content: flex-end; }
 .pl-ixrow--head .pl-ixc--act { flex: 0 0 44px; }
 .pl-ixrow .pl-gz__title, .plate .pl-ixrow a.pl-gz__title { color: var(--pl-ink); font-weight: 700; font-size: var(--pl-t-ui); text-decoration: none; }

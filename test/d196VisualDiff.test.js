@@ -17,7 +17,8 @@ test("⛔ D196 F5 · every built piece is within 2 % of its sketch", { timeout: 
     // the explainer's ten beats are their own gate (d198VisualDiffExplainer)
     for (const name of Object.keys(PAIRS).filter((n) => !n.startsWith("xp-beat-"))) results.push(await runPair(name, { browser }));
     // 47f (the owner's FIX acceptance: "F5 diff ≤ 2 % at 1280 and 390"): the market's Deck tab at 390 too
-    for (const name of ["market-face", "market-openings"]) results.push({ ...(await runPair(name, { browser, width: 390 })), pair: `${name}@390` });
+    // 47h (D199): the market rebuilt to the approved Market board — its pieces at 390 where the board's phone layout holds
+    for (const name of ["market-face", "final-market-hero", "final-market-head", "final-market-cartouche", "final-market-tabs", "final-market-field"]) results.push({ ...(await runPair(name, { browser, width: 390 })), pair: `${name}@390` });
   } finally { await browser.close(); }
   const failing = results.filter((r) => !r.pass).map((r) => `${r.pair}: ${r.pct} % (board ${r.sizeBoard.join("×")}, build ${r.sizeBuild.join("×")}) — see tmp/d196-regress/${r.pair}/pair.png`);
   assert.deepEqual(failing, [], `over ${THRESHOLD_PCT} % or a different size — fix the component, never the threshold`);

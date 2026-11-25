@@ -37,7 +37,7 @@ test("C8 · d196IndexIsGazetteer + d196IndexSortedAsDeck", { timeout: 120000 }, 
   const page = await open({ width: 700, hash: "#w=652" });
   const r = await page.evaluate((sel) => {
     const head = document.querySelector("[data-market-index] .pl-ixrow--head");
-    return { heads: [...head.querySelectorAll("[role=columnheader]")].map((h) => h.textContent).filter(Boolean), headBg: getComputedStyle(head).backgroundColor,
+    return { heads: [...head.querySelectorAll("[role=columnheader]")].filter((h) => h.getBoundingClientRect().width > 0).map((h) => h.textContent).filter(Boolean), headBg: getComputedStyle(head).backgroundColor,
       headFont: getComputedStyle(head).fontFamily, pageScrolls: document.documentElement.scrollWidth > innerWidth,
       titles: [...document.querySelectorAll(sel)].map((row) => [row.children[0].textContent, row.querySelector("[data-index-title]").textContent]),
       tags: [...document.querySelectorAll(`${sel} .pl-status`)].map((t) => [t.textContent, t.dataset.kind || "", getComputedStyle(t).fontFamily]) };
