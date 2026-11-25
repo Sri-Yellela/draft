@@ -37,7 +37,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";   // D180 P1: the network switch
-import { DraftMark } from "./DraftMark.jsx";
+import PlateRoot from "../plate/PlateRoot.jsx";   // ⭐ D197 #1: the dock and the area nav are the plate's (plate tokens, the theme's palette)
+import { Dock, AreaNav, useSearchShortcut } from "../plate/Shell.jsx";
 import UsbSuggest from "./UsbSuggest.jsx";
 import { requestBoardSearch } from "../lib/boardSearch.js";
 import { useAccountAvatar } from "../lib/accountAvatar.js";
@@ -55,8 +56,6 @@ import { autoToggle } from "../lib/draftHouseExceptions.js";
 import { ACTIVE_THEME } from "../themes/index.js";
 import "./AppNav.css";
 
-// ⭐ D156 (1b): every icon the same size.
-export const DOCK_ICON_PX = 30;
 // ⭐ D167: the names, and nothing under them. The jobs are "draft" (the mark draws out into /draft); the tracker is the
 // house, "Home"; Interview is the new page (/app/interview — the d167-profile lane builds the page and its route).
 export const DOCK_NAMES = Object.freeze({ today: "draft", "auto-apply" : "Home", atlas: "Atlas", interview: "Interview", network: "Network", feed: "Feed", messages: "Messages" });   // (the id, spaced for the D6 guard)
@@ -70,8 +69,8 @@ export const DOCK_PLACES = Object.freeze(["today", "auto-apply", "atlas", "inter
 export const INTERVIEW_PATH = "/app/interview";
 // ⭐ D167 · the open dock's width, the gaps and where the dock goes — one pure module (dockPlace.js), so the rule is
 // tested without a browser.
-import { DOCK_OPEN_PX, DOCK_GAP_PX, DOCK_TOP_GAP_PX, PHONE_MAX_PX, dockPlace } from "./dockPlace.js";
-export { DOCK_OPEN_PX, DOCK_GAP_PX, DOCK_TOP_GAP_PX, PHONE_MAX_PX, dockPlace };
+import { DOCK_RAIL_PX, DOCK_EDGE_PX, SIDE_MIN_PX, PHONE_MAX_PX, dockPlace } from "./dockPlace.js";
+export { DOCK_RAIL_PX, DOCK_EDGE_PX, SIDE_MIN_PX, PHONE_MAX_PX, dockPlace };
 // The Profile page's panels (the d167-profile lane builds them): one helper, so every link here says the same thing.
 export const PROFILE_PANELS = Object.freeze(["about", "answers", "autoapply", "connections", "appearance", "notifications", "privacy", "account"]);
 // ⭐ D167: Profile's panels live at /app/profile/<id> (pages/profile/profilePanels.js profilePath — a profile-module
@@ -81,105 +80,91 @@ export const profileHref = (panel) => (panel ? `/app/profile/${panel}` : "/app/p
 // not needed"): the name opens the profile at its About section (ProfileSections' ABOUT_ANCHOR).
 export const ABOUT_HREF = "/app/profile/about#profile-about";
 
-// The house, the globe, the microphone and the speech bubble: line drawings in the theme's accent (AppNav.css strokes
-// them with --c-accent).
-function HouseIcon() {
-  return (
-    <svg className="appnav-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M3.5 10.6 12 3.8l8.5 6.8" /><path d="M5.8 9v10.6h4.5v-5.8h3.4v5.8h4.5V9" />
-    </svg>
-  );
-}
-function GlobeIcon() {
-  return (
-    <svg className="appnav-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <circle cx="12" cy="12" r="8.6" /><path d="M3.4 12h17.2" /><path d="M12 3.4c2.4 2.4 3.6 5.3 3.6 8.6s-1.2 6.2-3.6 8.6c-2.4-2.4-3.6-5.3-3.6-8.6S9.6 5.8 12 3.4Z" />
-    </svg>
-  );
-}
-function MicIcon() {
-  return (
-    <svg className="appnav-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <rect x="9" y="3.5" width="6" height="11" rx="3" /><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" /><path d="M12 18v2.5" />
-    </svg>
-  );
-}
-// ⭐ D180 P1 (45o): Network — two people (the spec's icon).
-function PeopleIcon() {
-  return (
-    <svg className="appnav-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <circle cx="9" cy="8.5" r="3.2" /><path d="M3.5 19a5.5 5.5 0 0 1 11 0" /><circle cx="16.5" cy="9.5" r="2.6" /><path d="M15.5 14.2a4.6 4.6 0 0 1 5 4.8" />
-    </svg>
-  );
-}
-// ⭐ 46f (owner 11-11): Feed and Messages are their own places — a page of posts, an envelope.
-function FeedIcon() {
-  return (
-    <svg className="appnav-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <rect x="4" y="4" width="16" height="16" rx="2.5" /><path d="M8 9h8M8 12.5h8M8 16h5" />
-    </svg>
-  );
-}
-function EnvelopeIcon() {
-  return (
-    <svg className="appnav-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <rect x="3.5" y="5.5" width="17" height="13" rx="2.5" /><path d="M4 7l8 6 8-6" />
-    </svg>
-  );
-}
-function SearchIcon() {
-  return (
-    <svg className="appnav-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <circle cx="10.5" cy="10.5" r="6" /><path d="M15 15l5 5" />
-    </svg>
-  );
-}
+// ⭐ D197 #1: the places' line drawings are the plate's (plate/icons.jsx — the Shell board's own paths, stroked in the
+// plate's ink); the dock itself is the plate's one Dock (plate/Shell.jsx), drawn inside a PlateRoot (the plate tokens,
+// in the person's theme's palette — D196 THEMES).
+const DOCK_ICON = Object.freeze({ "auto-apply" : "home", atlas: "atlas", interview: "interview", network: "network", feed: "feed", messages: "messages" });   // (the id, spaced for the D6 guard)
+const pathOf = (id) => (id === "interview" ? INTERVIEW_PATH : id === "network" ? NETWORK_PATH : id === "feed" ? FEED_PATH : id === "messages" ? MESSAGES_PATH : undefined);
 
-// ⭐ 45n (owner 11-08) · THE DOCK'S SEARCH — the icon turns the dock into one search bar in the dock's own place: companies,
-// people (public profiles, with workplace · school), roles, technologies and titles, the one grouped list (UsbSuggest).
-// A company or a person opens its page; a role, a technology or typed words (Enter) search the jobs board
-// (lib/boardSearch.js). Esc, the ✕ or leaving it empty and pressing outside puts the dock back.
-function DockSearch({ onClose }) {
+// ⭐ 45n (owner 11-08) · THE DOCK'S SEARCH — companies, people (public profiles, with workplace · school), roles,
+// technologies and titles, the one grouped list (UsbSuggest). A company or a person opens its page; a role, a technology or
+// typed words (Enter) search the jobs board (lib/boardSearch.js). ⭐ D197 #1 (the Shell board): it lives in each area's nav
+// now — the search box with Ctrl K on a wide screen, the top bar's search button on a phone (DockSearch, a sheet under it).
+// The same suggest, built once (A93): ShellSearchInput is the input, DockSearch the phone's sheet with its ✕.
+export function ShellSearchInput({ className = "appnav-search__input", placeholder = "Search people, companies, jobs", inputRef, onDone, autoFocus = false }) {
   const [q, setQ] = useState("");
   const navigate = useNavigate();
-  const inputRef = useRef(null);
-  useEffect(() => { inputRef.current?.focus({ preventScroll: true }); }, []);
-  const toBoard = (detail) => { requestBoardSearch(detail); onClose(); navigate("/app/jobs"); };
+  const own = useRef(null);
+  const ref = inputRef || own;
+  useEffect(() => { if (autoFocus) ref.current?.focus({ preventScroll: true }); }, [autoFocus, ref]);
+  const toBoard = (detail) => { requestBoardSearch(detail); setQ(""); onDone?.(); navigate("/app/jobs"); };
+  return (
+    <UsbSuggest field="title" value={q} onChange={setQ}
+      onPickRole={(r) => toBoard({ role: { id: r.id, categoryId: r.categoryId } })}
+      onPickTech={(t) => toBoard({ tech: { name: t.name } })}
+      onAccept={(text) => toBoard({ query: text })}>
+      {(sugg) => (
+        <input {...sugg} ref={(el) => { ref.current = el; if (typeof sugg.ref === "function") sugg.ref(el); else if (sugg.ref) sugg.ref.current = el; }}
+          type="search" enterKeyHint="search" className={className} data-dock-search-input=""
+          placeholder={placeholder} aria-label="Search people, companies and jobs"
+          onKeyDown={(e) => {
+            sugg.onKeyDown?.(e);
+            if (e.defaultPrevented) return;
+            if (e.key === "Enter" && q.trim()) toBoard({ query: q.trim() });
+            else if (e.key === "Escape") { e.preventDefault(); setQ(""); e.currentTarget.blur(); onDone?.(); }
+          }} />
+      )}
+    </UsbSuggest>
+  );
+}
+function DockSearch({ onClose }) {
   return (
     <div className="appnav-search" role="search" aria-label="Search draft" data-dock-search="">
-      <UsbSuggest field="title" value={q} onChange={setQ}
-        onPickRole={(r) => toBoard({ role: { id: r.id, categoryId: r.categoryId } })}
-        onPickTech={(t) => toBoard({ tech: { name: t.name } })}
-        onAccept={(text) => toBoard({ query: text })}>
-        {(sugg) => (
-          <input {...sugg} ref={(el) => { inputRef.current = el; if (typeof sugg.ref === "function") sugg.ref(el); else if (sugg.ref) sugg.ref.current = el; }}
-            type="search" enterKeyHint="search" className="appnav-search__input"
-            placeholder="Search people, companies, jobs" aria-label="Search people, companies and jobs"
-            onKeyDown={(e) => {
-              sugg.onKeyDown?.(e);
-              if (e.defaultPrevented) return;
-              if (e.key === "Enter" && q.trim()) toBoard({ query: q.trim() });
-              else if (e.key === "Escape") { e.preventDefault(); onClose(); }
-            }} />
-        )}
-      </UsbSuggest>
+      <ShellSearchInput onDone={onClose} autoFocus />
       <button type="button" className="appnav-search__close" aria-label="Close the search" onClick={onClose}>✕</button>
     </div>
   );
 }
 
-const ICONS = { atlas: () => <GlobeIcon />, "auto-apply" : () => <HouseIcon />, interview: () => <MicIcon />, network: () => <PeopleIcon />, feed: () => <FeedIcon />, messages: () => <EnvelopeIcon /> };   // (the id, spaced for the D6 guard)
-// The jobs' entry is the mark itself — "/d" at rest, "/draft" open (the wordmark IS its name, so no separate word).
-const isJobs = (id) => id === "today" || id === "console";
-
-function Badge({ n, label }) {
-  if (!(n > 0)) return null;
+// ⭐ D197 #1 · A237 · THE AREA NAV ACROSS THE TOP OF THE CONTENT COLUMN — the plate's one AreaNav (plate/Shell.jsx) with
+// the dock's search in it. App passes each area's views (the market's: Today's picks · All jobs · Starred · Imported) and
+// chip; an area the board hasn't drawn views for yet still gets its search (so the dock's search is never lost). Below
+// 980 px the phone's top bar: the /d tile, the search button (opens DockSearch under it), the views scrolling sideways.
+const PHONE_QUERY = `(max-width: ${SIDE_MIN_PX - 1}px)`;
+export function useShellPhone() {
+  const get = () => typeof window !== "undefined" && !!window.matchMedia && window.matchMedia(PHONE_QUERY).matches;
+  const [phone, setPhone] = useState(get);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return undefined;
+    const mq = window.matchMedia(PHONE_QUERY);
+    const on = () => setPhone(mq.matches);
+    on();
+    mq.addEventListener?.("change", on);
+    return () => mq.removeEventListener?.("change", on);
+  }, []);
+  return phone;
+}
+export function ShellAreaNav({ area, views = [], current, onGo, pill, more = [], chip, placeholder = "Search people, companies, jobs", homeHref = "/app/jobs", onHome }) {
+  const phone = useShellPhone();
+  const [sheet, setSheet] = useState(false);
+  const inputRef = useRef(null);
+  // on a phone, Ctrl / Cmd K opens the sheet (the one shortcut — plate/Shell.jsx's useSearchShortcut)
+  useSearchShortcut(() => setSheet(true), () => phone);
+  const go = (id, href) => { setSheet(false); onGo?.(id, href); };
+  const home = { id: "home", href: homeHref, label: "draft — the market" };
+  const search = phone
+    ? { onOpen: () => setSheet((s) => !s), sheet: sheet ? <DockSearch onClose={() => setSheet(false)} /> : null }
+    : { placeholder, inputRef, renderInput: ({ className, placeholder: ph }) => <ShellSearchInput className={className} placeholder={ph} inputRef={inputRef} /> };
   return (
-    <span className="appnav-badge" title={label}>
-      <span aria-hidden="true">{n > 9 ? "9+" : n}</span><span className="sr-only">{`, ${label}`}</span>
-    </span>
+    <PlateRoot className="appnav-areanav" data-area-nav={area} data-phone={phone ? "true" : "false"}>
+      <AreaNav area={area} views={views} current={current} onGo={(id, href) => (id === "home" ? onHome?.() : go(id, href))} pill={pill} more={more}
+        chip={phone ? null : chip} search={search} phone={phone} home={home} />
+    </PlateRoot>
   );
 }
+
+// The jobs' entry is the /d tile itself (the wordmark IS its name).
+const isJobs = (id) => id === "today" || id === "console";
 
 // The tabs App hands over (today · auto-apply · atlas), with Interview after Atlas when App does not route it yet.
 function placesOf(tabs, network = false, netUnread = 0) {
@@ -200,67 +185,19 @@ function placesOf(tabs, network = false, netUnread = 0) {
   return list;
 }
 
-function NavItems({ tabs, activeTab, hrefForTab, onGo, dock = false, network = false, netUnread = 0 }) {
-  return placesOf(tabs, network, netUnread).map((t) => {
-    const Icon = ICONS[t.id];
-    const name = DOCK_NAMES[t.id] || t.label;
-    const href = hrefForTab?.(t.id) || (t.id === "interview" ? INTERVIEW_PATH : t.id === "network" ? NETWORK_PATH
-      : t.id === "feed" ? FEED_PATH : t.id === "messages" ? MESSAGES_PATH : undefined);
-    const jobs = isJobs(t.id);
-    return (
-      <a key={t.id} className="appnav-item" href={href} data-nav-item={t.id} {...(dock && jobs ? { "data-nav-brand": "" } : null)}
-        aria-current={activeTab === t.id ? "page" : undefined} {...(dock ? { "aria-label": name } : null)}
-        onClick={(e) => {
-          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-          e.preventDefault();
-          onGo(t.id, href);
-        }}>
-        {dock && jobs && <span className="appnav-ico appnav-ico--mark" data-nav-icon={t.id}><DraftMark drawOut logo /><Badge n={t.badge} label={t.badgeLabel} /></span>}
-        {dock && !jobs && Icon && <span className="appnav-ico" data-nav-icon={t.id}><Icon /><Badge n={t.badge} label={t.badgeLabel} /></span>}
-        {!(dock && jobs) && (
-          <span className="appnav-words">
-            <span className="appnav-name">
-              {name}
-              {!dock && <Badge n={t.badge} label={t.badgeLabel} />}
-            </span>
-          </span>
-        )}
-      </a>
-    );
-  });
+// the notifications' times (seconds since the epoch) — the one copy: the peek's list and TopBar's account panel read it
+export function notifTimeAgo(ts) {
+  const s = Math.floor(Date.now() / 1000 - Number(ts || 0));
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
 }
 
 const initialsOf = (name) => String(name || "").trim().split(/[\s._@-]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
 
 function Avatar({ url, name, className }) {
   return url ? <img className={className} src={url} alt="" /> : <span className={`${className} appnav-initials`} aria-hidden="true">{initialsOf(name)}</span>;
-}
-
-// ⭐ D149: the account menu is "Profile", the fifth place of the Dock and of the Menu. `profile` = { onOpen, badge,
-// badgeLabel, name, email, onSignOut } (TopBar's). ⭐ D156 (3): in the dock, the person's picture (a perfect circle — D60
-// keeps circles round), initials without one. ⭐ D167: in the dock a press opens the quick peek (`peek` handlers); in the
-// Menu's panel it opens the Profile panel as before.
-function ProfileItem({ profile, onPress, dock = false, peek = null, itemRef = null }) {
-  const { url } = useAccountAvatar(!!profile && dock);
-  if (!profile) return null;
-  return (
-    <button type="button" ref={itemRef} className="appnav-item" data-nav-item="profile" aria-haspopup="dialog" onClick={onPress}
-      {...(dock ? { "aria-label": "Profile", "aria-expanded": !!peek?.open, "aria-controls": "appnav-peek",
-                    onMouseEnter: peek?.onEnter, onMouseLeave: peek?.onLeave } : null)}>
-      {dock && (
-        <span className="appnav-ico appnav-ico--me" data-nav-icon="profile">
-          {url ? <img src={url} alt="" /> : <span className="appnav-initials" aria-hidden="true">{initialsOf(profile.name)}</span>}
-          <Badge n={profile.badge} label={profile.badgeLabel} />
-        </span>
-      )}
-      <span className="appnav-words">
-        <span className="appnav-name">
-          Profile
-          {!dock && <Badge n={profile.badge} label={profile.badgeLabel} />}
-        </span>
-      </span>
-    </button>
-  );
 }
 
 // ⭐ D190 · TINY (owner 11-15: "make tiny a floating bot on the site rather than a panel button. give it a cute logo
@@ -293,11 +230,16 @@ export function ProfilePeek({ open, profile, pos = { top: 0, left: 80 }, onGo, o
   const fullAuto = runBar?.mode?.current === "auto";
   const mode = autoToggle(runBar);
   const themeName = String(ACTIVE_THEME?.label || "").replace(/ Dark$/, "");
+  // ⭐ D197 #1 · A236 (b): the Notifications row opens the LIST in place (each row, its unread dot and time, Mark all read)
+  // — since the account panel lost its opener the list was reachable nowhere; what to send stays one link below it.
+  const [notifsOpen, setNotifsOpen] = useState(false);
+  useEffect(() => { if (!open) setNotifsOpen(false); }, [open]);
   if (!profile) return null;
-  const link = (panel, label, aside = null, extra = {}) => (
+  const notifs = Array.isArray(profile.notifs) ? profile.notifs : [];
+  const link = (panel, label, aside = null, extra = {}, plain = false) => (
     <a href={profileHref(panel)} data-peek-link={panel || "open"} {...extra}
       onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return; e.preventDefault(); onGo(profileHref(panel)); }}>
-      <span>{label}</span>{aside != null && <small>{aside}</small>}
+      <span>{label}</span>{aside != null && <small {...(plain ? { "data-plain": "" } : null)}>{aside}</small>}
     </a>
   );
   return (
@@ -324,8 +266,27 @@ export function ProfilePeek({ open, profile, pos = { top: 0, left: 80 }, onGo, o
           onClick={mode.selectable ? () => { if (!fullAuto) setApplyMode?.("auto"); } : undefined}>Apply for me</button>
       </div>
       {link("connections", "Connections", profile.connectionsNeedYou > 0 ? `${profile.connectionsNeedYou} need${profile.connectionsNeedYou === 1 ? "s" : ""} you` : null)}
-      {link("appearance", "Appearance", themeName || null)}
-      {link("notifications", "Notifications", profile.badge > 0 ? String(profile.badge) : null)}
+      {link("appearance", "Appearance", themeName || null, {}, true)}
+      <button type="button" className="appnav-peek__row" data-peek-notifs="" aria-expanded={notifsOpen} aria-controls="appnav-peek-notifs"
+        onClick={() => { if (!notifsOpen) profile.onLoadNotifs?.(); setNotifsOpen((o) => !o); }}>
+        <span>Notifications</span>
+        <span>{profile.badge > 0 && <small>{profile.badge > 9 ? "9+" : String(profile.badge)}</small>} <span className="appnav-peek__chev" aria-hidden="true">▾</span></span>
+      </button>
+      {notifsOpen && (
+        <div id="appnav-peek-notifs" className="appnav-peek__notifs" data-peek-notif-list="">
+          {notifs.length === 0
+            ? <p className="appnav-peek__none">No notifications yet.</p>
+            : <ul>{notifs.slice(0, 20).map((n, i) => (
+              <li key={n.id ?? i} className="appnav-peek__notif" data-peek-notif={n.read ? "read" : "unread"}>
+                <span className="appnav-peek__dot" data-read={n.read ? "true" : "false"} aria-hidden="true" />
+                <span>{n.message}{!n.read && <span className="pl-sr"> (unread)</span>}<time>{notifTimeAgo(n.created_at)}</time></span>
+              </li>))}</ul>}
+          <div className="appnav-peek__acts">
+            {profile.badge > 0 && <button type="button" data-peek-mark-all="" onClick={() => profile.onMarkAll?.()}>Mark all read</button>}
+            {link("notifications", "What to send me")}
+          </div>
+        </div>
+      )}
       <div className="appnav-peek__sep" aria-hidden="true" />
       {link(null, "Open Profile", null, { className: "appnav-peek__open" })}
       <button type="button" className="appnav-peek__out" data-peek-signout="" onClick={() => { onClose(); profile.onSignOut?.(); }}>Sign out</button>
@@ -587,9 +548,9 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
 
 export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, profile = null }) {
   const navigate = useNavigate();
-  const [wide, setWide] = useState(false);      // the dock, expanded to its names (hover / focus / M)
+  const [wide, setWide] = useState(false);      // the rail holds the focus (hover / focus / M) — `data-open`, <html data-dock-open>
   const [peekOpen, setPeekOpen] = useState(false);
-  const [peekPos, setPeekPos] = useState({ top: 0, left: 80 });
+  const [peekPos, setPeekPos] = useState({ top: 0, left: 112 });
   // ⭐ D190 · Tiny's card: open or closed is remembered for the tab's session (the PDF-tools site's Tiny does the same).
   const [askOpen, setAskOpen] = useState(() => { try { return sessionStorage.getItem(TINY_OPEN_KEY) === "1"; } catch { return false; } });
   useEffect(() => { try { sessionStorage.setItem(TINY_OPEN_KEY, askOpen ? "1" : ""); } catch { /* storage blocked */ } }, [askOpen]);
@@ -601,10 +562,9 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
     window.addEventListener("draft:open-questions", open);
     return () => { window.removeEventListener("draft:ask-question", open); window.removeEventListener("draft:open-questions", open); };
   }, []);
-  const [searching, setSearching] = useState(false);   // ⭐ 45n: the dock is the search bar
   // ⭐ D180 P1 (45o): is the network on? (GET /api/network/status — false on any failure: the dock stays as it was.)
   const [network, setNetwork] = useState(false);
-  const [netUnread, setNetUnread] = useState(0);   // D180 P2: unread messages on the dock's Network
+  const [netUnread, setNetUnread] = useState(0);   // D180 P2: unread messages on the dock's Messages
   useEffect(() => {
     let live = true;
     const ask = () => api("/api/network/status").then(r => { if (!live) return; setNetwork(!!r?.enabled); setNetUnread(Number(r?.unread) || 0); }).catch(() => {});
@@ -613,6 +573,7 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
     window.addEventListener("rm:network-read", ask);
     return () => { live = false; clearInterval(iv); window.removeEventListener("rm:network-read", ask); };
   }, []);
+  const { url: avatarUrl } = useAccountAvatar(!!profile);
   const dockRef = useRef(null);
   const profRef = useRef(null), peekRef = useRef(null), askRef = useRef(null), askBtnRef = useRef(null), peekTimer = useRef(null);
   const closePeek = useCallback(() => { clearTimeout(peekTimer.current); setPeekOpen(false); }, []);
@@ -627,67 +588,25 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
 
   // A touch screen has no hover: a tap goes straight to the page (the icons carry their names for assistive tech).
   const canHover = typeof window === "undefined" || !window.matchMedia || window.matchMedia("(hover: hover)").matches;
-  // The dock stays open while its peek is (with a pointer): the peek sits beside the OPEN dock, so the two never overlap.
-  // On a touch screen the rail stays slim and the peek sits beside it.
   const dockOpen = wide || (peekOpen && canHover);
-  // (the place is measured below; a top / phone dock has one form — names or icons — and is never widened)
 
-  // ⭐ D167: "raft"'s width, measured ONCE the logo face has loaded — the mark slides by half of it (AppNav.css).
-  useEffect(() => {
-    let gone = false;
-    const set = () => {
-      const dock = dockRef.current, raft = dock?.querySelector("[data-draft-raft]");
-      if (!gone && raft) dock.style.setProperty("--appnav-raft-w", `${raft.offsetWidth}px`);
-    };
-    set();
-    document.fonts?.ready?.then(set).catch(() => {});
-    return () => { gone = true; };
-  }, []);
-
-  // ⭐ D167 · THE DOCK GOES WHERE THE SPACE IS. Measured on mount, on every resize and whenever the page's first box
-  // changes size: where the content starts (D163's centred group) decides side / top / phone (dockPlace). A side dock is
-  // centred in the margin (--appnav-margin); a top dock sits so the gap above it equals the gap below it
-  // (--appnav-top-y, and --appnav-top-reserve when the page must start lower). Only while the dock is the navigation
-  // on screen (CSS decides which); nothing here ever pads the page sideways.
-  const [place, setPlace] = useState("side");
+  // ⭐ D197 #1 · A237 (the Shell board, owner-approved 11-25): THE RAIL AT THE LEFT on wide screens — 84 px, 14 px from the
+  // edge, the area nav across the top of the content column beside it (AppNav.css pads the shell by the rail); below
+  // 980 px the rail becomes the phone's bottom bar. Re-measured on every resize; `data-dock-place` on <html> says which.
+  const [place, setPlace] = useState(() => (typeof window === "undefined" ? "side" : dockPlace({ vw: document.documentElement.clientWidth || window.innerWidth })));
   useLayoutEffect(() => {
     const root = document.documentElement;
     let raf = 0;
     const measure = () => {
       raf = 0;
-      const el = dockRef.current;
-      if (!el || getComputedStyle(el).display === "none") { root.removeAttribute("data-dock-place"); return; }
-      const shell = document.querySelector("[data-app-shell]"), first = shell?.querySelector("main")?.firstElementChild;
-      const vw = document.documentElement.clientWidth || window.innerWidth;
-      let contentLeft = 0, contentTop = 0;
-      if (first) {
-        const r = first.getBoundingClientRect(), cs = getComputedStyle(first);
-        contentLeft = r.left + (parseFloat(cs.paddingLeft) || 0);
-        contentTop = r.top + window.scrollY + (parseFloat(cs.paddingTop) || 0)
-          - (parseFloat(getComputedStyle(shell).getPropertyValue("--appnav-top-reserve")) || 0);
-      }
-      const next = dockPlace({ vw, contentLeft });
+      const next = dockPlace({ vw: root.clientWidth || window.innerWidth });
       root.setAttribute("data-dock-place", next);
-      root.style.setProperty("--appnav-margin", `${Math.max(0, Math.round(contentLeft))}px`);
-      if (next !== "side") {
-        // equal gaps: the dock's top is the gap; the content starts one more gap below the dock's bottom
-        const h = el.offsetHeight || 48;
-        const y = Math.max(DOCK_TOP_GAP_PX, Math.round((contentTop - h) / 2));
-        root.style.setProperty("--appnav-top-y", `${y}px`);
-        root.style.setProperty("--appnav-top-reserve", `${Math.max(0, Math.round(y + h + y - contentTop))}px`);
-      } else {
-        root.style.removeProperty("--appnav-top-y"); root.style.setProperty("--appnav-top-reserve", "0px");
-      }
       setPlace(next);
     };
     const schedule = () => { if (!raf) raf = requestAnimationFrame(measure); };
     measure();
     window.addEventListener("resize", schedule);
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(schedule) : null;
-    const main = document.querySelector("[data-app-shell] main");
-    if (ro && main) ro.observe(main);
-    document.fonts?.ready?.then(schedule).catch(() => {});
-    return () => { window.removeEventListener("resize", schedule); ro?.disconnect(); cancelAnimationFrame(raf); };
+    return () => { window.removeEventListener("resize", schedule); cancelAnimationFrame(raf); };
   }, []);
   useEffect(() => {
     const root = document.documentElement;
@@ -695,15 +614,15 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
   }, [dockOpen]);
   useEffect(() => () => { const r = document.documentElement; r.removeAttribute("data-dock-open"); r.removeAttribute("data-dock-place"); r.removeAttribute("data-ask-open"); }, []);
 
-  // ⭐ D190 · Tiny floats over the page (owner 11-15): `data-ask-open` says it is open (A200's timeline fold reads it) —
-  // ~~D167: the shell is padded by the panel~~ (no longer: the page keeps its width). Opening puts the cursor in the box.
+  // ⭐ D190 · Tiny floats over the page (owner 11-15): `data-ask-open` says it is open (A200's timeline fold reads it).
+  // Opening puts the cursor in the box.
   useEffect(() => {
     const root = document.documentElement;
     if (askOpen) root.setAttribute("data-ask-open", "true"); else root.removeAttribute("data-ask-open");
     if (askOpen) askRef.current?.querySelector("[data-ask-input]")?.focus({ preventScroll: true });
   }, [askOpen]);
 
-  // A press outside the dock folds it back to its icons; outside the dock and the peek closes the peek.
+  // A press outside the dock lets it go; outside the dock and the peek closes the peek.
   useEffect(() => {
     if (!wide && !peekOpen) return undefined;
     const onDown = (e) => {
@@ -714,18 +633,23 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
     return () => document.removeEventListener("pointerdown", onDown);
   }, [wide, peekOpen, closePeek]);
 
-  // ⛔ 45n (owner 11-08, decision (10)): the side Menu is RETIRED — the dock is the one navigation. M expands / folds the
-  // dock (never while typing); Esc folds it (the peek first, then Ask draft).
+  // ⛔ 45n (owner 11-08, decision (10)): the dock is the one navigation. ⭐ D197 #1: the rail always shows its names (the
+  // board), so M no longer widens it — M takes the keyboard INTO the dock (its current place) and back out (never while
+  // typing). Esc: the peek first, then Tiny, then the dock lets go of the focus.
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape" && peekOpen) { closePeek(); profRef.current?.focus({ preventScroll: true }); return; }
       if (e.key === "Escape" && askOpen) { setAskOpen(false); askBtnRef.current?.focus?.({ preventScroll: true }); return; }
-      if (e.key === "Escape") { setWide(false); return; }
+      if (e.key === "Escape") { if (dockRef.current?.contains(document.activeElement)) document.activeElement.blur?.(); setWide(false); return; }
       if ((e.key === "m" || e.key === "M") && !e.metaKey && !e.ctrlKey && !e.altKey) {
         const el = e.target;
         if (el?.closest?.("input,textarea,select,[contenteditable=''],[contenteditable='true']")) return;
         const dock = dockRef.current;
-        if (dock && getComputedStyle(dock).display !== "none") { e.preventDefault(); setWide((u) => !u); }
+        if (!dock) return;
+        e.preventDefault();
+        if (dock.contains(document.activeElement)) { document.activeElement.blur?.(); setWide(false); return; }
+        (dock.querySelector('[aria-current="page"]') || dock.querySelector("a,button"))?.focus({ preventScroll: true });
+        setWide(true);
       }
     };
     document.addEventListener("keydown", onKey);
@@ -733,30 +657,25 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
   }, [peekOpen, askOpen, closePeek]);
   useEffect(() => () => clearTimeout(peekTimer.current), []);
 
-  // ⭐ D167: the peek follows the dock — BESIDE a side dock (its middle on the picture's, its left past the open dock's
-  // right edge) and BELOW a top dock (its middle under the picture), kept on screen.
+  // The peek follows the dock — BESIDE the rail (its middle on the picture's, 10 px past the rail's right edge) and ABOVE
+  // the phone's bottom bar (its middle over the picture), kept on screen.
   const placePeek = useCallback(() => {
     const r = profRef.current?.getBoundingClientRect();
     if (!r) return;
     const h = peekRef.current?.offsetHeight || 420, w = peekRef.current?.offsetWidth || 268;
     const vw = document.documentElement.clientWidth || window.innerWidth;
+    const d = dockRef.current?.getBoundingClientRect();
     if (document.documentElement.getAttribute("data-dock-place") === "side") {
-      const d = dockRef.current?.getBoundingClientRect();
-      const openRight = d ? d.left + d.width / 2 + DOCK_OPEN_PX / 2 : r.right;
-      setPeekPos({ top: Math.max(12, Math.min(window.innerHeight - h - 12, r.top + r.height / 2 - h / 2)), left: Math.round(openRight + 10) });
+      setPeekPos({ top: Math.max(12, Math.min(window.innerHeight - h - 12, r.top + r.height / 2 - h / 2)), left: Math.round((d ? d.right : r.right) + 10) });
     } else {
-      const d = dockRef.current?.getBoundingClientRect();
-      setPeekPos({ top: Math.round((d ? d.bottom : r.bottom) + 10), left: Math.round(Math.max(12, Math.min(vw - w - 12, r.left + r.width / 2 - w / 2))) });
+      setPeekPos({ top: Math.max(12, Math.round((d ? d.top : r.top) - h - 10)), left: Math.round(Math.max(12, Math.min(vw - w - 12, r.left + r.width / 2 - w / 2))) });
     }
   }, []);
   const showPeek = useCallback(() => { clearTimeout(peekTimer.current); placePeek(); setPeekOpen(true); }, [placePeek]);
   // Resting ≈ 350 ms on the picture opens it; leaving the picture or the peek closes it after 250 ms unless the pointer
   // reached the other one.
-  const peekHover = {
-    open: peekOpen,
-    onEnter: () => { clearTimeout(peekTimer.current); peekTimer.current = setTimeout(showPeek, 350); },
-    onLeave: () => { clearTimeout(peekTimer.current); peekTimer.current = setTimeout(() => { if (!peekRef.current?.matches(":hover")) setPeekOpen(false); }, 250); },
-  };
+  const onProfileEnter = () => { clearTimeout(peekTimer.current); peekTimer.current = setTimeout(showPeek, 350); };
+  const onProfileLeave = () => { clearTimeout(peekTimer.current); peekTimer.current = setTimeout(() => { if (!peekRef.current?.matches(":hover")) setPeekOpen(false); }, 250); };
   const onPeekEnter = () => clearTimeout(peekTimer.current);
   const onPeekLeave = () => { clearTimeout(peekTimer.current); peekTimer.current = setTimeout(() => { if (!profRef.current?.matches(":hover")) setPeekOpen(false); }, 250); };
   const pressProfile = () => {
@@ -766,32 +685,39 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
   };
   const pressAsk = () => { setWide(false); closePeek(); setAskOpen((o) => !o); };
 
+  // ⭐ D197 #1 · the dock's items, in D167's order with their badges (placesOf), drawn by the plate's one Dock: the /d tile
+  // is the jobs' entry (the market); Profile is the person's picture (initials without one) and opens the peek; on the
+  // rail Ask draft (after the rule, the board's) opens Tiny — Tiny's own fox bubble stays (D190).
+  const bar = place === "phone";
+  const brand = (tabs || []).find((t) => isJobs(t.id)) || { id: "today" };
+  const home = { id: brand.id, href: hrefForTab?.(brand.id) || "/app/jobs", label: "draft — the market",
+    attrs: { "data-nav-item": brand.id, "data-nav-brand": "" } };
+  const current = isJobs(activeTab) ? brand.id : activeTab;
+  const items = placesOf(tabs, network, netUnread).filter((t) => !isJobs(t.id)).map((t) => {
+    const href = hrefForTab?.(t.id) || pathOf(t.id);
+    return { id: t.id, label: DOCK_NAMES[t.id] || t.label, href, icon: DOCK_ICON[t.id] || "list", badge: t.badge, badgeLabel: t.badgeLabel,
+      attrs: { "data-nav-item": t.id } };
+  });
+  if (profile) items.push({ id: "profile", label: "Profile", onPress: pressProfile, itemRef: profRef, badge: profile.badge, badgeLabel: profile.badgeLabel,
+    ...(avatarUrl ? { img: avatarUrl } : { initials: initialsOf(profile.name) }),
+    attrs: { "data-nav-item": "profile", "aria-label": "Profile", "aria-haspopup": "dialog", "aria-expanded": !!peekOpen, "aria-controls": "appnav-peek",
+      ...(canHover ? { onMouseEnter: onProfileEnter, onMouseLeave: onProfileLeave } : null) } });
+  const ask = bar ? null : { onPress: pressAsk, attrs: { "data-nav-item": "ask", "aria-expanded": !!askOpen, "aria-controls": "appnav-ask", "aria-label": `Ask draft — opens ${TINY_NAME}` } };
+
   const body = typeof document !== "undefined" ? document.body : null;
   return (
     <>
       {body && createPortal(
-        <>
-          <nav aria-label="Main" ref={dockRef} className="appnav-dock" data-nav-dock="" data-open={dockOpen || searching ? "true" : "false"} data-place={place}
-            data-searching={searching ? "true" : "false"}
-            aria-keyshortcuts="M"
-            onMouseEnter={canHover ? () => setWide(true) : undefined}
-            onMouseLeave={canHover ? () => { if (!dockRef.current?.contains(document.activeElement)) setWide(false); } : undefined}
-            onFocus={(e) => { if (canHover || e.target.matches?.(":focus-visible")) setWide(true); }}
-            onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setWide(false); }}>
-            {searching ? <DockSearch onClose={() => { setSearching(false); setWide(false); }} /> : <>
-            <button type="button" className="appnav-item" data-nav-item="search" aria-label="Search" onClick={() => { closePeek(); setSearching(true); }}>
-              <span className="appnav-ico" data-nav-icon="search"><SearchIcon /></span>
-              <span className="appnav-words"><span className="appnav-name">Search</span></span>
-            </button>
-            <NavItems tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onGo={go} dock network={network} netUnread={netUnread} />
-            <ProfileItem profile={profile} dock itemRef={profRef} peek={canHover ? peekHover : { open: peekOpen }} onPress={pressProfile} />
-            </>}
-          </nav>
+        <PlateRoot className="appnav-plate" data-appnav-plate="">
+          <Dock home={home} items={items} ask={ask} current={current} bar={bar} onGo={go} navRef={dockRef}
+            navProps={{ "data-nav-dock": "", "data-open": dockOpen ? "true" : "false", "data-place": place, "aria-keyshortcuts": "M",
+              onFocus: () => setWide(true),
+              onBlur: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setWide(false); } }} />
           <ProfilePeek open={peekOpen} profile={profile} pos={peekPos} onGo={goPath} onClose={closePeek}
             onEnter={canHover ? onPeekEnter : undefined} onLeave={canHover ? onPeekLeave : undefined} peekRef={peekRef} />
           <AskDraftPanel open={askOpen} panelRef={askRef} onClose={() => { setAskOpen(false); askBtnRef.current?.focus?.({ preventScroll: true }); }} />
           <TinyBubble open={askOpen} onPress={pressAsk} btnRef={askBtnRef} />
-        </>, body)}
+        </PlateRoot>, body)}
     </>
   );
 }

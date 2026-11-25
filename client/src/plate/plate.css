@@ -488,6 +488,22 @@
 .pl-sq--run { width: 10px; }
 .pl-btn--flat { box-shadow: none; }
 
+/* ── D197 Wave 1 #1 (47i) · the live dock's extra parts (the board's look; AppNav.jsx renders the Dock) ── */
+/* an item that is a button (Profile → the peek, Ask draft → Tiny) draws exactly as a link item */
+button.pl-dock__item { font: inherit; color: var(--pl-ink); margin: 0; width: 100%; }
+button.pl-dock__item:hover { background: var(--pl-paper-hover); }
+button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border: var(--pl-border); box-shadow: var(--pl-s3); }
+.pl-dock__item:focus-visible, .pl-dock__logo:focus-visible, .pl-topbar__logo:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 3px; }
+/* the board's Ledger figure: the current item's name in 800 */
+.pl-dock__item[aria-current="page"] .pl-dock__label { font-weight: 800; }
+/* the person's picture where there is one: the initials tile's box (a 7 px-round square — not a capsule, D60) */
+.pl-avatar--img { object-fit: cover; display: block; padding: 0; }
+.pl-dock--bar .pl-avatar { width: 20px; height: 20px; border-radius: var(--pl-r-tag); font-size: var(--pl-t-9); }
+.pl-dock--bar .pl-dock__mark { font-size: var(--pl-t-mono-lg); }
+.pl-rel { position: relative; }
+.pl-search__wrap { display: contents; }
+.pl-topbar__logo { display: inline-flex; text-decoration: none; }
+
 /* ── D196 P1 / FIX-2 / FIX-4 · the market's deck ticket (plate/MarketCardFace.jsx over the library's .pl-opening).
    The frame is DeckView's FanCard (the deck's own CardBack behind, the flip); in the plate market it takes the board's size
    (plate/deckGeometry.js) and these rules give the frame the board's look. Nothing here clips the ticket: the title wraps,

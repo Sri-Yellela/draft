@@ -16,6 +16,7 @@ import DBInspector               from "./pages/admin/DBInspector.jsx";
 // app's first load (R3) until a plate page ships.
 const PlateGallery = lazy(() => import("./pages/dev/PlateGallery.jsx"));
 import TopBar                     from "./components/TopBar.jsx";
+import { ShellAreaNav }           from "./components/AppNav.jsx";   // ⭐ D197 #1: the area nav across the content column
 import AppShell                  from "./components/AppShell.jsx";
 import { useChromeHeight }       from "./hooks/useChromeHeight.js";
 import { AppScrollProvider } from "./contexts/AppScrollContext.jsx";
@@ -412,6 +413,57 @@ function BoardViews({ onImported }) {
 
 // ⭐ D147 (D145's minimal counts) · "746 jobs · 38 new today · 12 saved" — each from the facets answer (views.all, the
 // Posted clause's Past 24h count, views.saved); a count the answer does not hold is not drawn, never a 0 in its place.
+// ⭐ D197 Wave 1 #1 · A237 · THE AREA NAV (the Shell board): across the top of the content column, beside the rail. The
+// market's views are the board's — Today's picks (the openings' Deck) · All jobs · Starred · Imported (the board's own
+// views: the openings turn to Index and the view is set, D35's one store) — with the drafts chip (the last 24 hours'
+// drafts, /api/draft/slots — the server's rolling window, worded as such) and the dock's search. The market has no pill
+// (its location lives in the bearing). Other areas get the search only until their pages' plates draw their views
+// (Wave 1 #4 the ledger, #6 Atlas) — the dock's search is never lost.
+const MARKET_AREA_VIEWS = [
+  { id: "picks", label: "Today’s picks", href: "/app/jobs", icon: "picks" },
+  { id: "all", label: "All jobs", href: "/app/jobs?view=all", icon: "list" },
+  { id: "saved", label: "Starred", href: "/app/jobs?view=saved", icon: "starred" },
+  { id: "imported", label: "Imported", href: "/app/jobs?view=imported", icon: "imported" },
+];
+// the openings' binder tabs (plate/MarketOpenings.jsx, idBase "mk-tab") are pressed, never re-implemented here
+const pressOpeningsTab = (id) => { const b = document.getElementById(`mk-tab-${id}`); if (b && b.getAttribute("aria-selected") !== "true") b.click(); return !!b; };
+function AppAreaNavSlot({ activeTab, marketPlate, onHome }) {
+  const navigate = useNavigate();
+  const { boardTab, setBoardTab } = useJobBoard();
+  const market = activeTab === "today" || activeTab === "console";
+  const [deckShown, setDeckShown] = useState(true);
+  // follow the openings' own tabs (a press on Deck / Index there moves the nav's current)
+  useEffect(() => {
+    if (!market || !marketPlate || typeof MutationObserver === "undefined") return undefined;
+    const read = () => { const d = document.getElementById("mk-tab-deck"); if (d) setDeckShown(d.getAttribute("aria-selected") === "true"); };
+    read();
+    const mo = new MutationObserver(read);
+    mo.observe(document.body, { subtree: true, attributes: true, attributeFilter: ["aria-selected"] });
+    return () => mo.disconnect();
+  }, [market, marketPlate]);
+  const [slots, setSlots] = useState(null);
+  useEffect(() => { if (market) api("/api/draft/slots").then(setSlots).catch(() => {}); }, [market]);
+  if (!market) return <ShellAreaNav area={AREA_NAMES[activeTab] || "draft"} onHome={onHome} />;
+  const current = marketPlate && deckShown ? "picks" : boardTab;
+  const views = marketPlate ? MARKET_AREA_VIEWS : MARKET_AREA_VIEWS.slice(1);
+  const onGo = (id) => {
+    if (id === "picks") { pressOpeningsTab("deck"); }
+    else { setBoardTab?.(id); if (marketPlate) pressOpeningsTab("index"); }
+    if (marketPlate) requestAnimationFrame(() => document.getElementById("openings")?.scrollIntoView?.({ block: "start", behavior: "smooth" }));
+    navigate("/app/jobs", { replace: true });
+  };
+  const limit = Number(slots?.limit), remaining = Number(slots?.remaining);
+  const chip = Number.isFinite(limit) && limit > 0 && Number.isFinite(remaining) ? {
+    kind: "drafts", used: Math.max(0, limit - remaining), of: Math.min(limit, 10), href: "/app/auto-apply",
+    label: `New drafts in the last 24 hours: ${Math.max(0, limit - remaining)} of ${limit} used, ${Math.max(0, remaining)} left. Re-runs are free`,
+    onGo: (href) => navigate(href) } : null;
+  return <ShellAreaNav area="The market" views={views} current={current} onGo={onGo} chip={chip}
+    placeholder="Company, role, tech…" onHome={onHome} />;
+}
+// the area's name for its nav's label (assistive tech) — the places the dock names
+const AREA_NAMES = { "auto-apply": "Home", atlas: "Atlas", interview: "Interview", profile: "Profile", network: "Network", feed: "Feed",
+  messages: "Messages", job: "Application", company: "Company", "job-profiles": "Job profiles", plans: "Plans", recruiter: "Recruiter" };
+
 // ⭐ D196 P1 · THE MARKET'S HERO (plate switch on): the board's own facet counts, the résumé's placement as the sentence
 // carries it (role_label, the level word when chosen), the ISO week. No best match yet — the deck holds it, and the hero
 // draws no pin it can't back (MarketHero).
@@ -780,6 +832,8 @@ function AppDashboard({ authUser, setAuthUser }) {
             onProfileActivate={handleProfileActivate}
           />
 
+          {/* ⭐ D197 #1 · A237: the area nav across the top of the content column (the rail is AppNav's, at the left) */}
+          <AppAreaNavSlot activeTab={home ? "today" : activeTab} marketPlate={!!marketPlate} onHome={() => handlePanelChange("today")} />
           {/* D149: the deck (like Full House) starts right under the mark — its card sits at the sketch's 90 px. */}
           {/* D149 (11-03): Draft House too — its own top padding puts its title at tracker-options.html's 84 px. */}
           <main style={{ flex:1, paddingTop: activeTab === "console" || activeTab === "today" || activeTab === "auto-apply" ? 0 : 24 }}>

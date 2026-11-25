@@ -24,6 +24,10 @@ export const ICON_PATHS = Object.freeze({
   library: "M4 4h5v16H4z M10 4h4v16h-4z M15.5 5l3.8-1 2.7 15.5-3.8 1z",
   question: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14 M12 17.5v.01",
   league: "M7 4h10v4a5 5 0 0 1-10 0z M5 5H3v1a4 4 0 0 0 4 4 M19 5h2v1a4 4 0 0 1-4 4 M12 13v4 M8 20h8",
+  // D197 #1: the two places the board doesn't draw (46f's own pages, under the network switch) — today's dock drawings,
+  // redrawn as paths in the plate's line set: a page of posts, an envelope
+  feed: "M6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11A2.5 2.5 0 0 1 6.5 4z M8 9h8 M8 12.5h8 M8 16h5",
+  messages: "M6 5.5h12a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 16V8A2.5 2.5 0 0 1 6 5.5z M4 7l8 6 8-6",
 });
 
 /** A line icon. size 16 in an area nav, 20 in the dock (the report: 16–18 px, 1.7–2 stroke). */

@@ -22,7 +22,7 @@ import { StampLogo } from "./StampLogo.jsx";
 import ProfileSelectorDropdown from "./ProfileSelectorDropdown.jsx";
 import { Z } from "../styles/zLayers.js";
 import { useNavigate } from "react-router-dom";
-import { ABOUT_HREF } from "./AppNav.jsx";   // A151: the username opens the About section
+import { ABOUT_HREF, notifTimeAgo } from "./AppNav.jsx";   // A151: the username opens the About section
 import { C } from "../styles/colorTokens.js";
 import { ACTIVE_THEME, appearance, setAppearance } from "../themes/index.js";
 import AppNav from "./AppNav.jsx";
@@ -113,13 +113,7 @@ const NOTIF_TYPE_ICONS = {
   needs_you: "!", inbox_reply: "✉", auto_daily_summary: "☰",
 };
 
-function notifTimeAgo(ts) {
-  const s = Math.floor(Date.now() / 1000 - ts);
-  if (s < 60)    return "just now";
-  if (s < 3600)  return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
-}
+// notifTimeAgo: AppNav.jsx's (D197 #1 — the peek's notifications list reads the same one)
 
 // The list, rendered inside the profile menu. Every row, the mark-all-read action, the per-item
 // unread dot, the icons and the relative timestamps are the bell's, unchanged — this is where they
@@ -520,7 +514,11 @@ export default function TopBar({
           width: vw,
           // D10: ~74px, so two-line tab labels sit beside a ~30px mark. The in-flow reserve and every
           // sticky offset read the MEASURED height (hooks/useChromeHeight.js), not this number.
-          height: 74,
+          // ⭐ D197 #1 · A237 (the Shell board): the strip RESERVES NOTHING now — the rail sits in its own column at the left
+          // and the area nav is the first thing in the content column (App's ShellAreaNav), so the page starts at the
+          // top; --app-chrome-height (the sticky offsets) measures 0. The strip stays as the click-through carrier of the
+          // dock's portal and the account panel. (D10's ~74 px bar, and D149's reserve under the floating mark, retired.)
+          height: 0,
           borderRadius: 0,
           // ⭐ D149 (owner 11-03): the sketches have NO top bar — the /draft mark floats at the top left and the Menu
           // button (when Menu is the navigation) at the top right. The band, its blur and its border are gone; the
@@ -559,7 +557,9 @@ export default function TopBar({
             profile={user ? { onOpen: openAccount, badge: unread, name: user.displayName || user.name || user.username || user.email,
               badgeLabel: `${unread} unread notification${unread === 1 ? "" : "s"}`,
               // ⭐ D167: the dock's quick peek shows the email and signs out with the same handler as the Profile panel.
-              email: user.email || "", onSignOut: onLogout } : null} />
+              email: user.email || "", onSignOut: onLogout,
+              // ⭐ D197 #1 · A236 (b): the peek's Notifications row opens the list (the same hook as the badge — one state)
+              notifs, onLoadNotifs: loadNotifs, onMarkAll: markAll } : null} />
           {user && (
             <ProfileMenuPanel open={accountOpen} onClose={closeAccount}
               theme={theme} user={user} onLogout={onLogout} onTabChange={onTabChange}

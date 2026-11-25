@@ -109,6 +109,7 @@
   --pl-t-12: calc(12px * var(--pl-scale));         /* a callout tag's third line (the v3 boards) */
   --pl-t-mono-num: calc(12px * var(--pl-scale));   /* the index's mono cells */
   --pl-t-10: calc(10px * var(--pl-scale));         /* the dock avatar's initials */
+  --pl-t-9: calc(9px * var(--pl-scale));           /* the phone bar's avatar initials (D197 #1, the Shell board's D · PHONE) */
   --pl-t-xp-title: calc(38px * var(--pl-scale));   /* D198: the explainer's serif title (9:16 at 405 px; v4's frame, 47h F5) */
   --pl-t-xp-caption: calc(15px * var(--pl-scale)); /* D198: the explainer's captions (the voice) */
   --pl-t-xp-kicker: calc(9px * var(--pl-scale));   /* D198 (47h, v4's frame): the kicker, the frame's labels, a cost's mark */
