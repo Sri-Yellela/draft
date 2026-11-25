@@ -1140,6 +1140,9 @@ const STYLE_PROBES = {
       // space is measured from the VIEWPORT's edges; nothing may sit within 8 px of a SIDE dock.
       const place = document.documentElement.getAttribute("data-dock-place");
       const dockRight = place === "side" && dock && dock.width > 0 ? dock.right : 0;
+      // ⭐ D197 #1 · A237: beside the rail the page's free space is measured from the CONTENT COLUMN's left edge (the shell's
+      // padding — 14 + 84 px), not the viewport's
+      const colLeft = place === "side" ? parseFloat(getComputedStyle(q("[data-app-shell]")).paddingLeft) || 0 : 0;
       const card = box(q('[data-fan-offset="0"] article'));
       const backs = qa("[data-fan-offset]").filter(e => Number(e.getAttribute("data-fan-offset")) > 0)
         .map(e => q("[data-fan-position]", e)).filter(e => e && Number(getComputedStyle(e).opacity) > 0).map(box);
@@ -1151,8 +1154,8 @@ const STYLE_PROBES = {
       const bubbles = qa(".jb-pair").slice(0, 1).map(p => qa(".jb", p).map(b => Math.round(b.getBoundingClientRect().width)))[0] || [];
       return {
         dock, home, deckCol, board, group: g,
-        place, leftFree: g ? g.left : null, rightFree: g ? vw - g.right : null,
-        homeLeftFree: home ? home.left : null, homeRightFree: home ? vw - home.right : null,
+        place, colLeft, leftFree: g ? g.left - colLeft : null, rightFree: g ? vw - g.right : null,
+        homeLeftFree: home ? home.left - colLeft : null, homeRightFree: home ? vw - home.right : null,
         colGap: deckCol && board ? board.left - deckCol.right : null,
         gutterL: parseFloat(hcs.paddingLeft), gutterR: parseFloat(hcs.paddingRight), columnGap: parseFloat(hcs.columnGap),
         card, stack, stackLeft: stack && deckCol ? stack.left - deckCol.left : null, stackRight: stack && deckCol ? deckCol.right - stack.right : null,

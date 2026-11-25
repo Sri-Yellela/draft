@@ -31,9 +31,10 @@ test("d163 (pure): one centred group at most 1680 wide; gutters and gaps are cla
   assert.match(FH, /\.home \{ --home-gutter: var\(--page-gutter\); --home-gap: clamp\(32px, 2\.5vw, 64px\);/);
   assert.match(FH, /max-width: none; margin: 0;\n  padding: 28px var\(--home-gutter\) 80px;/);
   assert.match(FH, /@media \(min-width: 1440px\) \{ \.home \{ --home-deck-track: minmax\(640px, \.75fr\); \}/);
-  // ⭐ D167 (changed on purpose): a side dock is centred in the page's margin both ways (AppNav.jsx measures the margin).
-  assert.match(NAVCSS, /\.appnav-dock\[data-nav-dock\] \{ top: 50%; left: calc\(var\(--appnav-margin, 72px\) \/ 2\); transform: translate\(-50%, -50%\); \}/);
-  assert.doesNotMatch(NAVCSS, /\.appnav-dock\[data-nav-dock\] \{[^}]*top: (44|24)px/, "no longer pinned to the top-left corner");
+  // ⭐ D197 #1 · A237 (the Shell board, changed on purpose — supersedes D163 / D167's centred rail): the rail sits at the
+  // LEFT, 14 px from the edges, and the content column starts beside it (test/d167Dock d197ShellPlace).
+  assert.match(NAVCSS, /\.appnav-plate > nav\[data-nav-dock\]\[data-place="side"\] \{\n  position: fixed; left: 14px; top: 14px;/);
+  assert.match(NAVCSS, /:root\[data-dock-place="side"\] \[data-app-shell\] \{ padding-left: 98px; \}/);
 });
 
 // ── real Chrome ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -64,7 +65,10 @@ test("d163GapsScaleWithWidth (real Chrome): the gap between the columns and the 
   for (const w of WIDTHS) assert.equal(out[w].rest.gutterL, out[w].rest.gutterR, `${w}: even gutters`);
   // the postings keep two columns, and the bubbles are larger on a wide screen
   for (const w of WIDTHS) assert.equal(out[w].rest.bubbles.length, 2, `${w}: two columns of postings`);
-  assert.ok(out["1920"].rest.bubbles[0] > out["1440"].rest.bubbles[0] && out["2560"].rest.bubbles[0] > out["1440"].rest.bubbles[0],
+  // ⭐ D197 #1 · A237 (moved on purpose, logged): beside the 84 px rail the classic (?plate=0) board's column at 1440 is 98 px
+  // narrower, so its container (≤ 620 px) stacks each pair — one posting per row there (the landscape deck card keeps the
+  // 640 px track from 1440: lib/fanGeometry.js HOME_WIDE). The wide screens still widen the bubbles, compared with 1280.
+  assert.ok(out["1920"].rest.bubbles[0] > out["1280"].rest.bubbles[0] && out["2560"].rest.bubbles[0] > out["1920"].rest.bubbles[0],
     `wider bubbles on wide screens (${WIDTHS.map(w => out[w].rest.bubbles[0])})`);
 });
 
@@ -88,18 +92,21 @@ test("d163DockOwnGutterVerticallyCentred → D167 (real Chrome): a side dock cen
   for (const w of [...WIDTHS, "phone"]) {
     const d = out[w], r = d.rest;
     if (r.place === "side") {
-      assert.ok(Math.abs(r.dockMid - d.vh / 2) <= 2, `${w}: vertically centred (${r.dockMid} of ${d.vh})`);
-      assert.ok(r.dock.left > 0 && r.dock.right <= (r.group?.left ?? Infinity), `${w}: in the margin, left of the content`);
+      // ⭐ D197 #1 · A237 (changed on purpose): the rail at the LEFT, 14 px from the top (no longer centred in a margin)
+      assert.equal(r.dock.top, 14, `${w}: 14 px from the top (${r.dock.top})`);
+      assert.ok(r.dock.left > 0 && r.dock.right <= (r.group?.left ?? Infinity), `${w}: left of the content`);
     } else {
-      assert.ok(r.dock.bottom <= (r.group?.top ?? Infinity), `${w}: above the content (${r.dock.bottom} vs ${r.group?.top})`);
+      assert.ok(r.dock.top >= d.vh - 90, `${w}: the bottom bar at the foot (${r.dock.top} of ${d.vh})`);
     }
   }
-  // ⭐ 46q FULL WIDTH (changed on purpose): the content starts at the page gutter, so the dock is at the top at every width.
-  assert.equal(out["2560"].rest.place, "top"); assert.equal(out["1280"].rest.place, "top");
+  // ⭐ D197 #1 · A237 (changed on purpose — 46q put it at the top everywhere): the rail at every width from 980 px, the
+  // bottom bar below it (the phone's dock bottom ≤ the content's top no longer applies: the bar sits at the foot)
+  assert.equal(out["2560"].rest.place, "side"); assert.equal(out["1280"].rest.place, "side"); assert.equal(out.phone.rest.place, "phone");
   for (const w of WIDTHS) {
     const o = out[w].open;
     if (!o) continue;
-    assert.equal(o.shellPad, "0px", `${w}: opening it never pushes the page`);
+    // ⭐ D197 #1 (changed on purpose): the shell is always padded by the rail's column (98 px) — the same open or not
+    assert.equal(o.shellPad, "98px", `${w}: hovering it never pushes the page`);
     assert.equal(o.covers, false, `${w}: the dock never covers the content`);
   }
 });
