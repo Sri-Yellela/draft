@@ -31,6 +31,8 @@ import { companyPath } from "../lib/companySlug.js";
 import { assistantAction } from "../lib/assistantBridge.js";
 import SendJobPicker from "../components/SendJobPicker.jsx";
 import { formatPosting } from "../../../shared/postingFormat.js";
+import { reportAsks } from "../../../shared/atsReportModel.js";   // the asks as the one report model reads them (T9)
+import { postingClick } from "../lib/openPosting.js";
 
 export const OPENING_ROUTE = /^jobs\/([^/?#]+)$/;   // App.jsx: /app/jobs/<id> (the board's ?page= / ?job= stay on /app/jobs)
 /** The sheet's address for one opening (the board's job id). */
@@ -48,6 +50,7 @@ export function numberWords(n) {
 }
 /** "Kestrel Payments" → "Kestrel Payments’", "Toast" → "Toast’s". */
 export const possessive = (name) => (name ? `${name}${/s$/i.test(String(name)) ? "’" : "’s"}` : "their");
+const firstWord = (name) => String(name || "").trim().split(/\s+/).shift().toUpperCase();   // "Kestrel Payments" → "KESTREL"
 const subName = (id) => String(id || "").split(".").map((p) => p.replace(/-/g, " ")).filter(Boolean);
 
 /** The posting's own sections: each of its headings with what follows it (paragraph lines and bullets as items). */
@@ -75,7 +78,7 @@ export function openingSheetModel({ opening, company = null, fit = null }) {
   const resp = fit?.contextual?.parts?.responsibility_overlap;
   const duties = [...(resp?.matched || []), ...(resp?.missing || [])];
   const does = (duties.length ? duties : pick(DOES)).slice(0, 5);
-  const mine = new Set([...(fit?.report?.tier1_matched || []), ...(fit?.resumeTech || [])].map((t) => String(t).toLowerCase()));
+  const mine = new Set([...reportAsks(fit?.report || null).onResume.filter((t) => t.kind === "skill").map((t) => t.term), ...(fit?.resumeTech || [])].map((t) => String(t).toLowerCase()));
   const groups = company?.stack?.groups || {};
   const of = company?.stack?.ofPostings || null;
   const stack = Object.values(groups).flat().filter((t) => t && t.tech).sort((a, b) => b.postings - a.postings).slice(0, 8)
@@ -219,7 +222,7 @@ export function OpeningSheetView({ data, company = null, fit = null, fitFront = 
       </section>
 
       <section className="pl-op__section" aria-labelledby="op-posting">
-        <LegHeader n={4} id="posting" meta={`THE FULL POSTING${o.company ? ` · AS ${String(o.company).split(/\s+/)[0].toUpperCase()} WROTE IT` : ""}`} title={<span id="op-posting">Read it all</span>}/>
+        <LegHeader n={4} id="posting" meta={`THE FULL POSTING${o.company ? ` · AS ${firstWord(o.company)} WROTE IT` : ""}`} title={<span id="op-posting">Read it all</span>}/>
         <p className="pl-op__lead">Nothing cut; the posting’s own headings, set to read.</p>
         <article className="pl-op__card pl-op__posting" data-opening-posting="">
           {m.sections.length ? m.sections.map((s, i) => (
@@ -227,7 +230,7 @@ export function OpeningSheetView({ data, company = null, fit = null, fitFront = 
           )) : <p className="pl-op__quiet">This posting came without its text. Open the original to read it.</p>}
           {m.tail.length ? <details className="pl-op__tail"><summary>{m.tail.map((s) => s.title).join(" · ")}</summary>
             {m.tail.map((s, i) => <div key={i}>{s.items.map((t, k) => <p key={k} className="pl-op__p">{t}</p>)}</div>)}</details> : null}
-          {o.applyUrl ? <a className="pl-op__orig" href={o.applyUrl} target="_blank" rel="noreferrer">Open the original posting ↗</a> : null}
+          {o.applyUrl ? <a className="pl-op__orig" href={o.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick({ jobId: o.jobId, url: o.applyUrl }, e, { url: o.applyUrl })}>Open the original posting ↗</a> : null}
         </article>
       </section>
 

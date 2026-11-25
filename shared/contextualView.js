@@ -25,8 +25,6 @@ const CASING = Object.fromEntries(["AWS", "GCP", "Azure", "SQL", "NoSQL", "Postg
   "Elasticsearch", "DynamoDB", "BigQuery", "Databricks", "Tableau", "Excel", "PyTorch", "TensorFlow", "Jenkins", "Git", "iOS", "Android"]
   .map(n => [n.toLowerCase(), n]));
 const display = (t) => { const k = String(t).toLowerCase(); return CASING[k] || (t === k && /^[a-z]/.test(t) ? t.charAt(0).toUpperCase() + t.slice(1) : t); };
-/** D202: the same casing for the FitCard's Every word tab (shared/fitCardModel.js) — one spelling of a term per card. */
-export const termDisplay = (t) => display(String(t ?? ""));
 const bare = (t) => String(t || "").replace(/^(Apache|Amazon|Google|Microsoft)\s+/, "");
 const words = (xs, n) => (Array.isArray(xs) ? xs.map(x => display(clean(String(x?.term ?? x ?? ""), 40))).filter(Boolean).slice(0, n) : []);
 const join = (xs) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);

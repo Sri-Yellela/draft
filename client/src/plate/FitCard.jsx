@@ -25,7 +25,7 @@ import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
 import { PlausibilityFlags } from "../components/PlausibilityFlags.jsx";
 import { fieldCardView } from "../../../shared/contextualView.js";
 import { TERM_KINDS } from "../../../shared/atsReportModel.js";
-import { fitCardModel, initialClaims, toggleClaim, FIT_FILTERS, filterCount, contextView } from "../../../shared/fitCardModel.js";
+import { fitCardModel, initialClaims, toggleClaim, FIT_FILTERS, filterCount, contextView, fitWords } from "../../../shared/fitCardModel.js";
 
 export const FIT_SMALL_PRINT = "Claiming says it’s true of you: it counts toward this score and where jobs rank, and it’s used in résumés made from now on. It never rewrites one you already have, and you can withdraw it any time.";
 const KEY = (
@@ -54,7 +54,6 @@ function FitBar({ model }) {
   );
 }
 
-const have = (m) => m.on + m.claimed;
 const pctWords = (m) => (m.pct == null ? null : `${m.pct} %`);
 
 function WordsTab({ model, onClaim, busy }) {
@@ -237,7 +236,7 @@ export function FitCard({ jobId = null, data: given = null, alike, gaps, figures
   const fFigures = figures !== undefined ? figures : front?.figures || null;
   const count = model ? (
     <div className="pl-fit__count" data-fit-count="">
-      <div className="pl-fit__headline"><span className="pl-fit__serif" data-fit-headline="">{have(model)} of {model.total} things</span>{pctWords(model) ? <span className="pl-fit__serif" data-fit-pct="">{pctWords(model)}</span> : null}</div>
+      <div className="pl-fit__headline"><span className="pl-fit__serif" data-fit-headline="">{fitWords(model).count}</span>{pctWords(model) ? <span className="pl-fit__serif" data-fit-pct="">{pctWords(model)}</span> : null}</div>
       <FitBar model={model}/>{KEY}
     </div>
   ) : null;
@@ -249,15 +248,15 @@ export function FitCard({ jobId = null, data: given = null, alike, gaps, figures
         foot={model ? <button type="button" className="pl-fit__turn" aria-expanded="false" data-fit-turn="" onClick={() => setFace("back")}>↻ Turn over · the full ATS card</button> : null}/>
     );
   }
-  const TABS = [["words", `Every word · ${model.total}`], ["context", "Context"], ["claim", `You could claim · ${model.missing}`], ["hist", "History"]];
+  const words = fitWords(model);
+  const TABS = words.tabs;
   return (
     <article className={`pl-fit pl-in ${className}`.trim()} aria-label="The ATS card: your résumé against this job" data-fit-face="back">
       <div className="pl-fit__strip"><span className="pl-label">THE ATS CARD · YOUR RÉSUMÉ AGAINST THIS JOB</span>
         <button type="button" className="pl-fit__back" data-fit-turn="" onClick={() => setFace("front")}>↻ Back to the field card</button></div>
       <div className="pl-fit__head">
-        <h3 className="pl-fit__h" data-fit-headline="">{have(model)} of {model.total} things this posting asks for</h3>
-        {model.pct != null ? <span className="pl-fit__sentence" data-fit-pct="">A {model.pct} % match. The score is still being tuned, so read it with the count.</span>
-          : <span className="pl-fit__sentence">Not enough signal for a number yet, so read the count.</span>}
+        <h3 className="pl-fit__h" data-fit-headline="">{words.countLong}</h3>
+        <span className="pl-fit__sentence" data-fit-pct={model.pct != null ? "" : undefined}>{words.sentence}</span>
         <FitBar model={model}/>{KEY}
       </div>
       <div role="tablist" aria-label="The ATS card" className="pl-fit__tabs">

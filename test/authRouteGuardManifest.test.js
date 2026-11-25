@@ -413,6 +413,7 @@ const AUTHENTICATED = new Set([
   "PATCH /api/jobs/:id/disliked",
   "GET /api/jobs/:id/recruiter",
   "GET /api/jobs/:id/contextual",
+  "GET /api/jobs/:id/fit-card",   // D202: the fit card — the signed-in person's own report, résumé places and claim profile
   "GET /api/resume/plausibility",   // D192 (4d): the person's own base résumé
   "GET /api/resumes/:id/plausibility",   // D192 (4d): the person's own generated résumé (user_id in the query)
   "POST /api/resume/plausibility/dismiss",   // D192 (4d): the person's own dismissals   // D192 (4): the contextual ATS score for the person's own base résumé

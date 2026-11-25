@@ -15,6 +15,7 @@ import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import { fitCardModel, initialClaims, toggleClaim, contextView, FIT_GROUPS, fitGroupOf, filterCount } from "../shared/fitCardModel.js";
 import { whereOnResume, fitCardPayload, termMatcher } from "../services/fitCard.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 const ROOT = process.cwd();
 const CLIENT = path.join(ROOT, "client");
@@ -162,7 +163,7 @@ test("D202 · d202ClaimUpdatesCountBarGroups — a claim moves the count, the ba
   assert.equal(claimedBefore.words.find((w) => w.key === "vue").state, "claimed");
   // the component: the claim set moves BEFORE the request (at once), the reversible AG2 call, then the card reads itself again
   const src = read("client/src/plate/FitCard.jsx");
-  const body = src.slice(src.indexOf("const onClaim = useCallback"), src.indexOf("}, [d, jobId]);"));
+  const body = src.slice(at(src, "const onClaim = useCallback"), at(src, "}, [d, jobId]);"));
   assert.ok(body.indexOf("setClaimed((c) => toggleClaim(c, w.key))") < body.indexOf("await setProfileClaim("), "the count moves before the server answers");
   assert.match(body, /setNonce\(\(n\) => n \+ 1\)/, "the number follows the claim (a fresh read)");
   assert.match(src, /import \{ setProfileClaim \} from "\.\.\/lib\/profileSuggestions\.js"/);
@@ -187,24 +188,28 @@ test("D202 · d202ContextShowsParts — D192's parts and weights, similarities /
 
 test("D202 · d202OneComponentTwoPlaces — the same FitCard beside the deck and as the sheet's section 02", async () => {
   const sheetSrc = read("client/src/plate/OpeningSheet.jsx");
-  assert.match(sheetSrc, /import FitCard from "\.\/FitCard\.jsx"/);
+  assert.match(sheetSrc, /import FitCard, \{ fitCardFor \} from "\.\/FitCard\.jsx"/);
   assert.match(sheetSrc, /<FitCard jobId=/);
   // drop-in where the field card was: the market's own props (alike / gaps / figures + the states) render on FitCard
   const B = await load();
   for (const s of ["loading", "error", "empty"]) assert.ok(B.card({ state: s, errorText: "x", emptyText: "y" }).length > 0);
   assert.match(B.card({ state: "loading" }), /aria-busy="true"/);
   assert.ok(text(B.card({ data: B.BOARD_FIT, ...FRONT })).includes("Role and level: frontend, mid — the same as yours"));
-  // no third version: one component named FitCard, and nothing else draws "things this posting asks for" in React
+  // no third version: one component named FitCard, and nothing else in the client prints the ATS card's words (they are
+  // shared/fitCardModel.js fitWords — test/atsReportOneImplementation.test.js holds the client to that)
   const files = [];
   const walk = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else if (/\.jsx$/.test(e.name)) files.push(p); } };
   walk(path.join(CLIENT, "src"));
   const defs = files.filter((f) => /export (?:default )?function FitCard\b/.test(fs.readFileSync(f, "utf8")));
   assert.equal(defs.length, 1, defs.join(", "));
-  const asks = files.filter((f) => /things this posting asks for/.test(fs.readFileSync(f, "utf8")) && !/fitCardFixtures/.test(f)).map((f) => path.relative(CLIENT, f).split(path.sep).join("/"));
-  assert.deepEqual(asks.filter((f) => !/components\/AtsReport\.jsx$/.test(f)), ["src/plate/FitCard.jsx"]);
+  const code = (f) => fs.readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");   // comments may name it
+  const asks = files.filter((f) => /things this posting asks for/.test(code(f)) &&!/fitCardFixtures/.test(f)).map((f) => path.relative(CLIENT, f).split(path.sep).join("/"));
+  assert.deepEqual(asks.filter((f) => !/components\/AtsReport\.jsx$/.test(f)), []);
+  assert.match(read("shared/fitCardModel.js"), /things this posting asks for/);
+  assert.match(read("client/src/plate/FitCard.jsx"), /fitWords\(model\)/);
   // the sheet's section 02 renders the card (front, with Turn over)
   const html = B.sheet({ data: B.BOARD_OPENING, company: B.BOARD_COMPANY, fit: B.BOARD_FIT, still: true });
-  const fit = html.slice(html.indexOf('data-opening-fit=""'), html.indexOf('aria-labelledby="op-stack"'));
+  const fit = html.slice(at(html, 'data-opening-fit=""'), at(html, 'aria-labelledby="op-stack"'));
   assert.match(fit, /class="pl-card pl-fieldcard pl-fitcard"/);
   assert.ok(text(fit).includes("↻ Turn over · the full ATS card"));
 });
@@ -232,8 +237,8 @@ test("D199 C7 · d199OpeningSheetRoute — /app/jobs/<id> is the sheet, over the
     assert.ok(t.includes(w), `the sheet lacks “${w}”`);
   // 04: nothing cut — every word of the posting is on the sheet, in order
   const words = B.BOARD_OPENING.description.split(/\s+/).filter(Boolean);
-  const posting = text(html.slice(html.indexOf('data-opening-posting=""')));
-  let at = 0; for (const w of words) { const i = posting.indexOf(w, at); assert.ok(i >= 0, `the posting lost “${w}”`); at = i; }
+  const posting = text(html.slice(at(html, 'data-opening-posting=""')));
+  let pos = 0; for (const w of words) { const i = posting.indexOf(w, pos); assert.ok(i >= 0, `the posting lost “${w}”`); pos = i; }
   // the action bar: the deck's own Pass · Save · Send · Draft (TicketActions), wired to the board's decide
   for (const a of ["pass", "save", "send", "draft"]) assert.match(html, new RegExp(`data-deck-action="${a}"`));
   const src = read("client/src/plate/OpeningSheet.jsx");

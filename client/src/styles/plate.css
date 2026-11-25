@@ -177,6 +177,7 @@
 
   /* ── Space and layout (report § Layout) ── */
   --pl-page: 1280px;
+  --pl-page-bar: 1180px;   /* D199 C7: the opening sheet's sticky action bar row (Opening board) */
   --pl-nav-width: 1180px;
   --pl-gutter: 24px;
   --pl-target: 44px;

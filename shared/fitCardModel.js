@@ -24,7 +24,6 @@
 import { reportAsks } from "./atsReportModel.js";
 import { profileSignalKey } from "./profileSignals.js";
 import { technologiesIn, TECHNOLOGIES } from "./techVocabulary.js";
-import { termDisplay } from "./contextualView.js";
 import { experienceState, EXPERIENCE_MARK } from "./atsReportModel.js";
 
 /** The five groups of the board's Every word tab, in its order. */
@@ -42,11 +41,11 @@ export const FIT_GROUPS = Object.freeze([
 // a posting's ask still has a group. Keys are lower case.
 const FIT_EXTRA = Object.freeze({ html: "lang", css: "lang", html5: "lang", css3: "lang", sass: "lang", webassembly: "lang", wasm: "lang",
   storybook: "tools", launchdarkly: "tools", figma: "tools", jira: "tools", sentry: "tools", "datadog rum": "tools", vercel: "tools", netlify: "tools" });
-let byName = null;
+let byName = null, canon = null;
 function nameGroups() {
   if (byName) return byName;
-  byName = new Map();
-  for (const [name, group, ...aliases] of TECHNOLOGIES) for (const n of [name, ...aliases]) if (typeof n === "string") byName.set(n.toLowerCase(), group);
+  byName = new Map(); canon = new Map();
+  for (const [name, group, ...aliases] of TECHNOLOGIES) for (const n of [name, ...aliases]) if (typeof n === "string") { byName.set(n.toLowerCase(), group); canon.set(n.toLowerCase(), name); }
   return byName;
 }
 const asFit = (g) => (g === "languages" || g === "frameworks" || g === "lang" ? "lang" : "tools");
@@ -73,6 +72,13 @@ export function initialClaims(report) {
 }
 
 /** The words a verb or a skill shows as (the scorer hands them normalised: "postgresql", "design"). */
+/** A term as people write it: the vocabulary's own name for a technology ("postgresql" → "PostgreSQL"); another all-lower-case
+ *  word takes a capital; anything else as the scorer handed it. */
+export function termDisplay(t) {
+  const x = String(t ?? "").trim();
+  nameGroups();
+  return canon.get(x.toLowerCase()) || (x === x.toLowerCase() && /^[a-z]/.test(x) ? x.charAt(0).toUpperCase() + x.slice(1) : x);
+}
 const label = (t, kind) => (kind === "verb" ? String(t).charAt(0).toUpperCase() + String(t).slice(1) : termDisplay(t));
 
 export function fitCardModel({ report = null, where = {}, claimed = null } = {}) {
@@ -114,6 +120,17 @@ export function fitCardModel({ report = null, where = {}, claimed = null } = {})
     onShare: share(on), clShare: share(nCl),
     words, groups, facts,
     generic: (asks.generic || []).map((g) => label(g.term, "verb")),
+  };
+}
+
+/** ⭐ D202 · the card's words (ATSCard board; the back is today's ATS card, word for word) — one place, so the component
+ *  only lays them out. */
+export function fitWords(model) {
+  const n = model ? model.on + model.claimed : 0, of = model ? model.total : 0;
+  return {
+    count: `${n} of ${of} things`, countLong: `${n} of ${of} things this posting asks for`,
+    sentence: model?.pct != null ? `A ${model.pct} % match. The score is still being tuned, so read it with the count.` : "Not enough signal for a number yet, so read the count.",
+    tabs: [["words", `Every word · ${of}`], ["context", "Context"], ["claim", `You could claim · ${model ? model.missing : 0}`], ["hist", "History"]],
   };
 }
 
