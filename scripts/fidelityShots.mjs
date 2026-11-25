@@ -1687,6 +1687,23 @@ if (process.argv[2] === "--styles-batch") {
   process.exit(0);
 }
 
+// ⭐ 47h (D197 #3): `--look <screen> <address> <out.png> [w] [h]` — one screen's fixtures on another address (the plate
+// ledger on /app/auto-apply with the tracker's fixtures), one shot and the page's errors (a smoke look, not a comparison).
+if (process.argv[2] === "--look") {
+  const [, , , id, address, outPng, w = "1280", h = "2600"] = process.argv;
+  const resolution = await resolveBrowserExecutable();
+  if (!resolution) { console.log(JSON.stringify({ skipped: "no Chrome" })); process.exit(0); }
+  const vite = await startVite();
+  const browser = await puppeteer.launch({ executablePath: resolution.path, headless: "new", pipe: true, args: ["--no-first-run", "--no-default-browser-check"] });
+  try {
+    const s = SCREENS[id];
+    const ap = await shoot(browser, `${vite.url}${address}`, [Number(w), Number(h)], { fixtures: s.fixtures, ready: s.lookReady || null, prep: async () => { await sleep(1500); } });
+    fs.writeFileSync(outPng, ap.buf);
+    console.log(JSON.stringify({ errors: ap.errors }));
+  } finally { await browser.close(); vite.proc.kill(); }
+  process.exit(0);
+}
+
 const only = process.argv[2] ? process.argv[2].split(",") : Object.keys(SCREENS).filter(k => SCREENS[k].sketch);
 fs.mkdirSync(OUT, { recursive: true });
 const resolution = await resolveBrowserExecutable();
