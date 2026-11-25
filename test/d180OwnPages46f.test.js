@@ -17,7 +17,8 @@ const PANE = read("client/src/pages/network/MessagesPane.jsx");
 const SWITCH = read("client/src/pages/network/networkSwitch.js");
 
 test("d180OwnPages46f: Feed and Messages join the dock after Network, only while the switch is on; the unread count is Messages'", () => {
-  const places = NAV.slice(at(NAV, "function placesOf("), at(NAV, "function NavItems("));
+  // ⭐ D197 #1: placesOf is unchanged; the dock that drew it is the plate's Dock now (NavItems retired — pin moved on purpose)
+  const places = NAV.slice(at(NAV, "function placesOf("), at(NAV, "const initialsOf ="));
   assert.match(places, /if \(network && !list\.some\(\(t\) => t\.id === "network"\)\) \{/, "the same switch as Network");
   assert.match(places, /\{ id: "network", label: "Network" \}, \{ id: "feed", label: "Feed" \},\s*\{ id: "messages", label: "Messages", badge: netUnread \|\| 0,/);
   assert.doesNotMatch(places, /id: "network", label: "Network", badge/, "the badge moved to Messages");

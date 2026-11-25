@@ -420,28 +420,31 @@ const SCREENS = {
       out.closed = await page.evaluate(() => { const tl = document.querySelector(".dh-main > .dht"); return { timelineShown: !!tl && getComputedStyle(tl).display !== "none", askOpen: document.querySelector("[data-ask-draft]")?.getAttribute("data-open") }; });
       return { node: out };
     } },
-  // ⭐ D167 · THE DOCK GOES WHERE THE SPACE IS (owner 11-06) — `--styles dock167place`: at each width, where the dock is
-  // (side / top / phone), its box, the page's content box and the gaps between them; a resize across the threshold
-  // re-places it; the peek's place beside a side dock / below a top one.
+  // ⭐ D197 Wave 1 #1 · A237 · THE SHELL'S PLACE (the Shell board, owner-approved 11-25 — supersedes D167's side / top /
+  // phone by the margin, changed on purpose) — `--styles dock167place` (the id kept: test-support/fidelityProbe.mjs PROBES):
+  // at each width the rail (a vertical rail at the left, 84 px, 14 px from the edges) and the content column beside it —
+  // the area nav across its top, its row centred in its 1,180 px column (at 2560 the extra width is margin); below 980 px
+  // the bottom bar and the area nav's top bar. A resize across 980 re-places it; the peek beside the rail / above the bar.
   dock167place: { sketch: null, app: CLASSIC_MARKET, fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } } },
     ready: "[data-nav-dock]", shoot: true, motion: true,
-    sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], phone: [390, 844] },
+    sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], "980": [980, 800], "979": [979, 800], phone: [390, 844] },
     appPrep: async () => { await sleep(1400); },
     nodeProbe: async (page, size) => {
       const read = () => page.evaluate(() => {
-        const dock = document.querySelector("[data-nav-dock]"), d = dock.getBoundingClientRect();
-        const first = document.querySelector("[data-app-shell] main")?.firstElementChild;
-        const fr = first?.getBoundingClientRect(), fcs = first && getComputedStyle(first);
-        // the content's drawn box: the first box's padding edge
-        const content = fr && { left: fr.left + parseFloat(fcs.paddingLeft), top: fr.top + parseFloat(fcs.paddingTop), right: fr.right - parseFloat(fcs.paddingRight) };
-        const ink = [...dock.querySelectorAll(".appnav-name")].filter(e => getComputedStyle(e.closest(".appnav-words")).display !== "none" && Number(getComputedStyle(e.closest(".appnav-words")).opacity) > 0.5).map(e => e.textContent.trim());
-        const raft = dock.querySelector("[data-draft-raft]");
-        return { place: document.documentElement.getAttribute("data-dock-place"), vw: document.documentElement.clientWidth,
-          dock: { left: d.left, right: d.right, top: d.top, bottom: d.bottom, width: d.width, height: d.height }, content,
-          namesShown: ink, raftShown: !!raft && getComputedStyle(raft).display !== "none" && getComputedStyle(raft).clipPath === "none",
-          shellPadLeft: getComputedStyle(document.querySelector("[data-app-shell]")).paddingLeft,
+        const box = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height }; };
+        const dock = document.querySelector("[data-nav-dock]");
+        const shell = document.querySelector("[data-app-shell]");
+        const nav = document.querySelector("[data-area-nav]");
+        const row = nav?.querySelector(".pl-areanav__row"), top = nav?.querySelector(".pl-topbar");
+        return { place: document.documentElement.getAttribute("data-dock-place"), vw: document.documentElement.clientWidth, vh: innerHeight,
+          dock: box(dock), dockPosition: getComputedStyle(dock).position, bar: dock.classList.contains("pl-dock--bar"),
+          labels: [...dock.querySelectorAll(".pl-dock__label")].filter((e) => e.getBoundingClientRect().width > 0).map((e) => e.textContent.trim()),
+          shellPadLeft: getComputedStyle(shell).paddingLeft, shellPadBottom: getComputedStyle(shell).paddingBottom,
+          areaNav: box(nav), row: box(row), topBar: box(top), searchBox: box(nav?.querySelector(".pl-search")), searchButton: !!nav?.querySelector("[data-area-search-open]"),
+          views: [...(nav?.querySelectorAll("[data-area-view]") || [])].map((a) => a.textContent.trim()),
+          main: box(shell.querySelector("main")),
           scrollW: document.documentElement.scrollWidth,
-          // 45o: what sticks out past the right edge when the page scrolls sideways (names the culprit in a failure).
+          tiny: box(document.querySelector("[data-tiny-launch]")),
           wide: document.documentElement.scrollWidth > document.documentElement.clientWidth
             ? [...document.querySelectorAll("body *")].filter((el) => el.getBoundingClientRect().right > document.documentElement.clientWidth + 1
                 && getComputedStyle(el).position !== "fixed").slice(0, 6)
@@ -449,90 +452,81 @@ const SCREENS = {
             : [] };
       });
       const out = { rest: await read() };
-      // a side dock opens evenly from its centre, never over the content
-      if (out.rest.place === "side") {
-        await page.mouse.move(out.rest.dock.left + out.rest.dock.width / 2, out.rest.dock.top + 40); await sleep(700);
-        out.open = await read();
-        await page.mouse.move(Math.round(out.rest.vw / 2), 700); await sleep(700);
-      }
       // the peek follows the dock
       const pic = await page.evaluate(() => { const r = document.querySelector("[data-nav-dock] [data-nav-item='profile']").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
       await page.mouse.click(pic.x, pic.y); await sleep(600);
       out.peek = await page.evaluate(() => { const p = document.querySelector("[data-profile-peek]"), r = p.getBoundingClientRect(), d = document.querySelector("[data-nav-dock]").getBoundingClientRect();
-        return { open: p.getAttribute("data-open"), left: r.left, top: r.top, right: r.right, dockRight: d.right, dockBottom: d.bottom, dockLeft: d.left }; });
+        return { open: p.getAttribute("data-open"), left: r.left, top: r.top, right: r.right, bottom: r.bottom, dockRight: d.right, dockTop: d.top, dockLeft: d.left, vw: document.documentElement.clientWidth }; });
       await page.keyboard.press("Escape"); await sleep(400);
       fs.mkdirSync(OUT, { recursive: true });
       fs.writeFileSync(path.join(OUT, `dock167place-${size}.png`), await page.screenshot({ type: "png" }));
-      // re-placed on resize: across the threshold and back
-      if (size === "1920" || size === "1280") {
-        const [w, h] = size === "1920" ? [1280, 800] : [2560, 1440];
+      // re-placed on resize: across the 980 threshold and back
+      if (size === "1920" || size === "phone") {
+        const [w, h] = size === "1920" ? [900, 800] : [1280, 800];
         await page.setViewport({ width: w, height: h, deviceScaleFactor: 1 }); await sleep(900);
         out.resized = await read();
       }
       return { node: out };
     } },
-  // ⭐ D167 · THE DOCK — measured in a real Chrome WITH motion (`--styles dock167`; the "rm" size with reduced motion): the six
-  // places, names only, every icon centred in the rail, the /d mark drawing out into /draft without changing size, what
-  // animates, the page moving over only when it has no room, Ask draft pushing the page, and the Profile quick peek
-  // (opens on a press and on a rest, closes on Esc, a press outside, leaving it). Shots: docs/fidelity-shots/dock167-*.png.
+  // ⭐ D197 Wave 1 #1 · THE DOCK, measured in a real Chrome (`--styles dock167` — the id kept; "rm" with reduced motion): the
+  // rail's items in D167's order + the board's Ask draft after its rule; names always shown (the board — the hover-expand and
+  // the /d → /draft draw-out are retired with the 60 px rail, changed on purpose); the active item the white tile; M takes the
+  // keyboard into the dock and out; the dock's search in the area nav (Ctrl K focuses it); the Profile quick peek (opens on a
+  // press and on a rest, closes on Esc, a press outside, leaving it) with its notifications list (A236 (b)); Tiny floats, and
+  // the rail's Ask draft opens it too. Shots: docs/fidelity-shots/dock167-*.png.
   dock167: { sketch: null, app: CLASSIC_MARKET, fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } },
       // the auto-apply mode: Apply for me selectable; choosing it answers with the bar in FULL AUTO
       "/api/apply/run-bar": SETTINGS["/api/apply/run-bar"],
-      "/api/apply/mode": { ...SETTINGS["/api/apply/run-bar"], mode: { current: "auto", auto: { locked: false } } } },
+      "/api/apply/mode": { ...SETTINGS["/api/apply/run-bar"], mode: { current: "auto", auto: { locked: false } } },
+      // A236 (b): two notifications, one unread — the peek's list
+      "/api/notifications": { unreadCount: 1, notifications: [
+        { id: 2, type: "needs_you", message: "Kestrel Payments needs one answer from you", read: 0, created_at: Math.floor(Date.now() / 1000) - 3600 },
+        { id: 1, type: "apply_complete", message: "Sent to Northwind Analytics", read: 1, created_at: Math.floor(Date.now() / 1000) - 2 * 86400 }] },
+      "/api/notifications/read-all": { ok: true } },
     ready: "[data-nav-dock]", shoot: true, motion: true, reducedSizes: ["rm"],
-    // ⭐ D167 (owner 11-06, the dock goes where the space is): the rail's motion exists only as a SIDE dock — 2560 has the
-    // margin for it; narrower screens put the dock at the top (`--styles dock167place`).
-    sizes: { "2560": [2560, 1440], rm: [2560, 1440] },
-    // ⭐ 46q FULL WIDTH: no screen leaves a side margin any more (the dock is at the top everywhere); the side dock still
-    // serves a page that does, so this probe centres Home at its pre-46q 1680 to measure it.
-    appPrep: async (page) => { await page.addStyleTag({ content: ".home { max-width: calc(1680px + 2 * var(--home-gutter)) !important; margin: 0 auto !important; }" }); await sleep(1200); },
+    sizes: { "2560": [2560, 1440], "1280": [1280, 800], rm: [1280, 800] },
+    appPrep: async () => { await sleep(1200); },
     nodeProbe: async (page, size) => {
       const q = (fn, ...a) => page.evaluate(fn, ...a);
       const box = (sel) => q((s) => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height }; }, sel);
-      const mark = () => q(() => {
-        const m = document.querySelector("[data-nav-dock] [data-draft-mark]"), r = m?.getBoundingClientRect(), cs = m && getComputedStyle(m);
-        const raft = document.querySelector("[data-nav-dock] [data-draft-raft]");
-        const range = document.createRange(); if (m) { range.setStartBefore(m.firstChild); if (raft) range.setEndBefore(raft); else range.setEndAfter(m.lastChild); }   // 46v 0c: "/d" up to "raft" (the slash may be its own span)
-        const d = m ? range.getBoundingClientRect() : null;
-        return m && { width: r.width, height: r.height, fontSize: cs.fontSize, text: m.textContent, transform: cs.transform,
-          slashD: { left: d.left, right: d.right }, raftClip: getComputedStyle(raft).clipPath, raftWidth: raft.offsetWidth };
-      });
       const out = { size };
-      await q(() => { window.__dockLog = []; const t0 = performance.now(); new MutationObserver(() => window.__dockLog.push([Math.round(performance.now() - t0), document.documentElement.getAttribute("data-dock-open"), document.documentElement.getAttribute("data-dock-push")])).observe(document.documentElement, { attributes: true, attributeFilter: ["data-dock-open", "data-dock-push"] }); });
-      const rail = await box("[data-nav-dock]");
       out.rest = await q(() => {
-        const dock = document.querySelector("[data-nav-dock]"), r = dock.getBoundingClientRect(), mid = (r.left + r.right) / 2;
-        const tr = (e) => { const cs = getComputedStyle(e); return { property: cs.transitionProperty, duration: cs.transitionDuration, delay: cs.transitionDelay }; };
+        const dock = document.querySelector("[data-nav-dock]"), r = dock.getBoundingClientRect(), cs = getComputedStyle(dock);
+        const cur = dock.querySelector('[aria-current="page"]'), ccs = cur && getComputedStyle(cur);
+        const logo = dock.querySelector(".pl-logo"), lcs = logo && getComputedStyle(logo);
         return {
-          railMid: mid, rail: { left: r.left, right: r.right, width: r.width },
-          places: [...dock.children].map(e => e.getAttribute("data-nav-item") || (e.classList.contains("appnav-sep") ? "|" : e.tagName)),
-          names: [...dock.querySelectorAll(".appnav-name")].map(e => e.textContent.trim()),
-          labels: [...dock.querySelectorAll("[data-nav-item]")].map(e => e.getAttribute("aria-label")),
-          smalls: dock.querySelectorAll("small, .appnav-plain").length,
-          icons: [...dock.querySelectorAll("[data-nav-icon]")].filter(e => e.getAttribute("data-nav-icon") !== "today").map(e => { const b = e.getBoundingClientRect(); return { id: e.getAttribute("data-nav-icon"), mid: (b.left + b.right) / 2, w: b.width, h: b.height }; }),
-          transitions: { dock: tr(dock), item: tr(dock.querySelector(".appnav-item")), words: tr(dock.querySelector(".appnav-words")),
-            mark: tr(dock.querySelector("[data-draft-mark]")), raft: tr(dock.querySelector("[data-draft-raft]")) },
+          rail: { left: r.left, top: r.top, width: r.width }, border: cs.borderTopWidth, radius: cs.borderTopLeftRadius, shadow: cs.boxShadow, bg: cs.backgroundColor,
+          places: [...dock.querySelectorAll("[data-nav-item]")].map((e) => e.getAttribute("data-nav-item")),
+          labels: [...dock.querySelectorAll(".pl-dock__label")].map((e) => e.textContent.trim()),
+          shown: [...dock.querySelectorAll(".pl-dock__label")].filter((e) => e.getBoundingClientRect().width > 0 && Number(getComputedStyle(e).opacity) > 0.5).length,
+          rule: !!dock.querySelector(".pl-dock__rule"), sep: !!dock.querySelector(".pl-dock__sep"),
+          current: cur && { id: cur.getAttribute("data-nav-item"), bg: ccs.backgroundColor, border: ccs.borderTopWidth, shadow: ccs.boxShadow },
+          logo: logo && { w: logo.offsetWidth, h: logo.offsetHeight, bg: lcs.backgroundColor, border: lcs.borderTopWidth, text: logo.textContent },
+          badges: [...dock.querySelectorAll(".pl-badge")].map((b) => b.textContent),
+          items: [...dock.querySelectorAll(".pl-dock__item")].map((e) => Math.round(e.getBoundingClientRect().height)),
+          transitions: getComputedStyle(dock).transitionProperty,
         };
       });
-      out.rest.mark = await mark();
       const shot = async (name) => { const b = await box("[data-nav-dock]"); fs.mkdirSync(OUT, { recursive: true });
-        fs.writeFileSync(path.join(OUT, `dock167-${name}-${size}.png`), await page.screenshot({ type: "png", clip: { x: 0, y: Math.max(0, b.top - 12), width: 240, height: b.height + 24 } })); };
+        fs.writeFileSync(path.join(OUT, `dock167-${name}-${size}.png`), await page.screenshot({ type: "png", clip: { x: 0, y: 0, width: Math.min(1400, b.right + 1000), height: Math.max(b.bottom + 14, 200) } })); };
       await shot("rest");
-      // open it with a real pointer; sample the mark mid-motion
-      const contentLeftBefore = await q(() => { const f = document.querySelector("[data-app-shell] main")?.firstElementChild; return f ? f.getBoundingClientRect().left + parseFloat(getComputedStyle(f).paddingLeft) : null; });
-      await page.mouse.move(rail.left + 30, rail.top + 40);
-      await sleep(120);
-      out.mid = await mark();
-      out.midWordsOpacity = await q(() => Number(getComputedStyle(document.querySelector("[data-nav-dock] [data-nav-item='atlas'] .appnav-words")).opacity));
-      await sleep(700);
-      out.open = await mark();
-      out.openRail = await box("[data-nav-dock]");
-      out.push = await q(() => ({ push: document.documentElement.getAttribute("data-dock-push"), open: document.documentElement.getAttribute("data-dock-open"),
-        shellPad: getComputedStyle(document.querySelector("[data-app-shell]")).paddingLeft }));
-      out.push.contentLeftBefore = contentLeftBefore;
-      out.push.contentLeftOpen = await q(() => { const f = document.querySelector("[data-app-shell] main")?.firstElementChild; return f ? f.getBoundingClientRect().left + parseFloat(getComputedStyle(f).paddingLeft) : null; });
-      out.openIcons = await q(() => [...document.querySelectorAll("[data-nav-dock] [data-nav-icon]")].filter(e => e.getAttribute("data-nav-icon") !== "today").map(e => { const b = e.getBoundingClientRect(); return (b.left + b.right) / 2; }));
-      await shot("open");
+      // hovering doesn't change the rail's width (no hover-expand): names are always shown
+      const rail = await box("[data-nav-dock]");
+      await page.mouse.move(rail.left + 40, rail.top + 100); await sleep(500);
+      out.hoverWidth = (await box("[data-nav-dock]")).width;
+      await page.mouse.move(900, 600); await sleep(300);
+      // M takes the keyboard into the dock (its current place) and back out
+      await q(() => document.activeElement?.blur?.());
+      await page.keyboard.press("m"); await sleep(250);
+      out.mIn = await q(() => ({ inDock: !!document.querySelector("[data-nav-dock]")?.contains(document.activeElement), item: document.activeElement?.getAttribute("data-nav-item"),
+        open: document.documentElement.getAttribute("data-dock-open") }));
+      await page.keyboard.press("m"); await sleep(250);
+      out.mOut = await q(() => ({ inDock: !!document.querySelector("[data-nav-dock]")?.contains(document.activeElement), open: document.documentElement.getAttribute("data-dock-open") }));
+      // Ctrl K: the area nav's search (the dock's people / companies / roles suggest)
+      await page.keyboard.down("Control"); await page.keyboard.press("k"); await page.keyboard.up("Control"); await sleep(250);
+      out.ctrlK = await q(() => ({ focused: document.activeElement?.hasAttribute("data-dock-search-input") || false, inAreaNav: !!document.activeElement?.closest("[data-area-nav]"),
+        placeholder: document.activeElement?.getAttribute("placeholder") }));
+      await page.keyboard.press("Escape"); await sleep(200);
       // the peek: resting on the picture ≈ 350 ms opens it
       const pic = await box("[data-nav-dock] [data-nav-item='profile']");
       await page.mouse.move(pic.left + 20, pic.top + pic.height / 2);
@@ -540,18 +534,24 @@ const SCREENS = {
       out.peekAt150 = await q(() => document.querySelector("[data-profile-peek]")?.getAttribute("data-open"));
       await sleep(500);
       const peekState = () => q(() => {
-        const p = document.querySelector("[data-profile-peek]"), r = p.getBoundingClientRect(), d = document.querySelector("[data-nav-dock]").getBoundingClientRect();
-        return { open: p.getAttribute("data-open"), left: r.left, top: r.top, bottom: r.bottom, dockRight: d.right, dockOpen: document.querySelector("[data-nav-dock]").getAttribute("data-open"),
+        const p = document.querySelector("[data-profile-peek]"), r = p.getBoundingClientRect(), d = document.querySelector("[data-nav-dock]").getBoundingClientRect(), cs = getComputedStyle(p);
+        return { open: p.getAttribute("data-open"), left: r.left, top: r.top, bottom: r.bottom, dockRight: d.right,
           name: p.querySelector("[data-peek-name]")?.textContent, email: p.querySelector("[data-peek-email]")?.textContent,
           links: [...p.querySelectorAll("a")].map(a => [a.textContent.trim(), a.getAttribute("href")]),
           mode: [...p.querySelectorAll("[data-peek-mode] button")].map(b => [b.textContent, b.getAttribute("aria-pressed"), b.disabled]),
-          signOut: !!p.querySelector("[data-peek-signout]"), openAccent: getComputedStyle(p.querySelector(".appnav-peek__open")).color,
-          accentInk: getComputedStyle(document.documentElement).getPropertyValue("--c-accent-ink").trim(),
-          radius: getComputedStyle(p).borderTopLeftRadius, bg: getComputedStyle(p).backgroundColor,
-          push: document.documentElement.getAttribute("data-dock-push"), shellPad: getComputedStyle(document.querySelector("[data-app-shell]")).paddingLeft };
+          signOut: !!p.querySelector("[data-peek-signout]"), notifRow: p.querySelector("[data-peek-notifs]")?.textContent.replace(/\s+/g, " ").trim(),
+          list: [...p.querySelectorAll("[data-peek-notif]")].map((li) => [li.getAttribute("data-peek-notif"), li.textContent.replace(/\s+/g, " ").trim()]),
+          markAll: !!p.querySelector("[data-peek-mark-all]"),
+          radius: cs.borderTopLeftRadius, border: cs.borderTopWidth, shadow: cs.boxShadow, bg: cs.backgroundColor };
       });
       out.peekRest = await peekState();
+      // A236 (b): the Notifications row opens the list in place; Mark all read clears the unread
+      await q(() => document.querySelector("[data-peek-notifs]")?.click()); await sleep(400);
+      out.peekNotifs = await peekState();
       await page.screenshot({ type: "png" }).then(b => fs.writeFileSync(path.join(OUT, `dock167-peek-${size}.png`), b));
+      await q(() => document.querySelector("[data-peek-mark-all]")?.click()); await sleep(400);
+      out.peekAfterMarkAll = await q(() => ({ list: [...document.querySelectorAll("[data-peek-notif]")].map((li) => li.getAttribute("data-peek-notif")),
+        badge: document.querySelector("[data-nav-dock] [data-nav-item='profile'] .pl-badge")?.textContent || null }));
       // the mode switch: Apply for me posts the mode (the fixture answers with the bar)
       await q(() => document.querySelector('[data-peek-mode] [data-mode="auto"]')?.click()); await sleep(500);
       out.modeAfterApplyForMe = await q(() => [...document.querySelectorAll("[data-peek-mode] button")].map(b => b.getAttribute("aria-pressed")));
@@ -559,7 +559,6 @@ const SCREENS = {
       await page.mouse.move(900, 700); await sleep(700);
       out.peekAfterLeave = (await peekState()).open;
       // a press opens it; Esc closes it
-      // (re-measured: a side dock re-centres as it folds — D167 — so the picture is not where it was while open)
       let pic2 = await box("[data-nav-dock] [data-nav-item='profile']");
       await page.mouse.move(pic2.left + pic2.width / 2, pic2.top + pic2.height / 2); await sleep(80);
       await page.mouse.down(); await page.mouse.up(); await sleep(450);
@@ -572,8 +571,7 @@ const SCREENS = {
       out.peekAfterPress2 = (await peekState()).open;
       await page.mouse.click(1100, 500); await sleep(450);
       out.peekAfterOutside = (await peekState()).open;
-      // ⭐ owner 11-15: Tiny replaces Ask draft, floating — the fox bubble at the bottom-right opens a card OVER the page; the
-      // page keeps its width (~~Ask draft: the page moves over, never under the panel~~)
+      // Tiny (D190) floats: the fox bubble at the bottom-right opens a card OVER the page; the page keeps its width
       await page.mouse.move(900, 400); await sleep(700);
       const pageRight = () => q(() => Math.max(...[document.querySelector("[data-app-shell] main"), document.querySelector("[data-app-shell] main")?.firstElementChild].filter(Boolean).map(e => e.getBoundingClientRect().right)));
       const contentRightShut = await pageRight();
@@ -582,20 +580,21 @@ const SCREENS = {
       out.ask = await q(() => {
         const p = document.querySelector("[data-ask-draft]"), r = p.getBoundingClientRect(), shell = document.querySelector("[data-app-shell]");
         const b = document.querySelector("[data-tiny-launch]").getBoundingClientRect();
-        // the page's boxes (main and its first box) — leaves inside them may be clipped by their own overflow
         const leaves = [document.querySelector("[data-app-shell] main"), document.querySelector("[data-app-shell] main")?.firstElementChild].filter(Boolean).map(e => e.getBoundingClientRect().right);
         return { open: p.getAttribute("data-open"), left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, vw: innerWidth, vh: innerHeight,
           position: getComputedStyle(p).position, shellPadRight: getComputedStyle(shell).paddingRight,
-          // (its layout box: an open bubble is drawn at scale(.9), so its painted rect is smaller than its place)
           bubble: (() => { const e = document.querySelector("[data-tiny-launch]"), cs = getComputedStyle(e); return { width: e.offsetWidth, height: e.offsetHeight, right: parseFloat(cs.right), bottom: parseFloat(cs.bottom), mid: (b.left + b.right) / 2 }; })(),
-          inDock: !!document.querySelector("[data-nav-dock] [data-nav-item='ask']"),
-          contentRight: Math.max(...leaves), stub: !!p.querySelector("[data-ask-draft-closed], [data-ask-input]") /* T5: closed notice or the chat */, html: document.documentElement.getAttribute("data-ask-open") };
+          dockAsk: document.querySelector("[data-nav-dock] [data-nav-item='ask']")?.getAttribute("aria-expanded") || null,
+          contentRight: Math.max(...leaves), stub: !!p.querySelector("[data-ask-draft-closed], [data-ask-input]"), html: document.documentElement.getAttribute("data-ask-open") };
       });
       out.ask.contentRightShut = contentRightShut;
       await page.screenshot({ type: "png" }).then(b => fs.writeFileSync(path.join(OUT, `dock167-ask-${size}.png`), b));
       await page.keyboard.press("Escape"); await sleep(600);
       out.askAfterEsc = await q(() => ({ open: document.querySelector("[data-ask-draft]").getAttribute("data-open"), pad: getComputedStyle(document.querySelector("[data-app-shell]")).paddingRight }));
-      out.log = await q(() => window.__dockLog);
+      // the rail's own Ask draft (the board's item after the rule) opens the same Tiny card
+      await q(() => document.querySelector("[data-nav-dock] [data-nav-item='ask']")?.click()); await sleep(600);
+      out.askFromDock = await q(() => ({ open: document.querySelector("[data-ask-draft]").getAttribute("data-open"), expanded: document.querySelector("[data-nav-dock] [data-nav-item='ask']")?.getAttribute("aria-expanded") }));
+      await page.keyboard.press("Escape"); await sleep(400);
       return { dock: out };
     } },
   "home-wide": { sketch: "home-sketch.html", app: CLASSIC_MARKET, fixtures: HOME156, ready: "[data-home-board]",

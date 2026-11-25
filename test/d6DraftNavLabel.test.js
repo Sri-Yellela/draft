@@ -78,10 +78,11 @@ test("D6: the badge says what it counts — drafts that need you, not drafts", (
   // The bare digit is hidden from the accessible name; the sentence is what a screen reader hears.
   // ⭐ D145 (changed on purpose): the count is data on the tab (badge + badgeLabel); AppNav draws it the same way.
   assert.match(app, /badge: needsAttentionCount, badgeLabel: attention/);
-  const nav = read("client/src/components/AppNav.jsx");
-  // ⭐ D156 (3) (changed on purpose): one Badge for the dock's icon and the Menu's name — the count, then what it counts.
-  assert.match(nav, /<span aria-hidden="true">\{n > 9 \? "9\+" : n\}<\/span><span className="sr-only">\{`, \$\{label\}`\}<\/span>/);
-  assert.match(nav, /<Badge n=\{t\.badge\} label=\{t\.badgeLabel\} \/>/);
+  // ⭐ D197 #1 (changed on purpose): the plate Dock's DockBadge — the count, then what it counts (the label AppNav hands it).
+  const shell = read("client/src/plate/Shell.jsx");
+  assert.match(shell, /<span aria-hidden="true">\{n > 9 \? "9\+" : n\}<\/span><span className="pl-sr">\{`, \$\{label \|\| `\$\{n\} new`\}`\}<\/span>/);
+  assert.match(shell, /<DockBadge n=\{it\.badge\} label=\{it\.badgeLabel\}\/>/);
+  assert.match(read("client/src/components/AppNav.jsx"), /badge: t\.badge, badgeLabel: t\.badgeLabel,/);
 });
 
 test("D6: no user-visible string in the client, server routes or extension says Auto Apply", () => {

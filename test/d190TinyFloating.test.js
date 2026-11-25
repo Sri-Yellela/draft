@@ -90,10 +90,12 @@ test("d190TinyPlainSearch — plain searches are the board's text search; questi
   assert.equal(looksLikeJobSearch("my profile"), false);
 });
 
-test("d190TinyFloats — the dock has no Ask item; the fox bubble opens the panel as a floating card; tokens only", () => {
+test("d190TinyFloats — the fox bubble opens the panel as a floating card; tokens only (D197 #1: the rail's Ask draft opens it too)", () => {
   assert.match(NAV, /export const DOCK_PLACES = Object\.freeze\(\["today", "auto-apply", "atlas", "interview", "profile"\]\);/);
-  const dock = NAV.slice(at(NAV, '<nav aria-label="Main"'), at(NAV, "</nav>", at(NAV, '<nav aria-label="Main"')));
-  assert.doesNotMatch(dock, /AskItem|data-nav-item="ask"|appnav-sep/);
+  // ⭐ D197 #1 (the Shell board, changed on purpose): the rail draws Ask draft after its rule, and it opens THIS Tiny (the
+  // same pressAsk as the bubble) — never a second panel; the phone's bar has none (Tiny's bubble there).
+  assert.match(NAV, /const ask = bar \? null : \{ onPress: pressAsk, attrs: \{ "data-nav-item": "ask", "aria-expanded": !!askOpen, "aria-controls": "appnav-ask"/);
+  assert.doesNotMatch(NAV, /AskItem/);
   assert.match(NAV, /const TINY_FACE = \{ __html: tinySvg\(\{ size: 40 \}\) \};/, "the fox from shared/tinyMascot.js");
   assert.match(NAV, /data-tiny-launch="" data-open=\{open \? "true" : "false"\}/);
   assert.match(NAV, /<h2>\{TINY_NAME\}<\/h2>/, "the card is named Tiny");

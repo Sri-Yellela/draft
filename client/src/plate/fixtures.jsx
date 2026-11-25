@@ -237,7 +237,7 @@ export function ShellRailMarket() {
 }
 /** B · THE LEDGER: the same rail with Home current (the active item: white tile, 1.5 px ink, 3 px shadow, the name in 800). */
 export function ShellRailLedger() {
-  return <ShellFrame current="auto-apply"><div style={{ height: 70 }}/></ShellFrame>;
+  return <ShellFrame current={SHELL_DOCK[0].id}><div style={{ height: 70 }}/></ShellFrame>;
 }
 /** D · PHONE: the bottom bar inside the board's 390 px phone frame (1.5 px border → a 387 px bar). The board's bar draws
  *  Profile without its badge; the board's data is kept here (the live bar keeps the badge — the noted disagreement). */

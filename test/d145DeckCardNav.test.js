@@ -129,37 +129,45 @@ test("d145NavDockOrMenuSetting → 45n: no Navigation option; the dock is the on
   assert.match(navCss, /\.appnav-dock \{\s*display: var\(--appnav-dock, flex\);/);
   // ⭐ D156 (3): an always-visible rail of icons at the left edge that expands on hover / focus — no edge reveal, no handle.
   assert.doesNotMatch(nav, /DOCK_REVEAL_PX|appnav-handle/);
-  assert.match(nav, /onMouseEnter=\{canHover \? \(\) => setWide\(true\) : undefined\}/);
+  // ⭐ D197 #1 (changed on purpose): the plate rail shows its names always (the Shell board) — hovering never widens it;
+  // the rail holds `wide` while the keyboard is in it (data-open / <html data-dock-open>).
+  assert.doesNotMatch(nav, /onMouseEnter=\{canHover \? \(\) => setWide\(true\) : undefined\}/);
+  assert.match(nav, /onFocus: \(\) => setWide\(true\),/);
   // The old tab row is gone from the top bar.
   const top = read("client/src/components/TopBar.jsx");
   assert.doesNotMatch(top, /className="tbar-tab"|className="tbar-nav"/);
   assert.match(top, /<AppNav tabs=\{tabs\} activeTab=\{activeTab\} hrefForTab=\{hrefForTab\} onTabChange=\{onTabChange\}\s+profile=/);   // D149: + the Profile entry
 });
 
-test("d145MenuPanelMatchesDock → 45n: the Menu's panel is gone; the dock draws the one NavItems list; Esc and M work the dock", () => {
-  const items = [...nav.matchAll(/<NavItems tabs=\{tabs\} activeTab=\{activeTab\} hrefForTab=\{hrefForTab\} onGo=\{go\}( dock)?[^>]*\/>/g)];
-  assert.equal(items.length, 1, "only the dock renders NavItems (the Menu's panel is retired)");
-  assert.ok(items[0][1], "… as the dock");
+test("d145MenuPanelMatchesDock → 45n: the Menu's panel is gone; the dock draws the one list; Esc and M work the dock", () => {
+  // ⭐ D197 #1 (changed on purpose): the one list is the plate's Dock (NavItems went with the 60 px rail)
+  const items = [...nav.matchAll(/<Dock home=\{home\} items=\{items\}/g)];
+  assert.equal(items.length, 1, "only the dock renders the places (the Menu's panel is retired)");
   assert.doesNotMatch(nav, /className="appnav-menu-btn"|className="appnav-scrim"/, "the Menu button / scrim came back");
-  assert.match(nav, /if \(e\.key === "Escape"\) \{ setWide\(false\); return; \}/);
+  assert.match(nav, /if \(e\.key === "Escape"\) \{ if \(dockRef\.current\?\.contains\(document\.activeElement\)\) document\.activeElement\.blur\?\.\(\); setWide\(false\); return; \}/);
   assert.match(nav, /\(e\.key === "m" \|\| e\.key === "M"\)/);
-  assert.match(nav, /if \(dock && getComputedStyle\(dock\)\.display !== "none"\) \{ e\.preventDefault\(\); setWide\(\(u\) => !u\); \}/, "M expands the dock (D156)");
+  // ⭐ D197 #1 (changed on purpose): the names are always shown, so M takes the keyboard into the dock and back out
+  assert.match(nav, /\(dock\.querySelector\('\[aria-current="page"\]'\) \|\| dock\.querySelector\("a,button"\)\)\?\.focus\(\{ preventScroll: true \}\);/, "M → the dock");
   // ⭐ D167 (owner 11-06, changed on purpose): names only — no plain line under a name.
   assert.doesNotMatch(nav, /NAV_PLAIN|today's picks and every job/);
   // ⭐ owner 11-15: Tiny replaces Ask draft, floating (changed on purpose) — no Ask item in the dock; ONE fox bubble instead.
-  assert.equal((nav.match(/<AskItem /g) || []).length, 0, "Ask draft left the dock");
+  // ⭐ D197 #1 (changed on purpose): the Shell board draws Ask draft after the rail's rule — it opens the same Tiny
+  assert.equal((nav.match(/<AskItem /g) || []).length, 0);
+  assert.match(nav, /const ask = bar \? null : \{ onPress: pressAsk,/);
   assert.equal((nav.match(/<TinyBubble /g) || []).length, 1, "Tiny, the floating bubble");
 });
 
 // ⭐ D156 (3) changed this on purpose (owner 11-05: "use symbols for the menu dock: a home, a globe like atlas icon, draft
 // icon … profile pic for the profile"): the DOCK is icons; the Menu's side panel stays words.
 test("d145NoNavSymbols → d156: icons only in the Dock (house · /d · globe · picture); the Menu stays words", () => {
-  // ⭐ D167: the items alone (the peek and Ask draft that follow them carry prose comments with arrows)
-  const items = nav.slice(at(nav, "function NavItems("), at(nav, "const initialsOf ="));
-  // ⭐ D167 (owner 11-06, changed on purpose): the jobs' icon is the drawing-out wordmark, every other place its line icon.
-  assert.match(items, /\{dock && !jobs && Icon && <span className="appnav-ico"/, "an icon only in the dock");
-  assert.match(items, /\{dock && jobs && <span className="appnav-ico appnav-ico--mark"/);
-  assert.match(nav, /\{dock && \(\n\s+<span className="appnav-ico appnav-ico--me"/);
+  // ⭐ D197 #1 (changed on purpose): the plate's Dock draws each place's line icon (plate/icons.jsx), the /d tile for the
+  // jobs, the picture (or initials) for Profile; no symbol glyph in the items
+  const shell = read("client/src/plate/Shell.jsx");
+  const items = shell.slice(at(shell, "function DockIcon("), at(shell, "const plainClick ="));
+  assert.match(items, /if \(item\.img\) return <img className="pl-avatar pl-avatar--img"/);
+  assert.match(items, /if \(item\.initials\) return <span className="pl-avatar" aria-hidden="true">\{item\.initials\}<\/span>;/);
+  assert.match(items, /return <Icon name=\{item\.icon\} size=\{size\}\/>;/);
+  assert.match(shell, /<PlateLogo\/><\/a>/, "the /d tile");
   assert.doesNotMatch(items, /[☰≡★⏳✦→←↑↓]/u);
   // 45n D145 / D152 decision (10) (ffd57262): the Menu button is retired, so there is no word button to check (pin moved on purpose).
   assert.doesNotMatch(nav, /className="appnav-menu-btn"/, "the Menu button came back");

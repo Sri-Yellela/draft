@@ -1,37 +1,25 @@
-// ⭐ D145 STEP 3 · THE APP'S NAVIGATION — a Dock or a Menu, the user's choice (owner 11-03, declutter-v7: "navigation as
-// a user choice: Dock (bottom, rises on approach) or Menu (top right, side panel with the dock's buttons)").
+// ⭐ THE APP'S NAVIGATION — the dock (D145 → D156 → D167 → ⭐ D197 Wave 1 #1, 47i: the plate system's shell).
 //
-// Replaces the top bar's row of five tabs (removed). Settings → Appearance → Navigation (shared/appearance.js
-// `navigation`: auto · dock · menu; "auto" = the Dock). WHICH ONE SHOWS IS CSS (AppNav.css reads data-navigation
-// through custom properties), so a live change of the option — and the Customise preview — needs no state here.
-//
-//   Dock — ⭐ D156 (3) / (1b): a SLIM RAIL on the left edge, ALWAYS VISIBLE — icons of one size (DOCK_ICON_PX), the line
-//          icons in the current theme's accent, the person's picture (initials when there is none). Hover or keyboard
-//          focus expands it to the names. Badges are small numbers on the icons.
-//          ⭐ D167 · THE SITE'S MAP (owner 11-06, home-sketch.html — supersedes D156 (1c)'s list): SIX PLACES —
-//          /d → /draft (the jobs) · Home (the house) · Atlas (the globe) · Interview (a microphone) · Profile (the
-//          person's picture) · [⭐ D190, owner 11-15: the divider and Ask draft left the dock — Tiny floats at the
-//          bottom-right]. NAMES ONLY: the plain lines under the names
-//          are removed ("remove description below menu items"). THE /d MARK DRAWS OUT INTO /draft: the whole wordmark is
-//          set once (DraftMark drawOut) and "raft" is uncovered by clip-path while the mark slides (transform) — the logo
-//          never changes size. THE DOCK'S MOTION ("looks a bit choppy … the menu items have to be centered"): every icon
-//          centred in the rail; only width / transform / clip-path / opacity animate (AppNav.css); the names fade and
-//          slide in after 0.1 s.
-//          ⭐ THE DOCK GOES WHERE THE SPACE IS (owner 11-06, "draft screen" — supersedes the fixed left rail and the
-//          push-the-page rule): `data-dock-place` on <html>, re-measured on every resize (dockPlace below) —
-//            side   only when the page's left margin fits the dock OPEN with a 24 px gap on both sides; the dock is
-//                   centred in that margin (both ways) and grows evenly from its centre when it opens;
-//            top    otherwise: one row centred at the top, icons AND names (the whole /draft), the same gap above it
-//                   and between it and the content;
-//            phone  (≤ 600 px) always at the top, centred, icons only (the short /d), below the status bar.
-//          It never pushes or covers the page. The quick peek opens beside a side dock and below a top one.
-//          THE PROFILE QUICK PEEK: pressing the picture (or resting on it ≈ 350 ms) opens a small Dusk menu beside the
-//          dock (ProfilePeek) — it closes on Esc, a press outside, or leaving it, and never covers the dock.
-//          ⭐ TINY (D190, owner 11-15: "make tiny a floating bot on the site rather than a panel button"): not in the
-//          dock. A fox bubble fixed at the bottom-right opens AskDraftPanel as a FLOATING CARD over the page (380 × 560
-//          above the bubble; a bottom sheet on phones) — the page keeps its width (D167's push and A201's sheet retired).
-//   Menu — a Menu button at the top right (in the bar); it opens a side panel from the right whose buttons are EXACTLY
-//          the dock's (one list, one <NavItems>); closes with Close, a click outside, Esc; M toggles it.
+// ⭐ D197 #1 · THE SHELL (the owner-approved canvas board `Shell`, docs/sketches/final/project/Shell.dc.html; the design doc's
+// addendum shell bullet; A237): the dock is the PLATE's — drawn by the plate library's one Dock (plate/Shell.jsx): a paper rail,
+// 1.5 px ink border, 20 px radius, 4 px hard shadow, 84 px wide; the active item a white tile with a 1.5 px ink border and a
+// 3 px ink shadow; badges ink mono tags; the /d logo an ink d with a clay slash on a white 44 px tile. On wide screens it is a
+// vertical RAIL at the LEFT, 14 px from the edges, with the content column beside it (AppNav.css pads the shell 98 px); the
+// area nav (ShellAreaNav below, mounted by App) runs across the column's top, its row centred in 1,180 px — at 2560 the extra
+// width is margin, never a dock on top. Below 980 px the rail becomes the phone's bottom bar, and the area nav's top bar holds
+// the /d tile and the search button.
+//   THE PLACES (D167's order and badges, kept — D200 Rule 1): /d (the market, the jobs' entry) · Home (needs-you count) ·
+//          Atlas · Interview · [Network · Feed · Messages — only while the network switch is on (D180 P1 / 46f), Messages
+//          with the unread count] · Profile (the person's picture or initials; opens the quick peek) · — · Ask draft (the
+//          board's item after its rule: it opens Tiny — D190's fox bubble at the bottom-right stays too).
+//   THE NAMES are always shown (the board): D167's hover-expand to 196 px and the /d → /draft draw-out retired with the 60 px
+//          rail. M takes the keyboard into the dock (its current place) and back out; Esc closes the peek, then Tiny, then
+//          lets go of the dock.
+//   THE DOCK'S SEARCH (45n: people, companies, roles, technologies — UsbSuggest) lives in each area's nav: the search box with
+//          Ctrl K (one listener, plate/Shell.jsx) on a wide screen, the top bar's search button on a phone.
+//   THE PROFILE QUICK PEEK (D167): a press on the picture (or ≈ 350 ms resting on it) opens it beside the rail / above the bar;
+//          Esc, a press outside or leaving it closes it. ⭐ A236 (b): its Notifications row opens the notifications list.
+//   TINY (D190, owner 11-15): the fox bubble fixed at the bottom-right opens AskDraftPanel as a floating card over the page.
 // ⛔ Real links (AH2): ctrl / middle click opens a new tab.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";

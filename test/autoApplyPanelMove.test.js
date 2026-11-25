@@ -124,7 +124,9 @@ test("the board keeps a count badge, and only when something needs a human", () 
   // ⭐ D145 (changed on purpose): the count is data on the Draft House tab; the Dock / the Menu draw it only when > 0.
   assert.match(app, /badge: needsAttentionCount, badgeLabel: attention/);
   // ⭐ D156 (3) (changed on purpose): the dock's Badge — a small number on the icon, nothing when nothing needs a human.
-  assert.match(fs.readFileSync("client/src/components/AppNav.jsx", "utf8").replace(/\r\n/g, "\n"), /function Badge\(\{ n, label \}\) \{\n\s+if \(!\(n > 0\)\) return null;/);
+  // ⭐ D197 #1 (changed on purpose): the live dock is the plate's Dock — its DockBadge (plate/Shell.jsx) draws the count.
+  assert.match(fs.readFileSync("client/src/plate/Shell.jsx", "utf8").replace(/\r\n/g, "\n"), /function DockBadge\(\{ n, label \}\) \{\n\s+if \(!\(n > 0\)\) return null;/);
+  assert.match(fs.readFileSync("client/src/components/AppNav.jsx", "utf8"), /badge: t\.badge, badgeLabel: t\.badgeLabel,/);
   // D6: under the name "Draft" the count is said as drafts that need you, not a bare "need".
   assert.match(app, /needsAttentionCount === 1 \? "draft needs" : "drafts need"\} your attention/);
   // The queue itself is deliberately NOT counted: queueing a job is not something waiting on you.

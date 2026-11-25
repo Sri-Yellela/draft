@@ -41,21 +41,24 @@ test("every nav tab is a real link, not a button", () => {
   // ⭐ D167 (owner 11-06, changed on purpose): the href is the section's own, or Interview's page (the dock's sixth place).
   // 45o D180 P1 (4aed9e88): Network's place gets its own page the same way (pin moved on purpose).
   // 46f: Feed and Messages' places get their own pages the same way (pin moved on purpose).
-  assert.match(NAV, /const href = hrefForTab\?\.\(t\.id\) \|\| \(t\.id === "interview" \? INTERVIEW_PATH : t\.id === "network" \? NETWORK_PATH\s*: t\.id === "feed" \? FEED_PATH : t\.id === "messages" \? MESSAGES_PATH : undefined\);/);
-  assert.match(NAV, /<a key=\{t\.id\} className="appnav-item" href=\{href\}/);
+  // ⭐ D197 #1 (changed on purpose): the places are drawn by the plate's Dock (plate/Shell.jsx) — the same hrefs, real <a>s.
+  assert.match(NAV, /const pathOf = \(id\) => \(id === "interview" \? INTERVIEW_PATH : id === "network" \? NETWORK_PATH : id === "feed" \? FEED_PATH : id === "messages" \? MESSAGES_PATH : undefined\);/);
+  assert.match(NAV, /const href = hrefForTab\?\.\(t\.id\) \|\| pathOf\(t\.id\);/);
+  const SHELL = fs.readFileSync("client/src/plate/Shell.jsx", "utf8");
+  assert.match(SHELL, /<a \{\.\.\.common\} href=\{it\.href\} aria-current=\{current === it\.id \? "page" : undefined\}/);
+  assert.match(SHELL, /if \(it\.onPress && !it\.href\) return <button type="button"/, "a button only for an item with no page (Profile → the peek, Ask draft → Tiny)");
   assert.doesNotMatch(NAV, /<button key=\{t\.id\}/);
   assert.doesNotMatch(TOPBAR, /<button key=\{t\.id\} onClick=\{\(\) => onTabChange/);
 });
 
 test("a modified click is left to the browser, a plain click still navigates in-app", () => {
   const NAV = fs.readFileSync("client/src/components/AppNav.jsx", "utf8");
-  const nav = NAV.slice(at(NAV, '<a key={t.id}'), at(NAV, "</a>", at(NAV, '<a key={t.id}')));
-  // Without this the href would hijack every click into a full page load, which is a worse
-  // regression than the missing affordance it is there to add.
-  assert.match(nav, /e\.metaKey \|\| e\.ctrlKey \|\| e\.shiftKey \|\| e\.altKey \|\| e\.button !== 0/);
-  assert.match(nav, /return;/);
-  assert.match(nav, /e\.preventDefault\(\);/);
-  assert.match(nav, /onGo\(t\.id, href\)/);
+  // ⭐ D197 #1 (pin moved on purpose): the plate Dock's click — a modified click is left to the browser
+  const SHELL = fs.readFileSync("client/src/plate/Shell.jsx", "utf8");
+  const nav = SHELL.slice(at(SHELL, "export function Dock("), at(SHELL, "/** One chip:"));
+  assert.match(SHELL, /const plainClick = \(e\) => !\(e\.metaKey \|\| e\.ctrlKey \|\| e\.shiftKey \|\| e\.altKey \|\| e\.button !== 0\);/);
+  assert.match(nav, /if \(!onGo \|\| !plainClick\(e\)\) return;/);
+  assert.match(nav, /e\.preventDefault\(\); onGo\(it\.id, it\.href\);/);
   // ⭐ D156 (3): a press also folds the expanded dock back to its icons. ⭐ D167 (owner 11-06, changed on purpose): and closes the peek; Interview's page
   // is navigated to directly while it is not a tab of its own.
   // 45n D145 / D152 decision (10) (ffd57262): the Menu (setOpen) is retired — a press folds the dock and closes the peek (pin moved on purpose).

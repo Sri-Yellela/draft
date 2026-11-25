@@ -56,14 +56,15 @@ test("the unread count stays OUTSIDE the menu — D149: on the Profile button of
   const nav = fs.readFileSync("client/src/components/AppNav.jsx", "utf8").replace(/\r\n/g, "\n");
   // ⭐ D156 (3), changed on purpose: the badge is ONE small component (Badge) every dock icon and Menu entry wears — on the
   // Profile icon in the dock, beside the name in the Menu.
-  const item = nav.slice(at(nav, "function ProfileItem("), at(nav, "export default function AppNav("));
-  assert.match(item, /<Badge n=\{profile\.badge\} label=\{profile\.badgeLabel\} \/>/, "the Profile button carries no unread badge");
-  const badge = nav.slice(at(nav, "function Badge("), at(nav, "function NavItems("));
+  // ⭐ D197 #1 (changed on purpose): the dock is the plate's Dock — Profile's item carries the unread count, its DockBadge draws it.
+  assert.match(nav, /items\.push\(\{ id: "profile", label: "Profile", onPress: pressProfile, itemRef: profRef, badge: profile\.badge, badgeLabel: profile\.badgeLabel,/, "the Profile button carries no unread badge");
+  const shell = fs.readFileSync("client/src/plate/Shell.jsx", "utf8").replace(/\r\n/g, "\n");
+  const badge = shell.slice(at(shell, "function DockBadge("), at(shell, "function DockIcon("));
   assert.match(badge, /if \(!\(n > 0\)\) return null;/);
   assert.match(badge, /\{n > 9 \? "9\+" : n\}/);
   // And it is announced, not just painted — the number is aria-hidden; the label says it in words.
   assert.match(badge, /<span aria-hidden="true">/);
-  assert.match(badge, /<span className="sr-only">\{`, \$\{label\}`\}<\/span>/);
+  assert.match(badge, /<span className="pl-sr">\{`, \$\{label \|\| `\$\{n\} new`\}`\}<\/span>/);
   assert.match(topBar, /badgeLabel: `\$\{unread\} unread notification\$\{unread === 1 \? "" : "s"\}`/);
   // One source of truth for both renderings: the hook, in TopBar, feeding the badge AND the panel's list.
   assert.match(topBar, /const \{ notifs, unread, load: loadNotifs, markAll \} = useNotifications\(\);/);
@@ -189,12 +190,13 @@ test("the tab row moved into the top bar, whole, and from appTabs — ⭐ D145: 
   assert.match(topBarCode, /<AppNav tabs=\{tabs\} activeTab=\{activeTab\} hrefForTab=\{hrefForTab\} onTabChange=\{onTabChange\}\s+profile=/);   // D149: + the Profile entry
   assert.doesNotMatch(topBarCode, /className="tbar-tab"|className="tbar-nav"/, "the old tab row is back");
   // Rendered in a real <nav>, from the tabs it is GIVEN — not from a list of its own.
-  assert.match(nav, /<nav aria-label="Main"/);
+  // ⭐ D197 #1 (changed on purpose): the <nav> is the plate's Dock, fed AppNav's items
+  assert.match(read("client/src/plate/Shell.jsx"), /<nav aria-label="Main" className="pl-dock"/);
   // ⭐ D167 (owner 11-06, changed on purpose): through placesOf(tabs) — the given tabs, plus Interview's place when the tabs don't carry it yet.
   assert.match(nav, /const list = \(tabs \|\| \[\]\)\.filter\(\(t\) => t\.id !== "console"\);/);
   // D180 P1 (45o, changed on purpose): + the Network place and its unread badge, only while the network is on.
-  assert.match(nav, /return placesOf\(tabs, network, netUnread\)\.map\(\(t\) => \{/);
-  assert.match(nav, /aria-current=\{activeTab === t\.id \? "page" : undefined\}/);
+  assert.match(nav, /const items = placesOf\(tabs, network, netUnread\)\.filter\(\(t\) => !isJobs\(t\.id\)\)\.map\(\(t\) => \{/);
+  assert.match(nav, /const current = isJobs\(activeTab\) \? brand\.id : activeTab;/);
   assert.ok(!/id: "console"|id: "auto-apply"|id: "database"/.test(topBarCode + nav),
     "TopBar / AppNav grew its own tab list — that is the fourth copy, and the previous three all drifted");
   assert.match(app, /tabs=\{appTabs\}/, "the bar is no longer fed from appTabs");
@@ -215,9 +217,10 @@ test("the AUTO APPLY needs-review count survived the move", () => {
   // The count and its sentence are data on the tab; AppNav draws them, and only when something needs a human.
   assert.match(app, /t\.id === "auto-apply" \? \{ \.\.\.t, badge: needsAttentionCount, badgeLabel: attention \} : t/);
   const nav = read("client/src/components/AppNav.jsx");
-  // ⭐ D156 (3): one Badge — a small number on the dock's icon, beside the name in the Menu; drawn only when n > 0.
-  assert.match(nav, /<Badge n=\{t\.badge\} label=\{t\.badgeLabel\} \/>/);
-  assert.match(nav, /if \(!\(n > 0\)\) return null;/);
-  assert.match(nav, /<span aria-hidden="true">\{n > 9 \? "9\+" : n\}<\/span><span className="sr-only">\{`, \$\{label\}`\}<\/span>/);
+  // ⭐ D197 #1 (changed on purpose): the plate Dock's DockBadge — a small number on the icon, drawn only when n > 0.
+  assert.match(nav, /badge: t\.badge, badgeLabel: t\.badgeLabel,/);
+  const shell = read("client/src/plate/Shell.jsx");
+  assert.match(shell, /<DockBadge n=\{it\.badge\} label=\{it\.badgeLabel\}\/>/);
+  assert.match(shell, /if \(!\(n > 0\)\) return null;/);
   assert.match(app, /<AppTopBar/, "the decorator is defined but never rendered");
 });

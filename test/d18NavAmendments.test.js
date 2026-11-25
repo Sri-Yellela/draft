@@ -38,8 +38,10 @@ test("D18: NO symbol on any tab — the Draft House count rides on the button as
   const nav = read("client/src/components/AppNav.jsx");
   // 45n D145 / D152 decision (10) (ffd57262): the Menu's "Main menu" panel is retired — only the dock's nav is left (pin moved on purpose).
   assert.doesNotMatch(nav, /<nav aria-label="Main menu"/);
-  for (const tag of ["<nav aria-label=\"Main\""]) {
-    const row = nav.slice(at(nav, tag), at(nav, "</nav>", at(nav, tag)));
+  // ⭐ D197 #1 (pin moved on purpose): the dock's <nav> is the plate's Dock (plate/Shell.jsx) — the rail and the bar
+  const shell = read("client/src/plate/Shell.jsx");
+  for (const tag of ["<nav aria-label=\"Main\" className=\"pl-dock\" ref", "<nav aria-label=\"Main\" className=\"pl-dock pl-dock--bar\""]) {
+    const row = shell.slice(at(shell, tag), at(shell, "</nav>", at(shell, tag)));
     assert.ok(row.length > 20, tag);
     assert.doesNotMatch(row, /<DraftMark|<svg|<img/);
   }
@@ -89,6 +91,8 @@ test("O56e → D145: the phone's tab row is gone — the Menu (or the dock, chos
   // ⭐ D156 (3), changed on purpose: the dock is an always-visible rail of icons (no edge handle) — a phone keeps it, slimmer.
   // ⭐ D163, changed on purpose: no `top` of its own — the rail is vertically centred at every width (test/d163UseTheSpace).
   // ⭐ D167 (owner 11-06, changed on purpose): phones always put the dock AT THE TOP, centred, icons only (data-dock-place="phone").
-  assert.match(css, /:root\[data-dock-place="phone"\] \.appnav-dock\[data-nav-dock\] \.appnav-words \{ display: none; \}/);
+  // ⭐ D197 #1 · A237 (the Shell board, changed on purpose): below 980 px the rail becomes the BOTTOM bar with the same items,
+  // and the area nav's top bar holds the /d tile and search (test/d167Dock d197ShellPlace).
+  assert.match(css, /\.appnav-plate > nav\[data-nav-dock\]\[data-place="phone"\] \{\n  position: fixed; left: 0; right: 0; bottom: 0;/);
 });
 

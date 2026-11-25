@@ -1,21 +1,19 @@
-// ⭐ D167 · THE SITE'S MAP — THE DOCK (owner 11-06; home-sketch.html updated 11-06). Six places — /d → /draft (the jobs) ·
-// Home · Atlas · Interview (a microphone) · Profile (the picture) · a thin divider · Ask draft (a speech bubble) — with
-// NAMES ONLY (the descriptions under the names removed). The /d mark draws out into /draft; THE DOCK'S MOTION: every icon
-// centred in the rail, only width / transform / clip-path / opacity animate, the names fade + slide in after 0.1 s, the
-// logo never changes size ("raft" uncovered by clip-path while the mark slides, 0.38 s cubic-bezier(.22,1,.36,1)), the
-// reduced motion instant. ⭐ THE DOCK GOES WHERE THE SPACE IS (owner 11-06, supersedes "the page moves over"): a SIDE dock
-// only when the left margin fits it open with 24 px each side, centred in it and growing evenly from its centre; otherwise
-// TOP, one centred row with icons and names and equal gaps above and below; PHONES at the top, icons only. It never
-// pushes the page; the peek opens beside a side dock and below a top one. Ask draft opens a panel
-// that moves the page over, never on top of it (the assistant is not built: the panel says so). THE PROFILE QUICK PEEK:
-// a press on the picture (or ≈ 350 ms resting on it) opens a small Dusk menu beside the dock; Esc, a press outside or
-// leaving it closes it; it never covers the dock.
-// ⭐ owner 11-15: Tiny replaces Ask draft, floating (D190 — changed ON PURPOSE): the dock is FIVE places (the divider and
-// Ask draft left it); Tiny is a fox bubble fixed at the bottom-right whose card floats OVER the page — nothing pushes the
-// page any more (the pins below that said "Ask draft pushes, never overlays" now say the opposite, with this reason).
-// The real-Chrome tests read `scripts/fidelityShots.mjs --styles dock167` (a SIDE dock at 2560: motion ON, and reduced
-// motion at "rm"), which drives a real pointer and writes docs/fidelity-shots/dock167-{rest,open,peek,ask}-<size>.png, and
-// `--styles dock167place` (where the dock goes at 1280 · 1440 · 1920 · 2560 · 390, and on a resize).
+// ⭐ D197 Wave 1 #1 (47i) · THE SHELL — the dock in the plate system, to the owner-approved canvas board `Shell`
+// (docs/sketches/final/project/Shell.dc.html; the design doc's addendum shell bullet; A237). ⛔ CHANGED ON PURPOSE from D167's
+// dock (this file pinned D167 from 11-06 to 47h): the rail is the PLATE's (paper rail, 1.5 px ink border, 20 px radius, 4 px
+// hard shadow, 84 px wide; the active item a white tile with a 1.5 px ink border and a 3 px ink shadow; badges ink mono tags;
+// the /d logo an ink d with a clay slash on a white 1.5 px-bordered 44 px tile), drawn by the plate library's ONE Dock
+// (plate/Shell.jsx) that components/AppNav.jsx renders; on wide screens a vertical RAIL at the LEFT, 14 px from the edge, the
+// area nav across the top of the content column beside it (plate content centred in its 1,180 px column; at 2560 the extra
+// width is margin, never a dock on top); below 980 px the rail becomes the phone's bottom bar and the area nav's top bar holds
+// the /d tile and search. Every D167 item is kept (D200 Rule 1): the places and their order and badges, Profile's quick peek
+// (now with the notifications list, A236 (b)), M, the Esc chain, Tiny floating (D190), the dock's search (now in the area nav:
+// Ctrl K; the phone's search button). RETIRED with the 60 px rail (the board draws the names always): the hover-expand to
+// 196 px and the /d → /draft draw-out — the checks that pinned them now pin "names always shown, one width".
+// The real-Chrome tests read `scripts/fidelityShots.mjs --styles dock167` (2560 + 1280, reduced motion at "rm") and
+// `--styles dock167place` (1280 · 1440 · 1920 · 2560 · 980 · 979 · 390, and a resize across 980).
+// The look itself is gated pixel by pixel against the board: scripts/d196Regress.mjs pairs shell-rail / shell-active /
+// shell-areanav / shell-phonebar (D196 F5, ≤ 2 %).
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -25,260 +23,199 @@ import { probe as fidelityProbe } from "../test-support/fidelityProbe.mjs";
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const NAV = read("client/src/components/AppNav.jsx");
 const CSS = read("client/src/components/AppNav.css");
-const MARK = read("client/src/components/DraftMark.jsx");
+const SHELL = read("client/src/plate/Shell.jsx");
+const PLATE = read("client/src/plate/plate.css");
 const TOP = read("client/src/components/TopBar.jsx");
-const SIZES = ["2560", "rm"];
-const MOTION = ["2560"];
+const SIZES = ["2560", "1280", "rm"];
 
 const probes = {};
 function run(t, screen) {
-  if (!(screen in probes)) {
-    probes[screen] = fidelityProbe(screen);
-  }
+  if (!(screen in probes)) probes[screen] = fidelityProbe(screen);
   if (probes[screen].skipped) { t.skip(probes[screen].skipped); return null; }
   return probes[screen];
 }
 const measured = (t) => run(t, "dock167");
 const placed = (t) => run(t, "dock167place");
-const dockRules = () => CSS.slice(at(CSS, "/* The rail: 60 px wide at rest"), at(CSS, "/* ⭐ D167: the end of the rail's rules."));
 
 // ── pure ──────────────────────────────────────────────────────────────────────────────────────────────────────────
-test("d167DockSixPlaces → five (pure): the places in order, Interview links to /interview; Tiny floats outside the dock", () => {
-  // owner 11-15: Tiny replaces Ask draft, floating — "ask" left DOCK_PLACES (changed on purpose)
+test("d197ShellOneDock (pure): the live dock IS the plate's Dock — D167's places, names and badges, Profile → the peek, Ask draft → Tiny", () => {
+  assert.match(NAV, /import \{ Dock, AreaNav, useSearchShortcut \} from "\.\.\/plate\/Shell\.jsx";/);
+  assert.match(NAV, /<Dock home=\{home\} items=\{items\} ask=\{ask\} current=\{current\} bar=\{bar\} onGo=\{go\} navRef=\{dockRef\}/);
+  assert.doesNotMatch(NAV, /function NavItems|function ProfileItem|className="appnav-dock"/, "no second dock (A93)");
+  // the places, in D167's order (DOCK_PLACES), and their names (DOCK_NAMES) — Network · Feed · Messages under the switch (D180 / 46f)
   assert.match(NAV, /export const DOCK_PLACES = Object\.freeze\(\["today", "auto-apply", "atlas", "interview", "profile"\]\);/);
-  // ⭐ D180 P1 (45o, on purpose): + Network — drawn only while the network switch is on (placesOf's `network`); off by default.
-  // ⭐ 46f (owner 11-11, on purpose): + Feed and Messages, their own places under the same switch.
   assert.match(NAV, /export const DOCK_NAMES = Object\.freeze\(\{ today: "draft", "auto-apply" : "Home", atlas: "Atlas", interview: "Interview", network: "Network", feed: "Feed", messages: "Messages" \}\);/);
+  assert.match(NAV, /const DOCK_ICON = Object\.freeze\(\{ "auto-apply" : "home", atlas: "atlas", interview: "interview", network: "network", feed: "feed", messages: "messages" \}\);/);
   assert.match(NAV, /export const INTERVIEW_PATH = "\/app\/interview";/);
-  assert.match(NAV, /const ICONS = \{ atlas: \(\) => <GlobeIcon \/>, "auto-apply" : \(\) => <HouseIcon \/>, interview: \(\) => <MicIcon \/>, network: \(\) => <PeopleIcon \/>, feed: \(\) => <FeedIcon \/>, messages: \(\) => <EnvelopeIcon \/> \};/);
-  const dock = NAV.slice(at(NAV, '<nav aria-label="Main"'), at(NAV, "</nav>", at(NAV, '<nav aria-label="Main"')));
-  const order = ["<NavItems", "<ProfileItem"].map((s) => at(dock, s));
-  assert.deepEqual([...order].sort((a, b) => a - b), order, "tabs · Profile");
-  assert.doesNotMatch(dock, /appnav-sep|<AskItem|data-nav-item="ask"/, "owner 11-15: no divider and no Ask draft in the dock");
-  assert.match(NAV, /<rect x="9" y="3\.5" width="6" height="11" rx="3" \/>/, "the microphone");
-  assert.doesNotMatch(NAV, /BubbleIcon/, "the speech bubble left with Ask draft");
-  // Tiny: the fox (shared/tinyMascot.js) in a bubble outside the dock, opening the same panel
-  assert.match(NAV, /import \{ tinySvg, TINY_NAME \} from "\.\.\/\.\.\/\.\.\/shared\/tinyMascot\.js";/);
-  assert.match(NAV, /<TinyBubble open=\{askOpen\} onPress=\{pressAsk\} btnRef=\{askBtnRef\} \/>/);
+  // the /d tile is the jobs' entry (the market); Profile is a button that opens the peek; the rail's Ask draft opens Tiny
+  assert.match(NAV, /attrs: \{ "data-nav-item": brand\.id, "data-nav-brand": "" \}/);
+  assert.match(NAV, /items\.push\(\{ id: "profile", label: "Profile", onPress: pressProfile, itemRef: profRef/);
+  assert.match(NAV, /const ask = bar \? null : \{ onPress: pressAsk, attrs: \{ "data-nav-item": "ask", "aria-expanded": !!askOpen, "aria-controls": "appnav-ask"/);
+  assert.match(NAV, /<TinyBubble open=\{askOpen\} onPress=\{pressAsk\} btnRef=\{askBtnRef\} \/>/, "Tiny's own bubble stays (D190)");
+  // the dock's draw: the board's look, from plate tokens (no theme colour in the dock's own rules)
+  assert.match(PLATE, /\.pl-dock \{ flex: 0 0 auto; width: var\(--pl-dock-width\);[^}]*border: var\(--pl-border\); border-radius: var\(--pl-r-plate\); box-shadow: var\(--pl-s4\);/);
+  assert.match(PLATE, /\.pl-dock__item\[aria-current="page"\], \.plate a\.pl-dock__item\[aria-current="page"\] \{ background: var\(--pl-card\); border: var\(--pl-border\); box-shadow: var\(--pl-s3\); \}/);
+  assert.match(PLATE, /\.pl-badge \{ position: absolute;[^}]*font-family: var\(--pl-mono\);[^}]*background: var\(--pl-ink\); color: var\(--pl-on-ink\);/);
+  const place = CSS.slice(at(CSS, "/* ⭐ D197 Wave 1 #1 · A237 · THE SHELL"), at(CSS, "/* ── the side panel"));
+  assert.doesNotMatch(place, /--c-|#[0-9a-f]{3,6}\b|rgba?\(/i, "the placing rules carry no colour (FIX-1)");
 });
 
-test("d167NoDescriptionsUnderNames (pure): no plain line in the dock or the Menu's panel", () => {
-  const dockAndMenu = NAV.slice(0, at(NAV, "export function ProfilePeek("));   // (the peek's own <small> asides are not names' lines)
-  assert.doesNotMatch(dockAndMenu, /NAV_PLAIN|appnav-plain|<small/, "the descriptions under the names are removed");
-  assert.doesNotMatch(NAV, /you and your résumé|today's picks and every job|your dashboard and applications/);
-});
-
-test("d167DraftMarkDrawsOut (pure): the whole wordmark set once; raft uncovered by clip-path while the mark slides; reduced motion instant", () => {
-  assert.match(MARK, /\{slash\}d\{drawOut && <span data-draft-raft="">raft<\/span>\}/);   // 46v 0c: the slash may be its own span (the logo colourway) — changed on purpose
-  assert.match(NAV, /<DraftMark drawOut logo \/>/);
-  assert.match(CSS, /\.appnav-ico--mark \[data-draft-mark\] \{\n  display: inline-block; white-space: nowrap; line-height: var\(--appnav-ico\);\n  transform: translateX\(calc\(var\(--appnav-raft-w, 0px\) \/ 2\)\); transition: transform \.38s cubic-bezier\(\.22, 1, \.36, 1\);/);
-  assert.match(CSS, /\.appnav-ico--mark \[data-draft-raft\] \{\n  display: inline-block; clip-path: inset\(-\.3em 100% -\.3em 0\); transition: clip-path \.38s cubic-bezier\(\.22, 1, \.36, 1\);/);
-  assert.match(CSS, /\[data-open="true"\] \.appnav-ico--mark \[data-draft-raft\] \{ clip-path: inset\(-\.3em -\.3em -\.3em -\.3em\); \}/);
-  const rm = CSS.slice(at(CSS, "@media (prefers-reduced-motion: reduce) {"));
-  for (const sel of [".appnav-ico--mark [data-draft-mark]", ".appnav-ico--mark [data-draft-raft]", ".appnav-dock[data-nav-dock]", ".appnav-peek", ".appnav-ask"]) assert.ok(rm.includes(sel), sel);
-});
-
-test("d167DockAnimatesOnlyTransformClipOpacityWidth (pure): every transition in the dock's rules", () => {
-  // (the commas inside cubic-bezier(…) are not property separators)
-  const props = [...dockRules().matchAll(/transition:\s*([^;]+);/g)].flatMap((m) => m[1].replace(/\([^)]*\)/g, "").split(",").map((p) => p.trim().split(/\s+/)[0]));
-  assert.ok(props.length >= 6, props.join(" "));
-  for (const p of props) assert.ok(["width", "transform", "clip-path", "opacity", "none"].includes(p), `the dock animates ${p}`);
-  // owner 11-15: Tiny replaces Ask draft, floating — nothing moves the page any more, so no padding transition at all
-  assert.doesNotMatch(dockRules(), /transition:[^;]*padding/);
-  assert.doesNotMatch(CSS, /\[data-app-shell\] \{ transition: padding-right/);
-  assert.match(CSS, /\[data-open="true"\] \.appnav-words \{\n  opacity: 1; transform: none; transition: opacity \.22s ease \.1s, transform \.3s cubic-bezier\(\.22, 1, \.36, 1\) \.1s;/, "names after 0.1 s");
-});
-
-test("d167DockSideOnlyWhenMarginFitsOpen (pure) / d167AskDraftPushesNeverOverlays → Tiny floats (pure): the place is measured; nothing pushes sideways", async () => {
-  const { dockPlace, DOCK_OPEN_PX, DOCK_GAP_PX } = await import("../client/src/components/dockPlace.js");
-  assert.equal(DOCK_OPEN_PX + 2 * DOCK_GAP_PX, 244);
-  assert.equal(dockPlace({ vw: 2560, contentLeft: 440 }), "side");
-  assert.equal(dockPlace({ vw: 1920, contentLeft: 244 }), "side", "exactly room for it open, with both gaps");
-  assert.equal(dockPlace({ vw: 1920, contentLeft: 243 }), "top");
-  assert.equal(dockPlace({ vw: 1280, contentLeft: 24 }), "top");
-  assert.equal(dockPlace({ vw: 600, contentLeft: 400 }), "phone", "phones always at the top");
-  assert.doesNotMatch(CSS + NAV, /data-dock-push|--appnav-rail-w/, "the push is gone");
+test("d197ShellPlace (pure): the rail from 980 px up, the bottom bar below; the shell padded by the rail, never under it", async () => {
+  const { dockPlace, SIDE_MIN_PX, DOCK_RAIL_PX, DOCK_EDGE_PX } = await import("../client/src/components/dockPlace.js");
+  assert.equal(SIDE_MIN_PX, 980); assert.equal(DOCK_RAIL_PX, 84); assert.equal(DOCK_EDGE_PX, 14);
+  for (const vw of [980, 1280, 1920, 2560, 5120]) assert.equal(dockPlace({ vw }), "side", vw);
+  for (const vw of [979, 600, 390, 320]) assert.equal(dockPlace({ vw }), "phone", vw);
+  assert.match(CSS, /\.appnav-plate > nav\[data-nav-dock\]\[data-place="side"\] \{\n  position: fixed; left: 14px; top: 14px; margin: 0;/);
+  assert.match(CSS, /\.appnav-plate > nav\[data-nav-dock\]\[data-place="phone"\] \{\n  position: fixed; left: 0; right: 0; bottom: 0;/);
+  assert.match(CSS, /:root\[data-dock-place="side"\] \[data-app-shell\] \{ padding-left: 98px; \}/, "14 + 84: the content column starts beside the rail");
   assert.match(NAV, /window\.addEventListener\("resize", schedule\);/, "re-placed on every resize");
-  // owner 11-15: Tiny replaces Ask draft, floating — the shell is never padded for it (was: padding-right: var(--appnav-ask-w))
-  assert.doesNotMatch(CSS, /\[data-ask-open="true"\][^{]*\[data-app-(shell|chrome)\][^{]*\{[^}]*padding/);
-  assert.match(CSS, /\.appnav-tiny \{\n  position: fixed; right: 20px; bottom: 20px;/, "the bubble, fixed at the bottom-right");
-  assert.match(CSS, /width: 60px; height: 60px; aspect-ratio: 1; border-radius: 50%;/, "a perfect circle (D60 allows it)");
-  assert.match(CSS, /\.appnav-ask \{\n  position: fixed; right: 20px; bottom: 92px; width: var\(--appnav-ask-w\); height: min\(560px, calc\(100vh - 120px\)\);/, "the card above it");
-  // ⭐ T5 v1 (owner 11-10): the stub became the assistant. ⭐ D190 (46m, owner 11-14: nothing within the site's own data or
-  // functions calls a model): T1 actions and T2 lookups need no switch, so the panel works for everyone and the old
-  // "isn't open yet" notice is gone; only T3 (new writing) waits for the switch, and says so in its reply.
-  assert.doesNotMatch(NAV, /data-ask-draft-closed=""/, "D190: no 'not open yet' notice — T1 / T2 work for everyone");
-  assert.match(NAV, /data-ask-intro=""/, "D190: the panel says what it does, without AI");
-  assert.match(NAV, /data-ask-confirm=""/, "a proposed action waits for the person's Confirm");
+  assert.doesNotMatch(CSS + NAV, /data-dock-push|--appnav-rail-w|--appnav-top-reserve/, "the D167 push and the top reserve are gone");
+  // the chrome strip reserves nothing: the area nav is the content column's first thing (the board)
+  assert.match(TOP, /height: 0,/);
+  // Tiny (D190) floats: the bubble at the bottom-right, a perfect circle; on the bottom bar it sits above the bar
+  assert.match(CSS, /\.appnav-tiny \{\n  position: fixed; right: 20px; bottom: 20px;/);
+  assert.match(CSS, /width: 60px; height: 60px; aspect-ratio: 1; border-radius: 50%;/);
+  assert.match(CSS, /:root\[data-dock-place="phone"\] \.appnav-tiny \{ bottom: calc\(86px \+ env\(safe-area-inset-bottom, 0px\)\); \}/);
+  assert.doesNotMatch(CSS, /\[data-ask-open="true"\][^{]*\[data-app-(shell|chrome)\][^{]*\{[^}]*padding/, "the shell is never padded for Tiny");
 });
 
-test("d167ProfilePeekBasics (pure): the peek's items link to Profile's panels; the switch is the auto-apply mode", () => {
-  // ⭐ A151 (45o, on purpose): "about" is the NAME's link now (ABOUT_HREF), not a separate About you row.
-  for (const id of ["answers", "connections", "appearance", "notifications"]) assert.ok(NAV.includes(`link("${id}", `), id);   // A140: résumés merged into about
-  assert.match(NAV, /<a href={ABOUT_HREF} className="appnav-peek__name"/);
+test("d197ShellKeys (pure): M into the dock and out; Esc — the peek, then Tiny, then the dock; one Ctrl K; the area nav's menus close", () => {
+  const keys = NAV.slice(at(NAV, "  // ⛔ 45n (owner 11-08, decision (10)): the dock is the one navigation. ⭐ D197 #1"));
+  assert.match(keys, /if \(e\.key === "Escape" && peekOpen\) \{ closePeek\(\); profRef\.current\?\.focus\(\{ preventScroll: true \}\); return; \}/);
+  assert.match(keys, /if \(e\.key === "Escape" && askOpen\) \{ setAskOpen\(false\);/);
+  assert.match(keys, /if \(el\?\.closest\?\.\("input,textarea,select,\[contenteditable=''\],\[contenteditable='true'\]"\)\) return;/, "never while typing");
+  assert.match(NAV, /"aria-keyshortcuts": "M"/);
+  // §6 item 5: ONE window listener for Ctrl / Cmd K (plate/Shell.jsx), not one per search
+  assert.equal((SHELL.match(/window\.addEventListener\("keydown"/g) || []).length, 1);
+  assert.match(SHELL, /if \(SHORTCUT_TARGETS\.length === 1\) window\.addEventListener\("keydown", onShortcut\);/);
+  assert.match(SHELL, /const onDown = \(e\) => \{ if \(!rootRef\.current\?\.contains\(e\.target\)\) setOpen\(null\); \};/, "a press outside closes an area-nav menu");
+  assert.match(SHELL, /if \(e\.key !== "Escape"\) return;\n      e\.stopPropagation\(\);\n      setOpen\(null\);/, "Esc closes it");
+});
+
+test("d197ShellSearch (pure): the dock's search (people / companies / roles) lives in the area nav — one suggest (A93)", () => {
+  assert.match(NAV, /export function ShellSearchInput\(/);
+  assert.match(NAV, /<UsbSuggest field="title" value=\{q\} onChange=\{setQ\}\n      onPickRole=\{\(r\) => toBoard\(\{ role: \{ id: r\.id, categoryId: r\.categoryId \} \}\)\}/);
+  assert.match(NAV, /renderInput: \(\{ className, placeholder: ph \}\) => <ShellSearchInput className=\{className\} placeholder=\{ph\} inputRef=\{inputRef\} \/>/);
+  assert.match(NAV, /onOpen: \(\) => setSheet\(\(s\) => !s\), sheet: sheet \? <DockSearch onClose=\{\(\) => setSheet\(false\)\} \/> : null/, "the phone's search button opens the sheet");
+  assert.match(read("client/src/App.jsx"), /<AppAreaNavSlot activeTab=\{home \? "today" : activeTab\} marketPlate=\{!!marketPlate\}/);
+});
+
+test("d167ProfilePeekBasics → d197 (pure): the peek's items link to Profile's panels; the mode switch; the notifications list (A236 (b))", () => {
+  for (const id of ["answers", "connections", "appearance", "notifications"]) assert.ok(NAV.includes(`link("${id}", `), id);
+  assert.match(NAV, /<a href=\{ABOUT_HREF\} className="appnav-peek__name"/);
   assert.match(NAV, /export const profileHref = \(panel\) => \(panel \? `\/app\/profile\/\$\{panel\}` : "\/app\/profile"\);/);
-  assert.match(NAV, /const \{ runBar, setApplyMode, holdBusy \} = useAutoApply\(\);/);
   assert.match(NAV, /onClick=\{\(\) => \{ if \(fullAuto\) setApplyMode\?\.\("semi"\); \}\}>Ask me first<\/button>/);
   assert.match(NAV, /onClick=\{mode\.selectable \? \(\) => \{ if \(!fullAuto\) setApplyMode\?\.\("auto"\); \} : undefined\}>Apply for me<\/button>/);
-  assert.match(TOP, /email: user\.email \|\| "", onSignOut: onLogout/);
-  assert.doesNotMatch(CSS.slice(at(CSS, "THE PROFILE QUICK PEEK")), /999px|border-radius: 50%;[^}]*(button|seg)/, "no pills");
+  assert.match(NAV, /data-peek-notifs="" aria-expanded=\{notifsOpen\}/);
+  assert.match(NAV, /onClick=\{\(\) => profile\.onMarkAll\?\.\(\)\}>Mark all read<\/button>/);
+  assert.match(TOP, /notifs, onLoadNotifs: loadNotifs, onMarkAll: markAll \} : null\} \/>/, "the badge's own hook feeds the list — one state");
+  assert.match(TOP, /email: user\.email \|\| "", onSignOut: onLogout,/);
+  const peek = CSS.slice(at(CSS, "THE PROFILE QUICK PEEK"));
+  assert.doesNotMatch(peek, /999px|border-radius: 50%;[^}]*(button|seg)/, "no pills");
+  assert.match(peek, /border-radius: var\(--pl-r-plate\); background: var\(--pl-card\); color: var\(--pl-ink\);\n  border: var\(--pl-border\); box-shadow: var\(--pl-s4\);/, "the plate's card");
 });
 
 // ── real Chrome ───────────────────────────────────────────────────────────────────────────────────────────────────
-test("d167DockSixPlaces / d167NoDescriptionsUnderNames (real Chrome): six places, names only", { timeout: 300000 }, (t) => {
+test("d197ShellRail (real Chrome): the places in order, the board's rule and Ask draft, names always shown, the plate look", { timeout: 300000 }, (t) => {
   const out = measured(t); if (!out) return;
   for (const s of SIZES) {
     const r = out[s].dock.rest;
-    // 45n (pin brought to the code in 45o): the dock's search icon comes first.
-    // owner 11-15: Tiny replaces Ask draft, floating — the divider and Ask draft left the dock (changed on purpose)
-    assert.deepEqual(r.places, ["search", "today", "auto-apply", "atlas", "interview", "profile"], s);
-    assert.deepEqual(r.labels, ["Search", "draft", "Home", "Atlas", "Interview", "Profile"], s);
-    assert.deepEqual(r.names, ["Search", "Home", "Atlas", "Interview", "Profile"], `${s}: the jobs' name is the wordmark itself`);
-    assert.equal(r.smalls, 0, `${s}: no description under a name`);
+    assert.deepEqual(r.places, ["today", "auto-apply", "atlas", "interview", "profile", "ask"], s);
+    assert.deepEqual(r.labels, ["Home", "Atlas", "Interview", "Profile", "Ask draft"], `${s}: the jobs' name is the /d tile itself`);
+    assert.equal(r.shown, 5, `${s}: every name shown at rest (the board)`);
+    assert.equal(r.rule, true); assert.equal(r.sep, true);
+    assert.deepEqual(r.rail, { left: 14, top: 14, width: 84 }, `${s}: the rail at the left, 14 px from the edges, 84 wide`);
+    assert.match(r.border, /^1(\.5)?px$/, "1.5 px (Chrome computes 1 px at DPR 1, as on the board)"); assert.equal(r.radius, "20px"); assert.match(r.shadow, /4px 4px 0px/);
+    assert.equal(r.current.id, "today", `${s}: the market is current (the /d tile)`);
+    assert.equal(r.logo.w, 44); assert.equal(r.logo.h, 44); assert.equal(r.logo.text, "/d"); assert.match(r.logo.border, /^1(\.5)?px$/);
+    assert.equal(out[s].dock.hoverWidth, 84, `${s}: hovering never widens it (the hover-expand retired with the 60 px rail)`);
   }
 });
 
-test("d167DockIconsCentred (real Chrome): every icon's middle is the rail's middle, at rest and open", { timeout: 300000 }, (t) => {
-  const out = measured(t); if (!out) return;
-  for (const s of SIZES) {
-    const d = out[s].dock, mid = d.rest.railMid;
-    for (const ic of d.rest.icons) { assert.ok(Math.abs(ic.mid - mid) <= 0.5, `${s} ${ic.id}: ${ic.mid} vs ${mid}`); assert.equal(ic.w, 30); assert.equal(ic.h, 30); }
-    // ⭐ D167 (the dock goes where the space is): a side dock grows evenly from its centre, so its icons move left together
-    // as it opens — one column, the same x for every icon.
-    for (const m of d.openIcons) assert.ok(Math.abs(m - d.openIcons[0]) <= 0.5, `${s}: the icons stay one column open (${d.openIcons})`);
-    const sd = d.rest.mark.slashD;
-    assert.ok(Math.abs((sd.left + sd.right) / 2 - mid) <= 1.5, `${s}: "/d" centred at rest (${sd.left}–${sd.right} vs ${mid})`);
-    const o = d.open, rail = d.openRail;
-    const full = { left: o.slashD.left, right: o.slashD.left + o.width };
-    assert.ok(Math.abs((full.left + full.right) / 2 - (rail.left + rail.right) / 2) <= 1.5, `${s}: "/draft" centred open`);
-  }
-});
-
-test("d167LogoNeverResizes / d167DraftMarkDrawsOut (real Chrome): one size at rest, mid-motion and open; raft clipped then shown", { timeout: 300000 }, (t) => {
+test("d197ShellKeys (real Chrome): M takes the keyboard into the dock and out; Ctrl K focuses the area nav's search", { timeout: 300000 }, (t) => {
   const out = measured(t); if (!out) return;
   for (const s of SIZES) {
     const d = out[s].dock;
-    for (const m of [d.rest.mark, d.mid, d.open]) {
-      assert.equal(m.text, "/draft", `${s}: the whole wordmark is always set`);
-      assert.equal(m.fontSize, "19px"); assert.equal(m.width, d.rest.mark.width); assert.equal(m.height, d.rest.mark.height);
-    }
-    assert.match(d.rest.mark.raftClip, /^inset\(-5\.7px 100% -5\.7px 0px\)$/, `${s}: raft covered at rest`);
-    assert.equal(d.open.raftClip, "inset(-5.7px)", `${s}: raft uncovered open`);
-    assert.equal(d.rest.mark.transform, `matrix(1, 0, 0, 1, ${d.rest.mark.raftWidth / 2}, 0)`, `${s}: slid by half of raft`);
-    assert.equal(d.open.transform, "matrix(1, 0, 0, 1, 0, 0)");
-  }
-  // with motion, 120 ms in: mid-slide, raft partly uncovered; with reduced motion: already open
-  for (const s of MOTION) {
-    const m = out[s].dock.mid;
-    assert.notEqual(m.transform, out[s].dock.open.transform, `${s}: the slide is animated`);
-    assert.notEqual(m.raftClip, out[s].dock.open.raftClip);
-    assert.ok(out[s].dock.midWordsOpacity < 0.5, `${s}: the names wait 0.1 s (${out[s].dock.midWordsOpacity})`);
-  }
-  assert.equal(out.rm.dock.mid.transform, "matrix(1, 0, 0, 1, 0, 0)", "reduced motion: instant");
-  assert.equal(out.rm.dock.midWordsOpacity, 1, "reduced motion: the names at once");
-});
-
-test("d167DockAnimatesOnlyTransformClipOpacityWidth (real Chrome): the computed transitions", { timeout: 300000 }, (t) => {
-  const out = measured(t); if (!out) return;
-  for (const s of MOTION) {
-    const tr = out[s].dock.rest.transitions;
-    assert.equal(tr.dock.property, "width"); assert.equal(tr.dock.duration, "0.38s");
-    assert.equal(tr.item.property, "none");
-    assert.equal(tr.words.property, "opacity, transform");
-    assert.equal(tr.mark.property, "transform"); assert.equal(tr.mark.duration, "0.38s");
-    assert.equal(tr.raft.property, "clip-path"); assert.equal(tr.raft.duration, "0.38s");
-  }
-  for (const [k, v] of Object.entries(out.rm.dock.rest.transitions)) assert.equal(v.property, "none", `reduced motion: ${k}`);
-});
-
-test("d167DockNeverPushes (real Chrome): a side dock opens into its margin — the page never moves", { timeout: 300000 }, (t) => {
-  const out = measured(t); if (!out) return;
-  for (const s of SIZES) {
-    const w = out[s].dock.push;
-    assert.equal(w.push, null); assert.equal(w.shellPad, "0px");
-    assert.equal(w.contentLeftOpen, w.contentLeftBefore, `${s}: nothing moves`);
-    assert.ok(w.contentLeftBefore >= out[s].dock.openRail.right + 24 - 0.5, `${s}: the open dock keeps its gap to the content`);
+    assert.equal(d.mIn.inDock, true, `${s}: M → the dock`); assert.equal(d.mIn.item, "today"); assert.equal(d.mIn.open, "true");
+    assert.equal(d.mOut.inDock, false, `${s}: M again → out`); assert.equal(d.mOut.open, null);
+    assert.equal(d.ctrlK.focused, true, `${s}: Ctrl K → the dock's search`); assert.equal(d.ctrlK.inAreaNav, true);
   }
 });
 
-// ⭐ 46q FULL WIDTH (owner 11-16: "the dock can be at the top", changed on purpose): Home fills the width, its content starts at
-// the page gutter, so the margin never fits a side dock — the dock is at the top on every desktop width.
-const PLACES = { "1280": "top", "1440": "top", "1920": "top", "2560": "top", phone: "phone" };
-test("d167DockSideOnlyWhenMarginFitsOpen / d167DockTopCentredOtherwise / d167DockTopOnPhones (real Chrome): the place at each width", { timeout: 300000 }, (t) => {
+test("d197ShellPlace (real Chrome): the rail beside the content column at every wide width; the bottom bar below 980; no sideways scroll", { timeout: 300000 }, (t) => {
   const out = placed(t); if (!out) return;
-  for (const [s, want] of Object.entries(PLACES)) {
+  for (const s of ["1280", "1440", "1920", "2560", "980"]) {
     const r = out[s].node.rest;
-    assert.equal(r.place, want, `${s}: ${r.place}`);
-    assert.equal(r.shellPadLeft, "0px", `${s}: never pads the page sideways`);
-    assert.ok(r.scrollW <= r.vw, `${s}: no sideways scroll`);
-    const mid = (r.dock.left + r.dock.right) / 2;
-    if (want === "side") {
-      assert.ok(r.content.left >= 244, `${s}: the margin fits it open`);
-      assert.ok(Math.abs(mid - r.content.left / 2) <= 1, `${s}: centred in the margin (${mid} vs ${r.content.left / 2})`);
-      const o = out[s].node.open.dock;
-      assert.ok(Math.abs((o.left + o.right) / 2 - mid) <= 1, `${s}: opens evenly from its centre`);
-      assert.ok(Math.abs(o.left - (r.content.left - o.right)) <= 2, `${s}: equal gaps open (${o.left} / ${r.content.left - o.right})`);
-    } else {
-      assert.ok(Math.abs(mid - r.vw / 2) <= 1, `${s}: centred at the top (${mid} vs ${r.vw / 2})`);
-      if (want === "top") { assert.equal(r.namesShown.length, 5, `${s}: icons and names (45n: + Search; owner 11-15: Tiny replaces Ask draft, floating — one fewer)`); assert.equal(r.raftShown, true, `${s}: the whole /draft`); }
-      else { assert.equal(r.namesShown.length, 0, "phone: icons only"); assert.equal(r.raftShown, false, "phone: the short /d"); }
-    }
+    assert.equal(r.place, "side", s); assert.equal(r.bar, false); assert.equal(r.dockPosition, "fixed");
+    assert.equal(Math.round(r.dock.left), 14, `${s}: 14 px from the left`); assert.equal(Math.round(r.dock.top), 14, `${s}: and the top`);
+    assert.equal(Math.round(r.dock.width), 84);
+    assert.equal(r.shellPadLeft, "98px", `${s}: the content column starts beside the rail`);
+    assert.ok(r.areaNav.left >= r.dock.right - 0.5, `${s}: the area nav never under the rail`);
+    assert.ok(r.areaNav.top <= 1, `${s}: the area nav is the column's top (${r.areaNav.top})`);
+    assert.ok(r.row.width <= 1180 + 0.5, `${s}: the nav row in its 1,180 px column (${r.row.width})`);
+    const col = { left: 98, right: r.vw };
+    assert.ok(Math.abs((r.row.left + r.row.right) / 2 - (col.left + col.right) / 2) <= 1, `${s}: centred in the column`);
+    assert.ok(r.searchBox, `${s}: the dock's search in the area nav`);
+    assert.deepEqual(r.views, ["All jobs", "Starred", "Imported"], `${s}: the classic market's views`);
+    assert.ok(r.scrollW <= r.vw, `${s}: no sideways scroll (${r.wide})`);
+    const p = out[s].node.peek;
+    assert.equal(p.open, "true"); assert.ok(p.left >= p.dockRight + 8, `${s}: the peek beside the rail`);
   }
-});
-
-test("d167DockEqualGaps (real Chrome): a top dock's gap above equals its gap to the content (within 2 px)", { timeout: 300000 }, (t) => {
-  const out = placed(t); if (!out) return;
-  for (const s of ["1280", "1440", "1920", "phone"]) {
+  assert.ok(out["2560"].node.rest.row.left - 98 > 500, "2560: the extra width is margin, never a dock on top");
+  for (const s of ["979", "phone"]) {
     const r = out[s].node.rest;
-    assert.ok(Math.abs(r.dock.top - (r.content.top - r.dock.bottom)) <= 2, `${s}: ${r.dock.top} above, ${r.content.top - r.dock.bottom} below`);
+    assert.equal(r.place, "phone", s); assert.equal(r.bar, true);
+    assert.equal(Math.round(r.dock.left), 0); assert.equal(Math.round(r.dock.right), r.vw, `${s}: the bar spans the screen`);
+    assert.equal(Math.round(r.dock.bottom), r.vh, `${s}: at the foot`);
+    assert.deepEqual(r.labels, ["Market", "Home", "Atlas", "Interview", "Profile"], `${s}: the same items (Ask draft by Tiny's bubble)`);
+    assert.equal(r.shellPadLeft, "0px");
+    assert.ok(r.topBar, `${s}: the area nav's top bar (the /d tile, search)`); assert.equal(r.searchButton, true);
+    assert.ok(r.tiny.bottom <= r.dock.top, `${s}: Tiny's bubble above the bar`);
+    assert.ok(r.scrollW <= r.vw, `${s}: no sideways scroll (${r.wide})`);
+    const p = out[s].node.peek;
+    assert.equal(p.open, "true"); assert.ok(p.bottom <= p.dockTop - 8, `${s}: the peek above the bar`); assert.ok(p.left >= 0 && p.right <= p.vw);
   }
+  assert.equal(out["1920"].node.resized.place, "phone", "1920 → 900: the bar");
+  assert.equal(out.phone.node.resized.place, "side", "390 → 1280: the rail");
 });
 
-test("d167DockReplacesOnResize / d167PeekFollowsDock (real Chrome)", { timeout: 300000 }, (t) => {
-  const out = placed(t); if (!out) return;
-  // ⭐ 46q FULL WIDTH (changed on purpose): 2560 keeps the top dock too; the side placement is exercised by --styles dock167
-  // on a page that leaves a margin (the probe centres Home to make one — no screen does since 46q).
-  assert.equal(out["1280"].node.resized.place, "top", "1280 → 2560: still at the top");
-  assert.equal(out["1920"].node.resized.place, "top", "1920 → 1280: to the top");
-  for (const s of ["1280", "2560"]) { const top = out[s].node.peek; assert.equal(top.open, "true"); assert.ok(top.top >= top.dockBottom + 8, `${s}: below a top dock`); }
-});
-
-// owner 11-15: Tiny replaces Ask draft, floating — this pinned the opposite ("pushes, never overlays"); changed on purpose.
-test("d167AskDraftPushesNeverOverlays → TinyFloats (real Chrome): the fox bubble at the bottom-right opens a card OVER the page", { timeout: 300000 }, (t) => {
+test("d167TinyFloats → d197 (real Chrome): the fox bubble opens a card OVER the page; the rail's Ask draft opens it too", { timeout: 300000 }, (t) => {
   const out = measured(t); if (!out) return;
   for (const s of SIZES) {
     const a = out[s].dock.ask;
     assert.equal(a.open, "true"); assert.equal(a.html, "true"); assert.equal(a.stub, true);
-    assert.equal(a.inDock, false, `${s}: no Ask item in the dock`);
     assert.equal(a.bubble.width, 60); assert.equal(a.bubble.height, 60);
-    assert.equal(a.bubble.right, 20, `${s}: the bubble 20 px from the right`); assert.equal(a.bubble.bottom, 20, `${s}: and from the bottom`);
-    assert.equal(a.vw - a.bubble.mid, 50, `${s}: its middle 50 px in (an open bubble is drawn at scale(.9) about it)`);
-    assert.equal(a.position, "fixed"); assert.equal(a.width, 380, `${s}: the card is 380 wide`);
+    assert.equal(a.bubble.right, 20); assert.equal(a.bubble.bottom, 20);
+    assert.equal(a.position, "fixed"); assert.equal(a.width, 380);
     assert.equal(a.vw - a.right, 20, `${s}: the card lines up with the bubble`);
-    const bubbleTop = a.vh - a.bubble.bottom - a.bubble.height;
-    assert.ok(bubbleTop - a.bottom >= 8 && bubbleTop - a.bottom <= 16, `${s}: the card sits just above the bubble (${bubbleTop - a.bottom})`);
-    assert.equal(a.shellPadRight, "0px", `${s}: the shell is NOT padded — the card floats`);
-    assert.equal(a.contentRight, a.contentRightShut, `${s}: the page keeps its width (${a.contentRightShut} → ${a.contentRight})`);
-    assert.equal(out[s].dock.askAfterEsc.open, "false"); assert.equal(out[s].dock.askAfterEsc.pad, "0px");
+    assert.equal(a.shellPadRight, "0px"); assert.equal(a.contentRight, a.contentRightShut, `${s}: the page keeps its width`);
+    assert.equal(a.dockAsk, "true", `${s}: the rail's Ask draft says Tiny is open`);
+    assert.equal(out[s].dock.askAfterEsc.open, "false");
+    assert.equal(out[s].dock.askFromDock.open, "true", `${s}: the rail's Ask draft opens Tiny`);
   }
 });
 
-test("d167ProfilePeekBasics (real Chrome): beside the dock, the person, the links, the mode, Open Profile in the accent, Sign out", { timeout: 300000 }, (t) => {
+test("d167ProfilePeekBasics → d197 (real Chrome): beside the rail, the person, the links, the mode, the notifications list, Sign out", { timeout: 300000 }, (t) => {
   const out = measured(t); if (!out) return;
   for (const s of SIZES) {
     const d = out[s].dock, p = d.peekRest;
     assert.equal(d.peekAt150, "false", `${s}: a pass over the picture does not open it`);
     assert.equal(p.open, "true", `${s}: resting ≈ 350 ms opens it`);
-    assert.equal(p.dockOpen, "true");
     assert.ok(p.left >= p.dockRight + 8, `${s}: never covers the dock (${p.left} vs ${p.dockRight})`);
     assert.equal(p.name, "Ada Lovelace"); assert.equal(p.email, "ada@example.invalid");
-    // ⭐ A151 (45o, on purpose): the name opens About (#profile-about) — the separate "About you" link is gone.
-    assert.deepEqual(p.links.map(([, h]) => h), ["/app/profile/about#profile-about", ...["answers", "connections", "appearance", "notifications"].map((x) => `/app/profile/${x}`), "/app/profile"]);
-    assert.deepEqual(p.links.map(([l]) => l), ["Ada Lovelace", "Saved answers", "Connections", "AppearanceDusk", "Notifications", "Open Profile"]);
+    assert.deepEqual(p.links.map(([, h]) => h), ["/app/profile/about#profile-about", ...["answers", "connections", "appearance"].map((x) => `/app/profile/${x}`), "/app/profile"]);
     assert.deepEqual(p.mode.map(([l, pr]) => [l, pr]), [["Ask me first", "true"], ["Apply for me", "false"]]);
-    assert.deepEqual(d.modeAfterApplyForMe, ["false", "true"], `${s}: Apply for me sets the auto-apply mode (the server's answer)`);
+    assert.deepEqual(d.modeAfterApplyForMe, ["false", "true"]);
     assert.equal(p.signOut, true);
-    assert.equal(p.radius, "22px");
+    assert.match(p.border, /^1(\.5)?px$/); assert.equal(p.radius, "20px"); assert.match(p.shadow, /4px 4px 0px/);
+    // A236 (b): the list, in place
+    assert.match(p.notifRow, /^Notifications\s*1\b/);
+    const n = d.peekNotifs;
+    assert.deepEqual(n.list.map(([st]) => st), ["unread", "read"]);
+    assert.match(n.list[0][1], /Kestrel Payments needs one answer from you/);
+    assert.equal(n.markAll, true);
+    assert.ok(n.links.some(([l, h]) => l === "What to send me" && h === "/app/profile/notifications"), "what to send stays one link away");
+    assert.deepEqual(d.peekAfterMarkAll.list, ["read", "read"]); assert.equal(d.peekAfterMarkAll.badge, null, `${s}: Mark all read clears the badge`);
   }
 });
 

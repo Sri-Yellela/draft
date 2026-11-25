@@ -44,14 +44,17 @@ test("D10 → D145: the tab row is gone; the Dock / the Menu set each name on ON
   assert.doesNotMatch(topBar, /function TabLabel|<TabLabel /);
   const nav = read("client/src/components/AppNav.jsx");
   // ⭐ D156 (1c) (changed on purpose): the name is DOCK_NAMES' (draft / Home) or the section's own label.
-  assert.match(nav, /<span className="appnav-name">\s*\{name\}/);
-  assert.match(nav, /const name = DOCK_NAMES\[t\.id\] \|\| t\.label;/);
+  // ⭐ D197 #1 (changed on purpose): the plate's Dock draws the name (its .pl-dock__label), from DOCK_NAMES or the label.
+  assert.match(nav, /label: DOCK_NAMES\[t\.id\] \|\| t\.label,/);
+  assert.match(read("client/src/plate/Shell.jsx"), /<span className="pl-dock__label">\{it\.label\}<\/span>/);
   // ⭐ D167 (owner 11-06, changed on purpose): NAMES ONLY — the plain line under each name is removed (test/d167Dock d167NoDescriptionsUnderNames).
   assert.doesNotMatch(nav, /NAV_PLAIN|className="appnav-plain"/);
 });
 
-test("D10: the bar is ~74px with a ~30px mark", () => {
-  assert.match(topBar, /height: 74,/);
+test("D10: the bar is ~74px with a ~30px mark → D197 #1: the strip reserves nothing", () => {
+  // ⭐ D197 #1 · A237 (changed on purpose): the rail sits in its own column and the area nav is the content column's first
+  // thing, so the fixed strip is 0 high (the Shell board has no top band); the mark's sizes are unchanged.
+  assert.match(topBar, /height: 0,/);
   assert.match(topBar, /<StampLogo size="nav"\/>/);
   // D47: the mark's sizes moved to styles/brandMark.js, shared with the sentence.
   assert.match(read("client/src/styles/brandMark.js"), /nav: 30/);

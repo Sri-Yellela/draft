@@ -138,13 +138,16 @@ test("D60 · the rule is written down where the next agent looks — BRAND.md an
 test("D60 · the named offenders are gone: the nav tabs, résumé ready, the band, the Requirements row, The Table's status", () => {
   // ⭐ D145 (changed on purpose): the tab row is gone; the sections are the Dock / the Menu (AppNav). Each button is a
   // BOX (radius 14, the shape token's 16 under Dusk — on a ~44px two-line button, never a capsule), the current one raised.
-  const top = read("client/src/components/AppNav.jsx");
-  const navAt = at(top, '<nav aria-label="Main"', 0, "the main nav");
+  // ⭐ D197 #1 (changed on purpose): the dock is the plate's (plate/Shell.jsx + plate/plate.css): each item a 14 px-round
+  // box, the current one a white tile with a 1.5 px ink border and a 3 px ink shadow (the Shell board) — never a capsule.
+  const top = read("client/src/plate/Shell.jsx");
+  const navAt = at(top, '<nav aria-label="Main" className="pl-dock" ref', 0, "the main nav");
   const nav = top.slice(navAt, at(top, "</nav>", navAt, "the nav's end"));
-  assert.match(read("client/src/components/AppNav.jsx"), /className="appnav-item"/);
-  const css = read("client/src/components/AppNav.css");
-  assert.match(css, /\.appnav-item \{[^}]*border-radius: var\(--shape-radius-control, 14px\);/, "the nav button is a box");
-  assert.match(css, /\.appnav-item\[aria-current="page"\] \{ background: var\(--c-surface-2\); color: var\(--c-ink\); \}/, "the current one raised by its fill");
+  assert.match(top, /className: "pl-dock__item"/);
+  const plate = read("client/src/plate/plate.css");
+  const css = plate.split("\n").filter((l) => /pl-dock|pl-badge/.test(l)).join("\n");   // the dock's own rules (the uppercase check)
+  assert.match(plate, /\.pl-dock__item, \.plate a\.pl-dock__item \{[^}]*border-radius: var\(--pl-r-small\);/, "the nav button is a box");
+  assert.match(plate, /\.pl-dock__item\[aria-current="page"\], \.plate a\.pl-dock__item\[aria-current="page"\] \{ background: var\(--pl-card\); border: var\(--pl-border\); box-shadow: var\(--pl-s3\); \}/, "the current one, the white tile");
   assert.doesNotMatch(nav + css, /text-transform: uppercase|textTransform: "uppercase"/);
   // ⭐ D152 (7b), changed on purpose: never a capsule, and no chip either — a word with a 6px success dot.
   assert.match(read("client/src/components/JobBubble.css"), /\.jb__ready \{[^}]*border-radius: 0;[^}]*background: radial-gradient\(circle at 3px 50%, var\(--c-success\) 3px/);

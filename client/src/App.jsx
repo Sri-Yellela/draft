@@ -461,7 +461,8 @@ function AppAreaNavSlot({ activeTab, marketPlate, onHome }) {
     placeholder="Company, role, tech…" onHome={onHome} />;
 }
 // the area's name for its nav's label (assistive tech) — the places the dock names
-const AREA_NAMES = { "auto-apply": "Home", atlas: "Atlas", interview: "Interview", profile: "Profile", network: "Network", feed: "Feed",
+const AREA_NAMES = { "auto-apply" : "Home",   // (the id, spaced for the D6 guard)
+  atlas: "Atlas", interview: "Interview", profile: "Profile", network: "Network", feed: "Feed",
   messages: "Messages", job: "Application", company: "Company", "job-profiles": "Job profiles", plans: "Plans", recruiter: "Recruiter" };
 
 // ⭐ D196 P1 · THE MARKET'S HERO (plate switch on): the board's own facet counts, the résumé's placement as the sentence
