@@ -69,6 +69,30 @@
   /* ── Stage colours on Route and Index (report) ── */
   --pl-stage-start: #3E6B5A; --pl-stage-build: #1F3A63; --pl-stage-deepen: #C2593A; --pl-stage-master: #6A3E73;
 
+  /* ── ⭐ D197 Wave 1 #5–#7 (47h, lane atlas) · Atlas's three boards (Home · Map · Library, the final canvas): the values
+     they use that the library had no token for — read from docs/sketches/final/project/{Home,Map,Library}.dc.html ── */
+  --pl-at-foot: #D9D2CC;          /* the footer's links, the next volume's name (on ink) */
+  --pl-at-foot-dim: #B7AEA7;      /* the footer's line, THE VOLUMES, the next volume's tag (on ink) */
+  --pl-at-navy-k: #AEBBD0;        /* a navy callout's kicker */
+  --pl-at-arrow: #F2C14E;         /* the arrow in a navy callout's code line */
+  --pl-at-slash: #9A928C;
+  --pl-at-start-tint: #EEF4F1; --pl-at-master-tint: #F3ECF4;   /* the field card's stage strips (Build / Deepen = IV / clay tints) */
+  --pl-at-dial-off: #D6CCC4;      /* the region dial's unlit ticks */
+  --pl-at-card-paper: #FFFDF8; --pl-at-card-line: #E8E1D8;     /* a catalogue card's paper and its ruled lines */
+  --pl-at-poster-k: #8F8F8F;      /* a field-note poster's kicker */
+  --pl-at-poster-grid: rgba(255, 255, 255, .06); --pl-at-poster-track: rgba(255, 255, 255, .25);
+  --pl-at-tear-on: rgba(255, 255, 255, .7);                    /* the waypoint ticket's tear line, on clay */
+  --pl-at-stamp-ground: rgba(255, 253, 248, .85);              /* EXPLAINED over the ruled card */
+  --pl-s4-clay: 4px 4px 0 var(--pl-clay);                      /* Home's "Resume the route" */
+  --pl-at-ring: 0 0 0 4px var(--pl-card), 0 0 0 6px var(--pl-ink);   /* a selected place on the terrain */
+  --pl-t-at-17: calc(17px * var(--pl-scale));     /* Home's lead */
+  --pl-t-at-52: calc(52px * var(--pl-scale));     /* "Eight plates, one territory", a collection's title */
+  --pl-t-at-27: calc(27px * var(--pl-scale));     /* a region plate's name */
+  --pl-t-at-30: calc(30px * var(--pl-scale));     /* the field card's place, "Gazetteer of Region IV", the Library's title card */
+  --pl-t-at-25: calc(25px * var(--pl-scale));     /* a catalogue card's title */
+  --pl-t-at-26: calc(26px * var(--pl-scale));     /* a volume's name, a drawer's name */
+  --pl-t-at-18: calc(18px * var(--pl-scale));     /* a field-note poster's phrase */
+
   /* ── The page's region (a page sets data-region; IV is the default the v3 boards wear) ── */
   --pl-region: var(--pl-r4); --pl-region-tint: var(--pl-r4-tint); --pl-region-ring: var(--pl-r4-ring);
 

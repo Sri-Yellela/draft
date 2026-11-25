@@ -86,6 +86,7 @@ import { TermsPage }       from "./pages/marketing/TermsPage.jsx";
 import { ConnectorDocsPage } from "./pages/marketing/ConnectorDocsPage.jsx";
 // ⭐ D105 P4: the Atlas — public at /atlas, and inside the app at /app/atlas under the top bar's Atlas tab.
 import AtlasPage       from "./pages/atlas/AtlasPage.jsx";
+import { useAtlasAreaNav } from "./pages/atlas/AtlasVolume.jsx";   // ⭐ D197 #5 (47h): Atlas's area nav
 import { Toaster }         from "./components/ui/toaster.jsx";
 import ResumeEditorHost     from "./components/ResumeEditorHost.jsx";
 import { REOPEN_KEY } from "./lib/resumeEditor.js";
@@ -514,6 +515,7 @@ function AppAreaNavSlot({ activeTab, marketPlate, onHome }) {
   const [slots, setSlots] = useState(null);
   useEffect(() => { if (market) api("/api/draft/slots").then(setSlots).catch(() => {}); }, [market]);
   if (!market && activeTab === "auto-apply" && marketPlate) return <LedgerAreaNav onHome={onHome} />;   // the ledger (the plate switch)
+  if (activeTab === "atlas") return <AtlasAreaNav onHome={onHome} />;
   if (!market) return <ShellAreaNav area={AREA_NAMES[activeTab] || "draft"} onHome={onHome} />;
   const current = marketPlate && deckShown ? "picks" : boardTab;
   // the views' counts (the facets answer's, as the classic segment showed them) ride on the nav's words — never a 0 guessed
@@ -536,6 +538,16 @@ function AppAreaNavSlot({ activeTab, marketPlate, onHome }) {
   return <ShellAreaNav area="The market" views={views} current={current} onGo={onGo} chip={chip}
     more={marketPlate ? [{ id: "import", label: "Import a job", href: "/app/jobs#import" }] : []}
     placeholder="Company, role, tech…" onHome={onHome} />;
+}
+// ⭐ D197 Wave 1 #5 (47h, lane atlas) · ATLAS'S AREA NAV (the Shell board's figure C): the VOL. I pill (its panel = the
+// volumes and the eight regions), Your survey · Library · Today's question · League (with its switch), More (every other
+// Atlas place), the search ("Make sense of…") and the run chip — pages/atlas/AtlasVolume.jsx useAtlasAreaNav.
+function AtlasAreaNav({ onHome }) {
+  const [compete, setCompete] = useState(null);
+  useEffect(() => { let live = true; api("/api/atlas/compete").then((r) => live && setCompete(r)).catch(() => {}); return () => { live = false; }; }, []);
+  const nav = useAtlasAreaNav({ base: "/app/atlas", signedIn: true, compete });
+  return <ShellAreaNav area={nav.area} pill={nav.pill} views={nav.views} current={nav.current} more={nav.more} chip={nav.chip}
+    placeholder={nav.placeholder} onGo={nav.onGo} onHome={onHome} />;
 }
 // the area's name for its nav's label (assistive tech) — the places the dock names
 const AREA_NAMES = { "auto-apply" : "Home",   // (the id, spaced for the D6 guard)
@@ -640,7 +652,7 @@ function AppDashboard({ authUser, setAuthUser }) {
   // ⭐ D105 P4 · /app/atlas and /app/atlas/:slug — the Atlas inside the app (the public mount is /atlas).
   // ⭐ D116 M7: and /app/atlas/family/:key, a family's page.
   // ⭐ D172 (2): and /app/atlas/library/:course, a course page.
-  const atlasRoute = /^atlas(?:\/(?:family|library))?(?:\/[^/]+)?$/.test(routeKey);
+  const atlasRoute = /^atlas(?:\/(?:family|library|region))?(?:\/[^/]+)?$/.test(routeKey);   // ⭐ D197 #6 (47h): + /atlas/region/<n>
   // ⭐ D179 P4b · /app/companies/<slug> — a company's page inside the shell (the dock stays; Back returns).
   const companyRoute = /^companies\/([a-z0-9][a-z0-9-]*)$/.exec(routeKey);
   // ⭐ D199 C7 · /app/jobs/<id> — one opening as its sheet, drawn OVER the market: the market stays mounted (activeTab "console")

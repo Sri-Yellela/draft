@@ -27,6 +27,12 @@ export const THRESHOLD_PCT = 2;
 export const TOLERANCE = 40;   // per channel, 0–255
 export const LAUNCH_ARGS = Object.freeze(["--disable-lcd-text"]);
 
+/** ⭐ 47h (lane atlas): reload a board page with its JS timers off (a still frame of a page that ticks on setInterval). */
+async function atFreezeTimers(page) {
+  await page.evaluateOnNewDocument(() => { window.setInterval = () => 0; });
+  await page.reload({ waitUntil: "load", timeout: 60000 });
+}
+
 /** The pairs: a board, the element to crop on each side, and the fixture that builds it. */
 export const PAIRS = {
   // ⭐ D197 Wave 1 #1 (47i) · THE SHELL against the approved canvas's `Shell` board (source "final"). The build side is the
@@ -43,6 +49,27 @@ export const PAIRS = {
   // the phone's top bar: figure D's first row (the /d tile, the search button)
   "shell-phonetop": { source: "final", board: "Shell", fixture: "ShellPhoneTop", boardSel: 'div[style*="height: 760px"] > div:first-child', buildSel: ".pl-topbar", pad: 0, subpixel: true },
   "shell-phonebar": { source: "final", board: "Shell", fixture: "ShellPhoneBar", boardSel: 'nav[aria-label="Main"]:last-child', buildSel: "nav.pl-dock--bar", pad: 0, subpixel: true },
+  // ⭐ D197 Wave 1 #5–#7 (47h, lane atlas) · ATLAS'S THREE BOARDS (final canvas `Home`, `Map`, `Library`). The build side is
+  // plate/AtlasHome.jsx · AtlasRegion.jsx · AtlasLibrary.jsx with the boards' data (fixtures.jsx). The board's own header is
+  // the Atlas area nav now (the shell's, paired below against the Shell board's figure C), so each pair crops a section.
+  // The hero's label tape: the board turns its word on a JS timer (reduced motion doesn't stop it), so the board page is
+  // reloaded with its timers off — both sides show the first word ("computers.").
+  "atlas-home-hero": { source: "final", board: "Home", fixture: "AtlasHomeBoard", boardSel: "section#top", buildSel: "section#top", pad: 0, reduced: true, subpixel: true,
+    boardPrep: atFreezeTimers },
+  "atlas-home-regions": { source: "final", board: "Home", fixture: "AtlasHomeBoard", boardSel: "section:nth-of-type(2)", buildSel: "section.pl-at-regions", pad: 0, reduced: true, subpixel: true, boardPrep: atFreezeTimers },
+  "atlas-home-footer": { source: "final", board: "Home", fixture: "AtlasHomeBoard", boardSel: "footer", buildSel: "footer.pl-at-foot", pad: 0, reduced: true, subpixel: true, boardPrep: atFreezeTimers },
+  "atlas-home-volumes": { source: "final", board: "Home", fixture: "AtlasVolumesBoard", boardSel: "header .at-drop", buildSel: ".pl-at-vols", pad: 10, reduced: true, subpixel: true,
+    boardPrep: async (page) => { await atFreezeTimers(page); await page.evaluate(() => document.querySelector("header button[aria-expanded]")?.click()); await new Promise((r) => setTimeout(r, 400)); } },
+  "atlas-map-header": { source: "final", board: "Map", fixture: "AtlasMapBoard", boardSel: "main#region > section", buildSel: "main#region > section", pad: 8, reduced: true, subpixel: true },
+  "atlas-map-terrain": { source: "final", board: "Map", fixture: "AtlasMapBoard", boardSel: "main#region > div", buildSel: ".pl-at-views", pad: 8, reduced: true, subpixel: true },
+  "atlas-map-route": { source: "final", board: "Map", fixture: "AtlasMapBoard", boardSel: "main#region > div", buildSel: ".pl-at-views", pad: 8, reduced: true, subpixel: true, boardTab: "Route",
+    buildPrep: async (page) => { await page.evaluate(() => document.getElementById("pl-at-tab-route")?.click()); await new Promise((r) => setTimeout(r, 300)); } },
+  "atlas-map-index": { source: "final", board: "Map", fixture: "AtlasMapBoard", boardSel: "main#region > div", buildSel: ".pl-at-views", pad: 8, reduced: true, subpixel: true, boardTab: "Index",
+    buildPrep: async (page) => { await page.evaluate(() => document.getElementById("pl-at-tab-index")?.click()); await new Promise((r) => setTimeout(r, 300)); } },
+  "atlas-library-notes": { source: "final", board: "Library", fixture: "AtlasLibraryBoard", boardSel: "#lib", buildSel: "#lib", pad: 0, reduced: true, subpixel: true },
+  "atlas-library-sources": { source: "final", board: "Library", fixture: "AtlasLibraryBoard", boardSel: "#lib", buildSel: "#lib", pad: 0, reduced: true, subpixel: true,
+    boardPrep: async (page) => { await page.evaluate(() => [...document.querySelectorAll("aside nav button")].find((b) => b.textContent.includes("Primary sources"))?.click()); await new Promise((r) => setTimeout(r, 500)); },
+    buildPrep: async (page) => { await page.evaluate(() => document.querySelector('[data-collection="sources"]')?.click()); await new Promise((r) => setTimeout(r, 300)); } },
   "shell-market-dock": { board: "The market · draft", fixture: "ShellMarket", boardSel: 'nav[aria-label="Main"]', buildSel: 'nav[aria-label="Main"]', pad: 6 },
   "shell-market-nav": { board: "The market · draft", fixture: "ShellMarket", boardSel: "header", buildSel: "header.pl-areanav", pad: 0 },
   // P1 · the card face: the owner kept the deck's form factor (11-24), so the face can never be the board's size — this pair

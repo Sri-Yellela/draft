@@ -131,7 +131,8 @@ test("D167 · d167AtlasHasOwnNav — every panel has its own address, lit in the
   assert.deepEqual(currentOf(app), ["glossary"]);
   // The app's route already accepts /app/atlas/<one segment> (App.jsx atlasRoute) — the panels need no new route.
   // ⭐ D172 (2) (changed on purpose): the rule also admits /app/atlas/library/<course>, a course page.
-  assert.match(read("client/src/App.jsx"), /const atlasRoute = \/\^atlas\(\?:\\\/\(\?:family\|library\)\)\?\(\?:\\\/\[\^\/\]\+\)\?\$\/\.test\(routeKey\);/);
+  // ⭐ D197 #6 (47h, changed on purpose): and /app/atlas/region/<n>, a region of Volume I.
+  assert.match(read("client/src/App.jsx"), /const atlasRoute = \/\^atlas\(\?:\\\/\(\?:family\|library\|region\)\)\?\(\?:\\\/\[\^\/\]\+\)\?\$\/\.test\(routeKey\);/);
   // Keyboard: ↑ / ↓ / Home / End move focus between the card's links (wrapping); Tab reaches every one (real <a href>).
   const nav = read("client/src/components/PlaceNav.jsx");
   assert.match(nav, /const MOVE = \{ ArrowDown: 1, ArrowUp: -1, Home: "first", End: "last" \};/);

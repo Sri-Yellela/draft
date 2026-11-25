@@ -207,7 +207,8 @@ export function AreaNav({ area, pill, views = [], current, more = [], search, ch
       <span className="pl-areanav__tag">{pill.tag}</span><span className="pl-areanav__pillname">{pill.name}</span><Icon name="chevron" size={12} stroke={2.4}/>
     </button>
   ) : null;
-  const menu = (which, body) => open === which ? <div className="pl-menu pl-drop" role="menu">{body}</div> : null;
+  // ⭐ 47h (lane atlas): a link pressed inside an open panel (Atlas's volumes panel, More) closes it
+  const menu = (which, body) => open === which ? <div className="pl-menu pl-drop" role="menu" onClick={(e) => { if (e.target.closest?.("a")) setOpen(null); }}>{body}</div> : null;
   if (phone) {
     const logo = home ? <a className="pl-topbar__logo" href={home.href} aria-label={home.label} onClick={(e) => go(e, { id: home.id || "home", href: home.href })}><PlateLogo size="phone"/></a> : <PlateLogo size="phone"/>;
     return (

@@ -22,6 +22,9 @@ import { Explainer } from "./explainer/Explainer.jsx";
 import { FIT_FIXTURES } from "./fitCardFixtures.jsx";   // D202 / D199 C7 (the card lane)
 import { SHEET_FIXTURES, useAtBoardFraction } from "./sheetFixtures.jsx";   // 47h (D197 #3 / #4): the ledger and the survey sheet
 import PILOT_EXPLAINER from "../../../content/explainers/big-o-acted-out/script.json" with { type: "json" };
+import { AtlasHero, RegionPlates, AtlasFooter, VolumesPanel } from "./AtlasHome.jsx";   // ⭐ D197 #5 (47h, lane atlas)
+import { RegionHeader, RegionViews } from "./AtlasRegion.jsx";   // ⭐ D197 #6
+import { LibraryAside, LibraryChips, NotesDrawer, LibraryNote, LibrarySource, CollectionHead } from "./AtlasLibrary.jsx";   // ⭐ D197 #7
 
 const MARKET_VIEWS = [
   { id: "picks", label: "Today’s picks", href: "#picks", icon: "picks" },
@@ -336,4 +339,162 @@ export function MarketSectionFinal() {
   );
 }
 
-export const FIXTURES = { ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellPhoneTop, ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard, ...FIT_FIXTURES, MarketHeroFinal, MarketSectionFinal, ...SHEET_FIXTURES };
+// ⭐ D197 Wave 1 #5–#7 (47h, lane atlas) · ATLAS'S THREE BOARDS with the boards' own example data (Home · Map · Library).
+const AT_REGIONS = [
+  ["I", "found", "Foundations", 7, 11, "Signals, logic and the first machines."], ["II", "bits", "[Part 2 name]", 3, 14, "[What this region covers]"],
+  ["III", "tree", "Algorithms", 1, 11, "Searching, sorting and the shapes of data."], ["IV", "net", "Systems & networks", 2, 18, "How machines talk, wait and scale."],
+  ["V", "lock", "Security & money", 0, 11, "Trust, keys and how payments move."], ["VI", "code", "Languages & media", 0, 5, "Code, sound and pictures as data."],
+  ["VII", "world", "The physical world", 0, 23, "Sensors, power and the stuff underneath."], ["VIII", "mind", "Intelligence", 0, 15, "Models that learn, predict and act."],
+].map(([roman, kind, name, lit, total, blurb], i) => ({ n: i + 1, roman, kind, name, lit, total, blurb, href: "#map", squares: Array.from({ length: total }, (_, k) => (k < lit ? "lit" : null)) }));
+const AT_TAPES = [{ text: "computers.", region: "I" }, { text: "the internet.", region: "IV" }, { text: "money.", region: "V" }, { text: "the physical world.", region: "VII" }, { text: "AI.", region: "VIII" }];
+const AT_HERE = Array.from({ length: 11 }, (_, k) => (k < 7 ? "lit" : null));
+const AT_FOOTER = [
+  { label: "You", links: [{ label: "Your run", href: "#top" }, { label: "Your map", href: "#map" }, { label: "Your skills", href: "#top" }] },
+  { label: "Grow", links: [{ label: "Library", href: "#lib" }, { label: "Today’s question", href: "#top" }, { label: "The audit", href: "#top" }, { label: "How it works", href: "#top" }] },
+  { label: "Compete", links: [{ label: "League", href: "#top" }, { label: "Challenges", href: "#top" }] },
+  { label: "Explore", links: [{ label: "Roles and skills", href: "#top" }, { label: "This week’s market", href: "#top" }, { label: "Glossary", href: "#top" }] },
+];
+// the compared element (#sel) lands at the board element's own sub-pixel fraction (#ox / #oy), like useShellAt — but the page
+// keeps its own width (Atlas's boards are whole 1280 px pages): a relative nudge of under a pixel, measured after layout
+function useAtFrac() {
+  const q = new URLSearchParams((globalThis.location?.hash || "").slice(1));
+  const want = { x: Number(q.get("ox")) || 0, y: Number(q.get("oy")) || 0 }, sel = q.get("sel");
+  const ref = useRef(null);
+  const [at, setAt] = useState({ x: 0, y: 0 });
+  useLayoutEffect(() => {
+    const el = sel ? ref.current?.querySelector(sel) : null;
+    if (!el) return;
+    const r = el.getBoundingClientRect(), fx = (v) => v - Math.floor(v);
+    let dx = want.x - fx(r.left + scrollX), dy = want.y - fx(r.top + scrollY);
+    if (dx < -0.5) dx += 1; if (dy < -0.5) dy += 1;
+    if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) setAt((p) => ({ x: p.x + dx, y: p.y + dy }));
+  });
+  return [ref, { position: "relative", left: at.x, top: at.y }];
+}
+/** Home: Volume I — the hero (its plate and three tags), the eight region plates, the footer, at the board's 1280. */
+export function AtlasHomeBoard() {
+  return (
+    <PlateRoot region="I" style={{ minHeight: "100vh", fontSize: 15, lineHeight: 1.5 }}>
+      <AtlasHero tapes={AT_TAPES} lead="Every field is a territory. Atlas draws it as a map you walk lesson by lesson, and a square lights up only when you can explain what you learned."
+        actions={{ primary: { label: "Resume the route", href: "#map" }, secondary: { label: "Open the atlas", href: "#map" } }}
+        stats={[{ value: 8, label: "REGIONS" }, { value: 108, label: "LESSONS" }, { value: 13, label: "FIELD NOTES" }]}
+        tags={{ here: { kicker: "YOU ARE HERE", line: "Designing the arithmetic brain", squares: AT_HERE },
+          next: { kicker: "NEXT · WEBHOOKS", code: ["POST /hook", "200 OK"] },
+          ahead: { kicker: "AHEAD · ATTENTION", words: [{ text: "the" }, { text: "cat", hi: true }, { text: "sat" }] } }}
+        caption={["PLATE I · VOLUME I, COMPUTING", "— walked   - - ahead   ◆ summit"]}/>
+      <RegionPlates regions={AT_REGIONS} note="Each region opens on its own terrain. Squares stay dark until you’ve explained the lesson in your own words."/>
+      <AtlasFooter groups={AT_FOOTER}/>
+    </PlateRoot>
+  );
+}
+/** Home's VOL. I panel, as the board's pill opens it. */
+export function AtlasVolumesBoard() {
+  return <PlateRoot style={{ minHeight: "100vh" }}><div style={{ position: "absolute", left: 24, right: 24, top: 78, maxWidth: 1232, margin: "0 auto" }}><VolumesPanel regions={AT_REGIONS}/></div></PlateRoot>;
+}
+
+// Map: Region IV — the board's fifteen places (state, checks, field notes, where it sits) and its three interchanges
+const AT_P = [
+  ["net", "How the internet works", "start", "lit", 3, 3, 150, 590, 0], ["cli", "Clients and servers", "start", "lit", 3, 3, 330, 640, 0], ["dns", "DNS", "start", "open", 1, 3, 250, 470, 0],
+  ["cors", "CORS", "build", "lit", 3, 3, 420, 370, 1], ["poll", "Polling", "build", "lit", 2, 2, 590, 430, 0], ["http", "HTTP and REST", "build", "open", 2, 4, 480, 540, 0],
+  ["tcp", "TCP and UDP", "build", "open", 0, 3, 620, 630, 0], ["hook", "Webhooks", "deepen", "next", 0, 3, 750, 330, 1], ["sse", "Server-Sent Events", "deepen", "later", 0, 4, 880, 450, 1],
+  ["ws", "WebSockets", "deepen", "later", 0, 4, 840, 230, 0], ["cache", "Caching", "deepen", "later", 0, 3, 800, 580, 0], ["queue", "Message queues", "master", "later", 0, 3, 1040, 210, 0],
+  ["lb", "Load balancing", "master", "later", 0, 3, 1070, 470, 0], ["deploy", "Deploying safely", "master", "later", 0, 3, 1160, 340, 1], ["sum", "Design a system, out loud", "master", "later", 0, 5, 1240, 140, 0],
+];
+const AT_CHANGE = { http: ["VI", "Languages & media"], hook: ["V", "Security & money"], sum: ["VIII", "Intelligence"] };
+const AT_PLACES = AT_P.map(([id, name, stage, state, d, t, x, y, notes]) => ({ id, name, stage, state, x, y, notes, summit: id === "sum",
+  grid: `${"ABCDEFG".charAt(Math.floor(x / 200))}${1 + Math.floor(y / 140)}`, notesLabel: notes ? `${notes} reel` : "—",
+  checks: { squares: Array.from({ length: t }, (_, i) => i < d), done: d, total: t },
+  interchange: AT_CHANGE[id] ? { n: 0, roman: AT_CHANGE[id][0], name: AT_CHANGE[id][1], region: AT_CHANGE[id][0] } : null }));
+const AT_EDGES = [["net", "cli"], ["net", "dns"], ["cli", "http"], ["http", "tcp"], ["dns", "cors"], ["cors", "poll"], ["http", "poll"], ["poll", "hook"], ["hook", "sse"], ["hook", "ws"], ["tcp", "cache"],
+  ["cache", "lb"], ["ws", "queue"], ["hook", "queue"], ["lb", "deploy"], ["queue", "sum"], ["deploy", "sum"]];
+const AT_TRAILS = AT_EDGES.map(([a, b]) => {
+  const A = AT_PLACES.find((p) => p.id === a), B = AT_PLACES.find((p) => p.id === b);
+  return { id: `${a}>${b}`, d: `M${A.x} ${A.y} Q${(A.x + B.x) / 2} ${(A.y + B.y) / 2 - 30} ${B.x} ${B.y}`,
+    kind: A.state === "lit" && B.state === "lit" ? "walked" : A.state === "lit" && B.state === "next" ? "next" : "ahead" };
+});
+const AT_STAGES = { start: { id: "start", caps: "LOWLANDS · START" }, build: { id: "build", caps: "FOOTHILLS · BUILD" }, deepen: { id: "deepen", caps: "HIGHLANDS · DEEPEN" }, master: { id: "master", caps: "SUMMIT · MASTER" } };
+const AT_SMSG = { lit: "Lit. You explained every checkpoint here.", next: "Your next waypoint. The trail from Polling leads here.", open: "Underway. Finish the remaining checks to light it.", later: "Ahead on the route. Reach it from the places before it." };
+/** Map: Region IV — the plate header, the waypoint, and the binder tabs (Terrain first; the run presses Route / Index). */
+export function AtlasMapBoard() {
+  const [ref, at] = useAtFrac();
+  const [view, setView] = useState("terrain");
+  return (
+    <PlateRoot region="IV" style={{ minHeight: "100vh", fontSize: 15, lineHeight: 1.5 }}><div ref={ref} style={at}>
+      <main className="pl-at-region" id="region">
+        <RegionHeader emblem="net" roman="IV" name="Systems & networks" lead="How machines talk, wait and scale. Climb from how the internet works to designing a system out loud."
+          chips={["15 PLACES", "4 FIELD NOTES", "3 PRIMARY SOURCES"]} lit={4} total={15}
+          waypoint={{ grid: "D3", name: "Webhooks", line: "3 checks · from Polling", href: "#hook" }}/>
+        <RegionViews views={[{ id: "terrain", label: "Terrain", sub: "explore the ground" }, { id: "route", label: "Route", sub: "ride the line" }, { id: "index", label: "Index", sub: "look up a place" }]}
+          view={view} onView={setView} roman="IV" places={AT_PLACES} trails={AT_TRAILS} statusWord={{ lit: "LIT", next: "UP NEXT", open: "UNDERWAY", later: "AHEAD" }}
+          card={(p) => ({ grid: p.grid, stage: AT_STAGES[p.stage], name: p.name, checks: p.checks, status: AT_SMSG[p.state], notes: p.notes, href: "#region" })}
+          interchangeHref={() => "#region"}/>
+      </main>
+    </div></PlateRoot>
+  );
+}
+
+// Library: the board's collections, its fourteen field notes in three drawers, its six primary sources
+const AT_R = { found: { roman: "I", name: "Foundations", kind: "found" }, sys: { roman: "IV", name: "Systems & networks", kind: "net" },
+  lang: { roman: "VI", name: "Languages & media", kind: "code" }, ai: { roman: "VIII", name: "Intelligence", kind: "mind" } };
+const AT_NOTES = [
+  ["sys", "Webhooks explained", "INTERVIEW", "How does a", "webhook", "work?", "1:37", "13,059", "The SeniorDev Diaries"], ["sys", "Server-Sent Events", "SYSTEM DESIGN", "Real-time", "without", "polling", "1:41", "4,731", "The SeniorDev Diaries"],
+  ["sys", "CORS in under 60 seconds", "INTERVIEW", "Works in Postman,", "fails", "in the browser", "0:57", "1,422", "The SeniorDev Diaries"], ["sys", "Why a CDN feels fast", "INTERVIEW", "Why is a", "CDN", "so fast?", "1:46", "3,090", "The SeniorDev Diaries"],
+  ["sys", "8 deployment patterns", "DEVOPS", "8 ways to", "deploy", "safely", "0:08", "17,413", "Afzal Web Solutions"], ["lang", "Log out every tab at once", "REACT", "One logout,", "every tab", "follows", "1:09", "11,113", "The SeniorDev Diaries"],
+  ["lang", "array.at(-1) over length − 1", "JAVASCRIPT", "Stop using", "length − 1", "", "0:38", "565", "The SeniorDev Diaries"], ["ai", "How AI answers in a second", "AI", "Predict the", "next token", "again and again", "0:52", "1,113", "The SeniorDev Diaries"],
+  ["ai", "MCP, explained", "AI STACK", "45 integrations", "become 14", "", "0:54", "12,059", "The SeniorDev Diaries"], ["ai", "How an AI agent remembers", "AGENTS", "Short-term,", "long-term", "memory", "0:53", "4,832", "The SeniorDev Diaries"],
+  ["ai", "Vibe coding vs agentic AI", "AGENTS", "You in the loop, or", "the agent", "", "0:46", "19,322", "The SeniorDev Diaries"], ["ai", "30 AI algorithms to know", "ML", "The", "30 algorithms", "tree", "0:56", "61,263", "The SeniorDev Diaries"],
+  ["ai", "15 AI engineer concepts", "ROADMAP", "15 steps to", "AI engineer", "", "0:48", "14,973", "The SeniorDev Diaries"], ["ai", "AI engineering splits into 12 roles", "CAREERS", "One job", "becomes 12", "", "0:56", "45,285", "The SeniorDev Diaries"],
+];
+const AT_PAPERS = [
+  ["found", "I.1 SHA", "A Mathematical Theory of Communication", "C. E. Shannon", 1948, "Bell Sys. Tech. J.", "Where the bit comes from, and how to measure information at all."],
+  ["sys", "IV.1 LAM", "Time, Clocks, and the Ordering of Events in a Distributed System", "L. Lamport", 1978, "CACM", "Why machines can’t agree on “now”, and how to order events anyway."],
+  ["sys", "IV.2 SAL", "End-to-End Arguments in System Design", "J. Saltzer, D. Reed, D. Clark", 1984, "ACM TOCS", "Which jobs belong at the edges of a network rather than inside it."],
+  ["sys", "IV.3 DEA", "MapReduce: Simplified Data Processing on Large Clusters", "J. Dean, S. Ghemawat", 2004, "OSDI", "One big job across thousands of machines, surviving failures."],
+  ["sys", "IV.4 DEC", "Dynamo: Amazon’s Highly Available Key-value Store", "G. DeCandia et al.", 2007, "SOSP", "Staying available when parts of the system disagree."],
+  ["ai", "VIII.1 VAS", "Attention Is All You Need", "A. Vaswani et al.", 2017, "NeurIPS", "The transformer: the design behind today’s language models."],
+];
+const AT_CATS = [["notes", "Field notes", "14"], ["sources", "Primary sources", "6"], ["lectures", "Lectures", "—"], ["books", "Books", "—"], ["courses", "Courses elsewhere", "—"],
+  ["essays", "Essays", "—"], ["grounds", "Practice grounds", "—"], ["guides", "Guides to follow", "—"], ["glossary", "Glossary", "—"]].map(([id, label, count]) => ({ id, label, icon: id, count }));
+const atChips = (pool) => [{ id: "all", tag: "ALL", label: "Every region", count: String(pool.length) },
+  ...["found", "sys", "lang", "ai"].filter((k) => pool.some((x) => x[0] === k)).map((k) => ({ id: k, tag: AT_R[k].roman, label: AT_R[k].name, region: AT_R[k].roman, count: String(pool.filter((x) => x[0] === k).length) }))];
+/** Library: the side, the chips and the field-note drawers (the board opens on Field notes); #sources → Primary sources. */
+export function AtlasLibraryBoard() {
+  const [ref, at] = useAtFrac();
+  const sources = /sources/.test(globalThis.location?.hash || "");
+  const [cat, setCat] = useState(sources ? "sources" : "notes");
+  const pool = cat === "sources" ? AT_PAPERS : AT_NOTES;
+  return (
+    <PlateRoot region="I" style={{ minHeight: "100vh", fontSize: 15, lineHeight: 1.5 }}><div ref={ref} style={at}>
+      <div className="pl-at-lib" id="lib">
+        <LibraryAside cats={AT_CATS} current={cat} onCat={setCat}/>
+        <main className="pl-at-lmain">
+          <LibraryChips chips={atChips(pool)} current="all"/>
+          {cat === "notes" ? (
+            <div className="pl-at-lview">
+              <CollectionHead kicker="COLLECTION · FIELD NOTES" title="Short explainers, filed by region" aside={<span className="pl-at-lhead__note">Each note keeps its transcript and key frames, so a lesson can quote it.</span>}/>
+              {["sys", "lang", "ai"].map((k) => {
+                const ns = AT_NOTES.filter((n) => n[0] === k);
+                return (
+                  <NotesDrawer key={k} region={AT_R[k]} count={ns.length}>
+                    {ns.map((n, i) => <LibraryNote key={n[1]} code={`FN-${AT_R[k].roman}.${i + 1}`} title={n[1]} kicker={n[2]} pre={n[3]} hl={n[4]} post={n[5]} duration={n[6]}
+                      views={`${n[7]} views`} creator={n[8]} progress={0.35} href="#note"/>)}
+                  </NotesDrawer>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="pl-at-lview pl-at-lview--cards">
+              <CollectionHead kicker="COLLECTION · PRIMARY SOURCES" title="The originals, on file" aside={<span className="pl-at-lhead__count">0 / 6 EXPLAINED</span>}/>
+              <div className="pl-at-srcs">
+                {AT_PAPERS.map((p) => <LibrarySource key={p[1]} call={p[1]} title={p[2]} authors={p[3]} venue={`${p[5]} · ${p[4]}`} why={p[6]} region={AT_R[p[0]]}
+                  action={{ label: "I can explain it", onClick: () => {} }}/>)}
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    </div></PlateRoot>
+  );
+}
+
+export const FIXTURES = { ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellPhoneTop, ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard, MarketHeroFinal, MarketSectionFinal, AtlasHomeBoard, AtlasVolumesBoard, AtlasMapBoard, AtlasLibraryBoard, ...FIT_FIXTURES, ...SHEET_FIXTURES };
