@@ -104,6 +104,7 @@ import { publicBoardPage, publicBoardFacets, publicRateLimit } from "./services/
 import { publicCompany, publicSuggest, companyMatchFor, companyIdForSlug, focusJob } from "./services/companies/publicCompany.js";
 import { contextualFor, publicCompanyStack, contextualWeights, setContextualWeights } from "./services/atsContextual.js";   // ⭐ D192 (3) + (4)
 import { plausibilityFor, dismissFlag } from "./services/atsPlausibility.js";   // ⭐ D192 (4d) — does the résumé add up
+import { fitCardPayload } from "./services/fitCard.js";   // ⭐ D202 — the field card ⇄ the ATS card, one read
 import { companyDirectory } from "./services/companies/companyDirectory.js";   // A144 (45o): the Companies tab
 import { publicEntry } from "./services/jobs/publicEntry.js";                     // A147 (45o): the signed-out /jobs entry
 import { companyHealth } from "./services/companies/companyHealth.js";            // A142 (45o): Admin → Board → Company records
@@ -15012,6 +15013,16 @@ app.get("/api/jobs/:id/contextual", requireAuth, (req, res) => {
   const r = scoreBaseResumeForApply(req.user.id, String(req.params.id), { withReport: true });
   if (!r) return res.status(404).json({ error: "nothing_to_score" });
   res.set("Cache-Control", "private, no-store").json({ score: r.score, band: r.band, contextual: r.contextual || null });
+});
+// ⭐ D202 · THE FIT CARD (client/src/plate/FitCard.jsx): the report (every ask, its claims), the contextual block, where each
+// found word sits on the base résumé, and the profile a claim goes to — services/fitCard.js. Read again after a claim, so the
+// number follows (the scorer reads the claims: atsBasisForProfile → atsClaims).
+app.get("/api/jobs/:id/fit-card", requireAuth, (req, res) => {
+  const r = scoreBaseResumeForApply(req.user.id, String(req.params.id), { withReport: true });
+  if (!r) return res.status(404).json({ error: "nothing_to_score" });
+  const profile = getOrRepairActiveProfile(req.user.id);
+  const text = profile?.id ? getBaseResumeRecord(db, { userId: req.user.id, profileId: profile.id })?.content : null;
+  res.set("Cache-Control", "private, no-store").json(fitCardPayload({ scored: r, resumeText: text, profileId: profile?.id ?? null }));
 });
 // ⭐ D192 (4d) · CLAIM PLAUSIBILITY — "does this add up?" (owner 11-14): each experience entry's bullets against what draft knows
 // about that employer (services/atsPlausibility.js; the checks are the scorer package's, no model). Warnings only — no score
