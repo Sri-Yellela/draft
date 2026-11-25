@@ -555,7 +555,10 @@
 /* ── D198 E1 · the explainer (format A; canvas v4 *Explainer · Big O, acted out*). 9:16 at a 405 × 720 base, scaled by the
    frame's width; 16:9 for a lesson. The cost scale is the region ramp's light / mid / deep (Region III: --pl-iii-1/3/7). ── */
 /* ⭐ D198 E1 · the explainer — canvas v4's frame, read beat by beat (47h, F5: d198VisualDiffExplainer ≤ 2 % per beat) */
-.pl-xp { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.pl-xp { display: flex; flex-direction: column; align-items: safe center; gap: 12px;
+  /* R4 (47h browser tier: the gallery scrolled 9 px sideways at 390): the frame is a fixed 405 px, so on a narrower column it scrolls
+     in its own box, never the page; `safe` keeps its left edge reachable; the padding keeps the controls' hard shadows unclipped */
+  max-width: 100%; overflow-x: auto; padding-bottom: 8px; }
 .pl-xp__screen { border: var(--pl-border); border-radius: var(--pl-r-hero); overflow: hidden; box-shadow: var(--pl-s8); background: var(--pl-paper); }
 .pl-xp__frame { position: relative; box-sizing: border-box; width: 405px; height: 720px; overflow: hidden; padding: 18px 18px 0;
   background-color: var(--pl-paper); background-size: 20px 20px; font-family: var(--pl-sans); color: var(--pl-ink);

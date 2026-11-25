@@ -264,7 +264,8 @@ const SCREENS = {
         y: Math.round(window.scrollY), count: document.querySelector("[data-deck-count]")?.textContent || null,
         open: document.querySelector("[data-deck-post-slot]")?.getAttribute("data-open") === "true",
         jd: !!document.querySelector("[data-jd-panel]"), asks: (window.__d168asks || []).slice() }));
-      const centre = (sel) => page.evaluate((s) => { const r = document.querySelector(s)?.getBoundingClientRect(); return r && { x: r.left + r.width / 2, y: r.top + Math.min(r.height / 2, 120) }; }, sel);
+      // 47h browser tier: the fill read "undefined (reading 'x')" — a centre taken before its element mounted under load; wait first
+      const centre = async (sel) => (await page.waitForSelector(sel, { timeout: 8000 }).catch(() => null), page.evaluate((s) => { const r = document.querySelector(s)?.getBoundingClientRect(); return r && { x: r.left + r.width / 2, y: r.top + Math.min(r.height / 2, 120) }; }, sel));
       await page.evaluate(() => { window.__d168asks = []; for (const n of ["draft:open-posting", "draft:close-posting"]) window.addEventListener(n, (e) => window.__d168asks.push(`${n.split(":")[1]}:${e.detail?.origin || ""}`)); window.scrollTo(0, 0); });
       await sleep(300);
       const out = {};
@@ -632,8 +633,11 @@ const SCREENS = {
   // (The classic probe waited on [data-fh-title], which no client file draws, and fell through to its prep.)
   "posting-facts": { sketch: null, app: "/app/jobs", fixtures: FACTS, ready: "[data-plate-market-openings]",
     appPrep: async (page) => {
-      await page.evaluate(() => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click());
-      await page.waitForSelector("[data-market-index] [data-index-title]", { timeout: 20000 }).catch(() => {});
+      // 47h browser tier: one tab press under a loaded refill was dropped (no rows → no posting → `facts: null`); press until the rows show
+      for (const t0 = Date.now(); Date.now() - t0 < 20000;) {
+        await page.evaluate(() => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click()).catch(() => {});
+        if (await page.waitForSelector("[data-market-index] [data-index-title]", { timeout: 2000 }).then(() => true, () => false)) break;
+      }
       await openIndexRow(page, "Senior Data Engineer");
       await page.waitForSelector("[data-deck-post-slot] [data-posting-facts]", { timeout: 20000 }).catch(() => {});
       await sleep(900);
@@ -1550,13 +1554,23 @@ STYLE_PROBES.a238 = async () => {   // ⭐ A238: decide three cards, each throug
   const front = () => { const live = cards().filter(e => e.getAttribute("data-fan-offset") === "0" && getComputedStyle(e).opacity !== "0"); return live[live.length - 1] || null; };
   const title = () => front()?.querySelector("[data-deck-title-line]")?.textContent?.trim() || null;
   const ghosts = () => cards().filter(e => getComputedStyle(e).opacity === "0" && e.getAttribute("data-fan-offset") === "0").length;
+  // 47h browser tier: under a loaded refill the first Pass landed before the front's buttons answered (the title never changed);
+  // wait for the front's button, and press again only while the SAME card is still in front 3 s later (≤ 3 presses)
+  for (const t0 = performance.now(); performance.now() - t0 < 8000 && !front()?.querySelector("[data-deck-action='pass']");) await wait(100);
   const out = { before: cards().length, steps: [] };
   for (const act of ["pass", "save", "pass"]) {
     const was = title();
-    front()?.querySelector(`[data-deck-action='${act}']`)?.click();
-    const t0 = performance.now(); while (performance.now() - t0 < 3000 && title() === was) await wait(50);
+    for (let k = 0; k < 3 && title() === was; k++) {
+      front()?.querySelector(`[data-deck-action='${act}']`)?.click();
+      const t0 = performance.now(); while (performance.now() - t0 < 3000 && title() === was) await wait(50);
+    }
     await wait(1500);   // the longest exit is 0.42 s; a spring settle well inside this
+    const btn = front()?.querySelector(`[data-deck-action='${act}']`);
     out.steps.push({ act, was, now: title(), mounted: cards().length, ghosts: ghosts(),
+      // why a press did not land, when one does not (47h: only inside the full 16-probe fill)
+      why: { btn: !!btn, disabled: !!btn?.disabled, fronts: cards().filter(e => e.getAttribute("data-fan-offset") === "0").length,
+        tab: [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => t.getAttribute("aria-selected") === "true")?.textContent?.trim() || null,
+        hidden: btn ? !btn.offsetParent : null, path: location.pathname + location.search },
       // the 47g walk counted document-wide: every offset-0 node anywhere, and the invisible ones
       docFront: document.querySelectorAll("[data-fan-offset='0']").length,
       docGhosts: [...document.querySelectorAll("[data-fan-offset='0']")].filter(e => getComputedStyle(e).opacity === "0").length });
