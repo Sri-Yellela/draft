@@ -53,7 +53,8 @@ test("d163ContentGroupCentred, the other screens (real Chrome, 1280 · 1440 · 1
   for (const s of SCREENS) for (const w of WIDTHS) {
     const m = out[s][w];
     assert.ok(m.leftFree <= 80 && m.rightFree <= 80, `${s} ${w}: fills the width (${m.leftFree} / ${m.rightFree})`);
-    if (s !== "admin") assert.equal(m.place, "top", `${s} ${w}: the dock at the top — the content starts at the gutter`);
+    // ⭐ D197 #1 · A237 (changed on purpose — 46q put the dock at the top): the rail at the left, the content column beside it
+    if (s !== "admin") assert.equal(m.place, "side", `${s} ${w}: the rail at the left — the content column starts beside it`);
   }
 });
 
@@ -80,11 +81,13 @@ test("d163DockOwnGutterVerticallyCentred → D167, the other screens (real Chrom
   for (const s of SCREENS.filter(x => x !== "admin")) for (const w of [...WIDTHS, "phone"]) {
     const m = out[s][w];
     assert.ok(m.dock, `${s} ${w}: the dock is there`);
+    // ⭐ D197 #1 · A237 (changed on purpose): the rail 14 px from the top at the left, never over the content; below 980 px
+    // the bottom bar at the screen's foot
     if (m.place === "side") {
-      assert.ok(Math.abs(m.dockMid - m.vh / 2) <= 2, `${s} ${w}: vertically centred (${m.dockMid} of ${m.vh})`);
-      assert.ok(m.dock.left > 0 && m.dock.right <= m.group.left, `${s} ${w}: in the margin, left of the content`);
+      assert.equal(m.dock.top, 14, `${s} ${w}: 14 px from the top (${m.dock.top})`);
+      assert.ok(m.dock.left > 0 && m.dock.right <= m.group.left, `${s} ${w}: left of the content`);
     } else {
-      assert.ok(m.dock.bottom <= m.group.top, `${s} ${w}: above the content (${m.dock.bottom} vs ${m.group.top})`);
+      assert.ok(m.dock.top >= m.vh - 90, `${s} ${w}: the bottom bar at the foot (${m.dock.top} of ${m.vh})`);
     }
   }
   for (const w of WIDTHS) assert.equal(out.admin[w].dock, null, `admin ${w}: no dock (its own header)`);

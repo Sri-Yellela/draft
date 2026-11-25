@@ -1102,9 +1102,12 @@ const STYLE_PROBES = {
     const flush = els.filter(({ b }) => b.left < dockRight + 8 || b.right > vw - 8).slice(0, 6)
       .map(({ e, b }) => `${e.tagName.toLowerCase()}.${String(e.className?.baseVal ?? e.className).split(" ")[0]} ${b.left}–${b.right}`);
     const rb = box(root);
-    return { vw, vh, dock, place, root: rb, group: g,
-      leftFree: g ? g.left : null, rightFree: g ? vw - g.right : null,
-      rootLeftFree: rb ? rb.left : null, rootRightFree: rb ? vw - rb.right : null,
+    // ⭐ D197 #1 · A237: beside the rail the free space is measured from the content column's left edge (the shell's 98 px)
+    const shellEl = q("[data-app-shell]");
+    const colLeft = place === "side" && shellEl ? parseFloat(getComputedStyle(shellEl).paddingLeft) || 0 : 0;
+    return { vw, vh, dock, place, colLeft, root: rb, group: g,
+      leftFree: g ? g.left - colLeft : null, rightFree: g ? vw - g.right : null,
+      rootLeftFree: rb ? rb.left - colLeft : null, rootRightFree: rb ? vw - rb.right : null,
       leaves, insetL: leaves && rb ? leaves.left - rb.left : null, insetR: leaves && rb ? rb.right - leaves.right : null,
       dockMid: dock ? (dock.top + dock.bottom) / 2 : null,
       flush, sideScroll: document.documentElement.scrollWidth > vw + 1 };
