@@ -13,7 +13,7 @@ import { Icon } from "./icons.jsx";
 import { sentenceParts } from "../lib/filterSentenceModel.js";
 import { SENTENCE_ID, PANEL_ID, ALL_FILTERS_ID } from "../components/BoardHeadline.jsx";
 
-/** Pure: the strip's "FROM <FILE> · <MON D>" from the résumé's name and its set time (unix seconds) — null when no name. */
+/** Pure: the strip's "FROM file · MON D" from the résumé's name and its set time (unix seconds) — null when no name. */
 export function fromWords(from) {
   const name = String(from?.name || "").trim();
   if (!name) return null;

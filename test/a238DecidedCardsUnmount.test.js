@@ -11,6 +11,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { at } from "../test-support/sourceAnchors.js";
 import { probe as fidelityProbe } from "../test-support/fidelityProbe.mjs";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
@@ -18,7 +19,7 @@ const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 test("A238: FanCard's inner content (the drag element and its MeasureLayout) is cut off from the card's presence", () => {
   const src = read("client/src/panels/DeckView.jsx");
   assert.match(src, /import \{ AnimatePresence, MotionConfig, PresenceContext, motion,/);
-  const card = src.slice(src.indexOf("function FanCard("), src.indexOf("function leaveFor("));
+  const card = src.slice(at(src, "function FanCard("), at(src, "function leaveFor("));
   assert.ok(card.length > 0, "FanCard is still in DeckView.jsx");
   const open = card.indexOf("<PresenceContext.Provider value={null}>"), close = card.indexOf("</PresenceContext.Provider>");
   const drag = card.indexOf('drag={isFront && !expanded ? "x" : false}');

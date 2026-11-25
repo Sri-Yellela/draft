@@ -201,7 +201,7 @@ function BoardSearchBar(props) {
 // goes through nextBoardPanel on the board's ONE panel value, so the same word closes what it opened
 // and opening another closes the first. The panel renders HERE, directly beneath the sentence and
 // above the bar — D35 §4's order: the sentence, the open panel, the bar, the jobs.
-// 47h: the bearing's "FROM <FILE> · <DATE>" — the active profile's résumé (its name and when it was set), read once per page
+// 47h: the bearing's "FROM file · date" — the active profile's résumé (its name and when it was set), read once per page
 // and only on the plate market; no résumé (or a failed read) → nothing, and the strip keeps its words
 function useResumeSource(on) {
   const [src, setSrc] = useState(null);

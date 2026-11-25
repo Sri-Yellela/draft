@@ -154,7 +154,7 @@ function Turn({ check, picked, onPick }) {
   );
 }
 
-function Ticket({ beat, script, openings }) {
+function OverTicket({ beat, script, openings }) {
   const o = beat?.overlay;
   if (o?.kind === "usualAnswer") return (
     <div className="pl-xp__over">
@@ -251,7 +251,7 @@ export function Explainer({ script, aspect = "9:16", openings = null, at = null,
               : stage === "turn" ? <Turn check={script.check} picked={picked} onPick={pick}/>
               : <CostTable plate={script.plate} cols={cols} lit={beat.lit} dimmed={ticket}/>}
             {small ? <p className="pl-xp__small">{script.smallPrint}</p> : null}
-            {ticket ? <Ticket beat={beat} script={script} openings={openings}/> : null}
+            {ticket ? <OverTicket beat={beat} script={script} openings={openings}/> : null}
           </div>
           <div className="pl-xp__captions">
             <p aria-live="off">
