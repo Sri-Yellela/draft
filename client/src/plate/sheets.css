@@ -133,3 +133,8 @@
 /* the app's theme sets color-scheme on <html> (Dusk: dark) — a plate page is paper in every theme, so its form controls
    (the register's checkboxes, the selects) draw light, as on the boards */
 .pl-ledgerpage, .pl-sheetpage { color-scheme: light; }
+/* Home's own column (.dh-page, a flex column with the app's gutter) holds the plate sections: they span it, at the page's
+   1280 max, with the plate's own gutter (auto side margins in a flex column would shrink them to their content) */
+.pl-ledgerpage > .dh-page { padding-left: 0; padding-right: 0; }
+.pl-ledgerpage > .dh-page > section, .pl-ledgerpage > .dh-page > .pl-hero { width: 100%; }
+.pl-ledgerpage > .dh-page > :not(section):not(.pl-hero) { margin-left: var(--pl-gutter); margin-right: var(--pl-gutter); }
