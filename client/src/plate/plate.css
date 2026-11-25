@@ -1035,6 +1035,15 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
 .pl-ixrow__filed { font-family: var(--pl-mono); font-size: var(--pl-t-mono-num); }
 .pl-ixrow__act { display: flex; align-items: center; justify-content: flex-end; gap: 6px; max-width: 44px; overflow: hidden; transition: max-width .25s var(--pl-ease); }
 .pl-ixrow:hover .pl-ixrow__act, .pl-ixrow:focus-within .pl-ixrow__act { max-width: 240px; }
+/* at rest Star and Draft are out of the layout (still focusable — Tab reaches them and the row opens): clipped inside the
+   44 px cell they were laid out to its LEFT (flex-end overflow) and A201's probe read their words over the STATUS tag at 768 */
+.pl-ixc--act { position: relative; }
+.pl-ixrow__act { min-width: 44px; }   /* the board's 44 px cell at rest, with only the ⋯ in it */
+.pl-ixrow[data-row-opens] { min-height: 61px; }   /* the board's row: 8 + 44 (its buttons, laid out at rest) + 8 + the 1 px rule */
+@media (hover: hover) {
+  .pl-ixrow:not(:hover):not(:focus-within) .pl-ixrow__star, .pl-ixrow:not(:hover):not(:focus-within) .pl-ixrow__draft {
+    position: absolute; right: 0; top: 50%; width: 1px; height: 1px; min-height: 0; padding: 0; border: 0; box-shadow: none; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 .pl-ixrow__more { flex: 0 0 auto; width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; border: var(--pl-border); background: var(--pl-card); display: inline-flex; align-items: center; justify-content: center; font-weight: 800; }
 .pl-ixrow:hover .pl-ixrow__more, .pl-ixrow:focus-within .pl-ixrow__more { display: none; }
 .pl-ixrow__star, .pl-ixrow__draft { all: unset; cursor: pointer; box-sizing: border-box; flex: 0 0 auto; min-height: 44px; display: inline-flex; align-items: center; gap: 6px; border-radius: var(--pl-r-btn); border: var(--pl-border); font-size: var(--pl-t-meta); box-shadow: var(--pl-s3); white-space: nowrap; }

@@ -96,7 +96,11 @@ export const PAIRS = {
     // the page line and the last tile: the board's 24 per page (469 pages) vs the owner's "use 50" (225) — the only change;
     // at 1280 they differ by under 2 % unmasked, at 390 (two lines of the line, the tiles wrapped) they're masked
     masks: [], masksAt: { 390: [[0, 0, 252, 34], [48, 86, 56, 50]] } },
-  "final-market-index": { source: "final", board: "Market", fixture: "MarketSectionFinal", boardTab: "Index", buildHash: "tab=index", boardSel: "section:nth-of-type(2) .at-in", buildSel: ".pl-tabpanel:not([hidden])", pad: 0, subpixel: true, reduced: true },
+  // masked: each row's 44 px actions cell at rest — the board's shows a clipped sliver of its Draft button (its flex-end cell
+  // overflows LEFT, under the STATUS tag: A201's probe read "Draft" over "NEW" at 768); the build draws the ⋯ the board's markup
+  // has there and keeps Star / Draft out of the layout until hover / focus
+  "final-market-index": { source: "final", board: "Market", fixture: "MarketSectionFinal", boardTab: "Index", buildHash: "tab=index", boardSel: "section:nth-of-type(2) .at-in", buildSel: ".pl-tabpanel:not([hidden])", pad: 0, subpixel: true, reduced: true,
+    masks: [[1074, 74, 60, 368]] },
   // ⭐ D198 E1 (47h) · THE EXPLAINER, BEAT BY BEAT — v4's *Explainer · Big O, acted out* (the board scales its 405 × 720 inner
   // frame by 1.12 into its column; the run takes the scale off, so both sides are the frame at its own size). Each side's
   // beat is pressed in its own list; on your turn the build's right answer is pressed (the board draws it answered).
