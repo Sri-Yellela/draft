@@ -213,6 +213,13 @@ const SCREENS = {
       const said = await page.evaluate(() => document.querySelector('[aria-live="polite"]')?.textContent || "");
       return { swipe: { before, after, passed: said !== saidBefore && /^Passed /.test(said), stampShown: stamp > 0.5 } };
     } },
+  // ⭐ 47g R1 · THE PLATE MARKET'S DECK, LIVE: home156's own measuring (STYLE_PROBES.plate156 = home156's, and its swipe)
+  // on the page people use, /app/jobs — test/d196MarketLiveBehaviour.test.js reads only what carries over (the flip,
+  // J / K / › / ‹, the wheel, the swipe, the long post on the deck); the classic geometry stays home156's until R2.
+  plate156: { sketch: null, app: "/app/jobs", fixtures: HOME156, ready: "[data-plate-market-openings] [data-fan-offset]", probe: { plate: true },
+    sizes: { wide: [1440, 900], desktop: [1280, 800], phone: [390, 844] },
+    appPrep: async (page) => { await page.evaluate(() => document.querySelector("[data-deck-stage]")?.scrollIntoView({ block: "center" })); await sleep(1200); },
+    nodeProbe: async (page, size, routeId) => { await page.evaluate(() => document.querySelector("[data-deck-stage]")?.scrollIntoView({ block: "center" })); await sleep(500); return SCREENS.home156.nodeProbe(page, size, routeId); } },
   // ⭐ D163 · USE THE SPACE (owner 11-05) — the jobs page measured at 1280 / 1440 / 1920 / 2560 (and the phone): one centred
   // composition, the free space shared evenly, the gaps and gutters growing with the width, the deck centred in its
   // column, the dock on its own gutter, vertically centred (`--styles home163`). Also shot beside the sketch at the four
@@ -291,16 +298,20 @@ const SCREENS = {
   shrink201: { sketch: null,
     sizes: { "1440": [1440, 900], "1280": [1280, 800], "1024": [1024, 768], "900": [900, 800], "768": [768, 1024], "600": [600, 900], "390": [390, 844] },
     routes: {
-      home: { app: CLASSIC_MARKET, fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } } }, ready: "[data-nav-dock]", appPrep: async () => { await sleep(1200); } },
+      home: { app: "/app/jobs", fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } } }, ready: "[data-nav-dock]", appPrep: async () => { await sleep(1200); } },
       draft: { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr", appPrep: async () => { await sleep(600); } },
       "draft-held": { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr",
         appPrep: async (page) => { await sleep(500); await page.evaluate(() => { const r = [...document.querySelectorAll("[data-tracker-table] tbody tr.trk-row")].find(tr => /Halcyon/.test(tr.textContent)); (r || document.querySelector("[data-tracker-table] tbody tr.trk-row"))?.click(); }); await sleep(900); } },
       "draft-posting": { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr",
         appPrep: async (page) => { await sleep(500); await page.evaluate(() => document.querySelector("[data-tracker-table] tbody tr.trk-row")?.click()); await sleep(300);
           await page.evaluate(() => document.querySelector('[data-row-detail] [data-pane="posting"]')?.click()); await sleep(700); } },
-      board: { app: CLASSIC_MARKET, fixtures: FULLHOUSE, ready: "[data-fh-title]", appPrep: async () => { await sleep(900); } },
-      posting: { app: CLASSIC_MARKET, fixtures: FACTS, ready: "[data-fh-title]",
-        appPrep: async (page) => { await page.evaluate(() => { const t = [...document.querySelectorAll("*")].find(e => e.children.length === 0 && e.textContent.trim() === "Senior Data Engineer"); t?.click(); }); await sleep(900); } },
+      // 47g R1: the home / board / posting routes on the PLATE market (the page people use) — the board is the Index tab,
+      // the posting opened from its Index row (A240: the openings turn to Deck)
+      board: { app: "/app/jobs", fixtures: FULLHOUSE, ready: "[data-plate-market-openings]",
+        appPrep: async (page) => { await page.evaluate(() => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click()); await sleep(900); } },
+      posting: { app: "/app/jobs", fixtures: FACTS, ready: "[data-plate-market-openings]",
+        appPrep: async (page) => { await page.evaluate(() => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click()); await sleep(600);
+          await page.evaluate(() => { const rows = [...document.querySelectorAll("[data-market-index] [data-index-title]")]; (rows.find(e => e.textContent.trim() === "Senior Data Engineer") || rows[0])?.click(); }); await sleep(1200); } },
       atlas: { app: "/app/atlas", fixtures: ATLAS163, ready: "main", appPrep: async () => { await sleep(900); } },
       profile: { app: "/app/profile/about", fixtures: PROFILE163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
       account: { app: "/app/profile/account", fixtures: ACCOUNT163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
@@ -1198,7 +1209,7 @@ const STYLE_PROBES = {
     esc(); await wait(500);
     return out;
   },
-  home156: async () => {
+  home156: async (cfg) => {   // 47g R1: cfg.plate = the plate market (plate156) — its open is the title, its bubbles the Index rows
     const wait =(ms) => new Promise(r => setTimeout(r, ms));
     const q = (s, root = document) => root.querySelector(s);
     const qa = (s, root = document) => [...root.querySelectorAll(s)];
@@ -1252,16 +1263,17 @@ const STYLE_PROBES = {
 
     // ── ⭐ D156 (1c) the turn, AS THE DECK ALWAYS HAD IT: the wheel accumulates to 60 for one card and settles 140 ms (one
     // flick, one card); J / K and ‹ › do the same. (← → decide — not pressed here.)
-    const idx = () => (q("[data-deck-count]")?.textContent.match(/^(\d+) of/) || [])[1] * 1;
+    const idx = () => (q("[data-deck-count]")?.textContent.match(/^(\d+) of/i) || [])[1] * 1;   // 47g R1: the plate's line is "2 OF 10 TODAY"
     const stage = q("[data-deck-stage]");
     const wheel = (el, dy, dx = 0) => { const r = el.getBoundingClientRect(); el.dispatchEvent(new WheelEvent("wheel", { deltaY: dy, deltaX: dx, deltaMode: 0, bubbles: true, cancelable: true, clientX: r.left + 20, clientY: r.top + 20 })); };
+    const yWheel = window.scrollY;   // 47g R1: the page's y AT the wheel (the plate's deck is below the hero; y0 predates the scroll steps)
     const flip = { start: idx() };
     wheel(stage, 30); await wait(20); flip.afterHalfFlick = idx();
     wheel(stage, 30); await wait(20); flip.afterOneFlick = idx();
     wheel(stage, 60); await wait(20); flip.duringSettle = idx();
     await wait(200); wheel(stage, 60); await wait(60); flip.afterSecondFlick = idx();
     await wait(200); wheel(stage, 0, -60); await wait(60); flip.afterSidewaysBack = idx();
-    flip.pageScrolledByWheel = Math.round(window.scrollY - y0);
+    flip.pageScrolledByWheel = Math.round(window.scrollY - yWheel);
     flip.cardHeightAfterWheel = Math.round(front()?.getBoundingClientRect().height);
     flip.cardHeightBefore = Math.round(h0);
     document.body.focus();
@@ -1312,17 +1324,22 @@ const STYLE_PROBES = {
     document.body.focus();
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })); post.openedByEnter = await waitFor(slotOpen);
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); post.foldedByEsc = await waitFor(() => !slotOpen());
-    q('[data-fan-offset="0"] [data-deck-open-posting]')?.click(); post.openedByButton = await waitFor(slotOpen);
+    const openPost = () => (cfg?.plate ? q('[data-fan-offset="0"] [data-deck-title-line]') : q('[data-fan-offset="0"] [data-deck-open-posting]'))?.click();
+    if (cfg?.plate) post.openedByButton = null;   // the plate ticket has no "Open the posting" (FIX-4: the title opens it)
+    else { openPost(); post.openedByButton = await waitFor(slotOpen); }
+    if (cfg?.plate) { openPost(); await waitFor(slotOpen); }
     q("[data-deck-post-slot] [data-posting-close]")?.click(); post.foldedByButton = await waitFor(() => !slotOpen());
     // a bubble's posting: on the deck too; the list stays where it is
-    q(".jb__title")?.click(); post.listOpensOnDeck = await waitFor(slotOpen);
+    if (cfg?.plate) { [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click(); await wait(500); q("[data-market-index] [data-index-title]")?.click(); }
+    else q(".jb__title")?.click();
+    post.listOpensOnDeck = await waitFor(slotOpen);
     post.listOrigin = slot()?.getAttribute("data-post-origin") || null;
-    post.listStillShown = !!q(".jb-board__list") && q(".jb-board__list").getBoundingClientRect().height > 0;
+    post.listStillShown = cfg?.plate ? null : !!q(".jb-board__list") && q(".jb-board__list").getBoundingClientRect().height > 0;   // plate: the Index is its own tab
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); await waitFor(() => !slotOpen());
     window.scrollTo(0, 0); await wait(150);
     // the posting's Pass on the deck's own card: the deck decides it and the next card comes to the front
     const before = q("[data-deck-count]")?.textContent;
-    q('[data-fan-offset="0"] [data-deck-open-posting]')?.click(); await waitFor(slotOpen);
+    openPost(); await waitFor(slotOpen);
     q('[data-deck-post-slot] [data-decision="pass"]')?.click();
     post.passFolds = await waitFor(() => !slotOpen());
     await wait(700);
@@ -1496,6 +1513,7 @@ const STYLE_PROBES = {
     };
   },
 };
+STYLE_PROBES.plate156 = STYLE_PROBES.home156;   // 47g R1: the same measuring, on the plate market
 // ⭐ D149 rule 3 / A232 R2 (46t): one screen's computed styles, measured in an open browser against a running vite.
 async function measureStyles(browser, vite, id, pickRoutes = null, onlySizes = null) {
   const s = SCREENS[id];
