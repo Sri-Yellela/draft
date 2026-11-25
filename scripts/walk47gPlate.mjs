@@ -91,7 +91,7 @@ try {
     const up = await api("/api/domain-profiles/from-resume", "POST", { content: sample.resumeText, name: `${sample.candidate.fullName}.txt` });
     say(`setup ${user}`, reg.status < 400 && up.status < 400, `register ${reg.status} · résumé ${up.status}`);
   };
-  // the VISIBLE front: decided cards linger at offset 0 with opacity 0 (A238 — framer-motion's exit never unmounts them), so
+  // the VISIBLE front: decided cards lingered at offset 0 with opacity 0 until A238's fix (47h); kept as a belt, and A238's own check below says when one lingers —
   // the front is the last offset-0 card whose opacity is 1
   const frontTitle = () => page.evaluate(() => { const live = [...document.querySelectorAll("[data-fan-offset='0']")].filter(e => getComputedStyle(e).opacity !== "0");
     return live[live.length - 1]?.querySelector("[data-deck-title-line]")?.textContent?.trim() || null; });
@@ -208,6 +208,9 @@ try {
         if (process.env.WALK_DIAG) console.log(`DIAG ${tag} ${act}: ${clicked} · ${[...new Set(seen)].join(" → ")} · ${reqs.join(" ; ")}`);
         const after = await frontTitle();
         say(`${tag}: ${act} decides the card`, before && after !== before, `${before} → ${after}`);
+        // ⭐ A238 (47h): the decided card LEAVES the DOM — before the fix every decision left one at offset 0, invisible
+        const ghosts = await page.evaluate(() => [...document.querySelectorAll("[data-deck-stage] [data-fan-offset='0']")].filter(e => getComputedStyle(e).opacity === "0").length);
+        say(`${tag}: ${act} leaves no decided card mounted (A238)`, ghosts === 0, `${ghosts} invisible offset-0 card(s) in the stage`);
       }
 
       // the Index tab: rows, the board kept; the bubble's Star / Draft

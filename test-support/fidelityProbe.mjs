@@ -20,7 +20,7 @@ export const SHOTS = "tmp/fidelity-shots";
 export const PROBES = [
   { id: "deck" }, { id: "fullhouse" }, { id: "settings" }, { id: "tracker" },
   { id: "home" }, { id: "home156" }, { id: "home163" }, { id: "home168" }, { id: "plate156" },
-  { id: "dock167" }, { id: "dock167place" }, { id: "posting-facts" }, { id: "ask200" },
+  { id: "dock167" }, { id: "dock167place" }, { id: "posting-facts" }, { id: "ask200" }, { id: "a238" },
   { id: "screens163" }, { id: "shrink201", routes: "draft-held,board,profile", sizes: "768,390" },
 ];
 export const keyOf = (p) => [p.id, p.routes || "", p.sizes || ""].join("|");

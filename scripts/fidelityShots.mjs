@@ -239,6 +239,14 @@ const SCREENS = {
     sizes: { wide: [1440, 900], desktop: [1280, 800], phone: [390, 844] },
     appPrep: async (page) => { await page.evaluate(() => document.querySelector("[data-deck-stage]")?.scrollIntoView({ block: "center" })); await sleep(1200); },
     nodeProbe: async (page, size, routeId) => { await page.evaluate(() => document.querySelector("[data-deck-stage]")?.scrollIntoView({ block: "center" })); await sleep(500); return SCREENS.home156.nodeProbe(page, size, routeId); } },
+  // ⭐ A238 (47h) · A DECIDED CARD LEAVES THE DOM: after Pass · Save · Pass on the live plate market (motion on), the
+  // [data-fan-offset] count falls by one per decision and no card lingers at offset 0, invisible (test/a238DecidedCardsUnmount).
+  // A day deals ten (the walk's real deck); the fixture's three were all mounted at once, and showed no ghost.
+  a238: { sketch: null, app: "/app/jobs", fixtures: { ...HOME156, "/api/draft/today": { ...DECK["/api/draft/today"], size: 10,
+      cards: Array.from({ length: 10 }, (_, i) => { const c = DECK["/api/draft/today"].cards[i % 3]; const id = `${c.job.id}-a238-${i}`;
+        return { ...c, position: i, job: { ...c.job, id, jobId: id, title: `${c.job.title} ${i + 1}` } }; }) } }, ready: "[data-plate-market-openings] [data-fan-offset]",
+    sizes: { desktop: [1280, 800] },
+    appPrep: async (page) => { await page.evaluate(() => document.querySelector("[data-deck-stage]")?.scrollIntoView({ block: "center" })); await sleep(1200); } },
   // ⭐ D163 · USE THE SPACE (owner 11-05) — the jobs page measured at 1280 / 1440 / 1920 / 2560 (and the phone): one centred
   // composition, the free space shared evenly, the gaps and gutters growing with the width, the deck centred in its
   // column, the dock on its own gutter, vertically centred (`--styles home163`). Also shot beside the sketch at the four
@@ -1535,6 +1543,26 @@ const STYLE_PROBES = {
         boxes: Object.fromEntries([["co", ".pp__hd"], ["title", ".posting--panel .posting__title"], ["facts", ".posting__facts"], ["eyebrow", ".posting__eyebrow"], ["body", ".posting--panel .posting__body"], ["actions", ".pp__main-acts"], ["close", ".pp__x"], ["logo", ".pp__logo"]].map(([k, s]) => [k, box(q(s))])) },
     };
   },
+};
+STYLE_PROBES.a238 = async () => {   // ⭐ A238: decide three cards, each through the VISIBLE front's own button, and count
+  const wait = (ms) => new Promise(r => setTimeout(r, ms));
+  const cards = () => [...document.querySelectorAll("[data-deck-stage] [data-fan-offset]")];
+  const front = () => { const live = cards().filter(e => e.getAttribute("data-fan-offset") === "0" && getComputedStyle(e).opacity !== "0"); return live[live.length - 1] || null; };
+  const title = () => front()?.querySelector("[data-deck-title-line]")?.textContent?.trim() || null;
+  const ghosts = () => cards().filter(e => getComputedStyle(e).opacity === "0" && e.getAttribute("data-fan-offset") === "0").length;
+  const out = { before: cards().length, steps: [] };
+  for (const act of ["pass", "save", "pass"]) {
+    const was = title();
+    front()?.querySelector(`[data-deck-action='${act}']`)?.click();
+    const t0 = performance.now(); while (performance.now() - t0 < 3000 && title() === was) await wait(50);
+    await wait(1500);   // the longest exit is 0.42 s; a spring settle well inside this
+    out.steps.push({ act, was, now: title(), mounted: cards().length, ghosts: ghosts(),
+      // the 47g walk counted document-wide: every offset-0 node anywhere, and the invisible ones
+      docFront: document.querySelectorAll("[data-fan-offset='0']").length,
+      docGhosts: [...document.querySelectorAll("[data-fan-offset='0']")].filter(e => getComputedStyle(e).opacity === "0").length });
+  }
+  out.after = cards().length;
+  return out;
 };
 STYLE_PROBES.plate156 = STYLE_PROBES.home156;   // 47g R1: the same measuring, on the plate market
 // ⭐ D149 rule 3 / A232 R2 (46t): one screen's computed styles, measured in an open browser against a running vite.

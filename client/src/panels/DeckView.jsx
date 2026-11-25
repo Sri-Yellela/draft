@@ -28,7 +28,7 @@
 // new transition cannot forget it. ⛔ Colours are tokens only; the card shows a band and never a number.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useSyncEvents } from "../hooks/useSyncEvents.js";
-import { AnimatePresence, MotionConfig, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
+import { AnimatePresence, MotionConfig, PresenceContext, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";
 import { deckWheelHandler } from "../lib/deckWheel.js";
@@ -606,6 +606,12 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
                // Layer by TIER: the face-up card is content; the fan sits under it, nearer cards above farther.
                zIndex: isFront ? Z.CONTENT : Z.FAN - t.depth,
                pointerEvents: t.shown ? "auto" : "none", cursor: isFront ? "default" : "pointer" }}>
+      {/* ⭐ A238 (47h): the card leaves on ITS OWN exit. Without this, the front card's drag element (framer's drag feature
+          mounts MeasureLayout, which calls usePresence()) registered with the card's AnimatePresence child and never said
+          "safe to remove", so every decided card stayed mounted at offset 0, invisible, pointer-events auto (measured on the
+          built client: the leave animation completed, AnimatePresence's onExitComplete never fired). Nothing inside the card
+          plays an exit of its own, so the nested motion elements are cut off from the card's presence. */}
+      <PresenceContext.Provider value={null}>
       <div data-fan-position style={{
           transform: `translate3d(${t.x}px, ${t.y}px, 0) rotate(${t.rotate}deg) scale(${t.scale})`, opacity, transformOrigin: t.origin,
           transition: reduced ? "none" : `transform 460ms ${POSITION_EASE}, opacity 320ms ease`, willChange: "transform, opacity" }}>
@@ -667,6 +673,7 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
           {isFront && <motion.div aria-hidden data-deck-stamp="pass" style={{ ...stamp, color: C.INK_MUTED, borderColor: C.INK_MUTED, opacity: passStamp, rotate: -10 }}>PASS</motion.div>}
         </motion.div>
       </div>
+      </PresenceContext.Provider>
     </motion.div>
   );
 }
