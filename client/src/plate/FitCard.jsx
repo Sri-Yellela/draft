@@ -18,6 +18,7 @@
 // ⛔ No model (D190). ⛔ D60: every box is a 9–12 px corner on a 32–46 px box — no capsule.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FieldCard } from "./Cards.jsx";
+import { plateState } from "./PlateState.jsx";
 import { api } from "../lib/api.js";
 import { setProfileClaim } from "../lib/profileSuggestions.js";
 import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
@@ -172,7 +173,7 @@ function HistoryTab({ lines = [], history = null }) {
  * résumé versions). `face` / `tab` = where it opens. `plausibility` / `atlasSlugs` (given) skip their reads (the fixture);
  * `company` names whose postings the stack is read from.
  */
-export default function FitCard({ jobId = null, data: given = null, alike, gaps, figures, historyLines = [], history = null,
+export function FitCard({ jobId = null, data: given = null, alike, gaps, figures, historyLines = [], history = null,
   face: initialFace = "front", tab: initialTab = "words", plausibility: givenPlaus, atlasSlugs = null, company = null, className = "", ...gate }) {
   const [state, setState] = useState(() => (given ? { status: "ready", data: given } : { status: jobId ? "loading" : "idle", data: null }));
   const [nonce, setNonce] = useState(0);
@@ -223,7 +224,8 @@ export default function FitCard({ jobId = null, data: given = null, alike, gaps,
     } finally { setBusy(null); }
   }, [d, jobId]);
 
-  if (gate.state) return <FieldCard {...gate}/>;
+  const g = plateState(gate, { height: 300, radius: "plate", label: "Loading why it fits", lines: 4 });   // R1: the field card's own skeleton / drawer / alert
+  if (g) return g;
   if (state.status === "idle") return <FieldCard state="empty" emptyText="The field card fills in for the opening you’re looking at."/>;
   if (state.status === "loading") return <FieldCard state="loading"/>;
   if (state.status === "error") return <FieldCard state="error" errorText="Why it fits didn’t load." onRetry={() => setNonce((n) => n + 1)}/>;
@@ -271,3 +273,5 @@ export default function FitCard({ jobId = null, data: given = null, alike, gaps,
     </article>
   );
 }
+
+export default FitCard;

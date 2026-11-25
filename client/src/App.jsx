@@ -49,6 +49,7 @@ import { useMarketPlate, useBestCard } from "./plate/marketPlate.js";
 import MarketHero from "./plate/MarketHero.jsx";   // ⭐ D196 P1: the market's hero on real data
 import MarketOpenings from "./plate/MarketOpenings.jsx";   // ⭐ D196 P1: Deck · Terrain · Index + the field card
 import PlateRoot from "./plate/PlateRoot.jsx";
+import OpeningSheet, { OPENING_ROUTE } from "./plate/OpeningSheet.jsx";   // ⭐ D199 C7: /app/jobs/<id>, the opening sheet over the market
 import { LegHeader } from "./plate/Plates.jsx";
 import WordPanel                 from "./components/WordPanel.jsx";
 import SortPanel                 from "./components/SortPanel.jsx";
@@ -554,13 +555,16 @@ function AppDashboard({ authUser, setAuthUser }) {
   const atlasRoute = /^atlas(?:\/(?:family|library))?(?:\/[^/]+)?$/.test(routeKey);
   // ⭐ D179 P4b · /app/companies/<slug> — a company's page inside the shell (the dock stays; Back returns).
   const companyRoute = /^companies\/([a-z0-9][a-z0-9-]*)$/.exec(routeKey);
+  // ⭐ D199 C7 · /app/jobs/<id> — one opening as its sheet, drawn OVER the market: the market stays mounted (activeTab "console")
+  // underneath, so Back returns to the same card, page and scroll.
+  const openingRoute = OPENING_ROUTE.exec(routeKey);
   // ⭐ D167 · /app/profile/<panel> and /app/interview/<panel> (pages/profile/profilePanels.js, pages/interview/interviewModel.js);
   // the bare /app/profile and /app/interview read a #<panel> hash. undefined = not that place; null = an unknown panel.
   const profilePanel = profilePanelFor(routeKey, location.hash);
   const interviewPanel = interviewPanelFor(routeKey, location.hash);
   const activeTab = jobRoute ? "job" : companyRoute ? "company" : atlasRoute ? "atlas"
     : profilePanel !== undefined ? "profile" : interviewPanel !== undefined ? "interview"
-    : routeKey === CONSOLE_ROUTE || LEGACY_CONSOLE_ROUTES.has(routeKey)
+    : openingRoute || routeKey === CONSOLE_ROUTE || LEGACY_CONSOLE_ROUTES.has(routeKey)
     ? "console" : routeKey === "" ? "today" : routeKey;
   // D10 (10-03): the card-game family — DAILY DECK, FULL HOUSE, DRAFT, THE TABLE. Display strings
   // only: the ids and the /app/<id> routes are internal and stay (docs/BRAND.md). TopBar sets a two-word
@@ -723,7 +727,7 @@ function AppDashboard({ authUser, setAuthUser }) {
     // ⛔ 45s: + companyRoute — without it every /app/companies/<slug> (A157: a company's name, its logo, a search pick)
     // bounced straight to the board for a signed-in person, so the company page never opened inside the app.
     if (!jobRoute && !atlasRoute && !companyRoute && profilePanel === undefined && interviewPanel === undefined
-        && routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS.has(routeKey)) {
+        && !openingRoute && routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS.has(routeKey)) {
       navigate(consolePath, { replace:true });
     }
   }, [routeKey, consolePath, navigate, NAVIGABLE_TABS, atlasRoute, companyRoute, location.search, profilePanel, interviewPanel]);
@@ -846,6 +850,7 @@ function AppDashboard({ authUser, setAuthUser }) {
               // height, so no section is ever transparent to the app shell's ground.
               ? <PlateRoot className="pl-marketpage" data-plate-page="market"><MarketHeroSlot /><MarketBearingSlot /><MarketOpeningsSlot deck={homeDeck} index={homeBoard} /></PlateRoot>
               : <div className="home" data-home="">{homeDeck}{homeBoard}</div>)}
+            {openingRoute && <OpeningSheet jobId={decodeURIComponent(openingRoute[1])}/>}
             {/* ⭐ D49 · THE BOARD'S BAR STICKS (StickyBar, above in Home's board column): sticky only works inside its
                 parent's box, so it sits in the column with the jobs, not in the header. D12's ExtensionFirstRunPrompt
                 says where jobs from elsewhere come from until the extension is connected. */}

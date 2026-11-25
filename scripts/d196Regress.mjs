@@ -130,7 +130,42 @@ export const PAIRS = {
       await page.evaluate((t) => [...document.querySelectorAll('button[role="tab"]')].find((b) => b.textContent.includes(t))?.click(), tab);
       await new Promise((r) => setTimeout(r, 300)); } } : {}),
   }])),
+  // ⭐ D199 C7 (47h, the card lane) · THE OPENING SHEET — the final canvas's Opening board, section by section (the board's
+  // sections are siblings in its column: the header, then 01–05), and the sticky action bar.
+  ...Object.fromEntries([["head", 1, "section.pl-op__top"], ["role", 2, 'section[aria-labelledby="op-role"]'], ["fit", 3, 'section[aria-labelledby="op-fit"]'],
+    ["stack", 4, 'section[aria-labelledby="op-stack"]'], ["posting", 5, 'section[aria-labelledby="op-posting"]'], ["company", 6, 'section[aria-labelledby="op-company"]'],
+    ["bar", 0, "[data-opening-actions]"]].map(([k, n, sel]) => [`op-${k}`, {
+    source: "final", board: "Opening", fixture: "OpeningSheetBoard", boardSel: n ? `section:nth-of-type(${n})` : 'div[style*="sticky"]', buildSel: sel,
+    pad: 0, reduced: true, subpixel: true,
+    // the sections above differ in height (01's lines are the posting's own), so each piece is put at the board piece's own
+    // sub-pixel offset after layout — measured, never computed (as ExplainerBoard does)
+    buildPrep: async (page) => { await page.evaluate((s) => {
+      const want = Number(new URLSearchParams(location.hash.slice(1)).get("oy")) || 0;
+      const el = document.querySelector(s); const wrap = document.querySelector("[data-opening-fixture]");
+      if (!el || !wrap) return;
+      const got = (el.getBoundingClientRect().top + scrollY) % 1;
+      wrap.style.paddingTop = `${parseFloat(getComputedStyle(wrap).paddingTop) + (((want - got) % 1) + 1) % 1}px`;
+    }, sel); await new Promise((r) => setTimeout(r, 100)); },
+    ...(opPair(k) || {}) }])),
 };
+// what each Opening pair keeps out of the pixel gate, and why (D196: masks only for example data, with the reason)
+function opPair(k) { return {
+  // 02: the board drew the contextual-score card before D202; the approved D202 card (FitCard, gated on its own board by the
+  // fit-* pairs) replaces it there — a look, not a gate
+  fit: { look: true },
+  // 01: the board says the posting "simply" — its four lines and its must / nice lists are paraphrases, not the posting's
+  // words (its own section 04 has three duties and two asks); D190 keeps a model out, so the build shows the posting's own
+  // lines and the two can't be the same size — a look
+  role: { look: true },
+  // the left 6 px: the board's rail edge beside its column; "3 / 5" (the board's rows give 4 of the top 5 on your résumé)
+  head: { masks: [[0, 0, 6, 438], [384, 352, 40, 30]] },
+  // 03: the board's stack is a TEAM's ("FOR THIS TEAM", "What Checkout builds with", "· Checkout" on each row, NEW THIS
+  // QUARTER) — draft's technographics are the company's (no team on a row, no first-seen date), and it lists React (8) above
+  // TypeScript (9), where the build orders by share
+  stack: { masks: [[0, 0, 6, 365], [110, 0, 560, 72], [20, 95, 720, 25], [70, 155, 1080, 70], [1005, 230, 150, 70], [200, 312, 960, 34]] },
+  // 05: "Kestrel’s" (the board's short name) — the build says the company's name whole
+  company: { masks: [[0, 0, 6, 438], [150, 98, 250, 22]] },
+}[k]; }
 // D198 (47h): the explainer's oracle — v4's export holds only the two explainer pages (A236), so it is not a SOURCES drawing set
 const XP_SOURCE = { file: path.join(ROOT, "docs", "sketches", "Atlas plate system v4.html"), out: path.join(ROOT, "tmp", "d196-canvas-v4"), name: "docs/sketches/Atlas plate system v4.html" };
 

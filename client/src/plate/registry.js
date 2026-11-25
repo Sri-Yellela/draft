@@ -74,6 +74,15 @@ const INDEX_ROWS = [
 ].map(([n, title, company, match, stack, sponsor, status]) => ({ id: n, n, title, company, match, stack, sponsor, status, href: `#opening-${n}` }));
 
 /** name → { file, group, states, extremes?, stateless? }. Order = the gallery's order. */
+// D202: a small fit-card read (the scorer's report, the contextual block, where the found words sit) — the gallery's FitCard
+const FIT_SAMPLE = { score: 66, profileId: null, resumeTech: ["Storybook"],
+  report: { score: 66, claimed_matches: [], tier1_matched: ["React", "TypeScript", "Playwright"], tier1_missing: ["Vue", "Datadog RUM"],
+    action_verbs_matched: ["Rebuild the checkout"], action_verbs_missing: ["Run A/B experiments"], competencies_matched: ["Mid level"], competencies_missing: ["Led a team"] },
+  where: { React: "Toast · bullet 1", TypeScript: "Toast · bullet 1", Playwright: "Toast · bullet 3", "Rebuild the checkout": "Toast · bullet 2", "Mid level": "Software Engineer II" },
+  contextual: { score: 87, weights: { skill_match: 0.5, role_fit: 0.2, responsibility_overlap: 0.15, tech_stack: 0.15 },
+    parts: { skill_match: { status: "ok", score: 86, weight: 0.5 }, role_fit: { status: "ok", score: 91, weight: 0.2 }, tech_stack: { status: "ok", score: 88, weight: 0.15, of: 9, exact: [{ tech: "React", postings: 8, of: 9 }], ecosystem: [], gaps: [{ tech: "Datadog RUM", postings: 4, of: 9 }] },
+      responsibility_overlap: { status: "ok", score: 80, weight: 0.15, matched: [], missing: [] } }, similarities: {}, dissimilarities: [] } };
+
 export const PLATE_REGISTRY = [
   // ── the shell ──
   { name: "PlateLogo", file: "Shell.jsx", group: "The shell", stateless: "a mark — it has no data", states: { ready: {}, favicon: { size: "favicon" } } },
@@ -160,6 +169,12 @@ export const PLATE_REGISTRY = [
       gaps: [{ text: "Datadog RUM is in 4 of their postings.", link: { label: "Learn it →", href: "#atlas" } }], figures: { label: "ROLE FIT · STACK · DUTIES", value: "92 · 88 · 84" } }, "Open an opening to see why it fits.",
       { partial: { state: "partial", alike: [], gaps: [], figures: { label: "ROLE FIT · STACK · DUTIES", value: null } } }),
     extremes: { alike: [LONG, LONG], gaps: [{ text: LONG, link: { label: "Learn it →", href: "#x" } }], figures: { label: "ROLE FIT · STACK · DUTIES", value: "100 · 0 · 100" } } },
+  // ⭐ D202 · the field card ⇄ the ATS card — one card, two faces (FitCard.jsx); the front here, the back by Turn over
+  { name: "FitCard", file: "FitCard.jsx", group: "Cards",
+    states: four({ data: FIT_SAMPLE, alike: ["Role and level: frontend, mid — the same as yours"], gaps: [{ text: "They watch the front end with Datadog RUM.", link: { label: "Learn it →", href: "#atlas" } }],
+      figures: { label: "ROLE FIT · STACK · DUTIES", value: "91 · 88 · 80", items: [{ label: "ROLE FIT", key: "role", value: 91 }, { label: "STACK", key: "stack", value: 88 }, { label: "DUTIES", key: "duties", value: 80 }] } },
+      "Open an opening to see why it fits.", { back: { data: FIT_SAMPLE, face: "back", tab: "words" }, context: { data: FIT_SAMPLE, face: "back", tab: "context", plausibility: { entries: [] } } }),
+    extremes: { data: { ...FIT_SAMPLE, report: { ...FIT_SAMPLE.report, tier1_missing: [LONG] } }, face: "back", tab: "words", alike: [LONG] } },
   { name: "FactSheet", file: "Cards.jsx", group: "Cards",
     states: four({ kicker: "FILLED FOR YOU · 22 OF 24", label: "What draft filled for you", foot: "From your résumé and profile. Nothing here is guessed.",
       rows: [{ label: "Name", value: "Maya Chen" }, { label: "Email", value: "maya.chen@example.com" }, { label: "Current company", value: "Toast" }, { label: "Alma mater", value: "Northeastern University" }] }, "Nothing filled yet.",

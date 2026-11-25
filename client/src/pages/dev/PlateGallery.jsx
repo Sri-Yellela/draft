@@ -13,9 +13,10 @@ import * as Cards from "../../plate/Cards.jsx";
 import * as Lists from "../../plate/Lists.jsx";
 import * as Drawings from "../../plate/Drawings.jsx";
 import * as Explainer from "../../plate/explainer/Explainer.jsx";
+import { FitCard } from "../../plate/FitCard.jsx";   // D202: the field card ⇄ the ATS card
 import { DRAWINGS } from "../../plate/drawings/index.js";
 
-const LIB = { ...Shell, ...Marks, ...Plates, ...Tickets, ...Cards, ...Lists, ...Drawings, ...Explainer };
+const LIB = { ...Shell, ...Marks, ...Plates, ...Tickets, ...Cards, ...Lists, ...Drawings, ...Explainer, FitCard };
 
 function params() {
   if (typeof window === "undefined") return new URLSearchParams();

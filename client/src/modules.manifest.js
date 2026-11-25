@@ -68,7 +68,9 @@ export const MODULES = Object.freeze({
       "plate/marketPlate.js", "plate/MarketCardFace.jsx", "plate/PlateBearing.jsx", "plate/MarketHero.jsx", "plate/MarketOpenings.jsx", "panels/DeckView.jsx",
       // 47f (the owner's P1 FIX): the deck at the board's size; the Index as the Gazetteer, drawn by the board's own column
       "plate/deckGeometry.js", "plate/MarketIndex.jsx", "panels/JobsPanel.jsx",
-      "plate/explainer/Explainer.jsx", "plate/explainer/explainerModel.js" /* D198 E1: the explainer engine */] },
+      "plate/explainer/Explainer.jsx", "plate/explainer/explainerModel.js" /* D198 E1: the explainer engine */,
+      "plate/FitCard.jsx" /* D202: the field card ⇄ the ATS card, one card on the market and the sheet */, "plate/OpeningSheet.jsx" /* D199 C7: the opening sheet, /app/jobs/<id> */,
+      "plate/TeamDiorama.jsx" /* D199 C7: the sheet's hero plate — the survey diorama with its words as props */, "plate/fitCardFixtures.jsx" /* the card lane's F5 fixtures */] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminGateway.jsx", "panels/adminFlags.jsx","panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "panels/adminReports.jsx", "panels/adminCompanyRecords.jsx", "panels/adminNetwork.jsx", "panels/adminRuns.jsx", "panels/adminPhase1.jsx", "panels/adminDiagnostics.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.

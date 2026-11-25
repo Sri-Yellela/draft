@@ -63,18 +63,30 @@ const card = (face, tab) => function FitCardBoard() {
   );
 };
 
-/** The Opening board's sheet, at its 1180 px column — the same example data (Kestrel's Frontend Engineer II). */
+/** The Opening board's sheet, at its 1182 px column (beside the board's rail) — the same example data (Kestrel's Frontend Engineer II). The board's
+ *  diorama words (its three teams, the HQ) are its example; the live sheet takes them from the company's open roles. */
 export const BOARD_OPENING = Object.freeze({
-  job: { jobId: "board-1", title: "Frontend Engineer II, Checkout", company: "Kestrel Payments", location: "Boston, MA · Hybrid", salary: "$150k–$180k",
-    type: "Full-time", level: "Mid", postedWords: "POSTED 2 H AGO", liveWords: "LIVE · CHECKED TODAY", sector: "SOFTWARE ENG. › FRONTEND",
-    companyHref: "#survey", match: 91, applyUrl: "#top",
-    description: "About the team\nCheckout is the last thing a buyer sees before they pay. The team owns it end to end: the page, its speed, and its accessibility.\nWhat you’ll do\nRebuild checkout flows in React and Next.js with server rendering.\nImprove Core Web Vitals across every marketplace that uses Kestrel.\nWork with design on the components checkout shares.\nWhat you bring\n3+ years of React and TypeScript in production.\nA habit of testing: unit tests and end-to-end checks.\nNice to have\nPayments experience. Front-end monitoring such as Datadog RUM." },
+  jobId: "board-1", title: "Frontend Engineer II, Checkout", company: "Kestrel Payments", place: "Boston, MA · Hybrid", pay: "$150k–$180k",
+  type: "Full-time", level: "Mid", mode: "Hybrid", posted: "POSTED 2 H AGO", live: "LIVE · CHECKED TODAY", sector: "SOFTWARE ENG. › FRONTEND",
+  companyHref: "/app/companies/kestrel-payments", match: 91, sponsors: true, region: "IV", applyUrl: "https://example.org/posting",
+  team: "CHECKOUT", teamLeft: "PAYMENTS PLATFORM", teamRight: "DATA", hq: "BOSTON, MA · HQ",
+  description: ["About the team", "Checkout is the last thing a buyer sees before they pay. The team owns it end to end: the page, its speed, and its accessibility.",
+    "What you’ll do", "Rebuild checkout flows in React and Next.js with server rendering.", "Improve Core Web Vitals across every marketplace that uses Kestrel.",
+    "Work with design on the components checkout shares.", "What you bring", "3+ years of React and TypeScript in production.",
+    "A habit of testing: unit tests and end-to-end checks.", "Nice to have", "Payments experience. Front-end monitoring such as Datadog RUM.",
+    "Benefits and the equal-opportunity statement", "Kept as posted."].join("\n\n"),
+});
+export const BOARD_COMPANY = Object.freeze({
+  openJobs: 38,
+  stack: { ofPostings: 9, groups: { frameworks: [{ tech: "React", postings: 8 }, { tech: "Next.js", postings: 5 }], languages: [{ tech: "TypeScript", postings: 9 }],
+    tools: [{ tech: "Playwright", postings: 4 }, { tech: "Datadog RUM", postings: 4 }] } },
+  sponsorship: { fiscalYear: 2025, parts: [{ text: "214 H-1B applications in FY2025" }, { text: "168 for software roles" }, { text: "97 % certified" }, { text: "31 PERM" }] },
 });
 
 export const FIT_FIXTURES = {
   FitCardFront: card("front", "words"), FitCardWords: card("back", "words"), FitCardContext: card("back", "context"),
   FitCardClaim: card("back", "claim"), FitCardHistory: card("back", "hist"),
   OpeningSheetBoard: function OpeningSheetBoard() {
-    return <MemoryRouter><div style={{ width: 1180, ...at() }}><OpeningSheetView data={BOARD_OPENING} fit={BOARD_FIT} fitFront={BOARD_FRONT} fitPlausibility={BOARD_PLAUS} still/></div></MemoryRouter>;
+    return <MemoryRouter><div data-opening-fixture="" style={{ width: 1182, ...at() }}><OpeningSheetView data={BOARD_OPENING} company={BOARD_COMPANY} fit={BOARD_FIT} fitFront={BOARD_FRONT} fitPlausibility={BOARD_PLAUS} still/></div></MemoryRouter>;
   },
 };

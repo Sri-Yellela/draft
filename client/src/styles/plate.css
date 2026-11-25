@@ -124,6 +124,9 @@
   --pl-t-xp-tiny: calc(7.5px * var(--pl-scale));   /* D198: the one-word reasons, the small print */
   --pl-t-30: calc(30px * var(--pl-scale));         /* D202: the ATS card's heading, the contextual score (ATSCard board) */
   --pl-t-key: calc(9px * var(--pl-scale));          /* D202: the bar's key, the score labels (ATSCard board) */
+  --pl-t-opening: calc(68px * var(--pl-scale));    /* D199 C7: the opening sheet's title (Opening board) */
+  --pl-t-29: calc(29px * var(--pl-scale));         /* D199 C7: the sheet's 56 px letter tile */
+  --pl-t-17: calc(17px * var(--pl-scale));         /* D199 C7: the sheet's company name */
   --pl-track-mono: .12em;
   --pl-track-tag: .08em;
   --pl-track-stamp: .16em;
@@ -195,6 +198,8 @@
               repeating-linear-gradient(90deg, var(--pl-ink) 0 1px, transparent 1px 16px);
   --pl-perf: radial-gradient(circle at 0 62%, var(--pl-paper) 11px, transparent 12px),
              radial-gradient(circle at 100% 62%, var(--pl-paper) 11px, transparent 12px);
+  --pl-ledger-lines-36: repeating-linear-gradient(180deg, transparent 0 35px, var(--pl-rule) 35px 36px);   /* D199 C7: the sheet's sponsorship card */
+  --pl-paper-veil: color-mix(in srgb, var(--pl-paper) 96%, transparent);   /* D199 C7: the sheet's sticky action bar over the page */
   --pl-ledger-lines: repeating-linear-gradient(180deg, transparent 0 63px, var(--pl-rule) 63px 64px);
   --pl-hatch: repeating-linear-gradient(45deg, var(--pl-rule) 0 1px, transparent 1px 7px);
 
