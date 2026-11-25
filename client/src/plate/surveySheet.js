@@ -20,6 +20,15 @@ export const STACK_COLUMNS = Object.freeze([
   { id: "tools", label: "TOOLS", groups: ["tools"] },
 ]);
 
+/** The name as prose says it: "Kestrel Payments" → "Kestrel", "Acme, Inc." → "Acme" (a trailing corporate or trade word
+ *  dropped, never the only word). */
+const TRAILING = /[,\s]+(inc\.?|llc|ltd\.?|corp\.?|corporation|co\.?|company|technologies|technology|labs|payments|group|holdings|systems|software)$/i;
+export function shortName(name) {
+  let n = String(name || "").trim();
+  for (let i = 0; i < 2; i++) { const m = n.replace(TRAILING, ""); if (m && m !== n && /\S/.test(m)) n = m; }
+  return n;
+}
+
 /** Wikidata's head count as the band people use ("501–1k"); null when unknown. */
 export function peopleBand(n) {
   const v = Number(n);

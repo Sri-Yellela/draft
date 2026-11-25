@@ -158,7 +158,11 @@ export const PAIRS = {
     // 02: the newest open roles under the two figures are the page's own (today's list, kept — D200 Rule 1); the board ends at the figures
     ...(k === "hiring" ? { cropTo: { 1280: 503 } } : {}),
     // the title block: the board's dock (x 14–98) throws its 4 px shadow into the section's first pixels — the page's frame
-    ...(k === "hero" ? { masks: [[0, 0, 6, 420]] } : {}) }])),
+    ...(k === "hero" ? { masks: [[0, 0, 6, 420]] } : {}),
+    // 03: the board's cells (H-1B APPLICATIONS · FOR SOFTWARE ROLES · CERTIFIED · PERM) and MOST FILED TITLES are figures our
+    // records don't hold; the sheet draws what sponsorshipFactFor has (certified LCAs · median wage · USCIS approvals ·
+    // approved %) and the source in their place (docs/revamp/survey.md, disagreement 2) — the words masked, the card compared
+    ...(k === "sponsor" ? { masks: [[44, 150, 1076, 92]] } : {}) }])),
 };
 // what each Opening pair keeps out of the pixel gate, and why (D196: masks only for example data, with the reason)
 function opPair(k) { return {
