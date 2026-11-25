@@ -589,6 +589,7 @@
 .pl-xp__cost[data-col="dim"] { opacity: .4; }
 .pl-xp__big { min-width: 54px; box-sizing: border-box; text-align: center; padding: 3px 5px; border-radius: var(--pl-r-status); border: var(--pl-border); background: var(--pl-paper); color: var(--pl-muted);
   font-family: var(--pl-mono); font-size: var(--pl-t-mono-lg); font-weight: 700; }
+.pl-xp__big[data-level="none"] { border-style: dashed; }   /* no cost to show (— NO INDEX): the board's dashed box */
 .pl-xp__big[data-level="light"] { background: var(--pl-iii-1); color: var(--pl-ink); }
 .pl-xp__big[data-level="mid"] { background: var(--pl-iii-3); color: var(--pl-ink); }
 .pl-xp__big[data-level="deep"] { background: var(--pl-iii-7); color: var(--pl-on-clay); }

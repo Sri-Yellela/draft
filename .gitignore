@@ -15,3 +15,6 @@ env.sh
 # Temporary safety net while the owner moves these OUT of the repository (10-01); remove once they are gone.
 docs/business/
 docs/COMPANY_AND_MONETISATION.md
+
+# D198 E4 (47h): the explainer exports (MP4s) - the owner posts them; scripts/d198Export.mjs re-renders them
+content/explainers/*/export/
