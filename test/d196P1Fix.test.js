@@ -106,7 +106,7 @@ test("FIX-5 · d196FieldCardThreeNumbersLabelled — always three, each labelled
   const { field } = await load();
   const html = field({ alike: ["x"], gaps: [], figures: v.figures });
   for (const l of ["ROLE FIT", "STACK", "DUTIES"]) assert.ok(html.includes(`>${l}</dt>`), `labelled: ${l}`);
-  assert.match(html, /not scored yet/);
+  assert.match(html, /NOT SCORED YET/);   // D199 C6 (47h, moved on purpose): the reason is shown, not only read out
   assert.equal((html.match(/data-fig=/g) || []).length, 3);
 });
 
@@ -124,15 +124,17 @@ test("FIX-2 · d196DeckAtBoardSize — the board's ticket and its two sheets", (
   assert.ok(deck.includes("Math.max(0, size.height - 12)"), "a back sheet is 12 px shorter than the ticket");
   assert.ok(deck.includes('maxWidth: plateDeck ? "none"'), "the plate deck fills its column (no Home 640 / 390 cap)");
   const css = read("client/src/plate/plate.css");
-  assert.match(css, /\.pl-market-deck > :first-child \{ flex: 999 1 560px; min-width: 0; \}/);
-  assert.match(css, /\.pl-market-deck__side \{ flex: 1 1 280px; max-width: 360px; min-width: 0; \}/);
+  // D199 C6 (47h, moved on purpose): the deck column is fixed at 560, the field card takes the spare width (d199Market47h)
+  assert.match(css, /\.pl-market-deck > :first-child \{ flex: 0 1 560px; width: 560px; max-width: 100%; min-width: 0; \}/);
+  assert.match(css, /\.pl-market-deck__side \{ flex: 1 1 360px; min-width: 0; \}/);
   assert.match(css, /\.pl-deckstage \{ padding: 14px 18px 0 0; \}/);
 });
 
 test("FIX-1 · d196PlatePageOneGround — one opaque root, the theme's palette, the sketch's pin", () => {
   const app = read("client/src/App.jsx");
-  assert.ok(app.includes('<PlateRoot className="pl-marketpage" data-plate-page="market"><MarketHeroSlot /><MarketBearingSlot /><MarketOpeningsSlot'),
-    "the hero, the bearing and the openings sit in ONE plate root");
+  // D199 C1 (47h, moved on purpose): the hero and the one section
+  assert.ok(app.includes('<PlateRoot className="pl-marketpage" data-plate-page="market"><MarketHeroSlot /><MarketSectionSlot'),
+    "the hero and the one section (bearing + openings) sit in ONE plate root");
   const css = read("client/src/plate/plate.css");
   assert.match(css, /\.pl-marketpage \{ background: var\(--pl-paper\); min-height:/);
   for (const sec of ["pl-markethero", "pl-marketopenings", "pl-marketbearing"]) {

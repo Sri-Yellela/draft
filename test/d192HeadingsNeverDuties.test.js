@@ -47,3 +47,33 @@ test("FIX-6 · looksLikeHeading: short Title Case or a colon / question = a head
   assert.ok(!looksLikeHeading("Design Systems", { bullet: true }), "a Title Case BULLET stays a duty (only a colon / question makes it a heading)");
   assert.ok(looksLikeHeading("Responsibilities:", { bullet: true }));
 });
+
+// ⭐ D199 C6 (owner 11-25, defect (g)): "You'll work directly with our Head of Engineering…" was listed as a missing duty. A
+// line about who the role works with, reports to or joins is the role's CONTEXT — never a duty.
+// ⛔ Verified to fail before the fix: the first phrase was "You’ll work directly with our Head of Engineering to shape the roadmap".
+import { isContextLine } from "../packages/ats-scorer/src/contextual.js";
+const CONTEXT_POSTING = [
+  "Frontend Engineer",
+  "What you'll do",
+  "You’ll work directly with our Head of Engineering to shape the roadmap",
+  "You will report to the VP of Product",
+  "This role reports to the CTO and sits in the Payments team",
+  "Rebuild the checkout flow in React and TypeScript",
+  "Own the design system's accessibility, from audits to fixes",
+  "Partner with design to ship experiments every week",
+].join("\n");
+
+test("D199 C6 · d192HeadingsNeverDuties — context lines (works with, reports to, sits in) never become duties", () => {
+  const texts = responsibilityPhrases(CONTEXT_POSTING).map((p) => p.text);
+  for (const t of texts) assert.ok(!isContextLine(t), `a context line read as a duty: ${t}`);
+  assert.deepEqual(texts, [
+    "Rebuild the checkout flow in React and TypeScript",
+    "Own the design system's accessibility, from audits to fixes",
+    "Partner with design to ship experiments every week",
+  ]);
+  for (const c of ["You’ll work directly with our Head of Engineering", "You'll work closely with the founders", "You will report to the VP of Product",
+    "Reporting to the Director of Data", "This role reports to the CTO", "You'll join a team of six engineers", "- You’ll be part of the Platform group"]) assert.ok(isContextLine(c), c);
+  for (const d of ["Build payment APIs in Go", "You will build the checkout flow with React", "You'll own reliability for the platform", "Work directly with customers to debug issues"]) assert.ok(!isContextLine(d), d);
+  const r = responsibilityOverlap(CONTEXT_POSTING, "Rebuilt the checkout flow in React at Toast");
+  for (const m of [...r.missing, ...r.matched]) assert.doesNotMatch(m, /Head of Engineering|report to|reports to/i);
+});

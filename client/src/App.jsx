@@ -517,7 +517,9 @@ function MarketHeroSlot() {
   const onPatch = boardHeadline?.onPatch;
   return (
     <MarketHero figures={marketFigures(boardHeadline?.facets)} week={isoWeek()} best={best} sectors={sectors} picked={picked}
-      you={sectors.length ? 0 : null}
+      // you are marked in the sector the bearing names (the picked one); the page isn't told the résumé's own sector, so
+      // with none picked there is no beacon and no route rather than a guessed one (R2)
+      you={null}
       onPick={onPatch ? (id) => onPatch({ category: id || "", subcategory: "" }) : undefined}
       onBest={() => document.querySelector("[data-home-deck]")?.scrollIntoView({ behavior: "smooth", block: "start" })}
       onBearing={() => { document.getElementById("bearing")?.scrollIntoView?.({ behavior: "smooth", block: "start" }); document.querySelector("#fh-sentence button")?.focus({ preventScroll: true }); }} />

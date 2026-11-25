@@ -5,7 +5,7 @@
 // ⛔ ONE STATE (d199SentenceAndChipsOneState): the chips are a projection of the SAME params the sentence projects
 // (boardHeadline.params, JobsPanel's committed clauses), and every press writes back through the same onPatch — so changing
 // a chip changes the sentence and the reverse. ⛔ ONE COUNTS SOURCE (d199StatsBoxFollowsFilters, A239): the box's numbers
-// are marketFigures(boardHeadline.facets) — the /api/jobs/facets answer for the list's own querystring.
+// are marketFigures(boardHeadline.facets) — the board's facets answer for the list's own querystring (JobsPanel reads it).
 // Nothing invented (R2): a figure the answer doesn't carry is "—" with the reason for a screen reader, never a 0.
 import { SENTENCE_CLAUSES, sentenceParts } from "../lib/filterSentenceModel.js";
 import { POSTING_AGE, COMPANY_SPONSORSHIP } from "../../../shared/jobFilterOptions.js";

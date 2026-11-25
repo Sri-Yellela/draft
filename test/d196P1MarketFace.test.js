@@ -197,14 +197,14 @@ test("D196 P1 · d196P1HeroHonest — the hero draws only what the board counted
   assert.match(board, /translate\(352 102\)/);
   assert.match(board, /translate\(192 166\)/);
   assert.ok(!/visibility="hidden"/.test(board));
-  const html = renderHero({ figures: { fit: 412, newToday: 179 }, sector: "Data and AI", role: "Data and AI", level: "mid", week: 47 });
-  assert.match(html, /The market/);
-  assert.match(html, /FIT YOUR BEARING/);
-  assert.ok(!html.includes("FILED H-1B"), "a figure the facets didn't count is left out");
-  assert.ok(!html.includes("BEST MATCH"), "no best match known → no tag");
-  assert.match(html, /translate\(480 120\)/, "you are marked in your sector");
-  assert.equal((html.match(/visibility="hidden"/g) || []).length, 2, "no route and no pin without a best match");
-  assert.match(html, /YOU ARE HERE/);
+  // ⭐ D199 C5 / D200 (47h, moved on purpose): the hero is the one-line header beside the political map — the figures are a
+  // line of counts (a missing one left out), the map draws no route without a best match (test/d199Market47h.test.js)
+  const html = renderHero({ figures: { fit: 412, newToday: null }, week: 47, sectors: [{ id: "data", name: "Data and AI", n: 412 }], you: 0 });
+  assert.match(html, /Openings for you/);
+  assert.match(html, /412 fit your bearing</, "a figure the facets didn't count is left out of the line");
+  assert.ok(!html.includes("new today"));
+  assert.ok(!/pl-polmap__route/.test(html), "no best match known → no route");
+  assert.match(html, /data-you=""/, "you are marked in your sector");
   assert.ok(!/Kestrel|Maya|Boston/.test(html), "none of the board's example data reaches the real page");
 });
 
@@ -215,13 +215,14 @@ test("D196 P1 · d196ExistingBubblesAndHoverKept — the tabs hold the app's own
   assert.ok(html.includes("DECK-ELEMENT") && html.includes("BOARD-ELEMENT"), "both views are in the page at once");
   assert.match(html, /data-tab="index"[^>]*>BOARD-ELEMENT|hidden=""[^>]*data-tab="index"/, "the board is mounted while hidden");
   assert.match(html, /role="tab"[^>]*aria-selected="true"[^>]*>.*Deck/s);
-  assert.match(html, /412 FIT YOUR BEARING/);
+  // D199 C1 (47h, moved on purpose): the openings carry no leg header of their own — the one section's head does
   assert.match(html, /NOT YET/, "Terrain says what it waits for instead of drawing positions it can't back");
   const app = read("client/src/App.jsx");
   const fromBoard = app.slice(at(app, "const homeBoard = ("));
   const board = fromBoard.slice(0, at(fromBoard, "</section>"));   // the board element ends at its section
   for (const piece of ["<JobsConsole", "<BoardBar />", "<BoardViews", "<BoardCounts />"]) assert.ok(board.includes(piece), `the board element keeps ${piece}`);
-  assert.ok(app.includes("<MarketOpeningsSlot deck={homeDeck} index={homeBoard} />"), "the plate market passes the SAME elements");
+  // D199 (47h, moved on purpose): the plate market passes the same elements to its ONE section
+  assert.ok(app.includes("<MarketSectionSlot deck={homeDeck} index={homeBoard} />"), "the plate market passes the SAME elements");
   assert.ok(app.includes('<div className="home" data-home="">{homeDeck}{homeBoard}</div>'), "the classic grid renders the same elements");
   const deck = read("client/src/panels/DeckView.jsx");
   assert.ok(deck.includes("if (home && plateMarket) publishFrontCard("), "only the plate market publishes the front card");

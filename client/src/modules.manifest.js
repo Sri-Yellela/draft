@@ -35,7 +35,7 @@ export const MODULES = Object.freeze({
     css: ["components/FullHouse.css"],
     // ⚠ D93: the Customise preview draws the sentence and the bar with this module's classes — a decided reuse
     // (the preview must be the real look, not a copy of it), so it is a member.
-    members: ["App.jsx", "components/BoardBar.jsx", "components/BoardHeadline.jsx", "plate/PlateBearing.jsx" /* D196 P1: the sentence as a cartouche */, "components/SortPanel.jsx", "components/WordPanel.jsx",
+    members: ["App.jsx", "components/BoardBar.jsx", "components/BoardHeadline.jsx", "plate/PlateBearing.jsx" /* D196 P1: the sentence as a cartouche */, "plate/fixtures.jsx" /* D199 (47h): the F5 fixture draws the board's own search field (BoardSearch) in the cartouche */, "components/SortPanel.jsx", "components/WordPanel.jsx",
       "components/CustomisePreview.jsx"] },
   searchBar: { why: "the search suggest and its look — the board's well (BoardBar), the open board, the dock (46v: the landing's bar is gone)",
     css: ["components/UnifiedSearchBar.css"],
