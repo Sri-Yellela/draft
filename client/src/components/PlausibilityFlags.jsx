@@ -12,16 +12,18 @@ import { ts } from "../themes/shapes.js";
 
 const short = (s, n = 90) => { const t = String(s || "").replace(/\s+/g, " ").trim(); return t.length <= n ? t : `${t.slice(0, n).replace(/\s+\S*$/, "")}…`; };
 
-export function PlausibilityFlags({ src, title = "Does your résumé add up?" }) {
-  const [data, setData] = useState(null);
+// D202: `data` — a host that already read the check (the FitCard's Context tab) hands it in; no second request.
+export function PlausibilityFlags({ src, title = "Does your résumé add up?", data: given }) {
+  const [read, setData] = useState(null);
+  const data = given !== undefined ? given : read;
   const [gone, setGone] = useState(() => new Set());
   useEffect(() => {
-    if (!src) return undefined;
+    if (!src || given !== undefined) return undefined;
     let live = true;
     setData(null);
     api(src).then(r => { if (live) setData(r || null); }).catch(() => { if (live) setData(null); });
     return () => { live = false; };
-  }, [src]);
+  }, [src, given !== undefined]);
   const flags = (data?.entries || []).flatMap(e => (e.flags || []).map(f => ({ ...f, employer: e.employer }))).filter(f => !gone.has(f.key));
   if (!flags.length) return null;
   const dismiss = async (key) => {

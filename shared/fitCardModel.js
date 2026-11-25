@@ -23,7 +23,7 @@
 // ⛔ No model (D190): the groups are lookups (shared/techVocabulary.js's groups), the words the scorer's own.
 import { reportAsks } from "./atsReportModel.js";
 import { profileSignalKey } from "./profileSignals.js";
-import { technologiesIn } from "./techVocabulary.js";
+import { technologiesIn, TECHNOLOGIES } from "./techVocabulary.js";
 import { termDisplay } from "./contextualView.js";
 import { experienceState, EXPERIENCE_MARK } from "./atsReportModel.js";
 
@@ -38,12 +38,31 @@ export const FIT_GROUPS = Object.freeze([
 
 /** Which group a scorer term belongs to. A verb is a duty, a quality sits with level and the like; a skill is a
  *  technology when the vocabulary knows it (languages / frameworks, else tools & platforms), else domain knowledge. */
+// The stack vocabulary leaves out what nearly every posting names (HTML, CSS) and some tools no company stack is read for;
+// a posting's ask still has a group. Keys are lower case.
+const FIT_EXTRA = Object.freeze({ html: "lang", css: "lang", html5: "lang", css3: "lang", sass: "lang", webassembly: "lang", wasm: "lang",
+  storybook: "tools", launchdarkly: "tools", figma: "tools", jira: "tools", sentry: "tools", "datadog rum": "tools", vercel: "tools", netlify: "tools" });
+let byName = null;
+function nameGroups() {
+  if (byName) return byName;
+  byName = new Map();
+  for (const [name, group, ...aliases] of TECHNOLOGIES) for (const n of [name, ...aliases]) if (typeof n === "string") byName.set(n.toLowerCase(), group);
+  return byName;
+}
+const asFit = (g) => (g === "languages" || g === "frameworks" || g === "lang" ? "lang" : "tools");
 export function fitGroupOf({ term, kind }) {
   if (kind === "verb") return "duties";
   if (kind === "quality") return "level";
+  const t = String(term || "").toLowerCase().trim();
+  // the term, then its parts ("HTML & CSS", "Rust (WebAssembly)") — a skill the scorer read is a skill, so a context-only
+  // name ("Rust", "Go") counts as the technology here
+  for (const k of [t, ...t.split(/\s*(?:&|\/|,|\(|\)|\band\b)\s*/).filter(Boolean)]) {
+    if (FIT_EXTRA[k]) return FIT_EXTRA[k];
+    const g = nameGroups().get(k);
+    if (g) return asFit(g);
+  }
   const hit = technologiesIn(String(term || ""))[0];
-  if (!hit) return "domain";
-  return hit.group === "languages" || hit.group === "frameworks" ? "lang" : "tools";
+  return hit ? asFit(hit.group) : "domain";
 }
 
 export const termKey = (t) => profileSignalKey(t) || String(t || "").toLowerCase().trim();
@@ -122,9 +141,10 @@ const PART_NAMES = Object.freeze([["skill_match", "Skill match"], ["role_fit", "
 const pctW = (w) => (Number.isFinite(w) ? `${Math.round(w * 100)} %` : "");
 const shareOf = (g) => (Number.isFinite(g?.share) ? g.share : Number.isFinite(g?.postings) && g?.of ? g.postings / g.of : 0);
 const bare = (t) => termDisplay(String(t || "").replace(/^(Apache|Amazon|Google|Microsoft)\s+/, ""));
-const LEVEL = { entry: "entry level", early: "early career", junior: "junior", mid: "mid level", senior: "senior", executive: "executive" };
+const LEVEL = { entry: "entry", early: "early career", junior: "junior", mid: "mid", senior: "senior", staff: "staff", executive: "executive" };
+const cap = (t) => { const x = String(t || ""); return x ? x.charAt(0).toUpperCase() + x.slice(1) : x; };
 const sub = (id) => { const t = String(id || "").split(".").pop().replace(/-/g, " "); return t ? t.charAt(0).toUpperCase() + t.slice(1) : ""; };
-const of = (x, n) => (Number.isFinite(x?.postings) && x?.of ? `in ${x.postings} of ${x.of} postings` : shareOf(x) ? `in ${Math.round(shareOf(x) * 100)} % of their postings` : "");
+const of = (x) => (Number.isFinite(x?.postings) && x?.of ? `in ${x.postings} of ${x.of}` : shareOf(x) ? `in ${Math.round(shareOf(x) * 100)} % of their postings` : "");
 
 /**
  * contextView(contextual) → null | { score, parts: [{ id, name, weight, score }], similar: [string], different: [string],
@@ -144,13 +164,13 @@ export function contextView(contextual, { resumeTech = [] } = {}) {
   const s = c.similarities || {};
   const similar = [];
   const role = c.parts.role_fit;
-  if (role?.status === "ok" && (s.role || []).length) similar.push(`Same role and level: ${[sub(role.posting?.subcategory), LEVEL[role.posting?.level] || ""].filter(Boolean).join(", ")}`);
-  for (const d of s.domains || []) similar.push(`Same domain: ${String(d)}`);
+  if (role?.status === "ok" && (s.role || []).length) similar.push(`Same role and level: ${[sub(role.posting?.subcategory).toLowerCase(), LEVEL[role.posting?.level] || ""].filter(Boolean).join(", ")}`);
+  for (const d of s.domains || []) similar.push(`Same domain signal: ${String(d)}`);
   for (const e of s.ecosystem || []) similar.push(`Ecosystem: you use ${bare(e.yours)}, they use ${bare(e.theirs)}`);
   for (const r of (s.responsibilities || []).slice(0, 3)) similar.push(`Duty you've done: “${String(r).slice(0, 80)}”`);
   const different = [];
   for (const d of c.dissimilarities || []) {
-    if (d.kind === "domain") different.push(`${String(d.theirs)} domain${d.yours?.length ? `: yours is ${d.yours.join(", ")}` : ""}`);
+    if (d.kind === "domain") different.push(`${cap(d.theirs)} domain${d.yours?.length ? `: yours was ${d.yours.join(" and ")}` : ""}`);
     else if (d.kind === "level") different.push(`Level: the job is ${LEVEL[d.posting] || d.posting}, your résumé reads ${LEVEL[d.resume] || d.resume}`);
     else if (d.kind === "role") different.push(`Role: the job is ${sub(d.posting) || "another role"}, your résumé reads ${sub(d.resume) || "another role"}`);
     else if (d.kind === "responsibility") different.push(`Not on your résumé yet: “${String(d.phrase).slice(0, 80)}”`);

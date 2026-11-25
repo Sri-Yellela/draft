@@ -113,6 +113,19 @@ export const PAIRS = {
       if (i === 8) await page.evaluate(() => [...document.querySelectorAll(".pl-xp__opt")].find((b) => b.textContent.includes("Hash map"))?.click()); },
     // where it runs: the board shows the template's "[N]" — the build fills the market's count (never "[N]"): the figure is masked
     ...(i === 7 ? { masks: [[38, 482, 140, 18]] } : {}) }])),
+  // ⭐ D202 (47h, the card lane) · THE FIELD CARD ⇄ THE ATS CARD — the final canvas's ATSCard board, each face and each tab.
+  // The board's own controls are pressed (Turn over, then the tab); the build opens on the same face and tab.
+  ...Object.fromEntries([["front", null], ["words", "Every word"], ["context", "Context"], ["claim", "You could claim"], ["hist", "History"]].map(([k, tab]) => [`fit-${k}`, {
+    source: "final", board: "ATSCard", fixture: { front: "FitCardFront", words: "FitCardWords", context: "FitCardContext", claim: "FitCardClaim", hist: "FitCardHistory" }[k],
+    boardSel: tab ? 'article[aria-label="The ATS card: your résumé against this job"]' : 'article[aria-label="Field card: why this opening fits you"]',
+    buildSel: tab ? 'article[aria-label="The ATS card: your résumé against this job"]' : 'aside[aria-label="Why this opening fits you"]',
+    pad: 6, reduced: true, subpixel: true,
+    ...(tab ? { boardPrep: async (page) => {
+      await page.evaluate(() => [...document.querySelectorAll("button")].find((b) => b.textContent.includes("Turn over"))?.click());
+      await new Promise((r) => setTimeout(r, 300));
+      await page.evaluate((t) => [...document.querySelectorAll('button[role="tab"]')].find((b) => b.textContent.includes(t))?.click(), tab);
+      await new Promise((r) => setTimeout(r, 300)); } } : {}),
+  }])),
 };
 // D198 (47h): the explainer's oracle — v4's export holds only the two explainer pages (A236), so it is not a SOURCES drawing set
 const XP_SOURCE = { file: path.join(ROOT, "docs", "sketches", "Atlas plate system v4.html"), out: path.join(ROOT, "tmp", "d196-canvas-v4"), name: "docs/sketches/Atlas plate system v4.html" };

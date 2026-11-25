@@ -8,23 +8,24 @@ import { Stamp } from "./Marks.jsx";
  * `figures` = { label, value } (D192's contextual parts, e.g. "ROLE FIT · STACK · DUTIES" / "88 · 75 · 72").
  * partial: a list with no data says so; nothing is invented.
  */
-export function FieldCard({ kicker = "FIELD CARD · WHY IT FITS", note = "NO AI", alike = [], gaps = [], figures, className = "", ...s }) {
+export function FieldCard({ kicker = "FIELD CARD · WHY IT FITS", note = "NO AI", alike = [], gaps = [], figures, className = "", lead = null, foot = null, groupRule = true, inlineLinks = false, ...s }) {   // D202: lead / foot — FitCard's count on top, its Turn over below
   const gate = plateState(s, { height: 300, radius: "plate", label: "Loading why it fits", lines: 4 });
   if (gate) return gate;
   return (
     <aside className={`pl-card pl-fieldcard ${className}`.trim()} aria-label="Why this opening fits you">
       <div className="pl-card__strip"><span className="pl-label">{kicker}</span>{note ? <span className="pl-label pl-muted">{note}</span> : null}</div>
       <div className="pl-card__body">
+        {lead ? <>{lead}<div className="pl-card__rule"/></> : null}
         <div className="pl-card__group">
           <span className="pl-label pl-tone-lit">LINES UP</span>
           {alike.length ? alike.map((a, i) => <div key={i} className="pl-card__item"><span aria-hidden="true" className="pl-card__mark"/><span>{a}</span></div>) : <NoData/>}
         </div>
-        <div className="pl-card__rule"/>
+        {groupRule ? <div className="pl-card__rule"/> : null}
         <div className="pl-card__group">
           <span className="pl-label pl-tone-clay">DOESN’T, YET</span>
           {gaps.length ? gaps.map((g, i) => (
             <div key={i} className="pl-card__item"><span aria-hidden="true" className="pl-card__mark" data-yet=""/>
-              <span>{g.text}{g.link ? <a href={g.link.href} style={{ display: "block", fontWeight: 700 }}>{g.link.label}</a> : null}</span></div>
+              <span>{g.text}{g.link ? <>{inlineLinks ? " " : null}<a href={g.link.href} style={{ display: inlineLinks ? "inline" : "block", fontWeight: 700 }}>{g.link.label}</a></> : null}</span></div>
           )) : <NoData>NOTHING MISSING</NoData>}
         </div>
         {figures ? <>
@@ -41,6 +42,7 @@ export function FieldCard({ kicker = "FIELD CARD · WHY IT FITS", note = "NO AI"
             </dl>
           ) : <div className="pl-card__foot"><span className="pl-label pl-muted">{figures.label}</span><span className="pl-card__num">{figures.value ?? "—"}</span></div>}
         </> : null}
+        {foot}
       </div>
     </aside>
   );

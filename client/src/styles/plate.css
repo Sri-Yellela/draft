@@ -122,6 +122,8 @@
   --pl-t-xp-quote: calc(30px * var(--pl-scale));   /* D198: the usual answer — the ticket's quote (serif) */
   --pl-t-xp-head: calc(8.5px * var(--pl-scale));   /* D198: the cost table's ink header */
   --pl-t-xp-tiny: calc(7.5px * var(--pl-scale));   /* D198: the one-word reasons, the small print */
+  --pl-t-30: calc(30px * var(--pl-scale));         /* D202: the ATS card's heading, the contextual score (ATSCard board) */
+  --pl-t-key: calc(9px * var(--pl-scale));          /* D202: the bar's key, the score labels (ATSCard board) */
   --pl-track-mono: .12em;
   --pl-track-tag: .08em;
   --pl-track-stamp: .16em;
@@ -168,6 +170,7 @@
   --pl-r-plate: 20px;  /* field card, onward ticket, dock rail */
   --pl-r-sheet: 22px;  /* opening ticket, cartouche */
   --pl-r-hero: 24px;   /* hero plate, the question */
+  --pl-r-bar: 4px;     /* D202: the ATS card's 12 px bar (ATSCard board) */
 
   /* ── Space and layout (report § Layout) ── */
   --pl-page: 1280px;
