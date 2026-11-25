@@ -66,7 +66,10 @@ test("d152DockLeftWithLogo / d153DockPushes / d152DockSlidesFromLeftEdge (real C
     // ⭐ D167 (owner 11-06, changed on purpose): six places — + Interview, and Ask draft after the divider.
     // 45n (pin brought to the code in 45o): the dock's search icon comes first.
     // ⭐ owner 11-15: Tiny replaces Ask draft, floating (changed on purpose) — "ask" left the dock (a fox bubble instead).
-    assert.deepEqual(d.items, ["search", "today", "auto-apply", "atlas", "interview", "profile"], `${size}: search · draft · Home · Atlas · Interview · Profile`);
+    // ⭐ D197 #1 (the Shell board, changed on purpose): the dock's search moved into the area nav (Ctrl K; the phone's top
+    // bar), and the rail draws Ask draft after its rule (it opens Tiny); the phone's bottom bar has no Ask draft.
+    const want = ["today", "auto-apply", "atlas", "interview", "profile", ...(size === "phone" ? [] : ["ask"])];
+    assert.deepEqual(d.items, want, `${size}: ${want.join(" · ")}`);
     assert.equal(d.current, "today");
     assert.ok(d.rest.dock.left >= 0 && d.rest.dock.width > 0, `${size}: the rail is on screen at rest`);
     assert.equal(d.out.coversDeck, false, `${size}: the dock never covers the deck`);
