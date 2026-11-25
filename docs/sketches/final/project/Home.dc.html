@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Atlas home: Volume I, Computing</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&amp;family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F4EFE9}
+a{color:#C2593A}a:hover{color:#AD4C30}
+button{font-family:inherit}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #C2593A;outline-offset:3px}
+@keyframes atTape{0%{opacity:0;transform:rotate(-2deg) translateY(28px) rotateX(70deg)}100%{opacity:1;transform:rotate(-2deg)}}
+@keyframes atBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes atDrop{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+@keyframes atDraw{to{stroke-dashoffset:0}}
+@keyframes atMarch{to{stroke-dashoffset:-28}}
+@keyframes atDrift{0%,100%{transform:translate(0,0)}50%{transform:translate(-10px,6px)}}
+@keyframes atTick{0%,100%{opacity:.25}50%{opacity:1}}
+.at-tape{display:inline-block;animation:atTape .55s cubic-bezier(.2,.8,.2,1) both;transform-origin:50% 100%}
+.at-bob1{animation:atBob 5.5s ease-in-out infinite}
+.at-bob2{animation:atBob 6.5s ease-in-out .8s infinite}
+.at-bob3{animation:atBob 6s ease-in-out 1.6s infinite}
+.at-drop{animation:atDrop .28s ease-out both}
+.at-draw{stroke-dasharray:900;stroke-dashoffset:900;animation:atDraw 3.2s cubic-bezier(.4,0,.2,1) .3s forwards}
+.at-march{animation:atMarch 1.4s linear infinite}
+.at-drift{animation:atDrift 18s ease-in-out infinite}
+.at-tick{animation:atTick 1.2s ease-in-out infinite}
+.at-plate{transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
+.at-plate:hover{transform:translate(-3px,-3px);box-shadow:7px 7px 0 #1B1B1B}
+.at-link:hover{background:#EDE5DE}
+@media (max-width: 980px){.at-hide-sm{display:none}}
+@media (prefers-reduced-motion: reduce){.at-tape,.at-bob1,.at-bob2,.at-bob3,.at-drop,.at-march,.at-drift,.at-tick{animation:none}.at-draw{animation:none;stroke-dashoffset:0}}
+</style>
+</helmet>
+
+<div style="min-height: 100vh; background: #F4EFE9; color: #1B1B1B; font-family: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 1.5">
+
+<!-- ================= NAV ================= -->
+<header style="position: relative; z-index: 30; background: #F4EFE9">
+  <div style="max-width: 1280px; margin: 0 auto; padding: 12px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px">
+    <a href="#top" style="display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: #1B1B1B; margin-right: 14px">
+      <svg aria-hidden="true" width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="15.5" fill="#1B1B1B"></circle><g fill="none" stroke="#F4EFE9" stroke-width="1"><ellipse cx="17" cy="17" rx="6" ry="15.5"></ellipse><path d="M1.5 17 H32.5 M4 9.5 H30 M4 24.5 H30"></path></g><path d="M17 5 L20 17 L17 29 L14 17 Z" fill="#C2593A" stroke="#F4EFE9" stroke-width="1"></path></svg>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; line-height: 1; letter-spacing: -0.01em">Atlas</span>
+    </a>
+    <button type="button" onClick="{{ toggleVol }}" aria-expanded="{{ volOpen }}" style="all: unset; cursor: pointer; box-sizing: border-box; display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px 0 6px; border-radius: 12px; border: 1.5px solid #1B1B1B; background: {{ volBg }}; box-shadow: {{ volShadow }}">
+      <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; background: #1B1B1B; color: #F4EFE9; padding: 5px 7px; border-radius: 7px">VOL. I</span>
+      <span style="font-size: 14.5px; font-weight: 700">Computing</span>
+      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1B1B1B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="{{ volChevron }}"></path></svg>
+    </button>
+    <nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px; margin-left: 10px">
+      <a href="Map.dc.html" class="at-link" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14.5px; font-weight: 500"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B1B1B" stroke-width="1.8" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14"></path></svg>Your map</a>
+      <a href="Library.dc.html" class="at-link" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14.5px; font-weight: 500"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B1B1B" stroke-width="1.8" stroke-linejoin="round"><path d="M4 4h5v16H4z M10 4h4v16h-4z M15.5 5l3.8-1 2.7 15.5-3.8 1z"></path></svg>Library</a>
+      <a href="#top" class="at-link" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14.5px; font-weight: 500"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B1B1B" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14 M12 17.5v.01"></path></svg>Today’s question</a>
+      <a href="#top" class="at-link" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14.5px; font-weight: 500"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B1B1B" stroke-width="1.8" stroke-linejoin="round"><path d="M7 4h10v4a5 5 0 0 1-10 0z M5 5H3v1a4 4 0 0 0 4 4 M19 5h2v1a4 4 0 0 1-4 4 M12 13v4 M8 20h8"></path></svg>League</a>
+      <button type="button" onClick="{{ toggleMore }}" aria-expanded="{{ moreOpen }}" class="at-link" style="all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #1B1B1B; font-size: 14.5px; font-weight: 500; box-sizing: border-box">More <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1B1B1B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="{{ moreChevron }}"></path></svg></button>
+    </nav>
+    <div style="flex: 1 1 200px; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px">
+      <label style="display: inline-flex; align-items: center; gap: 8px; height: 44px; box-sizing: border-box; padding: 0 6px 0 12px; border-radius: 12px; border: 1.5px solid #1B1B1B; background: #FFFFFF; cursor: text">
+        <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1B1B1B" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Make sense of anything</span>
+        <input type="search" placeholder="Make sense of…" style="border: 0; background: transparent; font: inherit; font-size: 14px; color: #1B1B1B; width: 120px; outline: none">
+        <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; color: #1B1B1B; background: #F4EFE9; border: 1px solid #1B1B1B; border-radius: 6px; padding: 2px 6px">Ctrl K</span>
+      </label>
+      <a href="#top" aria-label="Your run: 5 of 7 days lit this week" style="display: inline-flex; align-items: center; gap: 3px; height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 12px; border: 1.5px solid #1B1B1B; background: #FFFFFF; text-decoration: none; color: #1B1B1B">
+        <span style="width: 10px; height: 10px; border-radius: 2px; background: #3E6B5A; border: 1px solid #1B1B1B"></span><span style="width: 10px; height: 10px; border-radius: 2px; background: #3E6B5A; border: 1px solid #1B1B1B"></span><span style="width: 10px; height: 10px; border-radius: 2px; background: #3E6B5A; border: 1px solid #1B1B1B"></span><span style="width: 10px; height: 10px; border-radius: 2px; background: #3E6B5A; border: 1px solid #1B1B1B"></span><span style="width: 10px; height: 10px; border-radius: 2px; background: #3E6B5A; border: 1px solid #1B1B1B"></span><span class="at-tick" style="width: 10px; height: 10px; border-radius: 2px; background: #C2593A; border: 1px solid #1B1B1B"></span><span style="width: 10px; height: 10px; border-radius: 2px; background: #FFFFFF; border: 1px solid #1B1B1B"></span>
+        <span style="margin-left: 7px; font-size: 13px; font-weight: 700">5</span>
+      </a>
+      <a href="#top" aria-label="Your profile" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 12px; border: 1.5px solid #1B1B1B; background: #C2593A; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; font-weight: 800; font-size: 14px">DG</a>
+    </div>
+  </div>
+  <!-- map-scale ruler -->
+  <div aria-hidden="true" style="height: 12px; border-top: 1.5px solid #1B1B1B; background-image: repeating-linear-gradient(90deg, #1B1B1B 0 1px, transparent 1px 80px), repeating-linear-gradient(90deg, #1B1B1B 0 1px, transparent 1px 16px); background-size: 100% 12px, 100% 5px; background-repeat: no-repeat"></div>
+
+  <!-- Volumes panel -->
+  <sc-if value="{{ volOpen }}" hint-placeholder-val="{{ false }}">
+    <div class="at-drop" style="position: absolute; left: 24px; right: 24px; top: 78px; max-width: 1232px; margin: 0 auto; background: #FFFFFF; border: 1.5px solid #1B1B1B; border-radius: 20px; box-shadow: 8px 8px 0 #1B1B1B; display: flex; flex-wrap: wrap; overflow: hidden">
+      <div style="flex: 1 1 260px; max-width: 300px; background: #1B1B1B; color: #F4EFE9; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+        <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: .14em; color: #B7AEA7">THE VOLUMES</span>
+        <button type="button" aria-pressed="true" style="all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 14px; background: #C2593A">
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700">VOL. I</span>
+          <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 26px; line-height: 1">Computing</span>
+          <span style="font-size: 12.5px; opacity: .9">From silicon to software · 8 regions · 108 lessons</span>
+        </button>
+        <button type="button" aria-pressed="false" style="all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 14px; border: 1.5px dashed #6F6964">
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #B7AEA7">VOL. II · IN PREPARATION</span>
+          <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 26px; line-height: 1; color: #D9D2CC">[Next field]</span>
+          <span style="font-size: 12.5px; color: #B7AEA7">Drawn on the same map, when it’s ready</span>
+        </button>
+      </div>
+      <div style="flex: 999 1 560px; padding: 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px">
+        <sc-for list="{{ regions }}" as="r" hint-placeholder-count="8">
+          <a href="Map.dc.html" class="at-link" style="display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 14px; text-decoration: none; color: #1B1B1B">
+            <dc-import name="Emblem" kind="{{ r.kind }}" size="{{ 56 }}" hint-size="56px,56px"></dc-import>
+            <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+              <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; color: {{ r.color }}">PL. {{ r.roman }}</span>
+              <span style="font-size: 14px; font-weight: 700; line-height: 1.2">{{ r.name }}</span>
+              <span style="font-size: 12px; color: #6F6964">{{ r.lit }} of {{ r.total }} lit</span>
+            </span>
+          </a>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ moreOpen }}" hint-placeholder-val="{{ false }}">
+    <div class="at-drop" style="position: absolute; left: 50%; top: 78px; width: 560px; max-width: calc(100% - 48px); transform: translateX(-20%); background: #FFFFFF; border: 1.5px solid #1B1B1B; border-radius: 18px; box-shadow: 8px 8px 0 #1B1B1B; padding: 18px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; color: #C2593A; padding: 0 10px 6px">GROW</span><a href="#top" class="at-link" style="padding: 8px 10px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14px">The audit</a><a href="#top" class="at-link" style="padding: 8px 10px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14px">How it works</a></div>
+      <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; color: #C2593A; padding: 0 10px 6px">COMPETE</span><a href="#top" class="at-link" style="padding: 8px 10px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14px">Challenges</a></div>
+      <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; color: #C2593A; padding: 0 10px 6px">EXPLORE</span><a href="#top" class="at-link" style="padding: 8px 10px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14px">Roles and skills</a><a href="#top" class="at-link" style="padding: 8px 10px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14px">This week’s market</a><a href="#top" class="at-link" style="padding: 8px 10px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14px">Glossary</a></div>
+    </div>
+  </sc-if>
+</header>
+
+<!-- ================= HERO ================= -->
+<section id="top" style="max-width: 1280px; margin: 0 auto; padding: 44px 24px 56px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 40px; align-items: center">
+  <div style="flex: 1 1 400px; min-width: 0; display: flex; flex-direction: column; gap: 22px">
+    <span style="display: inline-flex; align-self: flex-start; align-items: center; gap: 10px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11.5px; font-weight: 700; letter-spacing: .12em">
+      <span style="background: #1B1B1B; color: #F4EFE9; padding: 5px 8px; border-radius: 6px">VOL. I</span>COMPUTING · MORE VOLUMES IN PREPARATION
+    </span>
+    <h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 82px; line-height: .95; letter-spacing: -0.02em">Find your way<br>through
+      <span style="display: block; height: 104px; perspective: 600px; margin-top: 8px">
+        <sc-if value="{{ p0 }}" hint-placeholder-val="{{ true }}"><span class="at-tape" style="background: #C2593A; color: #FFFFFF; padding: 2px 18px 10px; border: 1.5px solid #1B1B1B; box-shadow: 6px 6px 0 #1B1B1B; font-style: italic">computers.</span></sc-if>
+        <sc-if value="{{ p1 }}" hint-placeholder-val="{{ false }}"><span class="at-tape" style="background: #1F3A63; color: #FFFFFF; padding: 2px 18px 10px; border: 1.5px solid #1B1B1B; box-shadow: 6px 6px 0 #1B1B1B; font-style: italic">the internet.</span></sc-if>
+        <sc-if value="{{ p2 }}" hint-placeholder-val="{{ false }}"><span class="at-tape" style="background: #6A3E73; color: #FFFFFF; padding: 2px 18px 10px; border: 1.5px solid #1B1B1B; box-shadow: 6px 6px 0 #1B1B1B; font-style: italic">money.</span></sc-if>
+        <sc-if value="{{ p3 }}" hint-placeholder-val="{{ false }}"><span class="at-tape" style="background: #7A5A2A; color: #FFFFFF; padding: 2px 18px 10px; border: 1.5px solid #1B1B1B; box-shadow: 6px 6px 0 #1B1B1B; font-style: italic">the physical world.</span></sc-if>
+        <sc-if value="{{ p4 }}" hint-placeholder-val="{{ false }}"><span class="at-tape" style="background: #5A5F2E; color: #FFFFFF; padding: 2px 18px 10px; border: 1.5px solid #1B1B1B; box-shadow: 6px 6px 0 #1B1B1B; font-style: italic">AI.</span></sc-if>
+      </span>
+    </h1>
+    <p style="margin: 0; max-width: 470px; font-size: 17px; color: #3F3A36">Every field is a territory. Atlas draws it as a map you walk lesson by lesson, and a square lights up only when you can explain what you learned.</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 12px">
+      <a href="Map.dc.html" style="display: inline-flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 8px 0 20px; border-radius: 14px; border: 1.5px solid #1B1B1B; background: #1B1B1B; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 15px; box-shadow: 4px 4px 0 #C2593A">Resume the route <span style="width: 36px; height: 36px; border-radius: 10px; background: #C2593A; display: inline-flex; align-items: center; justify-content: center">→</span></a>
+      <a href="Map.dc.html" style="display: inline-flex; align-items: center; min-height: 52px; padding: 0 20px; border-radius: 14px; border: 1.5px solid #1B1B1B; background: #FFFFFF; color: #1B1B1B; text-decoration: none; font-weight: 700; font-size: 15px">Open the atlas</a>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 0; border: 1.5px solid #1B1B1B; border-radius: 14px; overflow: hidden; align-self: flex-start; background: #FFFFFF">
+      <span style="padding: 10px 16px; border-right: 1.5px solid #1B1B1B"><span style="display: block; font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; line-height: 1">8</span><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; letter-spacing: .1em; color: #55504C">REGIONS</span></span>
+      <span style="padding: 10px 16px; border-right: 1.5px solid #1B1B1B"><span style="display: block; font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; line-height: 1">108</span><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; letter-spacing: .1em; color: #55504C">LESSONS</span></span>
+      <span style="padding: 10px 16px"><span style="display: block; font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; line-height: 1">13</span><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; letter-spacing: .1em; color: #55504C">FIELD NOTES</span></span>
+    </div>
+  </div>
+
+  <!-- The plate -->
+  <figure style="flex: 1 1 560px; min-width: 0; margin: 0">
+    <div style="position: relative; aspect-ratio: 640 / 520; border: 1.5px solid #1B1B1B; border-radius: 22px; background: #FBF8F4; box-shadow: 10px 10px 0 #1B1B1B; overflow: hidden">
+      <svg role="img" aria-label="Plate of Volume I: five regions, a route walked from Flashlights to the first CPU up to Designing the arithmetic brain, with more stops ahead in Systems and networks and Intelligence" viewBox="0 0 640 520" width="100%" height="100%" style="position: absolute; inset: 0; display: block">
+        <defs>
+          <pattern id="atHatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V6" stroke="#D9CBBE" stroke-width="1.2"></path></pattern>
+          <pattern id="atDots" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#C9D2DF"></circle></pattern>
+        </defs>
+        <!-- regions -->
+        <path d="M0 0 H330 C320 90 270 150 200 172 C130 192 60 176 0 150 Z" fill="#F5E2D6"></path>
+        <path d="M0 330 C90 300 180 330 228 396 C262 444 254 500 262 520 H0 Z" fill="#F6E1D8"></path>
+        <path d="M228 396 C196 318 254 246 336 236 C420 226 474 282 476 342 C478 414 404 454 334 454 C290 454 252 432 228 396 Z" fill="#DFE6F0"></path>
+        <path d="M228 396 C196 318 254 246 336 236 C420 226 474 282 476 342 C478 414 404 454 334 454 C290 454 252 432 228 396 Z" fill="url(#atDots)"></path>
+        <path d="M420 0 H640 V270 C584 290 510 270 478 236 C436 192 420 110 420 0 Z" fill="#E9EBDB"></path>
+        <path d="M476 342 C526 320 590 330 640 364 V520 H420 C432 462 452 386 476 342 Z" fill="#EDE2EF"></path>
+        <path d="M0 150 C60 176 130 192 200 172 C230 200 240 240 228 300 C150 290 70 300 0 330 Z" fill="url(#atHatch)"></path>
+        <!-- contours -->
+        <g class="at-drift" fill="none" stroke="#CDBFB3" stroke-width="0.9">
+          <path d="M-20 260 C80 220 160 250 220 210 C290 160 380 190 440 150 C500 110 560 130 660 90"></path>
+          <path d="M-20 292 C90 250 170 286 236 246 C300 206 390 230 452 194 C520 156 580 170 660 132"></path>
+          <path d="M-20 480 C100 450 190 470 260 480 C340 492 420 470 500 480 C560 488 610 470 660 476"></path>
+          <path d="M470 60 C520 40 580 60 600 100 C620 140 590 190 540 196 C490 202 456 170 452 130 C448 96 450 70 470 60 Z"></path>
+          <path d="M500 84 C530 72 566 86 576 110 C586 138 566 166 536 168 C506 170 486 150 484 126 C482 104 488 90 500 84 Z"></path>
+          <path d="M520 104 C536 98 554 106 558 120 C562 136 550 148 534 148 C518 148 508 138 508 124 C508 114 512 108 520 104 Z" stroke="#9FA67A" stroke-width="1.3"></path>
+        </g>
+        <!-- grid -->
+        <g stroke="#1B1B1B" stroke-width="0.6" opacity=".18"><path d="M128 0V520M256 0V520M384 0V520M512 0V520M0 104H640M0 208H640M0 312H640M0 416H640"></path></g>
+        <!-- edge ticks -->
+        <g fill="#1B1B1B" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700">
+          <text x="60" y="18">A</text><text x="188" y="18">B</text><text x="316" y="18">C</text><text x="444" y="18">D</text><text x="572" y="18">E</text>
+          <text x="10" y="58">1</text><text x="10" y="162">2</text><text x="10" y="266">3</text><text x="10" y="370">4</text><text x="10" y="474">5</text>
+        </g>
+        <!-- region names -->
+        <g font-family="Instrument Serif, Georgia, serif" font-style="italic" fill="#1B1B1B" letter-spacing="3">
+          <text x="44" y="78" font-size="17">ALGORITHMS</text>
+          <text x="30" y="500" font-size="17">FOUNDATIONS</text>
+          <text x="262" y="296" font-size="16">SYSTEMS &amp; NETWORKS</text>
+          <text x="470" y="250" font-size="17">INTELLIGENCE</text>
+          <text x="470" y="500" font-size="16">SECURITY &amp; MONEY</text>
+        </g>
+        <!-- walked route -->
+        <path d="M104 446 C130 424 146 398 168 382 C192 364 216 346 238 332" fill="none" stroke="#1B1B1B" stroke-width="6" stroke-linecap="round"></path>
+        <path class="at-draw" d="M104 446 C130 424 146 398 168 382 C192 364 216 346 238 332" fill="none" stroke="#3E6B5A" stroke-width="3.5" stroke-linecap="round"></path>
+        <!-- route ahead -->
+        <path class="at-march" d="M238 332 C270 312 300 296 332 300 C360 304 376 322 392 332 C430 300 460 230 486 196 C502 176 516 160 528 150" fill="none" stroke="#C2593A" stroke-width="3" stroke-dasharray="7 7" stroke-linecap="round"></path>
+        <path d="M392 332 C430 360 470 400 520 418" fill="none" stroke="#1B1B1B" stroke-width="1.6" stroke-dasharray="2 5" stroke-linecap="round"></path>
+        <!-- landmarks -->
+        <g stroke="#1B1B1B" stroke-width="1.6">
+          <circle cx="104" cy="446" r="8" fill="#3E6B5A"></circle>
+          <circle cx="168" cy="382" r="8" fill="#3E6B5A"></circle>
+          <circle cx="332" cy="300" r="7" fill="#FFFFFF"></circle>
+          <circle cx="392" cy="332" r="7" fill="#FFFFFF"></circle>
+          <rect x="520" y="142" width="16" height="16" rx="3" fill="#FFFFFF" transform="rotate(45 528 150)"></rect>
+          <circle cx="520" cy="418" r="6" fill="#FFFFFF" stroke-dasharray="2 2"></circle>
+        </g>
+        <g fill="#FFFFFF" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"><path d="M100 446 l3 3 l5 -6 M164 382 l3 3 l5 -6" fill="none"></path></g>
+        <!-- you are here -->
+        <circle cx="238" cy="332" r="10" fill="none" stroke="#C2593A" stroke-width="2"><animate attributeName="r" values="10;30" dur="2s" repeatCount="indefinite"></animate><animate attributeName="opacity" values="1;0" dur="2s" repeatCount="indefinite"></animate></circle>
+        <circle cx="238" cy="332" r="10" fill="#C2593A" stroke="#1B1B1B" stroke-width="2"></circle>
+        <circle cx="238" cy="332" r="3.5" fill="#FFFFFF"></circle>
+        <g font-family="Inter Tight, sans-serif" font-size="11.5" font-weight="700" fill="#1B1B1B">
+          <text x="118" y="462">Flashlights to the first CPU</text>
+          <text x="66" y="372">Lovelace, Babbage</text>
+          <text x="344" y="290">Polling</text>
+          <text x="404" y="348">Webhooks</text>
+          <text x="544" y="146">Attention</text>
+          <text x="532" y="436">Card payments</text>
+        </g>
+        <!-- compass -->
+        <g transform="translate(588 64)">
+          <circle r="26" fill="#FFFFFF" stroke="#1B1B1B" stroke-width="1.4"></circle>
+          <circle r="20" fill="none" stroke="#1B1B1B" stroke-width=".6" stroke-dasharray="1 3"></circle>
+          <path d="M0 -22 L5 0 L0 22 L-5 0 Z" fill="#1B1B1B"></path>
+          <path d="M0 -22 L5 0 L-5 0 Z" fill="#C2593A"></path>
+          <path d="M-22 0 L0 4 L22 0 L0 -4 Z" fill="#1B1B1B" opacity=".35"></path>
+          <text y="-30" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700" fill="#1B1B1B">N</text>
+        </g>
+        <!-- scale bar -->
+        <g transform="translate(470 470)" font-family="JetBrains Mono, monospace" font-size="8.5" fill="#1B1B1B">
+          <rect x="0" y="0" width="30" height="6" fill="#1B1B1B"></rect><rect x="30" y="0" width="30" height="6" fill="#FFFFFF" stroke="#1B1B1B"></rect><rect x="60" y="0" width="30" height="6" fill="#1B1B1B"></rect><rect x="90" y="0" width="30" height="6" fill="#FFFFFF" stroke="#1B1B1B"></rect>
+          <text x="0" y="18">0</text><text x="56" y="18">4</text><text x="104" y="18">8 lessons</text>
+        </g>
+      </svg>
+
+      <!-- callout tags pinned to landmarks -->
+      <div class="at-bob1 at-hide-sm" style="position: absolute; left: 30%; top: 70%; width: 186px; background: #FFFFFF; border: 1.5px solid #1B1B1B; border-radius: 12px; box-shadow: 4px 4px 0 #1B1B1B; padding: 10px 12px">
+        <span style="display: block; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9.5px; font-weight: 700; letter-spacing: .12em; color: #C2593A">YOU ARE HERE</span>
+        <span style="display: block; font-size: 13px; font-weight: 700; line-height: 1.25; margin: 2px 0 6px">Designing the arithmetic brain</span>
+        <span style="display: flex; gap: 3px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #3E6B5A; border: 1px solid #1B1B1B"></span><span style="width: 10px; height: 10px; border-radius: 2px; background: #3E6B5A; border: 1px solid #1B1B1B"></span><span style="width: 10px; height: 10px; border-radius: 2px; background: #3E6B5A; border: 1px solid #1B1B1B"></span><span style="width: 10px; height: 10px; border-radius: 2px; background: #3E6B5A; border: 1px solid #1B1B1B"></span><span style="width: 10px; height: 10px; border-radius: 2px; background: #3E6B5A; border: 1px solid #1B1B1B"></span><span style="width: 10px; height: 10px; border-radius: 2px; background: #3E6B5A; border: 1px solid #1B1B1B"></span><span style="width: 10px; height: 10px; border-radius: 2px; background: #3E6B5A; border: 1px solid #1B1B1B"></span><span style="width: 10px; height: 10px; border-radius: 2px; background: #FFFFFF; border: 1px solid #1B1B1B"></span><span style="width: 10px; height: 10px; border-radius: 2px; background: #FFFFFF; border: 1px solid #1B1B1B"></span><span style="width: 10px; height: 10px; border-radius: 2px; background: #FFFFFF; border: 1px solid #1B1B1B"></span><span style="width: 10px; height: 10px; border-radius: 2px; background: #FFFFFF; border: 1px solid #1B1B1B"></span></span>
+      </div>
+      <div class="at-bob2 at-hide-sm" style="position: absolute; left: 56%; top: 47%; width: 156px; background: #1F3A63; color: #FFFFFF; border: 1.5px solid #1B1B1B; border-radius: 12px; box-shadow: 4px 4px 0 #1B1B1B; padding: 10px 12px">
+        <span style="display: block; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9.5px; font-weight: 700; letter-spacing: .12em; color: #AEBBD0">NEXT · WEBHOOKS</span>
+        <span style="display: block; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11.5px; margin-top: 4px">POST /hook <span style="color: #F2C14E">→</span> 200 OK</span>
+      </div>
+      <div class="at-bob3 at-hide-sm" style="position: absolute; left: 62%; top: 9%; width: 150px; background: #FFFFFF; border: 1.5px solid #1B1B1B; border-radius: 12px; box-shadow: 4px 4px 0 #1B1B1B; padding: 10px 12px">
+        <span style="display: block; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9.5px; font-weight: 700; letter-spacing: .12em; color: #5A5F2E">AHEAD · ATTENTION</span>
+        <span style="display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px"><span style="padding: 2px 5px; border: 1px solid #1B1B1B; border-radius: 4px; background: #E9EBDB">the</span><span style="padding: 2px 5px; border: 1px solid #1B1B1B; border-radius: 4px; background: #5A5F2E; color: #FFFFFF">cat</span><span style="padding: 2px 5px; border: 1px solid #1B1B1B; border-radius: 4px; background: #E9EBDB">sat</span></span>
+      </div>
+    </div>
+    <figcaption style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; margin-top: 16px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .08em; color: #55504C">
+      <span>PLATE I · VOLUME I, COMPUTING</span><span>— walked   - - ahead   ◆ summit</span>
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ================= REGIONS ================= -->
+<section style="border-top: 1.5px solid #1B1B1B; background: #EFE8E1">
+  <div style="max-width: 1280px; margin: 0 auto; padding: 48px 24px 64px; box-sizing: border-box">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 28px">
+      <div>
+        <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11.5px; font-weight: 700; letter-spacing: .12em; color: #C2593A">THE REGIONS OF VOLUME I</span>
+        <h2 style="margin: 6px 0 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 52px; line-height: 1">Eight plates, one territory</h2>
+      </div>
+      <p style="margin: 0; max-width: 360px; font-size: 14.5px; color: #3F3A36">Each region opens on its own terrain. Squares stay dark until you’ve explained the lesson in your own words.</p>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 22px">
+      <sc-for list="{{ regions }}" as="r" hint-placeholder-count="8">
+        <a href="Map.dc.html" class="at-plate" style="position: relative; display: flex; flex-direction: column; text-decoration: none; color: #1B1B1B; background: #FFFFFF; border: 1.5px solid #1B1B1B; border-radius: 20px; box-shadow: 4px 4px 0 #1B1B1B; overflow: hidden">
+          <span style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1.5px solid #1B1B1B; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .1em">
+            <span>PLATE {{ r.roman }}</span><span style="color: {{ r.color }}">{{ r.lit }}/{{ r.total }}</span>
+          </span>
+          <span style="display: flex; justify-content: center; padding: 18px 0 14px; background: {{ r.tint }}">
+            <dc-import name="Emblem" kind="{{ r.kind }}" size="{{ 132 }}" hint-size="132px,132px"></dc-import>
+          </span>
+          <span style="display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 16px; border-top: 1.5px solid #1B1B1B">
+            <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 27px; line-height: 1">{{ r.name }}</span>
+            <span style="display: flex; flex-wrap: wrap; gap: 3px">
+              <sc-for list="{{ r.squares }}" as="sq" hint-placeholder-count="11">
+                <span style="width: 11px; height: 11px; border-radius: 2px; border: 1px solid #1B1B1B; background: {{ sq.bg }}"></span>
+              </sc-for>
+            </span>
+            <span style="font-size: 12.5px; color: #55504C">{{ r.blurb }}</span>
+          </span>
+          <sc-if value="{{ r.isStart }}" hint-placeholder-val="{{ false }}">
+            <span style="position: absolute; top: 52px; right: 12px; transform: rotate(8deg); font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; color: #C2593A; border: 2px solid #C2593A; border-radius: 6px; padding: 4px 8px; background: #FFFFFF">BEGIN HERE</span>
+          </sc-if>
+        </a>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer style="background: #1B1B1B; color: #D9D2CC; border-top: 1.5px solid #1B1B1B">
+  <div style="max-width: 1280px; margin: 0 auto; padding: 48px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 32px 56px; align-items: flex-start">
+    <div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 40px; color: #FFFFFF; line-height: 1">Atlas</span>
+      <span style="font-size: 14px; color: #B7AEA7">Your way through the market.</span>
+      <svg aria-hidden="true" width="220" height="60" viewBox="0 0 220 60"><g fill="none" stroke="#55504C" stroke-width="1"><path d="M0 40 C40 20 80 50 120 30 C160 10 190 30 220 20"></path><path d="M0 52 C40 32 80 62 120 42 C160 22 190 42 220 32"></path></g><path d="M10 44 C50 30 90 46 130 30" fill="none" stroke="#C2593A" stroke-width="2" stroke-dasharray="5 5"></path><circle cx="130" cy="30" r="4" fill="#C2593A"></circle></svg>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; color: #C2593A">YOU</span><a href="#top" style="color: #D9D2CC; text-decoration: none">Your run</a><a href="Map.dc.html" style="color: #D9D2CC; text-decoration: none">Your map</a><a href="#top" style="color: #D9D2CC; text-decoration: none">Your skills</a></div>
+    <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; color: #C2593A">GROW</span><a href="Library.dc.html" style="color: #D9D2CC; text-decoration: none">Library</a><a href="#top" style="color: #D9D2CC; text-decoration: none">Today’s question</a><a href="#top" style="color: #D9D2CC; text-decoration: none">The audit</a><a href="#top" style="color: #D9D2CC; text-decoration: none">How it works</a></div>
+    <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; color: #C2593A">COMPETE</span><a href="#top" style="color: #D9D2CC; text-decoration: none">League</a><a href="#top" style="color: #D9D2CC; text-decoration: none">Challenges</a></div>
+    <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; color: #C2593A">EXPLORE</span><a href="#top" style="color: #D9D2CC; text-decoration: none">Roles and skills</a><a href="#top" style="color: #D9D2CC; text-decoration: none">This week’s market</a><a href="#top" style="color: #D9D2CC; text-decoration: none">Glossary</a></div>
+  </div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1960}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { p: 0, volOpen: false, moreOpen: false };
+  }
+  componentDidMount() {
+    var self = this;
+    this.timer = setInterval(function () { self.setState({ p: (self.state.p + 1) % 5 }); }, 2600);
+  }
+  componentWillUnmount() { clearInterval(this.timer); }
+  renderVals() {
+    var self = this;
+    var RAW = [
+      { roman: 'I', kind: 'found', name: 'Foundations', color: '#C2593A', tint: '#FBEFEA', lit: 7, total: 11, blurb: 'Signals, logic and the first machines.' },
+      { roman: 'II', kind: 'bits', name: '[Part 2 name]', color: '#4B3FA8', tint: '#F0EEFA', lit: 3, total: 14, blurb: '[What this region covers]' },
+      { roman: 'III', kind: 'tree', name: 'Algorithms', color: '#B4532A', tint: '#FAEEE6', lit: 1, total: 11, blurb: 'Searching, sorting and the shapes of data.' },
+      { roman: 'IV', kind: 'net', name: 'Systems & networks', color: '#1F3A63', tint: '#EDF1F7', lit: 2, total: 18, blurb: 'How machines talk, wait and scale.' },
+      { roman: 'V', kind: 'lock', name: 'Security & money', color: '#6A3E73', tint: '#F4EDF5', lit: 0, total: 11, blurb: 'Trust, keys and how payments move.' },
+      { roman: 'VI', kind: 'code', name: 'Languages & media', color: '#2F6B7A', tint: '#EAF3F5', lit: 0, total: 5, blurb: 'Code, sound and pictures as data.' },
+      { roman: 'VII', kind: 'world', name: 'The physical world', color: '#7A5A2A', tint: '#F5EFE5', lit: 0, total: 23, blurb: 'Sensors, power and the stuff underneath.' },
+      { roman: 'VIII', kind: 'mind', name: 'Intelligence', color: '#5A5F2E', tint: '#F1F2E8', lit: 0, total: 15, blurb: 'Models that learn, predict and act.' }
+    ];
+    var regions = RAW.map(function (r, i) {
+      var sq = [];
+      for (var k = 0; k < r.total; k++) sq.push({ bg: k < r.lit ? '#3E6B5A' : '#FFFFFF' });
+      return Object.assign({}, r, { squares: sq, isStart: i === 0 });
+    });
+    var p = this.state.p, vo = this.state.volOpen, mo = this.state.moreOpen;
+    return {
+      p0: p === 0, p1: p === 1, p2: p === 2, p3: p === 3, p4: p === 4,
+      regions: regions,
+      volOpen: vo, moreOpen: mo,
+      volBg: vo ? '#FFFFFF' : '#F4EFE9',
+      volShadow: vo ? '3px 3px 0 #1B1B1B' : 'none',
+      volChevron: vo ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6',
+      moreChevron: mo ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6',
+      toggleVol: function () { self.setState({ volOpen: !self.state.volOpen, moreOpen: false }); },
+      toggleMore: function () { self.setState({ moreOpen: !self.state.moreOpen, volOpen: false }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

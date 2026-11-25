@@ -1,0 +1,236 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "ATSCard.dc.html": {
+      "expand": "fill",
+      "h": 1900,
+      "is_interactive": true,
+      "page": "final",
+      "title": "The field card ⇄ the ATS card · one card, two faces (D202)",
+      "w": 1280,
+      "x": 7260,
+      "y": 0
+    },
+    "Emblem.dc.html": {
+      "h": 120,
+      "page": "final",
+      "title": "Region emblem · the shared component",
+      "w": 120,
+      "x": 6800,
+      "y": 4200
+    },
+    "Explainer.dc.html": {
+      "expand": "fill",
+      "h": 1500,
+      "is_interactive": true,
+      "page": "final",
+      "title": "The explainer · Format A · Big O, acted out",
+      "w": 1280,
+      "x": 1360,
+      "y": 9900
+    },
+    "Gazetteer.dc.html": {
+      "expand": "fill",
+      "h": 2700,
+      "page": "final",
+      "title": "Gazetteer · a sample entry (hash map) · Atlas as a dictionary",
+      "w": 1280,
+      "x": 2720,
+      "y": 4200
+    },
+    "Home.dc.html": {
+      "expand": "fill",
+      "h": 1960,
+      "is_interactive": true,
+      "page": "final",
+      "title": "Atlas home · Volume I (the front page)",
+      "w": 1280,
+      "x": 0,
+      "y": 4200
+    },
+    "Ledger.dc.html": {
+      "expand": "fill",
+      "h": 2500,
+      "is_interactive": true,
+      "page": "final",
+      "title": "The ledger (Home) · the run, Needs you one at a time, the register, tickets out",
+      "w": 1280,
+      "x": 4080,
+      "y": 0
+    },
+    "Lesson.dc.html": {
+      "h": 3300,
+      "w": 1280,
+      "x": 10300,
+      "y": 0
+    },
+    "Library.dc.html": {
+      "expand": "fill",
+      "h": 1360,
+      "is_interactive": true,
+      "page": "final",
+      "title": "Library · outside resources only",
+      "w": 1280,
+      "x": 5440,
+      "y": 4200
+    },
+    "Map.dc.html": {
+      "expand": "fill",
+      "h": 1560,
+      "is_interactive": true,
+      "page": "final",
+      "title": "A region · Terrain · Route · Index (the physical map)",
+      "w": 1280,
+      "x": 1360,
+      "y": 4200
+    },
+    "Maps.dc.html": {
+      "expand": "fill",
+      "h": 2300,
+      "page": "final",
+      "title": "The three maps + the rules (every mark answers, the header rule)",
+      "w": 1280,
+      "x": 0,
+      "y": 9900
+    },
+    "Market.dc.html": {
+      "expand": "fill",
+      "h": 3500,
+      "is_interactive": true,
+      "page": "final",
+      "title": "The market · political map, one-line header, search / sort / filters, live stats, Deck · Terrain · Index, pager",
+      "w": 1280,
+      "x": 1360,
+      "y": 0
+    },
+    "Opening.dc.html": {
+      "expand": "fill",
+      "h": 3700,
+      "page": "final",
+      "title": "Opening sheet · the expanded job card, the ATS card as section 02",
+      "w": 1280,
+      "x": 2720,
+      "y": 0
+    },
+    "Shell.dc.html": {
+      "expand": "fill",
+      "h": 2240,
+      "page": "final",
+      "title": "The shell · the dock + each area’s nav + the phone bar",
+      "w": 1280,
+      "x": 0,
+      "y": 0
+    },
+    "Shelves.dc.html": {
+      "h": 1150,
+      "w": 1280,
+      "x": 13020,
+      "y": 0
+    },
+    "Storyboard.dc.html": {
+      "expand": "fill",
+      "h": 1900,
+      "page": "final",
+      "title": "The explainer · storyboard",
+      "w": 1280,
+      "x": 2720,
+      "y": 9900
+    },
+    "Survey.dc.html": {
+      "expand": "fill",
+      "h": 3000,
+      "page": "final",
+      "title": "Survey sheet · a company page",
+      "w": 1280,
+      "x": 5440,
+      "y": 0
+    },
+    "YourSurvey.dc.html": {
+      "expand": "fill",
+      "h": 5200,
+      "page": "final",
+      "title": "Your survey · today’s skill map, kept whole · the plot map",
+      "w": 1280,
+      "x": 4080,
+      "y": 4200
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-11-23T12:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "noteOrder": [
+    "tA",
+    "tB",
+    "tC",
+    "sF"
+  ],
+  "notes": {
+    "sF": {
+      "fill": "orange",
+      "page": "final",
+      "text": "ONE CANVAS (11-25). Every board here is the current version; older versions and pages were removed. Approved: the shell, the ledger, the survey sheet, Atlas home, the region, the emblem, the Library, the explainer + storyboard, the Gazetteer sample. Awaiting the owner’s look: the market, the opening sheet, the field card ⇄ ATS card, Your survey, the three maps. Retired: v1’s first lesson draft, the ‘How the drafts come into Atlas’ board, the Webhooks place (rejected: it doesn’t follow the plate system), the book-spine stacks (courses / pathways became routes). All data is example data; the person is Maya Chen (fictional).",
+      "w": 380,
+      "x": 6800,
+      "y": 0
+    },
+    "tA": {
+      "kind": "title1",
+      "maxW": 8000,
+      "page": "final",
+      "text": "1 · The shell and draft’s job pages",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "tB": {
+      "kind": "title1",
+      "maxW": 8000,
+      "page": "final",
+      "text": "2 · Atlas",
+      "w": 240,
+      "x": 0,
+      "y": 3900
+    },
+    "tC": {
+      "kind": "title1",
+      "maxW": 4000,
+      "page": "final",
+      "text": "3 · The maps, the rules and the explainer",
+      "w": 240,
+      "x": 0,
+      "y": 9600
+    }
+  },
+  "order": [
+    "Shell.dc.html",
+    "Market.dc.html",
+    "Opening.dc.html",
+    "Ledger.dc.html",
+    "Survey.dc.html",
+    "ATSCard.dc.html",
+    "Home.dc.html",
+    "Map.dc.html",
+    "Gazetteer.dc.html",
+    "YourSurvey.dc.html",
+    "Library.dc.html",
+    "Emblem.dc.html",
+    "Maps.dc.html",
+    "Explainer.dc.html",
+    "Storyboard.dc.html",
+    "Lesson.dc.html",
+    "Shelves.dc.html"
+  ],
+  "pages": [
+    {
+      "id": "final",
+      "name": "draft · the plate system — final sketches"
+    }
+  ],
+  "title": "Atlas — Webhooks lesson mockup"
+}

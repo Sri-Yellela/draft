@@ -19,6 +19,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { unpackCanvas, DEFAULT_OUT as CANVAS } from "./d196UnpackCanvas.mjs";
 import { SOURCES } from "./d196PortDrawings.mjs";
+import { finalBoards, serveFinal } from "./d196FinalCanvas.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = path.join(ROOT, "tmp", "d196-regress");
@@ -192,11 +193,18 @@ async function compareInPage(page, aPng, bPng, masks) {
 export async function runPair(name, { width = 1280, threshold = THRESHOLD_PCT, browser } = {}) {
   const p = PAIRS[name];
   if (!p) throw new Error(`no pair "${name}" (have: ${Object.keys(PAIRS).join(", ")})`);
-  const src = p.source === "v4" ? XP_SOURCE : p.source ? SOURCES[p.source] : null;
-  const index = src ? unpackCanvas(src.file, src.out) : unpackCanvas();
-  const row = index.find((r) => r.title === p.board);
-  if (!row) throw new Error(`no board "${p.board}" in ${src ? src.name : "the v3 export"}`);
-  const boardUrl = pathToFileURL(path.join(src ? src.out : CANVAS, row.file)).href;
+  let boardUrl;
+  if (p.source === "final") {
+    // 47h (A244): the approved canvas's own board sources, served over http (scripts/d196FinalCanvas.mjs); board = the file stem
+    if (!finalBoards().some((b) => b.stem === p.board)) throw new Error(`no board "${p.board}" on the final canvas (docs/sketches/final/project)`);
+    boardUrl = `${(await serveFinal()).base}/${p.board}.dc.html`;
+  } else {
+    const src = p.source === "v4" ? XP_SOURCE : p.source ? SOURCES[p.source] : null;
+    const index = src ? unpackCanvas(src.file, src.out) : unpackCanvas();
+    const row = index.find((r) => r.title === p.board);
+    if (!row) throw new Error(`no board "${p.board}" in ${src ? src.name : "the v3 export"}`);
+    boardUrl = pathToFileURL(path.join(src ? src.out : CANVAS, row.file)).href;
+  }
   let buildUrl = await buildFixturePage(p.fixture);
   const page = await browser.newPage();
   const board = await shot(page, boardUrl, p.boardSel, width, p.pad, 4000, !!p.reduced, p.ground, p.hideOnBoard, p.boardTab || null, p.boardPrep || null);

@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Atlas library: field notes and primary sources</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&amp;family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F4EFE9}
+a{color:#C2593A}a:hover{color:#AD4C30}
+button{font-family:inherit}
+a:focus-visible,button:focus-visible{outline:2px solid #C2593A;outline-offset:3px}
+@keyframes atIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes atStamp{0%{opacity:0;transform:rotate(-12deg) scale(1.8)}100%{opacity:1;transform:rotate(-12deg) scale(1)}}
+.at-view{animation:atIn .35s cubic-bezier(.2,.8,.2,1) both}
+.at-stamp{animation:atStamp .3s cubic-bezier(.2,.8,.2,1) both}
+.at-note{transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
+.at-note:hover{transform:translate(-3px,-3px) rotate(-1deg);box-shadow:7px 7px 0 #1B1B1B}
+.at-side:hover{background:#EDE5DE}
+@media (prefers-reduced-motion: reduce){.at-view,.at-stamp{animation:none}.at-note{transition:none}}
+</style>
+</helmet>
+
+<div style="min-height: 100vh; background: #F4EFE9; color: #1B1B1B; font-family: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 1.5">
+<header style="background: #F4EFE9">
+  <div style="max-width: 1280px; margin: 0 auto; padding: 12px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px">
+    <a href="Home.dc.html" style="display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: #1B1B1B; margin-right: 10px">
+      <svg aria-hidden="true" width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="15.5" fill="#1B1B1B"></circle><g fill="none" stroke="#F4EFE9" stroke-width="1"><ellipse cx="17" cy="17" rx="6" ry="15.5"></ellipse><path d="M1.5 17 H32.5 M4 9.5 H30 M4 24.5 H30"></path></g><path d="M17 5 L20 17 L17 29 L14 17 Z" fill="#C2593A" stroke="#F4EFE9" stroke-width="1"></path></svg>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; line-height: 1">Atlas</span>
+    </a>
+    <a href="Home.dc.html" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px 0 6px; border-radius: 12px; border: 1.5px solid #1B1B1B; text-decoration: none; color: #1B1B1B; box-sizing: border-box"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; background: #1B1B1B; color: #F4EFE9; padding: 5px 7px; border-radius: 7px">VOL. I</span><span style="font-weight: 700; font-size: 14px">Computing</span></a>
+    <nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px; margin-left: 8px">
+      <a href="Map.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14.5px">Your map</a>
+      <a href="#lib" aria-current="page" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14.5px; font-weight: 800; box-shadow: inset 0 -3px 0 #C2593A">Library</a>
+      <a href="Home.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14.5px">Today’s question</a>
+      <a href="Home.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14.5px">League</a>
+    </nav>
+    <div style="flex: 1 1 100px; display: flex; justify-content: flex-end"><a href="Home.dc.html" aria-label="Your profile" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 12px; border: 1.5px solid #1B1B1B; background: #C2593A; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; font-weight: 800; font-size: 14px">DG</a></div>
+  </div>
+  <div aria-hidden="true" style="height: 12px; border-top: 1.5px solid #1B1B1B; background-image: repeating-linear-gradient(90deg, #1B1B1B 0 1px, transparent 1px 80px), repeating-linear-gradient(90deg, #1B1B1B 0 1px, transparent 1px 16px); background-size: 100% 12px, 100% 5px; background-repeat: no-repeat"></div>
+</header>
+
+<div id="lib" style="max-width: 1280px; margin: 0 auto; padding: 28px 24px 64px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+  <aside aria-label="Library collections" style="flex: 1 1 230px; max-width: 270px; display: flex; flex-direction: column; gap: 14px">
+    <div style="background: #1B1B1B; color: #F4EFE9; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+      <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; color: #C2593A">THE LIBRARY</span>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; line-height: 1">Everything the map was drawn from</span>
+    </div>
+    <nav style="display: flex; flex-direction: column; background: #FFFFFF; border: 1.5px solid #1B1B1B; border-radius: 18px; overflow: hidden">
+      <sc-for list="{{ cats }}" as="c" hint-placeholder-count="9">
+        <sc-if value="{{ c.on }}" hint-placeholder-val="{{ false }}">
+          <button type="button" onClick="{{ c.go }}" aria-current="true" style="all: unset; cursor: pointer; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; background: #C2593A; color: #FFFFFF; border-bottom: 1.5px solid #1B1B1B; font-size: 14px; font-weight: 800"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{ c.icon }}"></path></svg><span style="flex: 1">{{ c.label }}</span><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px">{{ c.count }}</span></button>
+        </sc-if>
+        <sc-if value="{{ c.off }}" hint-placeholder-val="{{ true }}">
+          <button type="button" class="at-side" onClick="{{ c.go }}" style="all: unset; cursor: pointer; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; border-bottom: 1px solid #E6DED8; font-size: 14px; color: #1B1B1B"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1B1B1B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ c.icon }}"></path></svg><span style="flex: 1">{{ c.label }}</span><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: #6F6964">{{ c.count }}</span></button>
+        </sc-if>
+      </sc-for>
+    </nav>
+  </aside>
+
+  <main style="flex: 999 1 620px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+    <div role="group" aria-label="Filter by region" style="display: flex; flex-wrap: wrap; gap: 8px">
+      <sc-for list="{{ chips }}" as="ch" hint-placeholder-count="4">
+        <sc-if value="{{ ch.on }}" hint-placeholder-val="{{ false }}">
+          <button type="button" onClick="{{ ch.go }}" aria-pressed="true" style="all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 14px 0 8px; border-radius: 12px; border: 1.5px solid #1B1B1B; background: #1B1B1B; color: #FFFFFF; font-size: 13.5px; font-weight: 700; box-sizing: border-box; box-shadow: 3px 3px 0 #C2593A"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; font-weight: 700; background: {{ ch.color }}; color: #FFFFFF; padding: 3px 6px; border-radius: 6px; border: 1px solid #FFFFFF">{{ ch.tag }}</span>{{ ch.label }}<span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; opacity: .8">{{ ch.count }}</span></button>
+        </sc-if>
+        <sc-if value="{{ ch.off }}" hint-placeholder-val="{{ true }}">
+          <button type="button" onClick="{{ ch.go }}" aria-pressed="false" style="all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 14px 0 8px; border-radius: 12px; border: 1.5px solid #1B1B1B; background: #FFFFFF; color: #1B1B1B; font-size: 13.5px; font-weight: 600; box-sizing: border-box"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; font-weight: 700; background: {{ ch.color }}; color: #FFFFFF; padding: 3px 6px; border-radius: 6px">{{ ch.tag }}</span>{{ ch.label }}<span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: #6F6964">{{ ch.count }}</span></button>
+        </sc-if>
+      </sc-for>
+    </div>
+
+    <!-- FIELD NOTES -->
+    <sc-if value="{{ isNotes }}" hint-placeholder-val="{{ true }}">
+      <div class="at-view" style="display: flex; flex-direction: column; gap: 26px">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 10px">
+          <div>
+            <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .12em; color: #C2593A">COLLECTION · FIELD NOTES</span>
+            <h1 style="margin: 4px 0 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 52px; line-height: 1">Short explainers, filed by region</h1>
+          </div>
+          <span style="font-size: 13.5px; color: #3F3A36; max-width: 300px">Each note keeps its transcript and key frames, so a lesson can quote it.</span>
+        </div>
+        <sc-for list="{{ drawers }}" as="dw" hint-placeholder-count="3">
+          <section style="border: 1.5px solid #1B1B1B; border-radius: 22px; background: #FFFFFF; box-shadow: 6px 6px 0 #1B1B1B; overflow: hidden">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 12px 16px; background: {{ dw.tint }}; border-bottom: 1.5px solid #1B1B1B">
+              <span style="border: 1.5px solid #1B1B1B; border-radius: 14px; overflow: hidden; line-height: 0"><dc-import name="Emblem" kind="{{ dw.kind }}" size="{{ 48 }}" hint-size="48px,48px"></dc-import></span>
+              <span style="display: flex; flex-direction: column"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; color: {{ dw.color }}">DRAWER {{ dw.roman }}</span><span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 26px; line-height: 1">{{ dw.name }}</span></span>
+              <span style="flex: 1"></span>
+              <span aria-hidden="true" style="width: 70px; height: 14px; border: 1.5px solid #1B1B1B; border-radius: 999px; background: #FFFFFF"></span>
+              <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700">{{ dw.count }} NOTES</span>
+            </div>
+            <div style="display: flex; gap: 18px; overflow-x: auto; padding: 20px 18px 22px; background-image: radial-gradient(#E6DED8 1px, transparent 1px); background-size: 16px 16px">
+              <sc-for list="{{ dw.notes }}" as="n" hint-placeholder-count="4">
+                <a href="{{ n.url }}" class="at-note" style="flex: none; width: 184px; display: flex; flex-direction: column; text-decoration: none; color: #1B1B1B; background: #FFFFFF; border: 1.5px solid #1B1B1B; border-radius: 16px; box-shadow: 4px 4px 0 #1B1B1B; overflow: hidden">
+                  <span style="position: relative; height: 236px; background: #111111; display: flex; flex-direction: column; justify-content: center; gap: 10px; padding: 16px; box-sizing: border-box; background-image: linear-gradient(transparent 0 calc(100% - 1px), rgba(255,255,255,.06) 0), linear-gradient(90deg, transparent 0 calc(100% - 1px), rgba(255,255,255,.06) 0); background-size: 100% 24px, 24px 100%">
+                    <span style="position: absolute; top: 12px; left: 12px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9px; font-weight: 700; letter-spacing: .14em; color: #8F8F8F">{{ n.kicker }}</span>
+                    <span style="position: absolute; top: 10px; right: 10px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; font-weight: 700; color: #111111; background: #FACC15; padding: 2px 6px; border-radius: 5px">{{ n.dur }}</span>
+                    <span style="font-size: 18px; font-weight: 800; line-height: 1.18; color: #FFFFFF; letter-spacing: -0.01em">{{ n.pre }} <span style="background: #FACC15; color: #111111; padding: 0 5px; border-radius: 4px">{{ n.hl }}</span> {{ n.post }}</span>
+                    <span style="position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 8px">
+                      <span style="width: 30px; height: 30px; border-radius: 999px; background: #FFFFFF; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="#111111"><path d="M7 4l13 8-13 8z"></path></svg></span>
+                      <span style="flex: 1; height: 3px; border-radius: 99px; background: rgba(255,255,255,.25)"><span style="display: block; width: 35%; height: 3px; border-radius: 99px; background: #FACC15"></span></span>
+                    </span>
+                  </span>
+                  <span style="display: flex; flex-direction: column; gap: 4px; padding: 10px 12px 12px; border-top: 1.5px solid #1B1B1B">
+                    <span style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; font-weight: 700; color: {{ dw.color }}"><span>{{ n.code }}</span><span style="color: #6F6964">{{ n.views }} views</span></span>
+                    <span style="font-size: 14px; font-weight: 700; line-height: 1.25">{{ n.title }}</span>
+                    <span style="font-size: 12px; color: #6F6964">{{ n.creator }}</span>
+                  </span>
+                </a>
+              </sc-for>
+            </div>
+          </section>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <!-- PRIMARY SOURCES -->
+    <sc-if value="{{ isSources }}" hint-placeholder-val="{{ false }}">
+      <div class="at-view" style="display: flex; flex-direction: column; gap: 18px">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 10px">
+          <div>
+            <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .12em; color: #C2593A">COLLECTION · PRIMARY SOURCES</span>
+            <h1 style="margin: 4px 0 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 52px; line-height: 1">The originals, on file</h1>
+          </div>
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; font-weight: 700; border: 1.5px solid #1B1B1B; border-radius: 10px; padding: 8px 12px; background: #FFFFFF">{{ readCount }} / 6 EXPLAINED</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px">
+          <sc-for list="{{ papers }}" as="p" hint-placeholder-count="6">
+            <div style="position: relative; display: flex; flex-direction: column; gap: 10px; background: #FFFDF8; border: 1.5px solid #1B1B1B; border-radius: 6px 6px 18px 6px; box-shadow: 4px 4px 0 #1B1B1B; padding: 16px 18px 14px; background-image: repeating-linear-gradient(transparent 0 27px, #E8E1D8 27px 28px); background-position: 0 58px">
+              <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 10px; width: 14px; height: 14px; margin-left: -7px; border-radius: 999px; border: 1.5px solid #1B1B1B; background: #F4EFE9"></span>
+              <span style="display: flex; justify-content: space-between; align-items: center; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700"><span style="background: {{ p.color }}; color: #FFFFFF; padding: 3px 7px; border-radius: 5px">{{ p.call }}</span><span style="color: #55504C">{{ p.venue }} · {{ p.year }}</span></span>
+              <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 25px; line-height: 1.08">{{ p.title }}</span>
+              <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: #3F3A36">{{ p.authors }}</span>
+              <span style="font-size: 13.5px; color: #3F3A36; line-height: 28px">{{ p.why }}</span>
+              <span style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-bottom: 18px">
+                <span style="font-size: 12px; color: #6F6964">Region {{ p.roman }} · {{ p.region }}</span>
+                <sc-if value="{{ p.unread }}" hint-placeholder-val="{{ true }}">
+                  <button type="button" onClick="{{ p.toggle }}" aria-pressed="false" style="all: unset; cursor: pointer; min-height: 40px; padding: 0 12px; border: 1.5px solid #1B1B1B; border-radius: 10px; background: #FFFFFF; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center">I can explain it</button>
+                </sc-if>
+                <sc-if value="{{ p.read }}" hint-placeholder-val="{{ false }}">
+                  <button type="button" onClick="{{ p.toggle }}" aria-pressed="true" style="all: unset; cursor: pointer; min-height: 40px; padding: 0 12px; border: 1.5px solid #1B1B1B; border-radius: 10px; background: #3E6B5A; color: #FFFFFF; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center">✓ Explained</button>
+                </sc-if>
+              </span>
+              <sc-if value="{{ p.read }}" hint-placeholder-val="{{ false }}">
+                <span class="at-stamp" aria-hidden="true" style="position: absolute; right: 16px; top: 46px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 15px; font-weight: 700; letter-spacing: .16em; color: #3E6B5A; border: 3px double #3E6B5A; border-radius: 8px; padding: 4px 10px; background: rgba(255,253,248,.85)">EXPLAINED</span>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div class="at-view" style="border: 1.5px dashed #1B1B1B; border-radius: 22px; padding: 56px 28px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; background: #FBF8F4">
+        <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .14em; color: #C2593A">EMPTY DRAWER</span>
+        <h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 40px">{{ catLabel }}</h1>
+        <p style="margin: 0; max-width: 420px; color: #3F3A36">Nothing filed here yet. Run the harvester on a new set of bookmarks, or add items by hand.</p>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1360}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { cat: 'notes', mod: 'all', read: {} };
+  }
+  renderVals() {
+    var self = this, S = this.state;
+    var R = {
+      found: { roman: 'I', name: 'Foundations', color: '#C2593A', tint: '#FBEFEA', kind: 'found' },
+      sys: { roman: 'IV', name: 'Systems & networks', color: '#1F3A63', tint: '#EDF1F7', kind: 'net' },
+      lang: { roman: 'VI', name: 'Languages & media', color: '#2F6B7A', tint: '#EAF3F5', kind: 'code' },
+      ai: { roman: 'VIII', name: 'Intelligence', color: '#5A5F2E', tint: '#F1F2E8', kind: 'mind' }
+    };
+    var SD = 'The SeniorDev Diaries', FB = 'https://www.facebook.com/reel/';
+    var NOTES = [
+      ['1147769740986837','sys','Webhooks explained','INTERVIEW','How does a','webhook','work?','1:37','13,059',SD],
+      ['1161592546218394','sys','Server-Sent Events','SYSTEM DESIGN','Real-time','without','polling','1:41','4,731',SD],
+      ['1770824840877947','sys','CORS in under 60 seconds','INTERVIEW','Works in Postman,','fails','in the browser','0:57','1,422',SD],
+      ['1884841539543758','sys','Why a CDN feels fast','INTERVIEW','Why is a','CDN','so fast?','1:46','3,090',SD],
+      ['1805214407265655','sys','8 deployment patterns','DEVOPS','8 ways to','deploy','safely','0:08','17,413','Afzal Web Solutions'],
+      ['971827812275009','lang','Log out every tab at once','REACT','One logout,','every tab','follows','1:09','11,113',SD],
+      ['1997942841179782','lang','array.at(-1) over length − 1','JAVASCRIPT','Stop using','length − 1','','0:38','565',SD],
+      ['1957451435664498','ai','How AI answers in a second','AI','Predict the','next token','again and again','0:52','1,113',SD],
+      ['29182419781400943','ai','MCP, explained','AI STACK','45 integrations','become 14','','0:54','12,059',SD],
+      ['2433542894051884','ai','How an AI agent remembers','AGENTS','Short-term,','long-term','memory','0:53','4,832',SD],
+      ['1524308096174665','ai','Vibe coding vs agentic AI','AGENTS','You in the loop, or','the agent','','0:46','19,322',SD],
+      ['1131229686499865','ai','30 AI algorithms to know','ML','The','30 algorithms','tree','0:56','61,263',SD],
+      ['937285315987932','ai','15 AI engineer concepts','ROADMAP','15 steps to','AI engineer','','0:48','14,973',SD],
+      ['1522222633149296','ai','AI engineering splits into 12 roles','CAREERS','One job','becomes 12','','0:56','45,285',SD]
+    ].map(function (a) { return { id: a[0], m: a[1], title: a[2], kicker: a[3], pre: a[4], hl: a[5], post: a[6], dur: a[7], views: a[8], creator: a[9] }; });
+    var PAPERS = [
+      { m: 'found', call: 'I.1 SHA', title: 'A Mathematical Theory of Communication', authors: 'C. E. Shannon', year: 1948, venue: 'Bell Sys. Tech. J.', why: 'Where the bit comes from, and how to measure information at all.' },
+      { m: 'sys', call: 'IV.1 LAM', title: 'Time, Clocks, and the Ordering of Events in a Distributed System', authors: 'L. Lamport', year: 1978, venue: 'CACM', why: 'Why machines can’t agree on “now”, and how to order events anyway.' },
+      { m: 'sys', call: 'IV.2 SAL', title: 'End-to-End Arguments in System Design', authors: 'J. Saltzer, D. Reed, D. Clark', year: 1984, venue: 'ACM TOCS', why: 'Which jobs belong at the edges of a network rather than inside it.' },
+      { m: 'sys', call: 'IV.3 DEA', title: 'MapReduce: Simplified Data Processing on Large Clusters', authors: 'J. Dean, S. Ghemawat', year: 2004, venue: 'OSDI', why: 'One big job across thousands of machines, surviving failures.' },
+      { m: 'sys', call: 'IV.4 DEC', title: 'Dynamo: Amazon’s Highly Available Key-value Store', authors: 'G. DeCandia et al.', year: 2007, venue: 'SOSP', why: 'Staying available when parts of the system disagree.' },
+      { m: 'ai', call: 'VIII.1 VAS', title: 'Attention Is All You Need', authors: 'A. Vaswani et al.', year: 2017, venue: 'NeurIPS', why: 'The transformer: the design behind today’s language models.' }
+    ];
+    var CATS = [
+      { id: 'notes', label: 'Field notes', count: '14', icon: 'M7 3h10v18H7z M10 9l5 3-5 3z' },
+      { id: 'sources', label: 'Primary sources', count: '6', icon: 'M6 3h9l3 3v15H6z M9 10h6 M9 14h6 M9 18h4' },
+      { id: 'lectures', label: 'Lectures', count: '—', icon: 'M3 5h18v11H3z M8 20h8 M12 16v4' },
+      { id: 'books', label: 'Books', count: '—', icon: 'M5 4h6v16H5z M13 4h6v16h-6z' },
+      { id: 'courses', label: 'Courses elsewhere', count: '—', icon: 'M3 9l9-5 9 5-9 5z M7 11v5c3 2 7 2 10 0v-5' },
+      { id: 'essays', label: 'Essays', count: '—', icon: 'M4 5h16v14H4z M8 9h8 M8 13h8 M8 17h5' },
+      { id: 'grounds', label: 'Practice grounds', count: '—', icon: 'M4 20l6-10 4 6 2-3 4 7z M15 4v5 M15 4l4 1.5-4 1.5' },
+      { id: 'guides', label: 'Guides to follow', count: '—', icon: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21c1-4 4-6 8-6s7 2 8 6' },
+      { id: 'glossary', label: 'Glossary', count: '—', icon: 'M6 4h11v16H6z M9 8h5 M9 12h5' }
+    ];
+    var cats = CATS.map(function (c) { return { label: c.label, count: c.count, icon: c.icon, on: S.cat === c.id, off: S.cat !== c.id, go: function () { self.setState({ cat: c.id }); } }; });
+    var catLabel = CATS.filter(function (c) { return c.id === S.cat; })[0].label;
+    var pool = S.cat === 'sources' ? PAPERS : NOTES;
+    var CH = [{ id: 'all', tag: 'ALL', label: 'Every region', color: '#1B1B1B', n: pool.length }];
+    ['found', 'sys', 'lang', 'ai'].forEach(function (k) { var n = pool.filter(function (x) { return x.m === k; }).length; if (n) CH.push({ id: k, tag: R[k].roman, label: R[k].name, color: R[k].color, n: n }); });
+    var mod = CH.some(function (c) { return c.id === S.mod; }) ? S.mod : 'all';
+    var chips = CH.map(function (c) { return { tag: c.tag, label: c.label, color: c.color, count: String(c.n), on: mod === c.id, off: mod !== c.id, go: function () { self.setState({ mod: c.id }); } }; });
+    var drawers = ['sys', 'lang', 'ai'].filter(function (k) { return mod === 'all' || mod === k; }).map(function (k) {
+      var ns = NOTES.filter(function (n) { return n.m === k; }).map(function (n, i) { return Object.assign({}, n, { url: FB + n.id, code: 'FN-' + R[k].roman + '.' + (i + 1) }); });
+      return Object.assign({}, R[k], { notes: ns, count: ns.length });
+    });
+    var papers = PAPERS.filter(function (p) { return mod === 'all' || p.m === mod; }).map(function (p) {
+      var key = p.call, isRead = !!S.read[key];
+      return Object.assign({}, p, { color: R[p.m].color, roman: R[p.m].roman, region: R[p.m].name, read: isRead, unread: !isRead,
+        toggle: function () { var r = Object.assign({}, self.state.read); r[key] = !r[key]; self.setState({ read: r }); } });
+    });
+    var readCount = Object.keys(S.read).filter(function (k) { return S.read[k]; }).length;
+    return { cats: cats, chips: chips, drawers: drawers, papers: papers, readCount: readCount, catLabel: catLabel,
+      isNotes: S.cat === 'notes', isSources: S.cat === 'sources', isEmpty: S.cat !== 'notes' && S.cat !== 'sources' };
+  }
+}
+</script>
+</body>
+</html>

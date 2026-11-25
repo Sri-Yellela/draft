@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Atlas place: Webhooks, Region IV grid D3</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&amp;family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F4EFE9}
+a{color:#C2593A}a:hover{color:#AD4C30}
+button{font-family:inherit}
+button:disabled{opacity:.35;cursor:default}
+a:focus-visible,button:focus-visible{outline:2px solid #C2593A;outline-offset:3px}
+@keyframes atMarch{to{stroke-dashoffset:-28}}
+@keyframes atDraw{to{stroke-dashoffset:0}}
+@keyframes atStamp{0%{opacity:0;transform:rotate(-10deg) scale(1.9)}100%{opacity:1;transform:rotate(-10deg) scale(1)}}
+@keyframes atLight{0%{transform:scale(.4)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes atPop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes atSway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+@keyframes atBob{0%,100%{transform:translate(-50%,-100%)}50%{transform:translate(-50%,calc(-100% - 5px))}}
+.at-march{animation:atMarch 1.4s linear infinite}
+.at-draw{stroke-dasharray:700;stroke-dashoffset:700;animation:atDraw 2.6s cubic-bezier(.4,0,.2,1) .2s forwards}
+.at-stamp{animation:atStamp .32s cubic-bezier(.2,.8,.2,1) both}
+.at-light{animation:atLight .45s cubic-bezier(.2,.8,.2,1) both}
+.at-pop{animation:atPop .3s cubic-bezier(.2,.8,.2,1) both}
+.at-sway{transform-origin:50% 100%;animation:atSway 4s ease-in-out infinite}
+.at-tok{animation:atBob 2.4s ease-in-out infinite}
+.at-haz{transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
+.at-haz:hover{transform:translate(-3px,-3px);box-shadow:8px 8px 0 #1B1B1B}
+@media (prefers-reduced-motion: reduce){.at-march,.at-stamp,.at-light,.at-pop,.at-sway,.at-tok{animation:none}.at-draw{animation:none;stroke-dashoffset:0}}
+</style>
+</helmet>
+
+<div style="min-height: 100vh; background: #F4EFE9; color: #1B1B1B; font-family: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 16px; line-height: 1.6">
+
+<!-- NAV -->
+<header style="background: #F4EFE9">
+  <div style="max-width: 1280px; margin: 0 auto; padding: 12px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px">
+    <a href="Home.dc.html" style="display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: #1B1B1B; margin-right: 10px">
+      <svg aria-hidden="true" width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="15.5" fill="#1B1B1B"></circle><g fill="none" stroke="#F4EFE9" stroke-width="1"><ellipse cx="17" cy="17" rx="6" ry="15.5"></ellipse><path d="M1.5 17 H32.5 M4 9.5 H30 M4 24.5 H30"></path></g><path d="M17 5 L20 17 L17 29 L14 17 Z" fill="#C2593A" stroke="#F4EFE9" stroke-width="1"></path></svg>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; line-height: 1">Atlas</span>
+    </a>
+    <a href="Home.dc.html" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px 0 6px; border-radius: 12px; border: 1.5px solid #1B1B1B; text-decoration: none; color: #1B1B1B; box-sizing: border-box"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; background: #1B1B1B; color: #F4EFE9; padding: 5px 7px; border-radius: 7px">VOL. I</span><span style="font-weight: 700; font-size: 14px">Computing</span></a>
+    <span aria-hidden="true" style="font-family: 'JetBrains Mono', ui-monospace, monospace; color: #9A928C">/</span>
+    <a href="Map.dc.html" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px 0 6px; border-radius: 12px; border: 1.5px solid #1B1B1B; background: #1F3A63; color: #FFFFFF; text-decoration: none; box-sizing: border-box"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; background: #FFFFFF; color: #1F3A63; padding: 5px 7px; border-radius: 7px">PL. IV</span><span style="font-weight: 700; font-size: 14px">Systems &amp; networks</span></a>
+    <span aria-hidden="true" style="font-family: 'JetBrains Mono', ui-monospace, monospace; color: #9A928C">/</span>
+    <span style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px 0 6px; border-radius: 12px; border: 1.5px solid #1B1B1B; background: #FFFFFF; box-sizing: border-box; box-shadow: 3px 3px 0 #1F3A63"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; background: #C2593A; color: #FFFFFF; padding: 5px 7px; border-radius: 7px">D3</span><span style="font-weight: 800; font-size: 14px">Webhooks</span></span>
+    <div style="flex: 1 1 160px; display: flex; justify-content: flex-end; align-items: center; gap: 8px">
+      <span aria-label="This place: {{ litCount }} of 3 squares lit" style="display: inline-flex; align-items: center; gap: 4px; height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 12px; border: 1.5px solid #1B1B1B; background: #FFFFFF">
+        <sc-for list="{{ squares }}" as="q" hint-placeholder-count="3"><span class="{{ q.cls }}" style="width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid #1B1B1B; background: {{ q.bg }}"></span></sc-for>
+        <span style="margin-left: 6px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700">{{ litCount }}/3</span>
+      </span>
+      <a href="Home.dc.html" aria-label="Your profile" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 12px; border: 1.5px solid #1B1B1B; background: #C2593A; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; font-weight: 800; font-size: 14px">DG</a>
+    </div>
+  </div>
+  <div aria-hidden="true" style="height: 12px; border-top: 1.5px solid #1B1B1B; background-image: repeating-linear-gradient(90deg, #1B1B1B 0 1px, transparent 1px 80px), repeating-linear-gradient(90deg, #1B1B1B 0 1px, transparent 1px 16px); background-size: 100% 12px, 100% 5px; background-repeat: no-repeat"></div>
+</header>
+
+<!-- ============ HERO PLATE ============ -->
+<section style="max-width: 1280px; margin: 0 auto; padding: 30px 24px 8px; box-sizing: border-box">
+  <div style="position: relative; border: 1.5px solid #1B1B1B; border-radius: 26px; box-shadow: 10px 10px 0 #1B1B1B; background: #E9EEF4; overflow: hidden">
+    <svg aria-hidden="true" viewBox="0 0 1232 460" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style="position: absolute; inset: 0">
+      <defs><pattern id="atLhatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V7" stroke="#B9C8DC" stroke-width="1.3"></path></pattern></defs>
+      <g fill="none" stroke="#1F3A63" stroke-width=".8" opacity=".35">
+        <path d="M-40 380 C140 330 260 380 420 330 C560 286 700 320 860 260 C1000 208 1100 230 1280 170"></path>
+        <path d="M-40 410 C150 360 280 410 440 360 C590 314 720 350 880 290 C1020 238 1120 262 1280 204"></path>
+        <path d="M-40 440 C160 392 300 440 460 392 C610 346 740 380 900 322 C1040 270 1140 296 1280 240"></path>
+        <path d="M-40 120 C120 90 240 130 380 96 C520 62 620 84 760 50"></path>
+        <path d="M-40 150 C130 118 250 160 390 126 C530 92 630 114 770 80"></path>
+      </g>
+      <g stroke="#1B1B1B" stroke-width=".5" opacity=".14"><path d="M154 0V460M308 0V460M462 0V460M616 0V460M770 0V460M924 0V460M1078 0V460M0 115H1232M0 230H1232M0 345H1232"></path></g>
+      <g font-family="JetBrains Mono, monospace" font-size="10" font-weight="700" fill="#1F3A63" opacity=".6"><text x="74" y="18">A</text><text x="228" y="18">B</text><text x="382" y="18">C</text><text x="536" y="18">D</text><text x="690" y="18">E</text><text x="844" y="18">F</text><text x="998" y="18">G</text><text x="10" y="64">1</text><text x="10" y="178">2</text><text x="10" y="292">3</text><text x="10" y="406">4</text></g>
+    </svg>
+    <div style="position: relative; display: flex; flex-wrap: wrap; gap: 28px; padding: 40px 40px 36px; align-items: center">
+      <div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+        <span style="display: flex; flex-wrap: wrap; gap: 8px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .1em">
+          <span style="background: #1B1B1B; color: #F4EFE9; padding: 5px 8px; border-radius: 6px">PLACE · GRID D3</span>
+          <span style="background: #FFFFFF; padding: 4px 8px; border: 1.5px solid #1B1B1B; border-radius: 6px">HIGHLANDS · DEEPEN</span>
+          <span style="background: #FFFFFF; padding: 4px 8px; border: 1.5px solid #1B1B1B; border-radius: 6px">ELEV. 9 OF 15</span>
+        </span>
+        <h1 style="margin: 0; display: inline-block; align-self: flex-start; background: #F4EFE9; border: 1.5px solid #1B1B1B; border-radius: 18px; box-shadow: 6px 6px 0 #1F3A63; padding: 8px 22px 14px; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 104px; line-height: .9; letter-spacing: -0.02em">Webhooks<span style="color: #C2593A">.</span></h1>
+        <p style="margin: 0; max-width: 520px; font-size: 19px; color: #16294A; font-weight: 500">Stop asking another system for news. Let it call you the moment something happens, then handle that call the way production systems do.</p>
+        <div style="display: flex; flex-wrap: wrap; border: 1.5px solid #1B1B1B; border-radius: 14px; overflow: hidden; align-self: flex-start; background: #FFFFFF">
+          <span style="padding: 9px 16px; border-right: 1.5px solid #1B1B1B"><span style="display: block; font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; line-height: 1">5</span><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: .1em; color: #3F3A36">LEGS</span></span>
+          <span style="padding: 9px 16px; border-right: 1.5px solid #1B1B1B"><span style="display: block; font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; line-height: 1">≈ 9</span><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: .1em; color: #3F3A36">MINUTES</span></span>
+          <span style="padding: 9px 16px; border-right: 1.5px solid #1B1B1B"><span style="display: block; font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; line-height: 1">3</span><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: .1em; color: #3F3A36">SQUARES</span></span>
+          <span style="padding: 9px 16px"><span style="display: block; font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; line-height: 1">FN-IV.1</span><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: .1em; color: #3F3A36">SOURCE</span></span>
+        </div>
+      </div>
+      <!-- elevation profile -->
+      <figure style="flex: 1 1 460px; min-width: 0; margin: 0; background: #FFFFFF; border: 1.5px solid #1B1B1B; border-radius: 20px; box-shadow: 6px 6px 0 #1B1B1B; padding: 16px 16px 10px">
+        <div style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; margin-bottom: 6px"><span>ELEVATION PROFILE · THE IV LINE</span><a href="Map.dc.html" style="color: #1F3A63; text-decoration: none">OPEN TERRAIN →</a></div>
+        <svg role="img" aria-label="Elevation profile of Region IV: lit places CORS and Polling in the foothills, Webhooks marked as you are here in the highlands, Server-Sent Events and Message queues ahead, the summit last" viewBox="0 0 520 230" width="100%" style="display: block">
+          <defs>
+            <linearGradient id="atElev" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#E9EEF4"></stop><stop offset=".45" stop-color="#CDD8E7"></stop><stop offset="1" stop-color="#9FB3CE"></stop></linearGradient>
+            <pattern id="atPh" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V6" stroke="#1F3A63" stroke-width=".8" opacity=".35"></path></pattern>
+          </defs>
+          <g stroke="#1B1B1B" stroke-width=".5" opacity=".2"><path d="M20 50H510M20 100H510M20 150H510"></path></g>
+          <g font-family="JetBrains Mono, monospace" font-size="8.5" fill="#3F3A36"><text x="0" y="53">IV</text><text x="0" y="103">III</text><text x="0" y="153">II</text></g>
+          <path d="M20 196 C60 190 80 178 110 170 C140 162 160 150 190 140 C220 130 236 108 262 96 C290 84 316 92 344 78 C372 64 398 70 424 52 C446 38 470 30 500 22 L500 200 L20 200 Z" fill="url(#atElev)"></path>
+          <path d="M20 196 C60 190 80 178 110 170 C140 162 160 150 190 140 C220 130 236 108 262 96 L262 200 L20 200 Z" fill="url(#atPh)"></path>
+          <path d="M20 196 C60 190 80 178 110 170 C140 162 160 150 190 140 C220 130 236 108 262 96 C290 84 316 92 344 78 C372 64 398 70 424 52 C446 38 470 30 500 22" fill="none" stroke="#1B1B1B" stroke-width="2"></path>
+          <path class="at-draw" d="M20 196 C60 190 80 178 110 170 C140 162 160 150 190 140 C220 130 236 108 262 96" fill="none" stroke="#3E6B5A" stroke-width="4" stroke-linecap="round"></path>
+          <path class="at-march" d="M262 96 C290 84 316 92 344 78 C372 64 398 70 424 52 C446 38 470 30 500 22" fill="none" stroke="#C2593A" stroke-width="2.5" stroke-dasharray="6 6"></path>
+          <path d="M20 200 H500" stroke="#1B1B1B" stroke-width="1.5"></path>
+          <g stroke="#1B1B1B" stroke-width="1.5"><path d="M140 200v6M262 200v6M384 200v6"></path></g>
+          <g font-family="JetBrains Mono, monospace" font-size="9" font-weight="700" fill="#1B1B1B"><text x="38" y="220">START</text><text x="176" y="220">BUILD</text><text x="296" y="220">DEEPEN</text><text x="430" y="220">MASTER</text></g>
+          <g stroke="#1B1B1B" stroke-width="1.6"><circle cx="110" cy="170" r="7" fill="#3E6B5A"></circle><circle cx="190" cy="140" r="7" fill="#3E6B5A"></circle><circle cx="344" cy="78" r="6.5" fill="#FFFFFF" stroke-dasharray="2.5 2"></circle><circle cx="424" cy="52" r="6.5" fill="#FFFFFF" stroke-dasharray="2.5 2"></circle><path d="M500 10 L509 24 H491 Z" fill="#FFFFFF" stroke-linejoin="round"></path></g>
+          <path d="M262 96 V40" stroke="#1B1B1B" stroke-width="1.6"></path>
+          <path class="at-sway" d="M262 40 L290 48 L262 56 Z" fill="#C2593A" stroke="#1B1B1B" stroke-width="1.4" stroke-linejoin="round"></path>
+          <circle cx="262" cy="96" r="9" fill="#C2593A" stroke="#1B1B1B" stroke-width="2"></circle><circle cx="262" cy="96" r="3" fill="#FFFFFF"></circle>
+          <circle cx="262" cy="96" r="9" fill="none" stroke="#C2593A" stroke-width="2"><animate attributeName="r" values="9;26" dur="2s" repeatCount="indefinite"></animate><animate attributeName="opacity" values="1;0" dur="2s" repeatCount="indefinite"></animate></circle>
+          <g font-family="Inter Tight, sans-serif" font-size="11" font-weight="700" fill="#1B1B1B"><text x="80" y="160">CORS</text><text x="150" y="128">Polling</text><text x="296" y="38">YOU ARE HERE</text><text x="330" y="66">SSE</text><text x="396" y="42">Queues</text></g>
+        </svg>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE WALK ============ -->
+<div style="max-width: 1280px; margin: 0 auto; padding: 40px 24px 80px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start">
+
+  <nav aria-label="Legs of this place" style="flex: 1 1 220px; max-width: 250px; display: flex; flex-direction: column; gap: 12px">
+    <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; color: #1F3A63">THE WALK TO D3</span>
+    <div style="position: relative; display: flex; flex-direction: column; border: 1.5px solid #1B1B1B; border-radius: 18px; background: #FFFFFF; padding: 10px 12px">
+      <span aria-hidden="true" style="position: absolute; left: 28px; top: 28px; bottom: 28px; width: 4px; background: repeating-linear-gradient(#1F3A63 0 8px, transparent 8px 14px)"></span>
+      <sc-for list="{{ rail }}" as="r" hint-placeholder-count="5">
+        <a href="{{ r.href }}" style="position: relative; display: flex; align-items: center; gap: 12px; min-height: 54px; text-decoration: none; color: #1B1B1B">
+          <span style="flex: none; width: 34px; height: 34px; box-sizing: border-box; border-radius: {{ r.radius }}; border: 2px solid #1B1B1B; background: {{ r.bg }}; color: {{ r.fg }}; display: inline-flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; font-weight: 700">{{ r.mark }}</span>
+          <span style="display: flex; flex-direction: column; line-height: 1.2"><span style="font-size: 14px; font-weight: 700">{{ r.title }}</span><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; color: #55504C">{{ r.meta }}</span></span>
+        </a>
+      </sc-for>
+    </div>
+    <span style="padding: 12px 14px; border: 1.5px solid #1B1B1B; border-radius: 14px; background: #1F3A63; color: #E9EEF4; font-size: 13px">Three squares light this place. All three, and D3 turns green on the terrain and on your run.</span>
+  </nav>
+
+  <main style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 64px">
+
+    <!-- LEG 1 -->
+    <section id="leg1" style="display: flex; flex-direction: column; gap: 20px">
+      <div style="display: flex; align-items: flex-end; gap: 16px; padding-bottom: 12px; border-bottom: 1.5px solid #1B1B1B; background-image: repeating-linear-gradient(90deg, #1B1B1B 0 1px, transparent 1px 16px); background-size: 100% 6px; background-position: bottom; background-repeat: no-repeat">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 88px; line-height: .8; color: transparent; -webkit-text-stroke: 1.5px #1F3A63">01</span>
+        <span style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; color: #1F3A63">LEG 1 · THE TRAILHEAD · ≈ 1 MIN</span><span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 42px; line-height: 1">The question waiting at the start</span></span>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; border: 1.5px solid #1B1B1B; border-radius: 24px; box-shadow: 8px 8px 0 #1B1B1B; overflow: hidden; background: #16294A">
+        <div style="flex: 999 1 380px; padding: 28px; display: flex; flex-direction: column; gap: 18px; background-image: radial-gradient(circle at 100% 0, rgba(185,200,220,.25) 0 120px, transparent 121px), radial-gradient(circle at 100% 0, rgba(185,200,220,.15) 0 200px, transparent 201px)">
+          <span style="display: inline-flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; color: #B9C8DC"><span style="width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid #B9C8DC; display: inline-flex; align-items: center; justify-content: center">Q</span>THE INTERVIEWER ASKS</span>
+          <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 44px; line-height: 1.05; color: #FFFFFF">“What is a <span style="font-style: italic; background: #F4EFE9; color: #16294A; padding: 0 10px; border-radius: 8px">webhook</span>, and how does it work?”</span>
+          <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px">
+            <span style="display: inline-block; transform: rotate(-1.5deg); background: #FFFFFF; color: #1B1B1B; border: 1.5px solid #1B1B1B; border-radius: 10px; padding: 10px 18px; font-size: 18px; font-weight: 700; box-shadow: 4px 4px 0 #0B1628">You: “It’s like an API.”</span>
+            <span style="transform: rotate(7deg); font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; font-weight: 700; letter-spacing: .14em; color: #F08A6B; border: 3px double #F08A6B; border-radius: 8px; padding: 6px 10px">CLOSE · NOT ENOUGH</span>
+          </span>
+        </div>
+        <!-- signpost -->
+        <div style="flex: 1 1 260px; min-height: 280px; background: #E9EEF4; border-left: 1.5px solid #1B1B1B; display: flex; align-items: flex-end; justify-content: center">
+          <svg role="img" aria-label="A trailhead signpost: one arm points to a dead end labelled It's like an API, the other points up to the summit labelled who calls whom, and what breaks" viewBox="0 0 280 280" width="100%" style="max-width: 300px; display: block">
+            <g fill="none" stroke="#1F3A63" stroke-width=".9" opacity=".45"><path d="M0 250 C60 236 120 248 180 232 C220 222 250 226 280 214"></path><path d="M0 266 C70 252 130 264 190 248 C230 238 255 242 280 232"></path></g>
+            <path d="M0 280 L0 262 C60 254 130 262 200 250 C240 244 262 246 280 240 L280 280 Z" fill="#CDD8E7" stroke="#1B1B1B" stroke-width="1.5"></path>
+            <rect x="132" y="40" width="14" height="222" fill="#C9AF83" stroke="#1B1B1B" stroke-width="1.8"></rect>
+            <path d="M139 40 V262" stroke="#1B1B1B" stroke-width=".8" opacity=".4"></path>
+            <g class="at-sway">
+              <path d="M146 58 H252 L270 76 L252 94 H146 Z" fill="#1F3A63" stroke="#1B1B1B" stroke-width="1.8" stroke-linejoin="round"></path>
+              <text x="158" y="73" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700" fill="#B9C8DC">TO THE SUMMIT</text>
+              <text x="158" y="87" font-family="Inter Tight, sans-serif" font-size="11" font-weight="800" fill="#FFFFFF">who calls whom ↑</text>
+            </g>
+            <path d="M132 118 H30 L12 136 L30 154 H132 Z" fill="#FFFFFF" stroke="#1B1B1B" stroke-width="1.8" stroke-linejoin="round"></path>
+            <text x="38" y="133" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700" fill="#C2593A">DEAD END</text>
+            <text x="38" y="147" font-family="Inter Tight, sans-serif" font-size="11" font-weight="800" fill="#1B1B1B">“like an API”</text>
+            <path d="M24 128 L44 148 M44 128 L24 148" stroke="#C2593A" stroke-width="2.5" stroke-linecap="round" opacity=".0"></path>
+            <path d="M146 172 H230 L246 188 L230 204 H146 Z" fill="#F4EFE9" stroke="#1B1B1B" stroke-width="1.8" stroke-linejoin="round"></path>
+            <text x="156" y="186" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700" fill="#1F3A63">D3 · 0.0</text>
+            <text x="156" y="199" font-family="Inter Tight, sans-serif" font-size="11" font-weight="800" fill="#1B1B1B">and what breaks</text>
+            <circle cx="139" cy="36" r="7" fill="#C2593A" stroke="#1B1B1B" stroke-width="1.6"></circle>
+          </svg>
+        </div>
+      </div>
+      <p style="margin: 0; max-width: 680px; color: #3F3A36">Most answers stop at the trailhead. The climb is the rest: who starts the call, what you do when it lands, and what breaks in production. Start with the slow way up.</p>
+    </section>
+
+    <!-- LEG 2 -->
+    <section id="leg2" style="display: flex; flex-direction: column; gap: 20px">
+      <div style="display: flex; align-items: flex-end; gap: 16px; padding-bottom: 12px; border-bottom: 1.5px solid #1B1B1B; background-image: repeating-linear-gradient(90deg, #1B1B1B 0 1px, transparent 1px 16px); background-size: 100% 6px; background-position: bottom; background-repeat: no-repeat">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 88px; line-height: .8; color: transparent; -webkit-text-stroke: 1.5px #1F3A63">02</span>
+        <span style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; color: #1F3A63">LEG 2 · THE WALK-THROUGH · ≈ 3 MIN · SQUARE 1</span><span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 42px; line-height: 1">Two ways to hear news</span></span>
+      </div>
+
+      <div style="border: 1.5px solid #1B1B1B; border-radius: 24px; box-shadow: 8px 8px 0 #1B1B1B; background: #FFFFFF; overflow: hidden">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1.5px solid #1B1B1B; background: #E9EEF4">
+          <div role="group" aria-label="Way to hear news" style="display: inline-flex; border: 1.5px solid #1B1B1B; border-radius: 12px; overflow: hidden; background: #FFFFFF; box-shadow: 3px 3px 0 #1B1B1B">
+            <button type="button" onClick="{{ toPoll }}" aria-pressed="{{ isPoll }}" style="all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 16px; font-size: 14px; font-weight: 800; background: {{ pollBg }}; color: {{ pollFg }}; border-right: 1.5px solid #1B1B1B"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; border: 1.5px solid currentColor; border-radius: 5px; padding: 1px 5px">A</span>You keep asking</button>
+            <button type="button" onClick="{{ toHook }}" aria-pressed="{{ isHook }}" style="all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 16px; font-size: 14px; font-weight: 800; background: {{ hookBg }}; color: {{ hookFg }}"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; border: 1.5px solid currentColor; border-radius: 5px; padding: 1px 5px">B</span>They call you</button>
+          </div>
+          <span style="display: inline-flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; color: #16294A">WASTED TRIPS
+            <span style="display: inline-flex; gap: 3px; padding: 3px; border: 1.5px solid #1B1B1B; border-radius: 8px; background: #FFFFFF"><sc-for list="{{ odo }}" as="o" hint-placeholder-count="2"><span style="width: 24px; height: 32px; border-radius: 5px; background: #16294A; color: {{ o.fg }}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px">{{ o.d }}</span></sc-for></span>
+          </span>
+        </div>
+
+        <!-- isometric diorama -->
+        <div style="position: relative; aspect-ratio: 600 / 300; max-height: 380px; margin: 0 auto; width: 100%; max-width: 760px">
+          <svg role="img" aria-label="An isometric map tile: your server on the left, Stripe on the right, joined by a road" viewBox="0 0 600 300" width="100%" height="100%" style="position: absolute; inset: 0">
+            <defs><pattern id="atSide" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V6" stroke="#1B1B1B" stroke-width="1" opacity=".5"></path></pattern></defs>
+            <polygon points="40,160 300,280 300,298 40,178" fill="#9FB3CE" stroke="#1B1B1B" stroke-width="1.6"></polygon>
+            <polygon points="40,160 300,280 300,298 40,178" fill="url(#atSide)"></polygon>
+            <polygon points="300,280 560,160 560,178 300,298" fill="#7F96B6" stroke="#1B1B1B" stroke-width="1.6"></polygon>
+            <polygon points="300,40 560,160 300,280 40,160" fill="#E9EEF4" stroke="#1B1B1B" stroke-width="1.6"></polygon>
+            <g fill="none" stroke="#1F3A63" stroke-width=".9" opacity=".5">
+              <ellipse cx="430" cy="140" rx="110" ry="52"></ellipse><ellipse cx="430" cy="140" rx="74" ry="35"></ellipse><ellipse cx="430" cy="140" rx="40" ry="19" fill="#DCE4EE"></ellipse>
+              <path d="M70 172 C120 150 170 176 220 160"></path><path d="M100 196 C150 176 200 200 250 186"></path>
+            </g>
+            <!-- road -->
+            <path d="M178 178 L410 136" stroke="#1B1B1B" stroke-width="16" stroke-linecap="round"></path>
+            <path d="M178 178 L410 136" stroke="#F4EFE9" stroke-width="12" stroke-linecap="round"></path>
+            <path d="M178 178 L410 136" stroke="#1F3A63" stroke-width="1.5" stroke-dasharray="6 6"></path>
+            <!-- call arc (webhook) -->
+            <path class="at-march" d="M452 70 C380 10 230 40 176 120" fill="none" stroke="#C2593A" stroke-width="3" stroke-dasharray="8 7" stroke-linecap="round" stroke-opacity="{{ arcOp }}"></path>
+            <!-- your server: iso box -->
+            <g stroke="#1B1B1B" stroke-width="1.6" stroke-linejoin="round">
+              <polygon points="110,150 150,170 150,206 110,186" fill="#C9BFB6"></polygon>
+              <polygon points="150,170 190,150 190,186 150,206" fill="#E8E0D8"></polygon>
+              <polygon points="150,130 190,150 150,170 110,150" fill="#FFFFFF"></polygon>
+              <polygon points="150,140 168,149 150,158 132,149" fill="#C2593A"></polygon>
+            </g>
+            <g stroke="#1B1B1B" stroke-width="1"><path d="M116 164 L144 178 M116 172 L144 186 M116 180 L144 194" fill="none"></path></g>
+            <circle cx="160" cy="180" r="3" fill="{{ serverLed }}" stroke="#1B1B1B" stroke-width="1"></circle>
+            <circle cx="170" cy="175" r="3" fill="#3E6B5A" stroke="#1B1B1B" stroke-width="1"></circle>
+            <!-- queue crate -->
+            <g opacity="{{ queueOp }}" stroke="#1B1B1B" stroke-width="1.4" stroke-linejoin="round">
+              <polygon points="196,196 214,205 214,219 196,210" fill="#2F5446"></polygon>
+              <polygon points="214,205 232,196 232,210 214,219" fill="#3E6B5A"></polygon>
+              <polygon points="214,187 232,196 214,205 196,196" fill="#9FD3BE"></polygon>
+            </g>
+            <!-- stripe tower -->
+            <g stroke="#1B1B1B" stroke-width="1.6" stroke-linejoin="round">
+              <polygon points="410,92 452,112 452,170 410,150" fill="#16294A"></polygon>
+              <polygon points="452,112 494,92 494,150 452,170" fill="#1F3A63"></polygon>
+              <polygon points="452,72 494,92 452,112 410,92" fill="#5D79A3"></polygon>
+            </g>
+            <g fill="#E9EEF4" stroke="#1B1B1B" stroke-width=".7"><rect x="460" y="116" width="6" height="8"></rect><rect x="474" y="110" width="6" height="8"></rect><rect x="460" y="132" width="6" height="8"></rect><rect x="474" y="126" width="6" height="8"></rect><rect x="460" y="148" width="6" height="8"></rect><rect x="474" y="142" width="6" height="8"></rect></g>
+            <path d="M452 72 V52" stroke="#1B1B1B" stroke-width="1.6"></path>
+            <circle cx="452" cy="48" r="{{ beaconR }}" fill="{{ beaconFill }}" stroke="#1B1B1B" stroke-width="1.6"></circle>
+            <circle cx="452" cy="48" r="6" fill="none" stroke="#C2593A" stroke-width="2" opacity="{{ beaconOp }}"><animate attributeName="r" values="6;22" dur="1.6s" repeatCount="indefinite"></animate><animate attributeName="stroke-opacity" values="1;0" dur="1.6s" repeatCount="indefinite"></animate></circle>
+            <!-- tally of wasted trips -->
+            <g stroke="#C2593A" stroke-width="2.5" stroke-linecap="round" opacity="{{ tallyOp }}"><path d="M262 214 L268 198 M274 210 L280 194 M286 206 L292 190"></path></g>
+            <g font-family="JetBrains Mono, monospace" font-size="10" font-weight="700" fill="#1B1B1B"><text x="96" y="232">YOUR SERVER</text><text x="420" y="194">STRIPE</text><text x="184" y="238" opacity="{{ queueOp }}" fill="#2F5446">QUEUE</text></g>
+          </svg>
+          <!-- moving packet -->
+          <span class="at-tok" style="position: absolute; left: {{ tokX }}; top: {{ tokY }}; transform: translate(-50%, -100%); transition: left 600ms cubic-bezier(.2,.8,.2,1), top 600ms cubic-bezier(.2,.8,.2,1); display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; padding: 7px 11px; border: 1.5px solid #1B1B1B; border-radius: 10px; background: {{ tokBg }}; color: {{ tokFg }}; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; font-weight: 700; box-shadow: 3px 3px 0 #1B1B1B">
+            <svg aria-hidden="true" width="16" height="12" viewBox="0 0 16 12"><rect x=".75" y=".75" width="14.5" height="10.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"></rect><path d="M1 1.5 L8 7 L15 1.5" fill="none" stroke="currentColor" stroke-width="1.5"></path></svg>{{ tokLabel }}</span>
+        </div>
+
+        <div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 16px; border-top: 1.5px solid #1B1B1B; background: #FBF8F4">
+          <p aria-live="polite" style="margin: 16px 0 0; min-height: 60px; text-align: center; font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; line-height: 1.12">{{ caption }}</p>
+          <div style="position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+            <span aria-hidden="true" style="position: absolute; left: 12%; right: 12%; top: 21px; height: 4px; background: repeating-linear-gradient(90deg, #1F3A63 0 8px, transparent 8px 14px)"></span>
+            <sc-for list="{{ stepItems }}" as="s" hint-placeholder-count="4">
+              <button type="button" onClick="{{ s.go }}" aria-current="{{ s.current }}" style="all: unset; cursor: pointer; position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 66px">
+                <span style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 999px; border: 2px solid #1B1B1B; background: {{ s.bg }}; color: {{ s.fg }}; display: inline-flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; font-weight: 700; box-shadow: {{ s.shadow }}">{{ s.n }}</span>
+                <span style="font-size: 12.5px; font-weight: 800">{{ s.label }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px">
+            <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; color: {{ hintColor }}">{{ hint }}</span>
+            <div style="display: flex; gap: 8px">
+              <button type="button" onClick="{{ prev }}" disabled="{{ atStart }}" style="all: unset; cursor: pointer; min-height: 44px; padding: 0 16px; border: 1.5px solid #1B1B1B; border-radius: 12px; background: #FFFFFF; font-size: 14px; font-weight: 700; display: inline-flex; align-items: center">← Back</button>
+              <button type="button" onClick="{{ next }}" disabled="{{ atEnd }}" style="all: unset; cursor: pointer; min-height: 44px; padding: 0 18px; border: 1.5px solid #1B1B1B; border-radius: 12px; background: #1F3A63; color: #FFFFFF; font-size: 14px; font-weight: 800; display: inline-flex; align-items: center; box-shadow: 3px 3px 0 #1B1B1B">Next step →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="margin: 0; max-width: 680px; color: #3F3A36">In one line: a webhook is an HTTP callback, a <b>reverse API</b>. Instead of you asking again and again, the provider calls your URL the moment the event happens.</p>
+    </section>
+
+    <!-- LEG 3 -->
+    <section id="leg3" style="display: flex; flex-direction: column; gap: 20px">
+      <div style="display: flex; align-items: flex-end; gap: 16px; padding-bottom: 12px; border-bottom: 1.5px solid #1B1B1B; background-image: repeating-linear-gradient(90deg, #1B1B1B 0 1px, transparent 1px 16px); background-size: 100% 6px; background-position: bottom; background-repeat: no-repeat">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 88px; line-height: .8; color: transparent; -webkit-text-stroke: 1.5px #1F3A63">03</span>
+        <span style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; color: #1F3A63">LEG 3 · WHAT SEPARATES SENIORS · ≈ 2 MIN</span><span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 42px; line-height: 1">Hazards on the ridge</span></span>
+      </div>
+      <p style="margin: 0; max-width: 680px; color: #3F3A36">Receiving the POST is easy ground. These three are where production systems slip, and they’re what the interviewer is waiting to hear.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px">
+        <div class="at-haz" style="display: flex; flex-direction: column; border: 1.5px solid #1B1B1B; border-radius: 22px; box-shadow: 5px 5px 0 #1B1B1B; background: #FFFFFF; overflow: hidden">
+          <span style="display: flex; justify-content: space-between; padding: 10px 14px; border-bottom: 1.5px solid #1B1B1B; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .12em"><span>HAZARD ① · TRUST</span><span style="color: #1F3A63">PIN ①</span></span>
+          <svg role="img" aria-label="A door with a wax seal, and a dashed stranger waiting outside" viewBox="0 0 240 140" width="100%" style="display: block; background: #E9EEF4">
+            <g fill="none" stroke="#1F3A63" stroke-width=".8" opacity=".4"><path d="M0 120 C60 108 120 124 240 104"></path><path d="M0 132 C70 120 130 134 240 116"></path></g>
+            <path d="M0 140 V126 C80 118 160 130 240 118 V140 Z" fill="#CDD8E7" stroke="#1B1B1B" stroke-width="1.4"></path>
+            <rect x="120" y="22" width="70" height="104" rx="4" fill="#16294A" stroke="#1B1B1B" stroke-width="1.8"></rect>
+            <rect x="128" y="30" width="54" height="96" rx="3" fill="#1F3A63" stroke="#1B1B1B" stroke-width="1.4"></rect>
+            <circle cx="172" cy="80" r="3" fill="#E9EEF4" stroke="#1B1B1B"></circle>
+            <circle cx="155" cy="62" r="15" fill="#C2593A" stroke="#1B1B1B" stroke-width="1.8"></circle>
+            <circle cx="155" cy="62" r="10" fill="none" stroke="#FFFFFF" stroke-width="1.2" stroke-dasharray="2 2"></circle>
+            <path d="M149 62 l4 4 l8 -9" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path>
+            <g fill="#FFFFFF" stroke="#1B1B1B" stroke-width="1.6" stroke-dasharray="4 3"><circle cx="62" cy="58" r="13"></circle><path d="M40 124 C40 96 50 80 62 80 C74 80 84 96 84 124"></path></g>
+            <text x="56" y="63" font-family="Instrument Serif, Georgia, serif" font-size="18" fill="#1B1B1B">?</text>
+            <path d="M88 100 C96 94 102 104 110 98" fill="none" stroke="#C2593A" stroke-width="2" stroke-linecap="round"></path>
+          </svg>
+          <span style="padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 6px"><span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; line-height: 1">Strangers at the door</span><span style="font-size: 14.5px; color: #3F3A36">Anyone can POST to your URL. The provider signs the body with a shared secret; recompute it and turn away any mismatch.</span></span>
+        </div>
+        <div class="at-haz" style="display: flex; flex-direction: column; border: 1.5px solid #1B1B1B; border-radius: 22px; box-shadow: 5px 5px 0 #1B1B1B; background: #FFFFFF; overflow: hidden">
+          <span style="display: flex; justify-content: space-between; padding: 10px 14px; border-bottom: 1.5px solid #1B1B1B; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .12em"><span>HAZARD ② · SPEED</span><span style="color: #1F3A63">PIN ②</span></span>
+          <svg role="img" aria-label="A stopwatch beside a letter rushing past, tagged 200 OK" viewBox="0 0 240 140" width="100%" style="display: block; background: #E9EEF4">
+            <g fill="none" stroke="#1F3A63" stroke-width=".8" opacity=".4"><path d="M0 120 C60 108 120 124 240 104"></path></g>
+            <path d="M0 140 V126 C80 118 160 130 240 118 V140 Z" fill="#CDD8E7" stroke="#1B1B1B" stroke-width="1.4"></path>
+            <rect x="74" y="14" width="20" height="10" rx="2" fill="#1F3A63" stroke="#1B1B1B" stroke-width="1.4"></rect>
+            <circle cx="84" cy="72" r="44" fill="#FFFFFF" stroke="#1B1B1B" stroke-width="2"></circle>
+            <circle cx="84" cy="72" r="36" fill="#E9EEF4" stroke="#1B1B1B" stroke-width="1"></circle>
+            <path d="M84 72 L84 72 A36 36 0 0 1 120 72 Z" fill="#C2593A" opacity=".85"></path>
+            <g stroke="#1B1B1B" stroke-width="1.6" stroke-linecap="round"><path d="M84 40v6M84 98v6M52 72h6M110 72h6"></path></g>
+            <path d="M84 72 L84 46" stroke="#1B1B1B" stroke-width="2.4" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 84 72" to="360 84 72" dur="4s" repeatCount="indefinite"></animateTransform></path>
+            <circle cx="84" cy="72" r="4" fill="#1B1B1B"></circle>
+            <g transform="translate(150 50)"><rect width="58" height="40" rx="4" fill="#FFFFFF" stroke="#1B1B1B" stroke-width="1.8"></rect><path d="M2 3 L29 22 L56 3" fill="none" stroke="#1B1B1B" stroke-width="1.6"></path></g>
+            <g stroke="#1F3A63" stroke-width="2" stroke-linecap="round"><path d="M136 58h-10M138 70h-16M136 82h-10"></path></g>
+            <rect x="160" y="96" width="50" height="18" rx="4" fill="#3E6B5A" stroke="#1B1B1B" stroke-width="1.4"></rect>
+            <text x="166" y="109" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700" fill="#FFFFFF">200 OK</text>
+          </svg>
+          <span style="padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 6px"><span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; line-height: 1">A slow reply looks dead</span><span style="font-size: 14.5px; color: #3F3A36">Answer 200 OK at once. Drop the event on a queue and do the heavy work in the background.</span></span>
+        </div>
+        <div class="at-haz" style="display: flex; flex-direction: column; border: 1.5px solid #1B1B1B; border-radius: 22px; box-shadow: 5px 5px 0 #1B1B1B; background: #FFFFFF; overflow: hidden">
+          <span style="display: flex; justify-content: space-between; padding: 10px 14px; border-bottom: 1.5px solid #1B1B1B; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .12em"><span>HAZARD ③ · REPEATS</span><span style="color: #1F3A63">PIN ③</span></span>
+          <svg role="img" aria-label="Two identical letters stamped evt_42; the second is marked skip" viewBox="0 0 240 140" width="100%" style="display: block; background: #E9EEF4">
+            <g fill="none" stroke="#1F3A63" stroke-width=".8" opacity=".4"><path d="M0 120 C60 108 120 124 240 104"></path></g>
+            <path d="M0 140 V126 C80 118 160 130 240 118 V140 Z" fill="#CDD8E7" stroke="#1B1B1B" stroke-width="1.4"></path>
+            <g transform="rotate(-6 80 66)"><rect x="34" y="34" width="92" height="62" rx="5" fill="#FFFFFF" stroke="#1B1B1B" stroke-width="1.8"></rect><path d="M36 38 L80 70 L124 38" fill="none" stroke="#1B1B1B" stroke-width="1.6"></path><rect x="42" y="78" width="46" height="13" rx="3" fill="#1F3A63"></rect><text x="46" y="88" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700" fill="#FFFFFF">evt_42</text></g>
+            <g transform="rotate(5 158 72)"><rect x="112" y="40" width="92" height="62" rx="5" fill="#FFFFFF" stroke="#1B1B1B" stroke-width="1.8"></rect><path d="M114 44 L158 76 L202 44" fill="none" stroke="#1B1B1B" stroke-width="1.6"></path><rect x="120" y="84" width="46" height="13" rx="3" fill="#1F3A63"></rect><text x="124" y="94" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700" fill="#FFFFFF">evt_42</text></g>
+            <g transform="rotate(-12 170 60)"><rect x="146" y="48" width="56" height="22" rx="4" fill="none" stroke="#C2593A" stroke-width="3"></rect><text x="154" y="64" font-family="JetBrains Mono, monospace" font-size="12" font-weight="700" fill="#C2593A">SKIP</text></g>
+          </svg>
+          <span style="padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 6px"><span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; line-height: 1">The same news, twice</span><span style="font-size: 14.5px; color: #3F3A36">If you’re down, the provider retries with backoff, sometimes for days. Store each event ID and skip the repeats.</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- LEG 4 -->
+    <section id="leg4" style="display: flex; flex-direction: column; gap: 20px">
+      <div style="display: flex; align-items: flex-end; gap: 16px; padding-bottom: 12px; border-bottom: 1.5px solid #1B1B1B; background-image: repeating-linear-gradient(90deg, #1B1B1B 0 1px, transparent 1px 16px); background-size: 100% 6px; background-position: bottom; background-repeat: no-repeat">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 88px; line-height: .8; color: transparent; -webkit-text-stroke: 1.5px #1F3A63">04</span>
+        <span style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; color: #1F3A63">LEG 4 · THE CODE · ≈ 2 MIN · SQUARE 2</span><span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 42px; line-height: 1">The handler, pinned</span></span>
+      </div>
+      <div style="border: 1.5px solid #1B1B1B; border-radius: 24px; box-shadow: 8px 8px 0 #1B1B1B; background: #0F1E36; overflow: hidden">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1.5px solid #2B4166; background-image: repeating-linear-gradient(90deg, #2B4166 0 1px, transparent 1px 16px); background-size: 100% 5px; background-position: bottom; background-repeat: no-repeat">
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; color: #CDD8E7">webhook_handler.py</span>
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; color: #7F96B6">TAP A PIN · HELPERS ARE YOUR OWN</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap">
+          <div style="flex: 999 1 420px; min-width: 0; overflow-x: auto">
+<pre style="margin: 0; padding: 18px 20px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 14.5px; line-height: 2.1; color: #E9EEF4"><span style="color: #5D79A3">1  </span><span style="color: #7F96B6">@app.post("/hook")</span>
+<span style="color: #5D79A3">2  </span><span style="color: #F08A6B">def</span> stripe_hook():
+<span style="color: #5D79A3">3  </span>    event = verify_signature(request)
+<span style="color: #5D79A3">4  </span>    <span style="color: #F08A6B">if</span> already_seen(event.id):
+<span style="color: #5D79A3">5  </span>        <span style="color: #F08A6B">return</span> <span style="color: #9FD3BE">""</span>, 200
+<span style="color: #5D79A3">6  </span>    queue.put(event)
+<span style="color: #5D79A3">7  </span>    <span style="color: #F08A6B">return</span> <span style="color: #9FD3BE">""</span>, 200</pre>
+          </div>
+          <div style="flex: 1 1 260px; padding: 16px; border-left: 1.5px solid #2B4166; display: flex; flex-direction: column; gap: 10px">
+            <sc-for list="{{ pins }}" as="p" hint-placeholder-count="3">
+              <button type="button" onClick="{{ p.pick }}" aria-pressed="{{ p.on }}" style="all: unset; cursor: pointer; display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 14px; border: 1.5px solid {{ p.border }}; background: {{ p.bg }}">
+                <span style="flex: none; width: 30px; height: 30px; border-radius: 999px; border: 1.5px solid #1B1B1B; background: {{ p.dot }}; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px">{{ p.n }}</span>
+                <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; color: #9FB3CE">LINE {{ p.line }}</span><span style="font-size: 14px; font-weight: 700; color: #FFFFFF">{{ p.title }}</span><span style="font-size: 13px; color: #CDD8E7">{{ p.body }}</span></span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 16px; border-top: 1.5px solid #2B4166">
+          <span style="font-size: 13.5px; color: #CDD8E7">Open all three pins to light square 2. {{ pinsSeen }} of 3 opened.</span>
+          <sc-if value="{{ codeRead }}" hint-placeholder-val="{{ false }}"><span class="at-pop" style="min-height: 40px; padding: 0 14px; border: 1.5px solid #1B1B1B; border-radius: 10px; background: #3E6B5A; color: #FFFFFF; font-size: 13.5px; font-weight: 800; display: inline-flex; align-items: center">✓ Square 2 lit</span></sc-if>
+        </div>
+      </div>
+    </section>
+
+    <!-- LEG 5 -->
+    <section id="leg5" style="display: flex; flex-direction: column; gap: 20px">
+      <div style="display: flex; align-items: flex-end; gap: 16px; padding-bottom: 12px; border-bottom: 1.5px solid #1B1B1B; background-image: repeating-linear-gradient(90deg, #1B1B1B 0 1px, transparent 1px 16px); background-size: 100% 6px; background-position: bottom; background-repeat: no-repeat">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 88px; line-height: .8; color: transparent; -webkit-text-stroke: 1.5px #1F3A63">05</span>
+        <span style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; color: #1F3A63">LEG 5 · THE CHECK · ≈ 1 MIN · SQUARE 3</span><span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 42px; line-height: 1">Sign the summit register</span></span>
+      </div>
+      <div style="position: relative; display: flex; flex-wrap: wrap; border: 1.5px solid #1B1B1B; border-radius: 24px; box-shadow: 8px 8px 0 #1B1B1B; background: #FFFFFF; overflow: hidden">
+        <div style="flex: 1 1 220px; background: #1F3A63; border-right: 1.5px solid #1B1B1B; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; gap: 16px; background-image: repeating-linear-gradient(transparent 0 23px, rgba(233,238,244,.12) 23px 24px)">
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; color: #B9C8DC">REGISTER · D3</span>
+          <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; line-height: 1.05; color: #FFFFFF">Light all three and this place is yours.</span>
+          <span style="display: flex; gap: 8px"><sc-for list="{{ squares }}" as="q" hint-placeholder-count="3"><span class="{{ q.cls }}" style="width: 40px; height: 40px; border-radius: 8px; border: 2px solid #FFFFFF; background: {{ q.bgBig }}"></span></sc-for></span>
+        </div>
+        <div style="flex: 999 1 420px; padding: 24px; display: flex; flex-direction: column; gap: 16px; background-image: repeating-linear-gradient(transparent 0 35px, #EDE5DE 35px 36px)">
+          <p style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; line-height: 1.15">Your server timed out, so Stripe sent <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 20px; background: #E9EEF4; border: 1.5px solid #1B1B1B; border-radius: 6px; padding: 0 6px">payment.succeeded</span> again. The first attempt already shipped the order. What stops it shipping twice?</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px">
+            <sc-for list="{{ options }}" as="o" hint-placeholder-count="4">
+              <button type="button" onClick="{{ o.pick }}" aria-pressed="{{ o.chosen }}" style="all: unset; cursor: pointer; display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 10px 14px; box-sizing: border-box; border: {{ o.border }}; border-radius: 14px; background: {{ o.bg }}; color: {{ o.fg }}; box-shadow: {{ o.shadow }}; text-decoration: {{ o.deco }}">
+                <span style="flex: none; width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; font-weight: 700">{{ o.letter }}</span>
+                <span style="font-size: 15px; font-weight: 700; line-height: 1.3">{{ o.text }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <sc-if value="{{ answered }}" hint-placeholder-val="{{ false }}">
+            <p aria-live="polite" class="at-pop" style="margin: 0; padding: 14px 16px; border: 1.5px solid #1B1B1B; border-radius: 14px; background: {{ fbBg }}; font-size: 15px">{{ feedback }}</p>
+          </sc-if>
+        </div>
+        <sc-if value="{{ correct }}" hint-placeholder-val="{{ false }}">
+          <span class="at-stamp" aria-hidden="true" style="position: absolute; right: 26px; top: 18px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 22px; font-weight: 700; letter-spacing: .2em; color: #3E6B5A; border: 4px double #3E6B5A; border-radius: 10px; padding: 6px 16px; background: rgba(255,255,255,.92)">LIT</span>
+        </sc-if>
+      </div>
+    </section>
+
+    <!-- ONWARD -->
+    <section style="display: flex; flex-direction: column; gap: 16px; padding-top: 30px; border-top: 1.5px solid #1B1B1B">
+      <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; color: #1F3A63">ONWARD FROM D3</span>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px">
+        <a href="https://www.facebook.com/reel/1147769740986837" style="display: flex; gap: 14px; align-items: center; padding: 12px; border: 1.5px solid #1B1B1B; border-radius: 18px; background: #FFFFFF; box-shadow: 4px 4px 0 #1B1B1B; text-decoration: none; color: #1B1B1B">
+          <span style="flex: none; width: 66px; height: 96px; border-radius: 10px; border: 1.5px solid #1B1B1B; background: #111111; display: flex; align-items: center; justify-content: center; padding: 6px; box-sizing: border-box"><span style="font-size: 10px; font-weight: 800; line-height: 1.15; color: #FFFFFF; text-align: center">How does a <span style="background: #FACC15; color: #111111; padding: 0 2px">webhook</span> work?</span></span>
+          <span style="display: flex; flex-direction: column; gap: 3px"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; color: #1F3A63">SOURCE · FN-IV.1</span><span style="font-weight: 800; font-size: 15px; line-height: 1.25">Webhooks explained</span><span style="font-size: 12.5px; color: #55504C">The SeniorDev Diaries · 1:37</span></span>
+        </a>
+        <a href="Map.dc.html" style="display: flex; flex-direction: column; justify-content: space-between; gap: 10px; padding: 16px 18px; border: 1.5px solid #1B1B1B; border-radius: 18px; background: #1F3A63; color: #FFFFFF; box-shadow: 4px 4px 0 #1B1B1B; text-decoration: none; background-image: radial-gradient(circle at 0 62%, #F4EFE9 0 10px, transparent 11px), radial-gradient(circle at 100% 62%, #F4EFE9 0 10px, transparent 11px)">
+          <span style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; color: #B9C8DC"><span>NEXT STOP · IV LINE</span><span>E4</span></span>
+          <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 32px; line-height: 1">Server-Sent Events →</span>
+          <span style="border-top: 2px dashed rgba(233,238,244,.6)"></span>
+        </a>
+        <a href="Home.dc.html" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1.5px solid #1B1B1B; border-radius: 18px; background: #FFFFFF; box-shadow: 4px 4px 0 #1B1B1B; text-decoration: none; color: #1B1B1B">
+          <span style="border: 1.5px solid #1B1B1B; border-radius: 14px; overflow: hidden; line-height: 0"><dc-import name="Emblem" kind="lock" size="{{ 64 }}" hint-size="64px,64px"></dc-import></span>
+          <span style="display: flex; flex-direction: column; gap: 3px"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; color: #1B1B1B">⇄ INTERCHANGE · PL. V</span><span style="font-weight: 800; font-size: 15px; line-height: 1.25">Card payments run on webhooks. Change for Security &amp; money.</span></span>
+        </a>
+      </div>
+    </section>
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":3300}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { mode: 'poll', step: 0, walked: false, pin: null, seen: {}, picked: null };
+  }
+  renderVals() {
+    var self = this, S = this.state;
+    function P(x, y) { return { x: (x / 6) + '%', y: (y / 3) + '%' }; }
+    var POLL = [
+      { short: 'Ask', cap: 'Your server walks over to ask: is the payment done yet?', tok: 'GET /payments/42', at: P(370, 128), prov: false, q: false, w: 0 },
+      { short: 'Not yet', cap: 'Stripe says not yet. A wasted trip back.', tok: 'pending', at: P(214, 162), prov: false, q: false, w: 1 },
+      { short: 'Again', cap: 'So you walk over again, and again. That is polling.', tok: 'GET /payments/42', at: P(370, 128), prov: false, q: false, w: 2 },
+      { short: 'Finally', cap: 'It finally says yes, but the news reached you late.', tok: 'succeeded', at: P(214, 162), prov: true, q: false, w: 3 }
+    ];
+    var HOOK = [
+      { short: 'Register', cap: 'You leave Stripe one address to call: your URL.', tok: 'you.com/hook', at: P(370, 128), prov: false, q: false, w: 0 },
+      { short: 'Event', cap: 'A payment succeeds on Stripe’s side. Its beacon lights.', tok: 'payment.succeeded', at: P(452, 36), prov: true, q: false, w: 0 },
+      { short: 'POST', cap: 'Stripe calls you: a POST to your URL, the event as JSON.', tok: 'POST /hook {…}', at: P(200, 112), prov: true, q: false, w: 0 },
+      { short: '200 OK', cap: 'You drop it on the queue and answer 200 OK at once.', tok: '200 OK', at: P(300, 150), prov: false, q: true, w: 0 }
+    ];
+    var isPoll = S.mode === 'poll', steps = isPoll ? POLL : HOOK, cur = steps[S.step];
+    this.go = function (i) { self.setState({ step: i, walked: self.state.walked || (self.state.mode === 'hook' && i === 3) }); };
+    var stepItems = steps.map(function (s, i) {
+      var on = i === S.step, past = i < S.step;
+      return { n: i + 1, label: s.short, current: on ? 'step' : 'false',
+        bg: on ? '#C2593A' : (past ? '#1F3A63' : '#FFFFFF'), fg: (on || past) ? '#FFFFFF' : '#1B1B1B',
+        shadow: on ? '3px 3px 0 #1B1B1B' : 'none', go: function () { self.go(i); } };
+    });
+    var w = String(cur.w).padStart(2, '0');
+    var odo = [{ d: w.charAt(0), fg: '#7F96B6' }, { d: w.charAt(1), fg: cur.w ? '#F08A6B' : '#FFFFFF' }];
+
+    var PINS = [
+      { n: '①', line: 3, title: 'Turn strangers away', body: 'verify_signature recomputes the provider’s signature and rejects a mismatch.', dot: '#1F3A63' },
+      { n: '③', line: 4, title: 'Skip the repeat', body: 'already_seen checks the event ID, so a retry does nothing twice.', dot: '#16294A' },
+      { n: '②', line: 6, title: 'Work later, reply now', body: 'queue.put hands the heavy lifting off; the 200 goes back at once.', dot: '#C2593A' }
+    ];
+    var pins = PINS.map(function (p) {
+      var on = S.pin === p.n;
+      return Object.assign({}, p, { on: on ? 'true' : 'false', border: on ? '#F4EFE9' : '#2B4166', bg: on ? '#1F3A63' : 'transparent',
+        pick: function () { var s = Object.assign({}, self.state.seen); s[p.n] = true; self.setState({ pin: p.n, seen: s }); } });
+    });
+    var pinsSeen = Object.keys(S.seen).length, codeRead = pinsSeen >= 3;
+
+    var OPTS = [
+      { letter: 'A', text: 'Check the signature first', right: false, why: 'A real retry carries a valid signature, so it passes and the order ships again.' },
+      { letter: 'B', text: 'Store the event ID and skip repeats', right: true, why: 'Right. The retry carries the same event ID, so an idempotent handler skips it.' },
+      { letter: 'C', text: 'Reply 200 more slowly', right: false, why: 'Slower replies mean more timeouts, and so more retries.' },
+      { letter: 'D', text: 'Go back to polling', right: false, why: 'That trades duplicates for wasted trips and late news.' }
+    ];
+    var chosenOpt = OPTS.filter(function (o) { return o.letter === S.picked; })[0];
+    var options = OPTS.map(function (o) {
+      var ch = S.picked === o.letter, good = ch && o.right, bad = ch && !o.right;
+      return { letter: o.letter, text: o.text, chosen: ch ? 'true' : 'false',
+        border: good ? '2px solid #1B1B1B' : (bad ? '1.5px dashed #9A928C' : '1.5px solid #1B1B1B'),
+        bg: good ? '#3E6B5A' : (bad ? '#F4EFE9' : '#FFFFFF'), fg: good ? '#FFFFFF' : (bad ? '#6F6964' : '#1B1B1B'),
+        shadow: good ? '4px 4px 0 #1B1B1B' : (ch ? 'none' : '3px 3px 0 #1F3A63'), deco: bad ? 'line-through' : 'none',
+        pick: function () { self.setState({ picked: o.letter }); } };
+    });
+    var correct = !!(chosenOpt && chosenOpt.right);
+    var lit = [S.walked, codeRead, correct];
+    var squares = lit.map(function (l) { return { bg: l ? '#3E6B5A' : '#FFFFFF', bgBig: l ? '#3E6B5A' : 'transparent', cls: l ? 'at-light' : '' }; });
+    var RAIL = [
+      { href: '#leg1', title: 'The trailhead', meta: '≈ 1 MIN', done: true },
+      { href: '#leg2', title: 'Two ways to hear news', meta: 'SQUARE 1', done: S.walked },
+      { href: '#leg3', title: 'Hazards on the ridge', meta: '≈ 2 MIN', done: false },
+      { href: '#leg4', title: 'The handler, pinned', meta: 'SQUARE 2', done: codeRead },
+      { href: '#leg5', title: 'The summit register', meta: 'SQUARE 3', done: correct }
+    ];
+    var rail = RAIL.map(function (r, i) { return { href: r.href, title: r.title, meta: r.meta, mark: r.done ? '✓' : String(i + 1),
+      bg: r.done ? '#3E6B5A' : (i === 4 ? '#F4EFE9' : '#FFFFFF'), fg: r.done ? '#FFFFFF' : '#1B1B1B', radius: i === 4 ? '6px' : '999px' }; });
+
+    return {
+      isPoll: isPoll ? 'true' : 'false', isHook: isPoll ? 'false' : 'true',
+      pollBg: isPoll ? '#1F3A63' : '#FFFFFF', pollFg: isPoll ? '#FFFFFF' : '#1B1B1B',
+      hookBg: isPoll ? '#FFFFFF' : '#C2593A', hookFg: isPoll ? '#1B1B1B' : '#FFFFFF',
+      toPoll: function () { self.setState({ mode: 'poll', step: 0 }); },
+      toHook: function () { self.setState({ mode: 'hook', step: 0 }); },
+      caption: cur.cap, tokLabel: cur.tok, tokX: cur.at.x, tokY: cur.at.y,
+      tokBg: cur.q ? '#3E6B5A' : (isPoll ? '#FFFFFF' : '#C2593A'), tokFg: (cur.q || !isPoll) ? '#FFFFFF' : '#1B1B1B',
+      odo: odo,
+      arcOp: (!isPoll && S.step >= 2) ? 1 : 0,
+      queueOp: cur.q ? 1 : 0,
+      tallyOp: isPoll && cur.w > 0 ? 1 : 0,
+      beaconR: cur.prov ? 7 : 4, beaconFill: cur.prov ? '#C2593A' : '#E9EEF4', beaconOp: cur.prov ? 1 : 0,
+      serverLed: cur.q ? '#3E6B5A' : (isPoll && S.step % 2 === 1 ? '#C2593A' : '#FFFFFF'),
+      stepItems: stepItems, atStart: S.step === 0, atEnd: S.step === 3,
+      prev: function () { if (self.state.step > 0) self.go(self.state.step - 1); },
+      next: function () { if (self.state.step < 3) self.go(self.state.step + 1); },
+      hint: S.walked ? '✓ WALKED · SQUARE 1 LIT' : 'WALK “THEY CALL YOU” TO STEP 4 TO LIGHT SQUARE 1',
+      hintColor: S.walked ? '#3E6B5A' : '#1F3A63',
+      pins: pins, pinsSeen: pinsSeen, codeRead: codeRead,
+      options: options, answered: !!chosenOpt, correct: correct,
+      feedback: chosenOpt ? chosenOpt.why : '', fbBg: correct ? '#EEF4F1' : '#FBEFEA',
+      squares: squares, litCount: lit.filter(Boolean).length, rail: rail
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Atlas: Region IV, Systems and networks</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&amp;family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F4EFE9}
+a{color:#C2593A}a:hover{color:#AD4C30}
+button,input{font-family:inherit}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #C2593A;outline-offset:3px}
+@keyframes atIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes atMarch{to{stroke-dashoffset:-28}}
+@keyframes atBeacon{0%{transform:translate(-50%,-50%) scale(.6);opacity:.9}100%{transform:translate(-50%,-50%) scale(2.6);opacity:0}}
+@keyframes atFlag{0%,100%{transform:skewY(0)}50%{transform:skewY(-6deg)}}
+.at-view{animation:atIn .35s cubic-bezier(.2,.8,.2,1) both}
+.at-march{animation:atMarch 1.4s linear infinite}
+.at-beacon{animation:atBeacon 2s ease-out infinite}
+.at-flag{transform-origin:0 100%;animation:atFlag 2.4s ease-in-out infinite}
+.at-mk{transition:transform .2s cubic-bezier(.2,.8,.2,1)}
+.at-mk:hover{transform:translate(-50%,-50%) scale(1.12)}
+.at-row:hover{background:#FBF8F4}
+@media (prefers-reduced-motion: reduce){.at-view,.at-march,.at-beacon,.at-flag{animation:none}}
+</style>
+</helmet>
+
+<div style="min-height: 100vh; background: #F4EFE9; color: #1B1B1B; font-family: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 1.5">
+
+<!-- Context nav -->
+<header style="background: #F4EFE9">
+  <div style="max-width: 1280px; margin: 0 auto; padding: 12px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px">
+    <a href="Home.dc.html" style="display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: #1B1B1B; margin-right: 10px">
+      <svg aria-hidden="true" width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="15.5" fill="#1B1B1B"></circle><g fill="none" stroke="#F4EFE9" stroke-width="1"><ellipse cx="17" cy="17" rx="6" ry="15.5"></ellipse><path d="M1.5 17 H32.5 M4 9.5 H30 M4 24.5 H30"></path></g><path d="M17 5 L20 17 L17 29 L14 17 Z" fill="#C2593A" stroke="#F4EFE9" stroke-width="1"></path></svg>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; line-height: 1">Atlas</span>
+    </a>
+    <a href="Home.dc.html" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px 0 6px; border-radius: 12px; border: 1.5px solid #1B1B1B; text-decoration: none; color: #1B1B1B; box-sizing: border-box"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; background: #1B1B1B; color: #F4EFE9; padding: 5px 7px; border-radius: 7px">VOL. I</span><span style="font-weight: 700; font-size: 14px">Computing</span></a>
+    <span aria-hidden="true" style="font-family: 'JetBrains Mono', ui-monospace, monospace; color: #9A928C; padding: 0 4px">/</span>
+    <a href="Home.dc.html" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px 0 6px; border-radius: 12px; border: 1.5px solid #1B1B1B; background: #1F3A63; color: #FFFFFF; text-decoration: none; box-sizing: border-box; box-shadow: 3px 3px 0 #1B1B1B"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; background: #FFFFFF; color: #1F3A63; padding: 5px 7px; border-radius: 7px">PL. IV</span><span style="font-weight: 700; font-size: 14px">Systems &amp; networks</span><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></a>
+    <nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px; margin-left: 8px">
+      <a href="#region" aria-current="page" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14.5px; font-weight: 700">Your map</a>
+      <a href="Library.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14.5px">Library</a>
+      <a href="Home.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; text-decoration: none; color: #1B1B1B; font-size: 14.5px">Today’s question</a>
+    </nav>
+    <div style="flex: 1 1 100px; display: flex; justify-content: flex-end">
+      <a href="Home.dc.html" aria-label="Your profile" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 12px; border: 1.5px solid #1B1B1B; background: #C2593A; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; font-weight: 800; font-size: 14px">DG</a>
+    </div>
+  </div>
+  <div aria-hidden="true" style="height: 12px; border-top: 1.5px solid #1B1B1B; background-image: repeating-linear-gradient(90deg, #1B1B1B 0 1px, transparent 1px 80px), repeating-linear-gradient(90deg, #1B1B1B 0 1px, transparent 1px 16px); background-size: 100% 12px, 100% 5px; background-repeat: no-repeat"></div>
+</header>
+
+<main id="region" style="max-width: 1280px; margin: 0 auto; padding: 28px 24px 64px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
+
+  <!-- Region plate header -->
+  <section style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch">
+    <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-wrap: wrap; gap: 22px; align-items: center; background: #FFFFFF; border: 1.5px solid #1B1B1B; border-radius: 22px; box-shadow: 6px 6px 0 #1B1B1B; padding: 18px">
+      <span style="border: 1.5px solid #1B1B1B; border-radius: 24px; line-height: 0; overflow: hidden"><dc-import name="Emblem" kind="net" size="{{ 150 }}" hint-size="150px,150px"></dc-import></span>
+      <div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+        <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11.5px; font-weight: 700; letter-spacing: .12em; color: #1F3A63">REGION IV · PLATE IV · VOLUME I</span>
+        <h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 56px; line-height: .95">Systems &amp; networks</h1>
+        <p style="margin: 0; font-size: 15px; color: #3F3A36; max-width: 520px">How machines talk, wait and scale. Climb from how the internet works to designing a system out loud.</p>
+        <span style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px">
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; padding: 5px 9px; border: 1.5px solid #1B1B1B; border-radius: 8px">15 PLACES</span>
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; padding: 5px 9px; border: 1.5px solid #1B1B1B; border-radius: 8px">4 FIELD NOTES</span>
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; padding: 5px 9px; border: 1.5px solid #1B1B1B; border-radius: 8px">3 PRIMARY SOURCES</span>
+        </span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0 8px">
+        <svg role="img" aria-label="4 of 15 places lit" width="128" height="128" viewBox="0 0 128 128">
+          <circle cx="64" cy="64" r="58" fill="#F4EFE9" stroke="#1B1B1B" stroke-width="1.5"></circle>
+          <g stroke-width="5" stroke-linecap="round">
+            <sc-for list="{{ ticks }}" as="t" hint-placeholder-count="15"><line x1="{{ t.x1 }}" y1="{{ t.y1 }}" x2="{{ t.x2 }}" y2="{{ t.y2 }}" stroke="{{ t.c }}"></line></sc-for>
+          </g>
+          <circle cx="64" cy="64" r="34" fill="#FFFFFF" stroke="#1B1B1B" stroke-width="1.2"></circle>
+          <path d="M64 30 L70 64 L64 98 L58 64 Z" fill="#1B1B1B" transform="rotate(96 64 64)"></path>
+          <path d="M64 30 L70 64 L58 64 Z" fill="#C2593A" transform="rotate(96 64 64)"></path>
+          <circle cx="64" cy="64" r="4" fill="#FFFFFF" stroke="#1B1B1B" stroke-width="1.5"></circle>
+        </svg>
+        <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11.5px; font-weight: 700">4 / 15 LIT</span>
+      </div>
+    </div>
+    <!-- next waypoint ticket -->
+    <a href="Main.dc.html" style="flex: 1 1 260px; position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; text-decoration: none; color: #FFFFFF; background: #C2593A; border: 1.5px solid #1B1B1B; border-radius: 22px; box-shadow: 6px 6px 0 #1B1B1B; padding: 20px 20px 18px; background-image: radial-gradient(circle at 0 62%, #F4EFE9 0 11px, transparent 12px), radial-gradient(circle at 100% 62%, #F4EFE9 0 11px, transparent 12px)">
+      <span style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .12em"><span>NEXT WAYPOINT</span><span>GRID D3</span></span>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 40px; line-height: 1">Webhooks</span>
+      <span style="border-top: 2px dashed rgba(255,255,255,.7)"></span>
+      <span style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600"><span>3 checks · from Polling</span><span style="display: inline-flex; align-items: center; gap: 8px; background: #1B1B1B; padding: 8px 12px; border-radius: 10px">Set out →</span></span>
+    </a>
+  </section>
+
+  <!-- Binder tabs -->
+  <div>
+    <div role="tablist" aria-label="How to see this region" style="display: flex; flex-wrap: wrap; gap: 6px; padding-left: 18px">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+        <sc-if value="{{ t.on }}" hint-placeholder-val="{{ false }}">
+          <button type="button" role="tab" aria-selected="true" onClick="{{ t.go }}" style="all: unset; cursor: pointer; position: relative; top: 1.5px; display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 18px; border: 1.5px solid #1B1B1B; border-bottom-color: #FFFFFF; border-radius: 14px 14px 0 0; background: #FFFFFF; box-sizing: border-box">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C2593A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ t.icon }}"></path></svg>
+            <span style="display: flex; flex-direction: column; line-height: 1.15"><span style="font-weight: 800; font-size: 15px">{{ t.label }}</span><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; color: #6F6964">{{ t.sub }}</span></span>
+          </button>
+        </sc-if>
+        <sc-if value="{{ t.off }}" hint-placeholder-val="{{ true }}">
+          <button type="button" role="tab" aria-selected="false" onClick="{{ t.go }}" style="all: unset; cursor: pointer; position: relative; top: 1.5px; display: inline-flex; align-items: center; gap: 10px; min-height: 48px; margin-top: 4px; padding: 0 16px; border: 1.5px solid #1B1B1B; border-radius: 14px 14px 0 0; background: #E8E0D8; box-sizing: border-box">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#55504C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ t.icon }}"></path></svg>
+            <span style="display: flex; flex-direction: column; line-height: 1.15"><span style="font-weight: 700; font-size: 14.5px; color: #3F3A36">{{ t.label }}</span><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; color: #6F6964">{{ t.sub }}</span></span>
+          </button>
+        </sc-if>
+      </sc-for>
+    </div>
+
+    <div style="background: #FFFFFF; border: 1.5px solid #1B1B1B; border-radius: 22px; box-shadow: 6px 6px 0 #1B1B1B; overflow: hidden">
+
+      <!-- ===== TERRAIN ===== -->
+      <sc-if value="{{ isTerrain }}" hint-placeholder-val="{{ true }}">
+        <div class="at-view" onPointerDown="{{ down }}" onPointerMove="{{ move }}" onPointerUp="{{ up }}" onPointerLeave="{{ up }}" style="position: relative; height: 660px; overflow: hidden; touch-action: none; user-select: none; cursor: {{ cursor }}; background: #F4EFE9">
+          <div style="position: absolute; left: 0; top: 0; width: 1400px; height: 720px; transform: translate({{ ox }}px, {{ oy }}px); transition: {{ ease }}">
+            <svg aria-hidden="true" width="1400" height="720" viewBox="0 0 1400 720" style="position: absolute; inset: 0">
+              <defs><pattern id="atGrid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#1B1B1B" stroke-width=".4" opacity=".14"></path></pattern></defs>
+              <rect width="1400" height="720" fill="#F4EFE9"></rect>
+              <path d="M1240 150 m-1060 0 c0 -560 520 -760 1060 -720 c600 40 800 420 760 760 c-40 460 -520 640 -1000 600 c-480 -40 -820 -200 -820 -640 z" fill="#E9EEF4" stroke="#1B1B1B" stroke-width="1.4"></path>
+              <path d="M1240 150 m-740 0 c0 -380 360 -520 740 -500 c420 20 560 300 530 520 c-30 300 -360 440 -700 420 c-330 -20 -570 -140 -570 -440 z" fill="#DCE4EE" stroke="#1B1B1B" stroke-width="1.4"></path>
+              <path d="M1240 150 m-420 0 c0 -220 200 -300 420 -290 c240 10 320 170 300 300 c-20 170 -200 250 -400 240 c-190 -10 -320 -80 -320 -250 z" fill="#CDD8E7" stroke="#1B1B1B" stroke-width="1.4"></path>
+              <path d="M1240 150 m-160 0 c0 -90 80 -120 160 -116 c96 4 128 66 120 118 c-8 68 -80 100 -160 96 c-76 -4 -120 -36 -120 -98 z" fill="#B9C8DC" stroke="#1B1B1B" stroke-width="1.4"></path>
+              <g fill="none" stroke="#1B1B1B" stroke-width=".7" opacity=".35">
+                <path d="M1240 150 m-900 0 c0 -470 440 -640 900 -610 c510 30 680 360 645 640 c-35 390 -440 540 -850 510 c-410 -30 -695 -170 -695 -540 z"></path>
+                <path d="M1240 150 m-580 0 c0 -300 280 -410 580 -395 c330 15 440 235 415 410 c-25 240 -280 345 -550 330 c-260 -15 -445 -110 -445 -345 z"></path>
+                <path d="M1240 150 m-290 0 c0 -150 140 -205 290 -200 c165 5 220 118 205 205 c-15 118 -140 172 -275 165 c-130 -7 -220 -55 -220 -170 z"></path>
+              </g>
+              <rect width="1400" height="720" fill="url(#atGrid)"></rect>
+              <g font-family="Instrument Serif, Georgia, serif" font-style="italic" font-size="20" fill="#1B1B1B" letter-spacing="4">
+                <text x="70" y="690">LOWLANDS · START</text>
+                <text x="300" y="300" transform="rotate(-24 300 300)">FOOTHILLS · BUILD</text>
+                <text x="700" y="200" transform="rotate(-18 700 200)">HIGHLANDS · DEEPEN</text>
+                <text x="1110" y="60">SUMMIT · MASTER</text>
+              </g>
+              <g font-family="JetBrains Mono, monospace" font-size="10" font-weight="700" fill="#1B1B1B" opacity=".55">
+                <text x="180" y="22">A</text><text x="380" y="22">B</text><text x="580" y="22">C</text><text x="780" y="22">D</text><text x="980" y="22">E</text><text x="1180" y="22">F</text>
+                <text x="10" y="80">1</text><text x="10" y="220">2</text><text x="10" y="360">3</text><text x="10" y="500">4</text><text x="10" y="640">5</text>
+              </g>
+              <g fill="none" stroke-linecap="round">
+                <sc-for list="{{ trails }}" as="tr" hint-placeholder-count="17">
+                  <path d="{{ tr.d }}" stroke="#1B1B1B" stroke-width="{{ tr.casing }}"></path>
+                  <path d="{{ tr.d }}" stroke="{{ tr.stroke }}" stroke-width="{{ tr.w }}" stroke-dasharray="{{ tr.dash }}" class="{{ tr.cls }}"></path>
+                </sc-for>
+              </g>
+            </svg>
+
+            <sc-for list="{{ places }}" as="pl" hint-placeholder-count="15">
+              <div style="position: absolute; left: {{ pl.x }}px; top: {{ pl.y }}px; width: 0; height: 0">
+                <sc-if value="{{ pl.isNext }}" hint-placeholder-val="{{ false }}">
+                  <span class="at-beacon" aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 34px; height: 34px; border-radius: 999px; border: 2px solid #C2593A"></span>
+                  <span class="at-flag" aria-hidden="true" style="position: absolute; left: 2px; top: -46px; width: 26px; height: 16px; background: #C2593A; border: 1.5px solid #1B1B1B; clip-path: polygon(0 0, 100% 50%, 0 100%)"></span>
+                  <span aria-hidden="true" style="position: absolute; left: 0; top: -46px; width: 2px; height: 40px; background: #1B1B1B"></span>
+                </sc-if>
+                <button type="button" class="at-mk" onClick="{{ pl.pick }}" aria-label="{{ pl.aria }}" style="all: unset; cursor: pointer; position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); width: {{ pl.size }}px; height: {{ pl.size }}px; box-sizing: border-box; border-radius: {{ pl.radius }}; border: {{ pl.border }}; background: {{ pl.bg }}; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 12px; font-weight: 800; box-shadow: {{ pl.shadow }}">{{ pl.mark }}</button>
+                <span style="position: absolute; left: 0; top: 20px; transform: translateX(-50%); white-space: nowrap; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 7px; border: 1.5px solid #1B1B1B; background: {{ pl.labelBg }}; color: {{ pl.labelFg }}">{{ pl.name }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- field card -->
+          <div style="position: absolute; right: 16px; top: 16px; width: 270px; background: #FFFFFF; border: 1.5px solid #1B1B1B; border-radius: 18px; box-shadow: 5px 5px 0 #1B1B1B; overflow: hidden">
+            <div style="display: flex; justify-content: space-between; padding: 10px 14px; background: {{ sel.stageTint }}; border-bottom: 1.5px solid #1B1B1B; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .1em"><span>GRID {{ sel.grid }}</span><span>{{ sel.stageCaps }}</span></div>
+            <div style="padding: 14px; display: flex; flex-direction: column; gap: 10px">
+              <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; line-height: 1">{{ sel.name }}</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <sc-for list="{{ sel.checks }}" as="c" hint-placeholder-count="3"><span style="width: 16px; height: 16px; border-radius: 3px; border: 1.5px solid #1B1B1B; background: {{ c.bg }}"></span></sc-for>
+                <span style="margin-left: 6px; font-size: 12.5px; color: #55504C">{{ sel.done }} of {{ sel.total }} checks</span>
+              </span>
+              <span style="font-size: 13px; color: #3F3A36">{{ sel.status }}</span>
+              <span style="display: flex; flex-wrap: wrap; gap: 6px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700"><span style="padding: 4px 7px; border: 1.5px solid #1B1B1B; border-radius: 6px">{{ sel.notes }} FIELD NOTES</span></span>
+              <a href="{{ sel.href }}" style="display: inline-flex; justify-content: center; align-items: center; min-height: 44px; border-radius: 12px; border: 1.5px solid #1B1B1B; background: #1B1B1B; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 14px">Open this place →</a>
+            </div>
+          </div>
+          <div style="position: absolute; left: 16px; bottom: 16px; display: flex; gap: 8px; align-items: center">
+            <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; background: #FFFFFF; border: 1.5px solid #1B1B1B; border-radius: 8px; padding: 7px 10px">DRAG TO EXPLORE · TAP A PLACE</span>
+            <button type="button" onClick="{{ recenter }}" style="all: unset; cursor: pointer; min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1.5px solid #1B1B1B; background: #1B1B1B; color: #FFFFFF; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center">Recenter</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== ROUTE ===== -->
+      <sc-if value="{{ isRoute }}" hint-placeholder-val="{{ false }}">
+        <div class="at-view" style="padding: 22px 22px 8px">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin-bottom: 8px">
+            <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .1em">THE IV LINE · 15 STOPS · LOWLANDS → SUMMIT</span>
+            <span style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; font-weight: 600">
+              <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 22px; height: 8px; background: #3E6B5A; border: 1px solid #1B1B1B"></span>Start</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 22px; height: 8px; background: #1F3A63; border: 1px solid #1B1B1B"></span>Build</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 22px; height: 8px; background: #C2593A; border: 1px solid #1B1B1B"></span>Deepen</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 22px; height: 8px; background: #6A3E73; border: 1px solid #1B1B1B"></span>Master</span>
+            </span>
+          </div>
+          <div style="overflow-x: auto">
+            <div style="position: relative; width: 1200px; height: 430px">
+              <svg aria-hidden="true" width="1200" height="430" viewBox="0 0 1200 430" style="position: absolute; inset: 0">
+                <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <sc-for list="{{ lineSegs }}" as="s" hint-placeholder-count="14">
+                    <path d="{{ s.d }}" stroke="#1B1B1B" stroke-width="16"></path>
+                    <path d="{{ s.d }}" stroke="{{ s.c }}" stroke-width="10"></path>
+                  </sc-for>
+                </g>
+              </svg>
+              <sc-for list="{{ stops }}" as="st" hint-placeholder-count="15">
+                <div style="position: absolute; left: {{ st.x }}px; top: {{ st.y }}px; width: 0; height: 0">
+                  <span aria-hidden="true" style="position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); width: {{ st.size }}px; height: {{ st.size }}px; box-sizing: border-box; border-radius: 999px; border: 3px solid #1B1B1B; background: {{ st.bg }}; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 12px; font-weight: 800">{{ st.mark }}</span>
+                  <span style="position: absolute; left: 0; top: {{ st.labelTop }}px; transform: translateX(-50%); width: 128px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px">
+                    <span style="font-size: 13px; font-weight: 700; line-height: 1.2">{{ st.name }}</span>
+                    <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; color: #6F6964">{{ st.count }}</span>
+                    <sc-if value="{{ st.hasChange }}" hint-placeholder-val="{{ false }}">
+                      <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; padding: 3px 7px; border: 1.5px solid #1B1B1B; border-radius: 999px; background: #FFFFFF; white-space: nowrap"><span style="width: 8px; height: 8px; border-radius: 999px; background: {{ st.changeColor }}"></span>⇄ {{ st.change }}</span>
+                    </sc-if>
+                  </span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== INDEX ===== -->
+      <sc-if value="{{ isIndex }}" hint-placeholder-val="{{ false }}">
+        <div class="at-view" style="padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px">
+            <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 30px">Gazetteer of Region IV</span>
+            <label style="display: inline-flex; align-items: center; gap: 8px; height: 44px; box-sizing: border-box; padding: 0 12px; border: 1.5px solid #1B1B1B; border-radius: 12px; background: #F4EFE9">
+              <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1B1B1B" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+              <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Find a place</span>
+              <input type="search" placeholder="Find a place…" value="{{ q }}" onInput="{{ onQ }}" style="border: 0; background: transparent; font-size: 14px; color: #1B1B1B; width: 180px; outline: none">
+            </label>
+          </div>
+          <div style="overflow-x: auto; border: 1.5px solid #1B1B1B; border-radius: 14px">
+            <div style="min-width: 760px">
+              <div style="display: grid; grid-template-columns: 70px minmax(0, 2.2fr) 130px 160px 110px 120px; gap: 12px; padding: 10px 16px; background: #1B1B1B; color: #F4EFE9; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .1em">
+                <span>GRID</span><span>PLACE</span><span>ELEVATION</span><span>CHECKS</span><span>FIELD NOTES</span><span>STATUS</span>
+              </div>
+              <sc-for list="{{ rows }}" as="r" hint-placeholder-count="15">
+                <button type="button" class="at-row" onClick="{{ r.open }}" style="all: unset; cursor: pointer; display: grid; grid-template-columns: 70px minmax(0, 2.2fr) 130px 160px 110px 120px; gap: 12px; align-items: center; width: 100%; box-sizing: border-box; padding: 12px 16px; border-top: 1px solid #E6DED8">
+                  <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; font-weight: 700">{{ r.grid }}</span>
+                  <span style="font-weight: 700; font-size: 14.5px">{{ r.name }}</span>
+                  <span style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px"><span style="width: 10px; height: 10px; border-radius: 2px; border: 1px solid #1B1B1B; background: {{ r.stageColor }}"></span>{{ r.stage }}</span>
+                  <span style="display: flex; gap: 3px"><sc-for list="{{ r.checks }}" as="c" hint-placeholder-count="3"><span style="width: 13px; height: 13px; border-radius: 2px; border: 1.5px solid #1B1B1B; background: {{ c.bg }}"></span></sc-for></span>
+                  <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px">{{ r.notes }}</span>
+                  <span style="justify-self: start; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700; padding: 4px 8px; border-radius: 6px; border: 1.5px solid #1B1B1B; background: {{ r.statusBg }}; color: {{ r.statusFg }}">{{ r.status }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1560}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { view: 'terrain', ox: -60, oy: -40, drag: null, sel: 'hook', q: '' };
+  }
+  renderVals() {
+    var self = this, S = this.state;
+    var STAGE = {
+      start: { label: 'Start', caps: 'LOWLANDS · START', color: '#3E6B5A', tint: '#EEF4F1' },
+      build: { label: 'Build', caps: 'FOOTHILLS · BUILD', color: '#1F3A63', tint: '#E9EEF4' },
+      deepen: { label: 'Deepen', caps: 'HIGHLANDS · DEEPEN', color: '#C2593A', tint: '#FBEFEA' },
+      master: { label: 'Master', caps: 'SUMMIT · MASTER', color: '#6A3E73', tint: '#F3ECF4' }
+    };
+    var P = [
+      { id: 'net', name: 'How the internet works', st: 'start', s: 'lit', d: 3, t: 3, x: 150, y: 590, n: 0 },
+      { id: 'cli', name: 'Clients and servers', st: 'start', s: 'lit', d: 3, t: 3, x: 330, y: 640, n: 0 },
+      { id: 'dns', name: 'DNS', st: 'start', s: 'open', d: 1, t: 3, x: 250, y: 470, n: 0 },
+      { id: 'cors', name: 'CORS', st: 'build', s: 'lit', d: 3, t: 3, x: 420, y: 370, n: 1 },
+      { id: 'poll', name: 'Polling', st: 'build', s: 'lit', d: 2, t: 2, x: 590, y: 430, n: 0 },
+      { id: 'http', name: 'HTTP and REST', st: 'build', s: 'open', d: 2, t: 4, x: 480, y: 540, n: 0 },
+      { id: 'tcp', name: 'TCP and UDP', st: 'build', s: 'open', d: 0, t: 3, x: 620, y: 630, n: 0 },
+      { id: 'hook', name: 'Webhooks', st: 'deepen', s: 'next', d: 0, t: 3, x: 750, y: 330, n: 1, href: 'Main.dc.html' },
+      { id: 'sse', name: 'Server-Sent Events', st: 'deepen', s: 'later', d: 0, t: 4, x: 880, y: 450, n: 1 },
+      { id: 'ws', name: 'WebSockets', st: 'deepen', s: 'later', d: 0, t: 4, x: 840, y: 230, n: 0 },
+      { id: 'cache', name: 'Caching', st: 'deepen', s: 'later', d: 0, t: 3, x: 800, y: 580, n: 0 },
+      { id: 'queue', name: 'Message queues', st: 'master', s: 'later', d: 0, t: 3, x: 1040, y: 210, n: 0 },
+      { id: 'lb', name: 'Load balancing', st: 'master', s: 'later', d: 0, t: 3, x: 1070, y: 470, n: 0 },
+      { id: 'deploy', name: 'Deploying safely', st: 'master', s: 'later', d: 0, t: 3, x: 1160, y: 340, n: 1 },
+      { id: 'sum', name: 'Design a system, out loud', st: 'master', s: 'later', d: 0, t: 5, x: 1240, y: 140, n: 0, summit: true }
+    ];
+    var byId = {}; P.forEach(function (p) { byId[p.id] = p; });
+    function grid(p) { return 'ABCDEFG'.charAt(Math.floor(p.x / 200)) + (1 + Math.floor(p.y / 140)); }
+    function checks(p) { var a = []; for (var i = 0; i < p.t; i++) a.push({ bg: i < p.d ? '#3E6B5A' : '#FFFFFF' }); return a; }
+    var STATUS = { lit: ['LIT', '#3E6B5A', '#FFFFFF'], next: ['UP NEXT', '#C2593A', '#FFFFFF'], open: ['UNDERWAY', '#FFFFFF', '#1B1B1B'], later: ['AHEAD', '#F4EFE9', '#55504C'] };
+
+    var places = P.map(function (p) {
+      var lit = p.s === 'lit', nx = p.s === 'next', later = p.s === 'later', isSel = S.sel === p.id;
+      return {
+        x: p.x, y: p.y, name: p.name, isNext: nx,
+        aria: p.name + ', ' + STATUS[p.s][0].toLowerCase(),
+        size: p.summit ? 30 : (nx ? 30 : 24),
+        radius: p.summit ? '6px' : '999px',
+        border: later ? '2px dashed #1B1B1B' : '2px solid #1B1B1B',
+        bg: lit ? '#3E6B5A' : (nx ? '#C2593A' : (p.s === 'open' ? '#FFFFFF' : '#F4EFE9')),
+        mark: lit ? '✓' : (p.summit ? '▲' : ''),
+        shadow: isSel ? '0 0 0 4px #FFFFFF, 0 0 0 6px #1B1B1B' : 'none',
+        labelBg: isSel ? '#1B1B1B' : '#FFFFFF', labelFg: isSel ? '#FFFFFF' : '#1B1B1B',
+        pick: function () { if (!self.moved) self.setState({ sel: p.id }); }
+      };
+    });
+
+    var E = [['net','cli'],['net','dns'],['cli','http'],['http','tcp'],['dns','cors'],['cors','poll'],['http','poll'],['poll','hook'],['hook','sse'],['hook','ws'],['tcp','cache'],['cache','lb'],['ws','queue'],['hook','queue'],['lb','deploy'],['queue','sum'],['deploy','sum']];
+    var trails = E.map(function (e) {
+      var a = byId[e[0]], b = byId[e[1]];
+      var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 - 30;
+      var walked = a.s === 'lit' && b.s === 'lit', toNext = a.s === 'lit' && b.s === 'next';
+      return {
+        d: 'M' + a.x + ' ' + a.y + ' Q' + mx + ' ' + my + ' ' + b.x + ' ' + b.y,
+        casing: walked ? 7 : 0, w: walked ? 4 : (toNext ? 3.5 : 1.8),
+        stroke: walked ? '#3E6B5A' : (toNext ? '#C2593A' : '#1B1B1B'),
+        dash: walked ? 'none' : (toNext ? '8 7' : '2 6'),
+        cls: toNext ? 'at-march' : ''
+      };
+    });
+
+    var sp = byId[S.sel];
+    var SMSG = { lit: 'Lit. You explained every checkpoint here.', next: 'Your next waypoint. The trail from Polling leads here.', open: 'Underway. Finish the remaining checks to light it.', later: 'Ahead on the route. Reach it from the places before it.' };
+    var sel = { name: sp.name, grid: grid(sp), stageCaps: STAGE[sp.st].caps, stageTint: STAGE[sp.st].tint, checks: checks(sp), done: sp.d, total: sp.t, status: SMSG[sp.s], notes: sp.n, href: sp.href || '#region' };
+
+    var ORDER = ['net','cli','dns','cors','poll','http','tcp','hook','sse','ws','cache','queue','lb','deploy','sum'];
+    var CHANGE = { http: ['VI · Languages & media', '#2F6B7A'], hook: ['V · Security & money', '#6A3E73'], sum: ['VIII · Intelligence', '#5A5F2E'] };
+    var stops = ORDER.map(function (id, i) {
+      var p = byId[id], row1 = i < 8;
+      var x = row1 ? 70 + i * 150 : 1120 - (i - 8) * 150, y = row1 ? 80 : 300;
+      var lit = p.s === 'lit', nx = p.s === 'next';
+      return { x: x, y: y, name: p.name, count: p.d + '/' + p.t,
+        size: nx ? 34 : (p.summit ? 34 : 26), mark: lit ? '✓' : (p.summit ? '▲' : ''),
+        bg: lit ? '#1B1B1B' : (nx ? '#C2593A' : '#FFFFFF'), labelTop: 26,
+        hasChange: !!CHANGE[id], change: CHANGE[id] ? CHANGE[id][0] : '', changeColor: CHANGE[id] ? CHANGE[id][1] : '#FFFFFF', st: p.st };
+    });
+    var lineSegs = [];
+    for (var i = 0; i < stops.length - 1; i++) {
+      var a = stops[i], b = stops[i + 1], d;
+      if (i === 7) d = 'M' + a.x + ' ' + a.y + ' C' + (a.x + 80) + ' ' + a.y + ' ' + (b.x + 80) + ' ' + b.y + ' ' + b.x + ' ' + b.y;
+      else d = 'M' + a.x + ' ' + a.y + ' L' + b.x + ' ' + b.y;
+      lineSegs.push({ d: d, c: STAGE[b.st].color });
+    }
+
+    var q = (S.q || '').toLowerCase();
+    var rows = P.slice().sort(function (a, b) { return grid(a) < grid(b) ? -1 : 1; })
+      .filter(function (p) { return !q || p.name.toLowerCase().indexOf(q) >= 0; })
+      .map(function (p) {
+        return { grid: grid(p), name: p.name, stage: STAGE[p.st].label, stageColor: STAGE[p.st].color, checks: checks(p), notes: p.n ? p.n + ' reel' : '—',
+          status: STATUS[p.s][0], statusBg: STATUS[p.s][1], statusFg: STATUS[p.s][2],
+          open: function () { self.setState({ view: 'terrain', sel: p.id }); } };
+      });
+
+    var TABS = [
+      { id: 'terrain', label: 'Terrain', sub: 'explore the ground', icon: 'M3 18l5-8 4 5 3-4 6 7z M8 6a2 2 0 1 0 0.01 0' },
+      { id: 'route', label: 'Route', sub: 'ride the line', icon: 'M5 19V9a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v10 M5 13h14 M8 19v2 M16 19v2' },
+      { id: 'index', label: 'Index', sub: 'look up a place', icon: 'M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z M9 9h6 M9 13h6' }
+    ];
+    var tabs = TABS.map(function (t) { return { label: t.label, sub: t.sub, icon: t.icon, on: S.view === t.id, off: S.view !== t.id, go: function () { self.setState({ view: t.id }); } }; });
+
+    var ticks = [];
+    for (var k = 0; k < 15; k++) {
+      var ang = (-90 + k * 24) * Math.PI / 180;
+      ticks.push({ x1: 64 + 44 * Math.cos(ang), y1: 64 + 44 * Math.sin(ang), x2: 64 + 52 * Math.cos(ang), y2: 64 + 52 * Math.sin(ang), c: k < 4 ? '#3E6B5A' : '#D6CCC4' });
+    }
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    return {
+      tabs: tabs, ticks: ticks,
+      isTerrain: S.view === 'terrain', isRoute: S.view === 'route', isIndex: S.view === 'index',
+      places: places, trails: trails, sel: sel, stops: stops, lineSegs: lineSegs, rows: rows, q: S.q,
+      ox: S.ox, oy: S.oy, cursor: S.drag ? 'grabbing' : 'grab',
+      ease: S.drag ? 'none' : 'transform .45s cubic-bezier(.2,.8,.2,1)',
+      onQ: function (e) { self.setState({ q: e.target.value }); },
+      down: function (e) {
+        if (e.target && e.target.closest && (e.target.closest('a') || (e.target.closest('button') && !e.target.closest('.at-mk')))) return;
+        self.moved = false;
+        self.setState({ drag: { x: e.clientX, y: e.clientY, ox: self.state.ox, oy: self.state.oy } });
+      },
+      move: function (e) {
+        var d = self.state.drag; if (!d) return;
+        var dx = e.clientX - d.x, dy = e.clientY - d.y;
+        if (Math.abs(dx) + Math.abs(dy) > 4) self.moved = true;
+        self.setState({ ox: clamp(d.ox + dx, -420, 120), oy: clamp(d.oy + dy, -120, 60) });
+      },
+      up: function () { if (self.state.drag) self.setState({ drag: null }); setTimeout(function () { self.moved = false; }, 0); },
+      recenter: function () { self.setState({ ox: -60, oy: -40 }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
