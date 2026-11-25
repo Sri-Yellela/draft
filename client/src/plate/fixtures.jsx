@@ -20,6 +20,7 @@ import { PlateDeckStill } from "../panels/DeckView.jsx";
 import { MarketIndexTable, RowBubble, indexRow } from "./MarketIndex.jsx";   // FIX-7 / FIX-8   // FIX-2: the Deck tab is the real FanCard, at the board's size
 import { Explainer } from "./explainer/Explainer.jsx";
 import { FIT_FIXTURES } from "./fitCardFixtures.jsx";   // D202 / D199 C7 (the card lane)
+import { SHEET_FIXTURES } from "./sheetFixtures.jsx";   // 47h (D197 #3 / #4): the ledger and the survey sheet
 import PILOT_EXPLAINER from "../../../content/explainers/big-o-acted-out/script.json" with { type: "json" };
 
 const MARKET_VIEWS = [
@@ -351,4 +352,4 @@ export function MarketSectionFinal() {
   );
 }
 
-export const FIXTURES = { ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellPhoneTop, ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard, ...FIT_FIXTURES, MarketHeroFinal, MarketSectionFinal };
+export const FIXTURES = { ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellPhoneTop, ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard, ...FIT_FIXTURES, MarketHeroFinal, MarketSectionFinal, ...SHEET_FIXTURES };

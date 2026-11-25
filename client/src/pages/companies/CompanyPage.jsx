@@ -16,6 +16,10 @@ import CompanyLogo from "../../components/CompanyLogo.jsx";   // A149: the compa
 import SendJobPicker from "../../components/SendJobPicker.jsx";
 import WorksHere from "../../components/WorksHere.jsx";   // D180 P4 (45s: shared)   // (11) 45q: D180's Send on the open jobs
 import "./CompanyPage.css";
+// ⭐ D197 Wave 1 #4 (47h): the survey sheet — this page in plates, to the approved `Survey` board (plate/SurveySheet.jsx draws;
+// the reads and the state stay here). On with the plate market (one switch, `?plate=0` keeps this classic page).
+import SurveySheet from "../../plate/SurveySheet.jsx";
+import { useMarketPlate } from "../../plate/marketPlate.js";
 
 // ⭐ D180 P4: "1 connection works here" → Ask for a referral is components/WorksHere.jsx (45s: one component for the company
 // page, the posting panel and the deck).
@@ -39,6 +43,15 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
   // ⭐ (11) 45q · Send a job from the company page — inside the shell (signed in) and only while the network is on.
   const [networkOn, setNetworkOn] = useState(false);   // (also D180 P4's "works here", 45r)
   const [sending, setSending] = useState(null);
+  const plate = useMarketPlate();
+  const [people, setPeople] = useState(null);       // 47h: who works here, for the sheet's referral ticket (network on)
+  const [resumeName, setResumeName] = useState(null);   // 47h: the résumé Your match reads ("FROM MAYA_CHEN.PDF")
+  useEffect(() => {
+    if (!inApp || !plate) return undefined;
+    let live = true;
+    api("/api/base-resume").then((r) => { if (live && r?.name) setResumeName(r.name); }).catch(() => {});
+    return () => { live = false; };
+  }, [inApp, plate]);
   useEffect(() => {
     if (!inApp) return undefined;
     let live = true;
@@ -61,6 +74,15 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
     return () => { live = false; };
   }, [slug, cameFrom]);
 
+  const coName = data?.company?.name || null;
+  useEffect(() => {
+    setPeople(null);
+    if (!plate || !networkOn || !coName) return undefined;
+    let live = true;
+    api(`/api/network/at-company?name=${encodeURIComponent(coName)}`).then((r) => { if (live) setPeople(r); }).catch(() => {});
+    return () => { live = false; };
+  }, [plate, networkOn, coName]);
+
   if (error === "missing") return <main className="co co--empty" data-company-missing=""><h1>We don't have a page for this company.</h1>
     <p><Link to={inApp ? "/app" : "/jobs"}>Browse open jobs</Link></p></main>;
   if (error) return <main className="co co--empty" role="alert"><p>This page couldn't load just now — try again in a moment.</p></main>;
@@ -77,6 +99,15 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
     : match.listed?.includes(tech) ? { kind: "listed", word: "on your résumé" } : null;
   // A149: "What they ask for most" — the most-posted technologies across every group, with their share of the postings.
   const asked = stack ? Object.values(stack.groups || {}).flat().sort((a, b) => b.postings - a.postings).slice(0, 6) : [];
+
+  const follow = () => api(`/api/companies/${encodeURIComponent(slug)}/follow`, { method: "POST", body: JSON.stringify({ on: !match?.following }) })
+    .then((r) => setMatch((m) => ({ ...m, following: !!r.following }))).catch(() => {});
+  if (plate) return (
+    <SurveySheet data={data} match={match} inApp={inApp} base={base} resumeName={resumeName} people={people} networkOn={networkOn}
+      onBack={inApp ? () => navigate(-1) : undefined} onFollow={follow} onSend={setSending} applyOpen={applyOpen}
+      worksHere={networkOn ? <WorksHere company={c.name} job={focus || null} enabled /> : null}
+      sendPicker={sending ? <SendJobPicker job={sending} onClose={() => setSending(null)} /> : null} />
+  );
 
   return (
     <main className="co" data-company-page={c.slug}>

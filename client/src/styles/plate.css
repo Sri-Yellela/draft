@@ -121,6 +121,10 @@
   --pl-t-xp-runs: calc(28px * var(--pl-scale));    /* D198: where it runs — the ticket's line (serif) */
   --pl-t-xp-quote: calc(30px * var(--pl-scale));   /* D198: the usual answer — the ticket's quote (serif) */
   --pl-t-xp-head: calc(8.5px * var(--pl-scale));   /* D198: the cost table's ink header */
+  --pl-t-sheet: calc(86px * var(--pl-scale));      /* 47h (D197 #4): a survey sheet's title — a destination (the final Survey board: 86) */
+  --pl-t-letter-xl: calc(39px * var(--pl-scale));  /* 47h: the survey sheet's 76 px letter tile */
+  --pl-t-num-lg: calc(30px * var(--pl-scale));     /* 47h: the sponsorship strip's numbers, the ledger's Run now */
+  --pl-t-working: calc(40px * var(--pl-scale));    /* 47h (D200 Rule 3): a working page's one plain serif line (34–44) */
   --pl-t-xp-tiny: calc(7.5px * var(--pl-scale));   /* D198: the one-word reasons, the small print */
   --pl-t-30: calc(30px * var(--pl-scale));         /* D202: the ATS card's heading, the contextual score (ATSCard board) */
   --pl-t-key: calc(9px * var(--pl-scale));          /* D202: the bar's key, the score labels (ATSCard board) */

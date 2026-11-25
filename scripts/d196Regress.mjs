@@ -151,6 +151,14 @@ export const PAIRS = {
       wrap.style.paddingTop = `${parseFloat(getComputedStyle(wrap).paddingTop) + (((want - got) % 1) + 1) % 1}px`;
     }, sel); await new Promise((r) => setTimeout(r, 100)); },
     ...(opPair(k) || {}) }])),
+  // ⭐ D197 Wave 1 #4 (47h) · THE SURVEY SHEET, section by section against the final `Survey` board — the page's own
+  // component (plate/SurveySheet.jsx) on the board's data, shaped as the API answers (plate/sheetFixtures.jsx).
+  ...Object.fromEntries(["hero", "stack", "hiring", "sponsor", "match", "tickets"].map((k, i) => [`survey-${k}`, { source: "final", board: "Survey",
+    fixture: "SurveyBoard", boardSel: `section:nth-of-type(${i + 1})`, buildSel: `.pl-sheetpage > section:nth-of-type(${i + 1})`, pad: 0, reduced: true,
+    // 02: the newest open roles under the two figures are the page's own (today's list, kept — D200 Rule 1); the board ends at the figures
+    ...(k === "hiring" ? { cropTo: { 1280: 503 } } : {}),
+    // the title block: the board's dock (x 14–98) throws its 4 px shadow into the section's first pixels — the page's frame
+    ...(k === "hero" ? { masks: [[0, 0, 6, 420]] } : {}) }])),
 };
 // what each Opening pair keeps out of the pixel gate, and why (D196: masks only for example data, with the reason)
 function opPair(k) { return {
