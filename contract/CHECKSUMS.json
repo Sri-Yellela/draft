@@ -3,7 +3,7 @@
   "algorithm": "sha256 over LF-normalised UTF-8",
   "note": "Newline-normalised on purpose: this repository has core.autocrlf=true, so a raw-byte hash would differ between a Windows and a POSIX checkout of identical content. Mobile repos must normalise CRLF to LF before hashing their copy.",
   "files": {
-    "mobile-api.v1.json": "7eb6433818803321ee8eba33ddabcdb3d93f544d37571b965222c82f5614a5e7",
-    "mobile-api.v1.d.ts": "59fcf3095c2af4c7ebbba29fea4204723886b23e58e8ed2b81f6b9042cf971f7"
+    "mobile-api.v1.json": "d01d659ac24e65622eccd7c710af4117f2c3b30a03554a5b29618adcc74de992",
+    "mobile-api.v1.d.ts": "8f6fcb6884d88eff3bb8dbae6422f2b7774145251edb1a2bf67d5653b73fab0c"
   }
 }

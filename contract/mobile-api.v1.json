@@ -3373,6 +3373,14 @@
             ],
             "x-empty-row-value": null
           },
+          "checkedAt": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Unix seconds: when the crawl last saw the posting live (scraped_at). Null means no sighting is recorded for this row — not that it is closed.",
+            "x-empty-row-value": null
+          },
           "company": {
             "type": "string",
             "description": "Employer name as posted."
@@ -3698,6 +3706,7 @@
           "bucketDomain",
           "bucketRole",
           "bucketSeniority",
+          "checkedAt",
           "companyIconUrl",
           "contractType",
           "descriptionMissing",

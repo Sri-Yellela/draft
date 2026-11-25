@@ -117,6 +117,12 @@ test("D196 P1 · d196P1FaceHonestData — nothing invented (R2)", async () => {
   const { render, openingFromCard } = await load();
   const o = openingFromCard(card(), NOW);
   assert.equal(o.posted, "POSTED 24 H AGO", "47f FIX-4: the board's strip words");
+  // 47h (47f gap 4 (c)): "LIVE · CHECKED …" from the crawl's last sighting (job.checkedAt, unix s); none → LIVE alone
+  assert.equal(o.live, "LIVE", "no check date on the card → LIVE only, never a check it can't back");
+  assert.equal(openingFromCard(card({ checkedAt: Math.floor(NOW / 1000) - 60 }), NOW).live, "LIVE · CHECKED TODAY");
+  assert.equal(openingFromCard(card({ checkedAt: Math.floor(NOW / 1000) - 86400 }), NOW).live, "LIVE · CHECKED YESTERDAY");
+  assert.equal(openingFromCard(card({ checkedAt: Math.floor(NOW / 1000) - 3 * 86400 }), NOW).live, "LIVE · CHECKED 3 DAYS AGO");
+  assert.equal(openingFromCard(card({ checkedAt: Math.floor(NOW / 1000) - 60, isActive: false }), NOW).live, null, "a closed posting is not LIVE");
   assert.deepEqual(o.stack.map((t) => [t.name, t.yours]), [["React", true], ["TypeScript", true], ["GraphQL", false]]);
   assert.equal(o.region, "IV", "no sector on the card → IV");
   const { pickStack } = await load();

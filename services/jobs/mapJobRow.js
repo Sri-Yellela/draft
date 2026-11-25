@@ -91,6 +91,9 @@ function mapJobRow(j) {
     descriptionMissing: !String(j.description ?? '').trim(),
     // ⭐ D59: "Date Posted" from the label block is the POSTING's own date, not the crawl's.
     postedAt:        fields?.postedAt || j.posted_at  || j.postedAt  || null,
+    // ⭐ 47h (47f's gap 4 (c)): when the crawl last SAW the posting live (scraped_at, unix seconds) — the plate ticket's
+    // "LIVE · CHECKED TODAY". Not the posting's date (postedAt) and never a check that didn't happen.
+    checkedAt:       Number.isFinite(Number(j.scraped_at ?? j.checkedAt ?? NaN)) ? Number(j.scraped_at ?? j.checkedAt) : null,
     contractType:    j.contract_type || j.contractType || null,
     remote:          Boolean(j.remote),
     source:          j.source,

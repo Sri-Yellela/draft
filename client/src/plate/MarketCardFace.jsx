@@ -31,6 +31,17 @@ export function postedWords(since) {
   return m[2] === "hour" ? `POSTED ${n} H AGO` : `POSTED ${n} ${m[2].toUpperCase()}${n === 1 ? "" : "S"} AGO`;
 }
 
+/** Pure: the board's "LIVE · CHECKED TODAY" from when the crawl last saw the posting (job.checkedAt, unix seconds; 47h).
+ *  No date → "LIVE" alone, never a check it can't back. Days count by the viewer's calendar. */
+export function liveWords(checkedAt, now = Date.now()) {
+  const at = Number(checkedAt);
+  if (checkedAt == null || !Number.isFinite(at) || at <= 0) return "LIVE";
+  const day = (ms) => { const d = new Date(ms); return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000; };
+  const n = day(now) - day(at * 1000);
+  if (n < 0) return "LIVE";
+  return `LIVE · CHECKED ${n === 0 ? "TODAY" : n === 1 ? "YESTERDAY" : `${n} DAYS AGO`}`;
+}
+
 /** Pure: the face's data from a dealt card — what the plate face shows, nothing invented. */
 export function openingFromCard(card, now = Date.now()) {
   const job = card?.job || {};
@@ -47,8 +58,8 @@ export function openingFromCard(card, now = Date.now()) {
     type: facts.info.find((f) => f.key === "type")?.value || null,
     mode: facts.info.find((f) => f.key === "mode")?.value || null,
     posted: postedWords(posted),
-    // the board's "LIVE · CHECKED TODAY": a dealt card carries no check date, so it says LIVE only — never a check it can't back
-    live: job.isActive !== false ? "LIVE" : null,
+    // the board's "LIVE · CHECKED TODAY": from the crawl's last sighting (47h); a card dealt before it carries none → LIVE only
+    live: job.isActive !== false ? liveWords(job.checkedAt, now) : null,
     stack: (job.worksWith || []).map((name) => ({ name, yours: matched.has(String(name).toLowerCase()) })),
     sponsors: sp === "often" || sp === "sometimes",
     region: sectorRegion(job.category || job.categoryName || null),

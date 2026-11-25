@@ -201,6 +201,7 @@ export const JOB_FIELD_TYPES = Object.freeze({
   payLocations:        { type: "object[]", nullable: true, description: "D71 · one { country, state, city, min, max } per place, when the posting's text lists a range per location. null when it lists one or none." },
   descriptionMissing:  { type: "boolean", description: "D71 · true when the posting has no text at all — then a missing salary is \"couldn't read\", never \"not stated\"." },
   postedAt:            { type: "string",  nullable: true, description: "As published by the source. Free text or ISO — not normalised." },
+  checkedAt:           { type: "number",  nullable: true, description: "Unix seconds: when the crawl last saw the posting live (scraped_at). Null means no sighting is recorded for this row — not that it is closed." },
   contractType:        { type: "string",  nullable: true },
   remote:              { type: "boolean", description: "Coerced with Boolean(); never null." },
   sourceLabel:         { type: "string",  nullable: true },

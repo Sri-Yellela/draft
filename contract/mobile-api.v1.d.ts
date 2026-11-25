@@ -31,6 +31,8 @@ export interface Job {
   bucketDomain: string | null;
   bucketRole: string | null;
   bucketSeniority: string | null;
+  /** Unix seconds: when the crawl last saw the posting live (scraped_at). Null means no sighting is recorded for this row — not that it is closed. */
+  checkedAt: number | null;
   /** Employer name as posted. */
   company?: string;
   companyIconUrl: string | null;
