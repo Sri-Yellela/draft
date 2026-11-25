@@ -18,3 +18,6 @@ docs/COMPANY_AND_MONETISATION.md
 
 # D198 E4 (47h): the explainer exports (MP4s) - the owner posts them; scripts/d198Export.mjs re-renders them
 content/explainers/*/export/
+
+# D198 E3 (47h): the Piper runtime + voice model (114 MB) - downloaded per docs/explainers/voice.md, never committed
+tmp/piper-dl/

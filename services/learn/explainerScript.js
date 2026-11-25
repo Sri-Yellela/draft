@@ -8,7 +8,7 @@
 //     plate: { kind: "costTable", columns: [{ id, label, ask }], rows: [{ id, label, sub, cells: { <col>: { big, level, reason } } }],
 //              footnotes: [] },
 //     beats: [{ name, ask: { tag, text }, op, say, keyword, act: { target, do, data }, cost: [{ on, level, reason }],
-//               holdMs?, overlay? }],
+//               holdMs?, audioMs? (E3's measured line), overlay? }],
 //     proof, realWorld: { query, template }, check: { question, options: [], answer }, smallPrint, factChecked, sources? }
 // The cost scale is the region's ramp in three steps (light / mid / deep) — green stays *proven*, clay stays *you / next*.
 // Every cost carries a one-word reason (the doc: "a one-word reason under every number").
@@ -79,6 +79,8 @@ export function beatProblems(beat, i, script = {}) {
   }
   if (beat.cost != null && !Array.isArray(beat.cost)) out.push(`${at}: cost is a list`);
   if (beat.holdMs != null && !(Number.isFinite(beat.holdMs) && beat.holdMs > 0)) out.push(`${at}: holdMs must be a positive number`);
+  // E3 (scripts/d198Voice.mjs) writes the rendered line's measured length here
+  if (beat.audioMs != null && !(Number.isFinite(beat.audioMs) && beat.audioMs > 0)) out.push(`${at}: audioMs must be a positive number`);
   if (beat.overlay != null) {
     const kind = beat.overlay?.kind;
     if (!Object.hasOwn(OVERLAYS, kind)) out.push(`${at}: overlay kind must be one of ${Object.keys(OVERLAYS).join(", ")}`);
@@ -130,6 +132,6 @@ export function scriptProblems(script, { publish = false } = {}) {
 /** The explainer's length at the voice's pace, before E3's audio is measured: each beat's words + its hold. */
 export function estimatedSeconds(script, { pauseMs = 900 } = {}) {
   const beats = Array.isArray(script?.beats) ? script.beats : [];
-  const ms = beats.reduce((t, b) => t + (b.holdMs ?? spokenSeconds(b.say) * 1000 + pauseMs), 0);
+  const ms = beats.reduce((t, b) => t + (b.holdMs ?? (Number.isFinite(b.audioMs) && b.audioMs > 0 ? b.audioMs : spokenSeconds(b.say) * 1000) + pauseMs), 0);
   return Math.round(ms / 100) / 10;
 }
