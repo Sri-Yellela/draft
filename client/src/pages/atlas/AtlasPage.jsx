@@ -38,6 +38,10 @@ import {
 import { SponsorshipChip } from "../../components/SponsorshipSignal.jsx";
 import ResourceTile, { ResourceGrid } from "../../components/ResourceTile.jsx";
 import "./AtlasPage.css";
+// ⭐ D197 Wave 1 #5–#7 (47h, lane atlas): Volume I (the front page), a region, the Library — the plate pages
+import { AtlasVolumeHome, AtlasRegionPage, AtlasLibraryPage, useAtlasAreaNav } from "./AtlasVolume.jsx";
+import { AreaNav } from "../../plate/Shell.jsx";
+import PlateRoot from "../../plate/PlateRoot.jsx";
 import { NoteCard } from "../../components/TextBlocks.jsx";   // A233
 
 function SearchBox({ base, initial = "" }) {
@@ -354,6 +358,19 @@ export function AtlasNodeView({ base, node, from, onWalk, signedIn = false }) {
   );
 }
 
+/** ⭐ D197 #5 (47h): Atlas's area nav on the PUBLIC pages (signed in, the shell draws it): the same views, the VOL. I pill,
+ *  and the search that looks up the Atlas (/atlas?q=). */
+function PublicAtlasNav({ base }) {
+  const navigate = useNavigate();
+  const nav = useAtlasAreaNav({ base, signedIn: false });
+  return (
+    <PlateRoot className="atl-public-nav" region="I">
+      <AreaNav area={nav.area} pill={nav.pill} views={nav.views} current={nav.current} more={nav.more} onGo={nav.onGo}
+        search={{ placeholder: nav.placeholder, onSubmit: (t) => { const v = String(t || "").trim(); if (v) navigate(`${base}?q=${encodeURIComponent(v)}`); } }}/>
+    </PlateRoot>
+  );
+}
+
 export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -364,7 +381,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   useEffect(() => {
     let live = true;
     // ⭐ D167: a panel's address (/atlas/<panel>) is never a node — "learn" and "check" were the first reserved slugs.
-    if (!slug || slug === "learn" || slug === "check" || isPanelSlug(slug) || slug.startsWith("family/") || slug.startsWith("bar/") || courseIdOf(slug)) { setPage({ status: "idle", node: null }); return undefined; }
+    if (!slug || slug === "learn" || slug === "check" || slug.startsWith("region/") || isPanelSlug(slug) || slug.startsWith("family/") || slug.startsWith("bar/") || courseIdOf(slug)) { setPage({ status: "idle", node: null }); return undefined; }
     setPage({ status: "loading", node: null });
     loadNode(slug).then(n => live && setPage({ status: n ? "done" : "missing", node: n }))
       .catch(e => live && setPage({ status: "error", node: null, error: e.message }));
@@ -404,6 +421,27 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   // ⭐ 46u (owner 11-17): signed in, Atlas opens on Your map (D178 opened Your run; Overview is the signed-out front page).
   const panel = panelFor(slug, q) === "overview" && signedIn ? "your-map" : panelFor(slug, q);
   const panelOnly = !slug ? !q : (isPanelSlug(slug) && !learning && !checking);
+  // ⭐ D197 Wave 1 #5–#7 (47h): the front page (no address, no search) is Volume I for everyone; /region/<n> a region;
+  // /library the Library of outside resources (the shelf of draft's own courses and guides moved to /library/shelf).
+  // These are plate pages: the area nav (the shell's, signed in; its plate twin, public) carries Atlas's navigation, so
+  // they draw no PlaceNav. Every other Atlas address below is unchanged.
+  const regionN = slug && /^region\/\d+$/.test(slug) ? Number(slug.slice("region/".length)) : null;
+  const plateView = !slug && !q ? "home" : regionN ? "region" : slug === "library" ? "library" : null;
+  if (plateView) {
+    const page = plateView === "home" ? <AtlasVolumeHome base={base} signedIn={signedIn} compete={compete}/>
+      : plateView === "region" ? <AtlasRegionPage base={base} n={regionN} signedIn={signedIn}/>
+      : <AtlasLibraryPage base={base} signedIn={signedIn}/>;
+    const plate = <div className="atl-plate" data-atlas-page={plateView} data-atlas-panel={plateView === "library" ? "library" : undefined}>{page}</div>;
+    if (!publicChrome) return plate;
+    return (
+      <div className="scroll-dock-page atl-page">
+        <ScrollDock variant="marketing" />
+        <PublicAtlasNav base={base} />
+        {plate}
+        <Footer />
+      </div>
+    );
+  }
   const body = (
     <main className={`atl atl--panels${wide ? " atl--wide" : ""}`} data-atlas-page={learning ? "learn" : checking ? "check" : familyKey ? "family" : courseId ? "course" : panelOnly ? "panel" : slug ? "node" : "search"}
       data-atlas-panel={panel}>
@@ -450,9 +488,10 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
       {panel === "league" && (compete?.league ? <LeaguePanel base={base} /> : <p className="atl__quiet" role="status" data-compete-off="league">{compete ? "This isn't available yet." : signedIn ? "Opening…" : "Sign in to see this week's league."}</p>)}
       {panel === "challenges" && (compete?.challenges ? <ChallengesPanel base={base} /> : <p className="atl__quiet" role="status" data-compete-off="challenges">{compete ? "This isn't available yet." : signedIn ? "Opening…" : "Sign in to see the challenges."}</p>)}
       {barCode && <SharedBar base={base} code={barCode} />}
-      {panel === "library" && panelOnly && <LibraryShelf base={base} signedIn={signedIn} />}
+      {/* ⭐ D197 #7 (47h): the shelf of draft's own courses, guides and pathways — the Library is outside resources now */}
+      {courseId === "shelf" && <LibraryShelf base={base} signedIn={signedIn} />}
       {/* ⭐ D172 (2b): /atlas/library/<id> is a course, a guide (a level) or a deck. */}
-      {courseId && (COURSES.some(c => c.id === courseId)
+      {courseId && courseId !== "shelf" && (COURSES.some(c => c.id === courseId)
         ? (courseKind(courseId) === "patterns" ? <PatternCoursePage base={base} id={courseId} /> : <CoursePage base={base} id={courseId} signedIn={signedIn} />)
         : <LibraryItem base={base} id={courseId} />)}
       {slug && !learning && !checking && !familyKey && !courseId && !barCode && !panelOnly && (
