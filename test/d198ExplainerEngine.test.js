@@ -62,12 +62,15 @@ test("d198ExportMatchesApp (the clock half): the frame at a time is the same eve
   assert.ok(total / 1000 > 45 && total / 1000 < 75, `≈ 58 s, ${total / 1000} s`);
 });
 
-test("d198 the plate panel: a beat lights its column, the finished ones dim, the saved card lights all; nothing before Access", () => {
+test("d198 the plate panel: a beat lights its column, the finished ones dim, the saved card shows all; nothing before Access", () => {
   const s = pilot();
   assert.deepEqual(columnStates(s, 0), { access: "hidden", search: "hidden", insert: "hidden", delete: "hidden" });
   assert.deepEqual(columnStates(s, 2), { access: "lit", search: "hidden", insert: "hidden", delete: "hidden" });
   assert.deepEqual(columnStates(s, 4), { access: "dim", search: "dim", insert: "lit", delete: "hidden" });
-  assert.deepEqual(columnStates(s, 9), { access: "lit", search: "lit", insert: "lit", delete: "lit" });
+  // 47h (canvas v4, beat by beat): the proof searches the TREE, not the column — Delete stays lit through it and after
+  assert.deepEqual(columnStates(s, 6), { access: "dim", search: "dim", insert: "dim", delete: "lit" });
+  assert.deepEqual(columnStates(s, 7), { access: "dim", search: "dim", insert: "dim", delete: "lit" });
+  assert.deepEqual(columnStates(s, 9), { access: "all", search: "all", insert: "all", delete: "all" });
   assert.deepEqual(progressSquares(3, 10), ["ink", "ink", "ink", "today", "ahead", "ahead", "ahead", "ahead", "ahead", "ahead"]);
   const words = captionWords(s.beats[1].say, s.beats[1].keyword, 11);
   assert.deepEqual(words.filter((x) => x.key).map((x) => x.t), ["Close,"]);
@@ -83,14 +86,14 @@ test("d198 the frame: the question line, captions, ten squares, the overlays —
   assert.match(usual, /data-s="spoken"/); assert.match(usual, /data-s="waiting"/);
   assert.equal((usual.match(/class="pl-sq pl-sq--run"/g) || []).length, 10);
   const runs = P.render(P.LIB.Explainer, { script: s, at: at(7), openings: 412 });
-  assert.match(runs, /412 openings this week ask for Redis/);
+  assert.match(runs, /<b>412 openings this week<\/b> ask for Redis/);
   const noCount = P.render(P.LIB.Explainer, { script: s, at: at(7) });
   assert.ok(!/openings this week/.test(noCount) && !/\[N\]/.test(noCount), "no count → no line, never a guess");
   assert.equal(marketLine(s, null), null);
   const turn = P.render(P.LIB.Explainer, { script: s, at: at(8) });
   assert.match(turn, /Millions of lookups a day, by email address/);
-  assert.equal((turn.match(/class="pl-btn pl-xp__opt"/g) || []).length, 4);
+  assert.equal((turn.match(/class="pl-xp__opt"/g) || []).length, 4);
   const access = P.render(P.LIB.Explainer, { script: s, at: at(2) });
-  assert.match(access, /data-col="lit" data-level="light"><span class="pl-xp__big">O\(1\)/);
+  assert.match(access, /class="pl-xp__cost" data-col="lit"><span class="pl-xp__big" data-level="light">O\(1\)/);
   assert.match(access, /aria-label="Beat 3 of 10: Access"/);
 });

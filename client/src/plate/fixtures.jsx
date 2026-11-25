@@ -2,6 +2,7 @@
 // (the same words, counts and order the board shows), so scripts/d196Regress.mjs can diff the build against the board.
 // A fixture is never tuned to pass: when a diff fails, the component is fixed (D196 F5), and the fixture keeps the
 // board's data.
+import { useLayoutEffect, useRef, useState } from "react";
 import PlateRoot from "./PlateRoot.jsx";
 import { AreaNav, Dock } from "./Shell.jsx";
 import { MemoryRouter } from "react-router-dom";
@@ -13,6 +14,8 @@ import { DRAWINGS } from "./drawings/index.js";
 import { FieldCard } from "./Cards.jsx";
 import { PlateDeckStill } from "../panels/DeckView.jsx";
 import { MarketIndexTable, RowBubble, indexRow } from "./MarketIndex.jsx";   // FIX-7 / FIX-8   // FIX-2: the Deck tab is the real FanCard, at the board's size
+import { Explainer } from "./explainer/Explainer.jsx";
+import PILOT_EXPLAINER from "../../../content/explainers/big-o-acted-out/script.json" with { type: "json" };
 
 const MARKET_VIEWS = [
   { id: "picks", label: "Today’s picks", href: "#picks", icon: "picks" },
@@ -159,4 +162,25 @@ export function PortedDrawing() {
   return <PlateRoot><div style={{ position: "relative", width: w, height: q.get("h") ? Number(q.get("h")) : undefined, lineHeight: 0, marginLeft: Number(q.get("ox")) || 0, marginTop: Number(q.get("oy")) || 0 }}>{D ? <D/> : null}</div></PlateRoot>;
 }
 
-export const FIXTURES = { ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing };
+/** ⭐ D198 E1 (47h, F5): the pilot explainer, as v4's *Explainer · Big O, acted out* draws it — the regression run presses
+ *  the beat (and on your turn the right answer) the same way the board's own list is pressed. The market's count is a
+ *  real-shaped number: the board shows the template's [N], which the build never draws (masked). */
+export function ExplainerBoard() {
+  // subpixel: the FRAME lands at the board frame's own fraction (#ox / #oy). Borders snap to device pixels (a 1.5 px border
+  // draws 1 px at this scale), so the offset is measured after layout and corrected, never computed from the CSS.
+  const q = new URLSearchParams((globalThis.location?.hash || "").slice(1));
+  const want = { x: 100 + (Number(q.get("ox")) || 0), y: 100 + (Number(q.get("oy")) || 0) };
+  const ref = useRef(null);
+  const [at, setAt] = useState({ x: 100, y: 100 });
+  useLayoutEffect(() => {
+    const f = ref.current?.querySelector(".pl-xp__frame");
+    if (!f) return;
+    const r = f.getBoundingClientRect();
+    const dx = want.x - (r.left + scrollX), dy = want.y - (r.top + scrollY);
+    if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) setAt((p) => ({ x: p.x + dx, y: p.y + dy }));
+  });
+  return <PlateRoot><div ref={ref} className="plate" data-region="III" style={{ position: "absolute", left: at.x, top: at.y, width: "max-content" }}>
+    <Explainer script={PILOT_EXPLAINER} openings={412}/></div></PlateRoot>;
+}
+
+export const FIXTURES = { ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard };

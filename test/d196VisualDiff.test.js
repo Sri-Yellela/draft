@@ -14,7 +14,8 @@ test("⛔ D196 F5 · every built piece is within 2 % of its sketch", { timeout: 
   const browser = await launchBrowser({ headless: "new", extraArgs: LAUNCH_ARGS });   // 47f: both sides greyscale text
   const results = [];
   try {
-    for (const name of Object.keys(PAIRS)) results.push(await runPair(name, { browser }));
+    // the explainer's ten beats are their own gate (d198VisualDiffExplainer)
+    for (const name of Object.keys(PAIRS).filter((n) => !n.startsWith("xp-beat-"))) results.push(await runPair(name, { browser }));
     // 47f (the owner's FIX acceptance: "F5 diff ≤ 2 % at 1280 and 390"): the market's Deck tab at 390 too
     for (const name of ["market-face", "market-openings"]) results.push({ ...(await runPair(name, { browser, width: 390 })), pair: `${name}@390` });
   } finally { await browser.close(); }

@@ -87,7 +87,20 @@ export const PAIRS = {
   "v2-timeout": { source: "v2", board: "Atlas place: Webhooks, Region IV grid D3", fixture: "PortedDrawing", drawing: "PlaceHazardTimeout", boardSel: 'svg[aria-label^="A stopwatch beside"]', buildSel: "svg[role=img]", pad: 0, matchWidth: true, reduced: true, ground: "#FFFFFF", cornerMasks: 24 },
   "v2-duplicate": { source: "v2", board: "Atlas place: Webhooks, Region IV grid D3", fixture: "PortedDrawing", drawing: "PlaceHazardDuplicate", boardSel: 'svg[aria-label^="Two identical letters"]', buildSel: "svg[role=img]", pad: 0, matchWidth: true, reduced: true, ground: "#FFFFFF", cornerMasks: 24 },
   "market-tickets": { board: "The market · draft", fixture: "MarketTicketsBoard", boardSel: "section:nth-of-type(4)", buildSel: "section[aria-labelledby=mk-onward]", pad: 0, look: true },
+  // ⭐ D198 E1 (47h) · THE EXPLAINER, BEAT BY BEAT — v4's *Explainer · Big O, acted out* (the board scales its 405 × 720 inner
+  // frame by 1.12 into its column; the run takes the scale off, so both sides are the frame at its own size). Each side's
+  // beat is pressed in its own list; on your turn the build's right answer is pressed (the board draws it answered).
+  ...Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`xp-beat-${i + 1}`, { source: "v4", board: "Explainer · Big O, acted out", fixture: "ExplainerBoard",
+    boardSel: '[aria-label^="The Big O explainer"] > div > div', buildSel: ".pl-xp__frame", pad: 0, reduced: true, subpixel: true, waitBuild: 1200,
+    boardPrep: async (page) => { await page.addStyleTag({ content: '[aria-label^="The Big O explainer"] > div { transform: none !important; }' });
+      await page.evaluate((k) => document.querySelectorAll("ol li button")[k]?.click(), i); await new Promise((r) => setTimeout(r, 600)); },
+    buildPrep: async (page) => { await page.evaluate((k) => document.querySelectorAll(".pl-xp__beat")[k]?.click(), i); await new Promise((r) => setTimeout(r, 300));
+      if (i === 8) await page.evaluate(() => [...document.querySelectorAll(".pl-xp__opt")].find((b) => b.textContent.includes("Hash map"))?.click()); },
+    // where it runs: the board shows the template's "[N]" — the build fills the market's count (never "[N]"): the figure is masked
+    ...(i === 7 ? { masks: [[38, 482, 140, 18]] } : {}) }])),
 };
+// D198 (47h): the explainer's oracle — v4's export holds only the two explainer pages (A236), so it is not a SOURCES drawing set
+const XP_SOURCE = { file: path.join(ROOT, "docs", "sketches", "Atlas plate system v4.html"), out: path.join(ROOT, "tmp", "d196-canvas-v4"), name: "docs/sketches/Atlas plate system v4.html" };
 
 /** Pure: compare two RGBA buffers of the same size → { differing, compared, pct }. Masks are [x, y, w, h]. */
 export function diffRgba(a, b, width, height, { tolerance = TOLERANCE, masks = [] } = {}) {
@@ -128,12 +141,13 @@ export async function buildFixturePage(name) {
   return pathToFileURL(file).href;
 }
 
-async function shot(page, url, sel, width, pad, waitMs, reduced = false, ground = null, hide = null, clickText = null) {
+async function shot(page, url, sel, width, pad, waitMs, reduced = false, ground = null, hide = null, clickText = null, prep = null) {
   await page.setViewport({ width, height: 900, deviceScaleFactor: 1 });
   await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: reduced ? "reduce" : "no-preference" }]);
   await page.goto(url, { waitUntil: "load", timeout: 60000 });
   // clickText (47f): press the board's own control first (its Index tab) — the board is a live page with state
   if (clickText) { await page.evaluate((t) => { const b = [...document.querySelectorAll('button[role="tab"]')].find((x) => x.textContent.includes(t)); b?.click(); }, clickText); await new Promise((r) => setTimeout(r, 400)); }
+  if (prep) await prep(page);   // D198 (47h): a pair's own presses (the explainer's beat) before the still frame
   await page.waitForSelector(sel, { timeout: 30000 });
   await page.evaluate(() => document.fonts && document.fonts.ready);
   // let the board's entrance animations finish (draw-on 3.5 s, view-in .35 s) — and stop the loops for a still frame
@@ -178,14 +192,14 @@ async function compareInPage(page, aPng, bPng, masks) {
 export async function runPair(name, { width = 1280, threshold = THRESHOLD_PCT, browser } = {}) {
   const p = PAIRS[name];
   if (!p) throw new Error(`no pair "${name}" (have: ${Object.keys(PAIRS).join(", ")})`);
-  const src = p.source ? SOURCES[p.source] : null;
+  const src = p.source === "v4" ? XP_SOURCE : p.source ? SOURCES[p.source] : null;
   const index = src ? unpackCanvas(src.file, src.out) : unpackCanvas();
   const row = index.find((r) => r.title === p.board);
   if (!row) throw new Error(`no board "${p.board}" in ${src ? src.name : "the v3 export"}`);
   const boardUrl = pathToFileURL(path.join(src ? src.out : CANVAS, row.file)).href;
   let buildUrl = await buildFixturePage(p.fixture);
   const page = await browser.newPage();
-  const board = await shot(page, boardUrl, p.boardSel, width, p.pad, 4000, !!p.reduced, p.ground, p.hideOnBoard, p.boardTab || null);
+  const board = await shot(page, boardUrl, p.boardSel, width, p.pad, 4000, !!p.reduced, p.ground, p.hideOnBoard, p.boardTab || null, p.boardPrep || null);
   // matchWidth: the build draws at the board element's EXACT width and at the same sub-pixel offset inside its first pixel,
   // so both rasterise on the same grid (the board's signpost sits at x = 994.73, 260.27 wide — drawn at 261 from x = 0 every
   // outline landed a fraction off and read as a difference)
@@ -195,7 +209,7 @@ export async function runPair(name, { width = 1280, threshold = THRESHOLD_PCT, b
   // subpixel (47f): a composed fixture (the deck's ticket) placed at the board element's own sub-pixel offset — the board's
   // ticket sits at a fractional y, and one whole pixel apart every glyph's edge read as a difference (7 % on FIX-2's run)
   else if (p.subpixel) buildUrl += `#${new URLSearchParams({ ox: String(frac(board.box.x)), oy: String(frac(board.box.y)), w: String(board.box.w) })}`;
-  const build = await shot(page, buildUrl, p.buildSel, width, p.pad, p.waitBuild || 600, !!p.reduced, p.ground);
+  const build = await shot(page, buildUrl, p.buildSel, width, p.pad, p.waitBuild || 600, !!p.reduced, p.ground, null, null, p.buildPrep || null);
   // cornerMasks: the board container's rounded corners clip the drawing's corners there (the page's frame, not the drawing)
   const cm = p.cornerMasks, bw = board.clip.width, bh = board.clip.height;
   // masksAt[width]: a pair's masks at another width (the board lays the same parts out elsewhere at 390)

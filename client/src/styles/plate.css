@@ -109,8 +109,16 @@
   --pl-t-12: calc(12px * var(--pl-scale));         /* a callout tag's third line (the v3 boards) */
   --pl-t-mono-num: calc(12px * var(--pl-scale));   /* the index's mono cells */
   --pl-t-10: calc(10px * var(--pl-scale));         /* the dock avatar's initials */
-  --pl-t-xp-title: calc(34px * var(--pl-scale));   /* D198: the explainer's serif title (9:16 at 405 px) */
-  --pl-t-xp-caption: calc(17px * var(--pl-scale)); /* D198: the explainer's captions (the voice) */
+  --pl-t-xp-title: calc(38px * var(--pl-scale));   /* D198: the explainer's serif title (9:16 at 405 px; v4's frame, 47h F5) */
+  --pl-t-xp-caption: calc(15px * var(--pl-scale)); /* D198: the explainer's captions (the voice) */
+  --pl-t-xp-kicker: calc(9px * var(--pl-scale));   /* D198 (47h, v4's frame): the kicker, the frame's labels, a cost's mark */
+  --pl-t-xp-mark: calc(19px * var(--pl-scale));    /* D198: the /d mark in its 38 px box */
+  --pl-t-xp-ask: calc(16px * var(--pl-scale));     /* D198: the question line */
+  --pl-t-xp-why: calc(8px * var(--pl-scale));      /* D198: a cost's one-word reason */
+  --pl-t-xp-opt: calc(15px * var(--pl-scale));     /* D198: the register's answers */
+  --pl-t-xp-q: calc(25px * var(--pl-scale));       /* D198: the register's question (serif) */
+  --pl-t-xp-runs: calc(28px * var(--pl-scale));    /* D198: where it runs — the ticket's line (serif) */
+  --pl-t-xp-quote: calc(30px * var(--pl-scale));   /* D198: the usual answer — the ticket's quote (serif) */
   --pl-t-xp-head: calc(8.5px * var(--pl-scale));   /* D198: the cost table's ink header */
   --pl-t-xp-tiny: calc(7.5px * var(--pl-scale));   /* D198: the one-word reasons, the small print */
   --pl-track-mono: .12em;

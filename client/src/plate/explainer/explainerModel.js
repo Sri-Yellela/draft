@@ -60,17 +60,21 @@ export function progressSquares(i, n) {
   return Array.from({ length: n }, (_, k) => (k < i ? "ink" : k === i ? "today" : "ahead"));
 }
 
-/** The plate panel's columns at beat i: a column shows once its beat has come; the beat's own column is lit, earlier
- *  ones dim to 40 %; the saved card (act.do "all") lights every column. → { [col]: "hidden" | "lit" | "dim" } */
+/** The plate panel's columns at beat i (canvas v4, beat by beat): a column shows once a beat ACTING ON IT has come (its act
+ *  targets the column — the proof searches the tree, not the column); the latest such column stays lit through the beats
+ *  after it, earlier ones dim to 40 %; the saved card (act.do "all") shows every column whole, none lit.
+ *  → { [col]: "hidden" | "lit" | "dim" | "all" } */
 export function columnStates(script, i) {
   const cols = (script?.plate?.columns || []).map((c) => c.id);
   const beats = script?.beats || [];
   const out = Object.fromEntries(cols.map((c) => [c, "hidden"]));
-  if (beats[i]?.act?.do === "all") { for (const c of cols) out[c] = "lit"; return out; }
+  if (beats[i]?.act?.do === "all") { for (const c of cols) out[c] = "all"; return out; }
+  let last = null;
   for (let k = 0; k <= i && k < beats.length; k++) {
     const op = beats[k]?.op;
-    if (op && op in out) out[op] = k === i ? "lit" : "dim";
+    if (op && op in out && beats[k]?.act?.target === op) { out[op] = "dim"; last = op; }
   }
+  if (last) out[last] = "lit";
   return out;
 }
 
