@@ -60,7 +60,7 @@ export const MODULES = Object.freeze({
   // ⭐ D196 (owner 11-24) · THE PLATE SYSTEM — one component library (plate/) built from the design report and ported from the
   // canvas export; its pages are composed only from these. The gallery (/dev/plate) shows every component in every state.
   // plate/plate.css is the library's look, worn by the library's files and the gallery only; P1–P5's pages join as members.
-  plate: { why: "D196's plate component library and its gallery (F3 / F4)", css: ["plate/plate.css"],
+  plate: { why: "D196's plate component library and its gallery (F3 / F4)", css: ["plate/plate.css", "plate/sheets.css" /* 47h: the ledger + the survey sheet */],
     members: ["App.jsx", "plate/PlateRoot.jsx", "plate/PlateState.jsx", "plate/Shell.jsx", "plate/Marks.jsx", "plate/Plates.jsx", "plate/Tickets.jsx",
       "plate/Cards.jsx", "plate/Lists.jsx", "plate/Drawings.jsx", "plate/icons.jsx", "plate/motion.js", "plate/registry.js", "plate/fonts.js",
       "plate/drawings/index.js", "plate/fixtures.jsx", "pages/dev/PlateGallery.jsx",
@@ -71,7 +71,10 @@ export const MODULES = Object.freeze({
       "plate/MarketControls.jsx", "plate/MarketPager.jsx", "plate/MarketMap.jsx", "plate/MarkPopover.jsx" /* D199 / D200 (47h): the market rebuilt */,
       "plate/explainer/Explainer.jsx", "plate/explainer/explainerModel.js" /* D198 E1: the explainer engine */,
       "plate/FitCard.jsx" /* D202: the field card ⇄ the ATS card, one card on the market and the sheet */, "plate/OpeningSheet.jsx" /* D199 C7: the opening sheet, /app/jobs/<id> */,
-      "plate/TeamDiorama.jsx" /* D199 C7: the sheet's hero plate — the survey diorama with its words as props */, "plate/fitCardFixtures.jsx" /* the card lane's F5 fixtures */, "components/ATSPanel.jsx" /* D202 (47h, owner yes): the posting's match panel draws THE FitCard */] },
+      "plate/TeamDiorama.jsx" /* D199 C7: the sheet's hero plate — the survey diorama with its words as props */, "plate/fitCardFixtures.jsx" /* the card lane's F5 fixtures */, "components/ATSPanel.jsx" /* D202 (47h, owner yes): the posting's match panel draws THE FitCard */,
+      // ⭐ D197 Wave 1 #3 / #4 (47h): the ledger (Home) and the survey sheet (the company page), and the pages that mount them
+      "plate/Ledger.jsx", "plate/ledgerModel.js", "plate/SurveySheet.jsx", "plate/surveySheet.js", "plate/surveyDrawings.jsx", "plate/sheetFixtures.jsx",
+      "panels/AutoApplyPanel.jsx", "pages/companies/CompanyPage.jsx"] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminGateway.jsx", "panels/adminFlags.jsx","panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "panels/adminReports.jsx", "panels/adminCompanyRecords.jsx", "panels/adminNetwork.jsx", "panels/adminRuns.jsx", "panels/adminPhase1.jsx", "panels/adminDiagnostics.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.

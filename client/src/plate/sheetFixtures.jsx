@@ -74,11 +74,11 @@ const SAILOR_STEPS = [
   { id: "filled", state: "done", meta: "22 of 24" }, { id: "you", state: "now", meta: "" }, { id: "ready", state: "", meta: "" }, { id: "sent", state: "", meta: "" },
 ];
 const LEDGER_APPS = [
-  { id: "sailor", company: "Sailor Health", role: "Frontend Engineer", region: "VI", steps: ["d", "d", "d", "u", "y", "-"], where: "Filled 22 of 24 · 2 answers left", status: "NEEDS YOU", action: { label: "Answer" } },
+  { id: "sailor", company: "Sailor Health", role: "Frontend Engineer", region: "VI", steps: ["d", "d", "d", "u", "y", "-"], where: "Filled 22 of 24 · 2 answers left", status: "NEEDS YOU", action: { label: "Cancel" } },
   { id: "brightline", company: "Brightline Health", role: "Software Engineer, Design Systems", region: "V", steps: ["d", "d", "d", "d", "d", "d"], where: "Sent Nov 21 · confirmation captured", status: "SENT", action: { label: "View" } },
   { id: "orbital", company: "Orbital Works", role: "Web Engineer, Growth", region: "VII", steps: ["d", "d", "d", "d", "d", "d"], where: "Sent Nov 22 · confirmation captured", status: "SENT", action: { label: "View" } },
-  { id: "kestrel", company: "Kestrel Payments", role: "Frontend Engineer II, Checkout", region: "IV", steps: ["d", "d", "u", "-", "-", "-"], where: "Tailoring now · 1 min", status: "IN PROGRESS", action: { label: "View" } },
-  { id: "clera", company: "Clera", role: "Frontend Engineer", region: "VIII", steps: ["d", "d", "-", "-", "-", "-"], where: "Held: the form couldn’t be read — fixed since", status: "HELD · FIXED", action: { label: "View" } },
+  { id: "kestrel", company: "Kestrel Payments", role: "Frontend Engineer II, Checkout", region: "IV", steps: ["d", "d", "u", "-", "-", "-"], where: "Tailoring now · 1 min", status: "IN PROGRESS", action: { label: "Cancel" } },
+  { id: "clera", company: "Clera", role: "Frontend Engineer", region: "VIII", steps: ["d", "d", "-", "-", "-", "-"], where: "Held: the form couldn’t be read — fixed since", status: "HELD · FIXED", action: { label: "Re-run · free" } },
 ];
 const FILLED = [["Name", "Maya Chen"], ["Email", "maya.chen@example.com"], ["Current company", "Toast"], ["Current role", "Software Engineer II"], ["Alma mater", "Northeastern University"], ["LinkedIn", "/in/maya-chen-sample"]];
 
@@ -97,17 +97,17 @@ export function LedgerBoard() {
           run={<LedgerRun stops={runStops(SAILOR_STEPS, { answers: 2 })} kicker="THE RUN · SAILOR HEALTH · FRONTEND ENGINEER" onOpen={() => {}}
             runNow={{ kicker: "APPLY FOR ME · 2 OF 10 SENT TODAY · NEXT 6:30 PM", line: "3 of 10 new drafts left today · re-runs are free", onClick: () => {} }}
             worker={{ state: "running", line: "Running · 2 of 10 today", sub: "If it stops, this turns red and drafts say so." }}/>}/>
-        <LedgerNeeds meta="NEEDS YOU · SAILOR HEALTH · FRONTEND ENGINEER" title="Four answers only you can give"
+        <LedgerNeeds meta="NEEDS YOU · SAILOR HEALTH · FRONTEND ENGINEER" title="Two answers only you can give"
           lead="Everything else is filled. One question at a time; each one goes away once you’ve answered it."
           ask={<QuestionTicket kicker="ONLY YOU CAN ANSWER THIS" n="QUESTION 1 OF 4" text="Are you legally authorized to work in the country of employment?" kind="yesno"
             options={["Yes", "No"]} pressed={null} progress={["today", null, null, null]} saved onSaved={() => {}} onAnswer={() => {}} onBack={() => {}}
             more={<><button type="button" className="pl-q-link">Ask draft</button><span aria-hidden="true"> · </span><button type="button" className="pl-q-link">See all 4</button></>}/>}
           filled={{ kicker: "FILLED FOR YOU · 22 OF 24", label: "What draft filled for you", foot: "From your résumé and profile. Nothing here is guessed.", rows: FILLED.map(([label, value]) => ({ label, value })) }}/>
         <LedgerRegister count={5} lead="Each line says what really happened. Re-running a draft is free; cancelling one gives the day’s credit back."
-          banner={<LedgerBanner action={<><button type="button" className="pl-btn pl-btn--ink">Re-run all 3</button><button type="button" className="pl-btn pl-btn--flat">Not now</button></>}>
-            <b>3 drafts were held by a problem we’ve fixed.</b> Re-run them with the fix, free.</LedgerBanner>}
+          banner={<LedgerBanner action={<button type="button" className="pl-btn pl-btn--ink">Re-run all 3</button>}>
+            <b>3 drafts were held by a problem we’ve fixed.</b> Re-run them with the fix, free.{" "}<button type="button" className="pl-q-link pl-lg-notnow">Not now</button></LedgerBanner>}
           controls={<div className="pl-lg-controls"><FilterChips label="Show" chips={[{ id: "apps", label: "Applications", count: 5, on: true }, { id: "inbox", label: "Inbox", count: 0 }]}/></div>}
-          register={<Register label="Your applications" rows={LEDGER_APPS} barExtra={<select className="pl-register__sort" aria-label="Sort the register" defaultValue="status:asc"><option value="status:asc">Sort · status</option></select>}/>}/>
+          register={<Register label="Your applications" rows={LEDGER_APPS} onRowOpen={() => {}} barExtra={<select className="pl-register__sort" aria-label="Sort the register" defaultValue="status:asc"><option value="status:asc">Sort · status</option></select>}/>}/>
         <LedgerTickets tickets={tickets}/>
       </LedgerPage>
     </div>

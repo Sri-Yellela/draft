@@ -119,3 +119,17 @@
 .pl-register__sort option { color: var(--pl-ink); background: var(--pl-card); }
 .pl-register__msg { flex: 1 1 100%; font-size: var(--pl-t-tiny); color: var(--pl-on-ink); }
 .pl-lg-done[data-tone="clay"] { box-shadow: var(--pl-s6-clay); }
+.pl-register__whobtn { all: unset; cursor: pointer; box-sizing: border-box; display: flex; flex-direction: column; flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; text-align: left; }
+.pl-register__whobtn:hover .pl-register__company { text-decoration: underline; }
+.pl-q-link.pl-lg-notnow { color: var(--pl-muted); font-weight: 600; }
+/* the ledger's "Filled for you" sheet, to the final board (16 px strip line, 14 px rows, normal leading) */
+.pl-lg-filled .pl-fieldcard { max-width: none; }
+.pl-lg-filled .pl-card__strip { line-height: normal; font-size: var(--pl-t-body); }
+.pl-lg-filled .pl-card__body { font-size: var(--pl-t-small); line-height: normal; }
+.pl-lg-filled .pl-card__item { line-height: normal; font-size: inherit; }
+.pl-lg-filled .pl-card__body > .pl-muted { font-size: var(--pl-t-tiny); }
+.pl-question label[data-save-for-next-time] { font-size: var(--pl-t-ui); }
+.pl-question__foot .pl-btn { padding: 0 14px; }
+/* the app's theme sets color-scheme on <html> (Dusk: dark) — a plate page is paper in every theme, so its form controls
+   (the register's checkboxes, the selects) draw light, as on the boards */
+.pl-ledgerpage, .pl-sheetpage { color-scheme: light; }

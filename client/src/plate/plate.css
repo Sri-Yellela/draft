@@ -363,7 +363,7 @@
 /* ── Register (ledger-ruled rows, ink head bar with bulk actions) ── */
 .pl-register { margin-top: 16px; border: var(--pl-border); border-radius: var(--pl-r-card); background-color: var(--pl-card); background-image: var(--pl-ledger-lines); box-shadow: var(--pl-s5); overflow: hidden; }
 .pl-register__bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px 16px; background: var(--pl-ink); color: var(--pl-on-ink); }
-.pl-register__barbtn { all: unset; cursor: pointer; min-height: 32px; padding: 0 12px; border-radius: var(--pl-r-stamp); border: var(--pl-line) solid var(--pl-on-ink); font-size: var(--pl-t-13); font-weight: 700; box-sizing: border-box; display: inline-flex; align-items: center; }
+.pl-register__barbtn { all: unset; cursor: pointer; min-height: 32px; padding: 0 12px; border-radius: var(--pl-r-stamp); border: var(--pl-line) solid var(--pl-on-ink); font-size: var(--pl-t-13); font-weight: 700; display: inline-flex; align-items: center; }   /* content-box: 35 px, as on the final board */
 .pl-register__barbtn[data-dashed] { border-style: dashed; }
 .pl-register__selectall { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; }
 .pl-register__rows { max-height: var(--pl-register-max, none); overflow-y: auto; }

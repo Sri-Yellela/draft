@@ -79,7 +79,7 @@ const WINDOW = 60;
 // ⭐ 47h (D197 #3, Home): four optional additions, none of which changes the markup without them — `openId` + `renderOpen(row)`
 // draw the row's detail IN PLACE under it (Home's opened row, D146); `barExtra` sits in the ink bar before the bulk buttons
 // (the sort); `message` is a line under the bar (what a bulk action did); `a.attrs` lands on the row.
-export function Register({ rows = [], onBulk, label = "Applications", openId = null, renderOpen, barExtra = null, message = null, ...s }) {
+export function Register({ rows = [], onBulk, label = "Applications", openId = null, renderOpen, barExtra = null, message = null, onRowOpen, ...s }) {
   const [sel, setSel] = useState(() => new Set());
   const [top, setTop] = useState(0);
   const gate = plateState(s, { height: 360, radius: "card", label: "Loading your applications", lines: 5 });
@@ -113,7 +113,9 @@ export function Register({ rows = [], onBulk, label = "Applications", openId = n
             <div className="pl-register__row" {...a.attrs}>   {/* the sector colour is the tile's only — tags wear the page's region, as on the board */}
               <input type="checkbox" className="pl-check" aria-label={`Select ${a.company}`} checked={sel.has(a.id)} onChange={() => toggle(a.id)}/>
               <LetterTile name={a.company} logo={a.logo} region={a.region} size="sm"/>
-              <div className="pl-register__who"><b className="pl-register__company">{a.company}</b><span className="pl-register__role">{a.role}</span></div>
+              {onRowOpen
+                ? <button type="button" className="pl-register__who pl-register__whobtn" aria-expanded={openId === a.id} onClick={() => onRowOpen(a)}><b className="pl-register__company">{a.company}</b><span className="pl-register__role">{a.role}</span></button>
+                : <div className="pl-register__who"><b className="pl-register__company">{a.company}</b><span className="pl-register__role">{a.role}</span></div>}
               <span className="pl-squares pl-squares--gap4" role="img" aria-label={`${done} of ${(a.steps || []).length} steps done`}>
                 {(a.steps || []).map((x, i) => <span key={i} className="pl-sq pl-sq--14" data-s={stepS[x]}/>)}
               </span>
