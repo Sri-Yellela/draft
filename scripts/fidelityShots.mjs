@@ -32,6 +32,25 @@ const OUT = process.env.FIDELITY_OUT ? path.resolve(ROOT, process.env.FIDELITY_O
 const PORT = 5199;
 const SIZES = { desktop: [1280, 800], phone: [390, 844] };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+// 47h: open a posting from the plate market's Index row and WAIT for the deck's slot to open (A240 turns the openings to
+// Deck). 47g's fixed sleep after the press missed the open twice under a loaded refill; the press is repeated while the
+// slot stays shut (a press landing mid tab-switch is dropped), up to `ms`.
+async function openIndexRow(page, title, ms = 20000) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) {
+    const open = await page.evaluate((title) => {
+      const slot = document.querySelector("[data-deck-post-slot]");
+      if (slot?.getAttribute("data-open") === "true" && document.querySelector("[data-deck-post-slot] [data-jd-panel]")) return true;
+      const rows = [...document.querySelectorAll("[data-market-index] [data-index-title]")];
+      (rows.find(e => e.textContent.trim() === title) || rows[0])?.click();
+      return false;
+    }, title).catch(() => false);
+    if (open) return true;
+    await page.waitForFunction(() => document.querySelector("[data-deck-post-slot]")?.getAttribute("data-open") === "true"
+      && !!document.querySelector("[data-deck-post-slot] [data-jd-panel]"), { timeout: 1500 }).catch(() => {});
+  }
+  return false;
+}
 const now = Math.floor(Date.now() / 1000);
 
 // ── The sketch's sample data, as the app's API answers ────────────────────────────────────────────────────────────
@@ -227,8 +246,8 @@ const SCREENS = {
   // ⭐ D168 · ONE WAY TO OPEN, ONE JOB FOR THE WHEEL (owner 11-06, concept B) — measured with MOTION ON (`--styles home168`):
   // the page probe samples the swap frame by frame and opens / folds 50 times fast; the node probe drives a REAL wheel
   // and a real hover (puppeteer's mouse), which a dispatched event cannot (an untrusted wheel scrolls nothing).
-  // ⭐ 47g R1 (retiring the classic market): D168 measured on the PLATE market — the page people use. The wheel "elsewhere"
-  // is over the hero (the classic list is the Index tab now); the bubbles are the Index rows (the tab opened for them).
+  // ⭐ 47g R1 (retiring the classic market): D168 measured on the PLATE market — the page people use. The wheel "elsewhere"
+  // is over the hero (the classic list is the Index tab now); the bubbles are the Index rows (the tab opened for them).
   home168: { sketch: null, app: "/app/jobs", fixtures: HOME156, ready: "[data-plate-market-openings] [data-fan-offset]", motion: true,
     sizes: { wide: [1440, 900], desktop: [1280, 800] },
     appPrep: async () => { await sleep(1200); },
@@ -310,8 +329,9 @@ const SCREENS = {
       board: { app: "/app/jobs", fixtures: FULLHOUSE, ready: "[data-plate-market-openings]",
         appPrep: async (page) => { await page.evaluate(() => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click()); await sleep(900); } },
       posting: { app: "/app/jobs", fixtures: FACTS, ready: "[data-plate-market-openings]",
-        appPrep: async (page) => { await page.evaluate(() => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click()); await sleep(600);
-          await page.evaluate(() => { const rows = [...document.querySelectorAll("[data-market-index] [data-index-title]")]; (rows.find(e => e.textContent.trim() === "Senior Data Engineer") || rows[0])?.click(); }); await sleep(1200); } },
+        appPrep: async (page) => { await page.evaluate(() => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click());
+          await page.waitForSelector("[data-market-index] [data-index-title]", { timeout: 20000 }).catch(() => {});
+          await openIndexRow(page, "Senior Data Engineer"); await sleep(600); } },
       atlas: { app: "/app/atlas", fixtures: ATLAS163, ready: "main", appPrep: async () => { await sleep(900); } },
       profile: { app: "/app/profile/about", fixtures: PROFILE163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
       account: { app: "/app/profile/account", fixtures: ACCOUNT163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
@@ -606,8 +626,7 @@ const SCREENS = {
     appPrep: async (page) => {
       await page.evaluate(() => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click());
       await page.waitForSelector("[data-market-index] [data-index-title]", { timeout: 20000 }).catch(() => {});
-      await page.evaluate(() => { const rows = [...document.querySelectorAll("[data-market-index] [data-index-title]")];
-        (rows.find(e => e.textContent.trim() === "Senior Data Engineer") || rows[0])?.click(); });
+      await openIndexRow(page, "Senior Data Engineer");
       await page.waitForSelector("[data-deck-post-slot] [data-posting-facts]", { timeout: 20000 }).catch(() => {});
       await sleep(900);
     } },
@@ -1183,7 +1202,8 @@ const STYLE_PROBES = {
     out.fold = { before: afterOpen, frames: folded, after: afterFold };
     // ── a bubble's posting, the same swap
     // the plate's bubble = an Index row: its tab opened first; the title's press turns the openings back to Deck (A240)
-    [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click(); await wait(500);
+    [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click();
+    { const t0 = performance.now(); while (!q("[data-market-index] [data-index-title]") && performance.now() - t0 < 10000) await wait(50); await wait(150); }   // 47h: the rows, not a fixed 500 ms
     const bubbleFrames = sample(700); q("[data-market-index] [data-index-title]")?.click(); const bub = await bubbleFrames;
     await wait(200);
     out.bubble = { frames: bub, after: settled() };
@@ -1330,7 +1350,10 @@ const STYLE_PROBES = {
     if (cfg?.plate) { openPost(); await waitFor(slotOpen); }
     q("[data-deck-post-slot] [data-posting-close]")?.click(); post.foldedByButton = await waitFor(() => !slotOpen());
     // a bubble's posting: on the deck too; the list stays where it is
-    if (cfg?.plate) { [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click(); await wait(500); q("[data-market-index] [data-index-title]")?.click(); }
+    if (cfg?.plate) { [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click();
+      await waitFor(() => !!q("[data-market-index] [data-index-title]"), 10000); await wait(150);   // 47h: the rows, not a fixed 500 ms
+      // a press landing mid tab-switch is dropped under load (47g's refill): press again while the slot stays shut
+      for (let i = 0; i < 4 && !slotOpen(); i++) { q("[data-market-index] [data-index-title]")?.click(); if (await waitFor(slotOpen, 2500)) break; } }
     else q(".jb__title")?.click();
     post.listOpensOnDeck = await waitFor(slotOpen);
     post.listOrigin = slot()?.getAttribute("data-post-origin") || null;
