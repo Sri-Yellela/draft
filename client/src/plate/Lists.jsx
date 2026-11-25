@@ -76,7 +76,10 @@ const WINDOW = 60;
  * status, action: { label, onClick } }]; bulk: Re-run selected · free / Cancel selected. Steps are only what the worker
  * reported (■ done · □ underway · ▧ needs you · ⬚ not yet). Past 60 rows the list windows itself (500 rows stay smooth).
  */
-export function Register({ rows = [], onBulk, label = "Applications", ...s }) {
+// ⭐ 47h (D197 #3, Home): four optional additions, none of which changes the markup without them — `openId` + `renderOpen(row)`
+// draw the row's detail IN PLACE under it (Home's opened row, D146); `barExtra` sits in the ink bar before the bulk buttons
+// (the sort); `message` is a line under the bar (what a bulk action did); `a.attrs` lands on the row.
+export function Register({ rows = [], onBulk, label = "Applications", openId = null, renderOpen, barExtra = null, message = null, ...s }) {
   const [sel, setSel] = useState(() => new Set());
   const [top, setTop] = useState(0);
   const gate = plateState(s, { height: 360, radius: "card", label: "Loading your applications", lines: 5 });
@@ -95,8 +98,10 @@ export function Register({ rows = [], onBulk, label = "Applications", ...s }) {
             onChange={() => setSel(all ? new Set() : new Set(rows.map((r) => r.id)))}/>SELECT ALL
         </label>
         <span className="pl-grow"/>
+        {barExtra}
         <button type="button" className="pl-register__barbtn" disabled={!sel.size} onClick={() => onBulk?.("rerun", [...sel])}>Re-run selected · free</button>
         <button type="button" className="pl-register__barbtn" data-dashed="" disabled={!sel.size} onClick={() => onBulk?.("cancel", [...sel])}>Cancel selected</button>
+        {message ? <span className="pl-register__msg" role="status">{message}</span> : null}
       </div>
       <div className="pl-register__rows" style={windowed ? { "--pl-register-max": `${ROW_PX * 10}px` } : undefined}
         onScroll={windowed ? (e) => setTop(e.currentTarget.scrollTop) : undefined}>
@@ -104,7 +109,8 @@ export function Register({ rows = [], onBulk, label = "Applications", ...s }) {
         {shown.map((a) => {
           const done = (a.steps || []).filter((x) => x === "d").length;
           return (
-            <div key={a.id} className="pl-register__row">   {/* the sector colour is the tile's only — tags wear the page's region, as on the board */}
+            <div key={a.id} style={{ display: "contents" }}>
+            <div className="pl-register__row" {...a.attrs}>   {/* the sector colour is the tile's only — tags wear the page's region, as on the board */}
               <input type="checkbox" className="pl-check" aria-label={`Select ${a.company}`} checked={sel.has(a.id)} onChange={() => toggle(a.id)}/>
               <LetterTile name={a.company} logo={a.logo} region={a.region} size="sm"/>
               <div className="pl-register__who"><b className="pl-register__company">{a.company}</b><span className="pl-register__role">{a.role}</span></div>
@@ -113,7 +119,9 @@ export function Register({ rows = [], onBulk, label = "Applications", ...s }) {
               </span>
               <span className="pl-register__where">{a.where}</span>
               <StatusTag>{a.status}</StatusTag>
-              {a.action ? <button type="button" className="pl-btn pl-register__act" onClick={a.action.onClick}>{a.action.label}</button> : null}
+              {a.action ? <button type="button" className="pl-btn pl-register__act" onClick={a.action.onClick} aria-expanded={renderOpen ? openId === a.id : undefined} {...a.action.attrs}>{a.action.label}</button> : null}
+            </div>
+            {renderOpen && openId === a.id ? <div className="pl-register__open">{renderOpen(a)}</div> : null}
             </div>
           );
         })}

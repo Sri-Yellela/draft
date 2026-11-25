@@ -163,6 +163,15 @@ export const PAIRS = {
     // records don't hold; the sheet draws what sponsorshipFactFor has (certified LCAs · median wage · USCIS approvals ·
     // approved %) and the source in their place (docs/revamp/survey.md, disagreement 2) — the words masked, the card compared
     ...(k === "sponsor" ? { masks: [[44, 150, 1076, 92]] } : {}) }])),
+  // ⭐ D197 Wave 1 #3 (47h) · THE LEDGER (Home) against the final `Ledger` board, piece by piece (plate/Ledger.jsx on the board's
+  // data, plate/sheetFixtures.jsx). The header is a LOOK pair: D200 Rule 3 replaces the board's 100 px "The ledger." + lead
+  // with one plain serif line on a working page (docs/revamp/ledger.md, disagreement 1).
+  "ledger-hero": { source: "final", board: "Ledger", fixture: "LedgerBoard", boardSel: 'section[aria-labelledby="lg-title"]', buildSel: 'section[aria-labelledby="lg-title"]', pad: 0, reduced: true, look: true },
+  "ledger-run": { source: "final", board: "Ledger", fixture: "LedgerBoard", boardSel: 'section[aria-labelledby="lg-title"] figure', buildSel: ".pl-lg-run", pad: 0, reduced: true },
+  "ledger-needs": { source: "final", board: "Ledger", fixture: "LedgerBoard", boardSel: "section:nth-of-type(2)", buildSel: "[data-home-needs]", pad: 0, reduced: true },
+  "ledger-banner": { source: "final", board: "Ledger", fixture: "LedgerBoard", boardSel: "section:nth-of-type(3) > div:nth-of-type(2)", buildSel: "[data-held-before-update]", pad: 0, reduced: true },
+  "ledger-register": { source: "final", board: "Ledger", fixture: "LedgerBoard", boardSel: "section:nth-of-type(3) > div:nth-of-type(3)", buildSel: "[data-ledger-register] .pl-register", pad: 0, reduced: true },
+  "ledger-tickets": { source: "final", board: "Ledger", fixture: "LedgerBoard", boardSel: "section:nth-of-type(4)", buildSel: "[data-ledger-tickets]", pad: 0, reduced: true },
 };
 // what each Opening pair keeps out of the pixel gate, and why (D196: masks only for example data, with the reason)
 function opPair(k) { return {

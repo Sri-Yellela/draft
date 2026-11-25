@@ -57,6 +57,21 @@ import { postingClick } from "../lib/openPosting.js";
 import AttemptResume from "../components/AttemptResume.jsx";
 import AttemptPosting from "../components/AttemptPosting.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
+// ⭐ D197 Wave 1 #3 (47h) · THE LEDGER — Home in plates (the approved `Ledger` board), on with the plate market's switch
+// (`?plate=0` keeps today's Home exactly). The reads, state and handlers stay here; plate/Ledger.jsx draws.
+import { useMarketPlate, useBestCard, sectorRegion } from "../plate/marketPlate.js";
+import { LedgerPage, LedgerHeader, LedgerRun, LedgerNeeds, LedgerDone, LedgerRegister, LedgerBanner, LedgerTickets } from "../plate/Ledger.jsx";
+import { QuestionTicket } from "../plate/Tickets.jsx";
+import { Register } from "../plate/Lists.jsx";
+import { FilterChips } from "../plate/Marks.jsx";
+import { ledgerFront, runStops, squaresOf, tagOf, actOf, countCells, isoWeekOf, ledgerTickets } from "../plate/ledgerModel.js";
+import { trackerCounts, TRACKER_FILTERS, STAGES } from "../lib/trackerRows.js";
+import { numWord } from "../plate/surveySheet.js";
+import { useJobBoard } from "../contexts/JobBoardContext.jsx";
+import { marketFigures } from "../lib/filterSentenceModel.js";
+import { companyPath } from "../lib/companySlug.js";
+import { fieldCardView } from "../../../shared/contextualView.js";
+import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
 
 // ============================================================
 // AutoApplyPanel — DRAFT HOUSE, THE ONE APPLICATION TRACKER (D146, owner 11-03; D113 UI before it)
@@ -127,7 +142,7 @@ function QuestionsInAskDraft({ node, count, opened, onOpen, onHere }) {
   );
 }
 
-function HeldQuestionStepper({ jobId, questions, values, setValue, remember, setRemember, onFinish, busy, message }) {
+function HeldQuestionStepper({ jobId, questions, values, setValue, remember, setRemember, onFinish, busy, message, face = null, kicker = null, onLeave = null, doneLine = null, askDraftLink = null }) {
   const [i, setI] = useState(0);
   const [all, setAll] = useState(false);
   const [drafts, setDrafts] = useState({});      // question → { text, state: loading | ready | off | failed }
@@ -160,6 +175,48 @@ function HeldQuestionStepper({ jobId, questions, values, setValue, remember, set
   const answered = (x) => String(values[x.question] ?? "").trim() !== "";
   const next = () => setI(n => Math.min(total, n + 1));
   const done = i >= total;
+  // ⭐ D197 #3 (47h) · THE LEDGER's section 01 — the same stepper (its state, its Ask draft events, its Finish) in the board's
+  // face: plate/Tickets.jsx QuestionTicket for the question, plate/Ledger.jsx LedgerDone for "All answered".
+  if (face === "plate") {
+    const progress = questions.map((x, k) => (k === i ? "today" : answered(x) ? "lit" : null));
+    const seeAll = <button type="button" className="pl-q-link" data-action="see-all" aria-expanded={all} onClick={() => setAll(v => !v)}>{all ? "Hide the list" : `See all ${total}`}</button>;
+    return (
+      <div data-held-stepper="" data-step-index={done ? "done" : i}>
+        {done ? (
+          <LedgerDone line={doneLine || "Every answer is in. draft finishes the form with them, then it waits for your approval — nothing is sent until you approve it."}
+            actions={<>
+              <button type="button" className="pl-btn pl-btn--primary" data-action="finish-answers" disabled={busy} onClick={onFinish}>{busy ? "Saving…" : "Finish the form"}</button>
+              <button type="button" className="pl-btn pl-btn--secondary" data-action="review-answers" onClick={() => { setAll(true); setI(0); }}>Review</button>
+            </>}/>
+        ) : (
+          <QuestionTicket key={q.question} rootProps={{ "data-held-current": q.kind }} kicker={kicker || "ONLY YOU CAN ANSWER THIS"}
+            n={`QUESTION ${i + 1} OF ${total}${q.required ? " · REQUIRED" : ""}`} text={q.question} progress={progress}
+            kind={q.kind === "yesno" ? "yesno" : q.kind === "choice" ? "choice" : q.kind === "draft" ? "draft" : "text"}
+            options={q.kind === "yesno" ? (q.options?.length ? q.options : ["Yes", "No"]) : q.options} pressed={values[q.question] ?? null}
+            onAnswer={(o) => { setValue(q.question, o); next(); }} value={values[q.question] ?? ""} onChange={(v) => setValue(q.question, v)}
+            saveLabel={q.kind === "draft" ? null : saveForNextTimeLabel(q)} saved={remember[q.question]} onSaved={(v) => setRemember(q.question, v)}
+            onNext={q.kind === "yesno" ? undefined : () => { if (q.kind === "draft") setRemember(q.question, false); next(); }}
+            nextLabel={i + 1 === total ? "Done" : "Next"} canNext={answered(q)}
+            onBack={() => (i > 0 ? setI(n => Math.max(0, n - 1)) : onLeave?.())} more={<>{askDraftLink}{askDraftLink ? <span aria-hidden="true"> · </span> : null}{seeAll}</>}>
+            {q.kind === "draft" && drafts[q.question]?.state === "asked" && !String(values[q.question] ?? "").trim() ? (
+              <span className="pl-q-note" data-held-asked="">Ask draft is writing a suggestion (the /d at the bottom-right) — use it there, or type your own.{" "}
+                <button type="button" className="pl-q-link" data-action="open-ask-draft" onClick={() => askDraft(q.question)}>Ask again</button></span>
+            ) : null}
+          </QuestionTicket>
+        )}
+        {all && (
+          <ol className="pl-q-all" data-held-all="">
+            {questions.map((x, k) => (
+              <li key={x.question} data-answered={answered(x) ? "true" : "false"}>
+                <button type="button" className="pl-q-link" onClick={() => setI(k)}>{x.question}</button>{answered(x) ? ` — ${String(values[x.question]).slice(0, 60)}` : ""}
+              </li>
+            ))}
+          </ol>
+        )}
+        {message && <span className="pl-q-note" role="status">{message}</span>}
+      </div>
+    );
+  }
   return (
     <div className="dht-step" data-held-stepper="" data-step-index={done ? "done" : i}>
       {done ? (
@@ -235,6 +292,48 @@ function HeldQuestionStepper({ jobId, questions, values, setValue, remember, set
       {message && <span className="dh-fold__quiet" role="status">{message}</span>}
     </div>
   );
+}
+
+// ⭐ D197 #3 (47h) · the plate page around Home when the ledger is on; nothing at all when it's off.
+function LedgerShell({ on, children }) {
+  return on ? <LedgerPage>{children}</LedgerPage> : children;
+}
+
+// ⭐ D197 #3 (47h) · the ledger's tickets out — its own reads (the market's figures from the board's context when the market
+// was read this session, the deck's best match, the front application's first gap from its contextual card).
+function LedgerTicketsSlot({ rows, counts, front }) {
+  const navigate = useNavigate();
+  const { boardHeadline } = useJobBoard();
+  const best = useBestCard();
+  const [gapTech, setGapTech] = useState(null);
+  const jobId = front?.jobId ?? null;
+  useEffect(() => {
+    setGapTech(null);
+    if (jobId == null) return undefined;
+    let live = true;
+    api(`/api/jobs/${encodeURIComponent(jobId)}/contextual`).then((r) => {
+      if (!live) return;
+      const v = fieldCardView({ report: null, contextual: r?.contextual || null });
+      setGapTech((v?.gaps || []).map((g) => g.tech).find(Boolean) || null);
+    }).catch(() => {});
+    return () => { live = false; };
+  }, [jobId]);
+  const slugs = useAtlasSlugs(useMemo(() => (gapTech ? [gapTech] : []), [gapTech]));
+  const today = new Date().toLocaleDateString("en-CA");
+  const iv = rows.filter((r) => (r.stage === "interview" || r.stage === "assessment") && r.node?.ref?.interview?.ymd >= today)
+    .sort((a, b) => String(a.node.ref.interview.ymd).localeCompare(String(b.node.ref.interview.ymd)))[0] || null;
+  const ivWhen = iv ? (() => { const [y, m, d] = iv.node.ref.interview.ymd.split("-").map(Number); return `ON ${new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" }).toUpperCase()}`; })() : null;
+  const facets = boardHeadline?.facets;
+  const newToday = facets ? marketFigures(facets).newToday ?? null : null;
+  const tickets = ledgerTickets({
+    newToday, best: best?.company ? best : null, front, sent: counts.sent,
+    sentCompanies: [...new Set(rows.filter((r) => r.filter === "sent").map((r) => companyLabel(r.company)))],
+    nextInterview: iv ? { company: companyLabel(iv.company), when: ivWhen } : null,
+    gap: gapTech && slugs[gapTech] ? { tech: gapTech, company: companyLabel(front.company), href: atlasHref(slugs[gapTech]) } : null,
+    paths: { market: "/app/jobs", interview: "/app/interview", company: (co) => companyPath(co) },
+  }).map((t) => ({ ...t,
+    onClick: (e) => { if (/^https?:/.test(t.href) || e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return; e.preventDefault(); navigate(t.href); } }));
+  return <LedgerTickets tickets={tickets}/>;
 }
 
 export function AutoApplyPanel({ user = null } = {}) {
@@ -609,6 +708,7 @@ export function AutoApplyPanel({ user = null } = {}) {
   // ── D113 UI · THE TREE ──────────────────────────────────────────────────────────────────────
   // ⭐ D146 · the table's filter, search, period and sort; ONE thing open at a time (a row, or a run in the timeline).
   const [filter, setFilter] = useState("all");
+  const plate = useMarketPlate();   // ⭐ D197 #3 (47h): the ledger
   const [q, setQ] = useState("");
   const [period, setPeriod] = useState("any");
   // D149: the search and the period sit behind the filter row's last button, Search (not on the sketch's first screen).
@@ -1476,9 +1576,175 @@ export function AutoApplyPanel({ user = null } = {}) {
     ),
   };
 
+  // the timeline beside the table, or an opened application's own page (D102 P5) — one element for both faces
+  const sideCol = (sideJob && sideDetail ? (
+          <aside data-draft-detail="" aria-label="This application" className="dh-detail">
+            <div className="dht-acts" style={{ justifyContent: "flex-end" }}>
+              <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => navigate(`/app/job/for/${encodeURIComponent(sideJob)}`)}>Its own page</button>
+              <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setSideJob(null)} aria-label="Close">✕ Close</button>
+            </div>
+            <JobWorkspacePanel jobId={sideJob} embedded />
+          </aside>
+        ) : (
+          <DraftHouseTree view={view} open={open} onOpen={step} onBubble={(node) => openRow(node.key)} head={timelineHead}
+            renderRunBranch={renderRunBranch}
+            nextLine={fullAuto ? "Next look. Good matches are sent for you." : "Next look. You'll get one email with the picks."}
+            empty={!view.some(v => !v.run.future) ? <p className="dht-empty">No runs yet. Each run's picks show here as they are made.</p> : null}
+            footer={(needsYouCount > 0 || timelineExtra.running || bin.items.length > 0 || binMsg) ? (
+              <div className="dht-foot" data-timeline-foot="">
+                {reviewAppsCount > 0 && timelineExtra.review}
+                {timelineExtra.running}
+                {timelineExtra.tidy}
+              </div>
+            ) : <div className="dht-foot" data-timeline-foot="">{timelineExtra.tidy}</div>} />
+        ));
+  // ── ⭐ D197 Wave 1 #3 (47h) · THE LEDGER (plate) — the same state and handlers as below, in the board's pieces
+  // (docs/revamp/ledger.md says where each of Home's features lives now). Built only while the plate switch is on.
+  const lgCounts = trackerCounts(rows);
+  const lgFront = plate ? ledgerFront(rows) : null;
+  const lgNode = lgFront?.node || null;
+  const lgHeldQs = lgNode ? heldQuestionsFor(lgNode) : [];
+  const lgStepsOf = (node) => (node ? heldFor(node)?.steps || runSteps(node) : []);
+  const lgStops = lgNode ? runStops(lgStepsOf(lgNode), { answers: lgHeldQs.length }) : [];
+  const lgWho = lgFront ? [companyLabel(lgFront.company), lgFront.title].filter(Boolean).join(" · ").toUpperCase() : "";
+  const lgCap = sub ? `${sub.used} OF ${settings?.dailyCap ?? sub.limit} SENT TODAY` : null;
+  const lgRunNow = held ? null : {
+    kicker: [fullAuto ? "APPLY FOR ME" : "ASK ME FIRST", lgCap, nextRunAt && `NEXT ${timeLabel(nextRunAt, timeZone)}`].filter(Boolean).join(" · ").toUpperCase(),
+    line: slots && Number.isFinite(Number(slots.remaining)) ? `${slots.remaining} of ${slots.limit} new drafts left today · re-runs are free` : "The next batch, now — the same picks, limits and rules.",
+    busy: runNowState.busy, disabled: runNowState.busy || !runBar, onClick: runNow, title: "Start the next batch now — the same picks, limits and rules as a run time" };
+  const lgWorker = runnerHealth?.stalled
+    ? { state: "stalled", line: `Stuck · ${runnerHealth.waiting} waiting`,
+        sub: `draft's form filler has been stuck for ${Math.max(3, Math.round((runnerHealth.oldestWaitMs || 0) / 60000))} minutes. Your drafts start on their own once it's back.` }
+    : held ? { state: "paused", line: "Paused", sub: "Nothing new is picked or sent until you resume." }
+    : { state: "running", line: `Running${autoLine}`, sub: "If it stops, this turns red and drafts say so." };
+  const lgHeader = (
+    <LedgerHeader week={isoWeekOf(new Date(now))} summary={summary}
+      cells={countCells(lgCounts, { filter, onFilter: (f) => { setFilter(f); setHomeTab("apps"); setListView("table"); document.getElementById("register")?.scrollIntoView?.({ block: "start" }); } })}
+      actions={<>
+        <a className="pl-lg-daily" href="/app/atlas/todays-question" data-daily-line="">Today's question · 2 minutes</a>
+        <span className="pl-grow"/>
+        <button type="button" className="pl-btn" data-import-open="" aria-pressed={importing} onClick={() => setImporting(v => !v)}>Import</button>
+        <button type="button" className="pl-btn" data-export-open="" aria-pressed={exporting} onClick={() => setExporting(v => !v)}>Export</button>
+        <button type="button" className="pl-btn pl-btn--ink" data-kind="primary" data-send-all-ready="" disabled={!ready.length || pendingBusy}
+          title="Approves every application that is Ready to send. Approving submits it to the employer and cannot be undone."
+          onClick={sendAllReady}>Send all ready ({ready.length})</button>
+      </>}
+      controls={<>
+        <div className="pl-lg-mode" role="group" aria-label="Auto-apply" data-home-auto="" data-held={held ? "true" : "false"}>
+          <button type="button" className="pl-btn" data-mode="ask" aria-pressed={!fullAuto} disabled={holdBusy || !runBar} onClick={chooseAsk}>Ask me first</button>
+          <button type="button" className="pl-btn" data-mode="auto" aria-pressed={fullAuto} data-locked={mode.selectable ? "false" : "true"} disabled={!mode.selectable || holdBusy}
+            aria-describedby={mode.selectable ? undefined : "dh-auto-why"} onClick={mode.selectable ? () => !fullAuto && setApplyMode?.("auto") : undefined}>Apply for me</button>
+          <button type="button" className="pl-btn pl-btn--dashed" data-stop-everything="" data-held={held ? "true" : "false"}
+            disabled={holdBusy || !runBar} title={`${STOP_DOES} ${STOP_DOES_NOT}`} onClick={() => setStopEverything?.(!held)}>{held ? "Resume" : "Pause"}</button>
+          <button type="button" className="pl-btn pl-btn--dashed" data-settings-open="" onClick={(e) => openSettings(null, e.currentTarget)}>Settings</button>
+        </div>
+        {!mode.selectable && <p className="pl-lg-why" id="dh-auto-why" data-auto-locked-reason="">Apply for me is locked: {mode.reason}</p>}
+        {holdMsg && <p className="pl-lg-why" role="status">{holdMsg}</p>}
+      </>}
+      run={<LedgerRun stops={lgStops} kicker={lgFront ? `THE RUN · ${lgWho}` : "THE RUN"} onOpen={lgFront ? () => openRow(lgFront.key) : undefined}
+        runNow={lgRunNow} worker={lgWorker}
+        message={runNowState.msg ? <p className="pl-lg-runmsg" role="status" data-run-now-msg="">{runNowState.msg}</p> : null}/>}/>
+  );
+  // 01 · Needs you: the front application's questions one at a time; else what waits on you; else what's ready to send
+  const lgNeedRow = lgFront && (lgFront.stage === "question" || lgFront.stage === "needs") ? lgFront : null;
+  const lgReady = !lgNeedRow ? rows.find(r => r.stage === "ready") || null : null;
+  const lgAskDraft = lgNeedRow && lgHeldQs.length ? <button type="button" className="pl-q-link" data-action="open-questions-thread" onClick={() => openQuestionsThread(lgNeedRow.node)}>Ask draft</button> : null;
+  const lgAnswers = lgNeedRow ? answersCache.current.get(runJobOf(lgNeedRow.node)) : null;
+  useEffect(() => {
+    const id = lgNeedRow ? runJobOf(lgNeedRow.node) : null;
+    if (id != null) answersCache.current.open(id, () => rerender(n => n + 1));
+  }, [lgNeedRow?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lgFilledRows = lgAnswers?.state === "ready" ? answerRows(lgAnswers.data.answers, lgAnswers.data.openQuestions) : null;
+  const lgFilled = lgNeedRow ? {
+    kicker: lgFilledRows ? `FILLED FOR YOU · ${lgFilledRows.filter(a => a.value != null).length} OF ${lgFilledRows.length}` : "FILLED FOR YOU",
+    label: "What draft filled for you", foot: "From your résumé and profile. Nothing here is guessed.",
+    ...(lgFilledRows ? { rows: lgFilledRows.filter(a => a.value != null).slice(0, 6).map(a => ({ label: a.label, value: a.value })) }
+      : lgAnswers?.state === "error" ? { state: "error", errorText: lgAnswers.error } : { state: "loading" }),
+  } : null;
+  const lgNeeds = (
+    <LedgerNeeds
+      meta={lgNeedRow ? `NEEDS YOU · ${lgWho}` : lgReady ? `READY TO SEND · ${[companyLabel(lgReady.company), lgReady.title].filter(Boolean).join(" · ").toUpperCase()}` : "NEEDS YOU"}
+      title={lgNeedRow && lgHeldQs.length ? `${numWord(lgHeldQs.length, true)} answer${lgHeldQs.length === 1 ? "" : "s"} only you can give`
+        : lgNeedRow ? `${companyLabel(lgNeedRow.company)} is waiting for you` : lgReady ? "Ready for you to send" : "Nothing needs you right now"}
+      lead={lgNeedRow && lgHeldQs.length ? "Everything else is filled. One question at a time; each one goes away once you’ve answered it."
+        : lgNeedRow ? lgNeedRow.node?.say || "One step only you can take." : lgReady ? "Everything is filled. Submit when you’re happy." : "Every answer is in. New drafts that need you show here first."}
+      ask={lgNeedRow && lgHeldQs.length ? (
+        <HeldQuestionStepper face="plate" jobId={lgNeedRow.node.jobId} questions={lgHeldQs} values={questionDrafts || {}}
+          setValue={(k, v) => setQuestionDrafts(prev => ({ ...prev, [k]: v }))}
+          remember={questionRemember || {}} setRemember={(k, v) => setQuestionRemember?.(prev => ({ ...prev, [k]: v }))}
+          busy={answersSaving} message={answersMsg} kicker={(STAGES[lgNeedRow.stage]?.eyebrow || "Only you can answer this").toUpperCase()}
+          askDraftLink={lgAskDraft} onLeave={() => openRow(lgNeedRow.key)}
+          onFinish={() => submitApplyAnswers(true, { jobIds: [lgNeedRow.node.jobId], questions: lgHeldQs.map(x => x.question) })} />
+      ) : lgNeedRow ? (
+        <LedgerDone kicker="WAITING FOR YOU" title={companyLabel(lgNeedRow.company)} line={lgNeedRow.headline || lgNeedRow.status} stamp={null} tone="clay"
+          attrs={{ "data-home-need": "need" }} actions={<button type="button" className="pl-btn pl-btn--primary" data-need-act="open" onClick={() => openRow(lgNeedRow.key)}>Open it</button>}/>
+      ) : lgReady ? (
+        <LedgerDone kicker="READY TO SEND" title="Ready to approve" line={[companyLabel(lgReady.company), lgReady.title].filter(Boolean).join(" · ")} attrs={{ "data-home-need": "ready" }}
+          actions={<button type="button" className="pl-btn pl-btn--primary" data-need-act="open" onClick={() => openRow(lgReady.key)}>Review and submit</button>}/>
+      ) : null}
+      filled={lgFilled}/>
+  );
+  // 02 · the register: Home's tabs, filters and find over the board's register; a row opens IN PLACE (the same RowOpen)
+  const lgRows = shownRows.map(r => ({ id: r.key, row: r, company: companyLabel(r.company), role: r.title, region: sectorRegion(r.title),
+    steps: squaresOf(r, r.node ? runStops(lgStepsOf(r.node)) : []), where: r.headline || r.status, status: tagOf(r),
+    action: { label: actOf(r), onClick: () => step(open?.type === "job" && open.key === r.key ? { type: "close" } : { type: "job", key: r.key }) },
+    attrs: { "data-row": r.key } }));
+  const lgBulk = (kind, ids) => {
+    const keys = new Set(ids);
+    const jobIds = new Set(rows.filter(r => keys.has(r.key)).map(r => String(r.jobId)));
+    const list = heldRerunnableFrom(nodes).filter(h => jobIds.has(String(h.jobId)));
+    if (!list.length) { setBulkMsg("Only drafts that are waiting can be re-run or cancelled together — none of the ticked ones is."); return; }
+    if (kind === "rerun") rerunHeld(list);
+    else if (window.confirm(`Cancel ${list.length} waiting draft${list.length === 1 ? "" : "s"}? They stay in Cleared for 7 days.`)) clearRunJobs({ runJobIds: list.map(h => h.runJobId).filter(Boolean) });
+  };
+  const lgSorts = [["status:asc", "Sort · status"], ["when:desc", "Sort · newest"], ["when:asc", "Sort · oldest"], ["position:asc", "Sort · company"], ["resume:desc", "Sort · résumé"], ["answers:desc", "Sort · answers"]];
+  const lgHeldAll = heldRerunnableFrom(nodes);
+  const lgRegister = (
+    <LedgerRegister count={rows.length} lead="Each line says what really happened. Re-running a draft is free; cancelling one gives the day’s credit back."
+      banner={applySlots?.heldBeforeUpdate > 0 && lgHeldAll.length > 0 && !bannerGone ? (
+        <LedgerBanner action={<>
+          <button type="button" className="pl-btn pl-btn--ink" onClick={() => { rerunHeld(lgHeldAll); setBannerGone(true); }}>Re-run all {lgHeldAll.length}</button>
+          <button type="button" className="pl-btn pl-btn--flat" onClick={() => setBannerGone(true)}>Not now</button>
+        </>}><b>{applySlots.heldBeforeUpdate} draft{applySlots.heldBeforeUpdate === 1 ? " was" : "s were"} held by a problem we’ve fixed.</b> Re-run {applySlots.heldBeforeUpdate === 1 ? "it" : "them"} with the fix, free.</LedgerBanner>
+      ) : null}
+      controls={listView === "sheet" ? null : (
+        <div className="pl-lg-controls" data-home-tabs="">
+          <FilterChips label="Show" chips={[{ id: "apps", label: "Applications", count: rows.length, on: homeTab === "apps" }, { id: "inbox", label: inboxHead.fresh ? "Inbox · new" : "Inbox", count: inboxHead.fresh || inboxHead.total, on: homeTab === "inbox" }]}
+            onToggle={(id) => { if (id === "inbox") setOpen(null); setHomeTab(id); }}/>
+          {homeTab === "apps" ? <>
+            <FilterChips label="Filter" chips={TRACKER_FILTERS.map(([id, label]) => ({ id, label, count: fcounts[id] ?? 0, on: filter === id }))} onToggle={(id) => setFilter(id)}/>
+            <button type="button" className="pl-btn pl-btn--dashed" aria-expanded={findOpen || !!q || period !== "any"}
+              onClick={() => { const on = !(findOpen || !!q || period !== "any"); setFindOpen(on); if (!on) { setQ(""); setPeriod("any"); } }}>Find</button>
+            {(findOpen || !!q || period !== "any") && <>
+              <PanelSearch theme={theme} value={q} onChange={setQ} width={200} placeholder="Search" />
+              <select className="pl-q-select" style={{ width: "auto", minHeight: 44 }} aria-label="When" value={period} onChange={(e) => setPeriod(e.target.value)}>
+                {TRACKER_PERIODS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select>
+            </>}
+          </> : null}
+        </div>
+      )}
+      register={listView === "sheet" ? (
+        <section data-full-sheet="" aria-label="The full sheet" style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 480, marginTop: 18 }}>
+          <div className="dht-acts"><button type="button" className="pl-btn" data-back-to-table="" onClick={() => { setListView("table"); setSheetAt(null); }}>Back to the register</button></div>
+          <DatabasePanel key={sheetAt ? `${sheetAt.sheet}:${sheetAt.jobId}` : "sheet"} user={user} embedded sheet={sheetAt?.sheet || null} focusJobId={sheetAt?.jobId || null} />
+        </section>
+      ) : homeTab === "inbox" ? <div style={{ marginTop: 16 }}><ApplicationInbox theme={theme} onSeen={inboxSeen} /></div> : (
+        <div data-tracker-table="">
+          <Register label="Your applications" rows={lgRows} openId={open?.type === "job" ? open.key : null} renderOpen={(a) => renderRow(a.row)} message={bulkMsg || null}
+            barExtra={<select className="pl-register__sort" aria-label="Sort the register" value={`${sort.key}:${sort.dir}`}
+              onChange={(e) => { const [key, dir] = e.target.value.split(":"); setSort({ key, dir }); }}>
+              {lgSorts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>}
+            onBulk={lgBulk} {...(rows.length ? {} : { state: "empty", emptyText: nothingYet ? "Nothing drafted yet. Draft jobs from the market." : "Nothing to show yet." })}/>
+          {rows.length > 0 && !shownRows.length ? <p className="pl-q-note">Nothing here with this filter.</p> : null}
+        </div>
+      )}
+      after={<div className="pl-lg-after dh-main" data-draft-split="" data-phone-view={phoneView} data-detail={sideJob && sideDetail ? "true" : undefined}>{sideCol}</div>}/>
+  );
   return (
+    <LedgerShell on={plate}>
     <div className="dh-page">
       {/* ── ⭐ D146 · THE HEADER — the name and its line, the two modes, Settings, Import, Export, Send all ready ── */}
+      {plate ? lgHeader : (
       <header className="dh-head" data-house-header="" data-held={held ? "true" : "false"}>
         <div className="dh-head__text">
           {/* ⭐ D149 (11-03): the sketch's .ph3 — the serif at 44 / 1 over its line in body grey (DraftHouse.css). */}
@@ -1500,6 +1766,7 @@ export function AutoApplyPanel({ user = null } = {}) {
             onClick={sendAllReady}>Send all ready ({ready.length})</button>
         </div>
       </header>
+      )}
       {/* ⭐ D148: the drawer opens with the mode (the header switch's own handlers and lock) and Pause everything now. */}
       <AutoSettingsDrawer open={settingsOpen} runBar={runBar} group={settingsGroup} listView={listView} onListView={setListView}
         mode={{ fullAuto, selectable: mode.selectable, reason: mode.reason }} onAsk={runBar ? chooseAsk : null}
@@ -1516,6 +1783,7 @@ export function AutoApplyPanel({ user = null } = {}) {
 
       {/* ── ⭐ 46y · home-sketch.html's .auto — THE AUTO-APPLY BAR: a live dot, what it is doing ("Auto-apply is running ·
           4 of 10 today · next run at 3:00 pm"), the mode, Pause (the safety stop, from the timeline's head) and Settings. ── */}
+      {!plate && (
       <div className="dh-auto" data-home-auto="" data-held={held ? "true" : "false"}>
         <div className="dh-auto__st">
           <span className="dh-live" aria-hidden="true" />
@@ -1540,9 +1808,10 @@ export function AutoApplyPanel({ user = null } = {}) {
         {!mode.selectable && <p className="dh-head__why" id="dh-auto-why" data-auto-locked-reason="">Apply for me is locked: {mode.reason}</p>}
         {holdMsg && <p className="dh-head__why" role="status">{holdMsg}</p>}
       </div>
+      )}
 
       {/* ── ⭐ 46y · home-sketch.html's .needs — what needs the person first: at most three cards (lib/trackerRows.js homeNeeds). ── */}
-      {needs.length > 0 && listView !== "sheet" && (
+      {plate ? lgNeeds : needs.length > 0 && listView !== "sheet" && (
         <div className="dh-needs" data-home-needs="">
           {needs.map(n => (
             <div key={n.kind} className="dh-nd" data-home-need={n.kind}>
@@ -1601,6 +1870,7 @@ export function AutoApplyPanel({ user = null } = {}) {
       </div>
 
       {/* ── ⭐ D146 · THE TABLE, AND THE AUTO-APPLY TIMELINE BESIDE IT (layout 1). ── */}
+      {plate ? lgRegister : (
       <div className="dh-main" data-draft-split="" data-phone-view={phoneView} data-detail={sideJob && sideDetail ? "true" : undefined}>
         <div className="dh-table-col">
           {/* ⭐ 46y · home-sketch.html's .tabs: Home's two parts — Applications n · Inbox n new — then that part's filters. The
@@ -1641,28 +1911,9 @@ export function AutoApplyPanel({ user = null } = {}) {
         </div>
         {/* D102 P5 · an opened application's own page takes the timeline's column on a wide screen (the timeline returns
             on Close); narrower, "Full page" goes to its own page. */}
-        {sideJob && sideDetail ? (
-          <aside data-draft-detail="" aria-label="This application" className="dh-detail">
-            <div className="dht-acts" style={{ justifyContent: "flex-end" }}>
-              <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => navigate(`/app/job/for/${encodeURIComponent(sideJob)}`)}>Its own page</button>
-              <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setSideJob(null)} aria-label="Close">✕ Close</button>
-            </div>
-            <JobWorkspacePanel jobId={sideJob} embedded />
-          </aside>
-        ) : (
-          <DraftHouseTree view={view} open={open} onOpen={step} onBubble={(node) => openRow(node.key)} head={timelineHead}
-            renderRunBranch={renderRunBranch}
-            nextLine={fullAuto ? "Next look. Good matches are sent for you." : "Next look. You'll get one email with the picks."}
-            empty={!view.some(v => !v.run.future) ? <p className="dht-empty">No runs yet. Each run's picks show here as they are made.</p> : null}
-            footer={(needsYouCount > 0 || timelineExtra.running || bin.items.length > 0 || binMsg) ? (
-              <div className="dht-foot" data-timeline-foot="">
-                {reviewAppsCount > 0 && timelineExtra.review}
-                {timelineExtra.running}
-                {timelineExtra.tidy}
-              </div>
-            ) : <div className="dht-foot" data-timeline-foot="">{timelineExtra.tidy}</div>} />
-        )}
+        {sideCol}
       </div>
+      )}
 
       {/* ── Apply Runs Review Modal ──────────────────────────────────── */}
       {applyRunDetailOpen && (
@@ -2233,7 +2484,9 @@ export function AutoApplyPanel({ user = null } = {}) {
         </div>
       )}
 
+      {plate && <LedgerTicketsSlot rows={rows} counts={lgCounts} front={lgFront}/>}
     </div>
+    </LedgerShell>
   );
 }
 

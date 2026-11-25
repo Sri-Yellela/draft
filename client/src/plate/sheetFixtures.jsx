@@ -4,6 +4,11 @@
 // A fixture is never tuned to pass (D196 F5): every value below is the board's own.
 import { MemoryRouter } from "react-router-dom";
 import SurveySheet from "./SurveySheet.jsx";
+import { LedgerPage, LedgerHeader, LedgerRun, LedgerNeeds, LedgerRegister, LedgerBanner, LedgerTickets } from "./Ledger.jsx";
+import { QuestionTicket } from "./Tickets.jsx";
+import { Register } from "./Lists.jsx";
+import { FilterChips } from "./Marks.jsx";
+import { runStops, countCells, ledgerTickets } from "./ledgerModel.js";
 
 const DAY = 86400;
 const now = Math.floor(Date.now() / 1000);
@@ -62,4 +67,51 @@ export function SurveyBoard() {
   );
 }
 
-export const SHEET_FIXTURES = { SurveyBoard };
+// ── the ledger: Maya Chen's week 47 (the board's five applications; Sailor Health waits on her answers) ──
+// Sailor Health's run as runSteps reports it (lib/heldApplication.js): read, tailored 71 → 80, attached, 22 of 24 filled, you.
+const SAILOR_STEPS = [
+  { id: "posting", state: "done", meta: "" }, { id: "resume", state: "done", meta: "ATS 71 → 80" }, { id: "attached", state: "done", meta: "Maya_Chen.pdf" },
+  { id: "filled", state: "done", meta: "22 of 24" }, { id: "you", state: "now", meta: "" }, { id: "ready", state: "", meta: "" }, { id: "sent", state: "", meta: "" },
+];
+const LEDGER_APPS = [
+  { id: "sailor", company: "Sailor Health", role: "Frontend Engineer", region: "VI", steps: ["d", "d", "d", "u", "y", "-"], where: "Filled 22 of 24 · 2 answers left", status: "NEEDS YOU", action: { label: "Answer" } },
+  { id: "brightline", company: "Brightline Health", role: "Software Engineer, Design Systems", region: "V", steps: ["d", "d", "d", "d", "d", "d"], where: "Sent Nov 21 · confirmation captured", status: "SENT", action: { label: "View" } },
+  { id: "orbital", company: "Orbital Works", role: "Web Engineer, Growth", region: "VII", steps: ["d", "d", "d", "d", "d", "d"], where: "Sent Nov 22 · confirmation captured", status: "SENT", action: { label: "View" } },
+  { id: "kestrel", company: "Kestrel Payments", role: "Frontend Engineer II, Checkout", region: "IV", steps: ["d", "d", "u", "-", "-", "-"], where: "Tailoring now · 1 min", status: "IN PROGRESS", action: { label: "View" } },
+  { id: "clera", company: "Clera", role: "Frontend Engineer", region: "VIII", steps: ["d", "d", "-", "-", "-", "-"], where: "Held: the form couldn’t be read — fixed since", status: "HELD · FIXED", action: { label: "View" } },
+];
+const FILLED = [["Name", "Maya Chen"], ["Email", "maya.chen@example.com"], ["Current company", "Toast"], ["Current role", "Software Engineer II"], ["Alma mater", "Northeastern University"], ["LinkedIn", "/in/maya-chen-sample"]];
+
+/** Home as the ledger board draws it (D200 Rule 3's one-line header in place of the board's title). */
+export function LedgerBoard() {
+  const counts = { needs: 1, progress: 2, sent: 2, replied: 0, interview: 0 };
+  const tickets = ledgerTickets({ newToday: 179, best: { match: "91%", company: "Kestrel Payments" }, front: { company: "Sailor Health" }, sent: 2,
+    sentCompanies: ["Brightline Health", "Orbital Works"], gap: { tech: "Webhooks", company: "Sailor Health", href: "#atlas" },
+    paths: { market: "#market", interview: "#interview", company: () => "#survey" } });
+  return (
+    <div style={{ width: 1182 }}>
+      <LedgerPage>
+        <LedgerHeader week={47} summary="5 this month" cells={countCells(counts, { filter: "all", onFilter: () => {} })}
+          actions={<><a className="pl-lg-daily" href="#q">Today’s question · 2 minutes</a><span className="pl-grow"/><button type="button" className="pl-btn">Import</button>
+            <button type="button" className="pl-btn">Export</button><button type="button" className="pl-btn pl-btn--ink">Send all ready (0)</button></>}
+          run={<LedgerRun stops={runStops(SAILOR_STEPS, { answers: 2 })} kicker="THE RUN · SAILOR HEALTH · FRONTEND ENGINEER" onOpen={() => {}}
+            runNow={{ kicker: "APPLY FOR ME · 2 OF 10 SENT TODAY · NEXT 6:30 PM", line: "3 of 10 new drafts left today · re-runs are free", onClick: () => {} }}
+            worker={{ state: "running", line: "Running · 2 of 10 today", sub: "If it stops, this turns red and drafts say so." }}/>}/>
+        <LedgerNeeds meta="NEEDS YOU · SAILOR HEALTH · FRONTEND ENGINEER" title="Four answers only you can give"
+          lead="Everything else is filled. One question at a time; each one goes away once you’ve answered it."
+          ask={<QuestionTicket kicker="ONLY YOU CAN ANSWER THIS" n="QUESTION 1 OF 4" text="Are you legally authorized to work in the country of employment?" kind="yesno"
+            options={["Yes", "No"]} pressed={null} progress={["today", null, null, null]} saved onSaved={() => {}} onAnswer={() => {}} onBack={() => {}}
+            more={<><button type="button" className="pl-q-link">Ask draft</button><span aria-hidden="true"> · </span><button type="button" className="pl-q-link">See all 4</button></>}/>}
+          filled={{ kicker: "FILLED FOR YOU · 22 OF 24", label: "What draft filled for you", foot: "From your résumé and profile. Nothing here is guessed.", rows: FILLED.map(([label, value]) => ({ label, value })) }}/>
+        <LedgerRegister count={5} lead="Each line says what really happened. Re-running a draft is free; cancelling one gives the day’s credit back."
+          banner={<LedgerBanner action={<><button type="button" className="pl-btn pl-btn--ink">Re-run all 3</button><button type="button" className="pl-btn pl-btn--flat">Not now</button></>}>
+            <b>3 drafts were held by a problem we’ve fixed.</b> Re-run them with the fix, free.</LedgerBanner>}
+          controls={<div className="pl-lg-controls"><FilterChips label="Show" chips={[{ id: "apps", label: "Applications", count: 5, on: true }, { id: "inbox", label: "Inbox", count: 0 }]}/></div>}
+          register={<Register label="Your applications" rows={LEDGER_APPS} barExtra={<select className="pl-register__sort" aria-label="Sort the register" defaultValue="status:asc"><option value="status:asc">Sort · status</option></select>}/>}/>
+        <LedgerTickets tickets={tickets}/>
+      </LedgerPage>
+    </div>
+  );
+}
+
+export const SHEET_FIXTURES = { SurveyBoard, LedgerBoard };
