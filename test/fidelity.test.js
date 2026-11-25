@@ -28,7 +28,9 @@ test("fidelity · the deck on Home (home-sketch.html): the page, the card, its t
     // ⭐ D167 (changed on purpose, 45b 21ff9b5 — the dock goes where the space is): at 1280 and on a phone the dock is a
     // row at the top and the page starts one gap below it (--appnav-top-reserve, measured), so the card's top is the
     // sketch's number below that reserve.
-    assert.ok(["top", "phone"].includes(d.dock?.place), `${size}: the dock sits at the top at this width`);
+    // ⭐ D197 #1 · A237 (changed on purpose): the rail at the left from 980 px, the bottom bar below it; the page starts under
+    // the area nav across the content column's top (the probe's `reserve` is that nav's bottom).
+    assert.ok(["side", "phone"].includes(d.dock?.place), `${size}: the rail / the bottom bar at this width`);
     assert.equal(d.card.top, (size === "phone" ? 75 : 72) + d.dock.reserve, `${size}: the card's top under the count row`);
     assert.match(d.title.family, /^"Instrument Serif"/, `${size}: the title in Instrument Serif`);
     // ⭐ D156 (1c): the folded card's title — the sketch's 26 px (.ct) on the portrait card, 22 on a phone's smaller card.

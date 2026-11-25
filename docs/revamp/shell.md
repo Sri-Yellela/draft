@@ -85,3 +85,26 @@ only the explainer pages). The plate components already exist in `plate/Shell.js
 - **`ProfileMenuPanel` (TopBar.jsx:217-360) is mounted but nothing opens it.** AppNav never calls `profile.onOpen` (only a comment names it, AppNav.jsx:239). Three things live only in that panel: the notifications **list with Mark all read**, the **QuickScheme** (System / Light / Dark), and (possibly — `panels/JobsPanel.jsx:36` also imports it) the job-profile **switcher / delete**. **Traced (47g):** the job-profile switcher / delete → still reachable at `/app/job-profiles` (`panels/JobProfilesPanel.jsx:53-55, 280`) · System / Light / Dark → Profile → Appearance (`CustomisePanel`) · **the notifications LIST and *Mark all read* → reachable NOWHERE**: Profile → Notifications is `NotificationSettings` (what to send), not the list; `/api/notifications/read-all` is called only from TopBar.jsx. So the Profile avatar's unread badge counts notifications a person can't open. ⛔ **The shell build (M5) must give the list a home** (the peek's Notifications row is the natural one) — logged as A236 (b).
 - The peek's **Connections · N need you** never shows (TopBar never passes `connectionsNeedYou`).
 - Admin's section tablist has no arrow keys. Admin is Wave 2 #21 (tokens and components only).
+
+## 8 · Landed — D197 Wave 1 #1 (47i), against the approved canvas board `Shell` (docs/sketches/final/project/Shell.dc.html)
+
+The live dock IS the plate library's `Dock` (plate/Shell.jsx), rendered by `components/AppNav.jsx` inside a `PlateRoot`; the
+area nav is the plate `AreaNav` (`ShellAreaNav`, mounted by App across the content column). F5 against the board:
+`shell-rail` 0.69 % · `shell-active` 0 % · `shell-areanav` 1.22 % · `shell-phonebar` 1.92 % · `shell-phonetop` 1.01 %.
+
+**§1 kept:** the one `<nav aria-label="Main" data-nav-dock>` · the order /d · Home · Atlas · Interview · [Network · Feed ·
+Messages under the switch] · Profile (+ the board's rule and Ask draft, which opens Tiny) · the badges (Home's needs-you,
+Messages' unread, Profile's notifications; "9+") · /d → the market (refresh bump) · Profile → the peek (press, 350 ms rest,
+250 ms leave; beside the rail / above the bar) · the peek's rows + the mode switch · Tiny (bubble + card, D190) ·
+`data-dock-open` / `data-dock-place` / `data-ask-open` · reduced motion · M (now: into the dock and out) · the Esc chain ·
+real links. **Search** (people / companies / roles / tech, UsbSuggest): moved into the area nav (Ctrl K) and the phone's
+top-bar search button (a sheet). **Placement:** A237 — the rail at the left from 980 px (14 px from the edges, the shell
+padded 98 px), the bottom bar below.
+**§2:** the market's area nav = Today's picks (presses the openings' Deck tab) · All jobs · Starred · Imported (the board's
+views; presses Index) + the drafts chip (`/api/draft/slots`, the last 24 h) + search; other areas get search only for now
+(their in-page PlaceNavs stay). **§3:** the phone dock is the bottom bar; the top bar holds /d + search. **§4:** the /d mark
+is the plate tile. **§5:** unchanged. **§6:** items 1–6 done (6: the labels are DOCK_NAMES'). **§7 / A236 (b):** the peek's
+Notifications row opens the list + Mark all read ("What to send me" links to the settings).
+**Retired with the 60 px rail (the board draws the names always):** the hover-expand to 196 px and the /d → /draft draw-out.
+**Not drawn by the board, kept:** Feed and Messages (the board's Network carries a badge; today's unread is on Messages);
+Profile's badge on the phone bar; Tiny's bubble on wide screens beside the rail's Ask draft.

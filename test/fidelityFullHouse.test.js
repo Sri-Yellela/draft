@@ -102,9 +102,10 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
   const D = out.desktop;
   // ⭐ D167 (changed on purpose, 45b 21ff9b5): "the dock never pushes the page" — the 72 px rail is gone; at 1280 the dock
   // is a row at the top, so the deck's column starts at the page's own 24.
-  assert.equal(D.dock?.place, "top", "the dock sits at the top at 1280");
+  assert.equal(D.dock?.place, "side", "D197 #1 · A237 (changed on purpose): the rail at the left at 1280");
   // ⭐ 46q FULL WIDTH (changed on purpose): the page gutter at 1280 is 3vw = 38.4 (was Home's 24).
-  assert.deepEqual([D.panel.left, D.panel.width], [38, 390], "the posting is drawn in the deck's column");
+  // ⭐ D197 #1 · A237 (changed on purpose): the content column starts beside the rail (98 px), then the gutter's 38
+  assert.deepEqual([D.panel.left, D.panel.width], [136, 390], "the posting is drawn in the deck's column");
   assert.deepEqual([D.panel.radius, D.panel.padding], ["26px", "24px 24px 20px"], "the posting's card, the deck card's corner");
   // Phone: the posting is the screen.
   const P = out.phone.panel;

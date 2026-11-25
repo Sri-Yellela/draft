@@ -857,7 +857,7 @@ const STYLE_PROBES = {
     const draft = [...document.querySelectorAll("[data-deck-actions] button")].find(b => /Draft/.test(b.textContent));
     const r = face?.getBoundingClientRect();
     return {
-      dock: (() => { const e = document.querySelector("[data-nav-dock]"); if (!e) return null; const r = e.getBoundingClientRect(); return { place: document.documentElement.getAttribute("data-dock-place"), left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), reserve: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--appnav-top-reserve")) || 0 }; })(),   // D167: where the dock sits, and the room the page leaves under a top one
+      dock: (() => { const e = document.querySelector("[data-nav-dock]"); if (!e) return null; const r = e.getBoundingClientRect(); return { place: document.documentElement.getAttribute("data-dock-place"), left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), reserve: Math.round(document.querySelector("[data-area-nav]")?.getBoundingClientRect().bottom || 0) }; })(),   // D167: where the dock sits; ⭐ D197 #1: the room the page leaves above it — the area nav across the content column's top
       canvas: cs(document.documentElement).getPropertyValue("--c-canvas").trim(),
       card: face && { bg: cs(face).backgroundColor, radius: cs(face).borderTopLeftRadius, border: cs(face).borderTopWidth, shadow: cs(face).boxShadow,
                       width: Math.round(r.width), top: Math.round(r.top) },
@@ -937,7 +937,7 @@ const STYLE_PROBES = {
     const tl = q("[data-timeline]");
     const dot = q("[data-tracker-table] .trk-dot");
     return {
-      dock: (() => { const e = document.querySelector("[data-nav-dock]"); if (!e) return null; const r = e.getBoundingClientRect(); return { place: document.documentElement.getAttribute("data-dock-place"), left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), reserve: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--appnav-top-reserve")) || 0 }; })(),   // D167: where the dock sits, and the room the page leaves under a top one
+      dock: (() => { const e = document.querySelector("[data-nav-dock]"); if (!e) return null; const r = e.getBoundingClientRect(); return { place: document.documentElement.getAttribute("data-dock-place"), left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), reserve: Math.round(document.querySelector("[data-area-nav]")?.getBoundingClientRect().bottom || 0) }; })(),   // D167: where the dock sits; ⭐ D197 #1: the room the page leaves above it — the area nav across the content column's top
       canvas: cs(document.documentElement).getPropertyValue("--c-canvas").trim(),
       title: { ...font(title), ...box(title) },
       line: font(q("[data-house-header] .dh-head__say")),   /* 45s: D182 (45n) removed the [data-house-line] sentence; the line under the title is the daily question's */
@@ -1407,22 +1407,24 @@ const STYLE_PROBES = {
     // ── the dock: a rail of four icons, the same size; ⭐ (1c) /d (draft, the jobs) first, the house (Home) and the globe in
     // the accent, the picture / initials
     const dock = q("[data-nav-dock]");
-    const icons = qa("[data-nav-dock] [data-nav-icon]");
+    // ⭐ D197 #1: the plate Dock's icon boxes (.pl-dock__icon), each in its item (data-nav-item)
+    const icons = qa("[data-nav-dock] .pl-dock__icon");
     const shell = q("[data-app-shell]");
     out.dock = {
       items: qa("[data-nav-dock] [data-nav-item]").map(a => a.getAttribute("data-nav-item")),
-      icons: icons.map(i => ({ id: i.getAttribute("data-nav-icon"), w: Math.round(i.getBoundingClientRect().width), h: Math.round(i.getBoundingClientRect().height),
-        stroke: q("svg", i) ? getComputedStyle(q("svg path, svg circle", i)).stroke : null, text: i.textContent.trim(), img: !!q("img", i),
-        radius: getComputedStyle(i).borderTopLeftRadius })),
+      icons: icons.map(i => { const g = q("svg", i) || q(".pl-avatar", i) || i.firstElementChild || i; return { id: i.closest("[data-nav-item]")?.getAttribute("data-nav-item"),
+        w: Math.round(g.getBoundingClientRect().width), h: Math.round(g.getBoundingClientRect().height),
+        stroke: q("svg", i) ? getComputedStyle(q("svg", i)).stroke : null, ink: getComputedStyle(dock).color, text: (q(".pl-avatar", i) || i).textContent.replace(/[,0-9+]|\bnew\b|unread.*$/g, "").trim(), img: !!q("img", i),
+        radius: getComputedStyle(g).borderTopLeftRadius }; }),
       accent, emboss: !!q("[data-nav-emboss]"), handle: !!q("[data-nav-handle]"),
-      rest: { box: box(dock), shellPad: getComputedStyle(shell).paddingLeft, wordsOpacity: getComputedStyle(q(".appnav-words", dock)).opacity,
+      rest: { box: box(dock), shellPad: getComputedStyle(shell).paddingLeft, wordsOpacity: getComputedStyle(q(".pl-dock__label", dock)).opacity,
         coversPage: overlap(box(dock), box(q("[data-home-deck]"))) || overlap(box(dock), box(q("[data-home-board]"))), shownAtRest: box(dock).left >= 0 && box(dock).width > 0 },
     };
     // hover (React's enter / leave come from mouseover / mouseout)
     dock.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, relatedTarget: document.body }));
     await wait(500);
     out.dock.hover = { box: box(dock), open: dock.getAttribute("data-open"), root: document.documentElement.getAttribute("data-dock-open"), shellPad: getComputedStyle(shell).paddingLeft,
-      wordsOpacity: getComputedStyle(q(".appnav-words", dock)).opacity, names: qa("[data-nav-dock] .appnav-name").map(n => n.textContent.trim()),
+      wordsOpacity: getComputedStyle(q(".pl-dock__label", dock)).opacity, names: qa("[data-nav-dock] .pl-dock__label").map(n => n.textContent.trim()),
       coversDeck: overlap(box(dock), box(q("[data-home-deck]"))), coversBoard: overlap(box(dock), box(q("[data-home-board]"))) };
     dock.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: document.body }));
     await wait(500);
@@ -1521,7 +1523,7 @@ const STYLE_PROBES = {
     const facts = q(".posting__facts"), match = q(".posting__match .atsn b"), matchCell = q(".posting__match");
     const btn = (name) => q(`.pp__btn[data-decision="${name}"]`);
     return {
-      dock: (() => { const e = document.querySelector("[data-nav-dock]"); if (!e) return null; const r = e.getBoundingClientRect(); return { place: document.documentElement.getAttribute("data-dock-place"), left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), reserve: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--appnav-top-reserve")) || 0 }; })(),   // D167: where the dock sits, and the room the page leaves under a top one
+      dock: (() => { const e = document.querySelector("[data-nav-dock]"); if (!e) return null; const r = e.getBoundingClientRect(); return { place: document.documentElement.getAttribute("data-dock-place"), left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), reserve: Math.round(document.querySelector("[data-area-nav]")?.getBoundingClientRect().bottom || 0) }; })(),   // D167: where the dock sits; ⭐ D197 #1: the room the page leaves above it — the area nav across the content column's top
       canvas: cs(document.documentElement).getPropertyValue("--c-canvas").trim(), bodyBg: cs(document.body).backgroundColor,
       fonts: { serif: document.fonts.check("36px \"Instrument Serif\""), ui: document.fonts.check("16px \"Inter Tight\""),
                loaded: [...new Set([...document.fonts].filter(x => x.status === "loaded").map(x => x.family))] },

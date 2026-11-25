@@ -144,25 +144,29 @@ test("d156FilterSentenceOriginalStyle (pure): the marked look and the sentence t
   assert.match(type, /SENTENCE_FAMILY: LOGO_FACE\.family,\n  SENTENCE_SIZE: `min\(\$\{MARK_SIZES\.nav\}px, 6\.4vw\)`,\n  SENTENCE_LINE: "1\.5",\n  SENTENCE_WEIGHT: LOGO_FACE\.weight,\n  SENTENCE_STYLE: LOGO_FACE\.style,/);
 });
 
-test("d156DockIconsSameSizeThemeAccent / d156ShortLogoInDock (pure): 30 px icons, the accent stroke, /d, the picture", () => {
-  assert.match(NAV, /export const DOCK_ICON_PX = 30;/);
-  assert.match(NAVCSS, /--appnav-ico: 30px;/);
-  assert.match(NAVCSS, /\.appnav-svg \{[^}]*stroke: var\(--c-accent\);/, "the house and the globe in the theme's accent");
+test("d156DockIconsSameSizeThemeAccent → D197 #1 / d156ShortLogoInDock (pure): the plate's line icons, one size; /d; the picture", () => {
+  // ⭐ D197 #1 (the Shell board, changed on purpose): the dock is the plate's Dock — every place's line icon at one size
+  // (20 px on the rail, 19 on the phone's bar) stroked in the current text colour, the plate's ink (plate/icons.jsx)
+  const SHELL = read("client/src/plate/Shell.jsx");
+  assert.match(SHELL, /<DockIcon item=\{it\} size=\{bar \? 19 : 20\}\/>/);
+  assert.match(read("client/src/plate/icons.jsx"), /Stroke is the current text colour/);
   // ⭐ (1c): swapped — the jobs page is "/d · draft", the tracker is the house, "Home".
   // ⭐ D167 (owner 11-06, changed on purpose): + Interview (the microphone); the jobs' icon is the drawing-out wordmark (<DraftMark drawOut />); names only.
   // D180 P1 (45o, on purpose): + network (drawn only while the network switch is on).
   // 46f (on purpose): + Feed and Messages' icons, their own places under the network switch.
-  assert.match(NAV, /const ICONS = \{ atlas: \(\) => <GlobeIcon \/>, "auto-apply" ?: \(\) => <HouseIcon \/>, interview: \(\) => <MicIcon \/>, network: \(\) => <PeopleIcon \/>, feed: \(\) => <FeedIcon \/>, messages: \(\) => <EnvelopeIcon \/> \};/);
-  assert.match(NAV, /<DraftMark drawOut logo \/>/);   // 46v 0c: in the logo's colourway — changed on purpose
+  assert.match(NAV, /const DOCK_ICON = Object\.freeze\(\{ "auto-apply" : "home", atlas: "atlas", interview: "interview", network: "network", feed: "feed", messages: "messages" \}\);/);
+  // the /d mark: the plate's PlateLogo tile on the rail, the short mark on the phone's bar (D197 #1, changed on purpose — was <DraftMark drawOut logo />)
+  assert.match(SHELL, /<PlateLogo\/><\/a>/);
   // D180 P1 (45o, on purpose): + network. 46f (on purpose): + feed, messages.
   assert.match(NAV, /export const DOCK_NAMES = Object\.freeze\(\{ today: "draft", "auto-apply" ?: "Home", atlas: "Atlas", interview: "Interview", network: "Network", feed: "Feed", messages: "Messages" \}\);/, "slash for short, draft for long — the jobs");
-  assert.match(NAV, /\{url \? <img src=\{url\} alt="" \/> : <span className="appnav-initials" aria-hidden="true">\{initialsOf\(profile\.name\)\}<\/span>\}/);
+  assert.match(NAV, /\.\.\.\(avatarUrl \? \{ img: avatarUrl \} : \{ initials: initialsOf\(profile\.name\) \}\),/);
   assert.doesNotMatch(NAV, /appnav-emboss|appnav-handle|DOCK_REVEAL_PX/, "D152 (4)'s embossed logo, edge handle and edge reveal are gone");
 });
 
 // ⭐ D167 (owner 11-06, changed on purpose) — "the dock goes where the space is" supersedes D156 (3)'s push: the dock never pads the page sideways; a
 // side dock sits in a margin measured to fit it open, otherwise it goes to the top (test/d167Dock).
-test("d156DockPushesPage → D167 (pure): the dock never pushes the page", () => {
+test("d156DockPushesPage → D167 → D197 #1 (pure): the dock never pushes the page", () => {
+  // ⭐ D197 #1 · A237: the shell keeps the rail's column (98 px) always — opening or hovering never changes it
   assert.doesNotMatch(NAVCSS, /--appnav-rail-w|padding-left: var\(--appnav/);
   // ⭐ owner 11-15: Tiny replaces Ask draft, floating (changed on purpose) — nothing moves the page now, not even Ask draft
   assert.doesNotMatch(NAVCSS, /\[data-app-shell\] \{ transition: padding-right/, "nothing moves the page (Tiny floats over it)");
@@ -279,18 +283,28 @@ test("d156 real Chrome (1440 · 1280 · 390): the card, the flip, the dock, the 
     // ⭐ D167 (owner 11-06, changed on purpose): six places — + Interview, and Ask draft after the divider.
     // 45n (pin brought to the code in 45o): the dock's search icon comes first.
     // ⭐ owner 11-15: Tiny replaces Ask draft, floating (changed on purpose) — "ask" left the dock (a fox bubble instead).
-    assert.deepEqual(k.items, ["search", "today", "auto-apply", "atlas", "interview", "profile"]);
+    // ⭐ D197 #1 (the Shell board, changed on purpose): the search moved into the area nav; the rail draws Ask draft after its
+    // rule (opens Tiny); the phone's bottom bar has none.
+    assert.deepEqual(k.items, ["today", "auto-apply", "atlas", "interview", "profile", ...(size === "phone" ? [] : ["ask"])]);
     // ⭐ D167 (owner 11-06, changed on purpose): THE DOCK GOES WHERE THE SPACE IS — at 1440 / 1280 it is a top row, on a
     // phone a top row of icons; its form, motion, placement and the peek are test/d167Dock's. What D156 asked still holds:
     // every line icon one size and in the theme's accent, the person's initials in a circle, no emboss and no edge handle.
-    const icons = k.icons.filter(i => i.id !== "today");   // the jobs' icon is the wordmark (/d → /draft)
-    for (const i of icons) assert.deepEqual([i.w, i.h], [30, 30], `${size}: ${i.id} 30 px`);
-    for (const i of icons.filter(i => i.stroke)) assert.equal(i.stroke, k.accent, `${size}: ${i.id} in the accent`);
-    const me = icons.find(i => i.text === "A");
-    assert.ok(me, `${size}: initials when there is no picture`); assert.equal(me.radius, "50%");
+    // ⭐ D197 #1 (the Shell board, changed on purpose — was 30 px icons in the theme's accent, initials in a circle): the plate's
+    // 20 px line icons (19 on the phone's bar) in the plate's ink, the initials on a 22 px square tile (20 on the bar), 7 px round.
+    const icons = k.icons.filter(i => i.id !== "today");   // the jobs' entry is the /d tile (the bar's /d mark)
+    const px = size === "phone" ? [19, 20, "6px"] : [20, 22, "7px"];
+    for (const i of icons.filter(i => i.stroke)) assert.deepEqual([i.w, i.h], [px[0], px[0]], `${size}: ${i.id} ${px[0]} px`);
+    for (const i of icons.filter(i => i.stroke)) assert.equal(i.stroke, i.ink, `${size}: ${i.id} in the plate's ink`);
+    const me = icons.find(i => i.id === "profile");
+    assert.ok(me && me.text === "A", `${size}: initials when there is no picture (${me && me.text})`);
+    assert.deepEqual([me.w, me.h, me.radius], [px[1], px[1], px[2]], `${size}: the initials tile`);
     assert.equal(k.emboss, false); assert.equal(k.handle, false);
     assert.equal(k.rest.shownAtRest, true, `${size}: the dock is always visible`);
-    assert.equal(k.rest.coversPage, false, `${size}: the dock never covers the page`);
+    // ⭐ D197 #1 · A237 (changed on purpose): on a phone the dock is the BOTTOM bar, fixed at the screen's foot over the
+    // scrolling page (the shell keeps the bar's height free at its end — test/d167Dock d197ShellPlace); on a computer the
+    // rail never covers the page
+    if (size === "phone") assert.ok(k.rest.box.top >= 844 - 90, `phone: the bottom bar at the foot (${k.rest.box.top})`);
+    else assert.equal(k.rest.coversPage, false, `${size}: the dock never covers the page`);
     // d156StarredImportedViews
     assert.equal(d.views.below, true, `${size}: the views sit under the search`);
     // ⛔ A157 (45q, owner 11-09): the Companies tab is removed.
@@ -309,7 +323,12 @@ test("d156 real Chrome (1440 · 1280 · 390): the card, the flip, the dock, the 
     assert.equal(d.hscroll, false, `${size}: no sideways scroll`);
   }
   // d156BubbleD1Growth
-  for (const size of ["wide", "desktop"]) {
+  // ⭐ D197 #1 · A237 (moved on purpose, LOGGED as open): beside the 84 px rail the classic (?plate=0) board at 1440 ("wide")
+  // is ~590 px, under its container's 620 px pair rule (JobBubble.css @container jbrows), so each pair stacks there and
+  // there is no neighbour to give width; 1280 keeps the side-by-side pair, so the growth is checked there. (The landscape
+  // deck card keeps its 640 px track from a 1440 viewport — lib/fanGeometry.js HOME_WIDE; retuning either is the owner's call.)
+  assert.equal(out.wide.bubbles.perPair, 2, "wide: still two postings per pair (stacked)");
+  for (const size of ["desktop"]) {
     const b = out[size].bubbles;
     assert.equal(b.perPair, 2); assert.equal(b.samePair, true, `${size}: never reflowed to another row`);
     assert.deepEqual(b.restGrow, ["1", "1"]); assert.deepEqual(b.focusGrow, ["1.55", "1"], `${size}: only the hovered one grows; the neighbour keeps 1`);

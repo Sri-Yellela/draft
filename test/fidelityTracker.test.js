@@ -21,7 +21,9 @@ test("fidelity · the tracker (tracker-options.html): the page, the header, the 
     assert.match(d.title.family, /^"Instrument Serif"/, `${size}: the title in Instrument Serif`);
     assert.deepEqual([d.title.size, d.title.weight, d.title.lh], ["44px", "400", "44px"], `${size}: the title 400 44/1`);
     // ⭐ D167 (changed on purpose, 45b 21ff9b5): the page starts below a top dock's reserve (--appnav-top-reserve, measured).
-    assert.equal(d.title.y, 84 + (d.dock?.reserve || 0), `${size}: the title at the sketch's 84 px`);
+    // ⭐ D197 #1 (changed on purpose): below the area nav across the content column's top (the probe's `reserve`).
+    // (the sketch's 84 was the old 74 px chrome strip + the page's own 10; the strip reserves nothing now, so: the nav + 10)
+    assert.equal(d.title.y, d.dock?.reserve ? d.dock.reserve + 10 : 84, `${size}: the title 10 px under the area nav (the sketch's 84 under its 74 px bar)`);
     assert.deepEqual([d.line.size, d.line.color], ["16px", BODY]);
     // ⭐ 46y (changed on purpose, home-sketch.html — D167 on D146's tracker): the mode moved into the auto-apply bar
     // (.auto .mode: the raised colour, radius 13, 3 in; the chosen side the card colour in the accent, 7 × 12, 13.5);
@@ -67,9 +69,11 @@ test("fidelity · the tracker (tracker-options.html): the page, the header, the 
   // table is the sketch's own 882 again, and the table + 18 + the 300 timeline are one group centred in the 1280 (D163).
   // ⭐ 46q FULL WIDTH (owner 11-16, changed on purpose): the page fills the 1280 inside the page gutter (3vw = 38.4), so
   // the table takes what the 18 + 300 timeline leave — no longer the sketch's 882 centred.
-  assert.equal(dk.table.x, 38, "the table starts at the page gutter");
+  // ⭐ D197 #1 · A237 (changed on purpose): the content column starts beside the rail (14 + 84 = 98 px), the page gutter
+  // (3vw of the viewport = 38.4) inside it
+  assert.equal(dk.table.x, 98 + 38, "the table starts at the page gutter, beside the rail");
   // ⭐ 46y (changed on purpose, home-sketch.html's .grid2): the timeline is 320 wide.
-  assert.equal(dk.table.w, Math.round(1280 - 2 * 38.4 - 18 - 320), "the table takes the width the timeline leaves");
+  assert.equal(dk.table.w, Math.round(1280 - 98 - 2 * 38.4 - 18 - 320), "the table takes the width the timeline leaves");
   assert.equal(dk.row.h, 84, "a row is the sketch's 84: 14 + the 44 px position + the folded .det's 12 px gap + 14");
   // ⭐ 46q: the 38.4 px gutter puts the edges on sub-pixels — the measured x / w are rounded, so the sum may be one off.
   // ⭐ 46y (changed on purpose): the tabs and filters sit in the table's column, so the timeline is level with the TABS.

@@ -169,6 +169,7 @@ test("d197ShellPlace (real Chrome): the rail beside the content column at every 
     assert.equal(Math.round(r.dock.bottom), r.vh, `${s}: at the foot`);
     assert.deepEqual(r.labels, ["Market", "Home", "Atlas", "Interview", "Profile"], `${s}: the same items (Ask draft by Tiny's bubble)`);
     assert.equal(r.shellPadLeft, "0px");
+    assert.ok(parseFloat(r.shellPadBottom) >= r.dock.height - 1, `${s}: the shell keeps the bar's height free at its end (${r.shellPadBottom} vs ${r.dock.height})`);
     assert.ok(r.topBar, `${s}: the area nav's top bar (the /d tile, search)`); assert.equal(r.searchButton, true);
     assert.ok(r.tiny.bottom <= r.dock.top, `${s}: Tiny's bubble above the bar`);
     assert.ok(r.scrollW <= r.vw, `${s}: no sideways scroll (${r.wide})`);

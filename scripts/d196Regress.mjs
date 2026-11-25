@@ -40,6 +40,8 @@ export const PAIRS = {
   // the 1131 px content column beside the rail
   "shell-areanav": { source: "final", board: "Shell", fixture: "ShellRailMarket", boardSel: 'header:has(nav[aria-label="The market"])', buildSel: "header.pl-areanav", pad: 0, subpixel: true },
   // the phone's bottom bar: figure D's (the 390 px phone frame's last child)
+  // the phone's top bar: figure D's first row (the /d tile, the search button)
+  "shell-phonetop": { source: "final", board: "Shell", fixture: "ShellPhoneTop", boardSel: 'div[style*="height: 760px"] > div:first-child', buildSel: ".pl-topbar", pad: 0, subpixel: true },
   "shell-phonebar": { source: "final", board: "Shell", fixture: "ShellPhoneBar", boardSel: 'nav[aria-label="Main"]:last-child', buildSel: "nav.pl-dock--bar", pad: 0, subpixel: true },
   "shell-market-dock": { board: "The market · draft", fixture: "ShellMarket", boardSel: 'nav[aria-label="Main"]', buildSel: 'nav[aria-label="Main"]', pad: 6 },
   "shell-market-nav": { board: "The market · draft", fixture: "ShellMarket", boardSel: "header", buildSel: "header.pl-areanav", pad: 0 },

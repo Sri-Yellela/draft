@@ -253,4 +253,16 @@ export function ShellPhoneBar() {
   );
 }
 
-export const FIXTURES = { ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellMarket,MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard };
+/** D · PHONE: the top bar over the market's views (the /d tile, the search button; the market has no pill). */
+export function ShellPhoneTop() {
+  const [ref, at] = useShellAt();
+  return (
+    <PlateRoot style={{ minHeight: "100vh" }}>
+      <div ref={ref} style={{ width: 390, ...at }}>
+        <AreaNav area="The market" views={MARKET_VIEWS} current="picks" phone home={SHELL_HOME} search={{ onOpen: () => {} }}/>
+      </div>
+    </PlateRoot>
+  );
+}
+
+export const FIXTURES = { ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellPhoneTop, ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard };
