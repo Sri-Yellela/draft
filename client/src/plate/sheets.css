@@ -130,9 +130,10 @@
 .pl-lg-filled .pl-card__body > .pl-muted { font-size: var(--pl-t-tiny); }
 .pl-question label[data-save-for-next-time] { font-size: var(--pl-t-ui); }
 .pl-question__foot .pl-btn { padding: 0 14px; }
-/* the app's theme sets color-scheme on <html> (Dusk: dark) — a plate page is paper in every theme, so its form controls
-   (the register's checkboxes, the selects) draw light, as on the boards */
-.pl-ledgerpage, .pl-sheetpage { color-scheme: light; }
+/* the sketch's own palette (the F5 build page) is light, whatever scheme the app's theme module left on <html> — in the
+   app the scheme stays the theme's: styles/plate.css's light-dark() mapping reads it (a light scheme under Dusk's light ink
+   drew light tints under light labels — walked 47h) */
+:root[data-plate-palette="sketch"] .pl-ledgerpage, :root[data-plate-palette="sketch"] .pl-sheetpage { color-scheme: light; }
 /* Home's own column (.dh-page, a flex column with the app's gutter) holds the plate sections: they span it, at the page's
    1280 max, with the plate's own gutter (auto side margins in a flex column would shrink them to their content) */
 .pl-ledgerpage > .dh-page { padding-left: 0; padding-right: 0; }
