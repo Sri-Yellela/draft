@@ -30,7 +30,8 @@ async function open({ width = 1280, hash = "", reduced = false } = {}) {
 const ROWS = "[data-market-index] .pl-ixrow[data-row-opens]";
 const act = (page, i) => page.evaluate((sel, i) => {
   const a = document.querySelectorAll(sel)[i].querySelector(".pl-ixrow__act");
-  return { w: a.getBoundingClientRect().width, transition: getComputedStyle(a).transitionDuration };
+  const btn = a.querySelector("[data-bubble-action]");
+  return { w: a.getBoundingClientRect().width, transition: btn ? getComputedStyle(btn).animationName : "none" };
 }, ROWS, i);
 
 test("C8 · d196IndexIsGazetteer + d196IndexSortedAsDeck", { timeout: 120000 }, async () => {
@@ -79,10 +80,13 @@ test("C8 · d196HoverBubbleKept — hover / focus open Star and Draft; they are 
 });
 
 test("C8 · d196HoverBubbleReducedMotion — no grow under Reduce motion", { timeout: 60000 }, async () => {
+  // 47h (A201): the actions fade in as they join the row (no clipping grow); under Reduce motion they just appear
   const page = await open({ reduced: true });
-  assert.equal((await act(page, 0)).transition, "0s");
+  await page.hover(`${ROWS}:nth-of-type(2) .pl-ixc--match`);
+  assert.equal((await act(page, 0)).transition, "none");
   await page.close();
   const moving = await open();
-  assert.notEqual((await act(moving, 0)).transition, "0s", "it does grow otherwise");
+  await moving.hover(`${ROWS}:nth-of-type(2) .pl-ixc--match`);
+  assert.equal((await act(moving, 0)).transition, "pl-ix-in", "they fade in otherwise");
   await moving.close();
 });
