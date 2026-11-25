@@ -102,6 +102,27 @@ export const PAIRS = {
   "v2-timeout": { source: "v2", board: "Atlas place: Webhooks, Region IV grid D3", fixture: "PortedDrawing", drawing: "PlaceHazardTimeout", boardSel: 'svg[aria-label^="A stopwatch beside"]', buildSel: "svg[role=img]", pad: 0, matchWidth: true, reduced: true, ground: "#FFFFFF", cornerMasks: 24 },
   "v2-duplicate": { source: "v2", board: "Atlas place: Webhooks, Region IV grid D3", fixture: "PortedDrawing", drawing: "PlaceHazardDuplicate", boardSel: 'svg[aria-label^="Two identical letters"]', buildSel: "svg[role=img]", pad: 0, matchWidth: true, reduced: true, ground: "#FFFFFF", cornerMasks: 24 },
   "market-tickets": { board: "The market · draft", fixture: "MarketTicketsBoard", boardSel: "section:nth-of-type(4)", buildSel: "section[aria-labelledby=mk-onward]", pad: 0, look: true },
+  // ⭐ D199 / D200 (47h) · THE MARKET, REBUILT — against the APPROVED `Market` board (docs/sketches/final/project, A244), each
+  // piece its own gate (D196: no "look" exemptions). The build side is the app's own components with the board's example
+  // data (fixtures MarketHeroFinal / MarketSectionFinal). Masks are the board's example data the build can't back, each named.
+  "final-market-hero": { source: "final", board: "Market", fixture: "MarketHeroFinal", boardSel: 'section[aria-labelledby="mk-title"]', buildSel: 'section[aria-labelledby="mk-title"]', pad: 0, reduced: true, subpixel: true, waitBuild: 1500,
+    // the you-are-here ping is an SVG <animate> (not stopped by reduced motion) on both sides — its 24 px ring is masked; the
+    // caption's "(BUILD)" is the board's note to the builder, not page text
+    masks: [] },
+  "final-market-head": { source: "final", board: "Market", fixture: "MarketSectionFinal", boardSel: "#bearing", buildSel: ".pl-leg", pad: 0, subpixel: true, reduced: true },
+  "final-market-cartouche": { source: "final", board: "Market", fixture: "MarketSectionFinal", boardSel: "section:nth-of-type(2) > div:nth-of-type(2)", buildSel: ".pl-cartouche", pad: 6, subpixel: true, reduced: true },
+  "final-market-tabs": { source: "final", board: "Market", fixture: "MarketSectionFinal", boardSel: '[role="tablist"][aria-label="View openings"]', buildSel: '[role="tablist"][aria-label="View openings"]', pad: 4, subpixel: true, reduced: true },
+  "final-market-field": { source: "final", board: "Market", fixture: "MarketSectionFinal", boardSel: 'aside[aria-label="Why this opening fits you"]', buildSel: 'aside[aria-label="Why this opening fits you"]', pad: 6, subpixel: true, reduced: true, waitBuild: 1500 },
+  "final-market-deck": { source: "final", board: "Market", fixture: "MarketSectionFinal", boardSel: "section:nth-of-type(2) .at-in > div:first-child", buildSel: ".pl-market-deck > :first-child", pad: 0, subpixel: true, reduced: true, waitBuild: 1500,
+    // masked, as market-openings was: the two back sheets' slivers (the board draws plain sheets; the deck keeps its own
+    // CardBack, the owner's keep), the stamp's "· FY25" (no filing year on a card), and the position line — the owner's
+    // 11-25 answer words it for the board's whole list ("1 OF 11,247 · PAGE 1"), after the board was drawn; and ‹ on the first
+    // card (disabled — honest; the board's wraps round)
+    masks: [[0, 0, 560, 22], [538, 0, 22, 425], [316, 286, 206, 62], [56, 438, 290, 22], [460, 426, 56, 48]] },
+  "final-market-pager": { source: "final", board: "Market", fixture: "MarketSectionFinal", boardSel: 'nav[aria-label="Pages"]', buildSel: 'nav[aria-label="Pages"]', pad: 4, subpixel: true, reduced: true,
+    // the page line and the last tile: the board's 24 per page (469 pages) vs the owner's "use 50" (225) — the only change
+    masks: [] },
+  "final-market-index": { source: "final", board: "Market", fixture: "MarketSectionFinal", boardTab: "Index", buildHash: "tab=index", boardSel: "section:nth-of-type(2) .at-in", buildSel: ".pl-tabpanel:not([hidden])", pad: 0, subpixel: true, reduced: true },
   // ⭐ D198 E1 (47h) · THE EXPLAINER, BEAT BY BEAT — v4's *Explainer · Big O, acted out* (the board scales its 405 × 720 inner
   // frame by 1.12 into its column; the run takes the scale off, so both sides are the frame at its own size). Each side's
   // beat is pressed in its own list; on your turn the build's right answer is pressed (the board draws it answered).
@@ -283,6 +304,7 @@ export async function runPair(name, { width = 1280, threshold = THRESHOLD_PCT, b
   // subpixel (47f): a composed fixture (the deck's ticket) placed at the board element's own sub-pixel offset — the board's
   // ticket sits at a fractional y, and one whole pixel apart every glyph's edge read as a difference (7 % on FIX-2's run)
   else if (p.subpixel) buildUrl += `#${new URLSearchParams({ ox: String(frac(board.box.x)), oy: String(frac(board.box.y)), w: String(board.box.w), sel: p.buildSel })}`;   // sel (47i): the element a fixture places at that fraction
+  if (p.buildHash) buildUrl += `${buildUrl.includes("#") ? "&" : "#"}${p.buildHash}`;   // 47h: a fixture's own switch (the Index tab)
   const build = await shot(page, buildUrl, p.buildSel, width, p.pad, p.waitBuild || 600, !!p.reduced, p.ground, null, null, p.buildPrep || null);
   // cornerMasks: the board container's rounded corners clip the drawing's corners there (the page's frame, not the drawing)
   const cm = p.cornerMasks, bw = board.clip.width, bh = board.clip.height;

@@ -68,6 +68,7 @@ export const MODULES = Object.freeze({
       "plate/marketPlate.js", "plate/MarketCardFace.jsx", "plate/PlateBearing.jsx", "plate/MarketHero.jsx", "plate/MarketOpenings.jsx", "panels/DeckView.jsx",
       // 47f (the owner's P1 FIX): the deck at the board's size; the Index as the Gazetteer, drawn by the board's own column
       "plate/deckGeometry.js", "plate/MarketIndex.jsx", "panels/JobsPanel.jsx",
+      "plate/MarketControls.jsx", "plate/MarketPager.jsx", "plate/MarketMap.jsx", "plate/MarkPopover.jsx" /* D199 / D200 (47h): the market rebuilt */,
       "plate/explainer/Explainer.jsx", "plate/explainer/explainerModel.js" /* D198 E1: the explainer engine */,
       "plate/FitCard.jsx" /* D202: the field card ⇄ the ATS card, one card on the market and the sheet */, "plate/OpeningSheet.jsx" /* D199 C7: the opening sheet, /app/jobs/<id> */,
       "plate/TeamDiorama.jsx" /* D199 C7: the sheet's hero plate — the survey diorama with its words as props */, "plate/fitCardFixtures.jsx" /* the card lane's F5 fixtures */] },
@@ -293,6 +294,7 @@ export const SHARED = Object.freeze({
   "lib/assistantDraft.js":             { what: "D190 · Ask draft's handlers for content/assistant/commands-v1.json — T1 actions and T2 lookups with no model; T3 only on an explicit ask" },
   "lib/resumeEditor.js":                { what: "THE way the résumé editor is opened, from anywhere; its change list and draft's live theme tokens (D157)" },
   "lib/boardPaging.js":                 { what: "the board's paging" },
+  "lib/companyBrief.js":                { what: "D199 C6 / D200 Rule 2 · a company in brief (filings, hiring trend, open roles, its stack with your marks) from the survey sheet's own answer — the market's popovers and field card" },
   "lib/boardViewCache.js":              { what: "the board's view cache (D45)" },
   "lib/deckState.js":                   { what: "the deck's reducer" },
   "lib/deckWheel.js":                   { what: "the deck gesture — one flick turns one card (D168); Home's deck and Atlas's lesson deck (D178-3)" },

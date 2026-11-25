@@ -78,6 +78,10 @@ export function briefFacts(brief) {
  *  with your marks) and "Open the opening sheet →". Reads lib/companyBrief.js (the survey sheet's own answer). */
 export function CompanyBrief({ company, jobId }) {
   const { status, brief } = useCompanyBrief(company, !!company);
+  return <CompanyBriefView company={company} jobId={jobId} status={status} brief={brief}/>;
+}
+/** The brief as drawn, from a read already made (the F5 fixture passes the board's example brief). */
+export function CompanyBriefView({ company, jobId, status = "idle", brief = null }) {
   return (
     <div className="pl-fieldbrief" data-company-brief="">
       <span className="pl-label pl-muted">THE COMPANY IN BRIEF</span>

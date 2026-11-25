@@ -31,7 +31,7 @@ export default function PlateBearing({ params = {}, defaultDomain = null, nothin
     <PlateRoot className="pl-bearing" data-plate-bearing="">
       <div className="pl-cartouche">
         <div className="pl-cartouche__strip"><span className="pl-label">CARTOUCHE · THE BEARING</span>
-          <span className="pl-label pl-muted" data-bearing-from={fromWords(from) ? "" : undefined}>{fromWords(from) || "SET FROM YOUR RÉSUMÉ · YOURS TO CHANGE"}</span></div>
+          <span className="pl-label pl-muted" data-bearing-from={fromWords(from) ? "" : undefined}>{fromWords(from) || (children ? "FROM YOUR RÉSUMÉ · YOURS TO CHANGE" : "SET FROM YOUR RÉSUMÉ · YOURS TO CHANGE")}</span></div>
         <h1 className="pl-cartouche__text" id={SENTENCE_ID} data-board-headline="" data-nothing-matches={nothingMatches ? "true" : "false"}>
           <span>{verb}</span>
           {slots.map((s) => {

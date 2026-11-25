@@ -116,7 +116,9 @@ export function MarketFilterRow({ params = {}, otherFilterCount = 0, query = "",
         })}
         {all ? <button type="button" className="pl-mk-chip" id={all.id} data-slot={all.slot} aria-expanded={!!all.open}
           aria-controls={all.open ? "fh-panel" : undefined} onClick={() => all.onPress?.()}>All filters</button> : null}
-        {active.length ? <button type="button" className="pl-mk-clear" data-clear-all="" onClick={() => onClearAll?.()}>Clear all</button> : null}
+        {/* the board draws Clear all at rest too; with nothing on it lifts nothing (and says so to a screen reader) */}
+        <button type="button" className="pl-mk-clear" data-clear-all="" aria-label={active.length ? `Clear all ${active.length} filters` : "Clear all — nothing to clear"}
+          onClick={() => onClearAll?.()}>Clear all</button>
       </div>
       {active.length ? (
         <ul className="pl-mk-active" aria-label="Filters in force" data-active-chips="">

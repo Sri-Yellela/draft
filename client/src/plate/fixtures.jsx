@@ -8,7 +8,11 @@ import { AreaNav, Dock } from "./Shell.jsx";
 import { MemoryRouter } from "react-router-dom";
 import PlateBearing from "./PlateBearing.jsx";
 import MarketHero from "./MarketHero.jsx";
-import MarketOpenings, { MarketTickets } from "./MarketOpenings.jsx";
+import MarketOpenings, { MarketTickets, CompanyBriefView } from "./MarketOpenings.jsx";
+import { MarketSearchRow, MarketSortButton, MarketFilterRow, MarketStatsBox } from "./MarketControls.jsx";   // D199 (47h)
+import MarketPager from "./MarketPager.jsx";
+import { LegHeader } from "./Plates.jsx";
+import { BoardSearch } from "../components/BoardBar.jsx";
 import { publishFrontCard } from "./marketPlate.js";
 import { DRAWINGS } from "./drawings/index.js";
 import { FieldCard } from "./Cards.jsx";
@@ -266,4 +270,66 @@ export function ShellPhoneTop() {
   );
 }
 
-export const FIXTURES = { ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellPhoneTop, ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard, ...FIT_FIXTURES };
+// ── ⭐ D199 / D200 (47h) · the APPROVED `Market` board (docs/sketches/final/project/Market.dc.html) — its example data ──
+// the board's five sectors (S in its script): counts, the hatch it draws (its rect's height of the slot's box), capitals
+export const FINAL_SECTORS = [
+  { id: "swe", name: "Software engineering", n: 4812, strong: 192 / 298, capitals: ["Kestrel", "Northwind"], subs: [{ label: "Backend", n: 1612 }, { label: "Frontend", n: 1008 }, { label: "Full-stack", n: 1154 }] },
+  { id: "data", name: "Data & AI", n: 2236, strong: 57 / 135, capitals: ["Halcyon"], subs: [] },
+  { id: "pm", name: "Project mgmt", n: 1604, strong: 31 / 170, capitals: ["Granite Build"], subs: [] },
+  { id: "biz", name: "Business & finance", n: 1415, strong: 30 / 250, capitals: ["Ledgerline"], subs: [] },
+  { id: "design", name: "Design", n: 588, strong: 30 / 100, capitals: ["Fieldwork"], subs: [] },
+];
+export const FINAL_FIGURES = { fit: 11247, newToday: 5, filed: 4061, strong: 4836 };
+const FINAL_BRIEF = { name: "Kestrel Payments", filings: 214, fiscalYear: 2025, openJobs: 38, trend: { pct: 171, dir: "up", since: "June" },
+  tech: [{ name: "Go", yours: "missing" }, { name: "PostgreSQL", yours: "missing" }, { name: "AWS", yours: "missing" }, { name: "React", yours: "proven" }, { name: "TypeScript", yours: "proven" }] };
+const q = () => new URLSearchParams((globalThis.location?.hash || "").slice(1));
+
+/** The board's hero: the one-line header beside the political map (week 48, the board's counts, best match at Halcyon). */
+export function MarketHeroFinal() {
+  return (
+    <MemoryRouter>
+      <div style={{ ...subpixel(), width: Number(q().get("w")) || 1182 }}>
+        <MarketHero figures={FINAL_FIGURES} week={48} sectors={FINAL_SECTORS} you={0} captionTail="EXAMPLE DATA"
+          best={{ match: "79%", company: "Halcyon Robotics", title: "UI Engineer, Fleet Console" }} onBest={() => {}} onBearing={() => {}} onPick={() => {}}/>
+      </div>
+    </MemoryRouter>
+  );
+}
+
+/** The board's one section: the leg header, the lead, the cartouche with its controls, the openings (Deck or Index, #tab=),
+ *  the pager — the build's own components with the board's data. */
+export function MarketSectionFinal() {
+  const tab = q().get("tab") || "deck";
+  const { marginLeft, marginTop } = subpixel();
+  const card = { ...BOARD_CARD, job: { ...BOARD_CARD.job, checkedAt: Math.floor(Date.now() / 1000) - 600 } };   // the board's LIVE · CHECKED TODAY
+  const rows = INDEX_JOBS.map(([title, company, score, n, yours, h1b, status], i) => indexRow(
+    { jobId: `ix-${i}`, title, company, url: "#", skills: Array.from({ length: n }, (_, k) => `s${k}`), isH1bSponsor: h1b ? true : null }, i,
+    { score, status, yours, saved: i === 1 || i === 3 }));
+  return (
+    <MemoryRouter>
+      <PlateRoot className="pl-marketbearing" style={{ width: 1182, marginLeft, paddingTop: marginTop }}>
+        <section className="pl-section" id="bearing" aria-labelledby="mk-bearing" data-market-section="">
+          <LegHeader n={1} meta="YOUR BEARING AND OPENINGS · ONE SECTION" title={<span id="mk-bearing">Where you’re headed, and what’s there</span>}/>
+          <p className="pl-lead">Set the bearing, search or filter; the counts and the openings follow. Pass, save or send any of them; Draft starts the application and it moves to your ledger.</p>
+          <header className="fh">
+            <PlateBearing params={{}} allSlot="all">
+              <MarketSearchRow search={<BoardSearch placeholder="Search a company, role, technology or title" value=""/>} sort={<MarketSortButton label="Best match"/>}/>
+              <MarketFilterRow params={{}}/>
+              <MarketStatsBox figures={FINAL_FIGURES} params={{}}/>
+            </PlateBearing>
+          </header>
+          <MarketOpenings initialTab={tab}
+            deck={<PlateDeckStill cards={[card, ...BOARD_NEXT]} of={412}/>}
+            index={<MarketIndexTable rows={rows} bubble={(r) => <RowBubble job={r.job} saved={r.saved} drafted={r.status === "DRAFTED"}/>}/>}
+            field={<FieldCard alike={["Role and level: frontend, mid — same as yours", "Their stack: React, TypeScript, Next.js all on your résumé", "Duties: “rebuild checkout” ≈ your Toast checkout rebuild"]}
+              gaps={[{ text: "They monitor with Datadog RUM.", link: { label: "Learn it →", href: "#atlas" } }]} figures={BOARD_FIGURES}>
+              <CompanyBriefView company="Kestrel Payments" jobId="kestrel-1" status="ready" brief={FINAL_BRIEF}/>
+            </FieldCard>}
+            pager={<MarketPager page={1} totalPages={225} total={11247} pageSize={50}/>}/>
+        </section>
+      </PlateRoot>
+    </MemoryRouter>
+  );
+}
+
+export const FIXTURES = { ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellPhoneTop, ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard, ...FIT_FIXTURES, MarketHeroFinal, MarketSectionFinal };

@@ -568,6 +568,11 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
 .pl-market-deck > :first-child { flex: 0 1 560px; width: 560px; max-width: 100%; min-width: 0; }
 .pl-market-deck__side { flex: 1 1 360px; min-width: 0; }
 .pl-market-deck__side .pl-fieldcard { max-width: none; }
+/* the Market board's field card scores: 9 px labels over 26 px serif numbers, 6 px apart */
+.pl-market-deck__side .pl-card__figs { gap: 6px; }
+.pl-market-deck__side .pl-card__fig { gap: 0; }
+.pl-market-deck__side .pl-card__fig dt { font-size: var(--pl-t-xp-kicker); letter-spacing: .1em; }
+.pl-market-deck__side .pl-card__fig .pl-card__num { font-size: var(--pl-t-letter); line-height: 1; }
 .pl-tabpanel[hidden] { display: none; }
 /* the market's last section and its lead (the board: 72 px under the tickets; a 16 px body lead under "Tickets out") */
 .pl-section--last { padding-bottom: 72px; }
@@ -968,7 +973,7 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
 .pl-mk-pager__tiles { display: flex; flex-wrap: wrap; gap: 6px; }
 .pl-mk-tile { all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; padding: 0 12px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--pl-r-btn); border: var(--pl-border); font-family: var(--pl-mono); font-size: var(--pl-t-mono-num); font-weight: 700; background: var(--pl-paper); color: var(--pl-ink); }
 .pl-mk-tile[aria-current="page"] { background: var(--pl-card); box-shadow: var(--pl-s3); }
-.pl-mk-tile[disabled] { cursor: default; border-style: dashed; color: var(--pl-muted); }
+.pl-mk-tile[disabled] { cursor: default; }   /* the board draws ‹ Prev on page 1 as any tile; it just does nothing */
 .pl-mk-tile[data-gap] { cursor: default; }
 .pl-decknextpage { display: flex; justify-content: center; padding: 14px 0 0; }
 
@@ -1000,7 +1005,7 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
 .pl-fieldbrief__chip[data-yours="true"] { border: var(--pl-border); }
 .pl-fieldbrief__chip > i { width: 9px; height: 9px; border-radius: 2px; border: var(--pl-line-thin) solid var(--pl-ink); background: var(--pl-card); }
 .pl-fieldbrief__chip[data-yours="true"] > i { background: var(--pl-lit); }
-.pl-fieldcard__sheet, .plate a.pl-fieldcard__sheet { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; border-radius: var(--pl-r-btn); border: var(--pl-border); background: var(--pl-ink); color: var(--pl-on-ink); text-decoration: none; font-weight: 800; font-size: var(--pl-t-small); }
+.pl-fieldcard__sheet, .plate a.pl-fieldcard__sheet { margin-top: 4px; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; border-radius: var(--pl-r-btn); border: var(--pl-border); background: var(--pl-ink); color: var(--pl-on-ink); text-decoration: none; font-weight: 800; font-size: var(--pl-t-small); }
 
 /* C8 · the Index (plate/MarketIndex.jsx): the board's flex rows — the actions cell grows and the OPENING cell gives way */
 .pl-ixtable { border: var(--pl-border); border-radius: var(--pl-r-card); background: var(--pl-card); box-shadow: var(--pl-s5); overflow: hidden; }
@@ -1024,8 +1029,8 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
 .pl-ixrow__co .pl-gz__co { color: var(--pl-muted); }
 .pl-ixrow__comark { display: inline; }
 .pl-ixrow__saved { color: var(--pl-ink); margin-right: 6px; font-size: var(--pl-t-13); }
-.pl-ixrow__filed { font-family: var(--pl-mono); font-size: var(--pl-t-mono-num); text-decoration: underline dotted; text-underline-offset: 3px; }
-.pl-ixrow__act { display: flex; align-items: center; justify-content: flex-end; gap: 6px; max-width: 44px; overflow: hidden; transition: max-width .25s var(--pl-ease); padding: 3px 4px 4px 0; }
+.pl-ixrow__filed { font-family: var(--pl-mono); font-size: var(--pl-t-mono-num); }
+.pl-ixrow__act { display: flex; align-items: center; justify-content: flex-end; gap: 6px; max-width: 44px; overflow: hidden; transition: max-width .25s var(--pl-ease); }
 .pl-ixrow:hover .pl-ixrow__act, .pl-ixrow:focus-within .pl-ixrow__act { max-width: 240px; }
 .pl-ixrow__more { flex: 0 0 auto; width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; border: var(--pl-border); background: var(--pl-card); display: inline-flex; align-items: center; justify-content: center; font-weight: 800; }
 .pl-ixrow:hover .pl-ixrow__more, .pl-ixrow:focus-within .pl-ixrow__more { display: none; }
