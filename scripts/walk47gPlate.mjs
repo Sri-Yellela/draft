@@ -235,6 +235,21 @@ try {
         say(`${tag}: below 860 px no bubble covers the tag (by design)`, true, "the row opens the posting");
       }
       await page.screenshot({ path: path.join(SHOTS, `walk47g-${theme}-${vw}-index.png`) });
+      // a row's title opens its posting where the person can see it (D168: one way to open)
+      if (vw >= 860) {
+        await page.evaluate(() => document.querySelector("[data-market-index] [data-index-title]")?.click());
+        await sleep(1500);
+        const opened = await page.evaluate(() => {
+          const tab = [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => t.getAttribute("aria-selected") === "true")?.textContent?.trim();
+          const slot = document.querySelector("[data-deck-post-slot]");
+          const jd = document.querySelector("[data-jd-panel]");
+          const r = jd?.getBoundingClientRect();
+          return { tab, slotOpen: slot?.getAttribute("data-open"), jd: !!jd, jdVisible: !!r && r.width > 0 && r.height > 0 && getComputedStyle(jd).visibility !== "hidden",
+            url: location.pathname + location.search, panels: document.querySelectorAll("[data-panel-id]").length };
+        });
+        say(`${tag}: an Index row's title opens its posting, visible`, opened.jdVisible, JSON.stringify(opened));
+        await page.keyboard.press("Escape"); await sleep(800);
+      }
       await page.evaluate(() => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /deck/i.test(t.textContent))?.click());
       await sleep(1200);
       const deckAfter = await frontTitle();

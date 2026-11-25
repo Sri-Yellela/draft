@@ -134,18 +134,20 @@ try {
       req.respond({ status: 200, contentType: "application/json", body: JSON.stringify(FIXTURES[u.pathname] ?? {}) });
     });
     await page.evaluateOnNewDocument((t) => { try { localStorage.setItem("draft-theme", t); localStorage.setItem("draft:extension-prompt-seen", "1"); } catch {} }, theme);
-    // 47g: the plate market is Home's default since 4fe6fe15; A131 is about the CLASSIC board's stuck bar, which stays
-    // reachable with ?plate=0 until the classic branch is retired (47g item 1) — then this walk goes with it.
-    await page.goto(`${vite.url}/app/jobs?plate=0`, { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
+    // ⭐ 47g R1 (the classic market retires): A131 measured on the PLATE market. The posting opens from its Index row (the
+    // openings turn to Deck, A240); the board's bar — and the stuck frost A131 is about — lives in the Index tab, so the
+    // stuck state is measured there, scrolled past the bar. Every step: never wider than the window.
+    const tab = (name) => page.evaluate((n) => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => new RegExp(n, "i").test(t.textContent))?.click(), name);
+    await page.goto(`${vite.url}/app/jobs`, { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
     await page.evaluateHandle("document.fonts.ready").catch(() => {});
-    await page.waitForSelector("[data-home-board]", { timeout: 30000 }).catch(() => {});
+    await page.waitForSelector("[data-plate-market-openings]", { timeout: 30000 }).catch(() => {});
     await sleep(1500);
     const r = { fonts: await page.evaluate(() => [...document.fonts].filter(f => f.status === "loaded").map(f => f.family).filter((v, i, a) => a.indexOf(v) === i)) };
     r.board = await page.evaluate(measure);
-    await page.evaluate(() => {
-      const t = [...document.querySelectorAll(".jb__title, [data-job-bubble] *")].find(e => e.children.length === 0 && e.textContent.trim() === "Senior Data Engineer");
-      t?.click();
-    });
+    await tab("index");
+    await page.waitForSelector("[data-market-index] [data-index-title]", { timeout: 20000 }).catch(() => {});
+    await page.evaluate(() => { const rows = [...document.querySelectorAll("[data-market-index] [data-index-title]")];
+      (rows.find(e => e.textContent.trim() === "Senior Data Engineer") || rows[0])?.click(); });
     await page.waitForSelector("[data-jd-panel]", { timeout: 10000 }).catch(() => {});
     await sleep(1200);
     r.postingOpen = !!(await page.$("[data-jd-panel]"));
@@ -154,17 +156,17 @@ try {
     await page.click("[data-posting-more-toggle]").catch(() => {});
     await sleep(500);
     r.more = await page.evaluate(measure);
-    // THE CAUSE (A131): pressing More scrolls the page, the board's bar STICKS, and its stuck frost (FullHouse.css
-    // `.fh.fh--bar-row[data-stuck="true"]::before`, inset -8px -28px -12px) reaches 28 px past the board's column — past a
-    // 24 px page gutter at 1280. Scrolled on purpose too, so the stuck state is measured whatever scrolls the page.
-    await page.evaluate(() => window.scrollTo(0, (document.querySelector("[data-home-board]")?.getBoundingClientRect().top || 0) + window.scrollY + 500));
-    await sleep(700);
-    r.scrolled = await page.evaluate(measure);
-    r.stuck = await page.evaluate(() => document.querySelector("[data-board-sticky]")?.getAttribute("data-stuck") || null);
     await page.click("[data-posting-match] [data-ats-box]").catch(() => {});
     await sleep(1200);
     r.matchOpen = !!(await page.$('[data-posting-match-row][data-open="true"]'));
     r.match = await page.evaluate(measure);
+    // THE CAUSE (A131): the board's bar STICKS when the page scrolls past it, and its stuck frost (FullHouse.css
+    // `.fh.fh--bar-row[data-stuck="true"]::before`) reached past the page's gutter. On the plate the bar is the Index tab's.
+    await tab("index"); await sleep(600);
+    await page.evaluate(() => window.scrollTo(0, (document.querySelector("[data-board-sticky]")?.getBoundingClientRect().top || 0) + window.scrollY + 300));
+    await sleep(700);
+    r.scrolled = await page.evaluate(measure);
+    r.stuck = await page.evaluate(() => document.querySelector("[data-board-sticky]")?.getAttribute("data-stuck") || null);
     if (process.argv.includes("--shot")) await page.screenshot({ path: path.join(process.argv[process.argv.indexOf("--shot") + 1], `a131-${w}-${theme}.png`) });
     r.errors = errors.slice(0, 3);
     out[`${w}-${theme}`] = r;

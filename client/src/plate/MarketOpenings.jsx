@@ -17,6 +17,7 @@ import { Drawer } from "./PlateState.jsx";
 import { useFrontCard } from "./marketPlate.js";
 import { api } from "../lib/api.js";
 import { fieldCardView } from "../../../shared/contextualView.js";
+import { POSTING_ON_DECK_EVENT, DECK_POST_SLOT_ID } from "../lib/jobUrl.js";   // ⭐ A240: a posting opened from the Index shows on the Deck tab
 import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
 
 export const MARKET_TABS = Object.freeze([
@@ -107,6 +108,23 @@ export function MarketTickets({ needsYou = 0, ledgerHref = "/app/auto-apply" }) 
 
 export default function MarketOpenings({ deck, index, count = null, field = null, tickets = null, initialTab = "deck" }) {   // field: the gallery / F5 fixture's own card
   const [tab, setTab] = useState(initialTab);
+  // ⭐ A240 (47g, walked): an Index row's title opens its posting through the board's one open path (D168), which draws it in
+  // the deck's post slot — inside the Deck tab's panel. With Index selected that panel is hidden, so the click showed
+  // nothing (measured: the slot open, ?job= set, the posting 0 × 0). Whenever the board draws a posting on the deck, the
+  // openings turn to Deck and bring the posting into view.
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const onDrawn = (e) => {
+      if (!e?.detail?.jobId) return;
+      setTab((t) => {
+        if (t === "deck") return t;
+        requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById(DECK_POST_SLOT_ID)?.scrollIntoView?.({ block: "start", behavior: "smooth" })));
+        return "deck";
+      });
+    };
+    window.addEventListener(POSTING_ON_DECK_EVENT, onDrawn);
+    return () => window.removeEventListener(POSTING_ON_DECK_EVENT, onDrawn);
+  }, []);
   return (
     <PlateRoot className="pl-marketopenings" data-plate-market-openings="">
       <section className="pl-section" aria-labelledby="mk-openings" id="openings">

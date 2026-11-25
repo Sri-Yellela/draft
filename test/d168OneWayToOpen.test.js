@@ -7,6 +7,7 @@
 //   · the open / fold is a swap: the content fades out, swaps, fades in while the stack's height runs from its measured
 //     start to its measured end — never a one-frame jump, never stuck (a watchdog drops the lock);
 //   · nothing opens on hover.
+// ⭐ 47g R1: measured on the PLATE market (the page people use; the classic market retires) — the bubbles are its Index rows.
 // Measured in a real Chrome with motion ON by `scripts/fidelityShots.mjs --styles home168` (puppeteer's real mouse wheel
 // and hover); the pure parts read the sources.
 import test from "node:test";
@@ -60,15 +61,15 @@ test("d168WheelHasOneJob (real Chrome): over the deck one flick turns one card, 
   const out = measured(t); if (!out) return;
   for (const size of SIZES) {
     const { deckWheel: w, listWheel: l, postWheel: p } = out[size].node;
-    assert.equal(w.before.count.startsWith("1 of"), true, `${size}: starts on the first card`);
-    assert.match(w.down.count, /^2 of/, `${size}: one flick down turns one card`);
-    assert.match(w.up.count, /^1 of/, `${size}: one flick up turns it back`);
-    assert.equal(w.down.y, 0, `${size}: the page does not move while the deck turns`);
+    assert.equal(/^1 of/i.test(w.before.count), true, `${size}: starts on the first card`);
+    assert.match(w.down.count, /^2 of/i, `${size}: one flick down turns one card`);
+    assert.match(w.up.count, /^1 of/i, `${size}: one flick up turns it back`);
+    assert.equal(w.down.y, w.before.y, `${size}: the page does not move while the deck turns (${w.before.y} → ${w.down.y})`);
     assert.deepEqual([w.down.open, w.up.open, w.down.asks.length], [false, false, 0], `${size}: the wheel opened nothing`);
-    assert.ok(l.y > 0, `${size}: the wheel over the list scrolls the page (${l.y})`);
-    assert.match(l.count, /^1 of/, `${size}: and does not turn the deck`);
+    assert.ok(l.y > 0, `${size}: the wheel elsewhere (over the hero) scrolls the page (${l.y})`);
+    assert.match(l.count, /^1 of/i, `${size}: and does not turn the deck`);
     assert.equal(p.opened.open, true, `${size}: a press opened the post`);
-    assert.ok(p.down.y > 0, `${size}: the wheel over the open post scrolls the page (${p.down.y})`);
+    assert.ok(p.down.y > (p.start ?? 0), `${size}: the wheel over the open post scrolls the page (${p.start} → ${p.down.y})`);
     assert.equal(p.down.bodyScrolls, "visible", `${size}: the post's body is not a scroll container`);
     assert.ok(p.up.y < p.down.y, `${size}: and back up (${p.down.y} → ${p.up.y})`);
     assert.deepEqual([p.down.open, p.up.open], [true, true], `${size}: the wheel never folds it`);

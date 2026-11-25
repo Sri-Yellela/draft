@@ -40,10 +40,23 @@ export default function StickyBar({ top = "0px", as: Tag = "div", className = ""
       const line = (root ? root.getBoundingClientRect().top : 0) + resolveTopPx(el, top);
       setStuck(el.getBoundingClientRect().top < line - 0.5);
     };
-    const io = new IntersectionObserver(check, { root, rootMargin: `-${px}px 0px 0px 0px`, threshold: [0, 1] });
-    io.observe(el);
+    // ⭐ A241 (47g, walked on the plate market): a bar mounted inside a HIDDEN panel (the plate's Index tab) measures its
+    // sticky line as 0 px, so the observer's margin is wrong and it never fires once the tab shows — measured: the bar
+    // stuck on screen at y 74 with the page at 1693, data-stuck "false", the stuck frost never drawn, the search field
+    // floating over row 5. D49 keeps it a sentinel (never a scroll listener): a ResizeObserver on the bar's parent sees
+    // the panel show (its size leaves 0), re-measures the line and re-arms the observer with the right margin.
+    let io = null, armedPx = px;
+    const arm = (at) => { io?.disconnect(); armedPx = at; io = new IntersectionObserver(check, { root, rootMargin: `-${at}px 0px 0px 0px`, threshold: [0, 1] }); io.observe(el); };
+    arm(px);
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {
+      if (!alive) return;
+      const now = resolveTopPx(el, top);
+      if (now !== armedPx) arm(now);
+      check();
+    });
+    if (el.parentElement) ro?.observe(el.parentElement);
     const raf = requestAnimationFrame(check);
-    return () => { alive = false; cancelAnimationFrame(raf); io.disconnect(); };
+    return () => { alive = false; cancelAnimationFrame(raf); io?.disconnect(); ro?.disconnect(); };
   }, [top]);
   return (
     <>

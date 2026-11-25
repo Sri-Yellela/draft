@@ -37,7 +37,10 @@ test("d153FactsNeverBreakWords (real Chrome, 1280 and 390): six facts wrap onto 
     assert.ok(d.facts, `${size}: the opened posting has a facts box`);
     assert.deepEqual(d.facts.cells.map(c => c.key), ["experience", "workstyle", "salary", "posted", "history", "sponsorship"], `${size}: the six facts`);
     assert.deepEqual(d.facts.broken, [], `${size}: a word broke across lines`);
-    assert.ok(d.facts.rows >= 2, `${size}: the cells wrap onto rows (${d.facts.rows}), not one squeezed row`);
+    // ⭐ 47g R1 (the plate market's wider posting column): "not one squeezed row" measured as what it means — a row of
+    // cells never narrower than 120 px; below that they wrap onto rows (the phone: 3 rows of 175 px)
+    assert.ok(d.facts.rows >= 2 || d.facts.cells.every(c => c.width >= 120), `${size}: the cells wrap onto rows (${d.facts.rows}) rather than squeeze (${d.facts.cells.map(c => c.width).join(", ")} px)`);
+    if (size === "phone") assert.ok(d.facts.rows >= 2, `phone: the cells wrap onto rows (${d.facts.rows})`);
     for (const c of d.facts.cells) assert.equal(c.overflows, false, `${size}: ${c.key} overflows its cell`);
     assert.ok(d.facts.words.some(w => w.word === "sponsorship"), `${size}: the long value is measured`);
     assert.doesNotMatch(d.facts.cells.map(c => c.text).join(" "), /not stated|unknown/i, `${size}: no "not stated" cell`);
