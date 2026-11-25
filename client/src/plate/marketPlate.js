@@ -82,3 +82,26 @@ export function publishFrontCard(card) {
 export function useFrontCard() {
   return useSyncExternalStore((f) => { frontListeners.add(f); return () => frontListeners.delete(f); }, () => front, () => front);   // the same value on a static render (the gallery, the tests)
 }
+
+// ⭐ 47h (47f's gap 4 (d)) · THE BEST MATCH, for the hero's pin and route. Of today's undecided cards, the one best bets ranks
+// highest (its `bestBet.score`, the deck's own "best match first" reading; the ATS score breaks a tie or stands in when no
+// card has one). Published by DeckView like the front card; null when nothing is left — the hero then draws no pin (R2).
+/** Pure: the best undecided card of a deck → { jobId, match: "91%" | null, company, title } | null. */
+export function bestOfDeck(cards = []) {
+  const open = cards.filter((c) => c?.job?.id && !c.decision);
+  if (!open.length) return null;
+  const num = (v) => (v != null && Number.isFinite(Number(v)) ? Number(v) : -1);
+  const top = open.reduce((a, c) => (num(c.bestBet?.score) > num(a.bestBet?.score) || (num(c.bestBet?.score) === num(a.bestBet?.score) && num(c.score) > num(a.score)) ? c : a));
+  const pct = top.score != null && Number.isFinite(Number(top.score)) ? Math.max(0, Math.min(100, Math.round(Number(top.score)))) : null;   // the ticket's own figure (deckCardFacts)
+  return { jobId: top.job.id, match: pct == null ? null : `${pct}%`, company: top.job.company || null, title: top.job.title || null };
+}
+let best = null;
+const bestListeners = new Set();
+export function publishBestCard(next) {
+  if ((best?.jobId ?? null) === (next?.jobId ?? null) && (best?.match ?? null) === (next?.match ?? null)) return;
+  best = next || null;
+  bestListeners.forEach((f) => f());
+}
+export function useBestCard() {
+  return useSyncExternalStore((f) => { bestListeners.add(f); return () => bestListeners.delete(f); }, () => best, () => best);
+}

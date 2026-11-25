@@ -63,7 +63,7 @@ import { cardFacts } from "../lib/deckCardFacts.js";
 import { shape, ts, TYPE_SCALE_VAR } from "../themes/shapes.js";
 import SendJobPicker from "../components/SendJobPicker.jsx";
 import MarketCardFace from "../plate/MarketCardFace.jsx";   // ⭐ D196 P1: the face in plates (off until the owner's ok)
-import { useMarketPlate, publishFrontCard } from "../plate/marketPlate.js";
+import { useMarketPlate, publishFrontCard, publishBestCard, bestOfDeck } from "../plate/marketPlate.js";
 import { plateTicketSize, plateFanTransform } from "../plate/deckGeometry.js";   // ⭐ D196 FIX-2: the board's ticket size and backs   // D180 P2: Send to a connection
 
 const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SOFT_OFFSET
@@ -1021,6 +1021,8 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   const plateMarket = plateDeck;
   const currentId = current && !current.decision ? current.job?.id : null;
   useEffect(() => { if (home && plateMarket) publishFrontCard(currentId ? current : null); }, [home, plateMarket, currentId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 47h: the hero's BEST MATCH pin — the best undecided card of today's deck (plate market only)
+  useEffect(() => { if (home && plateMarket) publishBestCard(bestOfDeck(s.cards)); }, [home, plateMarket, s.cards]);
   const order = useMemo(() => fanOrder(s), [s]);
   const tally = counts(s);
   const tool = canUseAPlusResume ? A_PLUS_TOOL : GENERATE_TOOL;

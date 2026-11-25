@@ -44,7 +44,7 @@ import { RecruiterPanel }        from "./panels/RecruiterPanel.jsx";
 import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
 import BoardHeadline, { ALL_FILTERS_ID } from "./components/BoardHeadline.jsx";   // A146: the All filters word
 import PlateBearing from "./plate/PlateBearing.jsx";   // ⭐ D196 P1: the bearing as a cartouche (off until the owner's ok)
-import { useMarketPlate } from "./plate/marketPlate.js";
+import { useMarketPlate, useBestCard } from "./plate/marketPlate.js";
 import MarketHero from "./plate/MarketHero.jsx";   // ⭐ D196 P1: the market's hero on real data
 import MarketOpenings from "./plate/MarketOpenings.jsx";   // ⭐ D196 P1: Deck · Terrain · Index + the field card
 import PlateRoot from "./plate/PlateRoot.jsx";
@@ -411,9 +411,10 @@ function MarketHeroSlot() {
   const { boardHeadline } = useJobBoard();
   const params = boardHeadline?.params || {};
   const level = sentenceParts(params, {}).slots.find((s) => s.key === "level" && s.active)?.text || null;
+  const best = useBestCard();   // 47h: the deck's best undecided card (DeckView publishes it) — no deck, no pin
   return (
     <MarketHero figures={marketFigures(boardHeadline?.facets)} sector={params.role_label || null} role={params.role_label || null}
-      level={level} week={isoWeek()}
+      level={level} week={isoWeek()} best={best}
       onBest={() => document.querySelector("[data-home-deck]")?.scrollIntoView({ behavior: "smooth", block: "start" })}
       onBearing={() => document.querySelector("#fh-sentence button")?.focus()} />
   );
