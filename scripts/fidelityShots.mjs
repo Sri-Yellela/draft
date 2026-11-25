@@ -703,6 +703,7 @@ async function shoot(browser, url, [w, h], { fixtures = null, prep = null, ready
   const page = await browser.newPage();
   const errors = [];
   page.on("pageerror", e => errors.push(e.message));
+  if (process.argv[2] === "--look") page.on("console", m => { if (m.type() === "error") errors.push(`console: ${m.text().slice(0, 600)}`); });   // 47h: the look reports what React logged
   await page.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: w < 500, hasTouch: w < 500 });
   await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }, { name: "prefers-reduced-motion", value: "reduce" }]);
   if (fixtures) {
@@ -717,7 +718,7 @@ async function shoot(browser, url, [w, h], { fixtures = null, prep = null, ready
     });
     await page.evaluateOnNewDocument(() => { try { localStorage.setItem("draft-theme", "dusk-dark"); localStorage.setItem("draft:extension-prompt-seen", "1"); } catch {} });
   }
-  await page.goto(url, { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
+  await page.goto(url, { waitUntil: "networkidle2", timeout: 90000 }).catch((e) => { if (process.argv[2] === "--look") errors.push(`goto: ${e.message}`); });
   await page.evaluateHandle("document.fonts.ready").catch(() => {});
   if (ready) await page.waitForSelector(ready, { timeout: 30000 }).catch(() => {});
   if (hide) await page.addStyleTag({ content: `${hide}{display:none !important}` });
@@ -1694,9 +1695,11 @@ if (process.argv[2] === "--look") {
   const browser = await puppeteer.launch({ executablePath: resolution.path, headless: "new", pipe: true, args: ["--no-first-run", "--no-default-browser-check"] });
   try {
     const s = SCREENS[id];
-    const ap = await shoot(browser, `${vite.url}${address}`, [Number(w), Number(h)], { fixtures: s.fixtures, ready: s.lookReady || null, prep: async () => { await sleep(1500); } });
+    const ap = await shoot(browser, `${vite.url}${address}`, [Number(w), Number(h)], { fixtures: s.fixtures, ready: process.env.LOOK_READY || "[data-house-header]",
+      prep: async (page) => { await sleep(3000); globalThis.__lookDom = await page.evaluate(() => ({ url: location.href, root: document.getElementById("root")?.innerHTML.length ?? -1,
+        text: (document.body?.innerText || "").slice(0, 400), plate: !!document.querySelector("[data-plate-page]") })); } });
     fs.writeFileSync(outPng, ap.buf);
-    console.log(JSON.stringify({ errors: ap.errors }));
+    console.log(JSON.stringify({ errors: ap.errors, dom: globalThis.__lookDom }));
   } finally { await browser.close(); vite.proc.kill(); }
   process.exit(0);
 }
