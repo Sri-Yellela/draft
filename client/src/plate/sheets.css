@@ -95,7 +95,7 @@
 /* ── 01 · Needs you ── */
 .pl-lg-needs { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
 .pl-lg-ask { flex: 999 1 620px; min-width: 0; }
-.pl-lg-filled { flex: 1 1 260px; max-width: 340px; }
+.pl-lg-filled { flex: 1 1 262px; max-width: 342px; }
 .pl-lg-done { position: relative; background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-hero); box-shadow: var(--pl-s8-lit); padding: 24px 26px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
 .pl-lg-done__text { flex: 1 1 320px; display: flex; flex-direction: column; gap: 6px; }
 .pl-lg-done__t { font-family: var(--pl-serif); font-size: var(--pl-t-match); line-height: 1.05; }
@@ -124,9 +124,9 @@
 .pl-q-link.pl-lg-notnow { color: var(--pl-muted); font-weight: 600; }
 /* the ledger's "Filled for you" sheet, to the final board (16 px strip line, 14 px rows, normal leading) */
 .pl-lg-filled .pl-fieldcard { max-width: none; }
-.pl-lg-filled .pl-card__strip { line-height: normal; font-size: var(--pl-t-body); }
+.pl-lg-filled .pl-card__strip { display: block; line-height: normal; font-size: var(--pl-t-body); }
 .pl-lg-filled .pl-card__body { font-size: var(--pl-t-small); line-height: normal; }
-.pl-lg-filled .pl-card__item { line-height: normal; font-size: inherit; }
+.pl-lg-filled .pl-card__item { line-height: normal; font-size: var(--pl-t-small); }
 .pl-lg-filled .pl-card__body > .pl-muted { font-size: var(--pl-t-tiny); }
 .pl-question label[data-save-for-next-time] { font-size: var(--pl-t-ui); }
 .pl-question__foot .pl-btn { padding: 0 14px; }

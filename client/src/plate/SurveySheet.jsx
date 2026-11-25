@@ -68,6 +68,7 @@ export default function SurveySheet({ data, match = null, inApp = false, base = 
   const line = v.line;
   const yours = line.find((s) => s.yours) || null;
   const lead = line.length ? (yours || line[0]) : null;
+  const DialBox = v.match && inApp ? Link : "div";   // 04: the dial is the way to check and prove your skills (every mark answers)
 
   return (
     <PlateRoot className="pl-sheetpage" region={region} data-plate-page="survey" data-company-page={c.slug}>
@@ -222,8 +223,7 @@ export default function SurveySheet({ data, match = null, inApp = false, base = 
         <p className="pl-lead pl-lead--body">{v.match ? `How much of what ${short} works with you’ve already used, and the shortest way to the rest.`
           : inApp ? "They need two postings naming a technology before it counts; nothing to compare yet." : "Sign in and draft compares their stack with your résumé."}</p>
         <div className="pl-sv-matchrow">
-          {(() => { const Dial = v.match && inApp ? Link : "div"; return (
-          <Dial className="pl-sv-dial" {...(Dial === Link ? { to: "/app/atlas/your-skills", "aria-label": "Your match — check and prove your skills in Atlas", "data-company-check-skills": "" } : {})}>
+          <DialBox className="pl-sv-dial" {...(DialBox === Link ? { to: "/app/atlas/your-skills", "aria-label": "Your match — check and prove your skills in Atlas", "data-company-check-skills": "" } : {})}>
             {v.match ? <>
               <MatchDial have={v.match.have} of={v.match.of}/>
               <div className="pl-sv-dialtext">
@@ -232,7 +232,7 @@ export default function SurveySheet({ data, match = null, inApp = false, base = 
                 <span className="pl-sv-dialsay">{v.match.names.length ? `${andList(v.match.names)} ${v.match.names.length === 1 ? "is" : "are"} on your résumé.` : "None of them is on your résumé yet."}</span>
               </div>
             </> : <div className="pl-sv-dialtext">{inApp ? <NoData>NOTHING TO COMPARE YET</NoData> : <Link className="pl-sv-go" to="/login">Sign in to see your match →</Link>}</div>}
-          </Dial>); })()}
+          </DialBox>
           {(v.match?.learn || []).map((m) => (
             <Ticket key={m.tech} href={`${app}/atlas/${m.atlasSlug}`} onClick={go(`${app}/atlas/${m.atlasSlug}`)} kicker="⇄ INTERCHANGE · ATLAS" title={m.tech}
               line={m.row ? learnLine(m.row) : "Not on your résumé yet."} go="Learn it →"/>

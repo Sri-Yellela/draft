@@ -2,7 +2,7 @@
 // services/companies/publicCompany.js) + Your match (GET /api/companies/:slug/match) → what each section of the `Survey`
 // board draws. Nothing here is invented: a figure the data doesn't hold is null, and the sheet says so (D200 Rule 2).
 // The stack legend is LIVE data — stackFor() (services/companies/companyTech.js, table company_tech: ≥ 2 postings inside
-// 180 days, each technology with its evidence count), never company_technographics (the old table, 47h's check).
+// 180 days, each technology with its evidence count) — never the old name-keyed table with no writer since A80 V4 (47h's check).
 
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 const MONTH_WORDS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];

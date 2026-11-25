@@ -121,10 +121,12 @@ export const PLATE_REGISTRY = [
   { name: "FilterChips", file: "Marks.jsx", group: "Marks",
     states: four({ chips: [{ id: "iv", tag: "IV", region: "IV", label: "Software engineering", count: 412, on: true }, { id: "viii", tag: "VIII", region: "VIII", label: "Data and AI", count: 1 }, { id: "vii", tag: "VII", region: "VII", label: "Project management", count: 0 }] }, "No filters yet."),
     extremes: { chips: [{ id: "a", tag: "IV", region: "IV", label: LONG, count: 10000, on: true }] } },
+  // 47h (D197 #4): the final Survey board's legend — a column per group, each technology with its evidence and your square
   { name: "Legend", file: "Marks.jsx", group: "Marks",
-    states: four({ label: "Kestrel's stack", rows: [{ name: "React", n: 14, region: "IV" }, { name: "TypeScript", n: 12, region: "IV" }, { name: "Kafka", n: 6, yours: false, region: "IV" }] }, "No stack found yet.",
-      { partial: { label: "Kestrel's stack", state: "partial", rows: [{ name: "React", n: 14 }, { name: "Go", n: null, yours: false }] } }),
-    extremes: { label: "Extremes", rows: [{ name: LONG, n: 10000 }, { name: "One", n: 1 }, { name: "None", n: 0, yours: false }] } },
+    states: four({ label: "Kestrel's stack", columns: [{ label: "LANGUAGES", rows: [{ name: "Go", n: 21, of: 38, teams: "Platform, Backend", mark: "not" }, { name: "TypeScript", n: 9, of: 38, teams: "Checkout, Frontend", mark: "yours" }] },
+      { label: "DATA & CLOUD", rows: [{ name: "Kafka", n: 12, of: 38, teams: "Backend, Data", mark: "not", isNew: true }] }] }, "No stack found yet.",
+      { partial: { label: "Kestrel's stack", state: "partial", columns: [{ label: "LANGUAGES", rows: [{ name: "Go", n: 21, of: 38, mark: null }] }] } }),
+    extremes: { label: "Extremes", columns: [{ label: LONG.toUpperCase(), rows: [{ name: LONG, n: 10000, of: 10000, teams: LONG, mark: "yours", isNew: true }, { name: "One", n: 1, of: 10000, mark: "not" }] }] } },
 
   // ── plates ──
   { name: "PageTitle", file: "Plates.jsx", group: "Plates", stateless: "the page's name — never loading", states: { ready: { children: "The market" } }, extremes: { children: LONG } },
