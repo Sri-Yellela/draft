@@ -10955,7 +10955,11 @@ function enqueueBoardMatch(userId, profile, jobIds) {
         const chunk = [...q.ids].slice(0, BOARD_MATCH_CHUNK);
         for (const id of chunk) q.ids.delete(id);
         const r = await boardFit().scoreIds({ userId, profile: q.profile, jobIds: chunk, reason: "board-queue" });
-        if (r?.scored) { heldCounts.clearUser(userId); emitToUser(userId, { type: "board_scored", profileId: profile.id, scored: r.scored, waiting: q.ids.size }); warmBoardOrder(userId); }   // A177: the refetch that event asks for finds its order kept
+        // ⭐ A239 (47g, walked): the COUNTS move with every batch too. They were left alone here, so a new person's facets
+        // (taken by the sign-in warm before their postings were scored) stayed a fresh "hit" for 5 min — measured: the
+        // market's hero read 0 · 0 · 0 · 0, then 41, while the board held 916. Each batch marks them stale (A195: answered at
+        // once, one recount behind); the queue's LAST batch drops them, so the ask after it is an exact count.
+        if (r?.scored) { heldCounts.clearUser(userId); if (q.ids.size) facetsCache.markStale(userId); else facetsCache.clearUser(userId); emitToUser(userId, { type: "board_scored", profileId: profile.id, scored: r.scored, waiting: q.ids.size }); warmBoardOrder(userId); }   // A177: the refetch that event asks for finds its order kept
         if (r?.status === "no_basis" || r?.status === "skipped" || r?.status === "failed") { q.ids.clear(); break; }
       }
     } catch (e) {

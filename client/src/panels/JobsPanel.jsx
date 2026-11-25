@@ -3131,9 +3131,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // ⛔ 45s (owner 11-09: "its not matching me any jobs for construction pm"): a THROTTLE now, not a debounce — the queue
     // sends one of these every ~4 s while it scores, and resetting the timer on each one put the refresh off until the
     // whole queue had drained, so a board held back after a new résumé stayed empty for minutes.
+    // ⭐ A239 (47g): and the counts with it — the sentence, the bar and the market's hero read GET /api/jobs/facets, which
+    // the server marks stale on each scored batch; without this ask they kept the first answer (0, then 41, beside 916).
     board_scored: () => {
       if (boardScoredTimerRef.current) return;   // one refresh already on its way
-      boardScoredTimerRef.current = setTimeout(() => { boardScoredTimerRef.current = null; if (currentPage <= 1) fetchJobsRef.current?.(1).catch(() => {}); }, 4000);
+      boardScoredTimerRef.current = setTimeout(() => { boardScoredTimerRef.current = null; if (currentPage <= 1) fetchJobsRef.current?.(1).catch(() => {}); setFacetsNonce(n => n + 1); }, 4000);
     },
     job_flag: ({ jobId, starred, disliked }) => {
       setJobs(prev => prev.map(j =>

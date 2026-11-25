@@ -80,7 +80,8 @@ test("A126 (7) · server.js: discovery views are gated on a current-basis score;
   // D151 (45k): the held read is kept per user + statement (heldCountCache.js); a miss or a refresh reads and queues.
   assert.match(src, /enqueueBoardMatch\(req\.user\.id, heldProfile, held\.map\(r => r\.id\)\)/);
   assert.match(src, /await heldCounts\.get\(heldKey\(req\.user\.id, heldStatement, baseArgs\)/);
-  assert.match(src, /heldCounts\.clearUser\(userId\); emitToUser\(userId, \{ type: "board_scored"/);
+  // A239 (47g, moved on purpose): the counts are aged / dropped between the held count and the event
+  assert.match(src, /heldCounts\.clearUser\(userId\); if \(q\.ids\.size\) facetsCache\.markStale\(userId\); else facetsCache\.clearUser\(userId\); emitToUser\(userId, \{ type: "board_scored"/);
   assert.match(src, /\.\.\.\(beingMatched \? \{ beingMatched \} : \{\}\)/);
   assert.match(src, /emitToUser\(userId, \{ type: "board_scored"/);
 });
