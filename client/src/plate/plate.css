@@ -173,6 +173,11 @@
 .pl-stats__cell[data-tone="clay"] { background: var(--pl-clay-tint); color: var(--pl-clay-text); }
 .pl-stats__cell[data-tone="clay"] .pl-label { color: var(--pl-clay-text); }
 .pl-stats__num { font-family: var(--pl-serif); font-size: var(--pl-t-card); line-height: 1; }
+/* 47h (D200 Rule 2): a cell that answers — the whole cell is the link / button, the look unchanged */
+.pl-stats__cell[data-act] { padding: 0; }
+.pl-stats__act, .plate a.pl-stats__act { all: unset; cursor: pointer; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; padding: 12px 18px; height: 100%; color: inherit; }
+.pl-stats__act:hover { background: var(--pl-paper-hover); }
+.pl-stats__act[aria-pressed="true"] { background: var(--pl-region-tint); outline: var(--pl-line-mark) solid var(--pl-region); outline-offset: -4px; }
 
 /* ── Page hero row (title side + plate side) ── */
 .pl-page { max-width: var(--pl-page); margin: 0 auto; padding: 0 var(--pl-gutter); box-sizing: border-box; }
@@ -454,15 +459,32 @@
 .pl-filter__tag { font-family: var(--pl-mono); font-size: var(--pl-t-mono); font-weight: 700; background: var(--pl-region); color: var(--pl-on-clay); border-radius: var(--pl-r-tag); padding: 3px 6px; }
 .pl-filter__count { font-family: var(--pl-mono); font-size: var(--pl-t-mono-tag); color: inherit; opacity: .8; }
 
-/* ── Legend row (the stack legend: a swatch, the name, an evidence bar, the count; "no data yet" when partial) ── */
-.pl-legend { display: flex; flex-direction: column; gap: 8px; }
-.pl-legend__row { display: grid; grid-template-columns: 14px minmax(0, 1fr) minmax(60px, 160px) auto; gap: 10px; align-items: center; font-size: var(--pl-t-small); }
-.pl-legend__sw { width: 14px; height: 14px; box-sizing: border-box; border-radius: var(--pl-r-sq-lg); border: var(--pl-line-thin) solid var(--pl-ink); background: var(--pl-region); }
-.pl-legend__row[data-yours="false"] .pl-legend__sw { border: var(--pl-border-dashed); background: var(--pl-card); }
-.pl-legend__name { overflow-wrap: anywhere; font-weight: 600; }
-.pl-legend__bar { height: 8px; border: var(--pl-line-thin) solid var(--pl-ink); border-radius: var(--pl-r-sq); background: var(--pl-card); overflow: hidden; }
-.pl-legend__bar > span { display: block; height: 100%; background: var(--pl-region); }
-.pl-legend__n { font-family: var(--pl-mono); font-size: var(--pl-t-mono-num); font-weight: 700; }
+/* ── 47h (D197 #4, the final `Survey` board) · the stack legend: a card — strip, a column per group, per technology your
+   square, the name, the evidence bar, "in N of M postings · teams", NEW THIS QUARTER; the foot rows (PUBLIC GITHUB …) ── */
+.pl-legend { background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-sheet); box-shadow: var(--pl-s6); overflow: hidden; }
+.pl-legend__strip { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 10px 18px; border-bottom: var(--pl-border); background: var(--pl-region-tint); }
+.pl-legend__body { padding: 8px 20px 18px; display: flex; flex-wrap: wrap; gap: 0 28px; }
+.pl-legend__col { flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; }
+.pl-legend__row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 10px 0; border-top: var(--pl-border-rule); }
+.pl-legend__sw { flex: 0 0 auto; width: 14px; height: 14px; border-radius: var(--pl-r-sq-lg); border: var(--pl-line-thin) solid var(--pl-ink); background: var(--pl-lit); }   /* content-box: 16 px, as on the board */
+.pl-legend__row[data-mark="not"] .pl-legend__sw { box-sizing: border-box; border: var(--pl-border-dashed); background: var(--pl-card); }
+.pl-legend__row[data-mark="unknown"] .pl-legend__sw { box-sizing: border-box; border: var(--pl-line) dotted var(--pl-muted); background: var(--pl-card); }
+.pl-legend__name { flex: 0 0 120px; font-size: var(--pl-t-ui-lg); overflow-wrap: anywhere; }
+.plate .pl-legend__name a { color: var(--pl-ink); text-decoration: none; }
+.plate .pl-legend__name a:hover { text-decoration: underline; }
+.pl-legend__bar { flex: 1 1 160px; height: 12px; border: var(--pl-border); border-radius: 4px; background: var(--pl-card); position: relative; overflow: hidden; }
+.pl-legend__bar > span { position: absolute; left: 0; top: 0; bottom: 0; background: var(--pl-iv-6); }
+.pl-legend__ev { flex: 0 1 220px; font-size: var(--pl-t-13); color: var(--pl-ink-soft); }
+.pl-legend__new { all: unset; cursor: pointer; font-family: var(--pl-mono); font-size: var(--pl-t-mono-xs); font-weight: 700; letter-spacing: .1em; color: var(--pl-region); border: var(--pl-line) solid var(--pl-region); border-radius: var(--pl-r-tag); padding: 2px 6px; }
+.pl-legend__new[aria-expanded="true"] { background: var(--pl-region-tint); }
+.pl-legend__note { flex: 1 1 100%; font-size: var(--pl-t-12); color: var(--pl-muted); }
+.pl-legend__foot { padding: 12px 20px; border-top: var(--pl-border); background: var(--pl-paper-warm); display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.pl-legend__share { display: inline-flex; flex: 1 1 280px; height: 16px; border: var(--pl-border); border-radius: 4px; overflow: hidden; }
+.pl-legend__share > span:nth-child(1) { background: var(--pl-iv-7); }
+.pl-legend__share > span:nth-child(2) { background: var(--pl-iv-5); }
+.pl-legend__share > span:nth-child(3) { background: var(--pl-iv-2); }
+.pl-legend__share > span:last-child { flex: 1 1 auto; background: var(--pl-card); }
+.pl-legend__foottext { font-size: var(--pl-t-13); }
 
 /* ── Region emblem (the v2 board's 120 × 120 duotone plates) ── */
 .pl-emblem { display: inline-flex; box-sizing: border-box; border: var(--pl-border); border-radius: var(--pl-r-small); background: var(--pl-region-tint); align-items: center; justify-content: center; overflow: hidden; }

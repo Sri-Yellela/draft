@@ -16,12 +16,21 @@ export function StatsStrip({ cells = [], label, ...s }) {
   if (gate) return gate;
   return (
     <div className="pl-stats" role="list" aria-label={label}>
-      {cells.map((c) => (
-        <div key={c.label} role="listitem" className="pl-stats__cell" data-tone={c.tone}>
+      {cells.map((c) => {
+        const body = <>
           <span className="pl-stats__num">{c.value == null ? "—" : typeof c.value === "number" ? c.value.toLocaleString("en-US") : c.value}</span>
           <span className="pl-label">{c.label}</span>
-        </div>
-      ))}
+        </>;
+        // 47h (D200 Rule 2 — every number answers): a cell with `href` is a link, with `onClick` a button (`pressed` = the
+        // filter it set is on); the look is the cell's. Without either, the markup is unchanged.
+        return (
+          <div key={c.label} role="listitem" className="pl-stats__cell" data-tone={c.tone} data-act={c.href || c.onClick ? "" : undefined} {...c.attrs}>
+            {c.href ? <a className="pl-stats__act" href={c.href} onClick={c.onLink} aria-label={c.aria}>{body}</a>
+              : c.onClick ? <button type="button" className="pl-stats__act" aria-pressed={c.pressed == null ? undefined : !!c.pressed} aria-label={c.aria} onClick={c.onClick}>{body}</button>
+              : body}
+          </div>
+        );
+      })}
     </div>
   );
 }

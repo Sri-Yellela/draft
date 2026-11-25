@@ -46,11 +46,12 @@ const pageCache = new Map();
 export function focusJob(db, companyId, jobId) {
   if (!jobId || companyId == null) return null;
   try {
-    const r = db.prepare(`SELECT sj.id, sj.job_id, sj.title, sj.location, sj.company, sj.apply_url, sj.url, sj.is_active FROM job_company jc
-        JOIN scraped_jobs sj ON sj.job_id = jc.job_id WHERE jc.company_id = ? AND sj.job_id = ? AND ${PUBLIC_OPEN_SQL.replace(/\b(is_active|duplicate_of|board_category)\b/g, "sj.$1")}`)
+    // 47h (D197 #4): + the posting's subcategory — the survey sheet's line of roles marks the job you opened as your stop
+    const r = db.prepare(`SELECT sj.id, sj.job_id, sj.title, sj.location, sj.company, sj.apply_url, sj.url, sj.is_active, jt.subcategory FROM job_company jc
+        JOIN scraped_jobs sj ON sj.job_id = jc.job_id LEFT JOIN job_taxonomy jt ON jt.job_id = sj.job_id WHERE jc.company_id = ? AND sj.job_id = ? AND ${PUBLIC_OPEN_SQL.replace(/\b(is_active|duplicate_of|board_category)\b/g, "sj.$1")}`)
       .get(companyId, String(jobId));
     if (!r) return null;
-    return { id: r.id, jobId: r.job_id, title: r.title, location: r.location || null, path: jobPath(r),
+    return { id: r.id, jobId: r.job_id, title: r.title, location: r.location || null, subcategory: r.subcategory || null, path: jobPath(r),
       applyUrl: /^https?:\/\//i.test(String(r.apply_url || r.url || "")) ? (r.apply_url || r.url) : null };
   } catch { return null; }
 }

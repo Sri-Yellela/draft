@@ -1,5 +1,6 @@
 // ⭐ D196 F3 · the small marks: lit squares, the stamp, a status tag, the letter tile, a stack chip, the breadcrumb chain,
 // filter chips, the kicker row. Each is the boards' markup in plate classes; colour is never the only signal (R5).
+import { useState } from "react";
 import { plateState, NoData } from "./PlateState.jsx";
 
 /**
@@ -110,24 +111,47 @@ export function Kickers({ parts = [] }) {
   );
 }
 
-/** A legend of evidence (the survey sheet's stack legend): swatch, name, evidence bar, count. `partial` rows say "no data yet". */
-export function Legend({ rows = [], label = "Legend", max, ...s }) {
-  const gate = plateState(s, { height: 140, radius: "small", label: "Loading the legend" });
-  if (gate) return gate;
-  const top = max || Math.max(1, ...rows.map((r) => r.n || 0));
-  if (s.state === "partial" && !rows.length) return <div className="pl-legend" aria-label={label}><NoData/></div>;
+const MARK_WORD = { yours: "on your résumé", not: "not on your résumé yet", unknown: "sign in to see whether it’s on your résumé" };
+/** NEW THIS QUARTER — a mark that answers (D200 Rule 2): pressed, it says when the postings first named it. */
+function NewTag({ note }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="pl-legend" role="list" aria-label={label}>
-      {rows.map((r) => (
-        <div key={r.name} role="listitem" className="pl-legend__row" data-yours={r.yours === false ? "false" : "true"} data-region={r.region}>
-          <span className="pl-legend__sw" aria-hidden="true"/>
-          <span className="pl-legend__name">{r.name}{r.yours === false ? <span className="pl-sr"> (not on your résumé)</span> : null}</span>
-          {r.n == null
-            ? <NoData/>
-            : <span className="pl-legend__bar" aria-hidden="true"><span style={{ width: `${Math.round((r.n / top) * 100)}%` }}/></span>}
-          <span className="pl-legend__n">{r.n == null ? "" : r.n}</span>
-        </div>
-      ))}
+    <>
+      <button type="button" className="pl-legend__new" aria-expanded={open} onClick={() => setOpen((o) => !o)}>NEW THIS QUARTER</button>
+      {open ? <span className="pl-legend__note" role="status">{note || "First named in their postings in the last 90 days."}</span> : null}
+    </>
+  );
+}
+/**
+ * ⭐ 47h (D197 #4, the final `Survey` board) · the survey sheet's stack legend — a card: the strip (`kicker` + `keyText`), one
+ * column per group (`columns` = [{ label, rows }]), per technology (`row` = { name, n, of, pct, teams, mark, isNew, newNote,
+ * href, attrs }): your square (■ yours · ⬚ not yet · ◌ signed out), the name (a link to its Atlas page when it has one), the
+ * evidence bar (n / of), "in N of M postings · teams", NEW THIS QUARTER. `foot` = the rows under it (PUBLIC GITHUB …).
+ * Live data only (stackFor); a group with nothing is not drawn, a legend with nothing says so.
+ */
+export function Legend({ columns = [], label = "Legend", kicker = "LEGEND · TECHNOLOGIES", keyText = "■ ON YOUR RÉSUMÉ · ⬚ NOT YET", foot = null, nameLink, ...s }) {
+  const gate = plateState(s, { height: 220, radius: "sheet", label: "Loading the legend", lines: 4 });
+  if (gate) return gate;
+  return (
+    <div className="pl-legend" role="region" aria-label={label}>
+      <div className="pl-legend__strip"><span className="pl-label">{kicker}</span><span className="pl-label pl-muted">{keyText}</span></div>
+      <div className="pl-legend__body">
+        {columns.length ? columns.map((c) => (
+          <div key={c.label} className="pl-legend__col" role="list" aria-label={c.label}>
+            <span className="pl-label pl-muted">{c.label}</span>
+            {c.rows.map((r) => (
+              <div key={r.name} role="listitem" className="pl-legend__row" data-mark={r.mark || "unknown"} {...r.attrs}>
+                <span className="pl-legend__sw" role="img" aria-label={MARK_WORD[r.mark || "unknown"]} title={MARK_WORD[r.mark || "unknown"]}/>
+                <b className="pl-legend__name">{r.href && nameLink ? nameLink(r) : r.name}</b>
+                <span className="pl-legend__bar" aria-hidden="true"><span style={{ width: `${r.pct ?? Math.floor((100 * (r.n || 0)) / Math.max(1, r.of || 1))}%` }}/></span>
+                <span className="pl-legend__ev" title={r.seen || undefined}>in <b>{r.n} of {r.of}</b> postings{r.teams ? ` · ${r.teams}` : ""}</span>
+                {r.isNew ? <NewTag note={r.newNote}/> : null}
+              </div>
+            ))}
+          </div>
+        )) : <div className="pl-legend__col"><NoData>NO TECHNOLOGY IN TWO OR MORE OF THEIR POSTINGS YET</NoData></div>}
+      </div>
+      {foot}
     </div>
   );
 }
