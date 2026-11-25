@@ -727,7 +727,7 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
   font-size: var(--pl-t-13); font-weight: 600; border: var(--pl-border); background: var(--pl-card); }
 .pl-fit__word[data-state="claimed"] { border-color: var(--pl-clay); background: var(--pl-clay-tint); }
 .pl-fit__word[data-state="missing"] { border: var(--pl-border-dashed); background: var(--pl-paper); }
-.pl-fit__wsq { width: 10px; height: 10px; box-sizing: border-box; border-radius: var(--pl-r-sq); border: var(--pl-line-thin) solid var(--pl-ink); background: var(--pl-card); }
+.pl-fit__wsq { flex: 0 0 auto; width: 10px; height: 10px; border-radius: var(--pl-r-sq); border: var(--pl-line-thin) solid var(--pl-ink); background: var(--pl-card); }
 .pl-fit__word[data-state="on"] .pl-fit__wsq { background: var(--pl-lit); }
 .pl-fit__word[data-state="claimed"] .pl-fit__wsq { background: var(--pl-clay); }
 .pl-fit__tag { font-family: var(--pl-mono); font-size: var(--pl-t-key); font-weight: 700; color: var(--pl-muted); }

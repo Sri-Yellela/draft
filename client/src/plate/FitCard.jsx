@@ -77,7 +77,7 @@ function WordsTab({ model, onClaim, busy }) {
                 title={w.state === "on" ? `On your résumé${w.where ? `: ${w.where}` : ""}` : w.state === "claimed" ? "Claimed by you" : "Not on your résumé"}>
                 <span aria-hidden="true" className="pl-fit__wsq"/>{w.label}
                 {w.state === "on" && w.where ? <span className="pl-fit__where" data-fit-where="">{w.where}</span> : null}
-                {w.state === "claimed" ? <span className="pl-fit__tag">CLAIMED</span> : null}
+                <span className="pl-fit__tag">{w.state === "claimed" ? "CLAIMED" : ""}</span>{/* the board keeps this slot on every word (its gap is part of the chip) */}
                 {w.claimable ? <button type="button" className="pl-fit__claim" disabled={busy === w.key} onClick={() => onClaim(w)}
                   aria-label={w.state === "claimed" ? `Undo your claim: ${w.label}` : `${w.label}: that’s true of me`}>{w.state === "claimed" ? "undo" : "That’s true of me"}</button> : null}
               </span>
@@ -96,7 +96,7 @@ function WordsTab({ model, onClaim, busy }) {
   );
 }
 
-function ContextTab({ view, plausibility }) {
+function ContextTab({ view, plausibility, company }) {
   if (!view) return <div className="pl-fit__panel pl-in" data-fit-tab="context"><p className="pl-fit__small">The contextual score needs the posting placed in a role and your résumé read; it isn’t ready for this one yet.</p></div>;
   const KIND = { exact: "EXACT", ecosystem: "ECOSYSTEM", gap: "GAP", extra: "EXTRA" };
   const flags = (plausibility?.entries || []).reduce((n, e) => n + (e.flags || []).length, 0);
@@ -121,7 +121,7 @@ function ContextTab({ view, plausibility }) {
           {view.different.length ? view.different.map((t, i) => <div key={i} className="pl-fit__li"><span aria-hidden="true" className="pl-fit__lsq" data-yet=""/><span>{t}</span></div>) : <span className="pl-fit__small">None found.</span>}</div>
       </div>
       <div data-fit-stack="">
-        <span className="pl-fit__glabel">THEIR REAL STACK VS YOURS{view.ofPostings ? ` · FROM ${view.ofPostings} POSTINGS` : ""}</span>
+        <span className="pl-fit__glabel">THEIR REAL STACK VS YOURS{view.ofPostings ? ` · FROM ${view.ofPostings}${company ? ` ${String(company).split(/\s+/)[0]}` : ""} POSTINGS` : ""}</span>
         {view.stack.length ? view.stack.map((s, i) => (
           <div key={i} className="pl-fit__srow" data-fit-stack-kind={s.kind}>
             <span className="pl-fit__skind" data-k={s.kind}>{KIND[s.kind]}</span><b>{s.name}</b><span className="pl-muted">{s.line}{s.href ? <> · <a href={s.href}>Learn it →</a></> : null}</span>
@@ -169,10 +169,11 @@ function HistoryTab({ lines = [], history = null }) {
  * The card. `jobId` → it reads GET /api/jobs/:id/fit-card itself; `data` → that payload, given (the gallery / F5 fixture).
  * `alike` / `gaps` / `figures` override the front's lines (the market's own field card props, so it drops in where
  * FieldCard was). `historyLines` = [{ label, text }] (posted, live check — the host's facts); `history` = a node (the job's
- * résumé versions). `face` / `tab` = where it opens. `plausibility` (given) skips the check's read.
+ * résumé versions). `face` / `tab` = where it opens. `plausibility` / `atlasSlugs` (given) skip their reads (the fixture);
+ * `company` names whose postings the stack is read from.
  */
 export default function FitCard({ jobId = null, data: given = null, alike, gaps, figures, historyLines = [], history = null,
-  face: initialFace = "front", tab: initialTab = "words", plausibility: givenPlaus, className = "", ...gate }) {
+  face: initialFace = "front", tab: initialTab = "words", plausibility: givenPlaus, atlasSlugs = null, company = null, className = "", ...gate }) {
   const [state, setState] = useState(() => (given ? { status: "ready", data: given } : { status: jobId ? "loading" : "idle", data: null }));
   const [nonce, setNonce] = useState(0);
   const [face, setFace] = useState(initialFace);
@@ -203,7 +204,8 @@ export default function FitCard({ jobId = null, data: given = null, alike, gaps,
   const front = useMemo(() => (d ? fieldCardView({ report: d.report || null, contextual: d.contextual || null }) : null), [d]);
   const ctx = useMemo(() => contextView(d?.contextual, { resumeTech: d?.resumeTech || [] }), [d]);
   const techs = useMemo(() => [...(front?.gaps || []).map((g) => g.tech), ...(ctx?.stack || []).filter((s) => s.kind === "gap").map((s) => s.tech)].filter(Boolean), [front, ctx]);
-  const slugs = useAtlasSlugs(techs);
+  const fetched = useAtlasSlugs(atlasSlugs ? [] : techs);
+  const slugs = atlasSlugs || fetched;   // given: the fixture (no server)
 
   const onClaim = useCallback(async (w) => {
     const next = w.state !== "claimed";
@@ -263,7 +265,7 @@ export default function FitCard({ jobId = null, data: given = null, alike, gaps,
       <div className="pl-fit__tabrule"/>
       {note ? <p className="pl-fit__small pl-fit__note" role="alert">{note}</p> : null}
       {tab === "words" ? <WordsTab model={model} onClaim={onClaim} busy={busy}/> : null}
-      {tab === "context" ? <ContextTab view={ctx ? { ...ctx, stack: ctx.stack.map((s) => (s.kind === "gap" && learn(s.tech) ? { ...s, href: learn(s.tech).href } : s)) } : null} plausibility={plaus ?? null}/> : null}
+      {tab === "context" ? <ContextTab view={ctx ? { ...ctx, stack: ctx.stack.map((s) => (s.kind === "gap" && learn(s.tech) ? { ...s, href: learn(s.tech).href } : s)) } : null} plausibility={plaus ?? null} company={company}/> : null}
       {tab === "claim" ? <ClaimTab model={model} onClaim={onClaim} busy={busy}/> : null}
       {tab === "hist" ? <HistoryTab lines={historyLines} history={history}/> : null}
     </article>

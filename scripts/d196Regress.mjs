@@ -120,6 +120,10 @@ export const PAIRS = {
     boardSel: tab ? 'article[aria-label="The ATS card: your résumé against this job"]' : 'article[aria-label="Field card: why this opening fits you"]',
     buildSel: tab ? 'article[aria-label="The ATS card: your résumé against this job"]' : 'aside[aria-label="Why this opening fits you"]',
     pad: 6, reduced: true, subpixel: true,
+    // context: the board's example prose the build words from each dissimilarity's kind ("No experiments (A/B) in your
+    // bullets", "Team leadership not shown — and not asked at mid" — no kind the scorer emits reads like that), and its stack
+    // line's count ("FROM 38 KESTREL POSTINGS" over rows that say "of 9") and "Checkout postings" (no team on a stack row)
+    ...(k === "context" ? { masks: [[310, 507, 295, 68], [190, 592, 220, 14], [232, 613, 140, 17]] } : {}),
     ...(tab ? { boardPrep: async (page) => {
       await page.evaluate(() => [...document.querySelectorAll("button")].find((b) => b.textContent.includes("Turn over"))?.click());
       await new Promise((r) => setTimeout(r, 300));

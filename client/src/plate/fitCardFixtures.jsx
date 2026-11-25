@@ -50,6 +50,7 @@ const BOARD_FRONT = {
   gaps: [{ text: "They watch the front end with Datadog RUM.", link: { label: "Learn it →", href: "#top" } }],
   figures: { label: "ROLE FIT · STACK · DUTIES", value: "91 · 88 · 80", items: [{ label: "ROLE FIT", key: "role", value: 91 }, { label: "STACK", key: "stack", value: 88 }, { label: "DUTIES", key: "duties", value: 80 }] },
 };
+const BOARD_SLUGS = { "Datadog RUM": "datadog-rum" };
 const BOARD_PLAUS = { entries: [{ employer: "Toast", status: "all_confirmed", flags: [] }, { employer: "HubSpot", status: "all_confirmed", flags: [] }] };
 const BOARD_HIST = [{ label: "First posted", text: "2 hours ago. Not reposted." }, { label: "Your score", text: "went from 61 % to 66 % after you added Playwright on Nov 12." }, { label: "Live check", text: "today: the posting is up." }];
 
@@ -57,7 +58,7 @@ const at = () => { const q = new URLSearchParams((globalThis.location?.hash || "
 const card = (face, tab) => function FitCardBoard() {
   return (
     <MemoryRouter><PlateRoot><div data-fit-fixture="" style={{ width: 600, boxSizing: "content-box", ...at() }}>
-      <FitCard data={BOARD_FIT} {...BOARD_FRONT} face={face} tab={tab} plausibility={BOARD_PLAUS} historyLines={BOARD_HIST}/>
+      <FitCard data={BOARD_FIT} {...BOARD_FRONT} face={face} tab={tab} plausibility={BOARD_PLAUS} historyLines={BOARD_HIST} atlasSlugs={BOARD_SLUGS} company="Kestrel Payments"/>
     </div></PlateRoot></MemoryRouter>
   );
 };
