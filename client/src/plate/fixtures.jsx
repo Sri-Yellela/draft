@@ -85,7 +85,7 @@ export function MarketFace() {
 export function MarketBearing() {
   return (
     <div data-market-bearing-fixture="" style={{ width: 860, padding: 24 }}>
-      <PlateBearing params={{ tech: "React", location: "Boston" }} allSlot="all"/>
+      <PlateBearing params={{ tech: "React", location: "Boston" }} allSlot="all" from={{ name: "Maya_Chen.pdf", at: Date.parse("2026-11-08T15:00:00Z") / 1000 }}/>
     </div>
   );
 }

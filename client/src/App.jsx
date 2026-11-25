@@ -201,9 +201,23 @@ function BoardSearchBar(props) {
 // goes through nextBoardPanel on the board's ONE panel value, so the same word closes what it opened
 // and opening another closes the first. The panel renders HERE, directly beneath the sentence and
 // above the bar — D35 §4's order: the sentence, the open panel, the bar, the jobs.
+// 47h: the bearing's "FROM <FILE> · <DATE>" — the active profile's résumé (its name and when it was set), read once per page
+// and only on the plate market; no résumé (or a failed read) → nothing, and the strip keeps its words
+function useResumeSource(on) {
+  const [src, setSrc] = useState(null);
+  useEffect(() => {
+    if (!on) return undefined;
+    let live = true;
+    api("/api/base-resume").then((r) => { if (live && r?.name) setSrc({ name: r.name, at: r.updatedAt ?? null }); }).catch(() => {});
+    return () => { live = false; };
+  }, [on]);
+  return src;
+}
+
 function BoardHeadlineSlot() {
   const { boardHeadline, boardPanel, setBoardPanel } = useJobBoard();
   const plate = useMarketPlate();
+  const resumeFrom = useResumeSource(!!plate);
   if (!boardHeadline) return null;
   const { params, defaultDomain, nothingMatches, facets, facetsStatus, otherFilterCount, onPatch, onMoreFilters } = boardHeadline;
   if (!plate) return (
@@ -226,7 +240,7 @@ function BoardHeadlineSlot() {
     <>
       <PlateBearing params={params} defaultDomain={defaultDomain} nothingMatches={nothingMatches}
         open={boardPanel} onToggle={(key) => setBoardPanel(current => nextBoardPanel(current, key))}
-        allSlot={BOARD_PANEL.ALL} allOpen={boardPanel === BOARD_PANEL.ALL}
+        allSlot={BOARD_PANEL.ALL} allOpen={boardPanel === BOARD_PANEL.ALL} from={resumeFrom}
         onAll={() => setBoardPanel(current => nextBoardPanel(current, BOARD_PANEL.ALL))} />
       <WordPanel open={boardPanel} params={params} defaultDomain={defaultDomain}
         facets={facets} facetsStatus={facetsStatus} otherFilterCount={otherFilterCount}
