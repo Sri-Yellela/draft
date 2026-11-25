@@ -9,7 +9,7 @@ import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "reac
 import { api, printResume, downloadBlob, authHeaders, authContextQuery } from "../lib/api.js";
 import { useMonetisationEnabled } from "../lib/monetisation.jsx";
 import { GENERATE_TOOL, A_PLUS_TOOL, TOOL_LABELS, normalizeTool } from "../lib/applyTools.js";
-import { planPageFetch, recordPageCursor } from "../lib/boardPaging.js";
+import { planPageFetch, recordPageCursor, readPageParam, pageInSearch } from "../lib/boardPaging.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { useMarketPlate } from "../plate/marketPlate.js";   // ⭐ D196 FIX-7: the plate market's Index draws this board's rows
 import { MarketIndexTable, RowBubble, indexRow, indexStatus } from "../plate/MarketIndex.jsx";
@@ -1382,8 +1382,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     barFilters, liveSearchTick,
     filterPanelOpen, setFilterPanelOpen, setActiveFilterCount,
     setAtsSortAvailable, atsSortAvailable,
-    setBoardPanel, setBoardHeadline,
+    setBoardPanel, setBoardHeadline, setBoardPager,
   } = useJobBoard();
+  const plateMarketBoard = useMarketPlate();   // ⭐ D199 C3: pages, not endless scroll, on the plate market
   // The open posting's id, for callbacks that must not re-bind on every selection (openAtsPanel, D152 (8)).
   const selectedJobIdRef = useRef(null);
   selectedJobIdRef.current = selectedJob?.jobId ?? null;
@@ -2657,6 +2658,16 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const clausePatchRef = useRef(applyClausePatch);
   clausePatchRef.current = applyClausePatch;
   const onClausePatch = useCallback((patch) => clausePatchRef.current(patch), []);
+  // ⭐ D199 C2 (47h) · the plate market's "Clear all": every clause word, the role and technology, the drawer's filters and the
+  // search — the empty-state's clearAllFilters plus the clauses it doesn't own. One writer, so the sentence and the chips
+  // (both projections of these params) clear together.
+  const clearEverythingRef = useRef(null);
+  clearEverythingRef.current = () => {
+    clearAllFilters();
+    applyClausePatch({ ...Object.fromEntries(SENTENCE_CLAUSES.map(c => [c.dim.param, c.dim.multi ? [] : ""])),
+      [STRICT_PARAM]: "", category: "", subcategory: "", tech: "" });
+  };
+  const onClearAll = useCallback(() => clearEverythingRef.current?.(), []);
   // "+ add → salary & more" opens the drawer of the filters that are NOT words (salary, sponsorship,
   // sources, experience years…). The filter ICON that used to open the panel is gone (D35 §1).
   const onMoreFilters = useCallback(() => { setBoardPanel(null); setFilterPanelOpen(true); }, [setBoardPanel, setFilterPanelOpen]);
@@ -2690,8 +2701,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     const roleLabel = taxRole.subcategory ? roleWord(roleOpt) : taxRole.category ? (roleOpt?.group || null) : null;
     setBoardHeadline?.({ params: { ...clauseParams, role_label: roleLabel }, defaultDomain, nothingMatches,
       facets: facets.data, facetsStatus: facets.status, otherFilterCount,
-      onPatch: onClausePatch, onMoreFilters });
-  }, [clauseParamsKey, defaultDomain, nothingMatches, facets, otherFilterCount, onClausePatch, onMoreFilters]); // eslint-disable-line react-hooks/exhaustive-deps
+      onPatch: onClausePatch, onMoreFilters, onClearAll });
+  }, [clauseParamsKey, defaultDomain, nothingMatches, facets, otherFilterCount, onClausePatch, onMoreFilters, onClearAll]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => setBoardHeadline?.(null), [setBoardHeadline]);
 
   // openLinkedInExtensionPopup / closeLinkedInImportTab / startLinkedInImport removed in cleanup
@@ -3970,6 +3981,60 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     finally { loadingMoreRef.current = false; }
   }, [currentPage, totalPages, fetchJobs]);
 
+  // ⭐ D199 C3 (owner 11-25: "use the page system from the older version … when i'm scrolling down to end it keeps loading
+  // more jobs") · ON THE PLATE MARKET THE BOARD PAGES. The pager (plate/MarketPager.jsx) reads what this publishes; a move
+  // goes through goPage (the cursor / offset plan above, unchanged). The page lives in the address: `?page=N` (absent on
+  // page 1), pushed on a pager move so Back / Forward page, replaced when a filter / sort / search sends the board to page 1,
+  // and read once on load so a reload lands on the same page. No fetch happens on reaching a page's end (BoardMore is not
+  // drawn on the plate). The classic market (?plate=0) keeps D147's scroll.
+  const goPageRef = useRef(goPage);
+  goPageRef.current = goPage;
+  const pagerNavRef = useRef(null);   // "push" (a pager move) | "pop" (Back / Forward) | null (anything else → replace)
+  const initialPageRef = useRef(plateMarketBoard ? readPageParam(window.location.search) : 1);
+  const pagerGoTo = useCallback((p) => {
+    const n = Math.max(1, Math.floor(Number(p) || 1));
+    pagerNavRef.current = "push";
+    initialPageRef.current = 1;
+    return goPageRef.current?.(n)?.catch?.(() => {});
+  }, []);
+  // a reload on ?page=N: once page 1 has answered and the page count is known, go to N (clamped to the last page)
+  useEffect(() => {
+    if (!plateMarketBoard || initialPageRef.current <= 1 || boardLoading || !totalPages) return;
+    const want = Math.min(initialPageRef.current, totalPages);
+    initialPageRef.current = 1;
+    if (want !== currentPage) { pagerNavRef.current = "pop"; goPageRef.current?.(want)?.catch?.(() => {}); }
+  }, [plateMarketBoard, boardLoading, totalPages, currentPage]);
+  // state → address
+  useEffect(() => {
+    if (!plateMarketBoard || initialPageRef.current > 1) return;
+    const nav = pagerNavRef.current;
+    pagerNavRef.current = null;
+    const url = pageInSearch(window.location.search, currentPage);
+    if (url === window.location.search) return;
+    const next = `${window.location.pathname}${url}${window.location.hash}`;
+    if (nav === "push") window.history.pushState({ ...(window.history.state || {}), boardPage: currentPage }, "", next);
+    else window.history.replaceState(window.history.state, "", next);
+  }, [plateMarketBoard, currentPage]);
+  // Back / Forward → the page the address names
+  useEffect(() => {
+    if (!plateMarketBoard) return undefined;
+    const onPop = () => {
+      const want = readPageParam(window.location.search);
+      if (want === currentPageRef.current) return;
+      pagerNavRef.current = "pop";
+      goPageRef.current?.(want)?.catch?.(() => {});
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [plateMarketBoard]);
+  const currentPageRef = useRef(currentPage);
+  currentPageRef.current = currentPage;
+  useEffect(() => {
+    if (!plateMarketBoard) return;
+    setBoardPager?.({ page: currentPage, totalPages, total: totalJobs, pageSize: PAGE_SIZE, jobs, loading: boardLoading, goTo: pagerGoTo });
+  }, [plateMarketBoard, currentPage, totalPages, totalJobs, jobs, boardLoading, pagerGoTo, setBoardPager]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => setBoardPager?.(null), [setBoardPager]);
+
   // BUTTON STATES: first click applies local role filter, second click triggers fresh scrape.
   // To change labels edit the buttonLabel derived value below.
   const roleIsSet = !!roleFilter &&
@@ -4750,6 +4815,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
           {plateIndex ? (
             <MarketIndexTable
               rows={jobs.map((job, i) => indexRow(job, i, { score: scoresFor(job, generated[job.jobId]).shown,
+                saved: !!(job._user?.starred ?? job.starred), offset: (Math.max(1, currentPage) - 1) * 50,   // D199 C8: ★ before a saved title; C3: # runs across pages
                 status: indexStatus(job.jobId, { drafted: isJobDrafted(job.jobId), submitted: submittedIds, needsYou: needsYouIds }) }))}
               onOpen={(job) => (onJobSelect ? onJobSelect(job) : job.url ? visitUrl(job) : null)}
               bubble={(r) => (
@@ -4797,7 +4863,8 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
           {sending && <SendJobPicker job={sending} onClose={() => setSending(null)} />}
 
           {/* ⭐ D147 · scrolling, not page numbers: the next page loads as the list's end comes into view. */}
-          {jobs.length > 0 && totalPages > 0 && (
+          {/* ⭐ D199 C3: never on the plate market — it pages (plate/MarketPager.jsx), and reaching a page's end fetches nothing */}
+          {jobs.length > 0 && totalPages > 0 && !plateIndex && (
             <BoardMore shown={jobs.length} total={totalJobs} more={currentPage < totalPages} onMore={onLoadMore} theme={theme} />
           )}
 

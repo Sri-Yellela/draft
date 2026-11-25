@@ -98,3 +98,50 @@ export function recordPageCursor(stack, page, cursorUsed) {
   next[page - 1] = cursorUsed ?? null;
   return next;
 }
+
+// ⭐ D199 C3 (47h) · THE PAGE IN THE ADDRESS, and the pager's tiles. Pure, so the round trip is tested without a browser.
+export const PAGE_PARAM = "page";
+
+/** The page an address names (`?page=N`); anything else — absent, 0, junk — is page 1. */
+export function readPageParam(search) {
+  try {
+    const n = Math.floor(Number(new URLSearchParams(search || "").get(PAGE_PARAM)));
+    return Number.isFinite(n) && n >= 1 ? n : 1;
+  } catch { return 1; }
+}
+
+/** The query string with the page written in (page 1 → the param removed); every other param is kept as it was. */
+export function pageInSearch(search, page) {
+  const params = new URLSearchParams(search || "");
+  const n = Math.floor(Number(page) || 1);
+  if (n > 1) params.set(PAGE_PARAM, String(n)); else params.delete(PAGE_PARAM);
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
+/**
+ * The pager's tiles, the classic pager's rule (`buildVisiblePageItems`, D147's removed pager: the first, the current ± 2 and
+ * the last, a gap as "…"): [{ kind: "prev" | "page" | "gap" | "next", page, current, disabled }]. Nothing when there is one page.
+ */
+export function pagerTiles(page, totalPages) {
+  const last = Math.max(0, Math.floor(Number(totalPages) || 0));
+  if (last <= 1) return [];
+  const cur = Math.min(Math.max(1, Math.floor(Number(page) || 1)), last);
+  const nums = new Set([1, last]);
+  for (let p = cur - 2; p <= cur + 2; p++) if (p >= 1 && p <= last) nums.add(p);
+  const sorted = [...nums].sort((a, b) => a - b);
+  const out = [{ kind: "prev", page: Math.max(1, cur - 1), disabled: cur <= 1 }];
+  sorted.forEach((p, i) => {
+    if (i && p - sorted[i - 1] > 1) out.push({ kind: "gap", page: null });
+    out.push({ kind: "page", page: p, current: p === cur });
+  });
+  out.push({ kind: "next", page: Math.min(last, cur + 1), disabled: cur >= last });
+  return out;
+}
+
+/** "PAGE 2 OF 47 · 50 PER PAGE · 2,310 OPENINGS" — null until the board has answered with a count. */
+export function pageLine({ page, totalPages, pageSize, total } = {}) {
+  if (!Number.isFinite(total) || !Number.isFinite(totalPages) || totalPages < 1) return null;
+  const n = (x) => Number(x).toLocaleString("en-US");
+  return `PAGE ${n(Math.min(Math.max(1, page || 1), totalPages))} OF ${n(totalPages)} · ${pageSize} PER PAGE · ${n(total)} ${total === 1 ? "OPENING" : "OPENINGS"}`;
+}

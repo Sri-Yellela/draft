@@ -48,6 +48,9 @@ import PlateBearing from "./plate/PlateBearing.jsx";   // ⭐ D196 P1: the beari
 import { useMarketPlate, useBestCard } from "./plate/marketPlate.js";
 import MarketHero from "./plate/MarketHero.jsx";   // ⭐ D196 P1: the market's hero on real data
 import MarketOpenings from "./plate/MarketOpenings.jsx";   // ⭐ D196 P1: Deck · Terrain · Index + the field card
+import { MarketSearchRow, MarketSortButton, MarketFilterRow, MarketStatsBox } from "./plate/MarketControls.jsx";   // ⭐ D199 C2 / C4
+import MarketPager from "./plate/MarketPager.jsx";   // ⭐ D199 C3: pages, not endless scroll
+import { sectorsFromRoleOptions } from "./plate/MarketMap.jsx";   // ⭐ D199 C5 / D200: the political map's sectors
 import PlateRoot from "./plate/PlateRoot.jsx";
 import OpeningSheet, { OPENING_ROUTE } from "./plate/OpeningSheet.jsx";   // ⭐ D199 C7: /app/jobs/<id>, the opening sheet over the market
 import { LegHeader } from "./plate/Plates.jsx";
@@ -217,11 +220,11 @@ function useResumeSource(on) {
 }
 
 function BoardHeadlineSlot() {
-  const { boardHeadline, boardPanel, setBoardPanel } = useJobBoard();
+  const { boardHeadline, boardPanel, setBoardPanel, localSearch, applyBarFilters } = useJobBoard();
   const plate = useMarketPlate();
   const resumeFrom = useResumeSource(!!plate);
   if (!boardHeadline) return null;
-  const { params, defaultDomain, nothingMatches, facets, facetsStatus, otherFilterCount, onPatch, onMoreFilters } = boardHeadline;
+  const { params, defaultDomain, nothingMatches, facets, facetsStatus, otherFilterCount, onPatch, onMoreFilters, onClearAll } = boardHeadline;
   if (!plate) return (
     <>
       <BoardHeadline params={params} defaultDomain={defaultDomain} nothingMatches={nothingMatches}
@@ -238,17 +241,30 @@ function BoardHeadlineSlot() {
     </>
   );
   // ⭐ D196 P1: the same sentence, controls and panel, drawn as the board's cartouche — only the look changes (R6).
+  // ⭐ D199 C2 / C4 (47h, the `Market` board): INSIDE the cartouche, under the sentence — the search + sort, the filter chips
+  // (each opens its word's panel in place, beneath them), the active chips + Clear all, then the stats box. The chips and the
+  // sentence read the same params and write through the same onPatch (one state); the box reads the same facets answer.
+  const clearQuery = () => applyBarFilters?.({ query: "" }, { fields: ["query"] });
+  const toggle = (key) => setBoardPanel(current => nextBoardPanel(current, key));
   return (
-    <>
-      <PlateBearing params={params} defaultDomain={defaultDomain} nothingMatches={nothingMatches}
-        open={boardPanel} onToggle={(key) => setBoardPanel(current => nextBoardPanel(current, key))}
-        allSlot={BOARD_PANEL.ALL} allOpen={boardPanel === BOARD_PANEL.ALL} from={resumeFrom}
-        onAll={() => setBoardPanel(current => nextBoardPanel(current, BOARD_PANEL.ALL))} />
+    <PlateBearing params={params} defaultDomain={defaultDomain} nothingMatches={nothingMatches}
+      open={boardPanel} onToggle={toggle}
+      allSlot={BOARD_PANEL.ALL} allOpen={boardPanel === BOARD_PANEL.ALL} from={resumeFrom}
+      onAll={() => toggle(BOARD_PANEL.ALL)}>
+      <MarketSearchRow search={<BoardSearchBar value={localSearch} placeholder="Search a company, role, technology or title" />}
+        sort={<MarketSortSlot />} />
+      <BoardSortSlot />
+      <MarketFilterRow params={params} otherFilterCount={otherFilterCount} query={localSearch} open={boardPanel}
+        onOpen={toggle} onMore={onMoreFilters} onPatch={onPatch} onClearQuery={clearQuery}
+        onClearAll={() => { onClearAll?.(); clearQuery(); setBoardPanel(null); }}
+        all={{ id: ALL_FILTERS_ID, slot: BOARD_PANEL.ALL, open: boardPanel === BOARD_PANEL.ALL, onPress: () => toggle(BOARD_PANEL.ALL) }} />
       <WordPanel open={boardPanel} params={params} defaultDomain={defaultDomain}
         facets={facets} facetsStatus={facetsStatus} otherFilterCount={otherFilterCount}
         onPatch={onPatch} onOpen={(key) => setBoardPanel(key)} onClose={() => setBoardPanel(null)}
         onMoreFilters={onMoreFilters} />
-    </>
+      <MarketStatsBox figures={marketFigures(facets)} params={params} onPatch={onPatch} loading={facetsStatus === "loading"}
+        onShowAll={() => document.getElementById("openings")?.scrollIntoView?.({ behavior: "smooth", block: "start" })} />
+    </PlateBearing>
   );
 }
 
@@ -343,6 +359,21 @@ function BoardTabs() {
 //
 // The sort list is shared/filterSentence.js's SORT_PANEL, read through sortRows — no copy of it lives
 // here. SORTS stays the server's VALIDATION set for the param.
+// ⭐ D199 C2 (47h): the plate market's sort — "SORT  Best match ▾" beside the search; the same one panel (BoardSortSlot) and
+// the code's five orders. The default reads "Best match" (the sketch's word for the board's own order, D184 B-8's tiers).
+// It keeps BoardControlIcons' rule: Best fit falls back to the default when the résumé goes.
+function MarketSortSlot() {
+  const { boardPanel, setBoardPanel, sortBy, setSortBy, atsSortAvailable } = useJobBoard();
+  const fitRow = sortRows(true).find(r => r.unscoredLast);
+  useEffect(() => {
+    if (!atsSortAvailable && fitRow && sortBy === fitRow.value) setSortBy(DEFAULT_SORT);
+  }, [atsSortAvailable, sortBy, setSortBy, fitRow]);
+  const chosen = isSortChosen(sortBy);
+  const label = chosen ? (sortRows(atsSortAvailable).find(r => r.value === sortBy)?.label || "") : "Best match";
+  return <MarketSortButton label={label} chosen={chosen} open={boardPanel === BOARD_PANEL.SORT}
+    onPress={() => setBoardPanel(current => nextBoardPanel(current, BOARD_PANEL.SORT))} />;
+}
+
 function BoardControlIcons() {
   const { boardPanel, setBoardPanel, sortBy, setSortBy,
           atsSortAvailable } = useJobBoard();
@@ -475,38 +506,48 @@ export function isoWeek(d = new Date()) {
   t.setUTCDate(t.getUTCDate() + 4 - day);
   return Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 86400e3 + 1) / 7);
 }
+// ⭐ D199 C5 / D200 (47h): the political map's sectors are the facets answer's role options grouped by category (area = the
+// openings each holds); tapping one sets the Role word to that category (the sentence and the chips follow), again lifts it.
 function MarketHeroSlot() {
   const { boardHeadline } = useJobBoard();
   const params = boardHeadline?.params || {};
-  const level = sentenceParts(params, {}).slots.find((s) => s.key === "level" && s.active)?.text || null;
   const best = useBestCard();   // 47h: the deck's best undecided card (DeckView publishes it) — no deck, no pin
+  const sectors = useMemo(() => sectorsFromRoleOptions(boardHeadline?.facets?.clauses?.role || []), [boardHeadline?.facets]);
+  const picked = params.category && sectors.some((s) => s.id === params.category) ? params.category : null;
+  const onPatch = boardHeadline?.onPatch;
   return (
-    <MarketHero figures={marketFigures(boardHeadline?.facets)} sector={params.role_label || null} role={params.role_label || null}
-      level={level} week={isoWeek()} best={best}
+    <MarketHero figures={marketFigures(boardHeadline?.facets)} week={isoWeek()} best={best} sectors={sectors} picked={picked}
+      you={sectors.length ? 0 : null}
+      onPick={onPatch ? (id) => onPatch({ category: id || "", subcategory: "" }) : undefined}
       onBest={() => document.querySelector("[data-home-deck]")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-      onBearing={() => document.querySelector("#fh-sentence button")?.focus()} />
+      onBearing={() => { document.getElementById("bearing")?.scrollIntoView?.({ behavior: "smooth", block: "start" }); document.querySelector("#fh-sentence button")?.focus({ preventScroll: true }); }} />
   );
 }
 
 // ⭐ D196 P1 · section 01, the bearing: the board's leg header and lead over the cartouche (BoardHeadlineSlot picks it) and
 // WordPanel beneath, inside `.fh` so the panel keeps its look. The board's "How the board is ordered" aside is NOT drawn: it
 // explains a skills-band order, and draft's deck is ranked by A133 (ATS · best bets · role similarity, with rotation).
-function MarketBearingSlot() {
+// ⭐ D199 C1 (owner 11-25: "the 3rd can live in home and the 1st and 2nd can be merged") · THE MARKET'S ONE SECTION, *Your
+// bearing and openings*: the bearing cartouche with its controls → Deck · Terrain · Index → the pager. Tickets out left the
+// market (the ledger's Home carries them).
+function MarketSectionSlot({ deck, index }) {
   return (
     <PlateRoot className="pl-marketbearing" data-plate-market-bearing="">
-      <section className="pl-section" id="bearing" aria-labelledby="mk-bearing">
-        <LegHeader n={1} meta="THE BEARING · SET FROM YOUR RÉSUMÉ · YOURS TO CHANGE" title={<span id="mk-bearing">Where you’re headed</span>}/>
-        <p className="pl-lead">Your résumé set this when you uploaded it. Tap any part to change it; your change holds until your next résumé.</p>
+      <section className="pl-section" id="bearing" aria-labelledby="mk-bearing" data-market-section="">
+        <LegHeader n={1} meta="YOUR BEARING AND OPENINGS · ONE SECTION" title={<span id="mk-bearing">Where you’re headed, and what’s there</span>}/>
+        <p className="pl-lead">Set the bearing, search or filter; the counts and the openings follow. Pass, save or send any of them; Draft starts the application and it moves to your ledger.</p>
         <header className="fh" data-fh-d147=""><BoardHeadlineSlot /></header>
+        <MarketOpenings deck={deck} index={index} pager={<MarketPagerSlot />} />
       </section>
     </PlateRoot>
   );
 }
-function MarketOpeningsSlot({ deck, index }) {
-  const { boardHeadline } = useJobBoard();
-  const { needsAttentionCount = 0 } = useAutoApply();   // the dock's own "needs you" number
-  return <MarketOpenings deck={deck} index={index} count={marketFigures(boardHeadline?.facets).fit}
-    tickets={{ needsYou: needsAttentionCount, ledgerHref: "/app/auto-apply" }} />;
+// ⭐ D199 C3: the pager under the openings — the board's own page (JobsPanel publishes it); a move goes through its goPage.
+function MarketPagerSlot() {
+  const { boardPager } = useJobBoard();
+  if (!boardPager) return null;
+  return <MarketPager page={boardPager.page} totalPages={boardPager.totalPages} total={boardPager.total} pageSize={boardPager.pageSize}
+    loading={boardPager.loading} onGo={boardPager.goTo} />;
 }
 
 function BoardCounts() {
@@ -770,13 +811,15 @@ function AppDashboard({ authUser, setAuthUser }) {
           {!marketPlate && <header className="fh" data-fh-d147="">
             <BoardHeadlineSlot />
           </header>}
-          <StickyBar top="var(--app-chrome-height, 74px)" className="fh fh--bar-row" data-board-sticky="">
+          {/* ⭐ D199 C2: on the plate market the search and the sort sit in the cartouche (BoardHeadlineSlot) */}
+          {!marketPlate && <StickyBar top="var(--app-chrome-height, 74px)" className="fh fh--bar-row" data-board-sticky="">
             <BoardBar />
-          </StickyBar>
+          </StickyBar>}
         </>}
         views={<BoardViews onImported={() => setJobBoardRefreshKey(k => k + 1)} />}
         board={<>
-          <BoardCounts />
+          {/* ⭐ D199 C4: the stats box (in the cartouche) replaces the counts strip on the plate market */}
+          {!marketPlate && <BoardCounts />}
           <ExtensionFirstRunPrompt />
           <JobsConsole user={authUser} onUserChange={setAuthUser}
             refreshKey={jobBoardRefreshKey} isActive={home}/>
@@ -848,7 +891,7 @@ function AppDashboard({ authUser, setAuthUser }) {
               // ⭐ D196 P1: the same deck and board (the same elements, the same requests), under the market's binder tabs.
               // FIX-1 (owner 11-24): ONE plate root under the whole page — paper (in the person's theme's palette), full
               // height, so no section is ever transparent to the app shell's ground.
-              ? <PlateRoot className="pl-marketpage" data-plate-page="market"><MarketHeroSlot /><MarketBearingSlot /><MarketOpeningsSlot deck={homeDeck} index={homeBoard} /></PlateRoot>
+              ? <PlateRoot className="pl-marketpage" data-plate-page="market"><MarketHeroSlot /><MarketSectionSlot deck={homeDeck} index={homeBoard} /></PlateRoot>
               : <div className="home" data-home="">{homeDeck}{homeBoard}</div>)}
             {openingRoute && <OpeningSheet jobId={decodeURIComponent(openingRoute[1])}/>}
             {/* ⭐ D49 · THE BOARD'S BAR STICKS (StickyBar, above in Home's board column): sticky only works inside its

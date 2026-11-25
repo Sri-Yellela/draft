@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import UsbSuggest from "./UsbSuggest.jsx";
 import { api } from "../lib/api.js";
@@ -42,7 +42,7 @@ export function ViewSegment({ views, value, counts = {}, onChange }) {
 
 /** The search field: the board's keyword, Enter commits it (A74: one press, one search). ⭐ D156 (5): `children` sit
  *  inside the field at its right end — the sort icon. */
-export function BoardSearch({ onSubmit, onPickRole, onPickTech, children = null }) {
+export function BoardSearch({ onSubmit, onPickRole, onPickTech, children = null, value = null, placeholder = "Search a company, title or skill" }) {
   const [q, setQ] = useState("");
   // ⛔ (owner 11-06: "after search it doesnt go back to all jobs. its stuck on searched term results") — the board's
   // query is committed on Enter, so emptying the field (deleting the text) left the last search in force. The term
@@ -51,13 +51,22 @@ export function BoardSearch({ onSubmit, onPickRole, onPickTech, children = null 
   const commit = (query) => { committed.current = query.trim(); onSubmit?.({ query }); };
   const submit = () => commit(q);
   const change = (v) => { setQ(v); if (!String(v).trim() && committed.current) commit(""); };
+  // ⭐ D199 C2 (47h, M1 caveat (iii)): `value` = the search in force (the board's localSearch). When something else changes it —
+  // the plate market's search chip × or Clear all — the box follows, so the field never shows a search that isn't applied.
+  useEffect(() => {
+    if (value == null) return;
+    const v = String(value);
+    if (v.trim() === committed.current) return;
+    committed.current = v.trim();
+    setQ(v);
+  }, [value]);
   return (
     <div className="fh-srch" role="search" aria-label="Job search">
       {/* ⭐ D149 (fullhouse-declutter.html `.sbar`): the field alone — no magnifier — and the sketch's words. */}
       <UsbSuggest field="title" value={q} onChange={change} onPickRole={onPickRole} onPickTech={onPickTech}>
         {sugg => (
           <input {...sugg} type="search" enterKeyHint="search"
-            placeholder="Search a company, title or skill" aria-label="Search jobs"
+            placeholder={placeholder} aria-label="Search jobs"
             onKeyDown={e => {
               sugg.onKeyDown(e);
               if (e.defaultPrevented) return;

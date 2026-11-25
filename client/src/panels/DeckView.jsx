@@ -63,7 +63,7 @@ import { cardFacts } from "../lib/deckCardFacts.js";
 import { shape, ts, TYPE_SCALE_VAR } from "../themes/shapes.js";
 import SendJobPicker from "../components/SendJobPicker.jsx";
 import MarketCardFace from "../plate/MarketCardFace.jsx";   // ⭐ D196 P1: the face in plates (off until the owner's ok)
-import { useMarketPlate, publishFrontCard, publishBestCard, bestOfDeck } from "../plate/marketPlate.js";
+import { useMarketPlate, publishFrontCard, publishBestCard, bestOfDeck, boardPageCards, carryDeck, deckPagePosition } from "../plate/marketPlate.js";
 import { plateTicketSize, plateFanTransform } from "../plate/deckGeometry.js";   // ⭐ D196 FIX-2: the board's ticket size and backs   // D180 P2: Send to a connection
 
 const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SOFT_OFFSET
@@ -684,11 +684,13 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
  * with it, so the pixel diff compares the deck DeckView actually renders, never a stand-in. It fills its column's width.
  */
 /** ⭐ D196 FIX-4 · below the plate ticket: the board's position line and its two 44 px squares (‹ › = J / K and the wheel). */
-function PlatePosRow({ at, of, order, prev, next, onFlip }) {
+// ⭐ D199 C3: with the board's page (`pager`) the line is the place in the WHOLE list — "25 OF 11,247 · PAGE 2".
+function PlatePosRow({ at, of, order, prev, next, onFlip, pager = null, sortChosen = false }) {
   return (
     <div className="plate pl-deckpos" data-deck-count-row="">
       <span className="pl-label pl-muted" data-deck-count="">
-        {at} OF {of} TODAY · {order === "best" ? "BEST MATCH FIRST" : order === "ats" ? "ATS MATCH FIRST" : "AS DEALT"}
+        {pager ? `${deckPagePosition({ index: at - 1, page: pager.page, pageSize: pager.pageSize, total: pager.total })}${sortChosen ? "" : " · SORTED BY HOW MUCH OF YOU IT MATCHES"}`
+          : <>{at} OF {of} TODAY · {order === "best" ? "BEST MATCH FIRST" : order === "ats" ? "ATS MATCH FIRST" : "AS DEALT"}</>}
       </span>
       <span className="pl-deckpos__flip">
         <FlipButton dir={-1} disabled={!prev} onFlip={onFlip} plate />
@@ -886,7 +888,8 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   // A214 (46r): the deck's "Start with your résumé" is the newcomer's one set-up card — the board beside it only says
   // its jobs show once the résumé is in — so the profile the upload sets up is handed to the shared active id, and the
   // board (whose profile read re-runs on that id) leaves its empty state on its own.
-  const setActiveProfileId = useJobBoard()?.setActiveProfileId;
+  const board = useJobBoard();
+  const setActiveProfileId = board?.setActiveProfileId;
   // Cards present on the first ready paint are simply THERE (unless this is the deal); a card that
   // arrives later — an undo, a refusal — fades into its slot.
   const firstPaint = useRef(true);
@@ -974,7 +977,18 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       setLoad({ status: "error", error: e.message || "The deck could not be dealt." });
     }
   }, [deckOrder]);
-  useEffect(() => { fetchDeck(); }, [fetchDeck]);
+  // ⭐ D199 C3 (owner 11-25: "let it replace"): on the plate market the deck is the board's page, not the daily deal — no
+  // /api/draft/today read there. Each new page (or a refetch of it) is dealt again, keeping the decisions made on its cards.
+  useEffect(() => { if (!plateDeck) fetchDeck(); }, [fetchDeck, plateDeck]);
+  const pager = plateDeck ? board?.boardPager || null : null;
+  const pageKey = pager ? `${pager.page}|${pager.loading ? 1 : 0}|${(pager.jobs || []).map((j) => j.jobId ?? j.id).join(",")}` : null;
+  useEffect(() => {
+    if (!pager) return;
+    if (pager.loading && !(pager.jobs || []).length) { setLoad({ status: "loading", error: null }); return; }
+    const next = initialDeck({ date: localDate(), cards: boardPageCards(pager.jobs), reason: (pager.jobs || []).length ? null : "empty" });
+    dispatch({ type: "__replace", state: carryDeck(next, stateRef.current) });
+    setLoad({ status: "ready", error: null });
+  }, [pageKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // ⭐ A126 (9) · LIVE, WHEN READY: the match queue scored more of the board (`board_scored`) — ask for today's deal again
   // (the server re-deals at most every 3 minutes, and only for a better match). Debounced 30 s; never while a card is
   // open or a decision is in flight, so the deck does not change under a gesture — it tries again after.
@@ -987,7 +1001,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
     clearTimeout(deckRefreshTimer.current);
     deckRefreshTimer.current = setTimeout(() => {
       if (deckBusyRef.current) { queueDeckRefresh(); return; }
-      fetchDeck();
+      if (!plateDeck) fetchDeck();
     }, 30_000);
   }, [fetchDeck]);
   useSyncEvents({
@@ -995,7 +1009,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
     deck_reshuffled: () => {
       reshuffleNextRef.current = true;
       clearTimeout(deckRefreshTimer.current);
-      const go = () => { if (deckBusyRef.current) { deckRefreshTimer.current = setTimeout(go, 2000); return; } fetchDeck(); };
+      const go = () => { if (deckBusyRef.current) { deckRefreshTimer.current = setTimeout(go, 2000); return; } if (!plateDeck) fetchDeck(); };
       go();
     },
   });
@@ -1390,6 +1404,11 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
         {load.status === "ready" && s.size > 0 && isFinished(s) && (
           <EndOfDeck s={s} tally={tally} needsReview={needsAttentionCount} onUndo={toast ? undo : null} />
         )}
+        {/* ⭐ D199 C3: the page's last card decided → the next page of the same list, one press (never fetched by itself) */}
+        {load.status === "ready" && s.size > 0 && isFinished(s) && pager && pager.page < pager.totalPages && (
+          <div className="plate pl-decknextpage"><button type="button" className="pl-btn pl-btn--secondary" data-deck-next-page=""
+            onClick={() => pager.goTo?.(pager.page + 1)}>Deal page {(pager.page + 1).toLocaleString("en-US")} →</button></div>
+        )}
         </div>
 
         {load.status === "ready" && (current || order.length > 0) && !isFinished(s) && (
@@ -1430,7 +1449,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
               </div>
               </div>
               {/* ⭐ D196 FIX-4: below the ticket, the board's position line and ‹ › (the same step as J / K and the wheel) */}
-              {plateDeck && <PlatePosRow at={Math.min(s.index + 1, s.size)} of={s.size} order={deckOrder}
+              {plateDeck && <PlatePosRow at={Math.min(s.index + 1, s.size)} of={s.size} order={deckOrder} pager={pager} sortChosen={!!board?.sortBy}
                 prev={stepTarget(s, -1) != null} next={stepTarget(s, 1) != null} onFlip={step} />}
               {plateDeck && sent && <span role="status" data-deck-sent="" className="plate pl-decksent">{sent}</span>}
 

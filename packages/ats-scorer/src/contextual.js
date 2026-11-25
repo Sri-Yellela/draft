@@ -132,6 +132,19 @@ export function looksLikeHeading(line, { bullet = false } = {}) {
 }
 const BOILERPLATE = /(equal (employment )?opportunity|\beeo\b|regardless of (race|gender|age|religion)|reasonable accommodation|without regard to|protected (veteran|characteristic)|401\(?k\)?|health(, dental)? (and|&) (dental|vision)|paid time off|parental leave|benefits include|we offer (competitive|a competitive)|^(we are|we['’]re) (a|an|the) |^founded in \d{4}|^our mission is)/i;
 const BULLET = /^\s*(?:[-•*·▪◦‣–]|\d+[.)])\s+/;
+// ⭐ D199 C6 (owner 11-25, defect (g)): a line about WHO the role works with or reports to, or where it sits, is the role's
+// context, not a duty — "You'll work directly with our Head of Engineering…" was listed as a missing duty. Such a line
+// says nothing the résumé could show, so it is never a phrase.
+export const CONTEXT_LINE = new RegExp([
+  String.raw`^(?:in this role,?\s*|as (?:a|an|the) [^,]{1,40},\s*)?(?:you['’]ll|you will|you would|you['’]d|you['’]re going to)\s+(?:`,
+  String.raw`(?:work|be working|collaborate|partner|sit|be sitting)\s+(?:very\s+)?(?:directly|closely|hand[- ]in[- ]hand|side[- ]by[- ]side|alongside|together)\b`,
+  String.raw`|report(?:ing)?\s+(?:directly\s+)?(?:in\s*)?to\b|join(?:ing)?\b|be (?:joining|part of|reporting|based|located|embedded|working (?:directly|closely))\b`,
+  String.raw`|have the (?:chance|opportunity) to\b|get to (?:work|learn)\b)`,
+  String.raw`|^(?:this|the) (?:role|position|team|job|hire)\s+(?:reports|sits|is (?:part of|based|located|remote|hybrid)|will (?:report|sit|be based))\b`,
+  String.raw`|^reporting (?:directly )?(?:in)?to\b`,
+].join(""), "i");
+export const isContextLine = (line) => CONTEXT_LINE.test(String(line || "").replace(BULLET, "").trim());
+
 
 const stem = (w) => w.replace(/(ings?|ed|es|s)$/, "").replace(/e$/, "");
 export function contentTokens(text) {
@@ -158,7 +171,7 @@ export function responsibilityPhrases(postingText) {
     if (OTHER_HEAD.test(line) && line.length < 60) { inResp = false; continue; }
     const isBullet = BULLET.test(line);
     if (looksLikeHeading(isBullet ? line.replace(BULLET, "") : line, { bullet: isBullet })) continue;   // 47f FIX-6
-    if (BOILERPLATE.test(line)) continue;
+    if (BOILERPLATE.test(line) || isContextLine(line)) continue;   // D199 C6: context lines too
     if (isBullet) (inResp ? inSection : bullets).push(line.replace(BULLET, ""));
     else if (inResp) inSection.push(...line.split(/(?<=[.;])\s+/).filter(t => !soft || ADDRESSES_READER.test(t)));
   }
@@ -166,7 +179,7 @@ export function responsibilityPhrases(postingText) {
   const out = [], seen = new Set();
   for (const raw of pool) {
     if (COMPANY_OPENER.test(String(raw).trim())) continue;
-    if (looksLikeHeading(raw, { bullet: true }) || BOILERPLATE.test(String(raw).trim())) continue;   // 47f FIX-6: a split sentence too
+    if (looksLikeHeading(raw, { bullet: true }) || BOILERPLATE.test(String(raw).trim()) || isContextLine(raw)) continue;   // 47f FIX-6: a split sentence too (D199 C6: and a context line)
     const tokens = contentTokens(raw).slice(0, PHRASE_TOKENS);
     if (tokens.length < 3) continue;
     const key = tokens.join(" ");

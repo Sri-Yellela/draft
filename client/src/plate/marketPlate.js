@@ -105,3 +105,37 @@ export function publishBestCard(next) {
 export function useBestCard() {
   return useSyncExternalStore((f) => { bestListeners.add(f); return () => bestListeners.delete(f); }, () => best, () => best);
 }
+
+// ⭐ D199 C3 (owner 11-25: "let it replace") · ON THE PLATE MARKET THE DECK PAGES THROUGH THE BOARD'S LIST — the page the
+// board holds (JobsPanel publishes it, JobBoardContext.boardPager) dealt as cards, in the board's own order, instead of the
+// daily deal. A card is the board's job as the deal stores it (services/dailyDraft.js deckSnapshot: the $Job shape), its
+// score the board's stored ATS score (the ticket's figure).
+/** Pure: the board's page → the deck's cards. */
+export function boardPageCards(jobs = []) {
+  const seen = new Set();
+  const out = [];
+  for (const j of jobs || []) {
+    const id = j?.id ?? j?.jobId;
+    if (id == null || seen.has(String(id))) continue;
+    seen.add(String(id));
+    const score = Number.isFinite(Number(j.baseAtsScore ?? j.matchScore)) && (j.baseAtsScore ?? j.matchScore) != null ? Number(j.baseAtsScore ?? j.matchScore) : null;
+    out.push({ job: { ...j, id }, score, band: null });
+  }
+  return out;
+}
+/** Pure: a fresh page's deck state keeps the decisions already made on its cards and stays on the card you were on. */
+export function carryDeck(next, prev) {
+  if (!prev?.cards?.length) return next;
+  const decided = new Map(prev.cards.filter((c) => c.decision).map((c) => [String(c.job.id), c]));
+  const cards = next.cards.map((c) => { const d = decided.get(String(c.job.id)); return d ? { ...c, decision: d.decision, runId: d.runId } : c; });
+  const onId = prev.cards[prev.index]?.job?.id;
+  const at = cards.findIndex((c) => String(c.job.id) === String(onId) && !c.decision);
+  const first = cards.findIndex((c) => !c.decision);
+  return { ...next, cards, index: at >= 0 ? at : first >= 0 ? first : cards.length };
+}
+/** Pure: the plate deck's position line — "25 OF 11,247 · PAGE 2" (the place in the whole list, not in the page). */
+export function deckPagePosition({ index = 0, page = 1, pageSize = 50, total = null } = {}) {
+  const at = (Math.max(1, page) - 1) * pageSize + index + 1;
+  const f = (n) => Number(n).toLocaleString("en-US");
+  return `${f(at)} OF ${Number.isFinite(total) ? f(total) : "—"} · PAGE ${f(Math.max(1, page))}`;
+}

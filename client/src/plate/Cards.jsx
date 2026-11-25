@@ -8,7 +8,8 @@ import { Stamp } from "./Marks.jsx";
  * `figures` = { label, value } (D192's contextual parts, e.g. "ROLE FIT · STACK · DUTIES" / "88 · 75 · 72").
  * partial: a list with no data says so; nothing is invented.
  */
-export function FieldCard({ kicker = "FIELD CARD · WHY IT FITS", note = "NO AI", alike = [], gaps = [], figures, className = "", lead = null, foot = null, groupRule = true, inlineLinks = false, ...s }) {   // D202: lead / foot — FitCard's count on top, its Turn over below
+// D199 C6 (47h): `children` = what the page adds under the scores (the market's company in brief and the sheet link).
+export function FieldCard({ kicker = "FIELD CARD · WHY IT FITS", note = "NO AI", alike = [], gaps = [], figures, className = "", lead = null, foot = null, groupRule = true, inlineLinks = false, children = null, ...s }) {   // D202: lead / foot — FitCard's count on top, its Turn over below
   const gate = plateState(s, { height: 300, radius: "plate", label: "Loading why it fits", lines: 4 });
   if (gate) return gate;
   return (
@@ -36,12 +37,13 @@ export function FieldCard({ kicker = "FIELD CARD · WHY IT FITS", note = "NO AI"
               {figures.items.map((f) => (
                 <div key={f.label} className="pl-card__fig" data-fig={f.key}>
                   <dt className="pl-label pl-muted">{f.label}</dt>
-                  <dd className="pl-card__num">{f.value ?? <><span aria-hidden="true">—</span><span className="pl-sr">not scored yet</span></>}</dd>
+                  <dd className="pl-card__num">{f.value ?? <><span aria-hidden="true">—</span><span className="pl-card__why">{f.why || "NOT SCORED YET"}</span></>}</dd>
                 </div>
               ))}
             </dl>
           ) : <div className="pl-card__foot"><span className="pl-label pl-muted">{figures.label}</span><span className="pl-card__num">{figures.value ?? "—"}</span></div>}
         </> : null}
+        {children ? <><div className="pl-card__rule"/>{children}</> : null}
         {foot}
       </div>
     </aside>

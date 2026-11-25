@@ -93,6 +93,9 @@ export function JobBoardProvider({ children }) {
   // committed filters, publishes what it projects ({ params, defaultDomain, nothingMatches, facets,
   // facetsStatus, otherFilterCount, onPatch, onMoreFilters }).
   const [boardHeadline, setBoardHeadline] = useState(null);
+  // ⭐ D199 C3 (47h) · THE PAGER — JobsPanel publishes the page it holds ({ page, totalPages, total, pageSize, jobs, loading,
+  // goTo }) so the plate market draws the pager under the openings and the deck pages through the same list.
+  const [boardPager, setBoardPager] = useState(null);
 
   // D26 · the board's bar now publishes ONLY `query`. A key it does not publish is not "cleared": the
   // level, domain and location it used to carry live in the sentence's dials, and spreading
@@ -139,6 +142,7 @@ export function JobBoardProvider({ children }) {
       filterPanelOpen, setFilterPanelOpen, activeFilterCount, setActiveFilterCount,
       boardPanel, setBoardPanel,
       boardHeadline, setBoardHeadline,
+      boardPager, setBoardPager,
     }}>
       {children}
     </JobBoardContext.Provider>

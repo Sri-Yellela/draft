@@ -12,6 +12,7 @@
 // view-transition name), data-deck-signal (the match opens the report), data-company-link, data-deck-action="pass" … .
 // R2: no logo → the letter tile; no pay → "Pay not posted"; no sponsorship data → no stamp (nothing says "no").
 import { Link } from "react-router-dom";
+import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import PlateRoot from "./PlateRoot.jsx";
 import { Opening } from "./Tickets.jsx";
 import { cardFacts } from "../lib/deckCardFacts.js";
@@ -19,6 +20,7 @@ import { companyPath } from "../lib/companySlug.js";
 import { TITLE_ATTR } from "../lib/viewTransitions.js";
 import { DECISIONS } from "../lib/deckState.js";
 import { sectorRegion } from "./marketPlate.js";
+import { H1bStampPopover, CompanyStackPopover, StackChipPopover } from "./MarkPopover.jsx";   // ⭐ D200 Rule 2: every mark answers
 
 const stop = (e) => e.stopPropagation();
 export const STACK_MAX = 6;   // the board shows four; six still sits in two rows at 828 px and wraps cleanly below
@@ -104,6 +106,9 @@ export function TicketActions({ onDecide, onSend, tab, title = "" }) {
 }
 
 export default function MarketCardFace({ card, headingRef, isFront, onSignal, onOpenPost, onDecide, onSend, size, bare = false }) {
+  // D200 Rule 2: a stack chip's "Show openings using it" sets the Technology word (the sentence and the chips follow)
+  const patch = useJobBoard()?.boardHeadline?.onPatch;
+  const onFilterTech = patch ? (tech) => patch({ tech }) : null;
   const o = openingFromCard(card);
   const id = card?.job?.id;
   const tab = isFront ? undefined : -1;
@@ -128,6 +133,10 @@ export default function MarketCardFace({ card, headingRef, isFront, onSignal, on
                       ...(isFront ? { [TITLE_ATTR]: id } : null),
                       // the board's ticket has no "Open the posting": the title opens the long post (D168), as Enter does
                       onClick: isFront && onOpenPost ? (e) => { stop(e); onOpenPost(); } : undefined }}
+        // ⭐ D200 Rule 2 (A243): the stamp opens the filings, the letter tile the company's stack, a chip explains or filters
+        stamp={bare ? undefined : (node) => <H1bStampPopover company={o.company} tabIndex={tab}>{node}</H1bStampPopover>}
+        logo={bare ? undefined : (tile) => <CompanyStackPopover company={o.company} tabIndex={tab}>{tile}</CompanyStackPopover>}
+        chip={bare ? undefined : (t, node) => <StackChipPopover name={t.name} yours={t.yours} tabIndex={tab} onFilter={onFilterTech}>{node}</StackChipPopover>}
         actions={bare ? null : <TicketActions onDecide={onDecide} onSend={onSend} tab={tab} title={o.title}/>}/>
     </PlateRoot>
   );

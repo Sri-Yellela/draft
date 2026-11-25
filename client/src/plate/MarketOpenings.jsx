@@ -7,7 +7,6 @@
 // doesn't carry that band per opening yet. The tab says so in the "not yet" drawer (R1) rather than drawing positions it
 // can't back.
 import { useEffect, useMemo, useState } from "react";
-import PlateRoot from "./PlateRoot.jsx";
 import { BinderTabs, LegHeader } from "./Plates.jsx";
 import { FieldCard } from "./Cards.jsx";
 import { Ticket } from "./Tickets.jsx";
@@ -19,6 +18,9 @@ import { api } from "../lib/api.js";
 import { fieldCardView } from "../../../shared/contextualView.js";
 import { POSTING_ON_DECK_EVENT, DECK_POST_SLOT_ID } from "../lib/jobUrl.js";   // ⭐ A240: a posting opened from the Index shows on the Deck tab
 import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
+import { useCompanyBrief } from "../lib/companyBrief.js";   // ⭐ D199 C6: the company in brief
+import { jobDetailHref } from "../lib/jobUrl.js";
+import { CompanyStackPopover } from "./MarkPopover.jsx";
 
 export const MARKET_TABS = Object.freeze([
   { id: "deck", label: "Deck", sub: "ONE AT A TIME" },
@@ -57,6 +59,50 @@ export function useFrontField() {
   return { front, status: state.status, view, retry: () => setNonce((n) => n + 1) };
 }
 
+// ⚠ D199 C7: the opening sheet's own address (/app/jobs/<id>) is lane card's; until it lands the link opens the posting the
+// board's one way (?job=). One line for the merge to change.
+export const openingSheetHref = (jobId) => jobDetailHref(jobId);
+
+/** Pure: the brief's facts line — "214 H-1B filed, FY25 · Hiring ↑ 171 % since June · 38 open roles"; a part not held is left out. */
+export function briefFacts(brief) {
+  if (!brief) return [];
+  const out = [];
+  if (Number.isFinite(brief.filings)) out.push({ key: "h1b", b: brief.filings > 0 ? brief.filings.toLocaleString("en-US") : "No", t: brief.filings > 0 ? ` H-1B filed${brief.fiscalYear ? `, FY${String(brief.fiscalYear).slice(-2)}` : ""}` : ` H-1B filings found${brief.fiscalYear ? ` in FY${String(brief.fiscalYear).slice(-2)}` : ""}` });
+  else out.push({ key: "h1b", b: null, t: "No H-1B record found" });
+  if (brief.trend) out.push({ key: "trend", pre: "Hiring ", b: `${brief.trend.dir === "up" ? "↑" : brief.trend.dir === "down" ? "↓" : "→"} ${Math.abs(brief.trend.pct)} %`, t: brief.trend.since ? ` since ${brief.trend.since}` : "" });
+  if (Number.isFinite(brief.openJobs)) out.push({ key: "open", b: brief.openJobs.toLocaleString("en-US"), t: ` open role${brief.openJobs === 1 ? "" : "s"}` });
+  return out;
+}
+
+/** D199 C6 · the field card's foot: the company in brief (filings, the hiring trend, open roles, their top five technologies
+ *  with your marks) and "Open the opening sheet →". Reads lib/companyBrief.js (the survey sheet's own answer). */
+export function CompanyBrief({ company, jobId }) {
+  const { status, brief } = useCompanyBrief(company, !!company);
+  return (
+    <div className="pl-fieldbrief" data-company-brief="">
+      <span className="pl-label pl-muted">THE COMPANY IN BRIEF</span>
+      {status === "ready" && brief ? <>
+        <div className="pl-fieldbrief__facts">{briefFacts(brief).map((f) => <span key={f.key}>{f.pre || ""}{f.b != null ? <b>{f.b}</b> : null}{f.t}</span>)}</div>
+        {brief.tech.length ? (
+          <div className="pl-fieldbrief__chips" aria-label={`${brief.name}'s top technologies`}>
+            {brief.tech.slice(0, 5).map((t) => {
+              const yours = t.yours === "proven" || t.yours === "listed";
+              return (
+                <CompanyStackPopover key={t.name} company={company}>
+                  <span className="pl-fieldbrief__chip" data-yours={yours ? "true" : "false"}><i aria-hidden="true"/>{t.name}
+                    <span className="pl-sr">{t.yours == null ? "" : yours ? " (on your résumé)" : " (not on your résumé yet)"}</span></span>
+                </CompanyStackPopover>
+              );
+            })}
+          </div>
+        ) : <span className="pl-label pl-muted">NO STACK READ FROM THEIR POSTINGS YET</span>}
+      </> : status === "loading" || status === "idle" ? <span className="pl-label pl-muted" role="status">READING THE COMPANY…</span>
+        : <span className="pl-label pl-muted">{status === "none" ? "NO SURVEY SHEET FOR THIS COMPANY YET" : "THE COMPANY DIDN’T LOAD"}</span>}
+      {jobId ? <a className="pl-fieldcard__sheet" href={openingSheetHref(jobId)} data-opening-sheet="">Open the opening sheet →</a> : null}
+    </div>
+  );
+}
+
 /** The field card for the card on top of the deck: D192's contextual block, fetched once per card (as the ATS card does). */
 export function MarketField() {
   const { front, status, view, retry } = useFrontField();
@@ -65,9 +111,10 @@ export function MarketField() {
   if (!front?.jobId) return <FieldCard state="empty" emptyText="The field card fills in for the opening on top of the deck."/>;
   if (status === "loading" || status === "idle") return <FieldCard state="loading"/>;
   if (status === "error") return <FieldCard state="error" errorText="Why it fits didn't load." onRetry={retry}/>;
-  if (!view) return <FieldCard state="partial" alike={[]} gaps={[]}/>;
+  const brief = <CompanyBrief company={front.company} jobId={front.jobId}/>;
+  if (!view) return <FieldCard state="partial" alike={[]} gaps={[]}>{brief}</FieldCard>;
   const gaps = view.gaps.map((g) => ({ text: g.text, link: g.tech && slugs[g.tech] ? { label: "Learn it →", href: atlasHref(slugs[g.tech]) } : null }));
-  return <FieldCard alike={view.alike} gaps={gaps} figures={view.figures}/>;
+  return <FieldCard alike={view.alike} gaps={gaps} figures={view.figures}>{brief}</FieldCard>;
 }
 
 /**
@@ -106,7 +153,12 @@ export function MarketTickets({ needsYou = 0, ledgerHref = "/app/auto-apply" }) 
   );
 }
 
-export default function MarketOpenings({ deck, index, count = null, field = null, tickets = null, initialTab = "deck" }) {   // field: the gallery / F5 fixture's own card
+// ⭐ D199 C1 (owner 11-25: "the 3rd can live in home and the 1st and 2nd can be merged") · the openings are no longer a section
+// of their own: they sit inside the market's ONE section (App.jsx MarketSectionSlot), under the bearing and its controls —
+// the binder tabs, then the pager (`pager`). "Tickets out" left the market (MarketTickets stays exported for Home's ledger).
+// ⭐ D199 C6: the deck ticket keeps its decided width (.pl-market-deck > :first-child, flex 0 1 560px) and the spare width
+// goes to the field card (.pl-market-deck__side, flex 1 1 360px).
+export default function MarketOpenings({ deck, index, field = null, initialTab = "deck", pager = null }) {   // field: the gallery / F5 fixture's own card
   const [tab, setTab] = useState(initialTab);
   // ⭐ A240 (47g, walked): an Index row's title opens its posting through the board's one open path (D168), which draws it in
   // the deck's post slot — inside the Deck tab's panel. With Index selected that panel is hidden, so the click showed
@@ -126,19 +178,14 @@ export default function MarketOpenings({ deck, index, count = null, field = null
     return () => window.removeEventListener(POSTING_ON_DECK_EVENT, onDrawn);
   }, []);
   return (
-    <PlateRoot className="pl-marketopenings" data-plate-market-openings="">
-      <section className="pl-section" aria-labelledby="mk-openings" id="openings">
-        <LegHeader n={2} id="mk-openings-head" meta={`OPENINGS${Number.isFinite(count) ? ` · ${count.toLocaleString("en-US")} FIT YOUR BEARING` : ""}`}
-          title={<span id="mk-openings">Your openings, best first</span>}/>
-        <p className="pl-lead">The ones that match most of you sit on top. Pass, save or send any of them; Draft starts the application and it moves to your ledger.</p>
-        <BinderTabs tabs={MARKET_TABS} selected={tab} onSelect={setTab} label="How to look at your openings" idBase="mk-tab"
-          panels={{
-            deck: <div className="pl-market-deck">{deck}<div className="pl-market-deck__side">{field || <MarketField/>}</div></div>,
-            terrain: <Drawer text="The terrain draws each opening by how many of your top skills it matches. It needs that count for every opening on the deck, which the board doesn't send yet — use Deck or Index meanwhile."/>,
-            index,
-          }}/>
-      </section>
-      {tickets ? <MarketTickets {...tickets}/> : null}
-    </PlateRoot>
+    <div className="pl-marketopenings" data-plate-market-openings="" id="openings">
+      <BinderTabs tabs={MARKET_TABS} selected={tab} onSelect={setTab} label="View openings" idBase="mk-tab"
+        panels={{
+          deck: <div className="pl-market-deck">{deck}<div className="pl-market-deck__side">{field || <MarketField/>}</div></div>,
+          terrain: <Drawer text="The terrain draws each opening by how many of your top skills it matches. It needs that count for every opening on the deck, which the board doesn't send yet — use Deck or Index meanwhile."/>,
+          index,
+        }}/>
+      {pager}
+    </div>
   );
 }

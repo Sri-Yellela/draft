@@ -23,7 +23,9 @@ export function fromWords(from) {
   return `FROM ${name.toUpperCase()}${day ? ` · ${day}` : ""}`;
 }
 
-export default function PlateBearing({ params = {}, defaultDomain = null, nothingMatches = false, open = null, onToggle, allOpen = false, onAll, allSlot, from = null }) {
+// ⭐ D199 C2 (47h): `children` = the market's controls (search + sort, the filter chips, the open panel, the stats box), drawn
+// INSIDE the cartouche under the sentence (the `Market` board); with them, All filters moves into the chips row.
+export default function PlateBearing({ params = {}, defaultDomain = null, nothingMatches = false, open = null, onToggle, allOpen = false, onAll, allSlot, from = null, children = null }) {
   const { verb, slots } = sentenceParts(params, { defaultDomain, nothingMatches });
   return (
     <PlateRoot className="pl-bearing" data-plate-bearing="">
@@ -47,10 +49,11 @@ export default function PlateBearing({ params = {}, defaultDomain = null, nothin
           })}
           .
         </h1>
-        <div className="pl-cartouche__actions">
+        {children ? <div className="pl-cartouche__controls" data-market-controls="">{children}</div> : null}
+        {children ? null : <div className="pl-cartouche__actions">
           <button type="button" className="pl-btn" id={ALL_FILTERS_ID} data-slot={allSlot} aria-expanded={allOpen}
             aria-controls={allOpen ? PANEL_ID : undefined} onClick={onAll}><Icon name="filters"/>All filters</button>
-        </div>
+        </div>}
       </div>
     </PlateRoot>
   );

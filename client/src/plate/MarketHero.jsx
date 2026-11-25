@@ -1,19 +1,18 @@
-// ⭐ D196 P1 · THE MARKET'S HERO — the board's first section on real data: the kicker row, "The market.", the lead, the
-// stats strip, the two actions, and the survey plate with the person marked in their sector.
-// Nothing invented (R1 / R2): a figure the board has no count for is left out (never a 0 or a guess); the plate's best-match
-// pin and route are drawn only when the page knows the best match (`best`); the YOU ARE HERE tag says only what the
-// résumé placed (role, level) — no file name, no city the page wasn't given.
+// ⭐ D196 P1 → D199 C5 + D200 Rule 3 (owner 11-25, 47h) · THE MARKET'S HERO — the `Market` board: ONE LINE OF HEADER (a mono
+// kicker "THE MARKET · WEEK 48", the serif "Openings for you", one line of counts "11,247 fit your bearing · 5 new today",
+// the two actions) beside THE POLITICAL MAP (plate/MarketMap.jsx). No 96–104 px title, no lead restating the page (D200
+// Rule 3: a header earns its space); the stats box moved under the filters (C4).
+// Nothing invented (R1 / R2): a count the board didn't answer with is left out of the line, never a 0.
 import PlateRoot from "./PlateRoot.jsx";
-import { TitleBlock, PlateHero } from "./Plates.jsx";
-import MarketSurveyPlate from "./drawings/MarketSurveyPlate.jsx";
+import { Kickers } from "./Marks.jsx";
+import { MarketMap } from "./MarketMap.jsx";
 import { sectorRegion } from "./marketPlate.js";
 
-// Where "you" sit on the plate, per sector — the middle of each territory polygon in the drawing's viewBox (640 × 520),
-// read from MarketSurveyPlate's paths (IV is the board's own beacon, 192,166, inside its summit contours).
+// ⚠ kept for the old board's coordinates (the P1 survey plate, still in the gallery): where "you" sat per sector.
 export const SECTOR_SPOTS = Object.freeze({ IV: [192, 166], VIII: [480, 120], VII: [470, 300], V: [270, 400], VI: [95, 370] });
 const SECTOR_NAME = { IV: "Software engineering", VIII: "Data and AI", VII: "Project management", V: "Business and finance", VI: "Design" };
 
-/** Pure: the stats strip's cells — only the figures the board actually counted. */
+/** Pure: the four figures' cells — only the figures the board actually counted (the stats box's own list, MarketControls). */
 export function marketCells({ fit, newToday, filed, strong } = {}) {
   return [
     Number.isFinite(fit) ? { label: "FIT YOUR BEARING", value: fit } : null,
@@ -23,39 +22,37 @@ export function marketCells({ fit, newToday, filed, strong } = {}) {
   ].filter(Boolean);
 }
 
-/** Pure: the plate's spot and words for a sector name (unknown → IV, as the palette falls back). */
+/** Pure: the old plate's spot and words for a sector name (unknown → IV, as the palette falls back). */
 export function youOnPlate(sector) {
   const region = sectorRegion(sector);
   const spot = SECTOR_SPOTS[region] || SECTOR_SPOTS.IV;
   return { region, spot, name: sector ? SECTOR_NAME[region] || sector : null };
 }
 
-export default function MarketHero({ figures = {}, sector = null, role = null, level = null, from = null, place = null, week = null, best = null, onBest, onBearing }) {
-  const cells = marketCells(figures);
-  const you = youOnPlate(sector);
-  const where = [role, level].filter(Boolean).join(" · ");
-  const label = `The market as a survey plate: sectors drawn as territories${you.name ? `, you marked in ${you.name}` : ""}${best ? `, with a route to your best match${best.company ? ` at ${best.company}` : ""}` : ""}`;
-  const tags = [
-    // the board's three tags at the board's places (left / top in % of the plate)
-    where ? { kicker: "YOU ARE HERE", line: where, sub: from, x: 28, y: 2, kind: "here" } : null,
-    best ? { kicker: "BEST MATCH", line: [best.match, best.company].filter(Boolean).join(" · "), sub: best.title || null, x: 63, y: 30, kind: "best" } : null,
-    Number.isFinite(figures.newToday) && figures.newToday > 0 ? { kicker: "NEW TODAY", line: `${figures.newToday.toLocaleString("en-US")} openings`, sub: "posted in the last day", x: 5, y: 66 } : null,
-  ].filter(Boolean);
+/** Pure: the header's one line — "11,247 fit your bearing · 5 new today"; a missing count is left out; null when none. */
+export function heroLine({ fit, newToday } = {}) {
+  const f = (n) => n.toLocaleString("en-US");
+  const parts = [Number.isFinite(fit) ? `${f(fit)} fit your bearing` : null, Number.isFinite(newToday) ? `${f(newToday)} new today` : null].filter(Boolean);
+  return parts.length ? parts.join(" · ") : null;
+}
+
+export default function MarketHero({ figures = {}, week = null, best = null, sectors = [], picked = null, you = null, onPick, onBest, onBearing, captionTail = null }) {
+  const line = heroLine(figures);
   return (
     <PlateRoot className="pl-markethero" data-plate-market-hero="">
-      <section className="pl-hero" aria-labelledby="mk-title">
-        <TitleBlock kickers={["THE MARKET", place ? `MKT · ${String(place).toUpperCase()}` : null, week ? `WEEK ${week}` : null].filter(Boolean)} title="The market" titleId="mk-title"
-          lead={best ? "Every opening that fits you, surveyed from your résumé. You’re marked where your résumé places you; the route runs to the job that matches you most."
-            : "Every opening that fits you, surveyed from your résumé. You’re marked where your résumé places you."}
-          stats={cells.length ? { cells, label: "The market in figures" } : null}
-          actions={<>
+      <section className="pl-mk-hero" aria-labelledby="mk-title">
+        <div className="pl-mk-hero__main" data-market-header="">
+          <Kickers parts={["THE MARKET", week ? `WEEK ${week}` : null].filter(Boolean)}/>
+          <h1 id="mk-title" className="pl-mk-hero__title">Openings for you</h1>
+          {line ? <p className="pl-mk-hero__line" data-hero-line="">{line}</p> : null}
+          <div className="pl-actions">
             {onBest ? <button type="button" className="pl-btn pl-btn--primary" onClick={onBest}>See your best match →</button> : null}
             {onBearing ? <button type="button" className="pl-btn pl-btn--secondary" onClick={onBearing}>Change the bearing</button> : null}
-          </>}/>
-        <PlateHero aspect="640 / 520" tags={tags} captionBox
-          caption={<><span className="pl-label">PLATE · THE MARKET{week ? `, WEEK ${week}` : ""}</span><span className="pl-label pl-muted">◆ YOU · ○ OPENING{best ? " · ‒ ‒ ROUTE TO BEST MATCH" : ""}</span></>}>
-          <MarketSurveyPlate label={label} you={you.spot} best={best ? [Math.min(600, you.spot[0] + 160), Math.max(40, you.spot[1] - 64)] : null}/>
-        </PlateHero>
+          </div>
+        </div>
+        <MarketMap sectors={sectors} picked={picked} figures={figures} you={you} best={best} onPick={onPick}
+          caption={<><span className="pl-label">THE POLITICAL MAP{week ? ` · WEEK ${week}` : ""}{captionTail ? ` · ${captionTail}` : ""}</span>
+            <span className="pl-label pl-muted">TAP A TERRITORY · + / − TO ZOOM · DRAG TO PAN</span></>}/>
       </section>
     </PlateRoot>
   );

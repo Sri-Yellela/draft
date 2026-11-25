@@ -33,7 +33,9 @@ export function Ticket({ kicker, title, line, go, href, tone = "plain", onClick,
 // leave the gallery's markup unchanged when absent: `as` (the deck's FanCard is already the <article>, so its face is a
 // div), `company` (the deck's router Link with its data-company-link hook), `match` (the deck's button that opens the
 // report) and `titleProps` (+ `titleTag`: the deck's h2 with its id, ref and view-transition name). `rest` lands on the root.
-export function Opening({ opening = {}, actions, as: Root = "article", company, match, titleProps, titleTag: TitleTag = "h3", rootProps, ...s }) {
+// ⭐ D200 Rule 2 (47h): `logo(tile)`, `chip(t, node)` and `stamp(node)` let a page wrap the marks so each answers (the market's
+// popovers, plate/MarkPopover.jsx); without them the marks draw as before.
+export function Opening({ opening = {}, actions, as: Root = "article", company, match, titleProps, titleTag: TitleTag = "h3", rootProps, logo, chip, stamp, ...s }) {
   const gate = plateState(s, { height: 420, radius: "sheet", label: "Loading the opening", lines: 4 });
   if (gate) return gate;
   const o = opening;
@@ -47,7 +49,7 @@ export function Opening({ opening = {}, actions, as: Root = "article", company, 
       <div className="pl-opening__body">
         <div className="pl-opening__top">
           <div className="pl-opening__co">
-            <LetterTile name={o.company} logo={o.logo} region={o.region}/>
+            {logo ? logo(<LetterTile name={o.company} logo={o.logo} region={o.region}/>) : <LetterTile name={o.company} logo={o.logo} region={o.region}/>}
             <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
               {company || (o.companyHref ? <a className="pl-opening__coname" href={o.companyHref}>{o.company}</a> : <span className="pl-opening__coname">{o.company}</span>)}
               {o.place ? <span className="pl-opening__place" data-deck-location="">{o.place}</span> : null}
@@ -64,10 +66,10 @@ export function Opening({ opening = {}, actions, as: Root = "article", company, 
         {o.stack?.length ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }} data-works-with="">
             <span className="pl-label pl-muted">WORKS WITH · ✓ ON YOUR RÉSUMÉ</span>
-            <div className="pl-stackchips">{o.stack.map((t) => <StackChip key={t.name} name={t.name} yours={t.yours}/>)}</div>
+            <div className="pl-stackchips">{o.stack.map((t) => (chip ? <span key={t.name} style={{ display: "contents" }}>{chip(t, <StackChip name={t.name} yours={t.yours}/>)}</span> : <StackChip key={t.name} name={t.name} yours={t.yours}/>))}</div>
           </div>
         ) : s.state === "partial" ? <NoData>STACK · NO DATA YET</NoData> : null}
-        {o.sponsors ? <span className="pl-opening__stamp"><Stamp land={o.stampLand !== false}>{o.sponsorLabel || "FILED H-1B"}</Stamp></span> : null}
+        {o.sponsors ? <span className="pl-opening__stamp" data-stamp-answers={stamp ? "" : undefined}>{stamp ? stamp(<Stamp land={o.stampLand !== false}>{o.sponsorLabel || "FILED H-1B"}</Stamp>) : <Stamp land={o.stampLand !== false}>{o.sponsorLabel || "FILED H-1B"}</Stamp>}</span> : null}
       </div>
       {actions ? <><div aria-hidden="true" className="pl-opening__tear"/><div className="pl-opening__actions" data-deck-actions="">{actions}</div></> : null}
     </Root>
