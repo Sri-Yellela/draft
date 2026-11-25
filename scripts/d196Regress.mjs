@@ -29,6 +29,18 @@ export const LAUNCH_ARGS = Object.freeze(["--disable-lcd-text"]);
 
 /** The pairs: a board, the element to crop on each side, and the fixture that builds it. */
 export const PAIRS = {
+  // ⭐ D197 Wave 1 #1 (47i) · THE SHELL against the approved canvas's `Shell` board (source "final"). The build side is the
+  // live dock's own component (plate/Shell.jsx's Dock / AreaNav — components/AppNav.jsx renders them) with the board's data.
+  // The rail: figure A's (the market's — the /d tile current), its 4 px shadow inside the pad.
+  "shell-rail": { source: "final", board: "Shell", fixture: "ShellRailMarket", boardSel: 'nav[aria-label="Main"]', buildSel: 'nav[aria-label="Main"]', pad: 6, subpixel: true },
+  // the active item: figure B's (the ledger's) Home tile — white, 1.5 px ink, 3 px ink shadow, the name in 800
+  "shell-active": { source: "final", board: "Shell", fixture: "ShellRailLedger", boardSel: 'nav[aria-label="Main"]:has(+ div nav[aria-label="Ledger"]) [aria-current="page"]',
+    buildSel: 'nav[aria-label="Main"] [aria-current="page"]', pad: 4, subpixel: true },
+  // the area nav: figure A's market header (the views, More, search with Ctrl K, the drafts chip, the 12 px ruler) across
+  // the 1131 px content column beside the rail
+  "shell-areanav": { source: "final", board: "Shell", fixture: "ShellRailMarket", boardSel: 'header:has(nav[aria-label="The market"])', buildSel: "header.pl-areanav", pad: 0, subpixel: true },
+  // the phone's bottom bar: figure D's (the 390 px phone frame's last child)
+  "shell-phonebar": { source: "final", board: "Shell", fixture: "ShellPhoneBar", boardSel: 'nav[aria-label="Main"]:last-child', buildSel: "nav.pl-dock--bar", pad: 0, subpixel: true },
   "shell-market-dock": { board: "The market · draft", fixture: "ShellMarket", boardSel: 'nav[aria-label="Main"]', buildSel: 'nav[aria-label="Main"]', pad: 6 },
   "shell-market-nav": { board: "The market · draft", fixture: "ShellMarket", boardSel: "header", buildSel: "header.pl-areanav", pad: 0 },
   // P1 · the card face: the owner kept the deck's form factor (11-24), so the face can never be the board's size — this pair
@@ -216,7 +228,7 @@ export async function runPair(name, { width = 1280, threshold = THRESHOLD_PCT, b
     ...(p.matchWidth ? { w: String(board.box.w), h: String(board.box.h), ox: String(frac(board.box.x - p.pad)), oy: String(frac(board.box.y - p.pad)) } : {}) })}`;
   // subpixel (47f): a composed fixture (the deck's ticket) placed at the board element's own sub-pixel offset — the board's
   // ticket sits at a fractional y, and one whole pixel apart every glyph's edge read as a difference (7 % on FIX-2's run)
-  else if (p.subpixel) buildUrl += `#${new URLSearchParams({ ox: String(frac(board.box.x)), oy: String(frac(board.box.y)), w: String(board.box.w) })}`;
+  else if (p.subpixel) buildUrl += `#${new URLSearchParams({ ox: String(frac(board.box.x)), oy: String(frac(board.box.y)), w: String(board.box.w), sel: p.buildSel })}`;   // sel (47i): the element a fixture places at that fraction
   const build = await shot(page, buildUrl, p.buildSel, width, p.pad, p.waitBuild || 600, !!p.reduced, p.ground, null, null, p.buildPrep || null);
   // cornerMasks: the board container's rounded corners clip the drawing's corners there (the page's frame, not the drawing)
   const cm = p.cornerMasks, bw = board.clip.width, bh = board.clip.height;

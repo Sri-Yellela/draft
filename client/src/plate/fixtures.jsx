@@ -183,4 +183,74 @@ export function ExplainerBoard() {
     <Explainer script={PILOT_EXPLAINER} openings={412}/></div></PlateRoot>;
 }
 
-export const FIXTURES = { ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard };
+// ⭐ D197 Wave 1 #1 (47i) · THE SHELL against the approved canvas's `Shell` board (docs/sketches/final/project/Shell.dc.html).
+// The live dock is this same Dock (components/AppNav.jsx renders it); its items here are the board's (Home 1 · Atlas ·
+// Interview · Network 3 · Profile MC 9+ · — · Ask draft), Profile and Ask draft as the live buttons. The board draws each
+// shell inside a 1.5 px-bordered frame at 1280: the frame's inner width is 1229, so the content column beside the rail
+// (14 + 84) is 1131 wide — the fixture gives the column the same room, so the area nav lays out as the board's.
+const SHELL_DOCK = [
+  { id: "auto-apply", label: "Home", href: "#home", icon: "home", badge: 1 },
+  { id: "atlas", label: "Atlas", href: "#atlas", icon: "atlas" },
+  { id: "interview", label: "Interview", href: "#interview", icon: "interview" },
+  { id: "network", label: "Network", href: "#network", icon: "network", badge: 3 },
+  { id: "profile", label: "Profile", onPress: () => {}, initials: "MC", badge: 12 },
+];
+const SHELL_HOME = { id: "today", href: "#market", label: "draft — the market" };
+// the compared element (#sel) lands at the board element's own sub-pixel fraction (#ox / #oy): measured after layout and
+// corrected (the board's 1.5 px frame and rail borders put it on a half pixel), as ExplainerBoard does
+function useShellAt() {
+  const q = new URLSearchParams((globalThis.location?.hash || "").slice(1));
+  const want = { x: 100 + (Number(q.get("ox")) || 0), y: 100 + (Number(q.get("oy")) || 0) }, sel = q.get("sel");
+  const ref = useRef(null);
+  const [at, setAt] = useState({ x: 100, y: 100 });
+  useLayoutEffect(() => {
+    const el = sel ? ref.current?.querySelector(sel) : null;
+    if (!el) return;
+    const r = el.getBoundingClientRect(), fx = (v) => v - Math.floor(v);
+    const dx = fx(want.x) - fx(r.left + scrollX), dy = fx(want.y) - fx(r.top + scrollY);
+    if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) setAt((p) => ({ x: p.x + dx, y: p.y + dy }));
+  });
+  return [ref, { position: "absolute", left: at.x, top: at.y }];
+}
+function ShellFrame({ current, children }) {
+  const [ref, at] = useShellAt();
+  // the area nav's pair passes the board header's own width (#w, fractional: the frame's 1.5 px border) — the column is it
+  const q = new URLSearchParams((globalThis.location?.hash || "").slice(1));
+  const col = /header/.test(q.get("sel") || "") && Number(q.get("w")) ? Number(q.get("w")) : 1131;
+  return (
+    <PlateRoot style={{ minHeight: "100vh" }}>
+      <div ref={ref} style={{ width: 98 + col, display: "flex", alignItems: "flex-start", ...at }}>
+        <Dock home={SHELL_HOME} items={SHELL_DOCK} ask={{ onPress: () => {} }} current={current}/>
+        <div style={{ flex: "1 1 auto", minWidth: 0 }}>{children}</div>
+      </div>
+    </PlateRoot>
+  );
+}
+/** A · DESKTOP · THE MARKET: the rail (the /d tile current) beside the market's area nav (no pill; the drafts chip). */
+export function ShellRailMarket() {
+  return (
+    <ShellFrame current="today">
+      <AreaNav area="The market" views={MARKET_VIEWS} current="picks" more={[{ label: "Companies", href: "#co" }]}
+        search={{ placeholder: "Company, role, tech…" }} chip={{ kind: "drafts", used: 7, of: 10, href: "#ledger" }}/>
+    </ShellFrame>
+  );
+}
+/** B · THE LEDGER: the same rail with Home current (the active item: white tile, 1.5 px ink, 3 px shadow, the name in 800). */
+export function ShellRailLedger() {
+  return <ShellFrame current="auto-apply"><div style={{ height: 70 }}/></ShellFrame>;
+}
+/** D · PHONE: the bottom bar inside the board's 390 px phone frame (1.5 px border → a 387 px bar). The board's bar draws
+ *  Profile without its badge; the board's data is kept here (the live bar keeps the badge — the noted disagreement). */
+export function ShellPhoneBar() {
+  const items = SHELL_DOCK.map((d) => (d.id === "profile" ? { ...d, badge: 0 } : d));
+  const [ref, at] = useShellAt();
+  return (
+    <PlateRoot style={{ minHeight: "100vh" }}>
+      <div ref={ref} style={{ width: 390, ...at }}>
+        <Dock home={SHELL_HOME} items={items} current="today" bar/>
+      </div>
+    </PlateRoot>
+  );
+}
+
+export const FIXTURES = { ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellMarket,MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard };

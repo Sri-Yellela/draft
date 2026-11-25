@@ -94,8 +94,9 @@
 .pl-dock__sep { height: 1px; background: var(--pl-rule-2); margin: 4px 6px; }
 .pl-dock__item, .plate a.pl-dock__item { display: flex; flex-direction: column; align-items: center; gap: 5px; min-height: var(--pl-dock-item); box-sizing: border-box; padding: 8px 4px 7px;
   border-radius: var(--pl-r-small); text-decoration: none; color: var(--pl-ink); border: var(--pl-line) solid transparent; background: transparent; cursor: pointer; font-family: inherit; }
-.pl-dock__item:hover { background: var(--pl-paper-hover); color: var(--pl-ink); }
-.pl-dock__item[aria-current="page"] { background: var(--pl-card); border: var(--pl-border); box-shadow: var(--pl-s3); }
+.pl-dock__item:hover, .plate a.pl-dock__item:hover { background: var(--pl-paper-hover); color: var(--pl-ink); }
+/* (47i, F5 against the final Shell board: `.plate a.pl-dock__item` (0,2,1) out-ranked these, so a current LINK lost its white tile and border) */
+.pl-dock__item[aria-current="page"], .plate a.pl-dock__item[aria-current="page"] { background: var(--pl-card); border: var(--pl-border); box-shadow: var(--pl-s3); }
 .pl-dock__icon { position: relative; display: inline-flex; }
 .pl-dock__label { font-size: var(--pl-t-dock); font-weight: 600; line-height: 1; }
 .pl-badge { position: absolute; top: -7px; right: -11px; font-family: var(--pl-mono); font-size: var(--pl-t-mono-xs); font-weight: 700; background: var(--pl-ink); color: var(--pl-on-ink);
@@ -106,9 +107,10 @@
 /* the shell board's D · PHONE: in the page's flow at its foot, a 1.5 px top rule, items 52 tall, the active one white + 2 px shadow */
 .pl-dock--bar { width: auto; margin: 0; flex-direction: row; gap: 2px; border: 0; border-top: var(--pl-border); border-radius: 0; box-shadow: none;
   padding: 8px 8px calc(12px + env(safe-area-inset-bottom, 0px)); }
-.pl-dock--bar .pl-dock__item { flex: 1 1 0; min-width: 0; gap: 3px; min-height: 52px; padding: 6px 2px; border-radius: var(--pl-r-input); }
+/* (47i, F5 against the final Shell board: `.plate a.pl-dock__item` (0,2,1) out-ranked this, so the bar's links took the rail's 58 px) */
+.pl-dock--bar .pl-dock__item, .plate .pl-dock--bar a.pl-dock__item { flex: 1 1 0; min-width: 0; gap: 3px; min-height: 52px; padding: 6px 2px; border-radius: var(--pl-r-input); }
 .pl-dock--bar .pl-dock__item[aria-current="page"] { box-shadow: var(--pl-s1); }
-.pl-dock--bar .pl-dock__label { font-size: var(--pl-t-mono-tag); }
+.pl-dock--bar .pl-dock__label { font-size: var(--pl-t-mono-tag); line-height: normal; }   /* the board's bar sets no line-height (the rail's is 1) */
 .pl-dock--bar .pl-dock__item[aria-current="page"] .pl-dock__label { font-weight: 800; }
 .pl-dock__mark { font-family: var(--pl-sans); font-weight: 800; font-size: var(--pl-t-mono-lg); letter-spacing: -.04em; line-height: 1; }
 
