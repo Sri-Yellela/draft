@@ -13,7 +13,7 @@ import { Ticket } from "./Tickets.jsx";
 import { Gazetteer } from "./Lists.jsx";
 import { NoData } from "./PlateState.jsx";
 import { TeamPlate, HiringProfile, RoleLine, MatchDial } from "./surveyDrawings.jsx";
-import { surveyView, teamsWord, andList, numWord } from "./surveySheet.js";
+import { surveyView, teamsWord, andList, numWord, shortName } from "./surveySheet.js";
 import { sectorRegion } from "./marketPlate.js";
 import { ApplyLink } from "../components/CompanyLink.jsx";
 import { getKnownLogoUrl } from "../../../shared/companyLogos.js";
@@ -26,6 +26,12 @@ const ago = (sec) => {
   return d === 0 ? "today" : d === 1 ? "yesterday" : `${d} days ago`;
 };
 
+/** An interchange's line: "In 4 of their postings — the Checkout team uses it, new this quarter." */
+function learnLine(r) {
+  const who = r.teams.length > 3 ? "most of their teams use it" : r.teams.length ? `the ${andList(r.teams)} team${r.teams.length > 1 ? "s use" : " uses"} it` : "";
+  return `In ${r.postings} of their postings${r.isNew ? ", new this quarter" : ""}${who ? ` — ${who}` : ""}.`;
+}
+
 /**
  * `data` = GET /api/public/companies/:slug · `match` = GET /api/companies/:slug/match (null signed out) · `inApp` = inside the
  * shell · `resumeName` = the résumé the match reads (the kicker's "FROM …") · `people` = who works here (network on) ·
@@ -36,6 +42,7 @@ export default function SurveySheet({ data, match = null, inApp = false, base = 
   onBack, onFollow, onSend, networkOn = false, applyOpen, worksHere = null, sendPicker = null }) {
   const v = surveyView(data, match);
   const c = v.company;
+  const short = shortName(c.name);   // the name as the prose says it ("Kestrel")
   const app = inApp ? "/app" : "";
   const jobsBase = inApp ? "/app/jobs" : "/jobs";
   const jobsHref = (cat) => `${jobsBase}?q=${encodeURIComponent(c.name)}${cat ? `&category=${encodeURIComponent(cat)}` : ""}`;
@@ -109,7 +116,7 @@ export default function SurveySheet({ data, match = null, inApp = false, base = 
       {/* ── 01 · the stack legend (live: stackFor + your marks) ── */}
       <section className="pl-section" data-company-stack="">
         <LegHeader n={1} id="stack" meta={`THEIR STACK · FROM ${v.legend.of} POSTINGS, LAST 180 DAYS · 2+ POSTINGS TO SHOW`} title="What they build with"/>
-        <p className="pl-lead pl-lead--body">Read from {c.name}’s own postings{v.github ? " and public GitHub" : ""}. Each bar is how many of their postings ask for it; the square says whether it’s on your résumé.</p>
+        <p className="pl-lead pl-lead--body">Read from {short}’s own postings{v.github ? " and public GitHub" : ""}. Each bar is how many of their postings ask for it; the square says whether it’s on your résumé.</p>
         <div className="pl-sv-block">
           <Legend label={`${c.name}'s technologies`} keyText={match ? "■ ON YOUR RÉSUMÉ · ⬚ NOT YET" : "◌ SIGN IN TO SEE YOURS"}
             columns={v.legend.columns.map((col) => ({ label: col.label, rows: col.rows.map((r) => ({
@@ -188,7 +195,7 @@ export default function SurveySheet({ data, match = null, inApp = false, base = 
         <LegHeader n={3} id="sponsor" meta="VISA SPONSORSHIP · U.S. DEPARTMENT OF LABOR DISCLOSURE DATA"
           title={v.sponsorship?.filed ? "They have sponsored before" : "No filings found"}/>
         <p className="pl-lead pl-lead--body">{v.sponsorship
-          ? `What ${c.name} filed in FY${v.sponsorship.year}. Past filings show what an employer has done, not a promise to sponsor you.`
+          ? `What ${short} filed in FY${v.sponsorship.year}. Past filings show what an employer has done, not a promise to sponsor you.`
           : `We found no H-1B filings for ${c.name} in the Department of Labor’s disclosure data. That isn’t a no — only that nothing is on record.`}</p>
         {v.sponsorship ? (
           <div className="pl-sv-sponsor">
@@ -198,7 +205,7 @@ export default function SurveySheet({ data, match = null, inApp = false, base = 
               <span className="pl-sv-sptext">{v.sponsorship.source?.url
                 ? <a href={v.sponsorship.source.url} target="_blank" rel="noopener noreferrer">{v.sponsorship.source.name}</a> : v.sponsorship.source?.name}
                 {v.sponsorship.source?.through ? `, through ${v.sponsorship.source.through}` : ""}
-                {v.sponsorship.uscisSource ? <> · <a href={v.sponsorship.uscisSource.url} target="_blank" rel="noopener noreferrer">{v.sponsorship.uscisSource.name}</a></> : null}. {v.sponsorship.note}</span>
+                {v.sponsorship.uscisSource ? <> · <a href={v.sponsorship.uscisSource.url} target="_blank" rel="noopener noreferrer">{v.sponsorship.uscisSource.name}</a></> : null}.</span>
             </div>
             {v.sponsorship.filed ? (
               <a className="pl-sv-stamp at-stamp" href={v.sponsorship.source?.url || "#sponsor"} target={v.sponsorship.source?.url ? "_blank" : undefined} rel="noopener noreferrer"
@@ -212,23 +219,23 @@ export default function SurveySheet({ data, match = null, inApp = false, base = 
       <section className="pl-section" data-company-match="">
         <LegHeader n={4} id="match" meta={`YOUR MATCH${resumeName ? ` · FROM ${String(resumeName).toUpperCase()}` : ""}`}
           title={v.match ? v.match.title : inApp ? "Your match, once they have a stack" : "Your match"}/>
-        <p className="pl-lead pl-lead--body">{v.match ? `How much of what ${c.name} works with you’ve already used, and the shortest way to the rest.`
+        <p className="pl-lead pl-lead--body">{v.match ? `How much of what ${short} works with you’ve already used, and the shortest way to the rest.`
           : inApp ? "They need two postings naming a technology before it counts; nothing to compare yet." : "Sign in and draft compares their stack with your résumé."}</p>
         <div className="pl-sv-matchrow">
-          <div className="pl-sv-dial">
+          {(() => { const Dial = v.match && inApp ? Link : "div"; return (
+          <Dial className="pl-sv-dial" {...(Dial === Link ? { to: "/app/atlas/your-skills", "aria-label": "Your match — check and prove your skills in Atlas", "data-company-check-skills": "" } : {})}>
             {v.match ? <>
               <MatchDial have={v.match.have} of={v.match.of}/>
               <div className="pl-sv-dialtext">
                 <span className="pl-sv-dialnum">{v.match.have} of {v.match.of}</span>
                 <span className="pl-label">OF THEIR TOP TECHNOLOGIES</span>
-                <span className="pl-sv-dialsay">{v.match.names.length ? `${andList(v.match.names)} ${v.match.names.length === 1 ? "is" : "are"} on your résumé.` : "None of them is on your résumé yet."}
-                  {" "}{inApp ? <Link to="/app/atlas/your-skills">Check and prove your skills →</Link> : null}</span>
+                <span className="pl-sv-dialsay">{v.match.names.length ? `${andList(v.match.names)} ${v.match.names.length === 1 ? "is" : "are"} on your résumé.` : "None of them is on your résumé yet."}</span>
               </div>
             </> : <div className="pl-sv-dialtext">{inApp ? <NoData>NOTHING TO COMPARE YET</NoData> : <Link className="pl-sv-go" to="/login">Sign in to see your match →</Link>}</div>}
-          </div>
+          </Dial>); })()}
           {(v.match?.learn || []).map((m) => (
             <Ticket key={m.tech} href={`${app}/atlas/${m.atlasSlug}`} onClick={go(`${app}/atlas/${m.atlasSlug}`)} kicker="⇄ INTERCHANGE · ATLAS" title={m.tech}
-              line={m.row ? `In ${m.row.postings} of their postings${m.row.isNew ? ", new this quarter" : m.row.teams.length ? ` · ${teamsWord(m.row.teams)}` : ""}.` : "Not on your résumé yet."} go="Learn it →"/>
+              line={m.row ? learnLine(m.row) : "Not on your résumé yet."} go="Learn it →"/>
           ))}
         </div>
       </section>

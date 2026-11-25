@@ -59,3 +59,5 @@
 .pl-sv-workshere { margin-top: 22px; }
 @media (max-width: 980px) { .pl-title.pl-sv-title { font-size: var(--pl-t-region); } }
 .pl-sv-applyline { margin-top: 18px; justify-content: flex-start; }
+.plate a.pl-sv-dial { color: var(--pl-ink); text-decoration: none; }
+.plate a.pl-sv-dial:hover { box-shadow: var(--pl-s-hover); }
