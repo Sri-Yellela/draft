@@ -9,8 +9,8 @@ import fs from "node:fs";
 const jp = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8").replace(/\r\n/g, "\n");
 
 test("boardMatchingRefresh: board_scored is a throttle — a pending refresh is kept, not pushed back", () => {
-  assert.match(jp, /board_scored: \(\) => \{\n      if \(boardScoredTimerRef\.current\) return;   \/\/ one refresh already on its way\n      boardScoredTimerRef\.current = setTimeout\(\(\) => \{ boardScoredTimerRef\.current = null;/);
-  assert.doesNotMatch(jp, /board_scored: \(\) => \{\n      clearTimeout\(boardScoredTimerRef\.current\);/);
+  assert.match(jp, /board_scored: \(\{ waiting \} = \{\}\) => \{\n      if \(waiting === 0\) setTimeout\(\(\) => setFacetsNonce\(n => n \+ 1\), 1500\);\n      if \(boardScoredTimerRef\.current\) return;   \/\/ one refresh already on its way\n      boardScoredTimerRef\.current = setTimeout\(\(\) => \{ boardScoredTimerRef\.current = null;/);
+  assert.doesNotMatch(jp, /board_scored: \(\{ waiting \} = \{\}\) => \{\n      if \(waiting === 0\)[^\n]*\n      clearTimeout\(boardScoredTimerRef\.current\);/);
 });
 
 test("boardMatchingRefresh: an empty page that is being matched re-asks every 5 s (≤ 4 min) and says it is matching", () => {

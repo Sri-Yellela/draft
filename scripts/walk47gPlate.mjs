@@ -71,6 +71,17 @@ try {
     try { await ctx?.close(); } catch { /* gone */ }
     ctx = await browser.createBrowserContext(); page = await ctx.newPage();
     page.on("pageerror", e => errors.push(e.message));
+    if (process.env.WALK_FACETLOG) await page.evaluateOnNewDocument(() => {
+      const ES = window.EventSource;
+      window.EventSource = function (url, opts) {
+        const es = new ES(url, opts);
+        (window.__sse ||= { opened: 0, types: {} }).opened++;
+        es.addEventListener("message", (m) => { let t = "?"; try { const d = JSON.parse(m.data); t = d.type + (d.type === "board_scored" ? `(w${d.waiting})` : ""); } catch { /* not json */ }
+          window.__sse.types[t] = (window.__sse.types[t] || 0) + 1; });
+        return es;
+      };
+      window.EventSource.prototype = ES.prototype;
+    });
     await page.evaluateOnNewDocument((t) => { try { localStorage.setItem("draft-theme", t); localStorage.removeItem("draft.plate.market"); } catch { /* blocked */ } }, theme);
     await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
     const reg = await api("/api/auth/register", "POST", { username: user, password: "Walk47g-Plate-Passw0rd!", profile: { email: `${user}@example.invalid`, first_name: "Walk", last_name: "Plate" } });
@@ -113,8 +124,8 @@ try {
           field, sideScroll: document.documentElement.scrollWidth > innerWidth + 1,
           bg: getComputedStyle(document.querySelector(".pl-marketpage") || document.body).backgroundColor };
       });
-      if (process.env.WALK_FACETS) for (const waitS of [0, 60]) {
-        if (waitS) await sleep(60000);
+      if (process.env.WALK_FACETS) for (const waitS of [0, 15, 30, 45, 60, 90, 120]) {
+        if (waitS) await sleep(waitS <= 60 ? 15000 : 30000);
         const f = await page.evaluate(async () => { const r = await fetch("/api/jobs/facets", { credentials: "include" }); const b = await r.json().catch(() => null);
           const j = await fetch("/api/jobs?page=1&pageSize=50", { credentials: "include" }).then(x => x.json()).catch(() => null);
           return { cache: r.headers.get("X-Facets-Cache"), asOf: r.headers.get("X-Facets-As-Of"), views: b?.views, posted: (b?.clauses?.posted || []).map(o => `${o.value}:${o.count}`).join(","),
@@ -129,16 +140,23 @@ try {
       say(`${tag}: Pass · Save · Send · Draft this job on the ticket`, ["pass", "save", "send", "draft"].every(a => s.actions.includes(a)), JSON.stringify(s.actions));
       say(`${tag}: the field card's three labelled numbers`, /ROLE FIT/i.test(s.field) && /STACK/i.test(s.field) && /DUTIES/i.test(s.field), s.field.replace(/\s+/g, " ").slice(0, 140));
       // ⭐ A239: the hero's counts follow the board as the new person's postings are scored — never a frozen 0 beside a full board
-      { let hero = null, total = null; const t0 = Date.now();
+      const facetLog = [];
+      if (process.env.WALK_FACETLOG) page.on("response", async (r) => { if (!r.url().includes("/api/jobs/facets")) return;
+        let all = null; try { all = (await r.json())?.views?.all; } catch { /* body gone */ }
+        facetLog.push(`${new Date().toISOString().slice(14, 23)} ${r.headers()["x-facets-cache"]} asOf ${String(r.headers()["x-facets-as-of"]).slice(14, 23)} all ${all}`); });
+      { let hero = null, total = null, matching = null; const t0 = Date.now();
         while (Date.now() - t0 < 120000) {
           [hero, total] = await page.evaluate(async () => { const cell = [...document.querySelectorAll(".pl-markethero .pl-stats__cell, .pl-markethero [class*='stats'] > *")]
               .find(c => /FIT YOUR BEARING/.test(c.innerText)); const n = cell ? parseInt(cell.innerText.replace(/[^0-9]/g, ""), 10) : null;
             const j = await fetch("/api/jobs?page=1&pageSize=1", { credentials: "include" }).then(x => x.json()).catch(() => null);
-            return [Number.isFinite(n) ? n : null, j?.total ?? null]; });
-          if (hero != null && total != null && hero === total && hero > 0) break;
+            return [Number.isFinite(n) ? n : null, j?.total ?? null, j?.beingMatched ?? 0]; }).then(([h, t, m]) => { matching = m; return [h, t]; });
+          // only once the board says nothing is still being matched: comparing mid-scoring passes on an early 41 = 41
+          if (!matching && hero != null && total != null && hero === total && hero > 0) break;
           await sleep(5000);
         }
-        say(`${tag}: the hero's FIT YOUR BEARING follows the board once scored (A239)`, hero != null && hero === total && hero > 0, `hero ${hero} · board ${total} · after ${Math.round((Date.now() - t0) / 1000)} s`); }
+        if (process.env.WALK_FACETLOG) console.log(["FACETLOG", ...facetLog].join("\n  "));
+        if (process.env.WALK_FACETLOG) console.log("SSE", JSON.stringify(await page.evaluate(() => window.__sse || "no EventSource opened")).slice(0, 900));
+        say(`${tag}: the hero's FIT YOUR BEARING follows the board once scored (A239)`, !matching && hero != null && hero === total && hero > 0, `hero ${hero} · board ${total} · still matching ${matching} · after ${Math.round((Date.now() - t0) / 1000)} s`); }
       say(`${tag}: no side-scroll`, !s.sideScroll, s.sideScroll ? "scrolls sideways" : "none");
       await page.screenshot({ path: path.join(SHOTS, `walk47g-${theme}-${vw}-deck.png`) });
 

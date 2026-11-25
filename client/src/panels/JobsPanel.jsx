@@ -3133,7 +3133,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // whole queue had drained, so a board held back after a new résumé stayed empty for minutes.
     // ⭐ A239 (47g): and the counts with it — the sentence, the bar and the market's hero read GET /api/jobs/facets, which
     // the server marks stale on each scored batch; without this ask they kept the first answer (0, then 41, beside 916).
-    board_scored: () => {
+    // ⭐ A239 (walked, 47g): the queue's LAST batch (waiting 0) drops the server's counts; the throttle below can swallow
+    // that event (a refresh already pending), and its pending ask may predate the batch — measured: the hero held 791
+    // beside 916. So the last batch always asks for the counts once more, outside the throttle.
+    board_scored: ({ waiting } = {}) => {
+      if (waiting === 0) setTimeout(() => setFacetsNonce(n => n + 1), 1500);
       if (boardScoredTimerRef.current) return;   // one refresh already on its way
       boardScoredTimerRef.current = setTimeout(() => { boardScoredTimerRef.current = null; if (currentPage <= 1) fetchJobsRef.current?.(1).catch(() => {}); setFacetsNonce(n => n + 1); }, 4000);
     },

@@ -88,7 +88,7 @@ test("A126 (7) · server.js: discovery views are gated on a current-basis score;
 
 test("A126 (7)(8) · the board refreshes on board_scored, says what is being matched, and keeps its views across navigation", () => {
   const src = read("client/src/panels/JobsPanel.jsx");
-  assert.match(src, /board_scored: \(\) => \{/);
+  assert.match(src, /board_scored: \(\{ waiting \} = \{\}\) => \{/);   // A239 (47g): the last batch's `waiting` read
   assert.match(src, /data-being-matched=""/);
   assert.match(src, /^const BOARD_VIEW_CACHE = new Map\(\);$/m, "the view cache is module-scoped, not a per-mount ref");
   assert.match(src, /const viewCacheRef = useRef\(BOARD_VIEW_CACHE\);/);

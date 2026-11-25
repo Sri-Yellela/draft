@@ -10960,8 +10960,14 @@ function enqueueBoardMatch(userId, profile, jobIds) {
         // market's hero read 0 · 0 · 0 · 0, then 41, while the board held 916. Each batch marks them stale (A195: answered at
         // once, one recount behind); the queue's LAST batch drops them, so the ask after it is an exact count.
         if (r?.scored) { heldCounts.clearUser(userId); if (q.ids.size) facetsCache.markStale(userId); else facetsCache.clearUser(userId); emitToUser(userId, { type: "board_scored", profileId: profile.id, scored: r.scored, waiting: q.ids.size }); warmBoardOrder(userId); }   // A177: the refetch that event asks for finds its order kept
+        if (r?.scored) q.lastWaiting = q.ids.size;
         if (r?.status === "no_basis" || r?.status === "skipped" || r?.status === "failed") { q.ids.clear(); break; }
       }
+      // ⭐ A239 (47g, walked): a batch only says so when IT scored something — and the board's other scorers (the deal,
+      // the posting's report) reach the same postings first, so the queue's last batches found nothing left and ended
+      // SILENT. Measured: the page heard board_scored at 666 and 416 waiting, never at 0, and the hero held 500 beside
+      // 916. So when the queue drains with its last word still "more waiting", the counts are dropped and the person is told.
+      if (q.lastWaiting) { q.lastWaiting = 0; heldCounts.clearUser(userId); facetsCache.clearUser(userId); emitToUser(userId, { type: "board_scored", profileId: profile.id, scored: 0, waiting: 0 }); warmBoardOrder(userId); }
     } catch (e) {
       console.warn(`[board-match] ${key}:`, e.message);
     } finally {

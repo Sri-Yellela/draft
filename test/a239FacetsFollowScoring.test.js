@@ -34,6 +34,10 @@ test("A239: a scored batch ages the kept counts (stale + one recount); the last 
 test("A239 (pins): the queue marks / drops the counts per batch, and the board's board_scored refresh asks for them again", () => {
   const server = read("server.js");
   assert.match(server, /if \(r\?\.scored\) \{ heldCounts\.clearUser\(userId\); if \(q\.ids\.size\) facetsCache\.markStale\(userId\); else facetsCache\.clearUser\(userId\); emitToUser\(userId, \{ type: "board_scored"/);
+  // the walk's second finding: the queue's last batches scored nothing (the deal had scored those postings first) and
+  // ended silent — so a drained queue whose last word was "more waiting" drops the counts and says waiting 0
+  assert.match(server, /if \(r\?\.scored\) q\.lastWaiting = q\.ids\.size;/);
+  assert.match(server, /if \(q\.lastWaiting\) \{ q\.lastWaiting = 0; heldCounts\.clearUser\(userId\); facetsCache\.clearUser\(userId\); emitToUser\(userId, \{ type: "board_scored", profileId: profile\.id, scored: 0, waiting: 0 \}\);/);
   const panel = read("client/src/panels/JobsPanel.jsx");
-  assert.match(panel, /board_scored: \(\) => \{[\s\S]{0,700}fetchJobsRef\.current\?\.\(1\)\.catch\(\(\) => \{\}\); setFacetsNonce\(n => n \+ 1\); \}, 4000\);/);
+  assert.match(panel, /board_scored: \(\{ waiting \} = \{\}\) => \{\n      if \(waiting === 0\) setTimeout\(\(\) => setFacetsNonce\(n => n \+ 1\), 1500\);[\s\S]{0,700}fetchJobsRef\.current\?\.\(1\)\.catch\(\(\) => \{\}\); setFacetsNonce\(n => n \+ 1\); \}, 4000\);/);
 });
