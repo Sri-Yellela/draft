@@ -631,7 +631,10 @@ const SCREENS = {
       tracker: { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr", appPrep: async () => { await sleep(600); } },
       // ⭐ 47j R2 (D163's dock gutter, re-pointed): the PLATE market, measured by the same probe as every other screen (home163,
       // the classic grid's own probe, retires with it)
-      market: { app: PLATE_MARKET, fixtures: HOME156, ready: "[data-plate-market-openings] [data-fan-offset]", appPrep: async () => { await sleep(1200); } },
+      // ✅ owner 11-26 (47j, "keep it centred"): the market keeps the approved Market board's measure on a wide screen —
+      // centred, the free space even on both sides — rather than 46q's fill-the-width (a named exception in d163)
+      market: { app: PLATE_MARKET, fixtures: HOME156, ready: "[data-plate-market-openings] [data-fan-offset]", appPrep: async () => { await sleep(1200); },
+        centredMeasure: "owner 11-26 (47j): the market keeps the approved board's measure, centred, on wide screens" },
       settings: { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-settings-open]", probe: { root: "[data-settings-drawer]" },
         appPrep: async (page) => { await page.click("[data-settings-open]").catch(() => {}); await page.waitForSelector("[data-fold-top]", { timeout: 8000 }).catch(() => {}); await sleep(700); } },
       // ✅ OWNER 11-26 (end of 47i, decision 2 — "go with your recs"): Atlas Volume I's region band runs from the rail to the
@@ -639,7 +642,9 @@ const SCREENS = {
       // exception (the owner's word, not a threshold change): the band and what it holds leave the flush list and the edge
       // margins; everything else on the page is still held to them.
       atlas: { app: "/app/atlas", fixtures: ATLAS163, ready: "main", appPrep: async () => { await sleep(900); },
-        probe: { flushExempt: [{ sel: "section.pl-at-regions", why: "owner 11-26: Atlas Volume I's full-width region band is the approved board's design" }] } },
+        probe: { flushExempt: [{ sel: "section.pl-at-regions", why: "owner 11-26: Atlas Volume I's full-width region band is the approved board's design" },
+          // ✅ owner 11-26 (47j, "same exception"): the footer band runs rail-to-edge too, by the same approved board
+          { sel: "footer.pl-at-foot", why: "owner 11-26 (47j): Atlas's footer band is the approved board's design, as the region band" }] } },
       // ⭐ D167: the settings pages are Profile's panels now (each at /app/profile/<panel>); Interview is its own place.
       profile: { app: "/app/profile/about", fixtures: PROFILE163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
       account: { app: "/app/profile/account", fixtures: ACCOUNT163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
@@ -1439,7 +1444,7 @@ const STYLE_PROBES = {
                overflows: c.scrollWidth > c.clientWidth + 1 };
     });
     return { url: location.pathname, facts: { width: Math.round(facts.getBoundingClientRect().width), cells, words,
-      right: Math.round(facts.getBoundingClientRect().right), sheetRight: Math.round(document.querySelector("[data-opening-sheet]").getBoundingClientRect().right),
+      right: Math.round(facts.getBoundingClientRect().right), sheetRight: Math.round(document.querySelector("[data-opening-over] [data-opening-sheet]").getBoundingClientRect().right),   // (the market's field card links carry data-opening-sheet too)
       broken: words.filter(w => w.lines > 1).map(w => w.word), rows: new Set(cells.map(c => c.top)).size } };
   },
 };

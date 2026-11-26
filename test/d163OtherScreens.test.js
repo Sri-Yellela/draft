@@ -51,9 +51,13 @@ test("d163ContentGroupCentred, the other screens (real Chrome, 1280 · 1440 · 1
   }
   // ⭐ 46q FULL WIDTH (owner 11-16, moved on purpose — was "> 200 free each side at 2560", D163's centred group): every
   // screen fills the width inside the page gutter (clamp(16px, 3vw, 48px)), the dock at the top on a desktop.
+  // ✅ owner 11-26 (47j, "keep it centred"): ONE named exception — the market keeps the approved Market board's measure,
+  // centred (the evenness above still holds it); every other screen fills the width.
+  const CENTRED_MEASURE = new Set(["market"]);
+  assert.match(SHOTS, /centredMeasure: "owner 11-26 \(47j\): the market keeps the approved board's measure, centred, on wide screens"/);
   for (const s of SCREENS) for (const w of WIDTHS) {
     const m = out[s][w];
-    assert.ok(m.leftFree <= 80 && m.rightFree <= 80, `${s} ${w}: fills the width (${m.leftFree} / ${m.rightFree})`);
+    if (!CENTRED_MEASURE.has(s)) assert.ok(m.leftFree <= 80 && m.rightFree <= 80, `${s} ${w}: fills the width (${m.leftFree} / ${m.rightFree})`);
     // ⭐ D197 #1 · A237 (changed on purpose — 46q put the dock at the top): the rail at the left, the content column beside it
     if (s !== "admin") assert.equal(m.place, "side", `${s} ${w}: the rail at the left — the content column starts beside it`);
   }
@@ -67,7 +71,8 @@ test("d163NoCornerCramming, the other screens (real Chrome): nothing flush to an
     assert.deepEqual(m.flush, [], `${s} ${w}: nothing within 8 px of the dock or the viewport's edge`);
     // ✅ owner 11-26 (decision 2): a NAMED exception — Atlas Volume I's full-width region band (section.pl-at-regions) runs to
     // the edge by the approved board's design; the probe leaves it (and only it) out of the flush list and the edge margins
-    if (s === "atlas") assert.deepEqual(m.exempted, ["section.pl-at-regions"], `${s} ${w}: the one named exception, nothing else`);
+    // ✅ owner 11-26 (47j, "same exception"): and its footer band (footer.pl-at-foot) — the two named, nothing else
+    if (s === "atlas") assert.ok(m.exempted.length >= 1 && m.exempted.every(x => ["section.pl-at-regions", "footer.pl-at-foot"].includes(x)), `${s} ${w}: only the named exceptions (${m.exempted.join(", ")})`);
     else assert.equal((m.exempted || []).length, 0, `${s} ${w}: no exception named`);
     const lf = m.edgeLeftFree ?? m.leftFree, rf = m.edgeRightFree ?? m.rightFree;
     assert.ok(lf >= 8 && rf >= 8, `${s} ${w}: room on both sides (${lf} / ${rf})`);

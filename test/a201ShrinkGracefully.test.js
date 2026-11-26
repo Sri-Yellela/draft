@@ -35,8 +35,9 @@ test("A201: the fixes — the table and the card pairs follow their OWN width; T
   assert.match(read("client/src/components/ApplicationTracker.css"), /\.trk \{[^}]*container-type: inline-size; container-name: trk; \}[\s\S]*@container trk \(max-width: 700px\) \{/);
   const jb = read("client/src/components/JobBubble.css");
   assert.match(jb, /container-type: inline-size; container-name: jbrows;/);
-  assert.match(jb, /@container jbrows \(max-width: 620px\) \{\n  \.jb-pair \{ flex-direction: column;/);
-  assert.match(jb, /\.jb-pair \.jb__meta \{ flex-wrap: wrap; overflow: hidden; white-space: nowrap; max-height:/, "a fact drops whole, never cut mid-word");
+  // ⛔ 47j R2 (changed on purpose): the bubble PAIR (.jb-pair) is deleted with the classic market — the market's list is the
+  // Index (shrink201's board route measures its rows); the pair's stacking rule left with it
+  assert.doesNotMatch(jb, /(^|\n)\s*\.jb-pair\b/, "the classic pair's rules are deleted");
   const nav = read("client/src/components/AppNav.css");
   // ⭐ owner 11-15: Tiny replaces Ask draft, floating (changed on purpose) — A201's split (push from 1280 px, a sheet below)
   // is retired: the card floats over the page at every width, so the page is never narrowed; a bottom sheet on phones.

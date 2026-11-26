@@ -97,7 +97,8 @@ test("d197ShellSearch (pure): the dock's search (people / companies / roles) liv
   assert.match(NAV, /<UsbSuggest field="title" value=\{q\} onChange=\{setQ\}\n      onPickRole=\{\(r\) => toBoard\(\{ role: \{ id: r\.id, categoryId: r\.categoryId \} \}\)\}/);
   assert.match(NAV, /renderInput: \(\{ className, placeholder: ph \}\) => <ShellSearchInput className=\{className\} placeholder=\{ph\} inputRef=\{inputRef\} \/>/);
   assert.match(NAV, /onOpen: \(\) => setSheet\(\(s\) => !s\), sheet: sheet \? <DockSearch onClose=\{\(\) => setSheet\(false\)\} \/> : null/, "the phone's search button opens the sheet");
-  assert.match(read("client/src/App.jsx"), /<AppAreaNavSlot activeTab=\{home \? "today" : activeTab\} marketPlate=\{!!marketPlate\}/);
+  // 47j R2 (changed on purpose): the market's views are always the plate's; the switch reaches only the ledger's nav
+  assert.match(read("client/src/App.jsx"), /<AppAreaNavSlot activeTab=\{home \? "today" : activeTab\} ledgerPlate=\{!!ledgerPlate\}/);
 });
 
 test("d167ProfilePeekBasics → d197 (pure): the peek's items link to Profile's panels; the mode switch; the notifications list (A236 (b))", () => {
@@ -156,7 +157,8 @@ test("d197ShellPlace (real Chrome): the rail beside the content column at every 
     const col = { left: 98, right: r.vw };
     assert.ok(Math.abs((r.row.left + r.row.right) / 2 - (col.left + col.right) / 2) <= 1, `${s}: centred in the column`);
     assert.ok(r.searchBox, `${s}: the dock's search in the area nav`);
-    assert.deepEqual(r.views, ["All jobs", "Starred", "Imported"], `${s}: the classic market's views`);
+    // 47j R2 (changed on purpose): the plate market's views (the counts ride on the words: "All jobs · 746")
+    assert.deepEqual(r.views.map(v => v.replace(/ · [\d,]+$/, "")), ["Today’s picks", "All jobs", "Starred", "Imported"], `${s}: the market's views (${r.views.join(" | ")})`);
     assert.ok(r.scrollW <= r.vw, `${s}: no sideways scroll (${r.wide})`);
     const p = out[s].node.peek;
     assert.equal(p.open, "true"); assert.ok(p.left >= p.dockRight + 8, `${s}: the peek beside the rail`);
