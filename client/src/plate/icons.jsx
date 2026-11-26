@@ -27,6 +27,11 @@ export const ICON_PATHS = Object.freeze({
   // D197 #1: the two places the board doesn't draw (46f's own pages, under the network switch) — today's dock drawings,
   // redrawn as paths in the plate's line set: a page of posts, an envelope
   feed: "M6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11A2.5 2.5 0 0 1 6.5 4z M8 9h8 M8 12.5h8 M8 16h5",
+  // D197 Wave 2 #19 (47j, lane w2-outside): the floating panel's header (plate/Panels.jsx) — move, collapse, close, open out
+  move: "M12 3v18 M3 12h18 M9 6l3-3 3 3 M9 18l3 3 3-3 M6 9l-3 3 3 3 M18 9l3 3-3 3",
+  minimise: "M5 12h14",
+  close: "M6 6l12 12 M18 6L6 18",
+  external: "M14 4h6v6 M20 4l-9 9 M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5",
   messages: "M6 5.5h12a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 16V8A2.5 2.5 0 0 1 6 5.5z M4 7l8 6 8-6",
 });
 
