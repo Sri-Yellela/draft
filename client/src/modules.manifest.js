@@ -71,6 +71,7 @@ export const MODULES = Object.freeze({
       "plate/PublicPages.jsx", "plate/Correspondence.jsx",
       "pages/dev/platePages/publicFixtures.jsx", "pages/dev/platePages/PublicJobs.jsx", "pages/dev/platePages/PublicChrome.jsx",
       "pages/dev/platePages/Network.jsx", "pages/dev/platePages/OffTheMap.jsx", "pages/dev/platePages/Landing.jsx",
+      "pages/dev/platePages/Interview.jsx", "pages/dev/platePages/Logbook.jsx", "pages/dev/platePages/TodaysQuestion.jsx", "pages/dev/platePages/AskDraft.jsx" /* 47j lane w2-practice: #13, #11 ×2, #12 */,
       // P1 (the market): the switch, the card face, and the deck that wears it
       "plate/marketPlate.js", "plate/MarketCardFace.jsx", "plate/PlateBearing.jsx", "plate/MarketHero.jsx", "plate/MarketOpenings.jsx", "panels/DeckView.jsx",
       // 47f (the owner's P1 FIX): the deck at the board's size; the Index as the Gazetteer, drawn by the board's own column

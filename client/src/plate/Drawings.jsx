@@ -70,3 +70,25 @@ export function ElevationProfile({ label, ...s }) {
   if (gate) return gate;
   return <div style={{ width: "100%" }}><PlaceElevationProfile {...(label ? { label } : null)}/></div>;
 }
+
+/**
+ * ⭐ 47j (D197 Wave 2 · M3, lane w2-practice) · A DRAWING TO COME — the labelled placeholder plate a page mock shows where its
+ * brief says "drawing needed". Never new art: the page's region tint, faint contours, a dashed border (the design doc's
+ * "not yet"), the grid letters, and in mono caps what the drawing will show. `what` = the drawing's subject (it is also the
+ * aria-label: "drawing to come: …"), `aspect` keeps the frame's shape so nothing shifts when the real drawing lands,
+ * `note` = one line under it (where the drawing comes from — "from the design doc", "re-ink PlaceElevationProfile in VI").
+ */
+export function DrawingToCome({ what = "", aspect = "16 / 9", note, ...s }) {
+  const gate = plateState(s, { height: 220, radius: "plate", label: "Loading the drawing" });
+  if (gate) return gate;
+  return (
+    <div className="pl-tocome" role="img" aria-label={`drawing to come: ${what}`} style={{ "--pl-aspect": aspect }} data-drawing-to-come="">
+      <span className="pl-tocome__grid" aria-hidden="true">{"ABCDEFG".split("").map((l) => <span key={l}>{l}</span>)}</span>
+      <span className="pl-tocome__body" aria-hidden="true">
+        <span className="pl-label">DRAWING TO COME</span>
+        <span className="pl-tocome__what">{what}</span>
+        {note ? <span className="pl-label pl-muted">{note}</span> : null}
+      </span>
+    </div>
+  );
+}

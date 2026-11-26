@@ -13,4 +13,9 @@ export const PLATE_PAGES = {
   network: { title: "Correspondence (Network · Feed · Messages)", wave2: "#14", load: () => import("./Network.jsx") },
   "off-the-map": { title: "Off the map (404, faults, empty states)", wave2: "#22", load: () => import("./OffTheMap.jsx") },
   landing: { title: "The front door (/) — PROPOSED, owner to place", wave2: "#16a (proposed)", load: () => import("./Landing.jsx") },
+  // 47j lane w2-practice — docs/revamp/interview.md, atlas-extras.md, ask-draft.md
+  interview: { title: "Interview → Proving ground", wave2: "#13", load: () => import("./Interview.jsx") },
+  logbook: { title: "Atlas → Your map's Logbook (Your run, League, Challenges)", wave2: "#11", load: () => import("./Logbook.jsx") },
+  "todays-question": { title: "Atlas → Your map's Today card (Today's question)", wave2: "#11", load: () => import("./TodaysQuestion.jsx") },
+  "ask-draft": { title: "Ask draft", wave2: "#12", load: () => import("./AskDraft.jsx") },
 };

@@ -44,6 +44,9 @@ const PUBLIC_LINKS = [
   { id: "jobs", label: "Jobs", href: "#jobs" }, { id: "atlas", label: "Atlas", href: "#atlas" },
   { id: "about", label: "About", href: "#about" }, { id: "blog", label: "Blog", href: "#blog" },
 ];
+// 47j (lane w2-practice): Monday 2 Nov → Thursday 26 Nov 2026 — lit days, one rest day a week, today clay (LogbookDays)
+const LOG_PATTERN = "LL.LLr.L.LLLr.LLL.Lr.LLLT";
+const LOG_DAYS = LOG_PATTERN.split("").map((c, i) => ({ day: `2026-11-${String(i + 2).padStart(2, "0")}`, s: { L: "lit", r: "rest", T: "today" }[c] || null }));
 export const DOCK_ITEMS = [
   { id: "auto-apply", label: "Home", href: "#home", icon: "home", badge: 1, badgeLabel: "1 needs you" },
   { id: "atlas", label: "Atlas", href: "#atlas", icon: "atlas" },
@@ -127,6 +130,11 @@ export const PLATE_REGISTRY = [
     states: four({ chips: [{ id: "iv", tag: "IV", region: "IV", label: "Software engineering", count: 412, on: true }, { id: "viii", tag: "VIII", region: "VIII", label: "Data and AI", count: 1 }, { id: "vii", tag: "VII", region: "VII", label: "Project management", count: 0 }] }, "No filters yet."),
     extremes: { chips: [{ id: "a", tag: "IV", region: "IV", label: LONG, count: 10000, on: true }] } },
   // 47h (D197 #4): the final Survey board's legend — a column per group, each technology with its evidence and your square
+  // 47j (D197 Wave 2 #11 · M3, lane w2-practice; D203 (1)): the Logbook's lit days — Your run's month grid as a plate piece
+  { name: "LogbookDays", file: "Marks.jsx", group: "Marks",
+    states: four({ label: "Your run: 15 of the last 25 days lit", days: LOG_DAYS }, "No days yet — prove something today to light the first one.",
+      { partial: { state: "partial", label: "Your run: 3 days so far", days: LOG_DAYS.slice(-5) } }),
+    extremes: { label: LONG, days: Array.from({ length: 42 }, (_, i) => ({ day: `2026-10-${String(i + 1).padStart(2, "0")}`, s: "lit" })) } },
   { name: "Legend", file: "Marks.jsx", group: "Marks",
     states: four({ label: "Kestrel's stack", columns: [{ label: "LANGUAGES", rows: [{ name: "Go", n: 21, of: 38, teams: "Platform, Backend", mark: "not" }, { name: "TypeScript", n: 9, of: 38, teams: "Checkout, Frontend", mark: "yours" }] },
       { label: "DATA & CLOUD", rows: [{ name: "Kafka", n: 12, of: 38, teams: "Backend, Data", mark: "not", isNew: true }] }] }, "No stack found yet.",
@@ -189,6 +197,15 @@ export const PLATE_REGISTRY = [
       { partial: { state: "partial", kicker: "FILLED FOR YOU · 1 OF 2", rows: [{ label: "Name", value: "Maya Chen" }, { label: "LinkedIn", value: null }] } }) },
   { name: "CatalogueCard", file: "Cards.jsx", group: "Cards", states: four({ call: "IV.1 LAM", title: "Time, Clocks, and the Ordering of Events in a Distributed System", authors: "LESLIE LAMPORT · 1978", explained: true }, "No primary source yet."), extremes: { call: "IV.9 XYZ", title: LONG, authors: LONG.toUpperCase() } },
   { name: "FieldNoteCard", file: "Cards.jsx", group: "Cards", states: four({ code: "FN-IV.1", kicker: "FIELD NOTE", duration: "0:48", text: "A webhook is the same news, pushed to you.", highlight: "pushed to you", progress: 0.4, views: "12K VIEWS" }, "No field notes yet.") },
+  // 47j (D197 Wave 2 #12 · M3, lane w2-practice): D190's Ask draft panel as a plate card — the four tiers, Undo, ask-back, Confirm
+  { name: "AskDraftCard", file: "Cards.jsx", group: "Cards",
+    states: four({ intro: "Tell me what to do — “find data analyst jobs”, “draft this job”, “how many need me?” — or ask about a skill.", canSpeak: true, improve: { on: true },
+      turns: [{ who: "you", text: "how many need me?" }, { who: "draft", tier: "T2", text: "2 need you: 1 question to answer, 1 ready to approve." },
+        { who: "you", text: "draft this job" }, { who: "draft", tier: "T1", text: "Drafting Frontend Engineer II at Kestrel Payments.", undo: true },
+        { who: "you", text: "what is a webhook?" }, { who: "draft", tier: "T2", text: "The same news, pushed to you when it happens.", lessons: [{ name: "Webhooks", href: "#webhooks", kind: "PLACE · IV" }], next: "Walk the place: about 12 minutes." }] },
+      "Ask anything — nothing yet.", { askback: { turns: [{ who: "you", text: "pass" }, { who: "draft", tier: "ask", text: "Pass on Kestrel Payments? It leaves your deck.", confirm: true }] },
+        t3: { turns: [{ who: "you", text: "write a cover letter opening for this job" }, { who: "draft", tier: "T3", text: "A first line, from your résumé — edit it before you use it.", action: { summary: "Save it to this job’s notes" } }] } }),
+    extremes: { turns: [{ who: "you", text: LONG }, { who: "draft", tier: "T2", text: LONG, lessons: [{ name: LONG, href: "#x", kind: "PLACE" }], next: LONG }, { who: "draft", tier: "T1", text: "x", undo: true, undone: "Undone." }], busy: true, value: LONG } },
 
   // ── lists ──
   { name: "Gazetteer", file: "Lists.jsx", group: "Lists", states: four({ label: "Every opening", cols: INDEX_COLS, rows: INDEX_ROWS }, "No openings fit your bearing yet."),
@@ -209,6 +226,10 @@ export const PLATE_REGISTRY = [
   { name: "RegionEmblem", file: "Drawings.jsx", group: "Drawings", states: four({ kind: "net", region: "IV" }, "No region.", { partial: { eight: true } }), extremes: { kind: "no-such-kind", label: LONG } },
   { name: "IsometricTile", file: "Drawings.jsx", group: "Drawings", states: four({}, "No walk-through.", { partial: { arcOp: 1, beaconR: 7, beaconFill: "var(--pl-clay)", beaconOp: 1, queueOp: 1, serverLed: "var(--pl-lit)", tallyOp: 0 } }), extremes: { label: LONG, arcOp: 1, tallyOp: 1, queueOp: 1 } },
   { name: "ElevationProfile", file: "Drawings.jsx", group: "Drawings", states: four({}, "No profile."), extremes: { label: LONG } },
+  // 47j (D197 Wave 2 · M3, lane w2-practice): the labelled placeholder a page mock shows where its brief says "drawing needed"
+  { name: "DrawingToCome", file: "Drawings.jsx", group: "Drawings",
+    states: four({ what: "the proving ground: five rounds as benches up a hill, you beaconed", aspect: "640 / 360", note: "VI’S RAMP · FROM THE DESIGN DOC" }, "No drawing planned here."),
+    extremes: { what: LONG, aspect: "1 / 1", note: LONG.toUpperCase() } },
 
   // ── dispatches (D197 Wave 2 #18, 47j lane w2-outside): the email form — a 600 px table, inline token styles ──
   { name: "DispatchFrame", file: "Dispatch.jsx", group: "Dispatches", width: 640,
