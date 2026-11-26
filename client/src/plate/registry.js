@@ -39,6 +39,11 @@ const ATLAS_VIEWS = [
   { id: "league", label: "League", href: "#league", icon: "league" },
 ];
 const RUN = ["lit", "lit", "lit", "lit", "today", null, null];
+// D197 Wave 2 #16 (47j, w2-public): the signed-out nav's links (Pricing joins only while monetisation is on — the caller's)
+const PUBLIC_LINKS = [
+  { id: "jobs", label: "Jobs", href: "#jobs" }, { id: "atlas", label: "Atlas", href: "#atlas" },
+  { id: "about", label: "About", href: "#about" }, { id: "blog", label: "Blog", href: "#blog" },
+];
 export const DOCK_ITEMS = [
   { id: "auto-apply", label: "Home", href: "#home", icon: "home", badge: 1, badgeLabel: "1 needs you" },
   { id: "atlas", label: "Atlas", href: "#atlas", icon: "atlas" },
@@ -209,6 +214,24 @@ export const PLATE_REGISTRY = [
   { name: "Explainer", file: "explainer/Explainer.jsx", group: "Explainer", width: 405,
     states: four({ script: PILOT_EXPLAINER, openings: 412 }, "No explainer here yet.", { at_beat_7: { script: PILOT_EXPLAINER, openings: 412, at: 40000 }, unknown_count: { script: PILOT_EXPLAINER, at: 40000 } }),
     extremes: { script: { ...PILOT_EXPLAINER, title: { text: LONG, tape: LONG } }, openings: 10000 } },
+
+  // ── D197 Wave 2 (47j, lane w2-public): the signed-out chrome, the placeholder plate, correspondence ──
+  { name: "PublicNav", file: "PublicPages.jsx", group: "Public pages",
+    states: four({ links: PUBLIC_LINKS, current: "jobs" }, "No links yet.",
+      { signed_in: { links: PUBLIC_LINKS, current: "atlas", user: { admin: false } }, ink_start: { links: PUBLIC_LINKS, clay: false } }),
+    extremes: { links: PUBLIC_LINKS.map((l) => ({ ...l, label: `${l.label} and a great many more words` })), current: "about" } },
+  { name: "PublicNav", variant: "phone", file: "PublicPages.jsx", group: "Public pages", width: 390,
+    states: four({ links: PUBLIC_LINKS, current: "jobs", phone: true }, "No links yet.", { menu_open: { links: PUBLIC_LINKS, current: "jobs", phone: true, menuOpen: true } }) },
+  { name: "UnchartedPlate", file: "PublicPages.jsx", group: "Public pages",
+    states: four({ label: "the edge of the known map", caption: "PLATE · OFF THE MAP" }, "No plate here."),
+    extremes: { label: LONG, caption: LONG.toUpperCase() } },
+  { name: "CorrespondenceLetter", file: "Correspondence.jsx", group: "Public pages",
+    states: four({ kind: "letter", from: { name: "Priya Raman", href: "#in-priya" }, when: "NOV 24 · 9:12", text: "Saw Kestrel is hiring for checkout — your Toast work is exactly it. Want an intro?", job: { title: "Frontend Engineer II, Checkout", company: "Kestrel Payments", place: "Boston, MA", href: "#opening" } }, "No letters yet.",
+      { mine: { kind: "letter", mine: true, when: "NOV 24 · 9:40", text: "Yes please — thank you!" },
+        dispatch: { kind: "dispatch", from: { name: "Diego Alvarez", href: "#in-diego" }, when: "NOV 23", proof: { label: "PASSED · WEBHOOKS" }, text: "Finally get why retries need idempotency keys.", link: "https://example.com/notes/idempotency" },
+        removed: { kind: "letter", from: { name: "Sam Okafor" }, when: "NOV 20", removed: true },
+        closed_job: { kind: "letter", from: { name: "Priya Raman" }, when: "NOV 19", text: "This one?", job: false } }),
+    extremes: { kind: "dispatch", from: { name: LONG_CO }, when: "NOV 1", text: LONG_DRAFT, link: `https://example.com/${"a".repeat(130)}`, note: "UNREAD" } },
 ];
 
 /** The drawings ported path for path (scripts/d196PortDrawings.mjs): the v3 boards' eight, then v2's fifteen (47e) — the

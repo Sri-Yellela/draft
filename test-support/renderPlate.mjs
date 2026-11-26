@@ -33,10 +33,12 @@ export async function loadPlate({ reducedMotion = false } = {}) {
     import * as Drawings from ${JSON.stringify(path.join(src, "plate/Drawings.jsx"))};
     import * as Explainer from ${JSON.stringify(path.join(src, "plate/explainer/Explainer.jsx"))};
     import * as FitCardMod from ${JSON.stringify(path.join(src, "plate/FitCard.jsx"))};   // D202
+    import * as PublicPages from ${JSON.stringify(path.join(src, "plate/PublicPages.jsx"))};   // D197 Wave 2 (47j, w2-public)
+    import * as Correspondence from ${JSON.stringify(path.join(src, "plate/Correspondence.jsx"))};   // D197 Wave 2 #14 (47j, w2-public)
     import PlateRoot from ${JSON.stringify(path.join(src, "plate/PlateRoot.jsx"))};
     import { PLATE_REGISTRY, PORTED_DRAWINGS } from ${JSON.stringify(path.join(src, "plate/registry.js"))};
     import { DRAWINGS } from ${JSON.stringify(path.join(src, "plate/drawings/index.js"))};
-    export const LIB = { ...Shell, ...Marks, ...Plates, ...Tickets, ...Cards, ...Lists, ...Drawings, ...Explainer, FitCard: FitCardMod.FitCard };
+    export const LIB = { ...Shell, ...Marks, ...Plates, ...Tickets, ...Cards, ...Lists, ...Drawings, ...Explainer, FitCard: FitCardMod.FitCard, ...PublicPages, ...Correspondence };
     export const REGISTRY = PLATE_REGISTRY; export const PORTED = PORTED_DRAWINGS; export { DRAWINGS, PlateRoot, React };
     const RM = ${reducedMotion ? "true" : "false"};
     const fakeWindow = { matchMedia: () => ({ matches: true, addEventListener() {}, removeEventListener() {} }), addEventListener() {}, removeEventListener() {} };

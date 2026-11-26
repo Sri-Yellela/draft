@@ -4,4 +4,7 @@
 // a mock, and the approved mock becomes that page's F5 oracle.
 export const PLATE_PAGES = {
   // id: { title, wave2: "#n", load: () => import("./<File>.jsx") },
+  // 47j lane w2-public: #16 the public pages (docs/revamp/public.md)
+  "public-jobs": { title: "The market, signed out (/jobs)", wave2: "#16", load: () => import("./PublicJobs.jsx") },
+  "public-chrome": { title: "The signed-out nav + footer, on the server pages", wave2: "#16", load: () => import("./PublicChrome.jsx") },
 };
