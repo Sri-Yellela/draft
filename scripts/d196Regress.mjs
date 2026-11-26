@@ -95,7 +95,9 @@ export const PAIRS = {
   "final-market-pager": { source: "final", board: "Market", fixture: "MarketSectionFinal", boardSel: 'nav[aria-label="Pages"]', buildSel: 'nav[aria-label="Pages"]', pad: 4, subpixel: true, reduced: true,
     // the page line and the last tile: the board's 24 per page (469 pages) vs the owner's "use 50" (225) — the only change;
     // at 1280 they differ by under 2 % unmasked, at 390 (two lines of the line, the tiles wrapped) they're masked
-    masks: [], masksAt: { 390: [[0, 0, 252, 34], [48, 86, 56, 50]] } },
+    // + at 390 the first tile: the board's script styles ‹ Prev on page 1 as the CURRENT tile (its target page is page 1);
+    // the build's Prev is disabled there and drawn as a plain tile (at 1280 the same difference stays under 2 % unmasked)
+    masks: [], masksAt: { 390: [[0, 0, 252, 34], [48, 86, 56, 50], [0, 36, 80, 52]] } },
   // masked: each row's 44 px actions cell at rest — the board's shows a clipped sliver of its Draft button (its flex-end cell
   // overflows LEFT, under the STATUS tag: A201's probe read "Draft" over "NEW" at 768); the build draws the ⋯ the board's markup
   // has there and keeps Star / Draft out of the layout until hover / focus

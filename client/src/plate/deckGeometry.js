@@ -17,7 +17,9 @@ export const PLATE_TICKET_FALLBACK_H = 460;   // before the face is measured (th
 /** The ticket's box: the column's width less the backs' 18 px; the face's measured height (0 → a first-paint guess). */
 export function plateTicketSize(columnWidth, measuredHeight) {
   const width = Math.max(MIN_WIDTH, Math.round(Number(columnWidth) || 0) - PLATE_DECK_PAD.right);
-  const height = Number(measuredHeight) > 0 ? Math.round(measuredHeight) : PLATE_TICKET_FALLBACK_H;
+  // 47h (D199, F5 at 390): the face's height as measured, fraction kept — rounded, the stage sat 0.39 px short of the
+  // ticket and everything under it (the position row, the pager) landed off the board's sub-pixel grid
+  const height = Number(measuredHeight) > 0 ? Number(measuredHeight) : PLATE_TICKET_FALLBACK_H;
   return { width, height };
 }
 

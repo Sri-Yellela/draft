@@ -707,7 +707,7 @@ export function PlateDeckStill({ cards = [], of = cards.length, order = "best", 
   const [w, setW] = useState(0);
   useLayoutEffect(() => {
     const face = faceRef.current, box = boxRef.current;
-    const read = () => { if (face) setH(face.offsetHeight); if (box) setW(box.clientWidth); };
+    const read = () => { if (face) setH(face.getBoundingClientRect().height); if (box) setW(box.clientWidth); };   // the fraction kept (47h)
     read();
     if (typeof ResizeObserver === "undefined") return undefined;
     const ro = new ResizeObserver(read);
@@ -1233,9 +1233,9 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   useLayoutEffect(() => {
     const el = faceRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() => setFrontH(el.offsetHeight));
+    const ro = new ResizeObserver(() => setFrontH(el.getBoundingClientRect().height));   // 47h: the fraction kept (plateTicketSize)
     ro.observe(el);
-    setFrontH(el.offsetHeight);
+    setFrontH(el.getBoundingClientRect().height);
     return () => ro.disconnect();
   }, [current?.job.id, load.status]);
 
