@@ -27,7 +27,8 @@ const DAY_WORD = { lit: "proof that day", today: "today", rest: "the week’s re
  * the grid counts (the one thing a screen reader hears); `showKey` = false hides the key line. Colour is never the only
  * signal: each square carries its word as a title, and the key spells the four.
  */
-export function LogbookDays({ days = [], label, showKey = true, ...s }) {
+// `onPick(i)` (optional) makes each day a button that says what lit it (the Logbook's operable model); `picked` = the open one.
+export function LogbookDays({ days = [], label, showKey = true, onPick, picked = null, ...s }) {
   const gate = plateState(s, { height: 150, radius: "card", lines: 4, label: "Loading your days" });
   if (gate) return gate;
   const lit = days.filter((d) => d.s === "lit").length;
@@ -35,7 +36,12 @@ export function LogbookDays({ days = [], label, showKey = true, ...s }) {
     <div className="pl-logdays">
       <div className="pl-logdays__grid" role="img" aria-label={label || `${lit} of ${days.length} days lit`}>
         {["M", "T", "W", "T", "F", "S", "S"].map((w, i) => <span key={`h${i}`} className="pl-logdays__wd" aria-hidden="true">{w}</span>)}
-        {days.map((d) => <span key={d.day} className="pl-sq pl-sq--16 pl-logdays__day" data-s={d.s || undefined} title={`${d.day}${DAY_WORD[d.s] ? ` · ${DAY_WORD[d.s]}` : ""}`}/>)}
+        {days.map((d, i) => {
+          const word = `${d.day}${DAY_WORD[d.s] ? ` · ${DAY_WORD[d.s]}` : ""}`;
+          return onPick
+            ? <button key={d.day} type="button" className="pl-sq pl-sq--16 pl-logdays__day" data-s={d.s || undefined} title={word} aria-label={word} aria-pressed={picked === i} onClick={() => onPick(i)}/>
+            : <span key={d.day} className="pl-sq pl-sq--16 pl-logdays__day" data-s={d.s || undefined} title={word}/>;
+        })}
       </div>
       {showKey ? <p className="pl-logdays__key">■ PROOF THAT DAY · ■ TODAY · ⬚ REST DAY · ▨ WEEKEND, NOT COUNTED</p> : null}
     </div>
