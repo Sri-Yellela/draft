@@ -177,13 +177,15 @@ export function VolumesPanel({ regions = [], volume = { tag: "VOL. I", name: "Co
 }
 
 /** The footer: Atlas, its line, and a column of links per group — every Atlas place, so none is lost (D200 Rule 1). */
-export function AtlasFooter({ groups = [], line = "Your way through the market.", onGo }) {
+// 47j (w2-public, D197 #16): `brand` = the name at the top left (default Atlas) — the public pages' footer is this footer
+// with the /draft wordmark (A93: one footer, not a second implementation).
+export function AtlasFooter({ groups = [], line = "Your way through the market.", onGo, brand = "Atlas" }) {
   const click = (href) => (e) => { if (!onGo || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); onGo(href); };
   return (
     <footer className="pl-at-foot">
       <div className="pl-at-foot__in">
         <div className="pl-at-foot__brand">
-          <span className="pl-at-foot__name">Atlas</span>
+          <span className="pl-at-foot__name">{brand}</span>
           <span className="pl-at-foot__line">{line}</span>
           <svg aria-hidden="true" width="220" height="60" viewBox="0 0 220 60">
             <g fill="none" strokeWidth="1" style={{ stroke: "var(--pl-muted)" }}><path d="M0 40 C40 20 80 50 120 30 C160 10 190 30 220 20"/><path d="M0 52 C40 32 80 62 120 42 C160 22 190 42 220 32"/></g>
