@@ -77,7 +77,8 @@ const JOB = {
 
 test("d147FilterSentenceKept · the sentence that filters stays — its words still open their filters — restyled in the serif", () => {
   // ⭐ D156 (5), changed on purpose: no title row before the sentence (the sort is an icon in the search field).
-  assert.match(app, /<header className="fh" data-fh-d147=""[^>]*>\s*<BoardHeadlineSlot \/>/);   // A125: Home's header is the only one
+  // ⛔ 47j w1-market (changed on purpose): the market's header is the plate cartouche's own (.pl-mk-head) — no `.fh[data-fh-d147]`
+  assert.match(app, /<header className="pl-mk-head" data-market-head=""[^>]*>\s*<BoardHeadlineSlot \/>/);   // A125: Home's header is the only one
   // 47j R2 (changed on purpose): the sentence is the cartouche's (PlateBearing); a word's press goes through the same rule
   assert.match(app, /const toggle = \(key\) => setBoardPanel\(current => nextBoardPanel\(current, key\)\);/);
   assert.match(app, /<PlateBearing params=\{params\}[^>]*\n\s+open=\{boardPanel\} onToggle=\{toggle\}/, "a word's press still opens its filter");
@@ -85,7 +86,8 @@ test("d147FilterSentenceKept · the sentence that filters stays — its words st
   // ⭐ D156 (1d) (changed on purpose): the sentence's ORIGINAL type (FULL_HOUSE_TYPE, the logo face) — D147's serif override
   // is withdrawn; only the size stays here, the original's times the text size (A116).
   assert.doesNotMatch(fhCss, /--fh-sentence-family: var\(--font-display\)/);
-  assert.match(fhCss, /\.fh\[data-fh-d147\] \{ --fh-sentence-size: calc\(min\(30px, 6\.4vw\) \* var\(--type-scale, 1\)\); \}/, "≈ 30px, following the text size (A116)");
+  // ⛔ 47j w1-market (changed on purpose): `.fh[data-fh-d147]` is deleted with the classic header — the cartouche sets its own sentence (plate)
+  assert.doesNotMatch(fhCss, /\.fh\[data-fh-d147\]\s*\{/, "the classic header's rule is back");
   // ⭐ D156 (1d) (changed on purpose): the marked look is the ORIGINAL one again (7ebed68) — the quiet highlighter underline,
   // and a SET filter is the one orange box (no --tok-on-* overrides); D147's accent underline is withdrawn.
   const marked = fhCss.slice(at(fhCss, '[data-sentence="marked"] {'), at(fhCss, '[data-sentence="calm"] {'));

@@ -102,7 +102,8 @@ test("D12: Full House — + Add jobs where IMPORT sat, the first-run prompt, the
   assert.doesNotMatch(app, /<AddSquare\b/, "the standalone + square is back");
   // ⭐ D147 (owner 11-03): the view is the WORD "Imported" — 47j R2: the area nav's
   assert.match(app, /\{ id: "imported", label: "Imported", href: "\/app\/jobs\?view=imported"/);
-  const chrome = app.slice(at(app, '<header className="fh"'), at(app, "</main>"));
+  // ⛔ 47j w1-market (changed on purpose): the header is the plate cartouche's (.pl-mk-head)
+  const chrome = app.slice(at(app, '<header className="pl-mk-head"'), at(app, "</main>"));
   assert.match(chrome, /<ExtensionFirstRunPrompt \/>/);
 
   const prompt = read("client/src/components/ExtensionPrompt.jsx");

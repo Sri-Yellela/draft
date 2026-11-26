@@ -7,9 +7,10 @@ import fs from "node:fs";
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 
 test("boardSearchOneClearButton: the browser's own clear button on the search field is hidden — ours is the one", () => {
-  const css = read("client/src/components/FullHouse.css");
-  assert.match(css, /\.fh-srch input\[type="search"\]::-webkit-search-cancel-button,\n\.fh-srch input\[type="search"\]::-webkit-search-decoration \{ -webkit-appearance: none; appearance: none; display: none; \}/);
-  assert.match(read("client/src/components/BoardBar.jsx"), /className="fh-srch__clear"/);
+  // ⛔ 47j w1-market (changed on purpose): BoardSearch is drawn as the plate field (.pl-mk-field, plate/plate.css)
+  const css = read("client/src/plate/plate.css");
+  assert.match(css, /\.pl-mk-field input\[type="search"\]::-webkit-search-cancel-button,\n\.pl-mk-field input\[type="search"\]::-webkit-search-decoration \{ -webkit-appearance: none; appearance: none; display: none; \}/);
+  assert.match(read("client/src/components/BoardBar.jsx"), /className="pl-mk-field__clear"/);
 });
 
 test("boardSearchEmptiedBringsBackAllJobs: emptying the field while a search is in force commits the empty search", () => {

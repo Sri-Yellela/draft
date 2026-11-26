@@ -262,7 +262,7 @@ try {
 
     // the board box's scope labels: Company → type → only companies suggested → Enter opens the page
     await A.goto(`${BASE}/app/jobs`, { waitUntil: "networkidle2", timeout: 60000 }); await sleep(1200);
-    const box = await A.$(".fh-srch input");
+    const box = await A.$(".pl-mk-field input");
     if (!box) say("cpage", false, "the board's search box is not there");
     else {
       await box.click(); await sleep(400);

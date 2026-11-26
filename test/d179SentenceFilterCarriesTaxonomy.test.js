@@ -30,6 +30,7 @@ test("D179 (a) · the facets count technologies from job_tech in one grouped rea
   assert.match(facets, /JOIN job_tech jtt ON jtt\.job_id = sj\.job_id \$\{whereClause\} GROUP BY jtt\.tech/);
   assert.ok(facets.indexOf('key: "tech"') < facets.indexOf('key: "role"'), "the facets' order follows the sentence's clauses, then role");
   const panel = fs.readFileSync("client/src/components/WordPanel.jsx", "utf8");
-  assert.match(panel, /<RolePicker params=\{params\} facets=\{facets\} onPatch=\{onPatch\} \/>\s*<div className="fh-addrow" data-domain-kinds="">/);
+  // ⛔ 47j w1-market (changed on purpose): the kinds' row is the plate panel's sub-row (.pl-mk-panel__sub)
+  assert.match(panel, /<RolePicker params=\{params\} facets=\{facets\} onPatch=\{onPatch\} \/>\s*<div className="pl-mk-panel__sub" data-domain-kinds="">/);
   assert.doesNotMatch(fs.readFileSync("client/src/components/BoardHeadline.jsx", "utf8"), /onClearTech/, "45l's press-to-clear token is gone");
 });

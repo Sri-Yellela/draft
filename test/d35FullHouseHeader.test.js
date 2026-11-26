@@ -322,15 +322,18 @@ test("D35 ⑥ a ZERO-COUNT option is DIMMED and NOT SELECTABLE — and never hid
   buttons(tree).find(b => b.props["data-value"] === "senior").props.onClick();
   assert.equal(calls.length, 1, "a counted option must still press");
   const out = html(PanelOptions, { clause: lvl, rows, params: {}, onPatch() {} });
-  assert.match(out, /aria-disabled="true"[^>]*>intern<span class="n">0<\/span>/);
+  // ⛔ 47j w1-market (changed on purpose): the word panel / sort menu are plate pieces (MarketPanel, .pl-mk-op in plate/plate.css); FullHouse.css's .fh-op is deleted
+  assert.match(out, /aria-disabled="true"[^>]*>intern<span class="pl-mk-op__n">0<\/span>/);
   // Already chosen, a zero stays pressable — pressing it is how it is removed.
   const chosen = panelRows(lvl, { [lvl.dim.param]: ["intern"] }, FACETS).find(r => r.value === "intern");
   assert.equal(chosen.disabled, false);
   assert.deepEqual(panelPress(lvl, { [lvl.dim.param]: ["intern"] }, chosen), { [lvl.dim.param]: [] });
   // The CSS dims it in place; nothing hides it.
-  const dim = cssRules(read(CSS_FILE)).filter(r => /\.fh-op\[aria-disabled="true"\]$/.test(r.selector));
-  assert.ok(dim.some(r => r.decls.opacity), "the dimmed option is not dimmed");
-  for (const r of cssRules(read(CSS_FILE)).filter(r => /aria-disabled/.test(r.selector))) {
+  // ⛔ 47j w1-market (changed on purpose): the word panel / sort menu are plate pieces (MarketPanel, .pl-mk-op in plate/plate.css); FullHouse.css's .fh-op is deleted
+  const PLATE_CSS = "client/src/plate/plate.css";
+  const dim = cssRules(read(PLATE_CSS)).filter(r => /\.pl-mk-op\[aria-disabled="true"\]$/.test(r.selector));
+  assert.ok(dim.some(r => r.decls.color && r.decls["border-style"] === "dashed"), "the dimmed option is not dimmed");
+  for (const r of cssRules(read(PLATE_CSS)).filter(r => /aria-disabled/.test(r.selector))) {
     assert.ok(r.decls.display !== "none" && r.decls.visibility !== "hidden", `${r.selector} hides the zero`);
   }
 });
@@ -366,8 +369,9 @@ test("D35 ⑦ every word is reachable by KEYBOARD, and the panel is reachable fr
   // press can change — never a dimmed one.
   const q = (map) => ({ querySelector: (sel) => map[sel] ?? null });
   assert.equal(panelFocusTarget(q({ input: "FIND" })), "FIND");
-  assert.equal(panelFocusTarget(q({ '.fh-op[aria-checked="true"]:not([aria-disabled="true"])': "CHOSEN", '.fh-op:not([aria-disabled="true"])': "FIRST" })), "CHOSEN");
-  assert.equal(panelFocusTarget(q({ '.fh-op:not([aria-disabled="true"])': "FIRST", button: "CLOSE" })), "FIRST");
+  // ⛔ 47j w1-market (changed on purpose): the word panel / sort menu are plate pieces (MarketPanel, .pl-mk-op in plate/plate.css); FullHouse.css's .fh-op is deleted
+  assert.equal(panelFocusTarget(q({ '.pl-mk-op[aria-checked="true"]:not([aria-disabled="true"])': "CHOSEN", '.pl-mk-op:not([aria-disabled="true"])': "FIRST" })), "CHOSEN");
+  assert.equal(panelFocusTarget(q({ '.pl-mk-op:not([aria-disabled="true"])': "FIRST", button: "CLOSE" })), "FIRST");
   const wp = strip(read("client/src/components/WordPanel.jsx"));
   assert.match(wp, /useEffect\(\(\) => \{ panelFocusTarget\(ref\.current\)\?\.focus\?\.\(\); \}, \[\]\);/, "opening no longer moves focus into the panel");
   // Escape closes it, and focus goes back to the word that opened it (or + add for an optional clause).
@@ -382,10 +386,12 @@ test("D35 ⑦ every word is reachable by KEYBOARD, and the panel is reachable fr
   assert.equal(openerSlot("posted", fakeDoc), "ADD", "an optional clause's panel returns focus to + add");
   // Hover-only is not enough: every hover affordance also answers :focus-visible (D1's rule).
   const rules = cssRules(read(CSS_FILE));
-  for (const sel of [".bh .tok", ".fh-op", ".fh-ico"]) {   // D40: the + square is gone
+  for (const sel of [".bh .tok", ".fh-ico"]) {   // D40: the + square is gone
     assert.ok(rules.some(r => r.selector.includes(`${sel}:hover`) && r.selector.includes(`${sel}:focus-visible`)),
       `${sel} lifts on hover but not on keyboard focus`);
   }
+  // ⛔ 47j w1-market (changed on purpose): the word panel / sort menu are plate pieces (MarketPanel, .pl-mk-op in plate/plate.css); FullHouse.css's .fh-op is deleted — a plate option has no hover lift; its keyboard focus draws the plate's ring
+  assert.ok(cssRules(read("client/src/plate/plate.css")).some(r => r.selector.includes(".pl-mk-op:focus-visible")), ".pl-mk-op has no keyboard focus ring");
   void lvl;
 });
 
@@ -778,10 +784,11 @@ test("D24 → D35: the SORT PANEL renders every order with its note, the chosen 
   const { html, SortPanel } = await loadUi();
   for (const o of SORT_PANEL) {
     const out = html(SortPanel, { value: o.value, atsAvailable: true, facets: FACETS, facetsStatus: "ready" });
-    assert.match(out, new RegExp(`data-sort="${o.value}" title="${o.subtitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}">${o.short}<span class="n">${o.tag}</span>`),
+    // ⛔ 47j w1-market (changed on purpose): the word panel / sort menu are plate pieces (MarketPanel, .pl-mk-op in plate/plate.css); FullHouse.css's .fh-op is deleted
+    assert.match(out, new RegExp(`data-sort="${o.value}" title="${o.subtitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}">${o.short}<span class="pl-mk-op__n">${o.tag}</span>`),
       `${o.label}: its pill, note or subtitle is missing`);
     assert.ok(out.includes(tieBreakText(o)), `${o.label}'s tie-break is not visible when it is chosen`);
-    assert.match(out, new RegExp(`role="radio" aria-checked="true" class="fh-op" data-sort="${o.value}"`));
+    assert.match(out, new RegExp(`role="radio" aria-checked="true" class="pl-mk-op" data-sort="${o.value}"`));
   }
   const out = html(SortPanel, { value: "dateDesc", atsAvailable: true, facets: FACETS, facetsStatus: "ready" });
   assert.match(out, /37 jobs haven(?:'|&#x27;)t been scored yet, so they sort last whatever you pick\. <b>Newest<\/b> shows everything\./);
@@ -807,7 +814,8 @@ test("D24: the DEFAULT board request carries NO sort param — the curated order
   assert.equal(isSortChosen("dateDesc"), true, "Newest is a CHOSEN sort now, not the default");
   const { html, SortPanel, SortIcon } = await loadUi();
   const out = html(SortPanel, { value: "", atsAvailable: true, facets: FACETS, facetsStatus: "ready" });
-  assert.match(out, new RegExp(`aria-checked="true" class="fh-op" data-sort="" title="[^"]+">${DEFAULT_SORT_ROW.short}<`));
+  // ⛔ 47j w1-market (changed on purpose): the word panel / sort menu are plate pieces (MarketPanel, .pl-mk-op in plate/plate.css); FullHouse.css's .fh-op is deleted
+  assert.match(out, new RegExp(`aria-checked="true" class="pl-mk-op" data-sort="" title="[^"]+">${DEFAULT_SORT_ROW.short}<`));
   assert.equal((out.match(/aria-checked="true"/g) || []).length, 1);
   assert.match(html(SortIcon, { chosen: true }), /data-board-icon="sort" data-active="true"/);
   assert.match(html(SortIcon, { chosen: false }), /data-board-icon="sort" data-active="false"/);

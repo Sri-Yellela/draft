@@ -135,7 +135,8 @@ test("d156FilterSentenceOriginalStyle (pure): the marked look and the sentence t
   assert.match(marked, /--tok-pad: 0 \.08em; --tok-margin: 0; --tok-edge: transparent; --tok-fill: transparent; --tok-radius: 2px;\n  --tok-depth: inset 0 -\.16em 0 var\(--c-accent-quiet\);\n  --tok-hover-fill: var\(--c-accent-quiet\); --tok-hover-edge: transparent; --tok-hover-depth: inset 0 -\.16em 0 var\(--c-accent-ink\);\n  --tok-on-pad: 0 \.3em; --tok-on-margin: 0 \.04em;/);
   assert.doesNotMatch(marked, /--tok-on-fill|--tok-border-w/, "a set filter is the orange box again");
   assert.doesNotMatch(fh, /--fh-sentence-family: var\(--font-display\)/, "D147's serif sentence withdrawn");
-  assert.match(fh, /\.fh\[data-fh-d147\] \{ --fh-sentence-size: calc\(min\(30px, 6\.4vw\) \* var\(--type-scale, 1\)\); \}/);
+  // ⛔ 47j w1-market (changed on purpose): `.fh[data-fh-d147]` is deleted with the classic header (the market's is the plate cartouche)
+  assert.doesNotMatch(fh, /\.fh\[data-fh-d147\]\s*\{/);
   const type = read("client/src/styles/type.js");
   assert.match(type, /SENTENCE_FAMILY: LOGO_FACE\.family,\n  SENTENCE_SIZE: `min\(\$\{MARK_SIZES\.nav\}px, 6\.4vw\)`,\n  SENTENCE_LINE: "1\.5",\n  SENTENCE_WEIGHT: LOGO_FACE\.weight,\n  SENTENCE_STYLE: LOGO_FACE\.style,/);
 });

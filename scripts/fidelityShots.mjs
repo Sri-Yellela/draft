@@ -1353,7 +1353,7 @@ const STYLE_PROBES = {
         out.importBox.note = q("[data-import-note]")?.textContent || null;
         out.importBox.noteKind = q("[data-import-note]")?.getAttribute("data-import-note") || null;
         out.importBox.viewAfter = curView();
-        q(".fh-import__x")?.click(); await wait(150);
+        q("[data-import-panel] .pl-mk-panel__close")?.click(); await wait(150);
       }
       const row = q("[data-market-search]");
       if (row) { row.scrollIntoView({ block: "center" }); await wait(200); }
@@ -1385,7 +1385,7 @@ const STYLE_PROBES = {
       out.importBox.noteKind = q("[data-import-note]")?.getAttribute("data-import-note") || null;
       out.importBox.viewAfter = qa("[data-board-views] [data-view]").find(b => b.getAttribute("aria-pressed") === "true")?.getAttribute("data-view") || null;
       q('[data-board-views] [data-view="all"]')?.click(); await wait(300);
-      q(".fh-import__x")?.click(); await wait(150);
+      q("[data-import-panel] .pl-mk-panel__close")?.click(); await wait(150);
     }
     const sort = q('[data-board-icon="sort"]');
     out.sort = { inSearch: !!sort?.closest(".fh-srch"), label: sort?.getAttribute("aria-label") || null, hasSvg: !!q("svg", sort), topWord: !!q(".fh-sortw") || !!q(".fh-title") };
