@@ -205,6 +205,29 @@ export const PLATE_REGISTRY = [
   { name: "IsometricTile", file: "Drawings.jsx", group: "Drawings", states: four({}, "No walk-through.", { partial: { arcOp: 1, beaconR: 7, beaconFill: "var(--pl-clay)", beaconOp: 1, queueOp: 1, serverLed: "var(--pl-lit)", tallyOp: 0 } }), extremes: { label: LONG, arcOp: 1, tallyOp: 1, queueOp: 1 } },
   { name: "ElevationProfile", file: "Drawings.jsx", group: "Drawings", states: four({}, "No profile."), extremes: { label: LONG } },
 
+  // ── dispatches (D197 Wave 2 #18, 47j lane w2-outside): the email form — a 600 px table, inline token styles ──
+  { name: "DispatchFrame", file: "Dispatch.jsx", group: "Dispatches", width: 640,
+    states: four({ kicker: "DISPATCH · DIGEST · NOV 26", title: "4 new jobs fit you", lead: "New jobs that fit your résumé — companies with an H-1B filing record first.",
+      stats: [{ value: 4, label: "NEW TODAY" }, { value: 3, label: "FILED H-1B" }, { value: 1, label: "SENT", tone: "lit" }], action: { label: "See them on the market →", href: "#market" },
+      smallPrint: ["A filing record is history, not a promise — confirm with the employer. Not legal advice."], foot: ["You chose to get this by email. Change it in draft → Account → Notifications."] }, "No dispatch to show."),
+    extremes: { kicker: LONG.toUpperCase(), title: LONG, lead: LONG, stats: [{ value: 0, label: "ZERO" }, { value: 10000, label: "TEN THOUSAND" }], action: { label: LONG, href: "#x" }, smallPrint: [LONG], foot: [LONG] } },
+  { name: "DispatchEntry", file: "Dispatch.jsx", group: "Dispatches", width: 600,
+    states: four({ n: 1, title: "Frontend Engineer II, Checkout", company: "Kestrel Payments", facts: ["posted 2 hours ago", "asks for 4 of your 5 top skills", "has filed H-1B petitions before"],
+      squares: { of: 5, lit: 4 }, links: [{ label: "Open on the market", href: "#opening" }] }, "No entries in this dispatch.",
+      { picks: { n: 2, title: "Software Engineer, Design Systems", company: "Brightline Health", facts: ["74% match"], links: [{ label: "Apply", href: "#apply" }, { label: "Pass", href: "#pass" }] } }),
+    extremes: { n: 412, title: LONG, company: LONG_CO, facts: [LONG], squares: { of: 12, lit: 0 }, links: [{ label: LONG, href: "#x" }] } },
+  { name: "DispatchButton", file: "Dispatch.jsx", group: "Dispatches",
+    states: four({ label: "Open in draft →", href: "#open" }, "No action.", { ink: { label: "Open on the market", href: "#open", tone: "ink" } }),
+    extremes: { label: LONG, href: "#x" } },
+
+  // ── panels (D197 Wave 2 #19, 47j lane w2-outside): the extension's one floating panel (D191) and its /d square ──
+  { name: "SidePanel", file: "Panels.jsx", group: "Panels", width: 380,
+    states: four({ status: { text: "86% MATCH · FILED H-1B", tone: "ok" } }, "Nothing on this page yet.", { arriving: { status: { text: "CHECKING DRAFT…", tone: "busy" } } }),
+    extremes: { status: { text: LONG.toUpperCase(), tone: "quiet" }, label: LONG } },
+  { name: "ReopenTab", file: "Panels.jsx", group: "Panels", width: 120,
+    states: four({ words: "1 needs you", need: true }, "Nothing to reopen.", { quiet: { words: "" } }),
+    extremes: { words: LONG, need: true } },
+
   // ── the explainer (D198 E1) ──
   { name: "Explainer", file: "explainer/Explainer.jsx", group: "Explainer", width: 405,
     states: four({ script: PILOT_EXPLAINER, openings: 412 }, "No explainer here yet.", { at_beat_7: { script: PILOT_EXPLAINER, openings: 412, at: 40000 }, unknown_count: { script: PILOT_EXPLAINER, at: 40000 } }),

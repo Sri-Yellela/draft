@@ -17,7 +17,8 @@ import { PLATE_REGISTRY, REQUIRED_STATES, LONG_TEXT, LONG_COMPANY, LONG_DRAFT } 
 import { loadPlate } from "../test-support/renderPlate.mjs";
 import { at } from "../test-support/sourceAnchors.js";
 
-const LIB_FILES = ["Shell.jsx", "Marks.jsx", "Plates.jsx", "Tickets.jsx", "Cards.jsx", "Lists.jsx", "Drawings.jsx", "explainer/Explainer.jsx"];
+const LIB_FILES = ["Shell.jsx", "Marks.jsx", "Plates.jsx", "Tickets.jsx", "Cards.jsx", "Lists.jsx", "Drawings.jsx", "explainer/Explainer.jsx",
+  "Dispatch.jsx", "Panels.jsx"];   // ⛔ 47j w2-outside (changed on purpose): D197 Wave 2 #18 / #19 add the email form and the floating panel to the library
 const src = (f) => fs.readFileSync(`client/src/plate/${f}`, "utf8").replace(/\r\n/g, "\n");
 const exportsOf = (f) => [...src(f).matchAll(/^export function ([A-Z]\w*)/gm)].map((m) => m[1]);
 

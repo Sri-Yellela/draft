@@ -13,11 +13,13 @@ import * as Cards from "../../plate/Cards.jsx";
 import * as Lists from "../../plate/Lists.jsx";
 import * as Drawings from "../../plate/Drawings.jsx";
 import * as Explainer from "../../plate/explainer/Explainer.jsx";
-import { FitCard } from "../../plate/FitCard.jsx";   // D202: the field card ⇄ the ATS card
+import { FitCard } from "../../plate/FitCard.jsx";
+import * as Dispatch from "../../plate/Dispatch.jsx";   // D197 Wave 2 #18 (47j): the email form
+import * as Panels from "../../plate/Panels.jsx";   // D197 Wave 2 #19 (47j): the extension's floating panel + the /d square   // D202: the field card ⇄ the ATS card
 import { DRAWINGS } from "../../plate/drawings/index.js";
 import { PLATE_PAGES } from "./platePages/index.js";   // D197 Wave 2 · M3: the page mocks (`?page=<id>`)
 
-const LIB = { ...Shell, ...Marks, ...Plates, ...Tickets, ...Cards, ...Lists, ...Drawings, ...Explainer, FitCard };
+const LIB = { ...Shell, ...Marks, ...Plates, ...Tickets, ...Cards, ...Lists, ...Drawings, ...Explainer, FitCard, ...Dispatch, ...Panels };
 
 function params() {
   if (typeof window === "undefined") return new URLSearchParams();
