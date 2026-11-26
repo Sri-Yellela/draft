@@ -1033,6 +1033,12 @@ p.pl-mk-notice { padding: 4px 0 10px; }
 .pl-mk-drop--compact { padding: 0; }
 .pl-mk-drop[data-over="true"] { outline-color: var(--pl-clay); }   /* a résumé held over it: you, next */
 .pl-deckstate { display: flex; flex-direction: column; gap: 10px; }
+/* 47j w1-market (round 2) · the decision toast (components/DecisionToast.jsx): fixed, centred by margins, a plate card */
+.pl-toast { position: fixed; left: 0; right: 0; margin: 0 auto; width: fit-content; max-width: calc(100vw - 32px); box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 12px 16px; background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-small); box-shadow: var(--pl-s4); font-family: var(--pl-sans); font-size: var(--pl-t-ui); line-height: 1.45; color: var(--pl-ink); }
+.pl-toast strong { font-weight: 800; }
+.pl-toast__act { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 8px; border-radius: var(--pl-r-btn); font-weight: 800; color: var(--pl-ink); text-decoration: underline; text-underline-offset: 3px; }
+.pl-toast__act:hover { background: var(--pl-paper-hover); }
+.pl-toast__act:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 3px; }
 .pl-mk-statsbox { padding: 0 24px 20px; }
 .pl-mk-stats { display: flex; flex-wrap: wrap; border: var(--pl-border); border-radius: var(--pl-r-small); background: var(--pl-card); overflow: hidden; width: fit-content; max-width: 100%; }
 .pl-mk-stat { all: unset; cursor: pointer; box-sizing: border-box; padding: 12px 18px; display: flex; flex-direction: column; gap: 3px; background: var(--pl-card); color: var(--pl-ink); }
