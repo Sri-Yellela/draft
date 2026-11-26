@@ -383,8 +383,11 @@ test("d113uiNarrow — below 900 px: one column and a switch (D146 layout 3), br
   assert.match(narrow, /\.dht-acts \{ flex-wrap: wrap; \}/);
   // ⭐ 46y (changed on purpose, home-sketch.html's .grid2): the timeline column is 320 px.
   assert.match(css, /\.dh-main \{ display: grid; grid-template-columns: minmax\(0, 1fr\) 320px;/, "wide: the timeline is 320 px");
-  // DOM order is table then timeline.
-  assert.ok(at(panel, "<ApplicationTracker rows={shownRows}") < at(panel, "<DraftHouseTree view={view}"));
+  // DOM order is table then timeline. ⭐ 47h (D197 #3, changed on purpose): the timeline (or the opened application's page)
+  // is ONE element, `sideCol`, placed after the table here and under the register on the ledger.
+  const mainJsx = panel.slice(at(panel, '<div className="dh-main" data-draft-split=""'));
+  assert.ok(at(mainJsx, "<ApplicationTracker rows={shownRows}") < at(mainJsx, "{sideCol}"));
+  assert.ok(at(panel, "const sideCol = (") < at(panel, "<DraftHouseTree view={view}", at(panel, "const sideCol = (")));
 });
 
 // ── the adapter: D113's routes in ONE place, degrading when they are not there ─────────────────
@@ -926,8 +929,11 @@ test("d146OnePanelOneNavEntry — one Dock / Menu entry, Draft House · your app
 
 test("d146ImportExportKept — every Table import and export works from the header (Excel, CSV out, CSV in)", () => {
   const head = panel.slice(at(panel, "THE HEADER — the name and its line"), at(panel, "a broken connection is one banner line"));
-  assert.match(head, /data-import-open=""[^>]*onClick=\{\(\) => setImporting\(v => !v\)\}>Import</);
-  assert.match(head, /data-export-open=""[^\n]{0,120}onClick=\{\(\) => setExporting\(v => !v\)\}>Export</);
+  // ⭐ 47h (D197 #3, changed on purpose): Import / Export are built ONCE (importBtn · exportBtn) and the header places them;
+  // the ledger's header places the same two
+  assert.match(head, /\{importBtn\}\{exportBtn\}/);
+  assert.match(panel, /const importBtn = <button[^>]*data-import-open=""[^>]*onClick=\{\(\) => setImporting\(v => !v\)\}>Import</);
+  assert.match(panel, /const exportBtn = <button[^\n]*data-export-open=""[^\n]{0,120}onClick=\{\(\) => setExporting\(v => !v\)\}>Export</);
   assert.match(head, /\{importing && <ImportPanel onClose=\{\(\) => setImporting\(false\)\} onImported=/);
   assert.match(head, /data-export-kind="excel" onClick=\{exportExcel\}/);
   assert.match(head, /data-export-kind="csv"[\s\S]{0,200}onClick=\{\(\) => saveText\(csvName\(\), historyToCsv\(csvRows\)\)\}/);
@@ -1097,7 +1103,8 @@ test("d146SendAllReadyConfirms — Send all ready (n): every Ready to send, ONE 
 test("d146TimelineBesideDesktop — the table, and the timeline card beside it at 300 px", () => {
   // ⭐ A232 R6 (46y, owner 11-19 "all four approved"): the 300 px grid is asserted in d113uiNarrow above ("wide: the timeline is 300 px")
   const mainJsx = panel.slice(at(panel, "THE TABLE, AND THE AUTO-APPLY TIMELINE BESIDE IT"));
-  assert.ok(at(mainJsx, "<ApplicationTracker rows={shownRows}") < at(mainJsx, "<DraftHouseTree view={view}"), "the table, then the timeline");
+  // 47h (changed on purpose): the timeline is the one `sideCol` element (its DraftHouseTree is asserted in d113uiNarrow)
+  assert.ok(at(mainJsx, "<ApplicationTracker rows={shownRows}") < at(mainJsx, "{sideCol}"), "the table, then the timeline");
   // D149 (11-03) changed this on purpose: the sketch's head is two lines — "Auto-apply", then the mode and run times.
   assert.match(panel, />Auto-apply<\/h3>/);
   // 45n D182 (bb297b05): the mode words left this line (the header's mode switch shows them); the run times stay,

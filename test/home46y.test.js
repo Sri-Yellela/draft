@@ -48,8 +48,12 @@ test("home46y · Home draws the bar, the cards and the two parts (AutoApplyPanel
   assert.doesNotMatch(head, /data-settings-open=""/, "Settings left the header");
   assert.match(head, /data-home-summary=""/);
   const bar = panel.slice(at(panel, 'data-home-auto=""'), at(panel, 'data-home-needs=""'));
-  for (const piece of ['data-mode="ask"', 'data-mode="auto"', 'data-stop-everything=""', 'data-settings-open=""', '"Auto-apply is running"', '"Auto-apply is paused"'])
+  // ⭐ 47h (D197 #3, changed on purpose): the controls are built ONCE as elements (askBtn · autoBtn · pauseBtn · settingsBtn)
+  // and placed by the face — the classic bar here, the ledger's header on the plate — so the bar holds them by name.
+  for (const piece of ["{askBtn}", "{autoBtn}", "{pauseBtn}", "{settingsBtn}", '"Auto-apply is running"', '"Auto-apply is paused"'])
     assert.ok(bar.includes(piece), `the auto-apply bar holds ${piece}`);
+  for (const [name, hook] of [["askBtn", 'data-mode="ask"'], ["autoBtn", 'data-mode="auto"'], ["pauseBtn", 'data-stop-everything=""'], ["settingsBtn", 'data-settings-open=""']])
+    assert.match(panel, new RegExp(`const ${name} = [\\s\\S]{0,40}<button[^>]*${hook.replace(/"/g, '"')}`), `${name} is the one ${hook}`);
   assert.equal(panel.split('data-stop-everything=""').length - 1, 1, "ONE Pause (A93): it moved, it was not copied");
   assert.equal(panel.split('data-settings-open=""').length - 1, 1, "ONE Settings");
   assert.match(panel, /data-home-tab="apps"[\s\S]*data-home-tab="inbox"/);

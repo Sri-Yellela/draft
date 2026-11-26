@@ -6,6 +6,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { renderFixture } from "../test-support/renderPlateFixture.mjs";
+import { at } from "../test-support/sourceAnchors.js";
 import { surveyView, hiringProfile, roleLine, sponsorshipCells } from "../client/src/plate/surveySheet.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
@@ -13,7 +14,7 @@ const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 test("d200SurveyEveryMarkAnswers: the stats cells, the stops, the stamp, NEW THIS QUARTER, the dial and the tickets answer", async () => {
   const html = await renderFixture("SurveyBoard");
   // the at-a-glance strip: each cell is a link (open roles → the market; H-1B → section 03; people / founded → their source)
-  const strip = html.slice(html.indexOf('aria-label="Kestrel Payments at a glance"'), html.indexOf("pl-actions", html.indexOf('aria-label="Kestrel Payments at a glance"')));
+  const strip = html.slice(at(html, 'aria-label="Kestrel Payments at a glance"'), at(html, "pl-actions", at(html, 'aria-label="Kestrel Payments at a glance"')));
   assert.equal((strip.match(/class="pl-stats__cell"/g) || []).length, 4);
   assert.equal((strip.match(/<a class="pl-stats__act"/g) || []).length, 4, "every number is a link");
   assert.match(strip, /href="\/app\/jobs\?q=Kestrel%20Payments"/);
