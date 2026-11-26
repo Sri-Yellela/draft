@@ -1598,6 +1598,45 @@ export function AutoApplyPanel({ user = null } = {}) {
               </div>
             ) : <div className="dht-foot" data-timeline-foot="">{timelineExtra.tidy}</div>} />
         ));
+  // ⭐ 47h (D197 #3): Home's controls are built ONCE (A93) and placed by the face — the classic header and auto-apply bar, or
+  // the ledger's header (plate); each keeps its data-* hook, its handler and its lock. `cls(classic, plate)` picks the look.
+  const cls = (classic, plateCls) => (plate ? plateCls : classic);
+  // The Table's Excel / CSV import and export, unchanged in function (lib/tableExport.js, ApplicationHistory's ImportPanel).
+  const importBtn = <button type="button" className={cls("dh-quiet", "pl-btn")} data-import-open="" aria-pressed={importing} onClick={() => setImporting(v => !v)}>Import</button>;
+  const exportBtn = <button type="button" className={cls("dh-quiet", "pl-btn")} data-export-open="" aria-pressed={exporting} onClick={() => setExporting(v => !v)}>Export</button>;
+  const sendAllBtn = (
+    <button type="button" className={cls("dh-send", "pl-btn pl-btn--ink")} data-kind="primary" data-send-all-ready="" disabled={!ready.length || pendingBusy}
+      title="Approves every application that is Ready to send. Approving submits it to the employer and cannot be undone."
+      onClick={sendAllReady}>Send all ready ({ready.length})</button>
+  );
+  const askBtn = (
+    <button type="button" className={cls("dh-mode__seg", "pl-btn")} data-mode="ask" aria-pressed={!fullAuto}
+      disabled={holdBusy || !runBar} onClick={chooseAsk}>Ask me first</button>
+  );
+  const autoBtn = (
+    <button type="button" className={cls("dh-mode__seg", "pl-btn")} data-mode="auto" aria-pressed={fullAuto}
+      data-locked={mode.selectable ? "false" : "true"} disabled={!mode.selectable || holdBusy}
+      aria-describedby={mode.selectable ? undefined : "dh-auto-why"}
+      onClick={mode.selectable ? () => !fullAuto && setApplyMode?.("auto") : undefined}>Apply for me</button>
+  );
+  const pauseBtn = (
+    <button type="button" className={cls("dh-quiet", "pl-btn pl-btn--dashed")} data-stop-everything="" data-held={held ? "true" : "false"}
+      disabled={holdBusy || !runBar} title={`${STOP_DOES} ${STOP_DOES_NOT}`} onClick={() => setStopEverything?.(!held)}>
+      {held ? "Resume" : "Pause"}
+    </button>
+  );
+  const settingsBtn = <button type="button" className={cls("dht-link dh-auto__rules", "pl-btn pl-btn--dashed")} data-settings-open="" onClick={(e) => openSettings(null, e.currentTarget)}>Settings</button>;
+  const lockWhy = !mode.selectable && <p className={cls("dh-head__why", "pl-lg-why")} id="dh-auto-why" data-auto-locked-reason="">Apply for me is locked: {mode.reason}</p>;
+  const holdLine = holdMsg && <p className={cls("dh-head__why", "pl-lg-why")} role="status">{holdMsg}</p>;
+  // Settings → View → The full sheet: The Table's own views (D15 / D54 / D55), kept, not on the first screen.
+  const fullSheet = (
+    <section data-full-sheet="" aria-label="The full sheet" style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 480 }}>
+      <div className="dht-acts"><button type="button" className={cls("dh-btn", "pl-btn")} data-back-to-table="" onClick={() => { setListView("table"); setSheetAt(null); }}>{plate ? "Back to the register" : "Back to the table"}</button></div>
+      <DatabasePanel key={sheetAt ? `${sheetAt.sheet}:${sheetAt.jobId}` : "sheet"} user={user} embedded
+        sheet={sheetAt?.sheet || null} focusJobId={sheetAt?.jobId || null} />
+    </section>
+  );
+  const inboxEl = <ApplicationInbox theme={theme} onSeen={inboxSeen} />;   // the Inbox is Home's second part — the one ApplicationInbox
   // ── ⭐ D197 Wave 1 #3 (47h) · THE LEDGER (plate) — the same state and handlers as below, in the board's pieces
   // (docs/revamp/ledger.md says where each of Home's features lives now). Built only while the plate switch is on.
   const lgCounts = trackerCounts(rows);
@@ -1626,23 +1665,12 @@ export function AutoApplyPanel({ user = null } = {}) {
       actions={<>
         <a className="pl-lg-daily" href="/app/atlas/todays-question" data-daily-line="">Today's question · 2 minutes</a>
         <span className="pl-grow"/>
-        <button type="button" className="pl-btn" data-import-open="" aria-pressed={importing} onClick={() => setImporting(v => !v)}>Import</button>
-        <button type="button" className="pl-btn" data-export-open="" aria-pressed={exporting} onClick={() => setExporting(v => !v)}>Export</button>
-        <button type="button" className="pl-btn pl-btn--ink" data-kind="primary" data-send-all-ready="" disabled={!ready.length || pendingBusy}
-          title="Approves every application that is Ready to send. Approving submits it to the employer and cannot be undone."
-          onClick={sendAllReady}>Send all ready ({ready.length})</button>
+        {importBtn}{exportBtn}{sendAllBtn}
       </>}
       controls={<>
-        <div className="pl-lg-mode" role="group" aria-label="Auto-apply" data-home-auto="" data-held={held ? "true" : "false"}>
-          <button type="button" className="pl-btn" data-mode="ask" aria-pressed={!fullAuto} disabled={holdBusy || !runBar} onClick={chooseAsk}>Ask me first</button>
-          <button type="button" className="pl-btn" data-mode="auto" aria-pressed={fullAuto} data-locked={mode.selectable ? "false" : "true"} disabled={!mode.selectable || holdBusy}
-            aria-describedby={mode.selectable ? undefined : "dh-auto-why"} onClick={mode.selectable ? () => !fullAuto && setApplyMode?.("auto") : undefined}>Apply for me</button>
-          <button type="button" className="pl-btn pl-btn--dashed" data-stop-everything="" data-held={held ? "true" : "false"}
-            disabled={holdBusy || !runBar} title={`${STOP_DOES} ${STOP_DOES_NOT}`} onClick={() => setStopEverything?.(!held)}>{held ? "Resume" : "Pause"}</button>
-          <button type="button" className="pl-btn pl-btn--dashed" data-settings-open="" onClick={(e) => openSettings(null, e.currentTarget)}>Settings</button>
-        </div>
-        {!mode.selectable && <p className="pl-lg-why" id="dh-auto-why" data-auto-locked-reason="">Apply for me is locked: {mode.reason}</p>}
-        {holdMsg && <p className="pl-lg-why" role="status">{holdMsg}</p>}
+        <div className="pl-lg-mode" role="group" aria-label="Auto-apply" data-ledger-auto="" data-held={held ? "true" : "false"}>{askBtn}{autoBtn}{pauseBtn}{settingsBtn}</div>
+        {lockWhy}
+        {holdLine}
       </>}
       run={<LedgerRun stops={lgStops} kicker={lgFront ? `THE RUN · ${lgWho}` : "THE RUN"} onOpen={lgFront ? () => openRow(lgFront.key) : undefined}
         runNow={lgRunNow} worker={lgWorker}
@@ -1734,11 +1762,8 @@ export function AutoApplyPanel({ user = null } = {}) {
         </div>
       )}
       register={listView === "sheet" ? (
-        <section data-full-sheet="" aria-label="The full sheet" style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 480, marginTop: 18 }}>
-          <div className="dht-acts"><button type="button" className="pl-btn" data-back-to-table="" onClick={() => { setListView("table"); setSheetAt(null); }}>Back to the register</button></div>
-          <DatabasePanel key={sheetAt ? `${sheetAt.sheet}:${sheetAt.jobId}` : "sheet"} user={user} embedded sheet={sheetAt?.sheet || null} focusJobId={sheetAt?.jobId || null} />
-        </section>
-      ) : homeTab === "inbox" ? <div style={{ marginTop: 16 }}><ApplicationInbox theme={theme} onSeen={inboxSeen} /></div> : (
+        <div style={{ marginTop: 18 }}>{fullSheet}</div>
+      ) : homeTab === "inbox" ? <div style={{ marginTop: 16 }}>{inboxEl}</div> : (
         <div data-tracker-table="">
           <Register label="Your applications" rows={lgRows} openId={open?.type === "job" ? open.key : null} renderOpen={(a) => renderRow(a.row)} message={bulkMsg || null}
             onRowOpen={(a) => lgToggle(a.id)}
@@ -1769,12 +1794,9 @@ export function AutoApplyPanel({ user = null } = {}) {
             auto-apply bar below). The sketch writes "Send all ready · 2"; D146's "Send all ready (n)" is the owner's own row, kept. */}
         <div className="dh-head__ctl">
           {/* The Table's Excel / CSV import and export, unchanged in function (lib/tableExport.js, ApplicationHistory's ImportPanel). */}
-          <button type="button" className="dh-quiet" data-import-open="" aria-pressed={importing} onClick={() => setImporting(v => !v)}>Import</button>
-          <button type="button" className="dh-quiet" data-export-open="" aria-pressed={exporting} onClick={() => setExporting(v => !v)}>Export</button>
+          {importBtn}{exportBtn}
           {/* Send all ready: every Ready-to-send row, ONE confirm that lists them by name (lib/trackerRows.js). */}
-          <button type="button" className="dh-send" data-kind="primary" data-send-all-ready="" disabled={!ready.length || pendingBusy}
-            title="Approves every application that is Ready to send. Approving submits it to the employer and cannot be undone."
-            onClick={sendAllReady}>Send all ready ({ready.length})</button>
+          {sendAllBtn}
         </div>
       </header>
       )}
@@ -1802,22 +1824,15 @@ export function AutoApplyPanel({ user = null } = {}) {
         </div>
         <div className="dh-auto__ctl">
           <div className="dh-mode" role="group" aria-label="Mode">
-            <button type="button" className="dh-mode__seg" data-mode="ask" aria-pressed={!fullAuto}
-              disabled={holdBusy || !runBar} onClick={chooseAsk}>Ask me first</button>
+            {askBtn}
             {/* ⛔ FULL AUTO is the operator's to unlock (autoToggle): locked, it has no handler. */}
-            <button type="button" className="dh-mode__seg" data-mode="auto" aria-pressed={fullAuto}
-              data-locked={mode.selectable ? "false" : "true"} disabled={!mode.selectable || holdBusy}
-              aria-describedby={mode.selectable ? undefined : "dh-auto-why"}
-              onClick={mode.selectable ? () => !fullAuto && setApplyMode?.("auto") : undefined}>Apply for me</button>
+            {autoBtn}
           </div>
-          <button type="button" className="dh-quiet" data-stop-everything="" data-held={held ? "true" : "false"}
-            disabled={holdBusy || !runBar} title={`${STOP_DOES} ${STOP_DOES_NOT}`} onClick={() => setStopEverything?.(!held)}>
-            {held ? "Resume" : "Pause"}
-          </button>
-          <button type="button" className="dht-link dh-auto__rules" data-settings-open="" onClick={(e) => openSettings(null, e.currentTarget)}>Settings</button>
+          {pauseBtn}
+          {settingsBtn}
         </div>
-        {!mode.selectable && <p className="dh-head__why" id="dh-auto-why" data-auto-locked-reason="">Apply for me is locked: {mode.reason}</p>}
-        {holdMsg && <p className="dh-head__why" role="status">{holdMsg}</p>}
+        {lockWhy}
+        {holdLine}
       </div>
       )}
 
@@ -1895,14 +1910,10 @@ export function AutoApplyPanel({ user = null } = {}) {
             </div>
           )}
           {listView !== "sheet" && homeTab === "inbox" ? (
-            <ApplicationInbox theme={theme} onSeen={inboxSeen} />
+            inboxEl
           ) : listView === "sheet" ? (
             /* Settings → View → The full sheet: The Table's own views (D15 / D54 / D55), kept, not on the first screen. */
-            <section data-full-sheet="" aria-label="The full sheet" style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 480 }}>
-              <div className="dht-acts"><button type="button" className="dh-btn" data-back-to-table="" onClick={() => { setListView("table"); setSheetAt(null); }}>Back to the table</button></div>
-              <DatabasePanel key={sheetAt ? `${sheetAt.sheet}:${sheetAt.jobId}` : "sheet"} user={user} embedded
-                sheet={sheetAt?.sheet || null} focusJobId={sheetAt?.jobId || null} />
-            </section>
+            fullSheet
           ) : (
             <>
               {/* ⭐ D149 (11-03) / 46y: the filters, each with its count (home-sketch.html's .filters), above the table. */}
