@@ -23,7 +23,7 @@ const sw = (on, set, label) => <input type="checkbox" role="switch" className="p
 const radios = (chips, value, set, label) => <FilterChips label={label} chips={chips.map((c) => ({ ...c, on: c.id === value }))} onToggle={set}/>;
 const col = { display: "flex", flexDirection: "column", gap: 20, minWidth: 0 };
 
-function Appearance() {
+function SettingsMockAppearance() {
   const [theme, setTheme] = useState("dusk");
   const [follow, setFollow] = useState(true);
   const [cues, setCues] = useState(false);
@@ -69,7 +69,7 @@ function Appearance() {
   );
 }
 
-function Notifications() {
+function SettingsMockNotifications() {
   const [here, setHere] = useState(false);
   const [prefs, setPrefs] = useState({ "needs:push": true, "needs:email": true, "interview:email": true });
   const [said, setSaid] = useState("");
@@ -94,7 +94,7 @@ function Notifications() {
   );
 }
 
-function Privacy() {
+function SettingsMockPrivacy() {
   const [improve, setImprove] = useState(false);
   return (
     <div style={col}>
@@ -115,7 +115,7 @@ function Privacy() {
   );
 }
 
-function Account() {
+function SettingsMockAccount() {
   return (
     <div style={col}>
       <SettingsSheet kicker="PROFILE" title="Your picture and name" rows={[{ label: "Picture", control: <><button type="button" className="pl-btn">Change picture</button><button type="button" className="pl-btn pl-btn--flat">Remove</button></> }]}>
@@ -161,7 +161,7 @@ export default function SettingsMock({ width = 1280 }) {
       <div className="pl-page" style={{ marginTop: 22 }}>
         <BinderTabs label="Settings" tabs={TABS} selected={tab} onSelect={setTab} idBase="st">
           <div style={{ paddingTop: 18 }}>
-            {tab === "appearance" ? <Appearance/> : tab === "notifications" ? <Notifications/> : tab === "privacy" ? <Privacy/> : <Account/>}
+            {tab === "appearance" ? <SettingsMockAppearance/> : tab === "notifications" ? <SettingsMockNotifications/> : tab === "privacy" ? <SettingsMockPrivacy/> : <SettingsMockAccount/>}
           </div>
         </BinderTabs>
       </div>
