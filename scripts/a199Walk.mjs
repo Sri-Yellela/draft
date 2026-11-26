@@ -91,18 +91,24 @@ try {
     json(fixtures()[u.pathname] ?? {});
   });
   await page.evaluateOnNewDocument(() => { try { localStorage.setItem("draft:extension-prompt-seen", "1"); } catch {} });
-  // 47i: the CLASSIC tracker (?plate=0), as the classic tracker probes pin it (CLASSIC_HOME) — the plate ledger is Home by
-  // default since 47i's merge; its own Needs-you stepper and Ask draft are a separate walk (not yet written)
-  await page.goto(`${vite.url}/app/auto-apply?plate=0`, { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
-  await page.waitForSelector("[data-tracker-table] tbody tr", { timeout: 30000 }).catch(() => {});
+  // ⛔ 47j R3 (changed on purpose): the classic tracker (?plate=0) is DELETED — Home is the ledger. Its 01 · Needs you shows the
+  // front held application's questions in place, with an "Ask draft" link that opens the same thread (AskDraftThread).
+  const openFromLedger = async () => {
+    await page.waitForSelector('[data-home-needs] [data-action="open-questions-thread"]', { timeout: 30000 }).catch(() => {});
+    // a DOM click: the open Ask draft card floats over the page and can sit on top of the link at 1440 × 900
+    await page.$eval('[data-home-needs] [data-action="open-questions-thread"]', el => el.click()).catch(() => {});
+  };
+  await page.goto(`${vite.url}/app/auto-apply`, { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
+  await page.waitForSelector("[data-home-needs]", { timeout: 30000 }).catch(() => {});
   await sleep(600);
-  // 1 · open the held row → its thread opens
-  await page.evaluate(() => { const r = [...document.querySelectorAll("[data-tracker-table] tbody tr.trk-row")].find(tr => /Halcyon/.test(tr.textContent)); r?.click(); });
+  const needs = await page.$eval("[data-home-needs]", el => el.textContent).catch(() => "");
+  check("1 the ledger's Needs you shows the held application's question", /authorized/.test(needs), needs.slice(0, 200));
+  check("1 …and offers its questions in Ask draft", !!(await page.$('[data-home-needs] [data-action="open-questions-thread"]')));
+  // 1 · Ask draft → its thread opens
+  await openFromLedger();
   await page.waitForSelector('[data-ask-thread="a199-h"]', { timeout: 10000 }).catch(() => {});
   const head = await page.$eval("[data-ask-thread-head]", el => el.textContent).catch(() => "");
-  check("1 thread opens from the held row", /Halcyon/.test(head) && /4 questions only you can settle/.test(head), head);
-  const inRow = await page.$('[data-held-in-ask-draft="a199-h"]');
-  check("1 the row says its questions are answered in Ask draft", !!inRow);
+  check("1 thread opens from the ledger", /Halcyon/.test(head) && /4 questions only you can settle/.test(head), head);
   // 2 · Yes / No and a choice are buttons
   const q = () => page.$eval('[data-ask-turn="current"] [data-ask-question]', el => el.textContent).catch(() => "");
   check("2 Yes / No is buttons", /authorized/.test(await q()) && !!(await page.$('[data-ask-choice="Yes"]')), await q());
@@ -131,16 +137,17 @@ try {
   check("3 Finish posts every answer for THIS job, then re-runs it", Object.keys(p.answers || {}).length === 4 && JSON.stringify(p.retryJobIds) === '["a199-h"]' && p.mode === "auto"
     && p.answers?.["Describe your experience with SIEM integrations."] === "I set up SIEM alerting: Splunk alerts for payments.", JSON.stringify(p).slice(0, 300));
   check("3 the thread says it was saved", !!(await page.$('[data-ask-saved="true"]')));
-  // 4 · the re-run came back with questions (a new held run) — Draft House refreshes and the thread opens again
-  await sleep(4500);   // the client polls every 4 s while a run is in flight
+  // 4 · the re-run came back with questions (a new held run) — the ledger refreshes; its Ask draft opens a NEW thread (A210)
+  // the ledger shows the row running (no Ask draft link), then the NEW held run's questions — only then is its link the new run's
+  await page.waitForFunction(() => !document.querySelector('[data-home-needs] [data-action="open-questions-thread"]'), { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => !!document.querySelector('[data-home-needs] [data-action="open-questions-thread"]'), { timeout: 25000 }).catch(() => {});
+  await sleep(300);
+  await openFromLedger();
   await page.waitForFunction(() => !document.querySelector('[data-ask-saved="true"]') && !!document.querySelector('[data-ask-thread="a199-h"] [data-ask-turn="current"]'), { timeout: 25000 }).catch(() => {});
   const reopened = await page.$('[data-ask-thread="a199-h"] [data-ask-turn="current"]');
   check("4 a Run again with questions opens a new thread", !!reopened && /authorized/.test(await q()), await q());
-  // 5 · answer here instead → the stepper in the row
-  await page.click('[data-action="answer-here"]').catch(() => {});
-  await sleep(400);
-  const stepperHere = await page.evaluate(() => !document.querySelector('[data-held-in-ask-draft="a199-h"]') && !!document.querySelector(".dht-step"));
-  check("5 answer here instead keeps the stepper in the row", stepperHere);
+  // 5 · the ledger answers in place too (the classic "answer here instead" is the ledger's own stepper)
+  check("5 the ledger's Needs you still asks the question in place", /authorized/.test(await page.$eval("[data-home-needs]", el => el.textContent).catch(() => "")));
   check("no page errors", errors.length === 0, errors.join(" | "));
 } finally {
   await browser.close();

@@ -15,7 +15,9 @@ test("⭐ A199 (2) / A210 (Chrome): the questions thread, walked end to end — 
   const out = JSON.parse(execFileSync(process.execPath, ["scripts/a199Walk.mjs"], { encoding: "utf8", timeout: 280000, stdio: ["ignore", "pipe", "ignore"] }).trim().split("\n").pop());
   if (out.skipped) { t.skip(out.skipped); return; }
   for (const s of out.steps) assert.ok(s.ok, `${s.step}${s.detail ? ` — ${s.detail}` : ""}`);
-  assert.equal(out.steps.length, 13);
+  // ⛔ 47j R3 (changed on purpose): the walk drives the LEDGER (the classic tracker is deleted) — its Needs you shows the
+  // question and opens the thread with "Ask draft"; "answer here instead" is the ledger's own stepper (14 steps, was 13)
+  assert.equal(out.steps.length, 14);
 });
 
 test("A210: the thread is keyed by the job AND the held run", () => {
