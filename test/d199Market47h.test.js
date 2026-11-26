@@ -83,7 +83,8 @@ test("D199 C2 · d199SearchSortFiltersPresent — search, sort, every filter chi
   const plate = slot.slice(at(slot, "<PlateBearing "));
   for (const k of ["<MarketSearchRow search={<BoardSearchBar", "sort={<MarketSortSlot />}", "<BoardSortSlot />", "<MarketFilterRow ", "<WordPanel ", "<MarketStatsBox "]) assert.ok(plate.includes(k), k);
   const home = a.slice(at(a, "const homeBoard = ("), at(a, "return (\n    <JobBoardProvider>"));
-  assert.match(home, /\{!marketPlate && <StickyBar[^]*?<BoardBar \/>/, "the board's own bar is not drawn twice on the plate");
+  // 47j R2 (changed on purpose): the classic bar is deleted outright — the cartouche's row is the only search + sort
+  assert.doesNotMatch(home, /<StickyBar|<BoardBar \/>/, "the board's own bar is back");
   const { Controls, r } = await load();
   assert.deepEqual(Controls.MARKET_FILTERS.map((f) => f.label), ["Role", "Level", "Workstyle", "Location", "Posted", "Fit", "Sponsorship", "Technology", "Salary & more", "Employment type"]);
   const html = r(Controls.MarketFilterRow, { params: {}, all: { id: "fh-all", slot: "all", open: false } });
@@ -133,7 +134,8 @@ test("D199 C3 · d199PagedNotInfinite — 50 a page, ?page= round-trips, Back / 
   assert.equal(pageLine({ page: 1, totalPages: 0, pageSize: 50, total: null }), null);
   const jp = read("client/src/panels/JobsPanel.jsx");
   assert.match(jp, /const PAGE_SIZE = 50;/);
-  assert.match(jp, /\{jobs\.length > 0 && totalPages > 0 && !plateIndex && \(\n\s*<BoardMore /, "BoardMore (the endless loading) is never drawn on the plate");
+  // 47j R2 (changed on purpose): BoardMore (the endless loading) is deleted with the classic market
+  assert.doesNotMatch(jp, /<BoardMore\b|function BoardMore\(/, "BoardMore (the endless loading) is back");
   assert.match(jp, /window\.history\.pushState\(/);
   assert.match(jp, /window\.addEventListener\("popstate", onPop\)/);
   assert.match(jp, /readPageParam\(window\.location\.search\)/);
@@ -159,7 +161,8 @@ test("D199 C4 · d199StatsBoxFollowsFilters — the box is the list's own facets
   assert.match(on, /data-stat="filed" aria-pressed="true"/, "an active filter's cell shows it");
   assert.match(on, /data-stat="newToday" aria-pressed="false"/);
   const home = app().slice(at(app(), "const homeBoard = ("));
-  assert.match(home, /\{!marketPlate && <BoardCounts \/>\}/, "the stats box replaces the counts strip");
+  // 47j R2 (changed on purpose): the counts strip is deleted — the stats box is the only one
+  assert.doesNotMatch(home, /<BoardCounts \/>|function BoardCounts\(/, "the counts strip is back");
 });
 
 test("D199 C4 · d199StatsCellAppliesFilter — a tap applies the cell's filter, a second lifts it", async () => {

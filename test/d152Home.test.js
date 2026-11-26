@@ -5,7 +5,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { at } from "../test-support/sourceAnchors.js";
-import { probe as fidelityProbe } from "../test-support/fidelityProbe.mjs";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const APP = read("client/src/App.jsx");
@@ -16,11 +15,15 @@ test("d152OneHomeScreen: /app and /app/jobs both draw the one Home grid — the 
   assert.match(APP, /const home = activeTab === "today" \|\| activeTab === "console";/);
   // 47f: since 47e (D196 P1) the deck and the board are built ONCE as elements (homeDeck, homeBoard) that both the classic
   // grid and the plate market render; the grid draws them in that order, and the pieces live in the two elements.
-  assert.ok(APP.includes('<div className="home" data-home="">{homeDeck}{homeBoard}</div>'), "the deck's column comes before the board's");
+  // 47j R2 (changed on purpose): the classic grid is deleted — the plate market's one section draws the deck, then the board
+  assert.ok(APP.includes("<MarketSectionSlot deck={homeDeck} index={homeBoard} />"), "the deck comes before the board");
+  assert.ok(!APP.includes('<div className="home" data-home="">'), "the classic grid is back");
   const body = APP.slice(at(APP, "const homeDeck = ("), at(APP, "    <JobBoardProvider>"));
   assert.ok(body.indexOf("<DeckView") < body.indexOf("<JobsConsole"), "the deck's element is built before the board's");
   assert.match(body, /<DeckView canUseAPlusResume=\{canUseAPlusResumeHere\} home\/>/);
-  for (const part of ["<BoardHeadlineSlot />", "<BoardBar />", "<BoardCounts />", "<JobsConsole"]) assert.ok(body.includes(part), part);
+  for (const part of ["<BoardViews ", "<JobsConsole"]) assert.ok(body.includes(part), part);
+  assert.ok(APP.slice(at(APP, "function MarketSectionSlot(")).includes("<BoardHeadlineSlot />"), "the sentence heads the one section");
+  for (const gone of ["<BoardBar />", "<BoardCounts />"]) assert.ok(!APP.includes(gone), `${gone} is back (47j R2)`);
   // no second copy of either screen outside Home
   assert.equal(APP.split("<DeckView").length - 1, 1, "DeckView is drawn once");
   assert.equal(APP.split("<JobsConsole").length - 1, 1, "the board is drawn once");
@@ -39,9 +42,10 @@ test("d152 (1) · the grid is CSS — the deck's 390 column sticky in its track,
   // ⭐ D156 (2) changed the numbers on purpose ("use less margins"): 40 apart (was 56), 1600 wide (was 1440).
   // ⭐ D163 changed them again on purpose ("use the space"): the gap and the gutters grow with the screen (clamp()), the
   // content 1680 wide at most, centred (test/d163UseTheSpace.test.js); below 1440 the deck's track is still `auto`.
-  assert.match(block, /\.home \{ --home-gutter: [^;]+; --home-gap: [^;]+;\n  display: grid; grid-template-columns: var\(--home-deck-track, auto\) minmax\(0, 1fr\); gap: var\(--home-gap\);\n  max-width: none;/); // ⭐ 46q FULL WIDTH (owner 11-16): no 1680 cap — moved on purpose
+  // 47j R2 (changed on purpose): the classic grid (`.home`) is deleted; the deck's section rules stay (the plate market wears them)
+  assert.doesNotMatch(block, /(^|\n)\s*\.home \{/, "the classic grid is back");
   assert.match(block, /\.home__deck \{ position: sticky;[^}]*width: 390px; \}/);
-  assert.match(block, /@media \(max-width: 980px\) \{\n  \.home \{ grid-template-columns: minmax\(0, 1fr\);/);
+  assert.match(block, /@media \(max-width: 980px\) \{\n  \.home__deck \{ position: static;/);
   assert.match(DECK, /export const HOME_DECK_COLUMN = 390;/);
   assert.match(DECK, /const orientation = home \? "vertical" : orientationFor\(vw\);/, "the card-shaped layout at every width");
   // ⭐ D152 (8) (b), changed on purpose: the report beside the card is deleted outright, not switched off on Home.
@@ -54,86 +58,8 @@ test("d152DockHomeEntry: one Home entry in place of the Daily Deck and Full Hous
   assert.match(APP, /activeTab=\{home \? "today" : activeTab\}/, "Home is the current entry on /app/jobs too");
 });
 
-test("d152DockLeftWithLogo / d153DockPushes / d152DockSlidesFromLeftEdge (real Chrome, 1280 and 390)", { timeout: 200000 }, (t) => {
-  const out = fidelityProbe("home");
-  if (out.skipped) { t.skip(out.skipped); return; }
-  for (const [size, d] of Object.entries(out)) {
-    assert.equal(d.title, false, `${size}: no page title`);
-    assert.equal(d.cornerMark, false, `${size}: no logo in the page corner`);
-    // ⭐ D156 (3) changed these on purpose: the dock is an always-visible rail of icons — no embossed logo, no edge handle,
-    // nothing off the left edge at rest; it expands on hover / focus and the page moves over (test/d156Home.test.js).
-    assert.equal(d.emboss, null, `${size}: no embossed logo`);
-    // ⭐ D167 (owner 11-06, changed on purpose): six places — + Interview, and Ask draft after the divider.
-    // 45n (pin brought to the code in 45o): the dock's search icon comes first.
-    // ⭐ owner 11-15: Tiny replaces Ask draft, floating (changed on purpose) — "ask" left the dock (a fox bubble instead).
-    // ⭐ D197 #1 (the Shell board, changed on purpose): the dock's search moved into the area nav (Ctrl K; the phone's top
-    // bar), and the rail draws Ask draft after its rule (it opens Tiny); the phone's bottom bar has no Ask draft.
-    const want = ["today", "auto-apply", "atlas", "interview", "profile", ...(size === "phone" ? [] : ["ask"])];
-    assert.deepEqual(d.items, want, `${size}: ${want.join(" · ")}`);
-    assert.equal(d.current, "today");
-    assert.ok(d.rest.dock.left >= 0 && d.rest.dock.width > 0, `${size}: the rail is on screen at rest`);
-    assert.equal(d.out.coversDeck, false, `${size}: the dock never covers the deck`);
-    assert.equal(d.out.coversSentence, false, `${size}: the dock never covers the sentence`);
-  }
-  assert.equal(out.desktop.grid.columns.split(" ").length, 2, "two columns on a computer");
-  assert.equal(out.desktop.grid.deck.width, 390);
-  assert.ok(out.desktop.grid.deck.right <= out.desktop.grid.board.left, "the deck's column and the board's never overlap");
-  assert.equal(out.phone.grid.columns.split(" ").length, 1, "one column on a phone");
-  assert.ok(out.phone.grid.deck.bottom <= out.phone.grid.board.top, "d152PhoneOrderDeckThenPostings");
-  assert.equal(out.phone.handle, false, "D156 (3): no edge handle — the rail is always there");
-  // ⭐ D152 (2) / D153 (1): the card is card-shaped, its fan sweeps to the lower right inside the deck's column, and the
-  // sweep never covers Pass · Save · Draft or the board.
-  for (const [size, d] of Object.entries(out)) {
-    const { card, backs, acts } = d.deck;
-    assert.ok(Math.abs(card.width / (card.bottom - card.top) - 5 / 7) < 0.01, `${size}: d152CardFiveBySeven (${card.width} × ${card.bottom - card.top})`);
-    const shown = backs.filter(b => b && Number(b.opacity) > 0);
-    assert.deepEqual(shown.map(b => b.rotate), ["5", "10"], `${size}: two backs, turned 5° and 10°`);
-    for (const b of shown) {
-      assert.equal(b.left, card.left, `${size}: d152FanLowerRight — back ${b.n} turns about the card's lower-left corner`);
-      assert.ok(b.right > card.right && b.bottom > card.bottom, `${size}: back ${b.n} sweeps right and down`);
-    }
-    assert.equal(d.deck.backsCoverButtons, false, `${size}: d153FanNeverCoversButtons`);
-    assert.equal(d.deck.backsCoverBoard, false, `${size}: the fan never reaches the board's column`);
-    assert.equal(d.deck.backsOutsideColumn, false, `${size}: the fan stays inside the deck's column (no clipped edge)`);
-    assert.equal(acts.width, card.width, `${size}: the buttons as wide as the card`);
-  }
-  assert.deepEqual([out.desktop.deck.card.width, out.desktop.deck.card.bottom - out.desktop.deck.card.top], [300, 420]);
-  // ⭐ D152 (5): two columns of bubbles that make room for each other; no old ATS square on any bubble.
-  for (const [size, d] of Object.entries(out)) {
-    assert.equal(d.pairs.atsSquare, false, `${size}: d152NoOldAtsBox`);
-    assert.equal(d.pairs.perPair, 2, `${size}: the postings in pairs`);
-    assert.equal(d.pairs.options, "visible", `${size}: d152HoverShowsOptions — a hovered / focused bubble shows its options`);
-    assert.deepEqual(d.pairs.focusH, d.pairs.restH, `${size}: giving way never changes the line's height`);
-  }
-  const P = out.desktop.pairs;
-  assert.equal(P.restW[0], P.restW[1], "d152TwoColumnResizingBubbles: equal at rest");
-  assert.ok(P.focusW[0] > P.restW[0] && P.focusW[1] < P.restW[1], `the focused bubble grows and its neighbour gives way (${P.focusW})`);
-  assert.ok(Math.abs(P.focusW[0] + P.focusW[1] - P.restW[0] - P.restW[1]) <= 1, "within the same line");
-  assert.equal(out.phone.pairs.restW[0], out.phone.pairs.focusW[0], "a phone stacks the pair — nothing to give way to");
-  // ⭐ D156 (1c) (changed on purpose — D152 (6) / D153 (1)'s posting in place of the list is removed): a bubble's posting
-  // opens ON THE DECK, in the front card's place, on a computer (a phone keeps the full-screen posting); the list stays.
-  const O = out.desktop.opened;
-  assert.ok(O.post && O.onDeck && O.inDeck, "d156ListPostingOpensOnDeck — the posting is drawn in the deck's column");
-  assert.equal(O.listShown, true, "the list beside it stays"); assert.equal(O.boardPost, false, "d156NoSeparatePostingPanel");
-  assert.equal(O.coversBoard, false, "the posting never covers the board");
-  // ⭐ D152 (8) · option A: the match opens IN the posting, under the facts, and folds again — no overlay, no blur.
-  for (const [size, d] of Object.entries(out)) {
-    const m = d.opened.match;
-    assert.equal(m.opened, "true", `${size}: d152AtsTogglesFromMatchBox — the match box opens it`);
-    assert.ok(m.height > 0 && m.underFacts, `${size}: d152AtsInlineUnderFacts (${m.height} px under the facts)`);
-    assert.equal(m.eyebrow, "Your résumé against this job");
-    assert.equal(m.overlay, false, `${size}: d152AtsNoOverlayNoBlur — no separate panel`);
-    assert.equal(m.blur, false, `${size}: … and nothing blurred`);
-    assert.deepEqual([m.folded, m.foldedHeight, m.foldedInert], ["false", 0, true], `${size}: pressing it again folds it`);
-  }
-  for (const [size, d] of Object.entries(out)) {
-    assert.equal(d.closed.sameListNode, true, `${size}: d153OpenPostingNoRemount — the list's node survives an open / close`);
-    assert.equal(d.closed.post, false, `${size}: closed`);
-    // ⭐ D156 (1c): on the deck, folding returns the reader to where they were (DeckView keeps it); a phone's overlay never moved it.
-    assert.equal(d.closed.yAfter, d.closed.yBefore, `${size}: the reader returned on fold (${d.closed.yBefore} → ${d.closed.yAfter})`);
-  }
-});
-
+// ⛔ 47j R2: the real-Chrome half (probe `home`, the classic grid at ?plate=0) is retired with the classic market; the dock is
+// measured on the plate market by d167Dock and d163OtherScreens (route `market`).
 test("d153 (1) · no panel placed by JS offsets: BesideDock is gone; the in-place layers and the column swap are CSS", () => {
   const PANEL = read("client/src/panels/JobsPanel.jsx");
   const BUB = read("client/src/components/JobBubble.jsx");
@@ -143,16 +69,13 @@ test("d153 (1) · no panel placed by JS offsets: BesideDock is gone; the in-plac
   assert.doesNotMatch(CSS, /\[data-board-post\]/);
 });
 
-test("d152 (5) · the bubbles' source: pairs from JobBubbleRows, one column beside an open posting, no ATS square", () => {
-  const BUB = read("client/src/components/JobBubble.jsx");
+// 47j R2 (changed on purpose): the classic bubble rows (JobBubbleRows, D152 (5)) are deleted from the board — the Index
+// (MarketIndexTable) draws its rows; JobBubble.jsx keeps JobBoardColumns.
+test("d152 (5) → 47j R2 · the bubble rows are deleted from the board; the Index draws the rows", () => {
   const PANEL = read("client/src/panels/JobsPanel.jsx");
-  const CSSB = read("client/src/components/JobBubble.css");
-  assert.match(BUB, /export function JobBubbleRows\(\{ jobs, children, columns = 2 \}\)/);
-  assert.doesNotMatch(BUB, /jb__sq--ats|onAts/, "the old ATS square and its handler are gone");
-  assert.match(PANEL, /<JobBubbleRows jobs=\{jobs\} columns=\{2\}>/);
-  // ⭐ D156 (1b) changed this on purpose: D1's growth — only the hovered one grows (1.55), the neighbour is not squeezed.
-  assert.match(CSSB, /\.jb-pair \.jb:hover, \.jb-pair \.jb:focus-within \{ flex-grow: 1\.55;/);
-  assert.doesNotMatch(CSSB, /\.jb-pair:hover \.jb \{ flex-grow: \.75; \}/);
+  assert.doesNotMatch(PANEL, /<JobBubbleRows\b|<JobBubble\b/);
+  assert.match(PANEL, /<MarketIndexTable\b/);
+  assert.doesNotMatch(read("client/src/components/JobBubble.css").replace(/\/\*[\s\S]*?\*\//g, ""), /\.jb-pair\b/);
 });
 
 test("d152 (2) · Home's card size and fan transform (pure)", async () => {
@@ -198,7 +121,8 @@ test("d152NoSeparateBestBetsList: no separate best-bets list; the count line (th
   assert.ok(!fs.existsSync("client/src/components/BestBets.jsx"));
   assert.doesNotMatch(read("client/src/panels/JobsPanel.jsx"), /<BestBets\b|bestBets=/);
   assert.doesNotMatch(DECK, /facts\.reason/);
-  assert.match(DECK, /of \{s\.size\} today · \{deckOrder === "best" \? "best match first"/, "the sketch's count line");
+  // 47j R2 (changed on purpose): the classic count line is deleted — the plate position row says the same, in its type
+  assert.match(DECK, /\{at\} OF \{of\} TODAY · \{order === "best" \? "BEST MATCH FIRST"/, "the count line");
 });
 
 // ⭐ D152 (7b) (owner 11-04: "that label design wherever in the site get rid of it"): the label chip — a tinted rectangle

@@ -20,7 +20,8 @@ test("⛔ D196 F5 · every built piece is within 2 % of its sketch", { timeout: 
     // 47h (D199): the market rebuilt to the approved Market board — its pieces at 390 where the board's phone layout holds
     for (const name of ["market-face", "final-market-hero", "final-market-head", "final-market-cartouche", "final-market-tabs", "final-market-field", "final-market-deck", "final-market-pager", "final-market-index",
       // 47i (D197 #3 / #4): the ledger and the survey sheet's pairs that hold at 390. survey-hero / -hiring / -sponsor / -match /
-      // -tickets and ledger-tickets still differ there (wording from live data, a board that clips) — open, in the WORKLOG
+      // -tickets and ledger-tickets at 390 (and every ys pair at 390, ys-want at 1280) are owner-accepted LOOKs (11-26, decision 3:
+      // the boards keep their desktop rail at 390) — `lookAt` in scripts/d196Regress.mjs, with each reason; a phone sketch replaces them
       "survey-stack", "ledger-run", "ledger-needs", "ledger-banner", "ledger-register",
       // 47i (D197 #5–#7): Atlas's three boards at 390 (every pair holds there)
       "atlas-home-hero", "atlas-home-regions", "atlas-home-footer", "atlas-home-volumes", "atlas-areanav", "atlas-map-header",

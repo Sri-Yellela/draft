@@ -21,12 +21,11 @@ import puppeteer from "puppeteer-core";
 import { LOGO_HOST } from "../shared/companyLogos.js";
 import { resolveBrowserExecutable } from "../services/browserLauncher.js";
 
-// 47g: the plate market is Home's default since 4fe6fe15 (owner 11-24). These probes measure the CLASSIC market (its
-// [data-home-board] grid, the Full House bar, the deck under it), so they pin it with ?plate=0 until the classic branch is
-// retired (the 47g order, item 1); the plate market is gated by its own D196 files (d196VisualDiff, d196P1FixBrowser, …).
-const CLASSIC_MARKET = "/app/jobs?plate=0";
-// ⭐ 47i: the plate probes pin ?plate=1 too. The switch is REMEMBERED (marketPlate.js, localStorage) and the fill runs every
-// probe in ONE Chrome profile, so a probe after a CLASSIC_MARKET one landed on the classic deck (A238 red only inside the fill).
+// ⛔ 47j R2: the classic market is DELETED (its probes — home, home-dock, home-open, home-match, home156, home163, home-wide,
+// deck, fullhouse — retired with it); every market probe measures the plate market.
+// ⭐ 47i: the plate probes pin ?plate=1. The switch is REMEMBERED (marketPlate.js, localStorage) and the fill runs every probe
+// in ONE Chrome profile; since R2 the switch governs only Home (the ledger) and the company page, so CLASSIC_HOME below pins
+// ?plate=0 for the classic tracker and these pin ?plate=1 so a probe never inherits the other's choice.
 const PLATE_MARKET = "/app/jobs?plate=1";
 // ⭐ 47h (D197 #3): the plate ledger is Home with the plate market; these probes measure the CLASSIC tracker against its
 // sketches (tracker-options.html, home-sketch.html), so they pin ?plate=0 until the classic Home is retired, as the market's do.
@@ -38,6 +37,23 @@ const OUT = process.env.FIDELITY_OUT ? path.resolve(ROOT, process.env.FIDELITY_O
 const PORT = 5199;
 const SIZES = { desktop: [1280, 800], phone: [390, 844] };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+// ⭐ 47j (D199 C7): a posting opens on its own SHEET now (/app/jobs/<id>, plate/OpeningSheet.jsx) — the Index row's title is the
+// sheet's link. Opens the Index tab, presses the row (repeated while no sheet shows: a press mid tab-switch is dropped) and
+// waits for the sheet's glance strip. → true when the sheet is up.
+async function openSheetFromIndex(page, title, ms = 20000) {
+  for (const t0 = Date.now(); Date.now() - t0 < ms;) {
+    const up = await page.evaluate((title) => {
+      if (document.querySelector("[data-opening-sheet] .pl-op__glance")) return true;
+      const rows = [...document.querySelectorAll("[data-market-index] [data-index-title]")];
+      if (!rows.length) { [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click(); return false; }
+      (rows.find(e => e.textContent.trim() === title) || rows[0]).click();
+      return false;
+    }, title).catch(() => false);
+    if (up) return true;
+    await page.waitForSelector("[data-opening-sheet] .pl-op__glance", { timeout: 1500 }).catch(() => {});
+  }
+  return false;
+}
 // 47h: open a posting from the plate market's Index row and WAIT for the deck's slot to open (A240 turns the openings to
 // Deck). 47g's fixed sleep after the press missed the open twice under a loaded refill; the press is repeated while the
 // slot stays shut (a press landing mid tab-switch is dropped), up to `ms`.
@@ -101,10 +117,12 @@ const FULLHOUSE = {
 // ⛔ D153 (5) · THE FACTS BOX WITH EVERY LONG FACT ON FILE — the owner's production screenshot broke "Rem / ote", "not
 // state / d", "Says no spon / sors / hip". The first posting carries a sponsorship statement and a history line too, so
 // the box holds six cells at both widths.
-const FACTS_BOARD = FH_BOARD.map((j, i) => (i ? j : { ...j, workType: "Remote", tagWorkplace: "remote",
+const FACTS_BOARD = FH_BOARD.map((j, i) => (i ? j : { ...j, workType: "Remote", tagWorkplace: "remote", experienceLevel: "Senior",   // 47j: the sheet's LEVEL cell
   sponsorship: { level: "says_no", label: "Says no sponsorship", sources: [], notice: "" },
   liveness: { label: "Reposted 3 times" } }));
-const FACTS = { ...FULLHOUSE, "/api/jobs": { ...FULLHOUSE["/api/jobs"], jobs: FACTS_BOARD } };
+const FACTS = { ...FULLHOUSE, "/api/jobs": { ...FULLHOUSE["/api/jobs"], jobs: FACTS_BOARD },
+  // ⭐ 47j (D199 C7): a posting opens on its own sheet (/app/jobs/<id>), which reads the job by id
+  ...Object.fromEntries(FACTS_BOARD.slice(0, 3).map(j => [`/api/jobs/by-id/${j.jobId}`, { job: j }])) };
 // ⭐ D152 · HOME (home-sketch.html): the deck and the board on one screen, fed by both screens' fixtures.
 // 14 postings, so the page scrolls (the in-place posting's Close must return the reader to where they were).
 const HOME_BOARD = Array.from({ length: 14 }, (_, i) => ({ ...FH_BOARD[i % FH_BOARD.length], jobId: `h${i}`, id: `h${i}` }));
@@ -113,7 +131,9 @@ const HOME = { ...FULLHOUSE, ...DECK, "/api/jobs": { ...FULLHOUSE["/api/jobs"], 
 const HOME156 = { ...HOME, "/api/import/job": { job: { id: "imp1", jobId: "imp1", title: "Data Engineer", company: "Acme" },
   capture: { message: "Data Engineer at Acme is on your board — under Imported." } },
   // ⭐ D156 (1c): the deck's cards are not on the board's first page, so opening one into its long post fetches it by id.
-  ...Object.fromEntries(FH_BOARD.slice(0, 3).map(j => [`/api/jobs/by-id/${j.jobId}`, { job: j }])) };
+  ...Object.fromEntries(FH_BOARD.slice(0, 3).map(j => [`/api/jobs/by-id/${j.jobId}`, { job: j }])),
+  // ⭐ 47j (D199 C7): the plate deck deals the board's page (h0…h13), and a press opens that posting's SHEET, which reads it by id
+  ...Object.fromEntries(HOME_BOARD.map(j => [`/api/jobs/by-id/${j.jobId}`, { job: j }])) };
 const SETTINGS = {
   "/api/apply/auto-settings": { settings: { dailyCap: 10, runTimes: ["09:00", "18:00"], timeZone: "America/New_York", pauseCompanyAfterReply: true,
     filters: {}, profileId: null, agreeToTerms: false, staleReposts: 3, staleOpenDays: 90, showFormBeforeSending: true, onlySponsorRecord: true, perCompanyLimit30d: 2 } },
@@ -195,56 +215,49 @@ const PROFILE163 = { ...SETTINGS,
 // sketch: the file; sketchPrep: hide the sketch's own controls (they are not the design); app: the route, its fixtures,
 // and what to press so the app shows the sketch's state.
 const SKETCH_CONTROLS = ".ctl, .lay-ctl, .switch, .note, #note";
-const SCREENS = {
-  // ⭐ D152 · HOME. The sketch opens its dock for 1.5 s on load — shot after it has slid away.
-  home: { sketch: "home-sketch.html", app: CLASSIC_MARKET, fixtures: HOME, ready: "[data-home-board]",
-    sketchPrep: async () => { await sleep(1700); } },
-  // The same screen with the dock out (the sketch shows it for 1.5 s on load; the app's pointer at the left edge).
-  "home-dock": { sketch: "home-sketch.html", app: CLASSIC_MARKET, fixtures: HOME, ready: "[data-home-board]",
-    sketchPrep: async () => { await sleep(100); },
-    appPrep: async (page) => { await sleep(1200); await page.mouse.move(4, 300); await sleep(700); } },
-  // D152 (6): the first posting open, in place of the list (the sketch's .bub click → its .pp layer).
-  "home-open": { sketch: "home-sketch.html", app: CLASSIC_MARKET, fixtures: HOME, ready: "[data-home-board]",
-    sketchPrep: async (page) => { await sleep(1700); await page.evaluate(() => document.querySelector(".bub")?.click()); await sleep(700); },
-    appPrep: async (page) => { await sleep(1700); await page.evaluate(() => document.querySelector(".jb__title")?.click()); await sleep(900); } },
-  // D152 (8): the posting open with its match open under the facts (ats-options.html option A).
-  "home-match": { sketch: "ats-options.html", app: CLASSIC_MARKET, fixtures: HOME, ready: "[data-home-board]",
-    sketchPrep: async (page) => { await page.evaluate(() => document.querySelector('[data-o="inline"]')?.click()); await sleep(300);
-      await page.evaluate(() => document.querySelector("#mbox")?.click()); await sleep(600); },
-    appPrep: async (page) => { await sleep(1700); await page.evaluate(() => document.querySelector(".jb__title")?.click()); await sleep(900);
-      await page.evaluate(() => document.querySelector("[data-posting-match] button, [data-posting-match] [role=button]")?.click()); await sleep(700); } },
-  // ⭐ D156 · Home revised — measured, not compared (`--styles home156`), at 1440 (the landscape card), 1280 and 390.
-  home156: { sketch: null, app: CLASSIC_MARKET, fixtures: HOME156, ready: "[data-home-board]",
-    sizes: { wide: [1440, 900], desktop: [1280, 800], phone: [390, 844] },
-    shoot: true,
-    appPrep: async () => { await sleep(1200); },
-    // ⭐ D156 (1c): a swipe on the card (a real pointer drag, which framer's drag reads) DECIDES, as the deck always has —
-    // left passes (the PASS stamp shows on the way); the next card comes to the front.
-    nodeProbe: async (page) => {
-      const r = await page.evaluate(() => { const a = document.querySelector('[data-fan-offset="0"] article')?.getBoundingClientRect(); return a && { x: a.left + a.width / 2, y: a.top + a.height / 2 }; });
-      // the deck's own count line ("2 of 3 today"): an exiting card can still carry offset 0 while it leaves
-      const front = () => page.evaluate(() => document.querySelector("[data-deck-count]")?.textContent || null);
-      if (!r) return { swipe: null };
-      const before = await front();
-      const saidBefore = await page.evaluate(() => document.querySelector('[aria-live="polite"]')?.textContent || "");
-      await page.mouse.move(r.x, r.y); await page.mouse.down();
-      let stamp = 0;
-      for (let i = 1; i <= 12; i++) {
-        await page.mouse.move(r.x - i * 16, r.y); await sleep(16);
-        stamp = Math.max(stamp, await page.evaluate(() => Math.max(0, ...[...document.querySelectorAll('[data-deck-stamp="pass"]')].map(e => Number(getComputedStyle(e).opacity) || 0))));
+// ⭐ D156 (1c): a swipe on the card (a real pointer drag, which framer's drag reads) DECIDES, as the deck always has —
+// left passes (the PASS stamp shows on the way); the next card comes to the front. (47j R2: lifted out of the retired
+// classic `home156` screen; plate156 runs it.)
+const deckSwipeProbe = async (page) => {
+    // ⭐ 47j: a point on the card that is the CARD — since D200 Rule 2 its chips, stamp and letter tile open popovers and take
+    // the pointer (a drag from a control is that control's press), so the centre is no longer a safe place to grab
+    const r = await page.evaluate(() => {
+      const art = document.querySelector('[data-fan-offset="0"] article'); const a = art?.getBoundingClientRect();
+      if (!a) return null;
+      for (const fy of [0.5, 0.35, 0.65, 0.25, 0.8]) for (const fx of [0.5, 0.3, 0.7, 0.15, 0.85]) {
+        const x = a.left + a.width * fx, y = a.top + a.height * fy, el = document.elementFromPoint(x, y);
+        if (el && art.contains(el) && !el.closest("a, button, input, [role=button], [aria-haspopup]")) return { x, y, on: `${el.tagName.toLowerCase()}.${String(el.className?.baseVal ?? el.className).split(" ")[0]}` };
       }
-      await page.mouse.up(); await sleep(900);
-      const after = await front();
-      const said = await page.evaluate(() => document.querySelector('[aria-live="polite"]')?.textContent || "");
-      return { swipe: { before, after, passed: said !== saidBefore && /^Passed /.test(said), stampShown: stamp > 0.5 } };
-    } },
-  // ⭐ 47g R1 · THE PLATE MARKET'S DECK, LIVE: home156's own measuring (STYLE_PROBES.plate156 = home156's, and its swipe)
-  // on the page people use, /app/jobs — test/d196MarketLiveBehaviour.test.js reads only what carries over (the flip,
-  // J / K / › / ‹, the wheel, the swipe, the long post on the deck); the classic geometry stays home156's until R2.
+      return { x: a.left + a.width / 2, y: a.top + a.height / 2 };
+    });
+    // the deck's own count line ("2 of 3 today"): an exiting card can still carry offset 0 while it leaves
+    const front = () => page.evaluate(() => document.querySelector("[data-deck-count]")?.textContent || null);
+    if (!r) return { swipe: null };
+    const before = await front();
+    // ⭐ 47j: the deck's own live line ("Passed …") — D199's market map is an earlier polite region on the page
+    const passedLine = () => page.evaluate(() => [...document.querySelectorAll('[aria-live="polite"]')].map(e => e.textContent || "").find(t => /^Passed /.test(t)) || "");
+    const saidBefore = await passedLine();
+    await page.mouse.move(r.x, r.y); await page.mouse.down();
+    let stamp = 0;
+    for (let i = 1; i <= 12; i++) {
+      await page.mouse.move(r.x - i * 16, r.y); await sleep(16);
+      stamp = Math.max(stamp, await page.evaluate(() => Math.max(0, ...[...document.querySelectorAll('[data-deck-stamp="pass"]')].map(e => Number(getComputedStyle(e).opacity) || 0))));
+    }
+    await page.mouse.up(); await sleep(900);
+    const after = await front();
+    const said = await passedLine();
+    return { swipe: { before, after, passed: said !== saidBefore && /^Passed /.test(said), stampShown: stamp > 0.5, grabbed: r.on || null } };
+  };
+const SCREENS = {
+  // ⭐ 47g R1 · THE PLATE MARKET'S DECK, LIVE (STYLE_PROBES.plate156, and deckSwipeProbe) on the page people use, /app/jobs —
+  // test/d196MarketLiveBehaviour.test.js reads it: the turn, J / K / › / ‹, the wheel, the swipe, the opening sheet (47j), the
+  // area nav's views, Import, the sort.
   plate156: { sketch: null, app: PLATE_MARKET, fixtures: HOME156, ready: "[data-plate-market-openings] [data-fan-offset]", probe: { plate: true },
     sizes: { wide: [1440, 900], desktop: [1280, 800], phone: [390, 844] },
     appPrep: async (page) => { await page.evaluate(() => document.querySelector("[data-deck-stage]")?.scrollIntoView({ block: "center" })); await sleep(1200); },
-    nodeProbe: async (page, size, routeId) => { await page.evaluate(() => document.querySelector("[data-deck-stage]")?.scrollIntoView({ block: "center" })); await sleep(500); return SCREENS.home156.nodeProbe(page, size, routeId); } },
+    // 47j: the page probe's Import turns the openings to Index (D199) — the deck is put back in front before the swipe
+    nodeProbe: async (page, size, routeId) => { await page.evaluate(() => document.getElementById("mk-tab-deck")?.click()); await sleep(500);
+      await page.evaluate(() => document.querySelector("[data-deck-stage]")?.scrollIntoView({ block: "center" })); await sleep(500); return deckSwipeProbe(page, size, routeId); } },
   // ⭐ A238 (47h) · A DECIDED CARD LEAVES THE DOM: after Pass · Save · Pass on the live plate market (motion on), the
   // [data-fan-offset] count falls by one per decision and no card lingers at offset 0, invisible (test/a238DecidedCardsUnmount).
   // A day deals ten (the walk's real deck); the fixture's three were all mounted at once, and showed no ghost.
@@ -268,7 +281,8 @@ const SCREENS = {
     nodeProbe: async (page) => {
       const st = () => page.evaluate(() => ({
         y: Math.round(window.scrollY), count: document.querySelector("[data-deck-count]")?.textContent || null,
-        open: document.querySelector("[data-deck-post-slot]")?.getAttribute("data-open") === "true",
+        // ⭐ 47j (D199 C7): "open" = the opening sheet is up (drawn over the market at /app/jobs/<id>)
+        open: !!document.querySelector("[data-opening-over]"), url: location.pathname,
         jd: !!document.querySelector("[data-jd-panel]"), asks: (window.__d168asks || []).slice() }));
       // 47h browser tier: the fill read "undefined (reading 'x')" — a centre taken before its element mounted under load; wait first
       const centre = async (sel) => (await page.waitForSelector(sel, { timeout: 8000 }).catch(() => null), page.evaluate((s) => { const r = document.querySelector(s)?.getBoundingClientRect(); return r && { x: r.left + r.width / 2, y: r.top + Math.min(r.height / 2, 120) }; }, sel));
@@ -292,22 +306,27 @@ const SCREENS = {
       await page.mouse.wheel({ deltaY: 200 }); await sleep(450);
       out.listWheel = await st();
       await page.evaluate(() => window.scrollTo(0, 0)); await sleep(300);
-      // ── an open post: the wheel over it scrolls the page and folds nothing
-      await page.evaluate(() => document.querySelector('[data-fan-offset="0"] [data-deck-title-line]')?.click());
-      await sleep(600);
+      // ── ⭐ 47j (D199 C7 — re-pointed): a press opens the OPENING SHEET; the wheel over it scrolls the sheet (its own
+      // scroller, overscroll contained), never the market underneath, and never closes it
+      await page.evaluate(() => document.querySelector("[data-deck-stage]")?.scrollIntoView({ block: "center" })); await sleep(400);
       const o0 = await st();
-      await page.evaluate(() => document.querySelector("[data-deck-post-slot]")?.scrollIntoView({ block: "start" })); await sleep(400);
-      const o0y = await page.evaluate(() => Math.round(window.scrollY));
-      const pc = await centre("[data-deck-post-slot]");
-      await page.mouse.move(pc.x, pc.y); await sleep(150);
-      // (PanelShell's body on the deck is no scroll container — D168 bodyScrolls — so the wheel reaches the page.)
-      await page.mouse.wheel({ deltaY: 240 }); await sleep(450);
-      const o1 = await st();
-      o1.bodyScrolls = await page.evaluate(() => getComputedStyle(document.querySelector("[data-deck-post-slot] [data-panel-body]")).overflowY);
-      await page.mouse.wheel({ deltaY: -120 }); await sleep(450);
-      const o2 = await st();
-      out.postWheel = { opened: o0, start: o0y, down: o1, up: o2 };
-      await page.keyboard.press("Escape"); await sleep(600);
+      await page.evaluate(() => document.querySelector('[data-fan-offset="0"] [data-deck-title-line]')?.click());
+      await page.waitForSelector("[data-opening-over] .pl-op__glance", { timeout: 15000 }).catch(() => {});
+      await sleep(500);
+      const opened = await st();
+      const sTop = () => page.evaluate(() => Math.round(document.querySelector("[data-opening-over]")?.scrollTop ?? -1));
+      const sc = await centre("[data-opening-over] .pl-op__top");
+      if (sc) await page.mouse.move(sc.x, sc.y);
+      await sleep(150);
+      const top0 = await sTop();
+      await page.mouse.wheel({ deltaY: 360 }); await sleep(500);
+      const down = { ...(await st()), top: await sTop() };
+      await page.mouse.wheel({ deltaY: -180 }); await sleep(500);
+      const up = { ...(await st()), top: await sTop() };
+      out.sheetWheel = { before: o0, opened, top0, down, up,
+        overflowY: await page.evaluate(() => { const e = document.querySelector("[data-opening-over]"); return e ? getComputedStyle(e).overflowY : null; }) };
+      await page.keyboard.press("Escape"); await sleep(700);
+      out.sheetWheel.back = await st();
       await page.evaluate(() => window.scrollTo(0, 0)); await sleep(300);
       // ── hover: over the front card, the backs and the bubbles — nothing opens
       await page.evaluate(() => { window.__d168asks = []; });
@@ -315,15 +334,12 @@ const SCREENS = {
       for (const p of points) { await page.mouse.move(p.x, p.y, { steps: 6 }); await sleep(500); }
       // the Index rows (the plate's bubbles): their tab opened, two rows rested on, then back to the Deck
       await page.evaluate(() => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click()); await sleep(700);
-      for (const sel of ["[data-market-index] tbody tr:nth-child(1)", "[data-market-index] tbody tr:nth-child(2)"]) { const p = await centre(sel); if (p) { points.push(p); await page.mouse.move(p.x, p.y, { steps: 6 }); await sleep(500); } }
+      for (const sel of ["[data-market-index] .pl-ixrow:nth-of-type(1)", "[data-market-index] .pl-ixrow:nth-of-type(2)"]) { /* 47j: the plate's rows are .pl-ixrow */ const p = await centre(sel); if (p) { points.push(p); await page.mouse.move(p.x, p.y, { steps: 6 }); await sleep(500); } }
       out.hover = { points: points.length, ...(await st()), panels: await page.evaluate(() => document.querySelectorAll("[data-panel-id]").length) };
       await page.evaluate(() => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /deck/i.test(t.textContent))?.click()); await sleep(500);
       await page.mouse.move(2, 790);
       return { node: out };
     } },
-  home163: { sketch: null, app: CLASSIC_MARKET, fixtures: HOME156, ready: "[data-home-board]", shoot: true,
-    sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], phone: [390, 844] },
-    appPrep: async () => { await sleep(1200); } },
   // ⭐ A201 (46k, owner 11-13: "the content of the home panel rows are garbled when shrunken probe the site and fix this across
   // all places so that the content readjusts gracefully and stay functional when windows shrink") — measured, not compared
   // (`--styles shrink201 [route,…]`): every screen at 1440 → 390, with Ask draft closed and open: no sideways page scroll,
@@ -431,7 +447,8 @@ const SCREENS = {
   // at each width the rail (a vertical rail at the left, 84 px, 14 px from the edges) and the content column beside it —
   // the area nav across its top, its row centred in its 1,180 px column (at 2560 the extra width is margin); below 980 px
   // the bottom bar and the area nav's top bar. A resize across 980 re-places it; the peek beside the rail / above the bar.
-  dock167place: { sketch: null, app: CLASSIC_MARKET, fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } } },
+  dock167place: { sketch: null, app: PLATE_MARKET,   // ⭐ 47j R2: on the plate market (the classic one is deleted)
+    fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } } },
     ready: "[data-nav-dock]", shoot: true, motion: true,
     sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], "980": [980, 800], "979": [979, 800], phone: [390, 844] },
     appPrep: async () => { await sleep(1400); },
@@ -480,7 +497,8 @@ const SCREENS = {
   // keyboard into the dock and out; the dock's search in the area nav (Ctrl K focuses it); the Profile quick peek (opens on a
   // press and on a rest, closes on Esc, a press outside, leaving it) with its notifications list (A236 (b)); Tiny floats, and
   // the rail's Ask draft opens it too. Shots: docs/fidelity-shots/dock167-*.png.
-  dock167: { sketch: null, app: CLASSIC_MARKET, fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } },
+  dock167: { sketch: null, app: PLATE_MARKET,   // ⭐ 47j R2: on the plate market
+    fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } },
       // the auto-apply mode: Apply for me selectable; choosing it answers with the bar in FULL AUTO
       "/api/apply/run-bar": SETTINGS["/api/apply/run-bar"],
       "/api/apply/mode": { ...SETTINGS["/api/apply/run-bar"], mode: { current: "auto", auto: { locked: false } } },
@@ -603,9 +621,6 @@ const SCREENS = {
       await page.keyboard.press("Escape"); await sleep(400);
       return { dock: out };
     } },
-  "home-wide": { sketch: "home-sketch.html", app: CLASSIC_MARKET, fixtures: HOME156, ready: "[data-home-board]",
-    sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440] },
-    sketchPrep: async () => { await sleep(1700); }, appPrep: async () => { await sleep(1200); } },
   // ⭐ D163 · USE THE SPACE, the other screens — measured, not compared (`--styles screens163 [route,…]`): the tracker
   // (Draft House), the settings drawer over it, Atlas, Profile, Account, Customise, Integrations, Saved answers and Admin,
   // at 1280 / 1440 / 1920 / 2560 and the phone, each by the same probe (the content group's free space either side, the
@@ -614,9 +629,17 @@ const SCREENS = {
     sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], phone: [390, 844] },
     routes: {
       tracker: { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr", appPrep: async () => { await sleep(600); } },
+      // ⭐ 47j R2 (D163's dock gutter, re-pointed): the PLATE market, measured by the same probe as every other screen (home163,
+      // the classic grid's own probe, retires with it)
+      market: { app: PLATE_MARKET, fixtures: HOME156, ready: "[data-plate-market-openings] [data-fan-offset]", appPrep: async () => { await sleep(1200); } },
       settings: { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-settings-open]", probe: { root: "[data-settings-drawer]" },
         appPrep: async (page) => { await page.click("[data-settings-open]").catch(() => {}); await page.waitForSelector("[data-fold-top]", { timeout: 8000 }).catch(() => {}); await sleep(700); } },
-      atlas: { app: "/app/atlas", fixtures: ATLAS163, ready: "main", appPrep: async () => { await sleep(900); } },
+      // ✅ OWNER 11-26 (end of 47i, decision 2 — "go with your recs"): Atlas Volume I's region band runs from the rail to the
+      // viewport's edge on purpose — the approved board's layout wins over D163's "no slab to the screen's edge". A NAMED
+      // exception (the owner's word, not a threshold change): the band and what it holds leave the flush list and the edge
+      // margins; everything else on the page is still held to them.
+      atlas: { app: "/app/atlas", fixtures: ATLAS163, ready: "main", appPrep: async () => { await sleep(900); },
+        probe: { flushExempt: [{ sel: "section.pl-at-regions", why: "owner 11-26: Atlas Volume I's full-width region band is the approved board's design" }] } },
       // ⭐ D167: the settings pages are Profile's panels now (each at /app/profile/<panel>); Interview is its own place.
       profile: { app: "/app/profile/about", fixtures: PROFILE163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
       account: { app: "/app/profile/account", fixtures: ACCOUNT163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
@@ -627,26 +650,13 @@ const SCREENS = {
       admin: { app: "/admin", fixtures: { "/api/admin/auth/me": { authenticated: true, enforced: true, admin: { email: "admin@example.invalid" } },
         "/api/auth/me": { authenticated: false } }, strict: true, ready: "h1", probe: { root: "[data-admin-page]" }, appPrep: async () => { await sleep(900); } },
     } },
-  deck: { sketch: "declutter-v7.html", app: CLASSIC_MARKET, fixtures: DECK, ready: "[data-deck-face]" },
-  fullhouse: { sketch: "fullhouse-declutter.html", app: CLASSIC_MARKET, fixtures: FULLHOUSE, ready: "[data-fh-title]",
-    appPrep: async (page) => {   // the sketch shows the first posting open beside the list
-      await page.evaluate(() => { const t = [...document.querySelectorAll("*")].find(e => e.children.length === 0 && e.textContent.trim() === "Senior Data Engineer"); t?.click(); });
-      await sleep(900);
-    } },
   // D153 (5): the facts box measured, not compared (no sketch of its own) — `--styles posting-facts` only.
   // ⭐ 47g R1: on the PLATE market — the posting opened from its Index row (which turns the openings to Deck, A240).
   // (The classic probe waited on [data-fh-title], which no client file draws, and fell through to its prep.)
+  // ⭐ 47j (D199 C7 — re-pointed): a posting opens on its own SHEET, never on the deck; the facts are the sheet's glance strip
+  // (pay · type · level · stack you have), measured the same way — no word broken, cells wrap rather than squeeze.
   "posting-facts": { sketch: null, app: PLATE_MARKET, fixtures: FACTS, ready: "[data-plate-market-openings]",
-    appPrep: async (page) => {
-      // 47h browser tier: one tab press under a loaded refill was dropped (no rows → no posting → `facts: null`); press until the rows show
-      for (const t0 = Date.now(); Date.now() - t0 < 20000;) {
-        await page.evaluate(() => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click()).catch(() => {});
-        if (await page.waitForSelector("[data-market-index] [data-index-title]", { timeout: 2000 }).then(() => true, () => false)) break;
-      }
-      await openIndexRow(page, "Senior Data Engineer");
-      await page.waitForSelector("[data-deck-post-slot] [data-posting-facts]", { timeout: 20000 }).catch(() => {});
-      await sleep(900);
-    } },
+    appPrep: async (page) => { await openSheetFromIndex(page, "Senior Data Engineer"); await sleep(900); } },
   settings: { sketch: "settings-declutter.html", app: CLASSIC_HOME, fixtures: SETTINGS, ready: "[data-settings-open]",
     appPrep: async (page) => { await page.click("[data-settings-open]").catch(() => {}); await page.waitForSelector("[data-fold-top]", { timeout: 8000 }).catch(() => {}); await sleep(600); },
     // ⭐ D149 settings: --styles opens the drawer first too; and the comparison that matters is the DRAWER (the page behind
@@ -856,25 +866,6 @@ function SHRINK_PROBE() {
 }
 
 const STYLE_PROBES = {
-  deck: () => {
-    const cs = (el) => (el ? getComputedStyle(el) : null);
-    const face = document.querySelector("[data-deck-face]")?.closest("article");
-    const title = document.querySelector("[data-deck-face] h2");
-    const company = document.querySelector("[data-deck-head] div div div");
-    const draft = [...document.querySelectorAll("[data-deck-actions] button")].find(b => /Draft/.test(b.textContent));
-    const r = face?.getBoundingClientRect();
-    return {
-      dock: (() => { const e = document.querySelector("[data-nav-dock]"); if (!e) return null; const r = e.getBoundingClientRect(); return { place: document.documentElement.getAttribute("data-dock-place"), left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), reserve: Math.round(document.querySelector("[data-area-nav]")?.getBoundingClientRect().bottom || 0) }; })(),   // D167: where the dock sits; ⭐ D197 #1: the room the page leaves above it — the area nav across the content column's top
-      canvas: cs(document.documentElement).getPropertyValue("--c-canvas").trim(),
-      card: face && { bg: cs(face).backgroundColor, radius: cs(face).borderTopLeftRadius, border: cs(face).borderTopWidth, shadow: cs(face).boxShadow,
-                      width: Math.round(r.width), top: Math.round(r.top) },
-      title: title && { family: cs(title).fontFamily, size: cs(title).fontSize, weight: cs(title).fontWeight },
-      company: company && { family: cs(company).fontFamily, size: cs(company).fontSize, weight: cs(company).fontWeight },
-      draft: draft && { bg: cs(draft).backgroundColor, color: cs(draft).color },
-      topBar: !!document.querySelector("[data-app-chrome]") && cs(document.querySelector("[data-app-chrome]")).backgroundColor,
-      controlsRow: !!document.querySelector("[data-deck-counter]"),
-    };
-  },
   // ⭐ D149 · the settings drawer (settings-declutter.html): the drawer, the title, the mode, a fold's line; then it opens
   // When, How many, Which jobs and Before sending in turn and reads the time chip, the stepper, the eyebrow, the
   // headline, a switch on and off, Done and Pause.
@@ -972,88 +963,6 @@ const STYLE_PROBES = {
       hscroll: document.documentElement.scrollWidth > window.innerWidth + 1,
     };
   },
-  // ⭐ D152 (1) / (4) · HOME: the grid's two columns, the corner mark gone, and the dock — off the left edge at rest, out
-  // at the left edge (a pointer at x = 4), pushing Home so it covers neither the deck nor the sentence.
-  home: async () => {
-    const wait = (ms) => new Promise(r => setTimeout(r, ms));
-    const q = (s) => document.querySelector(s);
-    const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), width: Math.round(r.width) }; };
-    const visible = (el) => !!el && getComputedStyle(el).display !== "none" && el.getBoundingClientRect().width > 0;
-    const overlap = (a, b) => !!a && !!b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-    const dock = q("[data-nav-dock]");
-    await wait(1900);   // past the arrival show (1.6 s)
-    // D152 (2) / D153 (1): the card, its backs (their rotated bounds), the buttons, the board column.
-    const card = box(q("[data-deck-face]")?.closest("article"));
-    const backs = [1, 2, 3].map(n => box(q(`[data-fan-offset="${n}"] [data-fan-position]`))).map((b, i) => b && { n: i + 1, ...b,
-      rotate: (q(`[data-fan-offset="${i + 1}"] [data-fan-position]`).style.transform.match(/rotate\(([-\d.]+)deg\)/) || [])[1] ?? null,
-      opacity: getComputedStyle(q(`[data-fan-offset="${i + 1}"] [data-fan-position]`)).opacity });
-    const acts = box(q("[data-deck-actions]")), deckCol = box(q("[data-home-deck]")), boardCol = box(q("[data-home-board]"));
-    const shownBacks = backs.filter(b => b && Number(b.opacity) > 0);
-    // D152 (5): the first pair at rest, then with its first bubble focused (:focus-within grows it as :hover does).
-    const pair = q("[data-jb-pair]"), bubs = pair ? [...pair.querySelectorAll(".jb")] : [];
-    const widths = () => bubs.map(b => Math.round(b.getBoundingClientRect().width));
-    const heights = () => bubs.map(b => Math.round(b.getBoundingClientRect().height));
-    const pairs = { count: document.querySelectorAll("[data-jb-pair]").length, perPair: bubs.length, restW: widths(), restH: heights(),
-      atsSquare: !!q(".jb__sq--ats") };
-    bubs[0]?.querySelector("button")?.focus();
-    await wait(450);
-    Object.assign(pairs, { focusW: widths(), focusH: heights(), options: bubs[0] ? getComputedStyle(bubs[0].querySelector(".jb__rail")).visibility : null });
-    document.activeElement?.blur?.();
-    await wait(200);
-    const deckGeom = { card, backs, acts, deckCol,
-      backsCoverButtons: shownBacks.some(b => overlap(b, acts)), backsCoverBoard: shownBacks.some(b => overlap(b, boardCol)),
-      backsOutsideColumn: shownBacks.some(b => b.right > deckCol.right + 1 || b.left < deckCol.left - 1) };
-    const sortOver = () => overlap(box(q(".fh-title--home")), box(q("[data-home-board] .bh")));
-    const rest = { dock: box(dock), padLeft: getComputedStyle(q(".home")).paddingLeft, sortCoversSentence: sortOver() };
-    window.dispatchEvent(new MouseEvent("mousemove", { clientX: 4, clientY: 300, bubbles: true }));
-    await wait(700);
-    const deck = box(q("[data-home-deck]")), sentence = box(q("[data-home-board] .bh")), d = box(dock);
-    const out = { dock: d, padLeft: getComputedStyle(q(".home")).paddingLeft, open: document.documentElement.getAttribute("data-dock-open"),
-      coversDeck: overlap(d, deck), coversSentence: overlap(d, sentence), sortCoversSentence: sortOver() };
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    await wait(600);
-    // ⭐ D156 (1c) (was D152 (6) / D153 (1)'s posting in place of the list): a bubble's posting opens ON THE DECK, in the
-    // front card's place — the list stays, its node survives, nothing covers the board, and folding returns the reader.
-    const listNode = q(".jb-board__list");
-    window.scrollTo(0, 120); await wait(150);
-    const yBefore = Math.round(window.scrollY);
-    [...document.querySelectorAll(".jb__title")].find(e => e.textContent.trim())?.click();
-    await wait(900);
-    const slotOpen = q('[data-deck-post-slot][data-open="true"] [data-jd-panel]');
-    const post = box(slotOpen ? q("[data-deck-post-slot]") : q('[data-panel-id="jd"]'));
-    const opened = { post, onDeck: !!slotOpen, listShown: (q(".jb-board__list")?.getBoundingClientRect().height ?? 0) > 0,
-      boardPost: !!q("[data-board-post]"), coversBoard: !!slotOpen && overlap(post, box(q("[data-home-board]"))),
-      inDeck: !!slotOpen && !!post && post.left >= box(q("[data-home-deck]")).left - 1 && post.right <= box(q("[data-home-deck]")).right + 1 };
-    // ⭐ D152 (8): the match box opens the match IN the posting, under the facts; again folds it. No overlay, no blur.
-    const mbox = q("[data-posting-match] button") || q("[data-posting-match] [role=button]") || q("[data-posting-match] *");
-    mbox?.click(); await wait(600);
-    const row = q("[data-posting-match-row]"), facts = box(q(".posting__facts"));
-    const match = { opened: row?.getAttribute("data-open"), height: row ? Math.round(row.getBoundingClientRect().height) : null,
-      underFacts: !!row && !!facts && Math.round(row.getBoundingClientRect().top) >= facts.bottom - 1,
-      eyebrow: q("[data-posting-match-panel] .pp__matcheyebrow")?.textContent || null,
-      overlay: !!q('[data-panel-id="ats"]'), blur: [...document.querySelectorAll("body *")].some(e => /blur/.test(getComputedStyle(e).filter)) };
-    mbox?.click(); await wait(600);
-    Object.assign(match, { folded: row?.getAttribute("data-open"), foldedHeight: row ? Math.round(row.getBoundingClientRect().height) : null,
-      foldedInert: row?.hasAttribute("inert") ?? null });
-    opened.match = match;
-    const closeBtn = q('[data-deck-post-slot] .pp__x') || q('.pp__x');   // on the deck on a computer; the overlay on a phone
-    if (closeBtn) closeBtn.click(); else document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    await wait(700);
-
-    const closed = { sameListNode: q(".jb-board__list") === listNode, post: !!q('[data-deck-post-slot][data-open="true"]') || !!q('[data-panel-id="jd"]'),
-      yBefore, yAfter: Math.round(window.scrollY) };
-    window.scrollTo(0, 0);
-    return {
-      opened, closed,
-      grid: { deck: box(q("[data-home-deck]")), board: box(q("[data-home-board]")), columns: getComputedStyle(q(".home")).gridTemplateColumns },
-      deck: deckGeom, pairs,
-      title: !!q(".fh-title__h"), cornerMark: visible(q(".tbar-group")), emboss: q("[data-nav-emboss]")?.textContent || null,
-      items: [...document.querySelectorAll("[data-nav-dock] [data-nav-item]")].map(a => a.getAttribute("data-nav-item")),
-      current: q('[data-nav-dock] [aria-current="page"]')?.getAttribute("data-nav-item") || null,
-      handle: visible(q("[data-nav-handle]")),
-      rest, out, afterEsc: { dock: box(dock), open: document.documentElement.getAttribute("data-dock-open") },
-    };
-  },
   // ⭐ D156 · HOME, REVISED (owner 11-05) — measured at 1440 (the landscape card), 1280 and 390: the card's fixed box and that
   // nothing in it scrolls; its stats; the buttons never over it; the deck and the list never overlapping at any scroll; the
   // flip by ‹ ›, the keys, the wheel (one card per gesture); the dock's rail of four 30 px icons, the house and the globe in
@@ -1082,10 +991,15 @@ const STYLE_PROBES = {
     const visible = (e) => { for (let p = e; p && p !== root.parentElement; p = p.parentElement) { const cs = getComputedStyle(p); if (Number(cs.opacity) === 0 || cs.visibility === "hidden" || cs.display === "none") return false; } const r = e.getBoundingClientRect(); return r.width > 1 && r.height > 1; };
     const canvas = ["[data-app-shell]", "#root", "body", "html"].map(sel => q(sel)).filter(Boolean).map(e => getComputedStyle(e).backgroundColor)
       .find(c => c !== "rgba(0, 0, 0, 0)" && c !== "transparent") || null;
+    // ⭐ 47j: a plate page's root (PlateRoot, `.plate`, the outermost inside the screen's root) is the PAGE's ground — its paper
+    // fills the content column by design — so it is canvas, never a slab (Atlas's Volume I measured `div.plate 98–1280`)
+    const ground = root.querySelector(".plate") || null;   // the outermost plate root inside the screen (first in document order)
+    const groundBg = ground ? getComputedStyle(ground).backgroundColor : null;
     const drawn = (e) => {
       if (e.children.length === 0 || e.matches("svg, img, canvas, input, textarea, select, button, hr")) return !e.closest("svg *");
+      if (e === ground) return false;
       const cs = getComputedStyle(e);
-      const bg = cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent" && cs.backgroundColor !== canvas;
+      const bg = cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent" && cs.backgroundColor !== canvas && cs.backgroundColor !== groundBg;
       const border = ["Top", "Right", "Bottom", "Left"].some(s => parseFloat(cs[`border${s}Width`]) > 0 && cs[`border${s}Style`] !== "none");
       return (bg || border) && e !== root;
     };
@@ -1106,7 +1020,12 @@ const STYLE_PROBES = {
       .map(e => ({ e, b: ink(e) })).filter(({ b }) => b && b.top < vh && b.bottom > 0);
     const g = union(els.map(x => x.b));
     const leaves = union(els.filter(({ e }) => e.children.length === 0 || e.matches("svg, img, canvas, input, textarea, select, button")).map(x => x.b));
-    const flush = els.filter(({ b }) => b.left < dockRight + 8 || b.right > vw - 8).slice(0, 6)
+    // owner-named exceptions (arg.flushExempt — each with its reason): out of the flush list and the edge margins only
+    const exemptSels = (arg?.flushExempt || []).map(x => x.sel);
+    const exempt = (e) => exemptSels.some(s => e.closest(s));
+    const held = els.filter(({ e }) => !exempt(e));
+    const gHeld = union(held.map(x => x.b));
+    const flush = held.filter(({ b }) => b.left < dockRight + 8 || b.right > vw - 8).slice(0, 6)
       .map(({ e, b }) => `${e.tagName.toLowerCase()}.${String(e.className?.baseVal ?? e.className).split(" ")[0]} ${b.left}–${b.right}`);
     const rb = box(root);
     // ⭐ D197 #1 · A237: beside the rail the free space is measured from the content column's left edge (the shell's 98 px)
@@ -1117,143 +1036,67 @@ const STYLE_PROBES = {
       rootLeftFree: rb ? rb.left - colLeft : null, rootRightFree: rb ? vw - rb.right : null,
       leaves, insetL: leaves && rb ? leaves.left - rb.left : null, insetR: leaves && rb ? rb.right - leaves.right : null,
       dockMid: dock ? (dock.top + dock.bottom) / 2 : null,
-      flush, sideScroll: document.documentElement.scrollWidth > vw + 1 };
+      flush, sideScroll: document.documentElement.scrollWidth > vw + 1,
+      exempted: exemptSels.filter(s => q(s, root)), edgeLeftFree: gHeld ? gHeld.left - colLeft : null, edgeRightFree: gHeld ? vw - gHeld.right : null };
   },
   // ⭐ D167: the dock is measured by its nodeProbe (a real pointer); the page-side probe only says where it ran.
   dock167: () => ({ vw: window.innerWidth, vh: window.innerHeight }),
   dock167place: () => ({ vw: window.innerWidth, vh: window.innerHeight }),
   ask200: () => ({ vw: window.innerWidth, vh: window.innerHeight }),
   shrink201: () => ({}),
-  home163: async () => {
-    const wait = (ms) => new Promise(r => setTimeout(r, ms));
-    const q = (s, root = document) => root.querySelector(s);
-    const qa = (s, root = document) => [...root.querySelectorAll(s)];
-    const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), width: Math.round(r.width), height: Math.round(r.height) }; };
-    const union = (bs) => bs.filter(Boolean).reduce((u, b) => u ? { left: Math.min(u.left, b.left), top: Math.min(u.top, b.top), right: Math.max(u.right, b.right), bottom: Math.max(u.bottom, b.bottom) } : { ...b }, null);
-    const vw = window.innerWidth, vh = window.innerHeight;
-    await wait(400);
-    const shown = (e) => { const cs = getComputedStyle(e); if (cs.visibility === "hidden" || Number(cs.opacity) === 0) return false; const r = e.getBoundingClientRect(); return r.width > 1 && r.height > 1; };
-    const ink = () => {
-      const home = q("[data-home]");
-      const leaves = qa("*", home).filter(e => (e.children.length === 0 || e.matches("svg, img, article, button, input, textarea")) && !e.closest("svg *") && shown(e))
-        .filter(e => { let p = e; while (p && p !== home) { const cs = getComputedStyle(p); if (Number(cs.opacity) === 0 || cs.visibility === "hidden") return false; p = p.parentElement; } return true; })
-        .map(box).filter(b => b.top < vh && b.bottom > 0);
-      return union(leaves);
-    };
-    const measure = () => {
-      const dock = box(q("[data-nav-dock]")), deckCol = box(q("[data-home-deck]")), board = box(q("[data-home-board]")), home = box(q("[data-home]"));
-      // 45s: the group is the ink AND the two columns' boxes. Since A146 (45o) only a small All filters button sits under the
-      // sentence where a full-width search field was, so on a phone the ink's right edge was the sentence's ragged last
-      // word (16 / 42) while the column itself runs gutter to gutter.
-      const g = union([ink(), deckCol, board]);
-      // ⭐ D167 (the dock goes where the space is): the dock lives in the page's margin or above it, so the page's free
-      // space is measured from the VIEWPORT's edges; nothing may sit within 8 px of a SIDE dock.
-      const place = document.documentElement.getAttribute("data-dock-place");
-      const dockRight = place === "side" && dock && dock.width > 0 ? dock.right : 0;
-      // ⭐ D197 #1 · A237: beside the rail the page's free space is measured from the CONTENT COLUMN's left edge (the shell's
-      // padding — 14 + 84 px), not the viewport's
-      const colLeft = place === "side" ? parseFloat(getComputedStyle(q("[data-app-shell]")).paddingLeft) || 0 : 0;
-      const card = box(q('[data-fan-offset="0"] article'));
-      const backs = qa("[data-fan-offset]").filter(e => Number(e.getAttribute("data-fan-offset")) > 0)
-        .map(e => q("[data-fan-position]", e)).filter(e => e && Number(getComputedStyle(e).opacity) > 0).map(box);
-      const stack = union([card, ...backs]);
-      const hcs = getComputedStyle(q("[data-home]"));
-      const flush = qa("[data-home] *").filter(e => shown(e)).map(e => ({ e, b: e.getBoundingClientRect() }))
-        .filter(({ b }) => b.top < vh && b.bottom > 0 && (b.left < dockRight + 8 || b.right > vw - 8)).slice(0, 5)
-        .map(({ e, b }) => `${e.tagName.toLowerCase()}.${String(e.className?.baseVal ?? e.className).split(" ")[0]} ${Math.round(b.left)}–${Math.round(b.right)}`);
-      const bubbles = qa(".jb-pair").slice(0, 1).map(p => qa(".jb", p).map(b => Math.round(b.getBoundingClientRect().width)))[0] || [];
-      return {
-        dock, home, deckCol, board, group: g,
-        place, colLeft, leftFree: g ? g.left - colLeft : null, rightFree: g ? vw - g.right : null,
-        homeLeftFree: home ? home.left - colLeft : null, homeRightFree: home ? vw - home.right : null,
-        colGap: deckCol && board ? board.left - deckCol.right : null,
-        gutterL: parseFloat(hcs.paddingLeft), gutterR: parseFloat(hcs.paddingRight), columnGap: parseFloat(hcs.columnGap),
-        card, stack, stackLeft: stack && deckCol ? stack.left - deckCol.left : null, stackRight: stack && deckCol ? deckCol.right - stack.right : null,
-        dockMid: dock ? (dock.top + dock.bottom) / 2 : null, flush, bubbles, pairs: qa(".jb-pair").length,
-      };
-    };
-    const out = { vw, vh, rest: measure() };
-    const dock = q("[data-nav-dock]");
-    if (dock && vw > 600) {
-      dock.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, relatedTarget: document.body }));
-      await wait(600);
-      const m = measure();
-      out.open = { place: m.place, dock: m.dock, group: m.group, home: m.home, shellPad: getComputedStyle(q("[data-app-shell]")).paddingLeft,
-        covers: !!m.dock && !!m.group && m.dock.right > m.group.left && m.dock.bottom > m.group.top && m.dock.top < m.group.bottom };
-      dock.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: document.body }));
-      await wait(500);
-    }
-    return out;
-  },
-  // ⭐ D168 · the swap, frame by frame (motion on), and fifty fast opens and folds.
+  // ⭐ D168 · ONE WAY TO OPEN, on the D199 market (47j, re-pointed — D199 C7): the deck's title and an Index row open the
+  // OPENING SHEET (/app/jobs/<id>, over the market); Back (Esc) returns to the same card, tab and scroll. Measured: the open
+  // and Back from the deck and from an Index row, fifty fast presses and Backs, then ten slower ones.
   home168: async () => {
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
     const q = (s) => document.querySelector(s);
-    const stack = () => q("[data-deck-stack]"), inner = () => q("[data-deck-stack-inner]");
-    const isOpen = () => q("[data-deck-post-slot]")?.getAttribute("data-open") === "true";
-    const press = () => q('[data-fan-offset="0"] [data-deck-title-line]')?.click();
+    const sheetUp = () => !!q("[data-opening-over]");
+    const press = () => { if (!sheetUp()) q('[data-fan-offset="0"] [data-deck-title-line]')?.click(); };   // under the sheet no pointer reaches the card
     const esc = () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    const settled = () => {
-      const s = stack(), i = inner();
-      return { phase: s?.getAttribute("data-swap"), lockedHeight: s?.style.height || "", stackH: s ? Math.round(s.getBoundingClientRect().height) : null,
-        contentH: i ? Math.round(i.getBoundingClientRect().height) : null, opacity: i ? getComputedStyle(i).opacity : null, open: isOpen(),
-        jd: !!q("[data-deck-post-slot] [data-jd-panel]"), deckShown: getComputedStyle(q("[data-deck-content]")).display !== "none" };
-    };
-    // Frames: the stack's height on screen, the content's opacity and the swap phase, every frame from the press.
-    const sample = (ms) => new Promise((res) => {
-      const frames = []; const t0 = performance.now();
-      const tick = () => {
-        const s = stack(), i = inner();
-        frames.push({ t: Math.round(performance.now() - t0), h: Math.round(s.getBoundingClientRect().height * 10) / 10,
-          op: Number(getComputedStyle(i).opacity), phase: s.getAttribute("data-swap"), open: isOpen() });
-        if (performance.now() - t0 < ms) requestAnimationFrame(tick); else res(frames);
-      };
-      tick();
-    });
-    window.scrollTo(0, 0);
+    const until = async (fn, ms = 6000) => { const t0 = performance.now(); while (!fn() && performance.now() - t0 < ms) await wait(30); return fn(); };
+    const tab = () => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => t.getAttribute("aria-selected") === "true")?.textContent.trim() || null;
+    const state = () => ({ open: sheetUp(), sheets: document.querySelectorAll("[data-opening-over]").length, path: location.pathname, search: location.search,
+      atSheet: /^\/app\/jobs\/[^/]+$/.test(location.pathname), glance: !!q("[data-opening-over] .pl-op__glance"),
+      count: q("[data-deck-count]")?.textContent || null, y: Math.round(window.scrollY), deck: !!q('[data-fan-offset="0"] article'), tab: tab() });
+    q("[data-deck-stage]")?.scrollIntoView({ block: "center" });
     await wait(600);
     const out = { vw: window.innerWidth };
-    // ── the open
-    const before = settled();
-    const openFrames = sample(700); press(); const opened = await openFrames;
-    await wait(200);
-    const afterOpen = settled();
-    // ── the fold
-    const foldFrames = sample(700); esc(); const folded = await foldFrames;
-    await wait(200);
-    const afterFold = settled();
-    out.open = { before, frames: opened, after: afterOpen };
-    out.fold = { before: afterOpen, frames: folded, after: afterFold };
-    // ── a bubble's posting, the same swap
-    // the plate's bubble = an Index row: its tab opened first; the title's press turns the openings back to Deck (A240)
+    // ── the deck: open, then Back
+    const before = state();
+    press(); await until(() => !!q("[data-opening-over] .pl-op__glance"));
+    const opened = state();
+    esc(); await until(() => !sheetUp()); await wait(300);
+    out.deck = { before, opened, back: state() };
+    // ── an Index row: the same sheet, and Back to the Index, where it was
     [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click();
-    { const t0 = performance.now(); while (!q("[data-market-index] [data-index-title]") && performance.now() - t0 < 10000) await wait(50); await wait(150); }   // 47h: the rows, not a fixed 500 ms
-    const bubbleFrames = sample(700); q("[data-market-index] [data-index-title]")?.click(); const bub = await bubbleFrames;
-    await wait(200);
-    out.bubble = { frames: bub, after: settled() };
-    esc(); await wait(700); window.scrollTo(0, 0); await wait(200);
-    // ── d168NeverStuck: fifty opens and folds, fast (0–40 ms apart), then settle; and ten slower ones, each checked
-    let last = false;
-    for (let n = 0; n < 50; n++) {
-      if (n % 2 === 0) press(); else esc();
-      last = n % 2 === 0;
-      await wait((n * 7) % 41);
-    }
-    await wait(900);
-    out.fast = { lastWasOpen: last, ...settled() };
-    esc(); await wait(700);
+    await until(() => !!q("[data-market-index] [data-index-title]"), 10000); await wait(150);
+    q("[data-market-index]")?.scrollIntoView({ block: "start" }); await wait(300);
+    const rowBefore = state();
+    q("[data-market-index] [data-index-title]")?.click(); await until(() => !!q("[data-opening-over] .pl-op__glance"));
+    const rowOpened = state();
+    esc(); await until(() => !sheetUp()); await wait(300);
+    out.row = { before: rowBefore, opened: rowOpened, back: state() };
+    [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /deck/i.test(t.textContent))?.click(); await wait(500);
+    q("[data-deck-stage]")?.scrollIntoView({ block: "center" }); await wait(300);
+    // ── d168NeverStuck: fifty presses and Backs, fast (0–40 ms apart), then settle; then ten slower ones, each checked
+    const start = state();
+    for (let n = 0; n < 50; n++) { if (n % 2 === 0) press(); else esc(); await wait((n * 7) % 41); }
+    await wait(1500);
+    out.fast = state();
+    if (sheetUp()) { esc(); await until(() => !sheetUp()); await wait(300); }
+    out.fastBack = state();
     out.slow = [];
     for (let n = 0; n < 10; n++) {
       if (n % 2 === 0) press(); else esc();
-      await wait(120 + (n * 37) % 200);   // mid-swap for some, settled for others
-      const mid = settled();
-      await wait(700);
-      out.slow.push({ wantOpen: n % 2 === 0, mid: { stackH: mid.stackH, phase: mid.phase }, ...settled() });
+      await until(() => sheetUp() === (n % 2 === 0) && (n % 2 === 1 || !!q("[data-opening-over] .pl-op__glance")), 4000); await wait(200);
+      out.slow.push({ wantOpen: n % 2 === 0, ...state() });
     }
-    esc(); await wait(500);
+    out.start = start;
     return out;
   },
-  home156: async (cfg) => {   // 47g R1: cfg.plate = the plate market (plate156) — its open is the title, its bubbles the Index rows
+  // ⭐ 47j R2: home156's measuring, now plate156's own (the classic `home156` screen retired with the classic market). Its
+  // `cfg.plate` false branches measured the classic grid and no longer run.
+  plate156: async (cfg) => {   // cfg.plate = the plate market — its open is the title, its bubbles the Index rows
     const wait =(ms) => new Promise(r => setTimeout(r, ms));
     const q = (s, root = document) => root.querySelector(s);
     const qa = (s, root = document) => [...root.querySelectorAll(s)];
@@ -1342,7 +1185,48 @@ const STYLE_PROBES = {
     const frontTitle = () => q('[data-fan-offset="0"] [data-deck-title-line]')?.textContent || null;
     const post = { title: frontTitle() };
     const press = () => q('[data-fan-offset="0"] [data-deck-title-line]')?.click();
-    if (window.innerWidth <= 1000) {
+    if (cfg?.plate) {
+      // ⭐ 47j (D199 C7 — re-pointed): on the plate market a posting opens on its OWN SHEET (/app/jobs/<id>, drawn over the
+      // market, which stays mounted) at every width — the deck's title, Enter and an Index row; Esc and "← Back to the
+      // market" return to the same card; the wheel never opens or closes it; the sheet's Pass decides the deck's card.
+      const sheetUp = () => !!q("[data-opening-over] .pl-op__glance");
+      const gone = () => !q("[data-opening-over]");
+      const esc = () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      const tabSel = () => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => t.getAttribute("aria-selected") === "true")?.textContent.trim() || null;
+      const toTab = (re) => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => re.test(t.textContent))?.click();
+      wheel(q('[data-fan-offset="0"] [data-deck-face]'), 80); await wait(400);
+      post.wheelOpened = !gone(); post.wheelTurned = frontTitle() !== post.title;
+      while (idx() > 1) { q('[data-deck-flip="prev"]')?.click(); await wait(300); }
+      press(); post.openedByPress = await waitFor(sheetUp, 8000);
+      post.path = location.pathname;
+      post.sheetTitle = (q("[data-opening-over] #op-title")?.textContent || "").replace(/\.$/, "") || null;
+      post.over = !!q("[data-opening-over]") && getComputedStyle(q("[data-opening-over]")).position === "fixed";
+      post.marketBelow = !!q('[data-fan-offset="0"] article');
+      wheel(q("[data-opening-over]"), -80); await wait(500); post.wheelClosed = gone();
+      esc(); post.closedByEsc = await waitFor(gone);
+      post.backTo = frontTitle(); post.backPath = location.pathname;
+      document.body.focus();
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })); post.openedByEnter = await waitFor(sheetUp, 8000);
+      q("[data-opening-over] [data-opening-back]")?.click(); post.closedByBack = await waitFor(gone);
+      // an Index row: the same sheet; Back returns to the Index
+      toTab(/index/i); await waitFor(() => !!q("[data-market-index] [data-index-title]"), 10000); await wait(150);
+      for (let i = 0; i < 4 && !sheetUp(); i++) { q("[data-market-index] [data-index-title]")?.click(); if (await waitFor(sheetUp, 2500)) break; }
+      post.listOpensSheet = sheetUp(); post.listPath = location.pathname;
+      esc(); await waitFor(gone); await wait(200);
+      post.listBackTab = tabSel();
+      toTab(/deck/i); await wait(400);
+      window.scrollTo(0, 0); await wait(150);
+      // the sheet's Pass: the board's own decide (boardDecide) on the deck's card, then Back; the next card comes to the front
+      // (the count line reads "1 OF 746 · PAGE 1" on a board page before and after — the front card's title is what moves)
+      const before = frontTitle();
+      press(); await waitFor(sheetUp, 8000);
+      q('[data-opening-actions] [data-deck-action="pass"]')?.click();
+      post.passCloses = await waitFor(gone, 4000);
+      await wait(700);
+      post.passAdvanced = frontTitle() !== before;
+      post.frontAfterPass = frontTitle();
+      post.passSaid = qa('[aria-live="polite"]').map(e => e.textContent || "").find(t => /^Passed /.test(t)) || "";
+    } else if (window.innerWidth <= 1000) {
       // a phone: the posting is the full-screen overlay (D149's rule), never the deck's slot
       press();
       post.overlay = await waitFor(() => !!q('[data-panel-id="jd"]'));
@@ -1441,6 +1325,45 @@ const STYLE_PROBES = {
     document.activeElement?.blur?.(); await wait(400);
 
     // ── the views under the search, with their counts; Import a job; the sort icon in the search field
+    // ⭐ 47j (D199 C2 / 47h — re-pointed): on the plate market the views are the shell's AREA NAV (Today's picks · All jobs ·
+    // Starred · Imported, counts on the words), Import a job its More item (on a phone, a view in the scroller — A245), and
+    // search + sort the cartouche's row ([data-market-search]; the sort its [data-board-icon="sort"]).
+    if (cfg?.plate) {
+      const nav = q('[data-area-nav="The market"]');
+      const curView = () => qa('[data-area-nav="The market"] [data-area-view]').find(a => a.getAttribute("aria-current") === "page")?.getAttribute("data-area-view") || null;
+      out.views = { inAreaNav: !!nav, buttons: qa('[data-area-nav="The market"] [data-area-view]').filter(a => a.getAttribute("data-area-view") !== "import")
+        .map(a => ({ id: a.getAttribute("data-area-view"), text: a.textContent.trim(), current: a.getAttribute("aria-current") })) };
+      let imp = qa('[data-area-nav="The market"] [data-area-view="import"]')[0] || null;
+      if (!imp) { q('[data-area-nav="The market"] .pl-areanav__more')?.click(); await wait(250);
+        imp = qa('[data-area-nav="The market"] [role=menuitem]').find(a => /import a job/i.test(a.textContent)) || null; }
+      out.views.importButton = imp?.textContent.trim() || null;
+      imp?.click(); await wait(400);
+      const ta = q("[data-import-box] textarea");
+      out.importBox = { shown: !!ta, inBoard: !!ta && !!ta.closest("[data-plate-market-openings]"), placeholder: ta?.placeholder || null, overlay: !!q('[role="dialog"] [data-import-box]') };
+      if (ta) {
+        const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
+        setter.call(ta, "https://jobs.example.invalid/acme/123"); ta.dispatchEvent(new Event("input", { bubbles: true }));
+        await wait(100);
+        q("[data-import-box] button[type=submit]")?.click(); await wait(900);
+        out.importBox.note = q("[data-import-note]")?.textContent || null;
+        out.importBox.noteKind = q("[data-import-note]")?.getAttribute("data-import-note") || null;
+        out.importBox.viewAfter = curView();
+        q(".fh-import__x")?.click(); await wait(150);
+      }
+      const row = q("[data-market-search]");
+      if (row) { row.scrollIntoView({ block: "center" }); await wait(200); }
+      const sort = q('[data-board-icon="sort"]');
+      out.sort = { inSearch: !!sort?.closest("[data-market-search]"), label: sort?.getAttribute("aria-label") || null, hasSvg: !!q("svg", sort), search: !!q("[data-market-search] input") };
+      sort?.click(); await wait(250);
+      const menu = q("#fh-sort");
+      out.sort.menu = { open: !!menu, rows: qa("#fh-sort [role=radio]").map(r => r.innerText.replace(/\s+/g, " ").trim()),
+        checked: q('#fh-sort [aria-checked="true"]')?.getAttribute("data-sort") ?? null, underField: !!menu && !!sort && box(menu).top >= box(sort).bottom - 1,   // under the sort control (inside the row's padding)
+        menuBox: box(menu), rowBox: box(row), sortBox: box(sort) };
+      q('#fh-sort [data-sort="dateDesc"]')?.click(); await wait(300);
+      out.sort.afterPick = { label: q('[data-board-icon="sort"]')?.getAttribute("aria-label"), menuOpen: !!q("#fh-sort") };
+      q('[data-board-icon="sort"]')?.click(); await wait(200);
+      q('#fh-sort [data-sort=""]')?.click(); await wait(300);
+    } else {
     const viewRow = q("[data-board-views]");
     out.views = { below: !!viewRow && box(viewRow).top >= box(q("[data-board-bar]")).bottom - 1,
       buttons: qa("[data-board-views] [data-view]").map(b => ({ id: b.getAttribute("data-view"), text: b.textContent.trim(), pressed: b.getAttribute("aria-pressed") })),
@@ -1469,6 +1392,7 @@ const STYLE_PROBES = {
     out.sort.afterPick = { label: q('[data-board-icon="sort"]')?.getAttribute("aria-label"), menuOpen: !!q("#fh-sort") };
     q('[data-board-icon="sort"]')?.click(); await wait(200);
     q('#fh-sort [data-sort=""]')?.click(); await wait(300);
+    }
 
     // ── the bubbles: D1's growth, driven by the rail
     const pair = q("[data-jb-pair]"), bubs = pair ? qa(".jb", pair) : [];
@@ -1495,11 +1419,12 @@ const STYLE_PROBES = {
     return out;
   },
   // ⛔ D153 (5) · every facts cell's words, measured: a word whose characters lie on two lines has two client rects.
+  // ⭐ 47j (D199 C7): the opening sheet's glance strip — each cell keyed by its label (PAY, POSTED → "pay").
   "posting-facts": () => {
-    const facts = document.querySelector(".posting--panel .posting__facts") || document.querySelector(".posting__facts");
-    if (!facts) return { facts: null };
+    const facts = document.querySelector("[data-opening-sheet] .pl-op__glance");
+    if (!facts) return { facts: null, url: location.pathname };
     const words = [];
-    const walker = document.createTreeWalker(facts.querySelector(".posting__strip") || facts, NodeFilter.SHOW_TEXT);
+    const walker = document.createTreeWalker(facts, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
       for (const m of n.data.matchAll(/\S+/g)) {
         const r = document.createRange(); r.setStart(n, m.index); r.setEnd(n, m.index + m[0].length);
@@ -1507,59 +1432,15 @@ const STYLE_PROBES = {
         words.push({ word: m[0], lines: lines.size });
       }
     }
-    const cells = [...facts.querySelectorAll(".posting__cell")].map(c => {
-      const b = c.getBoundingClientRect();
-      return { key: c.getAttribute("data-cell"), text: c.textContent.trim(), top: Math.round(b.top), width: Math.round(b.width),
+    const KEY = { "PAY, POSTED": "pay", TYPE: "type", LEVEL: "level", "STACK YOU HAVE": "stack" };
+    const cells = [...facts.querySelectorAll(".pl-stats__cell")].map(c => {
+      const b = c.getBoundingClientRect(), label = c.querySelector(".pl-label")?.textContent.trim() || "";
+      return { key: KEY[label] || label, text: c.textContent.trim(), top: Math.round(b.top), width: Math.round(b.width),
                overflows: c.scrollWidth > c.clientWidth + 1 };
     });
-    return { facts: { width: Math.round(facts.getBoundingClientRect().width), cells, words,
+    return { url: location.pathname, facts: { width: Math.round(facts.getBoundingClientRect().width), cells, words,
+      right: Math.round(facts.getBoundingClientRect().right), sheetRight: Math.round(document.querySelector("[data-opening-sheet]").getBoundingClientRect().right),
       broken: words.filter(w => w.lines > 1).map(w => w.word), rows: new Set(cells.map(c => c.top)).size } };
-  },
-  // ⭐ D149 · Full House + the opened posting (fullhouse-declutter.html), the first posting open (the screen's appPrep).
-  fullhouse: () => {
-    const cs = (el) => (el ? getComputedStyle(el) : null);
-    const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { left: Math.round(r.left), top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) }; };
-    const type = (el) => el && { family: cs(el).fontFamily, size: cs(el).fontSize, weight: cs(el).fontWeight, line: cs(el).lineHeight, color: cs(el).color, style: cs(el).fontStyle };
-    const surface = (el) => el && { bg: cs(el).backgroundColor, image: cs(el).backgroundImage, radius: cs(el).borderTopLeftRadius, border: cs(el).borderTopWidth, shadow: cs(el).boxShadow };
-    const q = (s) => document.querySelector(s);
-    const h1 = q(".fh-title__h"), sent = q(".fh[data-fh-d147] .bh"), word = q(".fh[data-fh-d147] .bh .tok") || q(".fh[data-fh-d147] .bh button");
-    const sort = q(".fh-sortw"), bar = q(".fh-bar"), input = q(".fh-bar input");
-    const counts = [...document.querySelectorAll(".fh-count")];
-    const rows = [...document.querySelectorAll(".jb[data-job-bubble]")];
-    const row = rows[0], panel = q('[data-panel-id="jd"]'), pp = q(".pp");
-    const facts = q(".posting__facts"), match = q(".posting__match .atsn b"), matchCell = q(".posting__match");
-    const btn = (name) => q(`.pp__btn[data-decision="${name}"]`);
-    return {
-      dock: (() => { const e = document.querySelector("[data-nav-dock]"); if (!e) return null; const r = e.getBoundingClientRect(); return { place: document.documentElement.getAttribute("data-dock-place"), left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), reserve: Math.round(document.querySelector("[data-area-nav]")?.getBoundingClientRect().bottom || 0) }; })(),   // D167: where the dock sits; ⭐ D197 #1: the room the page leaves above it — the area nav across the content column's top
-      canvas: cs(document.documentElement).getPropertyValue("--c-canvas").trim(), bodyBg: cs(document.body).backgroundColor,
-      fonts: { serif: document.fonts.check("36px \"Instrument Serif\""), ui: document.fonts.check("16px \"Inter Tight\""),
-               loaded: [...new Set([...document.fonts].filter(x => x.status === "loaded").map(x => x.family))] },
-      title: h1 && { ...type(h1), ...box(h1) },
-      sentence: sent && { ...type(sent), ...box(sent), maxWidth: cs(sent).maxWidth, word: word && { color: cs(word).color, underline: cs(word).boxShadow, border: cs(word).borderBottom } },
-      sort: sort && { ...surface(sort), ...type(sort), text: sort.textContent.trim(), glyph: !!sort.querySelector("svg") },
-      search: bar && { ...surface(bar), ...box(bar), placeholder: input?.placeholder, inputSize: cs(input).fontSize, glyph: !!bar.querySelector("svg") },
-      countsBox: box(q(".fh.fh-counts")), listTop: box(q(".jb-board__list"))?.top, rowsTop: box(q(".jb-rows"))?.top,
-      counts: counts.map(c => ({ n: c.querySelector("b").textContent, label: c.querySelector("span").textContent, size: cs(c.querySelector("b")).fontSize,
-        weight: cs(c.querySelector("b")).fontWeight, color: cs(c.querySelector("b")).color })),
-      row: row && { ...surface(row), ...box(row), padding: cs(row).padding, outline: `${cs(row).outlineWidth} ${cs(row).outlineStyle} ${cs(row).outlineColor}`,
-        gap: rows[1] ? Math.round(rows[1].getBoundingClientRect().top - row.getBoundingClientRect().bottom) : null,
-        title: type(row.querySelector(".jb__title")), sub: type(row.querySelector(".jb__sub")), meta: type(row.querySelector(".jb__meta i")),
-        match: type(row.querySelector(".jb__mt b")), matchText: row.querySelector(".jb__mt b")?.textContent },
-      panel: panel && { ...surface(panel), ...box(panel), padding: pp && cs(pp).padding,
-        title: type(q(".posting--panel .posting__title")), company: type(q(".pp__co .company-link")), close: q(".pp__x") && { ...surface(q(".pp__x")), ...type(q(".pp__x")), text: q(".pp__x").textContent },
-        facts: facts && { ...surface(facts), cells: [...facts.querySelectorAll(".posting__cell")].map(c => c.getAttribute("data-cell")),
-          value: type(q(".posting__facts .posting__cell dd")), label: type(q(".posting__facts .posting__cell dt")) },
-        match: match && { ...type(match), text: match.textContent, cellBg: cs(matchCell).backgroundColor, caption: q(".posting__match .atsn small")?.textContent },
-        eyebrow: q(".posting__eyebrow") && { ...type(q(".posting__eyebrow")), text: q(".posting__eyebrow").textContent },
-        body: type(q(".posting--panel .posting__body")), heading: type(q(".posting--panel .posting__h")),
-        actions: ["pass", "save", "draft"].map(n => btn(n) && { name: n, text: btn(n).textContent.trim(), label: btn(n).getAttribute("aria-label"),
-          mark: !!btn(n).querySelector('[role="img"]'), ...surface(btn(n)), ...type(btn(n)) }),
-        // D164: the Résumé control wears .pp__moreb too (the same quiet surface), so More is found by its own attribute.
-        more: q("[data-posting-more-toggle]") && { ...surface(q("[data-posting-more-toggle]")), ...type(q("[data-posting-more-toggle]")), text: q("[data-posting-more-toggle]").textContent.trim() },
-        resume: q("[data-posting-resume-toggle]") && { ...surface(q("[data-posting-resume-toggle]")), text: q("[data-posting-resume-toggle]").textContent.trim() },
-        pinnedFoot: q(".pp__foot") && cs(q(".pp__foot")).position,
-        boxes: Object.fromEntries([["co", ".pp__hd"], ["title", ".posting--panel .posting__title"], ["facts", ".posting__facts"], ["eyebrow", ".posting__eyebrow"], ["body", ".posting--panel .posting__body"], ["actions", ".pp__main-acts"], ["close", ".pp__x"], ["logo", ".pp__logo"]].map(([k, s]) => [k, box(q(s))])) },
-    };
   },
 };
 STYLE_PROBES.a238 = async () => {   // ⭐ A238: decide three cards, each through the VISIBLE front's own button, and count
@@ -1592,7 +1473,6 @@ STYLE_PROBES.a238 = async () => {   // ⭐ A238: decide three cards, each throug
   out.after = cards().length;
   return out;
 };
-STYLE_PROBES.plate156 = STYLE_PROBES.home156;   // 47g R1: the same measuring, on the plate market
 // ⭐ D149 rule 3 / A232 R2 (46t): one screen's computed styles, measured in an open browser against a running vite.
 async function measureStyles(browser, vite, id, pickRoutes = null, onlySizes = null) {
   const s = SCREENS[id];

@@ -92,7 +92,8 @@ test("FIX-4 · d196TicketActionsAreTheDecks — the ticket's four call DeckView'
   const fan = deck.slice(at(deck, "function FanCard("), at(deck, "function leaveFor("));
   assert.ok(fan.includes("onDecide={onDecide} onSend={onSend} />"), "FanCard hands the face the deck's decide and send");
   assert.ok(deck.includes("plate={plateDeck} onSend={sendTop}"), "the deck passes its own sendTop");
-  assert.ok(deck.includes("{!plateDeck && <div data-deck-actions"), "the classic action row is not drawn under the plate ticket");
+  // 47j R2 (changed on purpose): the classic action row is deleted outright (no switch left to draw it)
+  assert.ok(!deck.includes("<div data-deck-actions"), "the classic action row is back under the plate ticket");
   assert.ok(fan.includes("<CardBack company={card.job.company}"), "the deck's own back stays (the owner's keep)");
   assert.ok(fan.includes("rotateY(${faceUp ? 0 : 180}deg)"), "the flip stays");
 });
@@ -153,7 +154,8 @@ test("FIX-1 · d196PlatePageOneGround — one opaque root, the theme's palette, 
 test("FIX-7 / FIX-8 · the Index is JobsColumn's own list and actions (one implementation, the board's order)", () => {
   const jp = read("client/src/panels/JobsPanel.jsx");
   const col = jp.slice(at(jp, "function JobsColumn("), at(jp, "const BESIDE_MIN_VIEWPORT"));
-  const ix = col.slice(at(col, "{plateIndex ? ("), at(col, "<JobBubbleRows jobs={jobs} columns={2}>"));
+  // 47j R2 (changed on purpose): the Index is the board's only rows (the classic bubble arm is deleted)
+  const ix = col.slice(at(col, "<MarketIndexTable\n              rows="), at(col, "{sending && <SendJobPicker"));
   assert.ok(ix.includes("rows={jobs.map((job, i) => indexRow("), "the same `jobs`, mapped in the order given");
   assert.ok(!/\.sort\(/.test(ix), "nothing re-sorts the board's rows on the client (the server's D184 B-8 order)");
   assert.ok(ix.includes("onSave={() => decideJob?.(r.job, DECISIONS.SAVED)}") && ix.includes("onDraft={() => decideJob?.(r.job, DECISIONS.DRAFTED)}"),
@@ -161,7 +163,8 @@ test("FIX-7 / FIX-8 · the Index is JobsColumn's own list and actions (one imple
   assert.ok(ix.includes("draftBlocked={draftControls?.block} draftSlots={draftControls?.slots}"), "A181's limit, as the bubble has it");
   // D199 C7 (47h, moved on purpose): on the plate market a row opens its OPENING SHEET (/app/jobs/<id>, over the market)
   assert.ok(ix.includes("onOpen={(job) => navigateSheet(job)}"), "a row opens the opening sheet");
-  assert.ok(col.includes("plateIndex ? <MarketIndexTable state=\"loading\"/>"), "loading = the Gazetteer's skeleton rows");
+  assert.ok(col.includes("<MarketIndexTable state=\"loading\"/>"), "loading = the Gazetteer's skeleton rows");
+  assert.ok(!/<JobBubbleRows\b/.test(col), "the classic bubble rows are back");
   const mi = read("client/src/plate/MarketIndex.jsx");
   assert.ok(mi.includes("draftButtonState({ drafted, drafting, block: draftBlocked"), "the Draft state is lib/jobDecisions.js's");
   assert.ok(!/api\(|fetch\(|commitDecision/.test(mi), "the Index decides nothing itself");

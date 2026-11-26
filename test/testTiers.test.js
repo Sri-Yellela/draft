@@ -19,7 +19,7 @@ test("R1: every test file has exactly one tier, and the two tiers are the whole 
 
 test("R1: the files that drive a browser — directly, through the extension harness, or through a script — are in the browser tier", () => {
   for (const f of ["test/j9FullPass.test.js", "test/j4PanelBrowser.test.js", "test/d100PortalAccounts.test.js", "test/t18GreenhouseChrome.test.js",
-    "test/fidelity.test.js", "test/d163OtherScreens.test.js", "test/a201ShrinkGracefully.test.js",
+    /* 47j R2: fidelity.test.js retired with the classic market */ "test/d163OtherScreens.test.js", "test/a201ShrinkGracefully.test.js",
     "test/a131NoSidewaysOverflow1280.test.js",   // runs scripts/a131OverflowProbe.mjs, which drives Chrome
     "test/a210QuestionsThreadNewRun.test.js",    // runs scripts/a199Walk.mjs
     "test/realExtensionWalks.test.js"]   /* ⭐ A232 R4: the one panel's walk (was d191PanelWalk) and five more */) assert.equal(tierOf(f), "browser", f);
@@ -84,7 +84,9 @@ test("R1: the runner and the npm scripts read the one rule", () => {
 
 test("R2: no test runs fidelityShots --styles itself; every probe it asks for is listed; shots go to tmp/", () => {
   const callers = testFiles().filter(f => read(f).includes("fidelityProbe("));
-  assert.ok(callers.length >= 13, `${callers.length} callers`);
+  // 47j R2: 13 → 9 — the classic market's five probe callers (d152Home's and d156Home's real-Chrome halves, d163UseTheSpace,
+  // fidelity, fidelityFullHouse) retired with it; the floor still catches a test quietly going back to its own script run
+  assert.ok(callers.length >= 9, `${callers.length} callers`);
   const keys = new Set(PROBES.map(keyOf));
   for (const f of testFiles()) {
     const s = read(f);

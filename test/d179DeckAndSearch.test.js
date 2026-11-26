@@ -13,8 +13,10 @@ const read = (f) => fs.readFileSync(f, "utf8");
 
 test("d179DeckDesignUnchanged · the deck keeps its fan and actions, gains Send + Works with + the company link, no taxonomy chip", () => {
   const deck = read("client/src/panels/DeckView.jsx");
-  const acts = [...deck.matchAll(/<ActionButton label="(\w+)"/g)].map((m) => m[1]);
-  assert.deepEqual(acts.slice(0, 4), ["Pass", "Save", "Send", "Draft"], "Pass / Save / Draft as before, Send the fourth (D180)");
+  // 47j R2 (changed on purpose): the classic action row under the card is deleted — the ticket's own row (TicketActions)
+  const face = read("client/src/plate/MarketCardFace.jsx");
+  const acts = [...new Set([...face.matchAll(/data-deck-action="(\w+)"/g)].map((m) => m[1]))];
+  assert.deepEqual(acts.slice(0, 4), ["pass", "save", "send", "draft"], "Pass / Save / Draft as before, Send the fourth (D180)");
   assert.match(deck, /export function CardFace\(/);
   assert.match(deck, /data-works-with=""/, "Works with — the team's stack");
   assert.match(deck, /import \{ companyPath \} from "\.\.\/lib\/companySlug\.js";/, "the company name opens its page");

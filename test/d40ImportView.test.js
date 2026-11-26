@@ -18,11 +18,11 @@ const server = read("server.js");
 const panel = read("client/src/panels/JobsPanel.jsx");
 
 test("D40 · the bar has exactly FOUR views, + last — and no standalone import control remains", () => {
-  const tabs = app.slice(at(app, "const BOARD_TABS = ["), at(app, "];", at(app, "const BOARD_TABS = [")));
+  // 47j R2 (changed on purpose): the views are the shell's area nav (MARKET_AREA_VIEWS) — Today's picks + the same three
+  const tabs = app.slice(at(app, "const MARKET_AREA_VIEWS = ["), at(app, "];", at(app, "const MARKET_AREA_VIEWS = [")));
   // ⭐ D156 (4) (changed on purpose): All jobs · Starred · Imported — the Pending (Drafted) view is not needed now.
-  assert.deepEqual([...tabs.matchAll(/^\s*\["(\w+)",/gm)].map(m => m[1]), ["all", "saved", "imported"]);   // ⛔ A157 (45q, owner 11-09): the Companies tab is removed
-  // D147 (11-03): the view is the word "Imported" now (inside the Sort / view panel).
-  assert.match(tabs, /\["imported", "Imported", "Imported jobs"\]/);
+  assert.deepEqual([...tabs.matchAll(/id: "(\w+)"/g)].map(m => m[1]), ["picks", "all", "saved", "imported"]);   // ⛔ A157 (45q, owner 11-09): the Companies tab is removed
+  assert.match(tabs, /\{ id: "imported", label: "Imported", href: "\/app\/jobs\?view=imported"/);
   assert.doesNotMatch(app, /<AddSquare\b/);
   assert.doesNotMatch(read("client/src/components/BoardBar.jsx"), /export function AddSquare/);
   assert.deepEqual(viewCounts({ total: 1, clauses: {}, views: { all: 5, saved: 1, pending: 0, imported: 2 } }),

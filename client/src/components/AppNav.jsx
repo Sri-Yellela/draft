@@ -145,7 +145,9 @@ export function ShellAreaNav({ area, views = [], current, onGo, pill, more = [],
     : { placeholder, inputRef, renderInput: ({ className, placeholder: ph }) => <ShellSearchInput className={className} placeholder={ph} inputRef={inputRef} /> };
   return (
     <PlateRoot className="appnav-areanav" data-area-nav={area} data-phone={phone ? "true" : "false"}>
-      <AreaNav area={area} views={views} current={current} onGo={(id, href) => (id === "home" ? onHome?.() : go(id, href))} pill={pill} more={more}
+      {/* ⭐ 47j (A245, D200 Rule 1): the phone's top bar draws no More, so a More item marked `phone` joins the view
+          scroller there (the market's Import a job was unreachable at 390) */}
+      <AreaNav area={area} views={phone ? [...views, ...more.filter((m) => m.phone)] : views} current={current} onGo={(id, href) => (id === "home" ? onHome?.() : go(id, href))} pill={pill} more={more}
         chip={phone ? null : chip} search={search} phone={phone} home={home} />
     </PlateRoot>
   );

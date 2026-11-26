@@ -35,10 +35,13 @@ test("⛔ TWO panels, not three: no third column, and the posting stays INSIDE t
 
 test("⭐ the fan and the action row live in the card's column", () => {
   assert.match(col, /data-deck-stage/, "the fan lives in the card's column");
-  assert.match(col, /data-deck-actions/, "and so does the action row");
+  // 47j R2 (changed on purpose): the action row is the ticket's own (plate/Tickets.jsx), inside the card in this column
+  assert.match(col, /<FanCard key=\{e\.card\.job\.id\}/, "the card is drawn in the column");
+  assert.match(fs.readFileSync("client/src/plate/Tickets.jsx", "utf8"), /data-deck-actions=""/, "and so is the action row, in the card");
   // No per-card shift: nothing positions the card for the expansion.
   // ⭐ D152 (2), changed on purpose: Home's card turns about its lower-left corner (homeFanTransform); the arc is the rest.
-  assert.match(deckSrc, /const t = plate \? plateFanTransform\(offset\) : home \? homeFanTransform\(offset, geometry\) : fanTransform\(offset, orientation, geometry\);/);
+  // 47j R2 (changed on purpose): the classic Home fan is deleted — the plate's poses, else the arc
+  assert.match(deckSrc, /const t = plate \? plateFanTransform\(offset\) : fanTransform\(offset, orientation, geometry\);/);
 });
 
 test("⛔ ONE CLOCK, NO STAGGER: every movement reads --deck-t / --deck-ease, set once; reduced motion zeroes it", () => {

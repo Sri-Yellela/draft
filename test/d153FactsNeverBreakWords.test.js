@@ -2,8 +2,8 @@
 // "Says no spon / sors / hip"). D149's one-row grid (`grid-auto-flow: column`) squeezed every cell into the panel's width,
 // and `overflow-wrap: anywhere` broke the words. And D152 (7): a fact not on file is left out, never a "not stated" cell.
 // The source pins below, and (44s) the real-Chrome measurement at 1280 and 390: `fidelityShots.mjs --styles posting-facts`
-// opens a posting with six facts on file (sponsorship "Says no sponsorship" and a history line included) and reads every
-// word's client rects — a word broken across lines has rects on two lines.
+// opens a posting and reads every word's client rects — a word broken across lines has rects on two lines. Since 47j it
+// measures the OPENING SHEET's glance strip (D199 C7), where a posting opens now.
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -30,19 +30,23 @@ test("d153NoNotStatedInPanel: the opened posting's facts box leaves out a fact w
   assert.match(fn.slice(0, 2000), /const all = \[\.\.\.cells, \.\.\.extra\]\.filter\(c => c\.value != null\);/);
 });
 
-test("d153FactsNeverBreakWords (real Chrome, 1280 and 390): six facts wrap onto rows and no word is split", { timeout: 200000 }, (t) => {
+// ⭐ 47j (D199 C7 — re-pointed on purpose): a posting no longer opens on the deck (PostingPanel's six-cell facts box); the
+// Index row, the deck's title and its Open all go to the OPENING SHEET (/app/jobs/<id>). The sheet's facts are its glance
+// strip — pay · type · level (· stack you have when the company's stack is known) — held to the same rule: no word broken,
+// cells wrap onto rows rather than squeeze, nothing overflows its cell, no "not stated".
+test("d153FactsNeverBreakWords (real Chrome, 1280 and 390): the opening sheet's glance strip wraps onto rows and no word is split", { timeout: 200000 }, (t) => {
   const out = fidelityProbe("posting-facts");
   if (out.skipped) { t.skip(out.skipped); return; }
   for (const [size, d] of Object.entries(out)) {
-    assert.ok(d.facts, `${size}: the opened posting has a facts box`);
-    assert.deepEqual(d.facts.cells.map(c => c.key), ["experience", "workstyle", "salary", "posted", "history", "sponsorship"], `${size}: the six facts`);
+    assert.match(d.url || "", /^\/app\/jobs\/[^/]+$/, `${size}: the Index row opened the posting's own sheet (${d.url})`);
+    assert.ok(d.facts, `${size}: the opened sheet has its glance strip`);
+    const keys = d.facts.cells.map(c => c.key);
+    assert.deepEqual(keys.slice(0, 3), ["pay", "type", "level"], `${size}: pay, type and level first (${keys.join(", ")})`);
     assert.deepEqual(d.facts.broken, [], `${size}: a word broke across lines`);
-    // ⭐ 47g R1 (the plate market's wider posting column): "not one squeezed row" measured as what it means — a row of
-    // cells never narrower than 120 px; below that they wrap onto rows (the phone: 3 rows of 175 px)
-    assert.ok(d.facts.rows >= 2 || d.facts.cells.every(c => c.width >= 120), `${size}: the cells wrap onto rows (${d.facts.rows}) rather than squeeze (${d.facts.cells.map(c => c.width).join(", ")} px)`);
-    if (size === "phone") assert.ok(d.facts.rows >= 2, `phone: the cells wrap onto rows (${d.facts.rows})`);
+    // the glance cells size to their own words (no fixed columns to squeeze, as PostingPanel's six-cell grid had): held by
+    // "no word split" and "no cell overflows" above and below, and the strip staying inside the sheet at every width
+    assert.ok(d.facts.right <= d.facts.sheetRight + 1, `${size}: the strip stays inside the sheet (${d.facts.right} > ${d.facts.sheetRight})`);
     for (const c of d.facts.cells) assert.equal(c.overflows, false, `${size}: ${c.key} overflows its cell`);
-    assert.ok(d.facts.words.some(w => w.word === "sponsorship"), `${size}: the long value is measured`);
-    assert.doesNotMatch(d.facts.cells.map(c => c.text).join(" "), /not stated|unknown/i, `${size}: no "not stated" cell`);
+    assert.doesNotMatch(d.facts.cells.map(c => c.text).join(" "), /not stated|unknown|undefined|null/i, `${size}: no "not stated" cell`);
   }
 });

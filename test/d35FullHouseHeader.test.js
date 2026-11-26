@@ -76,14 +76,17 @@ async function loadUi() {
         import { createElement } from "react";
         import { renderToStaticMarkup } from "react-dom/server.browser";
         import { MemoryRouter } from "react-router-dom";
-        import BoardHeadline, { SENTENCE_ID, PANEL_ID } from ${abs("components/BoardHeadline.jsx")};
+        // 47j R2 (changed on purpose): the classic sentence header (BoardHeadline's component) is deleted; the sentence is the
+        // plate cartouche's (PlateBearing — the same sentenceParts, ids, data-slot, aria-pressed / aria-expanded, onToggle)
+        import BoardHeadline from ${abs("plate/PlateBearing.jsx")};
+        import { SENTENCE_ID, PANEL_ID } from ${abs("components/BoardHeadline.jsx")};
         import WordPanel, { PanelOptions, AddOptions, panelFocusTarget, panelKeyDown, openerSlot } from ${abs("components/WordPanel.jsx")};
         import SortPanel from ${abs("components/SortPanel.jsx")};
-        import { ViewSegment, SortIcon } from ${abs("components/BoardBar.jsx")};
+        import { MarketSortButton as SortIcon } from ${abs("plate/MarketControls.jsx")};   // 47j R2: the cartouche's sort
         export const html = (C, props) => renderToStaticMarkup(createElement(C, props));
         export const htmlRouted = (C, props) => renderToStaticMarkup(createElement(MemoryRouter, null, createElement(C, props)));
         export { BoardHeadline, SENTENCE_ID, PANEL_ID, WordPanel, PanelOptions, AddOptions, panelFocusTarget,
-                 panelKeyDown, openerSlot, SortPanel, ViewSegment, SortIcon };`,
+                 panelKeyDown, openerSlot, SortPanel, SortIcon };`,
       resolveDir: CLIENT, loader: "jsx",
     },
     bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
@@ -153,7 +156,9 @@ test("D35 ① clicking a word OPENS its panel beneath the sentence; clicking the
   assert.match(panel, /data-add-section[\s\S]*data-add="posted"[\s\S]*data-add="drawer"/, "the panel does not list what can be added");
   // App.jsx presses through exactly this rule, on the one context value.
   const app = strip(read("client/src/App.jsx"));
-  assert.match(app, /onToggle=\{\(key\) => setBoardPanel\(current => nextBoardPanel\(current, key\)\)\}/);
+  // 47j R2 (changed on purpose): the cartouche presses through the same rule, named once (`toggle`)
+  assert.match(app, /const toggle = \(key\) => setBoardPanel\(current => nextBoardPanel\(current, key\)\);/);
+  assert.match(app, /<PlateBearing [^>]*onToggle=\{toggle\}/);
 });
 
 // ═══ 2 · opening a second word closes the first ═══════════════════════════════════════════════════
@@ -336,7 +341,8 @@ test("D35 ⑦ every word is reachable by KEYBOARD, and the panel is reachable fr
   const { html, BoardHeadline, WordPanel, panelFocusTarget, panelKeyDown, openerSlot, PANEL_ID, SENTENCE_ID } = await loadUi();
   const lvl = clause("level");
   const out = html(BoardHeadline, { params: {}, open: "level" });
-  const words = out.match(/<button[^>]*>/g) || [];
+  // 47j R2: the sentence is the cartouche's h1 (its "All filters" button sits outside the sentence)
+  const words = out.slice(at(out, "<h1"), at(out, "</h1>")).match(/<button[^>]*>/g) || [];
   assert.equal(words.length, 4, "four permanent words, each a button (D42: + add left the sentence)");
   for (const w of words) {
     assert.match(w, /type="button"/);
@@ -350,10 +356,12 @@ test("D35 ⑦ every word is reachable by KEYBOARD, and the panel is reachable fr
   // Reading order = DOM order: App renders the panel DIRECTLY after the sentence, then the bar.
   const app = strip(read("client/src/App.jsx"));
   const slotFn = app.slice(at(app, "function BoardHeadlineSlot()"), at(app, "function RouteCommitSignal"));
-  assert.ok(at(slotFn, "<BoardHeadline ") < at(slotFn, "<WordPanel "), "the panel must follow the sentence");
-  // D49: the bar moved to the top of <main> (inside StickyBar) so it can stick; reading order holds.
-  const chrome = app.slice(at(app, '<header className="fh"'), at(app, "</main>"));
-  assert.ok(at(chrome, "<BoardHeadlineSlot />") < at(chrome, "<BoardBar />"));
+  assert.ok(at(slotFn, "<PlateBearing ") < at(slotFn, "<WordPanel "), "the panel must follow the sentence");
+  // 47j R2 (changed on purpose): the classic bar (D49's StickyBar) is deleted — the cartouche holds the sentence, then the
+  // search + sort row, then the open panel, and the openings follow the cartouche.
+  assert.ok(at(slotFn, "<MarketSearchRow ") < at(slotFn, "<WordPanel "), "the search row reads before the panel");
+  const section = app.slice(at(app, "function MarketSectionSlot("), at(app, "function MarketPagerSlot("));
+  assert.ok(at(section, "<BoardHeadlineSlot />") < at(section, "<MarketOpenings "));
   // On opening, focus moves INTO the panel: the find box, else the chosen option, else the first one a
   // press can change — never a dimmed one.
   const q = (map) => ({ querySelector: (sel) => map[sel] ?? null });
@@ -402,61 +410,46 @@ test("D35 §1: the filter ICON and its panel are DELETED — no file, no handler
   assert.match(panel, /onPatch: onClausePatch, onMoreFilters/);
 });
 
-test("D35 §4: the VERTICAL ORDER is the sentence, the open panel, the bar, the jobs", () => {
+// 47j R2 (changed on purpose): the classic bar (BoardBar · its sort icon · the views segment · the counts strip) is DELETED
+// with the classic market. The order now: the cartouche (sentence → search + sort → filter chips → the open panel → the
+// stats box), then the openings; under the Index, the import box (when opened) and the jobs.
+test("D35 §4: the VERTICAL ORDER is the sentence, the open panel, the openings, the jobs", () => {
   const app = strip(read("client/src/App.jsx"));
-  // D49: the sentence in the header; the bar and the sort panel at the top of <main>, in StickyBar,
-  // BEFORE the board — the same reading order, now able to stick.
-  // ⭐ D147 (owner 11-03): the title row (Full House + the Sort / view word, its panel beneath it) leads; then the
-  // sentence and its panel, the search bar, the counts, the jobs.
-  const chrome = app.slice(at(app, '<header className="fh"'), at(app, "</main>"));
-  const pos = (q) => at(chrome, q);
-  // ⭐ D156 (5) / (4), changed on purpose: no title row; the sentence, the bar (the search with the sort icon, its menu
-  // under it), the views row with Import a job, the counts, the jobs.
-  assert.ok(pos("<BoardHeadlineSlot />") < pos("<BoardBar />"));
-  assert.ok(pos("<BoardBar />") < pos("<BoardViews ") && pos("<BoardViews ") < pos("<BoardCounts />") && pos("<BoardCounts />") < pos("<JobsConsole "), "the jobs come after the bar");
-  assert.match(app.slice(at(app, "function BoardBar()"), at(app, "function BoardViews(")), /<BoardControlIcons \/>[\s\S]*<BoardSortSlot \/>/);
-  // ⭐ A125: the full-width header wrapper above <main> is gone — Home draws its header inside <main>, before the jobs.
-  assert.ok(at(app, "</header>") < at(app, "<JobsConsole "), "the jobs come after the header");
+  const slotFn = app.slice(at(app, "function BoardHeadlineSlot()"), at(app, "function RouteCommitSignal"));
+  assert.ok(at(slotFn, "<PlateBearing ") < at(slotFn, "<MarketSearchRow ") && at(slotFn, "<MarketSearchRow ") < at(slotFn, "<WordPanel ")
+    && at(slotFn, "<WordPanel ") < at(slotFn, "<MarketStatsBox "), "sentence → search → panel → stats");
+  const section = app.slice(at(app, "function MarketSectionSlot("), at(app, "function MarketPagerSlot("));
+  assert.ok(at(section, "<BoardHeadlineSlot />") < at(section, "<MarketOpenings "), "the openings come after the cartouche");
+  assert.ok(at(app, "<BoardViews ") < at(app, "<JobsConsole "), "the jobs come after the import box");
+  for (const gone of ["function BoardBar()", "function BoardCounts()", "function BoardControlIcons()", "<StickyBar", "<BoardCounts />"])
+    assert.ok(!app.includes(gone), `${gone} is back`);
   const panel = strip(read("client/src/panels/JobsPanel.jsx"));
   assert.doesNotMatch(panel, /<SortPanel\b|<WordPanel\b|<FilterDials\b/, "a panel renders between the bar and the board");
 });
 
-test("D35 §3 → D40: the CONDENSED BAR — FOUR views with counts, the search, ⇅ in a 40px square", async () => {
-  const { html, ViewSegment, SortIcon } = await loadUi();
-  const views = [["all", "ALL", "All jobs"], ["saved", "★", "Saved jobs"], ["pending", "/d", "Pending apply"], ["imported", "+", "Imported jobs"]];
-  const counted = html(ViewSegment, { views, value: "all", counts: viewCounts(FACETS) });
-  assert.match(counted, /data-view="all" aria-pressed="true"[^>]*><span aria-hidden="true">ALL<\/span><span class="fh-ct" aria-hidden="true">400</);
-  assert.match(counted, /data-view="saved"[^>]*>.*?<span class="fh-ct" aria-hidden="true">14</);
-  assert.match(counted, /data-view="pending"[^>]*>.*?<span class="fh-ct" aria-hidden="true">9</);
-  // No answer, no number — never a 0 in its place.
-  const blank = html(ViewSegment, { views, value: "all", counts: viewCounts(null) });
-  assert.doesNotMatch(blank, /fh-ct/);
-  // The sketch's glyph, exactly; open = filled (aria-expanded), a chosen order holds its edge.
-  // ⭐ D147 (owner 11-03): the ⇅ square became the Sort / view WORD in the title row — the same glyph beside the words.
-  // D149 (11-03) changed this on purpose: fullhouse-declutter.html draws the control as the words "Sort: for you" alone,
-  // so the ⇅ glyph (and its SORT_GLYPH_PATH) left the control.
-  // ⭐ D156 (5) changed it again on purpose (owner 11-05: "bring back the sort as an icon in the search bar"): the ⇅ glyph
-  // is back, as an icon inside the search field, its words in its label.
+test("D35 §3 → D40 → D199: the views (area nav, counts on the words), the search, the sort beside it", async () => {
+  const { html, SortIcon } = await loadUi();
+  const app = strip(read("client/src/App.jsx"));
+  // the views are the shell's area nav — Today's picks · All jobs · Starred · Imported — each count from facets' views
+  const views = app.slice(at(app, "const MARKET_AREA_VIEWS = ["), at(app, "];", at(app, "const MARKET_AREA_VIEWS = [")));
+  for (const id of ["picks", "all", "saved", "imported"]) assert.match(views, new RegExp(`id: "${id}"`));
+  assert.match(app, /const counts = viewCounts\(boardHeadline\?\.facets\);/);
+  assert.match(app, /Number\.isFinite\(counts\[v\.id\]\) && v\.id !== "picks"/, "no answer, no number — never a 0 in its place");
+  assert.ok(Object.values(viewCounts(null)).every(v => v == null), "no facets answer: no counts");
+  // the sort: the cartouche's control (MarketSortButton) — the ⇅ chevron, open / chosen in its attributes
   assert.match(html(SortIcon, {}), /<svg/);
   assert.match(html(SortIcon, { open: true }), /data-board-icon="sort" data-active="false" aria-haspopup="true" aria-expanded="true"/);
   assert.match(html(SortIcon, { chosen: true }), /data-active="true"/);
-  // ⛔ D40 (owner, 10-06): + is the FOURTH VIEW; the standalone + square is gone, everywhere.
-  assert.match(counted, /data-view="imported"[^>]*><span aria-hidden="true">\+<\/span>/);
-  assert.doesNotMatch(read("client/src/components/BoardBar.jsx"), /export function AddSquare/);
-  assert.doesNotMatch(strip(read("client/src/App.jsx")), /<AddSquare\b/);
+  assert.match(app, /<MarketSearchRow search=\{<BoardSearchBar [\s\S]{0,160}?\/>\}\s*sort=\{<MarketSortSlot \/>\} \/>/);
+  // ⛔ D40 (owner, 10-06): the standalone + square is gone, everywhere; Import a job is the area nav's More item
+  assert.doesNotMatch(read("client/src/components/BoardBar.jsx"), /export function AddSquare|export function SortIcon|export function ViewSegment/);
+  assert.doesNotMatch(app, /<AddSquare\b/);
+  assert.match(app, /more=\{\[\{ id: "import", label: "Import a job"/);
   const rules = cssRules(read(CSS_FILE));
   assert.ok(!rules.some(r => r.selector === ".fh-add"), "the + square's rule is back");
+  assert.ok(!rules.some(r => r.selector.includes(".fh-sorti")), "the classic sort icon's rules are back");
   void typeVarName;
-  assert.ok(rules.some(r => r.selector === '.fh-sorti[data-active="true"], .fh-sorti[aria-expanded="true"]' && r.decls.color === "var(--c-accent-ink)"), "sort open / chosen is not the accent");
-  // D147: the bar is the search alone (the views and the sort word moved), and the search has no separate button.
-  const app = strip(read("client/src/App.jsx"));
-  const bar = app.slice(at(app, "function BoardBar()"), at(app, "function BoardViews("));
-  assert.match(bar, /<div className="fh-bar" data-board-bar="">\s*<BoardSearchBar><BoardControlIcons \/><\/BoardSearchBar>\s*<BoardSortSlot \/>\s*<\/div>/);
   assert.doesNotMatch(read("client/src/components/BoardBar.jsx"), /aria-label="Search"/, "a separate Search button is back");
-  // ⚠ Phone: the bar becomes two rows, by decision — the search on its own line.
-  const phone = read(CSS_FILE).slice(at(read(CSS_FILE), "@media (max-width: 600px)"));
-  assert.match(phone, /\.fh-bar \{ flex-wrap: wrap;/);
-  assert.match(phone, /\.fh-srch \{ order: 4; flex: 1 1 100%; \}/);
 });
 
 test("D35 §5: the PANEL COPY — its figures LIVE from facets, never the row's literal numbers", async () => {
@@ -585,9 +578,10 @@ async function loadUi() {
         import { createElement } from "react";
         import { renderToStaticMarkup } from "react-dom/server.browser";
         import WordPanel, { PanelOptions } from ${abs("components/WordPanel.jsx")};
-        import BoardHeadline from ${abs("components/BoardHeadline.jsx")};
+        // 47j R2 (changed on purpose): the sentence is the cartouche's (PlateBearing), the sort the cartouche's MarketSortButton
+        import BoardHeadline from ${abs("plate/PlateBearing.jsx")};
         import SortPanel from ${abs("components/SortPanel.jsx")};
-        import { SortIcon } from ${abs("components/BoardBar.jsx")};
+        import { MarketSortButton as SortIcon } from ${abs("plate/MarketControls.jsx")};
         export const html = (C, props) => renderToStaticMarkup(createElement(C, props));
         export { WordPanel, PanelOptions, BoardHeadline, SortPanel, SortIcon };`,
       resolveDir: CLIENT, loader: "jsx",
@@ -748,10 +742,12 @@ test("D30 → D35: THE SENTENCE IS A PROJECTION — four permanent words, posted
   // Rendered as the headline: each slot a word-button. ⛔ D42: no "+ add" — it moved into the panel.
   const { html, BoardHeadline } = await loadUi();
   const out = html(BoardHeadline, { params: full });
-  const text = out.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+  // 47j R2: the cartouche's sentence is its h1 (the strip and "All filters" around it are not the sentence)
+  const text = out.slice(at(out, "<h1"), at(out, "</h1>")).replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
   assert.equal(text, "discovering design roles at senior career level and remote workstyle in Boston, posted this week, strong fits only.");
-  assert.equal((out.match(/class="tok"/g) || []).length, 6);
-  assert.equal((out.match(/class="tok tok--add"/g) || []).length, 0);
+  // 47j R2 (changed on purpose): the cartouche's words carry its own class (the classic `.tok` is deleted)
+  assert.equal((out.match(/class="pl-cartouche__part"/g) || []).length, 6);
+  assert.equal((out.match(/tok--add/g) || []).length, 0);
   assert.match(html(BoardHeadline, { params: four, nothingMatches: true }), /data-nothing-matches="true"/);
   assert.equal(sentenceParts({}).slots.length, 4, "posted and fit are absent at rest");
   assert.deepEqual(clearClause(clause("location")), { [PLACES.param]: [] }, "clearing location is the floor");
@@ -816,7 +812,8 @@ test("D24: the DEFAULT board request carries NO sort param — the curated order
   assert.match(html(SortIcon, { chosen: true }), /data-board-icon="sort" data-active="true"/);
   assert.match(html(SortIcon, { chosen: false }), /data-board-icon="sort" data-active="false"/);
   // ⭐ D156 (5), changed on purpose: the views left the sort control (their own row), so only a chosen ORDER holds the accent.
-  assert.match(strip(read("client/src/App.jsx")), /chosen=\{isSortChosen\(sortBy\)\}/);
+  // 47j R2 (changed on purpose): the cartouche's sort reads the same rule (MarketSortSlot)
+  assert.match(strip(read("client/src/App.jsx")), /const chosen = isSortChosen\(sortBy\);[\s\S]{0,240}chosen=\{chosen\}/);
 });
 
 // ── 7. No literal option values ─────────────────────────────────────────────────────────────────

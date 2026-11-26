@@ -43,7 +43,7 @@ async function loadUi() {
         import { renderToStaticMarkup } from "react-dom/server.browser";
         import PostingPanel from ${abs("components/PostingPanel.jsx")};
         import SortPanel from ${abs("components/SortPanel.jsx")};
-        import { SortIcon } from ${abs("components/BoardBar.jsx")};
+        import { MarketSortButton as SortIcon } from ${abs("plate/MarketControls.jsx")};   // 47j R2: the cartouche's sort
         import { boardCounts } from ${abs("lib/filterSentenceModel.js")};
         export const html = (C, props, ...kids) => renderToStaticMarkup(createElement(C, props, ...kids));
         export const h = createElement;
@@ -78,8 +78,9 @@ const JOB = {
 test("d147FilterSentenceKept · the sentence that filters stays — its words still open their filters — restyled in the serif", () => {
   // ⭐ D156 (5), changed on purpose: no title row before the sentence (the sort is an icon in the search field).
   assert.match(app, /<header className="fh" data-fh-d147=""[^>]*>\s*<BoardHeadlineSlot \/>/);   // A125: Home's header is the only one
-  assert.match(app, /<BoardHeadline params=\{params\}[^>]*\n\s+open=\{boardPanel\} onToggle=\{\(key\) => setBoardPanel\(current => nextBoardPanel\(current, key\)\)\} \/>/,
-    "a word's press still opens its filter");
+  // 47j R2 (changed on purpose): the sentence is the cartouche's (PlateBearing); a word's press goes through the same rule
+  assert.match(app, /const toggle = \(key\) => setBoardPanel\(current => nextBoardPanel\(current, key\)\);/);
+  assert.match(app, /<PlateBearing params=\{params\}[^>]*\n\s+open=\{boardPanel\} onToggle=\{toggle\}/, "a word's press still opens its filter");
   // The serif at about 30px, through the sentence's TOKENS (D34: no token rule names a font).
   // ⭐ D156 (1d) (changed on purpose): the sentence's ORIGINAL type (FULL_HOUSE_TYPE, the logo face) — D147's serif override
   // is withdrawn; only the size stays here, the original's times the text size (A116).
@@ -92,37 +93,40 @@ test("d147FilterSentenceKept · the sentence that filters stays — its words st
   assert.doesNotMatch(marked, /--tok-on-fill/, "a set word is the orange box");
   // The search sits under it — the sticky bar holds the search alone.
   // ⭐ D156 (5), changed on purpose: the search holds the sort icon; the views are their own row under it.
-  const bar = app.slice(at(app, "function BoardBar() {"), at(app, "function BoardViews("));
-  assert.match(bar, /<BoardSearchBar><BoardControlIcons \/><\/BoardSearchBar>/);
-  assert.doesNotMatch(bar, /<BoardTabs/);
+  // 47j R2 (changed on purpose): the classic bar is deleted — the search and the sort sit in the cartouche's row
+  assert.match(app, /<MarketSearchRow search=\{<BoardSearchBar [\s\S]{0,160}?\/>\}\s*sort=\{<MarketSortSlot \/>\} \/>/);
+  assert.doesNotMatch(app, /<BoardTabs|function BoardBar\(\)/);
 });
 
-test("d147PostingsRowsRestyledOnly · the postings are the board's own rows — the same JobBubble with the same decisions", () => {
-  assert.match(jobs, /<JobBubble\s+key=\{key\} job=\{job\}\s+score=\{scoresFor\(job, g\)\.shown\}/);
-  assert.match(jobs, /onSave=\{\(\) => decideJob\?\.\(job, DECISIONS\.SAVED\)\}/);
-  assert.match(jobs, /onDraft=\{\(\) => decideJob\?\.\(job, DECISIONS\.DRAFTED\)\}/);
+// 47j R2 (changed on purpose): the classic bubble rows (JobBubble in JobBubbleRows) are deleted — the board's rows are the
+// Index's (MarketIndexTable), each row's bubble wired to the SAME decisions.
+test("d147PostingsRowsRestyledOnly · the postings are the board's own rows — the Index's rows with the same decisions", () => {
+  assert.doesNotMatch(jobs, /<JobBubble\b|<JobBubbleRows\b/, "the classic bubble rows are back");
+  assert.match(jobs, /rows=\{jobs\.map\(\(job, i\) => indexRow\(job, i, \{ score: scoresFor\(job, generated\[job\.jobId\]\)\.shown,/);
+  assert.match(jobs, /onSave=\{\(\) => decideJob\?\.\(r\.job, DECISIONS\.SAVED\)\}/);
+  assert.match(jobs, /onDraft=\{\(\) => decideJob\?\.\(r\.job, DECISIONS\.DRAFTED\)\}/);
 });
 
 test("d147NoSymbolCounts · ALL · ★ · /d · + are words, not symbols (⭐ D156: a row under the search)", async () => {
-  // ⭐ D156 (4), changed on purpose: All jobs · Starred · Imported (no Pending view), a row under the search with counts.
-  const tabs = app.slice(at(app, "const BOARD_TABS = ["), at(app, "];", at(app, "const BOARD_TABS = [")));
+  // ⭐ D156 (4), changed on purpose: All jobs · Starred · Imported (no Pending view), with counts.
+  // 47j R2 (changed on purpose): the views are the shell's area nav (MARKET_AREA_VIEWS), still words, never symbols
+  const tabs = app.slice(at(app, "const MARKET_AREA_VIEWS = ["), at(app, "];", at(app, "const MARKET_AREA_VIEWS = [")));
   for (const [id, word] of [["all", "All jobs"], ["saved", "Starred"], ["imported", "Imported"]]) {
-    assert.match(tabs, new RegExp(`\\["${id}",\\s+"${word}"`), `${id} is the word ${word}`);
+    assert.match(tabs, new RegExp(`id: "${id}", label: "${word}"`), `${id} is the word ${word}`);
   }
   assert.doesNotMatch(tabs, /"ALL"|"★"|"\+"|DraftMark/, "a symbol is back");
-  assert.equal((app.match(/<BoardTabs \/>/g) || []).length, 1);
-  assert.match(app.slice(at(app, "function BoardViews("), at(app, "function BoardCounts()")), /<BoardTabs \/>/);
+  assert.doesNotMatch(app, /<BoardTabs \/>|const BOARD_TABS = \[/, "the classic views segment is back");
   const { html, SortPanel, SortIcon } = await loadUi();
   assert.doesNotMatch(html(SortPanel, { value: "", atsAvailable: false }), /data-sort-views/, "the views left the sort panel");
   // ⭐ D156 (5): the sort is an icon; its label says the current order.
   assert.match(html(SortIcon, { label: "Newest", chosen: true }), /data-board-icon="sort" data-active="true"[^>]*aria-label="Sort: Newest — change the order"/);
   assert.match(html(SortIcon, { label: "For you" }), /aria-label="Sort: For you — change the order"/);
-  assert.match(html(SortIcon, {}), /aria-label="Sort — change the order"/, "no label from the contract, no invented one");
-  // Page numbers → scrolling.
+  // 47j R2: the cartouche's sort always has a word — the board's own order reads "Best match" (MarketSortSlot passes the chosen one)
+  assert.match(html(SortIcon, {}), /aria-label="Sort: Best match — change the order"/);
+  // 47j R2 (changed on purpose): D147's endless scroll (BoardMore) is deleted — D199 C3's pages (MarketPager) replace it
   assert.doesNotMatch(jobs, /Go to page|buildVisiblePageItems|commitPageJump/);
-  assert.match(jobs, /<BoardMore shown=\{jobs\.length\} total=\{totalJobs\} more=\{currentPage < totalPages\} onMore=\{onLoadMore\}/);
-  assert.match(jobs, /await fetchJobs\(currentPage \+ 1, true, plan\.cursor \? \{ cursor: plan\.cursor \} : \{\}\);/, "the next page is appended");
-  assert.match(jobs, /new IntersectionObserver\(\(entries\) => \{ if \(entries\.some\(e => e\.isIntersecting\)\) onMore\?\.\(\); \}/);
+  assert.doesNotMatch(jobs, /<BoardMore\b|function BoardMore\(/, "the endless-scroll line is back");
+  assert.match(app, /<MarketPager page=\{boardPager\.page\}/);
   // The minimal counts, each from the facets answer.
   const { boardCounts } = ui;
   const facets = { total: 746, clauses: { posted: [{ value: "", count: 746 }, { value: "1d", count: 38 }] }, views: { all: 746, saved: 12, pending: 3, imported: 0 } };

@@ -20,7 +20,8 @@ test("D45 · the empty copy does not render while the current view's request is 
   assert.match(panel, /const shouldShowEmptyState = jobs\.length === 0 && !scraping && !boardLoading;/);
   // The skeleton branch comes FIRST, so neither the empty state nor another view's cards can win.
   // 47f (D196 FIX-7): in the plate market the same first branch draws the Gazetteer's skeleton rows instead
-  assert.match(panel, /\{boardLoading \? \(\s*\/\/ D45[^\n]*\n\s*plateIndex \? <MarketIndexTable state="loading"\/>\s*: <JobBubbleRows jobs=\{SKELETON_CARDS\}>\{\(_, i\) => <JobBubbleSkeleton key=\{i\} \/>\}<\/JobBubbleRows>\s*\) : shouldShowEmptyState \? \(/);
+  // 47j R2 (changed on purpose): the classic bubble skeletons are deleted — the Gazetteer's skeleton rows are the only ones
+  assert.match(panel, /\{boardLoading \? \(\s*\/\/ D45[^\n]*\n\s*<MarketIndexTable state="loading"\/>\s*\) : shouldShowEmptyState \? \(/);
   assert.equal((panel.match(/boardLoading=\{boardLoading\}/g) || []).length, 2, "both JobsColumn call sites");
   const bubble = fs.readFileSync("client/src/components/JobBubble.jsx", "utf8");
   assert.match(bubble, /<div className="jb jb--skeleton" data-skeleton="" aria-hidden="true">/, "the skeleton is the card's own geometry");

@@ -173,8 +173,6 @@ export const SHARED = Object.freeze({
   "components/DepthButton.css":         { what: "the depth box, the .dbx-depth skin and the .mark (D60) — loaded app-wide by main.jsx", owner: "components/DepthButton.jsx", alsoBy: ["main.jsx"] },
   "components/DockPortal.jsx":          { what: "the portalled dropdown surface" },
   "components/PanelShell.jsx":          { what: "the overlay panel frame — every peer panel in the board's dock" },
-  "components/StickyBar.jsx":           { what: "THE sticky-at-the-top section (D49)" },
-  "components/StickyBar.css":           { what: "its look", owner: "components/StickyBar.jsx" },
   "components/TopBar.css":              { what: "the top bar's mark group (the tab row it styled went with D145)", owner: "components/TopBar.jsx" },
   // ⭐ D145 Step 3 · the Dock / the Menu. The Customise preview draws them with these classes — a decided reuse (the
   // preview must be the real look, as with the sentence, D93).

@@ -77,7 +77,10 @@ test("D48 → D147 · the actions: one row at the panel's foot, Pass · Save · 
   assert.doesNotMatch(jd, /<StickyBar/, "the top bar is gone");
   assert.match(jd, /<div className="pp__foot" data-posting-actions-bar="">/);
   assert.match(jdCss, /\.pp__foot \{\s+position: sticky; bottom: 0;/);
-  assert.match(read("client/src/App.jsx"), /<StickyBar/, "D49's module keeps the board's bar");
+  // 47j R2 (changed on purpose): the board's bar (StickyBar's last consumer) is deleted with the classic market, and the module
+  // with it (A93: nothing dead)
+  assert.doesNotMatch(read("client/src/App.jsx"), /<StickyBar/, "the classic board bar is back");
+  assert.ok(!fs.existsSync("client/src/components/StickyBar.jsx"), "StickyBar has no consumer left");
   const acts = jd.slice(at(jd, "function PostingActions("), at(jd, "export default function JobDetailPanel("));
   assert.match(acts, /<div className="pp__main-acts" role="group" aria-label="Actions" data-d147-actions="">/);
   assert.doesNotMatch(acts, /className="pp__a"|className="pp__b"|size="square"/, "no icon squares are left");

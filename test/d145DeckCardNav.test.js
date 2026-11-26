@@ -26,11 +26,15 @@ const CARD = {
          eligibility: { status: "eligible" }, sponsorship: { level: "often", line: "about 140 visa filings last year" } },
 };
 
-test("d145DeckButtonsOutsideCard: Pass · Save · Draft sit below the card, outside it, with no key hints", () => {
+// 47j R2 (changed on purpose): D196 FIX-4 put Pass · Save · Send · Draft IN the board's ticket (TicketActions) and R2 deleted
+// the classic row under the card; the D145 rule that holds is "no key hints on the buttons". ActionButton stays (the landing).
+test("d145DeckButtonsOutsideCard → FIX-4 / 47j R2: Pass · Save · Draft are the ticket's own row, with no key hints", () => {
   assert.doesNotMatch(face, /<ActionButton/, "an action button inside the card face");
-  const actions = deck.slice(at(deck, "<div data-deck-actions"), at(deck, "</div>", at(deck, "<div data-deck-actions")));
-  for (const l of ["Pass", "Save", "Draft"]) assert.match(actions, new RegExp(`<ActionButton label="${l}" ariaKeys=`));
-  assert.doesNotMatch(actions, /hint=/, "a key hint on a button (D145: none)");
+  assert.doesNotMatch(deck, /<div data-deck-actions style=/, "the classic row under the card is back");
+  const tf = fs.readFileSync("client/src/plate/MarketCardFace.jsx", "utf8").replace(/\r\n/g, "\n");
+  const actions = tf.slice(at(tf, "export function TicketActions("), at(tf, "\n}\n", at(tf, "export function TicketActions(")));
+  for (const l of ["pass", "save", "draft"]) assert.match(actions, new RegExp(`data-deck-action="${l}"`));
+  assert.doesNotMatch(actions, /hint=|<kbd/, "a key hint on a button (D145: none)");
   // D149: the ‹ › step buttons went with the controls row; ActionButton runs to the next function.
   const btn = deck.slice(at(deck, "function ActionButton("), at(deck, "\nfunction ", at(deck, "function ActionButton(") + 10));
   assert.doesNotMatch(btn, /kbd/, "the button draws a key hint");

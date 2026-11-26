@@ -33,6 +33,12 @@ async function atFreezeTimers(page) {
   await page.reload({ waitUntil: "load", timeout: 60000 });
 }
 
+// ✅ OWNER 11-26 (decision 3): every ys pair at 390 and ys-want at 1280 are owner-accepted LOOKs (a phone sketch, if drawn, replaces them)
+const YS_LOOK_390 = "owner-accepted LOOK (11-26): the YourSurvey board keeps its desktop rail at 390 — not a phone design; the build's 390 layout (16 px gutter, words whole) stands";
+function ysPair(k) { return { lookAt: { 390: YS_LOOK_390,
+  ...(k === "want" ? { 1280: "owner-accepted LOOK (11-26): the wants rows are worded from the person's own data (3.85 % at 47i) — the data-worded piece stands" } : {}) } }; }
+// ✅ OWNER 11-26 (decision 3): the survey sheet's hero / hiring / sponsor / match / tickets and the ledger's tickets at 390
+const SHEET_LOOK_390 = "owner-accepted LOOK (11-26): the board keeps its desktop rail at 390 — not a phone design; the build's 390 layout (16 px gutter, words whole, live-data wording) stands";
 /** The pairs: a board, the element to crop on each side, and the fixture that builds it. */
 export const PAIRS = {
   // ⭐ D197 Wave 1 #1 (47i) · THE SHELL against the approved canvas's `Shell` board (source "final"). The build side is the
@@ -186,6 +192,7 @@ export const PAIRS = {
     fixture: "SurveyBoard", subpixel: true, boardSel: `section:nth-of-type(${i + 1})`, buildSel: `.pl-sheetpage > section:nth-of-type(${i + 1})`, pad: 0, reduced: true,
     // 02: the newest open roles under the two figures are the page's own (today's list, kept — D200 Rule 1); the board ends at the figures
     ...(k === "hiring" ? { cropTo: { 1280: 503, 390: 826 } } : {}),   // 47i: and at 390 (the board ends at the figures there too)
+    ...(k !== "stack" ? { lookAt: { 390: SHEET_LOOK_390 } } : {}),   // owner 11-26, decision 3
     // the title block: the board's dock (x 14–98) throws its 4 px shadow into the section's first pixels — the page's frame
     ...(k === "hero" ? { masks: [[0, 0, 6, 420]] } : {}),
     // 03: the board's cells (H-1B APPLICATIONS · FOR SOFTWARE ROLES · CERTIFIED · PERM) and MOST FILED TITLES are figures our
@@ -204,7 +211,7 @@ export const PAIRS = {
   "ledger-needs": { source: "final", board: "Ledger", fixture: "LedgerBoard", subpixel: true, boardSel: "section:nth-of-type(2)", buildSel: "[data-home-needs]", pad: 0, reduced: true },
   "ledger-banner": { source: "final", board: "Ledger", fixture: "LedgerBoard", subpixel: true, boardSel: "section:nth-of-type(3) > div:nth-of-type(2)", buildSel: "[data-held-before-update]", pad: 0, reduced: true },
   "ledger-register": { source: "final", board: "Ledger", fixture: "LedgerBoard", subpixel: true, boardSel: "section:nth-of-type(3) > div:nth-of-type(3)", buildSel: "[data-ledger-register] .pl-register", pad: 0, reduced: true },
-  "ledger-tickets": { source: "final", board: "Ledger", fixture: "LedgerBoard", subpixel: true, boardSel: "section:nth-of-type(4)", buildSel: "[data-ledger-tickets]", pad: 0, reduced: true },
+  "ledger-tickets": { source: "final", board: "Ledger", fixture: "LedgerBoard", subpixel: true, boardSel: "section:nth-of-type(4)", buildSel: "[data-ledger-tickets]", pad: 0, reduced: true, lookAt: { 390: SHEET_LOOK_390 } },
   // ⭐ D200 (a) (47h, the yoursurvey lane) · YOUR SURVEY — the final canvas's YourSurvey board, section by section (the
   // board's sections are siblings in its column: the head, then 01–05); the build is SkillMapView from the board's data
   // (pages/atlas/yourSurveyFixtures.jsx), each section put at the board piece's own sub-pixel offset.
@@ -213,7 +220,9 @@ export const PAIRS = {
       buildSel: `[data-skm-section="${s}"]`, pad: 0, reduced: true, subpixel: true, ...(ysPair(k) || {}) }])),
 };
 // what each Your survey pair keeps out of the pixel gate, and why (D196: masks only for example data, with the reason)
-function ysPair(k) { return ({})[k]; }
+// ✅ OWNER 11-26 (end of 47i, decision 3 — "go with your recs"): every ys pair at 390 and ys-want at 1280 are owner-accepted
+// LOOKs. The board keeps its desktop rail at 390 (not a phone design); ys-want's "what you want" rows are worded from the
+// person's own data. A phone sketch, if one is drawn later, replaces these.
 // what each Opening pair keeps out of the pixel gate, and why (D196: masks only for example data, with the reason)
 function opPair(k) { return {
   // 02: the board drew the contextual-score card before D202; the approved D202 card (FitCard, gated on its own board by the
@@ -374,7 +383,9 @@ export async function runPair(name, { width = 1280, threshold = THRESHOLD_PCT, b
   fs.writeFileSync(path.join(dir, "pair.png"), Buffer.from(r.pair, "base64"));
   const report = { pair: name, width, board: board.clip, build: build.clip, boardBox: board.box, buildBox: build.box, /* 47i: the raw (fractional) boxes */ sizeBoard: r.sizeA, sizeBuild: r.sizeB,
     differing: r.differing, compared: r.compared, pct: +r.pct.toFixed(3), threshold,
-    ...(p.look ? { look: true, pass: true, note: "side by side for the owner's look — sizes differ on purpose (the deck's form factor)" }
+    // lookAt[width] (owner 11-26, decision 3): a pair the owner accepted as built at that width — a LOOK there, with its reason
+    ...(p.lookAt && p.lookAt[width] ? { look: true, pass: true, note: p.lookAt[width] }
+      : p.look ? { look: true, pass: true, note: "side by side for the owner's look — sizes differ on purpose (the deck's form factor)" }
       : { pass: r.pct <= threshold && r.sizeA.join() === r.sizeB.join() }) };
   fs.writeFileSync(path.join(dir, "report.json"), JSON.stringify(report, null, 2));
   return report;

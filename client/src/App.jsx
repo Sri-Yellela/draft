@@ -43,7 +43,7 @@ import DeckView                  from "./panels/DeckView.jsx";
 import { routeCommitted, transitionTo } from "./lib/viewTransitions.js";
 import { RecruiterPanel }        from "./panels/RecruiterPanel.jsx";
 import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
-import BoardHeadline, { ALL_FILTERS_ID } from "./components/BoardHeadline.jsx";   // A146: the All filters word
+import { ALL_FILTERS_ID } from "./components/BoardHeadline.jsx";   // A146: the All filters word (47j R2: the classic sentence header is deleted)
 import PlateBearing from "./plate/PlateBearing.jsx";   // ⭐ D196 P1: the bearing as a cartouche (off until the owner's ok)
 import { useMarketPlate, useBestCard } from "./plate/marketPlate.js";
 import MarketHero from "./plate/MarketHero.jsx";   // ⭐ D196 P1: the market's hero on real data
@@ -56,9 +56,8 @@ import OpeningSheet, { OPENING_ROUTE } from "./plate/OpeningSheet.jsx";   // ⭐
 import { LegHeader } from "./plate/Plates.jsx";
 import WordPanel                 from "./components/WordPanel.jsx";
 import SortPanel                 from "./components/SortPanel.jsx";
-import { ViewSegment, BoardSearch, SortIcon, ImportJobBox } from "./components/BoardBar.jsx";
-import StickyBar from "./components/StickyBar.jsx";
-import { nextBoardPanel, sortRows, isSortChosen, DEFAULT_SORT, BOARD_PANEL, viewCounts, boardCounts, marketFigures, sentenceParts } from "./lib/filterSentenceModel.js";
+import { BoardSearch, ImportJobBox } from "./components/BoardBar.jsx";
+import { nextBoardPanel, sortRows, isSortChosen, DEFAULT_SORT, BOARD_PANEL, viewCounts, marketFigures, sentenceParts } from "./lib/filterSentenceModel.js";
 import { ATSToolPage }           from "./pages/tools/ATSToolPage.jsx";
 import { GenerateToolPage }      from "./pages/tools/GenerateToolPage.jsx";
 import { ApplyToolPage }         from "./pages/tools/ApplyToolPage.jsx";
@@ -222,26 +221,11 @@ function useResumeSource(on) {
 
 function BoardHeadlineSlot() {
   const { boardHeadline, boardPanel, setBoardPanel, localSearch, applyBarFilters } = useJobBoard();
-  const plate = useMarketPlate();
-  const resumeFrom = useResumeSource(!!plate);
+  const resumeFrom = useResumeSource(true);
   if (!boardHeadline) return null;
   const { params, defaultDomain, nothingMatches, facets, facetsStatus, otherFilterCount, onPatch, onMoreFilters, onClearAll } = boardHeadline;
-  if (!plate) return (
-    <>
-      <BoardHeadline params={params} defaultDomain={defaultDomain} nothingMatches={nothingMatches}
-        open={boardPanel} onToggle={(key) => setBoardPanel(current => nextBoardPanel(current, key))} />
-      {/* ⭐ A146 (45o, the D179 sketch's (b)): "All filters" — every facet at once, in the same one panel beneath. Beside the
-          sentence, never inside it: the heading is the sentence alone (D34 / D35). */}
-      <button type="button" className="bh__all" id={ALL_FILTERS_ID} data-slot={BOARD_PANEL.ALL}
-        aria-expanded={boardPanel === BOARD_PANEL.ALL} aria-controls={boardPanel === BOARD_PANEL.ALL ? "fh-panel" : undefined}
-        onClick={() => setBoardPanel(current => nextBoardPanel(current, BOARD_PANEL.ALL))}>All filters</button>
-      <WordPanel open={boardPanel} params={params} defaultDomain={defaultDomain}
-        facets={facets} facetsStatus={facetsStatus} otherFilterCount={otherFilterCount}
-        onPatch={onPatch} onOpen={(key) => setBoardPanel(key)} onClose={() => setBoardPanel(null)}
-        onMoreFilters={onMoreFilters} />
-    </>
-  );
-  // ⭐ D196 P1: the same sentence, controls and panel, drawn as the board's cartouche — only the look changes (R6).
+  // ⭐ D196 P1: the sentence, controls and panel, drawn as the board's cartouche. ⛔ 47j R2: the classic market's sentence
+  // header (BoardHeadline + "All filters" beside it) is deleted — the market is the plate market only.
   // ⭐ D199 C2 / C4 (47h, the `Market` board): INSIDE the cartouche, under the sentence — the search + sort, the filter chips
   // (each opens its word's panel in place, beneath them), the active chips + Clear all, then the stats box. The chips and the
   // sentence read the same params and write through the same onPatch (one state); the box reads the same facets answer.
@@ -307,31 +291,6 @@ function AppTopBar({ tabs, ...props }) {
   return <TopBar {...props} tabs={decorated} />;
 }
 
-// The board's All / ★ Saved / ⏳ Pending tabs.
-//
-// THE ONE CONTROL THE RETIRED PILL UNIQUELY CARRIED. JobsPanel has its own boardTabs strip, but it
-// is behind `{false && ...}` and has been for some time, so the pill was the only place these three
-// existed — measured on the running app before the move: 0 occurrences of "All", "★" or "⏳" as a
-// button anywhere outside the pill. Retiring the container without moving them would have removed
-// the Saved and Pending tabs from the product.
-//
-// Labels and values are the pill's verbatim, including the glyphs, so a user who knew where ★ was
-// still recognises it. Titles are added because a glyph alone has no accessible name — the pill's
-// did not either, which was a defect it is not worth preserving.
-//
-// D11: the Pending chip is the DRAFT MARK, not an hourglass — a pending row is one you drafted, and
-// the card's Draft button carries the same /d (components/DraftMark.jsx). (D18: the tab no longer does.)
-// ⭐ D147 (owner 11-03): the symbols (ALL · ★ · /d · +) became WORDS and left the first screen — they live inside the
-// Sort / view control's panel now (BoardSortSlot), under "Show". The four views, their values and counts are unchanged.
-const BOARD_TABS = [
-  ["all",      "All jobs", "All jobs on your board"],
-  // ⭐ D156 (4): the ☆ on a bubble STARS it — the view's word is Starred (its id stays `saved`, the API's `starred`).
-  ["saved",    "Starred",  "Starred jobs"],
-  // ⭐ D40 (owner, 10-06): the jobs you imported, on the board's own card.
-  ["imported", "Imported", "Imported jobs"],
-  // ⛔ A157 (45q, owner 11-09): the Companies tab is GONE — "they are only reachable by search or clicking on the company
-  // name". A company is reached from the search dropdown's Companies group, or its name / logo on a card (its own page).
-];
 
 // ⛔ A157 (45q): the board's parts in order — the Companies view that once swapped them out is gone (no Companies tab).
 function BoardOrCompanies({ head, views, board }) {
@@ -340,29 +299,11 @@ function BoardOrCompanies({ head, views, board }) {
 // ⛔ D156 (4) (owner 11-05: "we dont need the drafted panel now"): the Pending / Drafted view is not offered on Home — the
 // tracker (Draft House) holds every application. ?view=pending still reads (JobBoardContext's BOARD_VIEWS).
 
-// D35: the views as ONE segmented control, each with its count (facets' `views`).
-function BoardTabs() {
-  const { boardTab, setBoardTab, boardHeadline } = useJobBoard();
-  return (
-    <ViewSegment views={BOARD_TABS} value={boardTab} onChange={id => setBoardTab?.(id)}
-      counts={viewCounts(boardHeadline?.facets)} />
-  );
-}
 
-// D35 §3: THE BAR'S TWO 40px SQUARES — ⇅ sort and + add jobs. ⛔ The FILTER icon is GONE (D35 §1): the
-// sentence's words are the filters, so the icon had nothing left behind it.
-//
-// The sort square opens the sort panel beneath the bar; it presses through nextBoardPanel on the
-// SAME one panel value the words use, so opening sort closes an open word and the reverse.
-//
-// Inside JobBoardProvider for the same reason BoardSearchBar is — AppDashboard renders the provider
-// and so cannot read it.
-//
-// The sort list is shared/filterSentence.js's SORT_PANEL, read through sortRows — no copy of it lives
-// here. SORTS stays the server's VALIDATION set for the param.
-// ⭐ D199 C2 (47h): the plate market's sort — "SORT  Best match ▾" beside the search; the same one panel (BoardSortSlot) and
-// the code's five orders. The default reads "Best match" (the sketch's word for the board's own order, D184 B-8's tiers).
-// It keeps BoardControlIcons' rule: Best fit falls back to the default when the résumé goes.
+// ⛔ THE RESUME GATES BEST FIT AND NOTHING ELSE (decided 2026-09-26): /api/jobs ranks fine without a résumé, so the only
+// thing a missing one prevents is ranking by FIT — sortRows(false) leaves Best fit out, and this falls back to the default
+// when the board was sorted by fit as the résumé went. (47j R2: the classic bar's sort icon, which first held this rule, is
+// deleted with the classic market.)
 function MarketSortSlot() {
   const { boardPanel, setBoardPanel, sortBy, setSortBy, atsSortAvailable } = useJobBoard();
   const fitRow = sortRows(true).find(r => r.unscoredLast);
@@ -375,31 +316,6 @@ function MarketSortSlot() {
     onPress={() => setBoardPanel(current => nextBoardPanel(current, BOARD_PANEL.SORT))} />;
 }
 
-function BoardControlIcons() {
-  const { boardPanel, setBoardPanel, sortBy, setSortBy,
-          atsSortAvailable } = useJobBoard();
-
-  // ⛔ THE RESUME GATES BEST FIT AND NOTHING ELSE. Decided 2026-09-26, replacing a gate that hid the
-  // entire board: /api/jobs ranks fine without a resume (by target title and role key), so the only
-  // thing a missing one actually prevents is ranking by FIT. sortRows(false) leaves Best fit out of
-  // the panel; this falls back if the board was already sorted by fit when the resume went away,
-  // rather than leaving the board on an order the panel no longer offers.
-  const fitRow = sortRows(true).find(r => r.unscoredLast);
-  useEffect(() => {
-    if (!atsSortAvailable && fitRow && sortBy === fitRow.value) setSortBy(DEFAULT_SORT);
-  }, [atsSortAvailable, sortBy, setSortBy, fitRow]);
-
-  const sortLabel = sortRows(atsSortAvailable).find(r => r.value === sortBy)?.label || "";
-  // ⭐ D156 (5): the sort is an ICON inside the search field; its label says the current order.
-  return (
-    <SortIcon
-      open={boardPanel === BOARD_PANEL.SORT}
-      onPress={() => setBoardPanel(current => nextBoardPanel(current, BOARD_PANEL.SORT))}
-      label={sortLabel}
-      chosen={isSortChosen(sortBy)}
-    />
-  );
-}
 
 // D35: the sort panel — ⭐ D156 (5): a small menu under the search field's sort icon (FullHouse.css .fh-bar > .fh-sortp).
 function BoardSortSlot() {
@@ -412,40 +328,25 @@ function BoardSortSlot() {
   );
 }
 
-// ⭐ D147 (owner 11-03, fullhouse-declutter.html): THE BAR IS THE SEARCH. ⭐ D156 (5): with the sort icon inside it, and
-// the sort's small menu under it. (D152's title row — the "Sort: For you" word at the top of the column — is gone.)
-function BoardBar() {
-  return (
-    <div className="fh-bar" data-board-bar="">
-      <BoardSearchBar><BoardControlIcons /></BoardSearchBar>
-      <BoardSortSlot />
-    </div>
-  );
-}
 
 // ⭐ D156 (4) · UNDER THE SEARCH: All jobs · Starred · Imported, each with its count (facets' views — a count the answer
 // does not hold is not drawn), and "Import a job" — the inline box (BoardBar.jsx ImportJobBox; the existing import route).
 // A job imported lands under Imported: the view switches there and the board is asked again.
-// ⭐ D199 (47h, step 6): on the plate market the views live in the shell's area nav (as the Market board draws them) and
-// "Import a job" is its More menu's item — it opens this same box (IMPORT_JOB_EVENT); the segment here is the classic's.
+// ⭐ D199 (47h, step 6): the views live in the shell's area nav (as the Market board draws them) and "Import a job" is its
+// More menu's item (on a phone, a view in the scroller — A245) — it opens this box (IMPORT_JOB_EVENT). ⛔ 47j R2: the
+// classic segment (All jobs · Starred · Imported + Import a job) is deleted with the classic market.
 const IMPORT_JOB_EVENT = "draft:import-job";
 function BoardViews({ onImported }) {
   const { setBoardTab } = useJobBoard();
-  const plate = useMarketPlate();
   const [importing, setImporting] = useState(false);
   useEffect(() => {
     const open = () => setImporting(true);
     window.addEventListener(IMPORT_JOB_EVENT, open);
     return () => window.removeEventListener(IMPORT_JOB_EVENT, open);
   }, []);
-  if (plate && !importing) return null;
+  if (!importing) return null;
   return (
     <div className="fh fh-viewrow" data-board-views="">
-      {plate ? null : <div className="fh-viewrow__line">
-        <BoardTabs />
-        <button type="button" className="fh-importb" data-import-open="" aria-expanded={importing}
-          onClick={() => setImporting(v => !v)}>Import a job</button>
-      </div>}
       {importing && (
         <ImportJobBox onClose={() => setImporting(false)}
           onImported={() => { setBoardTab?.("imported"); onImported?.(); }} />
@@ -498,36 +399,36 @@ function LedgerAreaNav({ onHome }) {
   };
   return <ShellAreaNav area="Home" views={LEDGER_AREA_VIEWS} current={current} onGo={onGo} onHome={onHome} />;
 }
-function AppAreaNavSlot({ activeTab, marketPlate, onHome }) {
+function AppAreaNavSlot({ activeTab, ledgerPlate, onHome }) {
   const navigate = useNavigate();
   const { boardTab, setBoardTab, boardHeadline } = useJobBoard();
   const market = activeTab === "today" || activeTab === "console";
   const [deckShown, setDeckShown] = useState(true);
   // follow the openings' own tabs (a press on Deck / Index there moves the nav's current)
   useEffect(() => {
-    if (!market || !marketPlate || typeof MutationObserver === "undefined") return undefined;
+    if (!market || typeof MutationObserver === "undefined") return undefined;
     const read = () => { const d = document.getElementById("mk-tab-deck"); if (d) setDeckShown(d.getAttribute("aria-selected") === "true"); };
     read();
     const mo = new MutationObserver(read);
     mo.observe(document.body, { subtree: true, attributes: true, attributeFilter: ["aria-selected"] });
     return () => mo.disconnect();
-  }, [market, marketPlate]);
+  }, [market]);
   const [slots, setSlots] = useState(null);
   useEffect(() => { if (market) api("/api/draft/slots").then(setSlots).catch(() => {}); }, [market]);
-  if (!market && activeTab === "auto-apply" && marketPlate) return <LedgerAreaNav onHome={onHome} />;   // the ledger (the plate switch)
+  if (!market && activeTab === "auto-apply" && ledgerPlate) return <LedgerAreaNav onHome={onHome} />;   // the ledger (the plate switch stays for Home)
   if (activeTab === "atlas") return <AtlasAreaNav onHome={onHome} />;
   if (!market) return <ShellAreaNav area={AREA_NAMES[activeTab] || "draft"} onHome={onHome} />;
-  const current = marketPlate && deckShown ? "picks" : boardTab;
+  const current = deckShown ? "picks" : boardTab;
   // the views' counts (the facets answer's, as the classic segment showed them) ride on the nav's words — never a 0 guessed
   const counts = viewCounts(boardHeadline?.facets);
-  const views = (marketPlate ? MARKET_AREA_VIEWS : MARKET_AREA_VIEWS.slice(1)).map((v) => (marketPlate && Number.isFinite(counts[v.id]) && v.id !== "picks"
+  const views = MARKET_AREA_VIEWS.map((v) => (Number.isFinite(counts[v.id]) && v.id !== "picks"
     ? { ...v, label: `${v.label} · ${counts[v.id].toLocaleString("en-US")}` } : v));
   const onGo = (id) => {
     if (id === "import") { pressOpeningsTab("index"); window.dispatchEvent(new Event(IMPORT_JOB_EVENT));
       requestAnimationFrame(() => document.querySelector("[data-import-box] textarea")?.focus?.()); return; }
     if (id === "picks") { pressOpeningsTab("deck"); }
-    else { setBoardTab?.(id); if (marketPlate) pressOpeningsTab("index"); }
-    if (marketPlate) requestAnimationFrame(() => document.getElementById("openings")?.scrollIntoView?.({ block: "start", behavior: "smooth" }));
+    else { setBoardTab?.(id); pressOpeningsTab("index"); }
+    requestAnimationFrame(() => document.getElementById("openings")?.scrollIntoView?.({ block: "start", behavior: "smooth" }));
     navigate("/app/jobs", { replace: true });
   };
   const limit = Number(slots?.limit), remaining = Number(slots?.remaining);
@@ -536,7 +437,7 @@ function AppAreaNavSlot({ activeTab, marketPlate, onHome }) {
     label: `New drafts in the last 24 hours: ${Math.max(0, limit - remaining)} of ${limit} used, ${Math.max(0, remaining)} left. Re-runs are free`,
     onGo: (href) => navigate(href) } : null;
   return <ShellAreaNav area="The market" views={views} current={current} onGo={onGo} chip={chip}
-    more={marketPlate ? [{ id: "import", label: "Import a job", href: "/app/jobs#import" }] : []}
+    more={[{ id: "import", label: "Import a job", href: "/app/jobs#import", icon: "imported", phone: true }]}
     placeholder="Company, role, tech…" onHome={onHome} />;
 }
 // ⭐ D197 Wave 1 #5 (47h, lane atlas) · ATLAS'S AREA NAV (the Shell board's figure C): the VOL. I pill (its panel = the
@@ -609,28 +510,13 @@ function MarketPagerSlot() {
     loading={boardPager.loading} onGo={boardPager.goTo} />;
 }
 
-function BoardCounts() {
-  const { boardHeadline } = useJobBoard();
-  const c = boardCounts(boardHeadline?.facets);
-  const cells = [["jobs", c.jobs, false], ["new today", c.newToday, true], ["saved", c.saved, false]].filter(([, n]) => n != null);
-  if (!cells.length) return null;
-  return (
-    <div className="fh fh-counts" data-board-counts="">
-      {cells.map(([label, n, hot]) => (
-        <div key={label} className={hot ? "fh-count fh-count--hot" : "fh-count"} data-count={label}>
-          <b>{n.toLocaleString()}</b><span>{label}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function AppDashboard({ authUser, setAuthUser }) {
   const monetisationEnabled = useMonetisationEnabled();
   // With the lever off the tool is simply AVAILABLE — the tier is never consulted. This mirrors the
   // server, where requireToolEntitlement returns true before it looks at a plan, so the button the
   // client offers and the answer the server gives cannot disagree.
-  const marketPlate = useMarketPlate();   // ⭐ D196 P1: the market in plates (off until the owner's ok)
+  const ledgerPlate = useMarketPlate();   // ⭐ D196 P1's switch — since 47j R2 it governs Home (the ledger) only; the market is always plates
   const canUseAPlusResumeHere =
     !monetisationEnabled || String(authUser?.planTier || "BASIC").toUpperCase() === "PRO";
   const { theme } = useTheme();
@@ -855,8 +741,7 @@ function AppDashboard({ authUser, setAuthUser }) {
   // permanently 0 here, and it re-rendered this component on every scroll event — which is how a
   // trivial scroll reset the job board (see JobsPanel's boot-effect note and PlanConsoles' memo).
 
-  // ⭐ D152 (1) · HOME — the deck and the board, as elements, so the classic grid and the plate market (D196 P1) render
-  // the very same ones.
+  // ⭐ D152 (1) · HOME — the deck and the board, as elements, placed by the plate market's section (D196 P1 · D199 C1).
   const homeDeck = (
     <section className="home__deck" aria-label="Today's picks" data-home-deck="">
       <DeckView canUseAPlusResume={canUseAPlusResumeHere} home/>
@@ -865,20 +750,10 @@ function AppDashboard({ authUser, setAuthUser }) {
   const homeBoard = (
     <section className="home__board" aria-label="Every job" data-home-board="">
       <BoardOrCompanies
-        head={<>
-          {/* ⭐ D196 P1: in the plate market the bearing is its own section above the openings (MarketBearingSlot) */}
-          {!marketPlate && <header className="fh" data-fh-d147="">
-            <BoardHeadlineSlot />
-          </header>}
-          {/* ⭐ D199 C2: on the plate market the search and the sort sit in the cartouche (BoardHeadlineSlot) */}
-          {!marketPlate && <StickyBar top="var(--app-chrome-height, 74px)" className="fh fh--bar-row" data-board-sticky="">
-            <BoardBar />
-          </StickyBar>}
-        </>}
+        head={null}
         views={<BoardViews onImported={() => setJobBoardRefreshKey(k => k + 1)} />}
         board={<>
-          {/* ⭐ D199 C4: the stats box (in the cartouche) replaces the counts strip on the plate market */}
-          {!marketPlate && <BoardCounts />}
+          {/* ⭐ D199 C4: the stats box (in the cartouche) replaces the counts strip */}
           <ExtensionFirstRunPrompt />
           <JobsConsole user={authUser} onUserChange={setAuthUser}
             refreshKey={jobBoardRefreshKey} isActive={home}/>
@@ -940,18 +815,16 @@ function AppDashboard({ authUser, setAuthUser }) {
           />
 
           {/* ⭐ D197 #1 · A237: the area nav across the top of the content column (the rail is AppNav's, at the left) */}
-          <AppAreaNavSlot activeTab={home ? "today" : activeTab} marketPlate={!!marketPlate} onHome={() => handlePanelChange("today")} />
+          <AppAreaNavSlot activeTab={home ? "today" : activeTab} ledgerPlate={!!ledgerPlate} onHome={() => handlePanelChange("today")} />
           {/* D149: the deck (like Full House) starts right under the mark — its card sits at the sketch's 90 px. */}
           {/* D149 (11-03): Draft House too — its own top padding puts its title at tracker-options.html's 84 px. */}
           <main style={{ flex:1, paddingTop: activeTab === "console" || activeTab === "today" || activeTab === "auto-apply" ? 0 : 24 }}>
             {/* ⭐ D152 (1) · HOME — one grid, laid out by CSS (FullHouse.css .home): the deck's column is sticky in its
                 own track and the board's column takes the rest; on a phone one column, the deck first. No page titles. */}
-            {home && (marketPlate
-              // ⭐ D196 P1: the same deck and board (the same elements, the same requests), under the market's binder tabs.
-              // FIX-1 (owner 11-24): ONE plate root under the whole page — paper (in the person's theme's palette), full
-              // height, so no section is ever transparent to the app shell's ground.
-              ? <PlateRoot className="pl-marketpage" data-plate-page="market"><MarketHeroSlot /><MarketSectionSlot deck={homeDeck} index={homeBoard} /></PlateRoot>
-              : <div className="home" data-home="">{homeDeck}{homeBoard}</div>)}
+            {/* ⭐ D196 P1: the deck and the board under the market's binder tabs. FIX-1 (owner 11-24): ONE plate root under
+                the whole page — paper (in the person's theme's palette), full height. ⛔ 47j R2: the classic grid
+                (`.home`) is deleted — the market is the plate market only (`?plate=0` no longer reaches it). */}
+            {home && <PlateRoot className="pl-marketpage" data-plate-page="market"><MarketHeroSlot /><MarketSectionSlot deck={homeDeck} index={homeBoard} /></PlateRoot>}
             {openingRoute && <OpeningSheet jobId={decodeURIComponent(openingRoute[1])}/>}
             {/* ⭐ D49 · THE BOARD'S BAR STICKS (StickyBar, above in Home's board column): sticky only works inside its
                 parent's box, so it sits in the column with the jobs, not in the header. D12's ExtensionFirstRunPrompt

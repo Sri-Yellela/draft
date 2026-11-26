@@ -98,10 +98,10 @@ test("D12: Full House — + Add jobs where IMPORT sat, the first-run prompt, the
   const app = strip(read("client/src/App.jsx"));
   // ⛔ D40 (owner, 10-06): ADD JOBS is no longer a square — + is the fourth VIEW, and its head carries
   // Import jobs (to /extension).
-  const icons = app.slice(at(app, "function BoardControlIcons()"), at(app, "function BoardSortSlot()"));
-  assert.doesNotMatch(icons, /<AddSquare\b/, "the standalone + square is back");
-  // ⭐ D147 (owner 11-03): the view is the WORD "Imported" now, inside the Sort / view panel.
-  assert.match(app, /\["imported", "Imported", "Imported jobs"\]/);
+  // 47j R2 (changed on purpose): the classic bar (BoardControlIcons) is deleted; still no + square anywhere
+  assert.doesNotMatch(app, /<AddSquare\b/, "the standalone + square is back");
+  // ⭐ D147 (owner 11-03): the view is the WORD "Imported" — 47j R2: the area nav's
+  assert.match(app, /\{ id: "imported", label: "Imported", href: "\/app\/jobs\?view=imported"/);
   const chrome = app.slice(at(app, '<header className="fh"'), at(app, "</main>"));
   assert.match(chrome, /<ExtensionFirstRunPrompt \/>/);
 

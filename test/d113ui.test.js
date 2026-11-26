@@ -1184,7 +1184,8 @@ test("d146NothingDropped — every capability in the row's map survives, where t
   // Saved Jobs → Full House's Saved.
   // D147 (11-03): the view is the word "Saved" now (the Sort / view panel), not ★.
   // ⭐ D156 (4) (changed on purpose): the view is "Starred" (All jobs · Starred · Imported under the search).
-  check("Saved Jobs → Full House's Saved", /\["saved",\s+"Starred",\s+"Starred jobs"\]/.test(app) && /\.filter\(\(\[id\]\) => !\(embedded && id === "saved"\)\)/.test(dbPanel));
+  // 47j R2 (changed on purpose): the views are the area nav's — Starred is MARKET_AREA_VIEWS' "saved"
+  check("Saved Jobs → Full House's Saved", /\{ id: "saved", label: "Starred", href: "\/app\/jobs\?view=saved"/.test(app) && /\.filter\(\(\[id\]\) => !\(embedded && id === "saved"\)\)/.test(dbPanel));
   // Pending Apply / Not applied → In progress / Stopped (one meaning each).
   check("Pending Apply → In progress", byJob(rows, "j-self").filter === "progress" && stageOfHistory({ status: "in_play", origin: "opened_posting" }) === "pending_self");
   check("Not applied → Stopped", byJob(rows, "j-gone").filter === "stopped" && byJob(rows, "j-gone").stage === "not_applied");

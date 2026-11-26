@@ -36,6 +36,7 @@ test("47h · the strip draws it, App reads /api/base-resume once on the plate ma
   assert.match(pb, /\{fromWords\(from\) \|\| \(children \? "FROM YOUR RÉSUMÉ · YOURS TO CHANGE" : "SET FROM YOUR RÉSUMÉ · YOURS TO CHANGE"\)\}/);
   const app = read("client/src/App.jsx");
   assert.match(app, /function useResumeSource\(on\) \{[\s\S]{0,300}api\("\/api\/base-resume"\)/);
-  assert.match(app, /const resumeFrom = useResumeSource\(!!plate\);/);
+  // 47j R2 (changed on purpose): the market is always the plate market, so the read is always on there
+  assert.match(app, /const resumeFrom = useResumeSource\(true\);/);
   assert.match(app, /from=\{resumeFrom\}/);
 });

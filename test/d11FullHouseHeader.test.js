@@ -25,7 +25,8 @@ test("D11 → D26: the header is ONE line — the filter sentence, where the cap
 });
 
 test("D11: the Pending chip carries the draft mark, not an hourglass", () => {
-  const tabs = app.slice(at(app, "const BOARD_TABS = ["), at(app, "];", at(app, "const BOARD_TABS = [")));
+  // 47j R2 (changed on purpose): the views are the area nav's (MARKET_AREA_VIEWS)
+  const tabs = app.slice(at(app, "const MARKET_AREA_VIEWS = ["), at(app, "];", at(app, "const MARKET_AREA_VIEWS = [")));
   // ⭐ D147 (owner 11-03) changed this on purpose: the views are WORDS now. ⭐ D156 (4) changed it again on purpose (owner
   // 11-05: "we dont need the drafted panel now"): Home offers All jobs · Starred · Imported — no Pending / Drafted view, so
   // neither a glyph nor the mark can be on one.

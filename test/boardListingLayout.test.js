@@ -113,9 +113,11 @@ test("D1 (10-03): the listings are bubble ROWS of 2/3/4 — the two-column TileG
   // bubbles in rows, so a growing card's neighbours share its row (test/jobBubbleD1.test.js).
   // D149 (11-03) changed this on purpose: the board also takes the sketch's page columns (JobBoardColumns) from the card's
   // module, and the rows are ONE column now (jobBubbleD1) — the TileGrid stays superseded.
-  assert.match(jobsPanel, /import JobBubble, \{ JobBubbleRows(, JobBubbleSkeleton)?(, JobBoardColumns)? \} from "\.\.\/components\/JobBubble\.jsx";/);
-  // ⭐ D152 (5), changed on purpose: two columns of resizing bubbles again (home-sketch.html), one beside an open posting.
-  assert.match(jobsPanel, /<JobBubbleRows jobs=\{jobs\} columns=\{2\}>/);
+  // 47j R2 (changed on purpose): the bubble rows are deleted with the classic market — the Index draws the board's rows; the
+  // board keeps the page columns (JobBoardColumns) from the card's module
+  assert.match(jobsPanel, /import \{ JobBoardColumns \} from "\.\.\/components\/JobBubble\.jsx";/);
+  assert.doesNotMatch(jobsPanel, /<JobBubbleRows\b/);
+  assert.match(jobsPanel, /<MarketIndexTable\b/);
   assert.doesNotMatch(jobsPanel, /<TileGrid/);
 });
 

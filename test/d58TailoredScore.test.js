@@ -49,7 +49,8 @@ test("D58 · generating writes the PAIR once on the résumé — base and tailor
 test("D58 · ONE READ, EVERY SURFACE — the card badge, the posting header and the ATS card all read scoresFor", () => {
   const jobs = read("client/src/panels/JobsPanel.jsx");
   assert.match(jobs, /baseAtsScore: r\.base_ats_score \?\? null,/, "the boot map carries the stored base");
-  assert.match(jobs, /score=\{scoresFor\(job, g\)\.shown\}/, "the card badge");
+  // 47j R2 (changed on purpose): the board's card is the Index row — its match is the same read
+  assert.match(jobs, /indexRow\(job, i, \{ score: scoresFor\(job, generated\[job\.jobId\]\)\.shown,/, "the card badge");
   assert.match(jobs, /scores: scoresFor\(selectedJob, g2\),/, "the posting header, through the panel's meta");
   const payload = jobs.slice(at(jobs, "function buildAtsPayload("), at(jobs, "// -- Main panel"));
   assert.match(payload, /const pair = scoresFor\(job, artifact\);/, "the ATS card");

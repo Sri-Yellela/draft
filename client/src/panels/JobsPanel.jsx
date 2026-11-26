@@ -11,7 +11,6 @@ import { useMonetisationEnabled } from "../lib/monetisation.jsx";
 import { GENERATE_TOOL, A_PLUS_TOOL, TOOL_LABELS, normalizeTool } from "../lib/applyTools.js";
 import { planPageFetch, recordPageCursor, readPageParam, pageInSearch } from "../lib/boardPaging.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
-import { useMarketPlate } from "../plate/marketPlate.js";   // ⭐ D196 FIX-7: the plate market's Index draws this board's rows
 import { openingSheetHref } from "../plate/OpeningSheet.jsx";   // ⭐ D199 C7: the Index row opens the opening sheet
 import { MarketIndexTable, RowBubble, indexRow, indexStatus } from "../plate/MarketIndex.jsx";
 import { DECISIONS, DECISION_SURFACES, DECISION_TOAST_MS, commitDecision, undoDecision, undoFlagsFor, flagsFor, isDrafted, draftBlock } from "../lib/jobDecisions.js";
@@ -23,7 +22,7 @@ import { eligibilityNotice, statedEligibility } from "../../../shared/postingReq
 import DecisionToast from "../components/DecisionToast.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useViewport } from "../hooks/useViewport.js";
-import JobBubble, { JobBubbleRows, JobBubbleSkeleton, JobBoardColumns } from "../components/JobBubble.jsx";
+import { JobBoardColumns } from "../components/JobBubble.jsx";   // ⛔ 47j R2: the bubble rows are deleted (the Index draws the board)
 import { viewKey, viewCacheGet, viewCacheSet } from "../lib/boardViewCache.js";
 import { SavedEmptyState, useExtensionStatus } from "../components/ExtensionPrompt.jsx";
 import { EXTENSION_PAGE, EXTENSION_STORE_URL } from "../../../shared/extension.js";
@@ -1385,7 +1384,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setAtsSortAvailable, atsSortAvailable,
     setBoardPanel, setBoardHeadline, setBoardPager,
   } = useJobBoard();
-  const plateMarketBoard = useMarketPlate();   // ⭐ D199 C3: pages, not endless scroll, on the plate market
+  const plateMarketBoard = true;   // ⭐ D199 C3: pages, not endless scroll. ⛔ 47j R2: the market is the plate market only
   // The open posting's id, for callbacks that must not re-bind on every selection (openAtsPanel, D152 (8)).
   const selectedJobIdRef = useRef(null);
   selectedJobIdRef.current = selectedJob?.jobId ?? null;
@@ -4673,7 +4672,6 @@ export function ImportedEmptyState({ theme }) {
   );
 }
 
-const SKELETON_CARDS = Array.from({ length: 9 }, (_, i) => i);
 
 function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       pollStatus, onRetryPoll,
@@ -4692,7 +4690,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       cardTier = 1, containerRef }) {
   // ⭐ D196 FIX-7 (owner 11-24, 47f): in the plate market the Index tab IS this list, drawn as the board's Gazetteer — the
   // same rows, order, paging, empty states and actions; only the look changes (R6). Its status tags read the apply feeds.
-  const plateIndex = useMarketPlate();
+  const plateIndex = true;   // ⛔ 47j R2: the classic bubble rows (JobBubbleRows) are deleted with the classic market
   const navigateTo = useNavigate();
   const navigateSheet = (job) => { const id = job?.jobId || job?.id; if (id) navigateTo(openingSheetHref(id)); };   // D199 C7
   const { applySubmitted = [], applyGatedJobs = [], applyReviewJobs = [] } = useAutoApply() || {};
@@ -4756,8 +4754,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
       )}
       {boardLoading ? (
         // D45: the card's own geometry from the first frame, until this view answers (FIX-7: the Gazetteer's skeleton rows).
-        plateIndex ? <MarketIndexTable state="loading"/>
-          : <JobBubbleRows jobs={SKELETON_CARDS}>{(_, i) => <JobBubbleSkeleton key={i} />}</JobBubbleRows>
+        <MarketIndexTable state="loading"/>
       ) : shouldShowEmptyState ? (
         // ⭐ 45s: held back because they are being matched — never "nothing matches your filters" (they DO match).
         beingMatched > 0 ? (
@@ -4815,7 +4812,6 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
               generating lives on the job's detail panel. */}
           {/* ⭐ D196 FIX-7 / FIX-8: the plate market's Index — the same jobs as the Gazetteer, each row's bubble the board's
               Star (Save) and Draft, wired to the same decideJob / draftControls as the bubble below. */}
-          {plateIndex ? (
             <MarketIndexTable
               rows={jobs.map((job, i) => indexRow(job, i, { score: scoresFor(job, generated[job.jobId]).shown,
                 saved: !!(job._user?.starred ?? job.starred), offset: (Math.max(1, currentPage) - 1) * 50,   // D199 C8: ★ before a saved title; C3: # runs across pages
@@ -4828,49 +4824,10 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                   onViewDraft={draftControls?.onView} draftBlocked={draftControls?.block} draftSlots={draftControls?.slots}
                   onExplainDraft={(reason) => draftControls?.onExplain(r.job, reason)}/>
               )}/>
-          ) : (
-          /* ⭐ D152 (5): two columns of resizing bubbles; one while a posting is open beside the list. */
-          <JobBubbleRows jobs={jobs} columns={2}>
-          {(job) => {
-            const key = job.jobId, g = generated[key];
-            // Without a detail panel to select into: a generated résumé opens in its sandbox, else the posting.
-            const open = onJobSelect ? () => onJobSelect(job) : () => {
-              if (g?.html && g.html !== "__exists__") {
-                openSandbox({ ...g, company: g.company || job.company, title: g.title || job.title });
-                openAtsPanel(buildAtsPayload(job, g), job);
-              } else if (job.url) visitUrl(job);
-            };
-            return (
-              <JobBubble
-                key={key} job={job}
-                score={scoresFor(job, g).shown}
-                selected={selectedJobId === key}
-                // ⭐ D57: the card says a résumé is ready for this job — the same card in every view (D46).
-                resumeReady={!!g?.html}
-                saved={!!(job._user?.starred ?? job.starred)}
-                drafted={isJobDrafted(key)}
-                drafting={draftingIds.has(key)}
-                onOpen={open}
-                // ⛔ CC5 · opening with an EMPTY payload is the working case: ATSPanel scores the posting
-                // against this caller's résumé on demand when it is handed no report.
-                // A53: the card's decisions are the deck's — Save and Draft SET; Pass is on the detail panel.
-                onSave={() => decideJob?.(job, DECISIONS.SAVED)}
-                onDraft={() => decideJob?.(job, DECISIONS.DRAFTED)}
-                onViewDraft={draftControls?.onView} draftBlocked={draftControls?.block} draftSlots={draftControls?.slots}
-                onExplainDraft={(reason) => draftControls?.onExplain(job, reason)}
-                onSend={networkOn && job.publicPath ? () => setSending(job) : null}
-              />
-            );
-          }}
-          </JobBubbleRows>
-          )}
           {sending && <SendJobPicker job={sending} onClose={() => setSending(null)} />}
 
-          {/* ⭐ D147 · scrolling, not page numbers: the next page loads as the list's end comes into view. */}
-          {/* ⭐ D199 C3: never on the plate market — it pages (plate/MarketPager.jsx), and reaching a page's end fetches nothing */}
-          {jobs.length > 0 && totalPages > 0 && !plateIndex && (
-            <BoardMore shown={jobs.length} total={totalJobs} more={currentPage < totalPages} onMore={onLoadMore} theme={theme} />
-          )}
+          {/* ⭐ D199 C3: the board pages (plate/MarketPager.jsx); reaching a page's end fetches nothing. ⛔ 47j R2: D147's
+              endless-scroll line (BoardMore) is deleted with the classic market. */}
 
         </PullToRefresh>
       )}
@@ -4882,31 +4839,6 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
 /** ⭐ D149 · below this width the opened posting is the full-screen overlay (fullhouse-declutter.html's 1000px rule). */
 const BESIDE_MIN_VIEWPORT = 1000;
 
-// ⭐ D147 · THE END OF THE LIST — "Showing 50 of 746 · scroll for more", and the next page appended when this line comes
-// within 600px of the viewport (an IntersectionObserver, never a scroll listener). The line is also a button, so the
-// next page is reachable without scrolling (keyboard, a browser with no observer).
-function BoardMore({ shown, total, more, onMore, theme }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || !more || typeof IntersectionObserver === "undefined") return undefined;
-    const io = new IntersectionObserver((entries) => { if (entries.some(e => e.isIntersecting)) onMore?.(); }, { rootMargin: "600px 0px" });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [more, onMore, shown]);
-  const of = Number.isFinite(total) && total > 0 ? ` of ${total.toLocaleString()}` : "";
-  return (
-    <div ref={ref} data-board-more="" data-more={more ? "true" : "false"}
-      style={{ display:"flex", justifyContent:"center", padding:"18px 20px 26px", fontSize:ts(13.5), color:theme.textMuted }}>
-      {more
-        ? <button type="button" onClick={() => onMore?.()} className="fh-more"
-            style={{ background:"none", border:0, font:"inherit", color:"inherit", cursor:"pointer", padding:"6px 10px" }}>
-            Showing {shown.toLocaleString()}{of} · scroll for more
-          </button>
-        : <span>Showing all {shown.toLocaleString()}</span>}
-    </div>
-  );
-}
 
 // Displays LinkedIn jobs already captured via the extension. The `onImport`/`linkedinImporting`
 // props and their two "Import from LinkedIn" buttons were removed in cleanup 5.3: they drove the

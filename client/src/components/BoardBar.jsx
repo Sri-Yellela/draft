@@ -21,24 +21,8 @@ import "./FullHouse.css";
 // Phone (FullHouse.css): two rows, chosen — the views and the two squares, then the search full width.
 // These pieces are presentational; App.jsx wires them to the board's context.
 
-/** The views segment. `views` is [[id, label, title]]; counts is { [id]: number | null }. Pure. */
-export function ViewSegment({ views, value, counts = {}, onChange }) {
-  return (
-    <div className="fh-views" role="group" aria-label="Board view">
-      {views.map(([id, label, title]) => {
-        const n = counts[id];
-        return (
-          <button key={id} type="button" data-view={id} aria-pressed={value === id}
-            title={title} aria-label={n != null ? `${title}, ${n}` : title}
-            onClick={() => onChange?.(id)}>
-            <span aria-hidden="true">{label}</span>
-            {n != null && <span className="fh-ct" aria-hidden="true">{n}</span>}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+// ⛔ 47j R2: the classic market's views segment (ViewSegment — All jobs · Starred · Imported) is deleted; the views are the
+// shell's area nav (App.jsx MARKET_AREA_VIEWS).
 
 /** The search field: the board's keyword, Enter commits it (A74: one press, one search). ⭐ D156 (5): `children` sit
  *  inside the field at its right end — the sort icon. */
@@ -87,23 +71,8 @@ export function BoardSearch({ onSubmit, onPickRole, onPickTech, children = null,
 }
 
 
-/**
- * ⭐ D156 (5) (owner 11-05: "bring back the sort as an icon in the search bar") · THE SORT ICON — inside the search field,
- * at its right end (it was D147's "Sort: For you" word at the top of the column). It opens the one sort panel (SortPanel)
- * as a small menu under the field — For you · Best fit · Newest · Salary · Company, the current one marked; the icon's
- * label says the current sort. A chosen (non-default) order holds the accent. The same attributes the word had.
- */
-export function SortIcon({ open = false, chosen = false, label = "", onPress }) {
-  const said = label ? `Sort: ${label}` : "Sort";
-  return (
-    <button type="button" className="fh-sorti" data-board-icon="sort" data-active={chosen ? "true" : "false"}
-      aria-haspopup="true" aria-expanded={open} aria-controls={open ? "fh-sort" : undefined}
-      aria-label={`${said} — change the order`} title={`${said} — change the order`}
-      onClick={() => onPress?.()}>
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4v15M3.5 15.5 7 19l3.5-3.5M17 20V5M13.5 8.5 17 5l3.5 3.5" /></svg>
-    </button>
-  );
-}
+// ⛔ 47j R2: the classic bar's sort icon (SortIcon) is deleted; the sort is the cartouche's MarketSortButton
+// (plate/MarketControls.jsx), opening the same one SortPanel.
 
 /**
  * ⭐ D156 (4) (owner 11-05: "the starred and imported has to be there and the import function") · IMPORT A JOB, inline under

@@ -375,24 +375,15 @@ const app     = read("client/src/App.jsx");
 const topBar  = read("client/src/components/TopBar.jsx");
 const context = read("client/src/contexts/JobBoardContext.jsx");
 
-test("the sort trigger sits in the board's ONE bar beside the views (D35: the filter trigger IS the sentence)", () => {
-  assert.match(app, /function BoardControlIcons\(\)/);
-  // D35 §3: the condensed bar — the views, the search, the sort square and + — one row, not a new one.
-  // The Import button was removed by D11 (importing is the extension's job; test/d11FullHouseHeader
-  // .test.js pins its absence), and D35 deleted the FILTER icon: the sentence's words are the filters
-  // (test/d35FullHouseHeader.test.js pins that).
-  // ⭐ D156 (5) changed this on purpose (D147 had put the sort in a title row and the views in its panel): the sort is an
-  // ICON inside the search field, its small menu under the bar; the views are their own row under the search (BoardViews).
-  const bar = app.slice(at(app, "function BoardBar()"), at(app, "function BoardViews("));
-  assert.match(bar, /<BoardSearchBar><BoardControlIcons \/><\/BoardSearchBar>/);
-  assert.match(bar, /<BoardSortSlot \/>/);
-  assert.doesNotMatch(bar, /<BoardTabs \/>/);
-  assert.match(app.slice(at(app, "function BoardViews("), at(app, "function BoardCounts()")), /<BoardTabs \/>/);
-  // D49: in the StickyBar at the top of <main>, right after the header.
-  assert.match(app.slice(at(app, '<header className="fh"'), at(app, "</main>")), /<StickyBar[^>]*>\s*<BoardBar \/>/);
-  // And inside the provider, for the same reason BoardSearchBar is: AppDashboard renders
-  // JobBoardProvider and cannot read it.
-  assert.match(app, /function BoardControlIcons\(\) \{\s*\n\s*const \{[^}]*\} = useJobBoard\(\);/);
+// 47j R2 (changed on purpose): the classic bar (its sort icon inside the search, the views segment, D49's StickyBar) is
+// deleted with the classic market. The sort sits beside the search in the cartouche's row, inside the provider (as
+// BoardSearchBar is); the views are the area nav's; the sort's one panel opens beneath.
+test("the sort trigger sits beside the search in the cartouche's row (D35: the filter trigger IS the sentence)", () => {
+  assert.doesNotMatch(app, /function BoardControlIcons\(\)|function BoardBar\(\)|<StickyBar|<BoardTabs \/>/);
+  const slot = app.slice(at(app, "function BoardHeadlineSlot()"), at(app, "function RouteCommitSignal"));
+  assert.match(slot, /<MarketSearchRow search=\{<BoardSearchBar [\s\S]{0,160}?\/>\}\s*sort=\{<MarketSortSlot \/>\} \/>/);
+  assert.match(slot, /<BoardSortSlot \/>/);
+  assert.match(app, /function MarketSortSlot\(\) \{\s*\n\s*const \{[^}]*\} = useJobBoard\(\);/);
 });
 
 test("every sort option moved across intact — same values, same labels", () => {
@@ -467,7 +458,8 @@ test("A74 (owner, 10-03): the count bar and the filters-active chip are GONE —
   // invisibly, which is the whole reason the badge was a requirement.
   assert.doesNotMatch(panel, /job\{totalJobs !== 1 \? "s" : ""\}/, "the job count is back");
   assert.doesNotMatch(panel, /\{activeFilterCount\} filter\{activeFilterCount === 1 \? "" : "s"\} active/, "the filters-active chip is back");
-  const headline = fs.readFileSync("client/src/components/BoardHeadline.jsx", "utf8");
+  // 47j R2 (changed on purpose): the sentence is the cartouche's (plate/PlateBearing.jsx)
+  const headline = fs.readFileSync("client/src/plate/PlateBearing.jsx", "utf8");
   assert.match(headline, /aria-pressed=\{s\.active \|\| !!s\.clause\.floor\}/, "an active filter no longer shows in the sentence");
   // The drawer's filters, which are not words, are counted on "+ add" ("salary & more · 2 on").
   assert.match(fs.readFileSync("client/src/lib/filterSentenceModel.js", "utf8"), /salary & more · \$\{otherFilterCount\} on/);

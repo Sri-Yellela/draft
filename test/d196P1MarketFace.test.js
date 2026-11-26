@@ -44,7 +44,6 @@ async function load() {
     import MarketCardFace, { openingFromCard, pickStack } from ${JSON.stringify(path.join(CLIENT, "src/plate/MarketCardFace.jsx"))};
     export { openingFromCard, pickStack };
     import PlateBearing from ${JSON.stringify(path.join(CLIENT, "src/plate/PlateBearing.jsx"))};
-    import BoardHeadline from ${JSON.stringify(path.join(CLIENT, "src/components/BoardHeadline.jsx"))};
     import MarketHero, { marketCells, youOnPlate, SECTOR_SPOTS } from ${JSON.stringify(path.join(CLIENT, "src/plate/MarketHero.jsx"))};
     import MarketSurveyPlate from ${JSON.stringify(path.join(CLIENT, "src/plate/drawings/MarketSurveyPlate.jsx"))};
     export { marketCells, youOnPlate, SECTOR_SPOTS };
@@ -57,7 +56,6 @@ async function load() {
     export const renderTickets = (props) => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(MarketTickets, props)));
     export const renderOpenings = (props) => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(MarketOpenings, props)));
     export const renderBearing = (props) => renderToStaticMarkup(React.createElement(PlateBearing, props));
-    export const renderHeadline = (props) => renderToStaticMarkup(React.createElement(BoardHeadline, props));
     export const render = (props) => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(MarketCardFace, props)));
   `;
   await esbuild.build({
@@ -85,7 +83,8 @@ test("D196 P1 · d196P1KeepsFrameBacksFlip — the plate branch swaps the face o
   const i = at(s, "{showFace && home && plateFace && <MarketCardFace");
   const fan = s.slice(at(s, "function FanCard("), at(s, "function leaveFor("));
   assert.ok(fan.includes("{showFace && home && plateFace && <MarketCardFace"), "the plate face is FanCard's");
-  assert.ok(fan.includes("{showFace && home && !plateFace && <HomeCardFace"), "the old face stays when the switch is off");
+  // 47j R2 (changed on purpose): the classic face on the market (HomeCardFace) is deleted — the plate face is the only one
+  assert.ok(!fan.includes("<HomeCardFace"), "the classic face is back on the market");
   const after = s.slice(i, i + 2400);
   assert.ok(after.includes("<CardBack company={card.job.company}"), "the deck's own back stays behind the plate face");
   const before = s.slice(i - 3600, i);
@@ -161,7 +160,10 @@ test("D196 P1 · d196P1SwitchOnAfterApproval (was d196P1SwitchOffByDefault)", ()
 });
 
 test("D196 P1 · d196P1BearingSameControls — the cartouche is the same sentence and the same controls (R6)", async () => {
-  const { renderBearing, renderHeadline } = await load();
+  const { renderBearing } = await load();
+  // 47j R2 (changed on purpose): the classic sentence (BoardHeadline's component) is deleted, so the cartouche is held to
+  // the ONE projection both drew — sentenceParts (D30): its words, one button per slot, the same states.
+  const { sentenceParts } = await import("../client/src/lib/filterSentenceModel.js");
   const strip = (h) => h.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
   const controls = (h) => [...h.matchAll(/<button[^>]*data-slot="([^"]+)"[^>]*>/g)].map((m) => {
     const a = (k) => (m[0].match(new RegExp(`${k}="([^"]*)"`)) || [])[1] ?? null;
@@ -169,16 +171,19 @@ test("D196 P1 · d196P1BearingSameControls — the cartouche is the same sentenc
   });
   const sentenceOf = (h) => h.slice(at(h, 'id="fh-sentence"'), at(h, "</h1>"));
   for (const [params, open] of [[{}, null], [{ tech: "React", location: "Boston" }, "location"], [{ level: "mid" }, "level"]]) {
-    const old = renderHeadline({ params, open });
+    const { verb, slots } = sentenceParts(params, {});
     const plate = renderBearing({ params, open, allSlot: "all" });
     assert.ok(plate.includes('id="fh-sentence"'), "the sentence keeps its id");
     assert.ok(plate.includes('id="fh-all-filters"'), "All filters keeps its id");
-    assert.equal(strip(sentenceOf(plate).replace(/^[^>]*>/, "")), strip(sentenceOf(old).replace(/^[^>]*>/, "")), "the same words");
-    assert.deepEqual(controls(sentenceOf(plate)), controls(sentenceOf(old)), "the same controls and states");
+    const words = strip(sentenceOf(plate).replace(/^[^>]*>/, ""));
+    assert.ok(words.startsWith(verb), "the sentence's verb");
+    for (const s of slots) assert.ok(words.includes(s.text), `the word ${s.text}`);
+    assert.deepEqual(controls(sentenceOf(plate)), slots.map((s) => [s.key, String(!!(s.active || s.clause.floor)), String(open === s.key), open === s.key ? "fh-panel" : null]),
+      "one control per slot, its states from the projection");
   }
   const app = read("client/src/App.jsx");
   const slot = app.slice(at(app, "function BoardHeadlineSlot()"), at(app, "function RouteCommitSignal()"));
-  assert.ok(slot.includes("if (!plate) return"), "the switch picks the cartouche");
+  assert.ok(!slot.includes("if (!plate) return") && !slot.includes("<BoardHeadline "), "47j R2: the cartouche is the only sentence");
   const plateBranch = slot.slice(at(slot, "<PlateBearing "));
   assert.ok(at(plateBranch, "<PlateBearing ") < at(plateBranch, "<WordPanel "), "WordPanel opens beneath the cartouche, as beneath the sentence");
 });
@@ -220,10 +225,12 @@ test("D196 P1 · d196ExistingBubblesAndHoverKept — the tabs hold the app's own
   const app = read("client/src/App.jsx");
   const fromBoard = app.slice(at(app, "const homeBoard = ("));
   const board = fromBoard.slice(0, at(fromBoard, "</section>"));   // the board element ends at its section
-  for (const piece of ["<JobsConsole", "<BoardBar />", "<BoardViews", "<BoardCounts />"]) assert.ok(board.includes(piece), `the board element keeps ${piece}`);
+  for (const piece of ["<JobsConsole", "<BoardViews"]) assert.ok(board.includes(piece), `the board element keeps ${piece}`);
+  // 47j R2 (changed on purpose): the classic bar and counts strip are deleted (the cartouche carries search, sort and stats)
+  for (const piece of ["<BoardBar />", "<BoardCounts />"]) assert.ok(!board.includes(piece), `${piece} is back`);
   // D199 (47h, moved on purpose): the plate market passes the same elements to its ONE section
   assert.ok(app.includes("<MarketSectionSlot deck={homeDeck} index={homeBoard} />"), "the plate market passes the SAME elements");
-  assert.ok(app.includes('<div className="home" data-home="">{homeDeck}{homeBoard}</div>'), "the classic grid renders the same elements");
+  assert.ok(!app.includes('<div className="home" data-home="">'), "47j R2: the classic grid is deleted");
   const deck = read("client/src/panels/DeckView.jsx");
   assert.ok(deck.includes("if (home && plateMarket) publishFrontCard("), "only the plate market publishes the front card");
 });
@@ -289,7 +296,7 @@ test("D196 P1 · d196BoardBudgetsHold (A175) — the plate market adds no board 
   assert.ok(/panels=\{\{/.test(open), "the deck and the board stay mounted under the tabs (no reload on a switch)");
   for (const f of plateFiles) assert.ok(!/\/api\/jobs\/facets|\/api\/jobs\?|\/api\/deck/.test(read(f)), `${f} must not read the board, its facets or the deck itself`);
   const app = read("client/src/App.jsx");
-  const hero = app.slice(at(app, "function MarketHeroSlot()"), at(app, "function BoardCounts()"));
+  const hero = app.slice(at(app, "function MarketHeroSlot()"), at(app, "function MarketPagerSlot()"));   // 47j R2: BoardCounts is deleted
   assert.ok(hero.includes("marketFigures(boardHeadline?.facets)"), "the hero's figures are the facets answer the board already fetched");
   assert.ok(!/\bapi\(/.test(hero), "the hero and the bearing / openings slots fetch nothing");
 });

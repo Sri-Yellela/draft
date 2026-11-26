@@ -20,7 +20,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { at } from "../test-support/sourceAnchors.js";
-import { probe as fidelityProbe } from "../test-support/fidelityProbe.mjs";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const DECK = read("client/src/panels/DeckView.jsx");
@@ -30,14 +29,6 @@ const APP = read("client/src/App.jsx");
 const BAR = read("client/src/components/BoardBar.jsx");
 const BUBCSS = read("client/src/components/JobBubble.css");
 
-let probe = null;
-function measured(t) {
-  if (probe === null) {
-    probe = fidelityProbe("home156");
-  }
-  if (probe.skipped) { t.skip(probe.skipped); return null; }
-  return probe;
-}
 
 // ── pure ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 test("d156LandscapeCardAt1440WithStats (pure): 600 × 372 at ≥ 1440, the 640 column; 300 × 420 and 250 × 350 below", async () => {
@@ -57,9 +48,10 @@ test("d156LandscapeCardAt1440WithStats (pure): 600 × 372 at ≥ 1440, the 640 c
   // landscape card and its fan) and takes a share of a wide screen, the deck centred in it; the page's gutters and the gap
   // between the columns grow with the screen (24 → 96, 32 → 64) and the content is 1680 wide at most
   // (test/d163UseTheSpace.test.js). At 1280 the gutters are still D156 (2)'s 24.
-  assert.match(css, /@media \(min-width: 1440px\) \{ \.home \{ --home-deck-track: minmax\(640px, \.75fr\); \} \.home__deck \{ width: auto; min-width: 640px; \} \}/);
-  assert.match(css, /\.home \{ --home-gutter: var\(--page-gutter\);[^}]*grid-template-columns: var\(--home-deck-track, auto\) minmax\(0, 1fr\); gap: var\(--home-gap\);/,
-    "less page margin (was 44 40 90, 56 between the columns); D163: growing with the screen");
+  // 47j R2 (changed on purpose): the classic grid (`.home`, its tracks and gutters) is deleted; the deck's section keeps its
+  // 640 at ≥ 1440 (the plate market's section still wears .home__deck)
+  assert.match(css, /@media \(min-width: 1440px\) \{ \.home__deck \{ width: auto; min-width: 640px; \} \}/);
+  assert.doesNotMatch(css, /(^|\n)\.home \{|:root \.home \{|\.home \{ --home-deck-track/, "the classic grid is back");
 });
 
 test("d156NoReasonSentence (pure): the card's facts carry at most four small stats, skills matched first; no reason line", async () => {
@@ -93,9 +85,13 @@ test("d156DeckBehaviourAsDeckView (pure): one flick one card, the flip timings, 
   assert.match(DECK, /if \(info\.offset\.x > SWIPE_COMMIT_PX\) onDecide\(DECISIONS\.DRAFTED\);\n\s+else if \(info\.offset\.x < -SWIPE_COMMIT_PX\) onDecide\(DECISIONS\.PASSED\);/);
   assert.match(DECK, /\{isFront && <motion\.div aria-hidden data-deck-stamp="draft"/, "the stamps are back on Home's card");
   assert.match(DECK, /if \(k === "d" \|\| k === "D" \|\| k === "ArrowRight"\) \{ e\.preventDefault\(\); decide\(DECISIONS\.DRAFTED\); \}/);
-  assert.match(DECK, /<FlipButton dir=\{-1\} disabled=\{stepTarget\(s, -1\) == null\} onFlip=\{step\} \/>/);
+  // 47j R2 (changed on purpose): the classic count row's ‹ › and action row are deleted — the plate position row's squares
+  // (PlatePosRow) and the ticket's own Pass (TicketActions) carry the same step and the same keys
+  assert.match(DECK, /<FlipButton dir=\{-1\} disabled=\{!prev\} onFlip=\{onFlip\}/);
+  assert.match(DECK, /<PlatePosRow [^>]*onFlip=\{step\} \/>/);
   assert.match(DECK, /aria-keyshortcuts=\{dir > 0 \? "J ArrowDown" : "K ArrowUp"\}/);
-  assert.match(DECK, /<ActionButton label="Pass" ariaKeys="X ArrowLeft"/);
+  assert.match(read("client/src/plate/MarketCardFace.jsx"), /data-deck-action="pass" aria-keyshortcuts="X ArrowLeft"/);
+  assert.doesNotMatch(DECK, /<ActionButton label="Pass" ariaKeys="X ArrowLeft"/, "the classic action row is back on the market");
 });
 
 test("d156CardExpandsIntoLongPost / d156NoSeparatePostingPanel / d156ListPostingOpensOnDeck (pure)", () => {
@@ -174,174 +170,25 @@ test("d156DockPushesPage → D167 → D197 #1 (pure): the dock never pushes the 
 });
 
 test("d156StarredImportedViews / d156ImportAJobInline / d156SortIconInSearch (pure)", () => {
-  const tabs = APP.slice(at(APP, "const BOARD_TABS = ["), at(APP, "];", at(APP, "const BOARD_TABS = [")));
-  assert.deepEqual([...tabs.matchAll(/\["(\w+)",\s+"([^"]+)"/g)].map(m => [m[1], m[2]]), [["all", "All jobs"], ["saved", "Starred"], ["imported", "Imported"]],
+  // 47j R2 (changed on purpose): the views are the area nav's (MARKET_AREA_VIEWS) — Today's picks + the same three
+  const tabs = APP.slice(at(APP, "const MARKET_AREA_VIEWS = ["), at(APP, "];", at(APP, "const MARKET_AREA_VIEWS = [")));
+  assert.deepEqual([...tabs.matchAll(/id: "(\w+)", label: "([^"]+)"/g)].map(m => [m[1], m[2]]), [["picks", "Today’s picks"], ["all", "All jobs"], ["saved", "Starred"], ["imported", "Imported"]],
     "no Drafted / Pending view, no Companies tab (A157, 45q, owner 11-09)");
   assert.match(APP, /<BoardViews onImported=\{\(\) => setJobBoardRefreshKey\(k => k \+ 1\)\} \/>/);
   assert.match(APP, /onImported=\{\(\) => \{ setBoardTab\?\.\("imported"\); onImported\?\.\(\); \}\}/);
   assert.match(BAR, /await api\("\/api\/import\/job", \{ method: "POST", body: JSON\.stringify\(isLink \? \{ url: v \} : \{ text: v \}\) \}\)/,
     "the existing import route, not a second import");
-  assert.match(APP, /<BoardSearchBar><BoardControlIcons \/><\/BoardSearchBar>/, "the sort icon inside the search field");
+  // 47j R2 (changed on purpose): the sort sits beside the search in the cartouche's row (the classic in-field icon is deleted)
+  assert.match(APP, /<MarketSearchRow search=\{<BoardSearchBar [\s\S]{0,160}?\/>\}\s*sort=\{<MarketSortSlot \/>\} \/>/, "the sort beside the search");
+  assert.match(APP, /more=\{\[\{ id: "import", label: "Import a job"/, "Import a job reachable from the area nav");
   assert.doesNotMatch(APP, /BoardTitleRow|fh-title/, "no Sort button at the top");
 });
 
-test("d156BubbleD1Growth (pure): hovered 1.55, the neighbour keeps 1, the rail 0 → 124 on 0.42 s cubic-bezier(.3,.8,.25,1)", () => {
-  const block = BUBCSS.slice(at(BUBCSS, "D152 (5) · HOME: TWO COLUMNS OF BUBBLES"));
-  assert.match(block, /\.jb-pair \.jb \{ flex: 1 1 0; min-width: 0; border-radius: 22px; padding: 16px 20px; gap: 14px;\n  transition: flex-grow \.42s cubic-bezier\(\.3,\.8,\.25,1\)/);
-  assert.match(block, /\.jb-pair \.jb:hover, \.jb-pair \.jb:focus-within \{ flex-grow: 1\.55;/);
-  assert.doesNotMatch(block, /\.jb-pair:hover \.jb \{ flex-grow: \.75; \}/, "the neighbour is not squeezed");
-  assert.match(block, /\.jb-pair \.jb:hover \.jb__rail, \.jb-pair \.jb:focus-within \.jb__rail \{ max-width: 124px; \}/);
-  assert.match(BUBCSS, /transition: max-width \.42s cubic-bezier\(\.3,\.8,\.25,1\)/, "the rail on the same clock");
-  assert.match(block, /@media \(hover: none\) \{\n  \.jb-pair \.jb:hover, \.jb-pair \.jb:focus-within \{ flex-grow: 1; \}\n  \.jb-pair \.jb \.jb__rail \{ max-width: 124px; opacity: 1;/,
-    "touch: the rail always, no growth");
+// 47j R2 (changed on purpose): D1's bubble PAIR (.jb-pair, hovered 1.55) is deleted with the classic market's rows.
+test("d156BubbleD1Growth → 47j R2 (pure): the bubble pair is deleted with the classic market", () => {
+  assert.doesNotMatch(BUBCSS.replace(/\/\*[\s\S]*?\*\//g, ""), /\.jb-pair\b/, "the classic bubble pair's rules are back");
 });
 
 // ── real Chrome ───────────────────────────────────────────────────────────────────────────────────────────────────
-test("d156 real Chrome (1440 · 1280 · 390): the card, the flip, the dock, the views, import, sort, the bubbles", { timeout: 300000 }, (t) => {
-  const out = measured(t);
-  if (!out) return;
-  const want = { wide: [600, 372, "landscape"], desktop: [300, 420, "portrait"], phone: [250, 350, "portrait"] };
-  for (const [size, d] of Object.entries(out)) {
-    const c = d.card;
-    // d156LandscapeCardAt1440WithStats
-    assert.deepEqual([c.box.width, c.box.height, c.orientation], want[size], `${size}: the card's size`);
-    assert.ok(c.stats.length >= 1 && c.stats.length <= 4, `${size}: at most four stats on the card (${c.stats.length})`);
-    assert.equal(c.stats[0].label, "skills matched");
-    for (const st of c.stats) {
-      assert.equal(st.inside, true, `${size}: the ${st.key} stat sits inside the card`);
-      // ⭐ (1c) d156FoldedCardFillsSpace: larger cells on the landscape card (22 px), 17 px on the portrait, 15 on a phone
-      assert.deepEqual([st.valueSize, st.labelSize], [{ wide: "22px", desktop: "17px", phone: "15px" }[size], "11.5px"], `${size}: the stats' type`);
-    }
-    assert.ok(Math.abs(d.folded.above - d.folded.below) <= 3, `${size}: the title centred between the head and the info row (${d.folded.above} / ${d.folded.below})`);
-    assert.equal(d.folded.statCols, 2, `${size}: the stats two across`);
-    // d156NothingScrollsInCard
-    assert.equal(c.faceOverflows, false, `${size}: everything fits — nothing overflows the card`);
-    assert.equal(c.scrollers, 0, `${size}: nothing scrolls inside the card`);
-    assert.equal(c.articleOverflowY, "hidden");
-    assert.equal(c.titleClamp, "3", `${size}: the title clamps to three lines`);
-    assert.ok(c.titleLines <= 3);
-    assert.equal(c.openPosting, "Open the posting"); assert.equal(c.openInside, true);
-    // d156NoReasonSentence
-    assert.equal(c.reason, false, `${size}: no reason sentence`); assert.equal(c.why, false, `${size}: no "Why this job" inside the card`);
-    // d156ButtonsNeverOverCardContent
-    assert.equal(d.buttons.position, "relative", `${size}: Pass · Save · Draft are not sticky on Home`);
-    assert.equal(d.buttons.rest.over, false);
-    assert.equal(d.fan.coverButtons, false, `${size}: the fan never covers the buttons`);
-    assert.equal(d.fan.outside, false, `${size}: the fan stays in the deck's column`);
-    // d156NoDeckListOverlapOnScroll
-    for (const sc of d.scrolls) {
-      assert.equal(sc.deckVsList, false, `${size} at y=${sc.y}: the deck and the list never overlap`);
-      assert.equal(sc.deckVsBar, false, `${size} at y=${sc.y}: nor the deck and the sticky search`);
-      assert.equal(sc.buttonsOverCard, false, `${size} at y=${sc.y}: the buttons never over the card`);
-    }
-    // ⭐ (1c) d156DeckBehaviourAsDeckView — one flick (60) one card, then a 140 ms settle; sideways too; J / K; ‹ ›
-    const f = d.flip;
-    assert.deepEqual([f.start, f.afterHalfFlick, f.afterOneFlick, f.duringSettle, f.afterSecondFlick, f.afterSidewaysBack], [1, 1, 2, 2, 3, 2],
-      `${size}: one flick, one card`);
-    assert.equal(f.pageScrolledByWheel, 0, `${size}: the wheel over the deck never scrolls the page while a turn is possible`);
-    assert.equal(f.cardHeightAfterWheel, f.cardHeightBefore, `${size}: the wheel never lengthens the card`);
-    assert.deepEqual([f.afterK, f.afterJ, f.afterNextButton, f.afterPrevButton], [1, 2, 3, 2], `${size}: K J › ‹`);
-    assert.equal(f.prevKeys, "K ArrowUp");
-    // a swipe left passes, with the PASS stamp on the way (the deck's own gesture)
-    assert.equal(d.swipe.passed, true, `${size}: a left swipe passes`); assert.notEqual(d.swipe.after, d.swipe.before, `${size}: the next card is in front`);
-    assert.equal(d.swipe.stampShown, true, `${size}: the PASS stamp shows during the drag`);
-    // ⭐ (1c) d156CardExpandsIntoLongPost / d156NoSeparatePostingPanel / d156ListPostingOpensOnDeck
-    const p = d.post;
-    if (size === "phone") {
-      // A phone (≤ 1000 px) keeps D149's full-screen posting: the scroll down opens it there, never in the deck's slot.
-      // ✅ APPROVED 11-06 by the owner (O99 (b): the phone keeps the full-screen posting).
-      assert.deepEqual([p.overlay, p.slotOpen, p.overlayClosed], [true, false, true], "phone: the full-screen posting, closed by Esc");
-    } else {
-    // ⭐ D168 (changed on purpose): a scroll down on the front card TURNS the deck; a press opens the long post.
-    assert.equal(p.wheelOpened, false, `${size}: the wheel never opens the card`); assert.equal(p.wheelTurned, true, `${size}: it turns the deck`);
-    assert.equal(p.openedByPress, true, `${size}: a press on the front card opens it into the long post`);
-    assert.equal(p.postTitle, p.title, `${size}: the post is the front card's job`);
-    assert.equal(p.factsInSlot, true); assert.equal(p.inSlot, true, `${size}: drawn in the deck's column`);
-    assert.equal(p.stageHidden, true, `${size}: the fan is put away while it is open`);
-    if (size !== "phone") assert.equal(p.deckPosition, "relative", `${size}: the deck column is not sticky while reading`);
-    assert.equal(p.boardPost, false, `${size}: no posting panel beside the list`); assert.equal(p.listShown, true);
-    assert.equal(p.foldLabel, "Fold it back");
-    assert.equal(p.wheelFolded, false, `${size}: D168 — a scroll up never folds it`); assert.equal(p.backTo, p.title);
-    assert.deepEqual([p.openedByEnter, p.foldedByEsc, p.openedByButton, p.foldedByButton], [true, true, true, true], `${size}: Enter / Esc / Open the posting / Fold it back`);
-    if (size !== "phone") {
-      assert.equal(p.listOpensOnDeck, true, `${size}: a bubble's posting opens on the deck`);
-      assert.equal(p.listOrigin, "board"); assert.equal(p.listStillShown, true, `${size}: the list stays beside it`);
-      assert.deepEqual([p.passFolds, p.passAdvanced], [true, true], `${size}: the post's Pass decides the deck's card and the next one returns`);
-      assert.match(p.passSaid, /^Passed /);
-    }
-    }
-    // ⭐ (1d) d156FilterSentenceOriginalStyle — the logo face, 800 italic, 1.5, -.015em; the highlighter underline
-    const sn = d.sentence;
-    assert.match(sn.family, /Poppins/); assert.deepEqual([sn.weight, sn.style], ["800", "italic"]);
-    assert.equal(Math.round(parseFloat(sn.line) / parseFloat(sn.size) * 1000) / 1000, 1.5);
-    assert.equal(Math.round(parseFloat(sn.spacing) / parseFloat(sn.size) * 1000), -15);
-    assert.equal(sn.size, size === "phone" ? `${Math.min(30, 390 * 0.064).toFixed(2).replace(/0+$/, "").replace(/\.$/, "")}px` : "30px");
-    assert.equal(sn.color, sn.ink);
-    assert.ok(sn.word.shadow.includes(sn.quiet) && /inset/.test(sn.word.shadow), `${size}: the quiet-accent highlighter underline (${sn.word.shadow})`);
-    // d156DockIconsSameSizeThemeAccent / d156ShortLogoInDock / ⭐ (1c) d156DockDraftIsJobsHomeIsDashboard
-    const k = d.dock;
-    // ⭐ D167 (owner 11-06, changed on purpose): six places — + Interview, and Ask draft after the divider.
-    // 45n (pin brought to the code in 45o): the dock's search icon comes first.
-    // ⭐ owner 11-15: Tiny replaces Ask draft, floating (changed on purpose) — "ask" left the dock (a fox bubble instead).
-    // ⭐ D197 #1 (the Shell board, changed on purpose): the search moved into the area nav; the rail draws Ask draft after its
-    // rule (opens Tiny); the phone's bottom bar has none.
-    assert.deepEqual(k.items, ["today", "auto-apply", "atlas", "interview", "profile", ...(size === "phone" ? [] : ["ask"])]);
-    // ⭐ D167 (owner 11-06, changed on purpose): THE DOCK GOES WHERE THE SPACE IS — at 1440 / 1280 it is a top row, on a
-    // phone a top row of icons; its form, motion, placement and the peek are test/d167Dock's. What D156 asked still holds:
-    // every line icon one size and in the theme's accent, the person's initials in a circle, no emboss and no edge handle.
-    // ⭐ D197 #1 (the Shell board, changed on purpose — was 30 px icons in the theme's accent, initials in a circle): the plate's
-    // 20 px line icons (19 on the phone's bar) in the plate's ink, the initials on a 22 px square tile (20 on the bar), 7 px round.
-    const icons = k.icons.filter(i => i.id !== "today");   // the jobs' entry is the /d tile (the bar's /d mark)
-    const px = size === "phone" ? [19, 20, "6px"] : [20, 22, "7px"];
-    for (const i of icons.filter(i => i.stroke)) assert.deepEqual([i.w, i.h], [px[0], px[0]], `${size}: ${i.id} ${px[0]} px`);
-    for (const i of icons.filter(i => i.stroke)) assert.equal(i.stroke, i.ink, `${size}: ${i.id} in the plate's ink`);
-    const me = icons.find(i => i.id === "profile");
-    assert.ok(me && me.text === "A", `${size}: initials when there is no picture (${me && me.text})`);
-    assert.deepEqual([me.w, me.h, me.radius], [px[1], px[1], px[2]], `${size}: the initials tile`);
-    assert.equal(k.emboss, false); assert.equal(k.handle, false);
-    assert.equal(k.rest.shownAtRest, true, `${size}: the dock is always visible`);
-    // ⭐ D197 #1 · A237 (changed on purpose): on a phone the dock is the BOTTOM bar, fixed at the screen's foot over the
-    // scrolling page (the shell keeps the bar's height free at its end — test/d167Dock d197ShellPlace); on a computer the
-    // rail never covers the page
-    if (size === "phone") assert.ok(k.rest.box.top >= 844 - 90, `phone: the bottom bar at the foot (${k.rest.box.top})`);
-    else assert.equal(k.rest.coversPage, false, `${size}: the dock never covers the page`);
-    // d156StarredImportedViews
-    assert.equal(d.views.below, true, `${size}: the views sit under the search`);
-    // ⛔ A157 (45q, owner 11-09): the Companies tab is removed.
-    assert.deepEqual(d.views.buttons.map(b => b.text), ["All jobs746", "Starred12", "Imported0"], `${size}: with their counts`);
-    // d156ImportAJobInline
-    assert.equal(d.views.importButton, "Import a job");
-    assert.deepEqual([d.importBox.shown, d.importBox.inBoard, d.importBox.overlay], [true, true, false], `${size}: inline, not a dialog`);
-    assert.equal(d.importBox.noteKind, "ok"); assert.match(d.importBox.note, /under Imported/);
-    assert.equal(d.importBox.viewAfter, "imported", `${size}: the import lands under Imported`);
-    // d156SortIconInSearch
-    assert.deepEqual([d.sort.inSearch, d.sort.hasSvg, d.sort.topWord], [true, true, false], `${size}: an icon inside the search field, no Sort word at the top`);
-    assert.equal(d.sort.label, "Sort: For you — change the order", `${size}: the icon's label says the current sort`);
-    assert.deepEqual(d.sort.menu.rows, ["For you", "Best fit", "Newest", "Salary", "Company"]);
-    assert.equal(d.sort.menu.checked, "", "the current one (For you) marked"); assert.equal(d.sort.menu.underField, true);
-    assert.deepEqual(d.sort.afterPick, { label: "Sort: Newest — change the order", menuOpen: false });
-    assert.equal(d.hscroll, false, `${size}: no sideways scroll`);
-  }
-  // d156BubbleD1Growth
-  // ⭐ D197 #1 · A237 (moved on purpose, LOGGED as open): beside the 84 px rail the classic (?plate=0) board at 1440 ("wide")
-  // is ~590 px, under its container's 620 px pair rule (JobBubble.css @container jbrows), so each pair stacks there and
-  // there is no neighbour to give width; 1280 keeps the side-by-side pair, so the growth is checked there. (The landscape
-  // deck card keeps its 640 px track from a 1440 viewport — lib/fanGeometry.js HOME_WIDE; retuning either is the owner's call.)
-  assert.equal(out.wide.bubbles.perPair, 2, "wide: still two postings per pair (stacked)");
-  for (const size of ["desktop"]) {
-    const b = out[size].bubbles;
-    assert.equal(b.perPair, 2); assert.equal(b.samePair, true, `${size}: never reflowed to another row`);
-    assert.deepEqual(b.restGrow, ["1", "1"]); assert.deepEqual(b.focusGrow, ["1.55", "1"], `${size}: only the hovered one grows; the neighbour keeps 1`);
-    assert.equal(b.restW[0], b.restW[1]);
-    assert.ok(b.focusW[0] > b.restW[0] && b.focusW[1] < b.restW[1], `${size}: the neighbour gives the width (${b.restW} → ${b.focusW})`);
-    assert.ok(Math.abs(b.focusW[0] + b.focusW[1] - b.restW[0] - b.restW[1]) <= 1);
-    assert.deepEqual(b.focusH, b.restH, `${size}: the row's height never changes`); assert.equal(b.focusRowH, b.rowH);
-    assert.equal(b.restRail, "0px"); assert.ok(b.focusRail > 100 && b.focusRail <= 124, `${size}: the rail opened (${b.focusRail})`);
-    assert.equal(b.cssGrow, "1.55"); assert.equal(b.cssRailOpen, "124px");
-    assert.match(b.cssTransition, /flex-grow 0\.42s cubic-bezier\(0\.3, 0\.8, 0\.25, 1\)/);
-    assert.match(b.cssRailTransition, /max-width 0\.42s cubic-bezier\(0\.3, 0\.8, 0\.25, 1\)/);
-    assert.deepEqual([b.padding, b.gap, b.rowsGap], ["16px 20px", "18px", "18px"]);
-  }
-  const p = out.phone.bubbles;
-  assert.equal(p.restRail, "124px", "touch shows the rail always"); assert.deepEqual(p.focusGrow, ["1", "1"], "… and nothing grows");
-});
+// ⛔ 47j R2: the real-Chrome half (probe `home156`, the classic market) is retired with it — its carry-overs are measured on the
+// plate market by d196MarketLiveBehaviour (probe `plate156`).

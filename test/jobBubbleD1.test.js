@@ -32,14 +32,12 @@ test("D149: the row — a 36px tile (corner 11) · the role 600 15px · company 
   assert.ok(at(jsx, 'className="jb__title"') < at(jsx, 'className="jb__sub"') && at(jsx, 'className="jb__sub"') < at(jsx, 'className="jb__meta"'));
 });
 
-test("A218 (46r): in Home's two-column rows the role wraps to two lines (never one line cut 'Senior Software Engin…')", () => {
-  const block = css.slice(at(css, "D152 (5) · HOME: TWO COLUMNS OF BUBBLES"));
-  const rule = block.match(/\.jb-pair \.jb__title \{([^}]*)\}/)[1];
-  assert.match(rule, /white-space: normal;/);
-  assert.match(rule, /-webkit-line-clamp: 2;/);
-  assert.match(rule, /min-height: calc\(2em \* 1\.25\);/, "the box holds two lines, so giving way never changes the row's height");
-  assert.doesNotMatch(rule, /nowrap|text-overflow: ellipsis/);
-  assert.match(rule, /word-break: normal;/, "a word is never broken to fit");
+// 47j R2 (changed on purpose): A218's two-line role lived on the bubble PAIR (.jb-pair .jb__title), deleted with the classic
+// market's rows; the Index rows (plate/MarketIndex.jsx) draw the role now. The fonts' self-hosting stays held here.
+test("A218 → 47j R2: the bubble pair's rules are deleted; the fonts stay self-hosted", () => {
+  assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ""), /\.jb-pair\b/, "the classic bubble pair is back");
+  assert.match(read("client/src/main.jsx"), /import "@fontsource\/poppins\/800-italic\.css";/);
+  assert.doesNotMatch(read("client/index.html").replace(/<!--[\s\S]*?-->/g, ""), /fonts\.googleapis\.com|fonts\.gstatic\.com/);
 });
 
 test("⛔ A78: the company name is a link with NO underline and NO ↗ — and a NON-COLOUR hover cue", () => {
@@ -108,8 +106,9 @@ test("⛔ the logo face is SELF-HOSTED — no third-party font request", () => {
 });
 
 test("the board renders bubbles in rows; the Database panel keeps JobCard", () => {
-  // ⭐ D152 (5), changed on purpose: two columns (pairs), one beside an open posting.
-  assert.match(panel, /<JobBubbleRows jobs=\{jobs\} columns=\{2\}>/);
+  // 47j R2 (changed on purpose): the board's rows are the Index's (MarketIndexTable) — the bubble rows are deleted
+  assert.doesNotMatch(panel, /<JobBubbleRows\b|<JobBubble\b/);
+  assert.match(panel, /<MarketIndexTable\b/);
   assert.doesNotMatch(panel, /<JobCard\b/);
   assert.match(read("client/src/panels/DatabasePanel.jsx"), /<JobCard/);
   // D149 (11-03): one column — see the first test.

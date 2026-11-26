@@ -55,7 +55,7 @@ import { DECISIONS, counts, deckReducer, fanOrder, initialDeck, isFinished, step
 import { DECISION_SURFACES, DECISION_TOAST_MS, DECISION_VERB, commitDecision, undoDecision } from "../lib/jobDecisions.js";
 import DecisionToast from "../components/DecisionToast.jsx";
 import { NoteCard } from "../components/TextBlocks.jsx";   // A233: the empties as note cards
-import { EXPAND_CLOCK, HOME_CARD, HOME_FAN, HOME_FAN_WIDE, HOME_WIDE, cardSize, fanTransform, geometryFor, homeCardSize, homeDeckColumn, homeFanTransform, homeLandscape, orientationFor } from "../lib/fanGeometry.js";
+import { EXPAND_CLOCK, HOME_CARD, HOME_FAN, HOME_FAN_WIDE, cardSize, fanTransform, geometryFor, homeDeckColumn, homeLandscape, orientationFor } from "../lib/fanGeometry.js";
 import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
 import { readDeckOrder } from "../lib/deckOrder.js";
 import { postingClick } from "../lib/openPosting.js";
@@ -64,7 +64,7 @@ import { cardFacts } from "../lib/deckCardFacts.js";
 import { shape, ts, TYPE_SCALE_VAR } from "../themes/shapes.js";
 import SendJobPicker from "../components/SendJobPicker.jsx";
 import MarketCardFace from "../plate/MarketCardFace.jsx";   // ⭐ D196 P1: the face in plates (off until the owner's ok)
-import { useMarketPlate, publishFrontCard, publishBestCard, bestOfDeck, boardPageCards, carryDeck, deckPagePosition } from "../plate/marketPlate.js";
+import { publishFrontCard, publishBestCard, bestOfDeck, boardPageCards, carryDeck, deckPagePosition } from "../plate/marketPlate.js";
 import { plateTicketSize, plateFanTransform } from "../plate/deckGeometry.js";   // ⭐ D196 FIX-2: the board's ticket size and backs   // D180 P2: Send to a connection
 
 const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SOFT_OFFSET
@@ -156,20 +156,13 @@ export function ActionButton({ label, onClick, primary, disabled, ariaKeys, comp
 
 // ⭐ D156 (1b) · ‹ › — turn Home's fan one card back or on (a depth box, D60: never a capsule). ⭐ (1c): the keys that do
 // the same are J / K and ↓ / ↑ — the arrows ← → decide (X / D), as the deck always had them.
-function FlipButton({ dir, disabled, onFlip, plate = false }) {
-  if (plate) return (   // ⭐ D196 FIX-4: the board's 44 px square, 1.5 px ink, 3 px hard shadow, a line chevron
+// ⛔ 47j R2: the classic market's 34 px ‹ › (its own body) is deleted — the plate's squares are the deck's only ones.
+function FlipButton({ dir, disabled, onFlip }) {
+  return (   // ⭐ D196 FIX-4: the board's 44 px square, 1.5 px ink, 3 px hard shadow, a line chevron
     <button type="button" className="pl-deckpos__btn" data-deck-flip={dir > 0 ? "next" : "prev"} disabled={disabled}
       aria-label={dir > 0 ? "Next opening" : "Previous opening"} aria-keyshortcuts={dir > 0 ? "J ArrowDown" : "K ArrowUp"} onClick={() => onFlip(dir)}>
       <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <path d={dir > 0 ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6"}/></svg>
-    </button>
-  );
-  return (
-    <button type="button" data-deck-flip={dir > 0 ? "next" : "prev"} disabled={disabled}
-      aria-label={dir > 0 ? "Next card" : "Previous card"} aria-keyshortcuts={dir > 0 ? "J ArrowDown" : "K ArrowUp"} onClick={() => onFlip(dir)}
-      style={{ width: 34, height: 34, flex: "none", borderRadius: 10, border: "none", background: C.SURFACE_2, color: C.INK, boxShadow: C.DEPTH_REST,
-               fontSize: ts(18), lineHeight: 1, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.4 : 1, fontFamily: "inherit" }}>
-      <span aria-hidden="true">{dir > 0 ? "›" : "‹"}</span>
     </button>
   );
 }
@@ -569,8 +562,9 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
   const isFront = offset === 0;
   // The arc's position. Opening a card does not move it here: the fan lives in the card's grid column,
   // and that column is what moves (A40) — so the arc rides right on the expansion's own clock.
-  // ⭐ D152 (2): Home's fan turns each back about the card's lower-left corner (lib/fanGeometry.js homeFanTransform).
-  const t = plate ? plateFanTransform(offset) : home ? homeFanTransform(offset, geometry) : fanTransform(offset, orientation, geometry);
+  // ⭐ D196 FIX-2: the market's backs are the board's poses (plate/deckGeometry.js). ⛔ 47j R2: the classic Home fan
+  // (homeFanTransform, about the card's lower-left corner) is deleted with the classic market.
+  const t = plate ? plateFanTransform(offset) : fanTransform(offset, orientation, geometry);
   const x = useMotionValue(0);
   const tilt = useTransform(x, [-320, 0, 320], [-10, 0, 10]);
   const draftStamp = useTransform(x, [20, SWIPE_COMMIT_PX + 40], [0, 1]);
@@ -656,8 +650,6 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
                        cursor: isFront && !expanded ? "pointer" : "auto", visibility: showFace ? "visible" : "hidden" }}>
               {showFace && home && plateFace && <MarketCardFace card={card} headingRef={headingRef} isFront={isFront} onSignal={onSignal} onOpenPost={onOpenPost}
                                                  size={size} landscape={landscape} onDecide={onDecide} onSend={onSend} />}
-              {showFace && home && !plateFace && <HomeCardFace card={card} headingRef={headingRef} isFront={isFront} onSignal={onSignal} onOpenPost={onOpenPost}
-                                                 size={size} landscape={landscape} />}
               {showFace && !home && <CardFace card={card} headingRef={headingRef} isFront={isFront} expanded={isFront && expanded}
                                      why={isFront && why} onWhy={onWhy}
                                      onExpand={onExpand} onCollapse={onCollapse} onReport={onReport} onSignal={onSignal}
@@ -908,10 +900,12 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   // deck keeps its frame — FanCard, the deck's own CardBack behind, the flip — but the card takes the BOARD's size: the
   // column's width less the 18 px the backs sit in (lib/fanGeometry.js plateTicketSize), and the face's own height, so the
   // title wraps and nothing on the ticket is ever cut.
-  const plateDeck = useMarketPlate() && home;
+  // ⛔ 47j R2: the market is the plate market only — Home's deck is always the plate deck (the switch governs Home's
+  // ledger and the company page, not the market).
+  const plateDeck = home;
   const [plateColW, setPlateColW] = useState(0);
   const size = plateDeck ? plateTicketSize(plateColW || homeDeckColumn(viewportW), frontH)
-    : home ? homeCardSize(viewportW) : cardSize(orientation, vw);
+    : cardSize(orientation, vw);
 
   const scoringTries = useRef(0);
   const loadStatusRef = useRef(load.status);
@@ -1418,17 +1412,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
 
         {load.status === "ready" && (current || order.length > 0) && !isFinished(s) && (
             <div data-deck-col style={{ minWidth: 0 }} ref={colRef}>
-              {/* ⭐ D152 (3): home-sketch.html's .count — where you are in today's picks, and in what order. */}
-              {/* ⭐ D156 (1b): ‹ › beside it turn the fan one card (as J / K, ↑ ↓ and the wheel do). */}
-              {home && !plateDeck && (
-                <div data-deck-count-row="" style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 0 10px", maxWidth: size.width }}>
-                  <p data-deck-count="" style={{ margin: 0, color: C.INK_MUTED, fontSize: ts(13.5), flex: 1, minWidth: 0 }}>
-                    {Math.min(s.index + 1, s.size)} of {s.size} today · {deckOrder === "best" ? "best match first" : deckOrder === "ats" ? "ATS match first" : "as dealt"}
-                  </p>
-                  <FlipButton dir={-1} disabled={stepTarget(s, -1) == null} onFlip={step} />
-                  <FlipButton dir={1} disabled={stepTarget(s, 1) == null} onFlip={step} />
-                </div>
-              )}
+              {/* ⛔ 47j R2: the classic count row (D152 (3) / D156 (1b)) is deleted — PlatePosRow below the ticket carries both. */}
               {/* D196 FIX-2: the board's backs sit up and to the right of the ticket, inside 14 px above and 18 px beside it */}
               <div className={plateDeck ? "pl-deckstage" : undefined}>
               <div ref={stageRef} data-deck-stage
@@ -1458,21 +1442,6 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                 prev={stepTarget(s, -1) != null} next={stepTarget(s, 1) != null} onFlip={step} />}
               {plateDeck && sent && <span role="status" data-deck-sent="" className="plate pl-decksent">{sent}</span>}
 
-              {/* ⛔ The action row STICKS: an expanded card is tall, and Pass / Save / Draft must stay
-                  reachable without scrolling back. It is above the fan by tier, and in the card's own
-                  column, so it travels with the card when the report opens. */}
-              {!plateDeck && <div data-deck-actions style={{ position: "sticky", bottom: "calc(16px + var(--appnav-lift, 0px))", transition: "bottom .3s ease", zIndex: Z.NAV, display: "flex", gap: 12,
-                                              // D152 (2) / D153 (1): on Home, under the fan's sweep (HOME_CARD.below), at the card's left.
-                                              // ⭐ D156 (1): and NOT sticky there — the card is a fixed box, so the row sits under the
-                                              // card and its fan and never rides over the card's content on a short screen.
-                                              ...(home ? { position: "relative", bottom: "auto" } : null),
-                                              marginTop: home ? (landscape ? HOME_WIDE.below : HOME_CARD.below) : vertical ? 18 : 22, maxWidth: size.width, marginLeft: home ? 0 : "auto", marginRight: "auto" }}>
-                <ActionButton label="Pass" ariaKeys="X ArrowLeft" compact={vertical} onClick={() => decide(DECISIONS.PASSED)} />
-                <ActionButton label="Save" ariaKeys="S" compact={vertical} onClick={() => decide(DECISIONS.SAVED)} />
-                <ActionButton label="Send" compact={vertical} onClick={sendTop} />
-                <ActionButton label="Draft" ariaKeys="D ArrowRight" compact={vertical} primary onClick={() => decide(DECISIONS.DRAFTED)} />
-                {sent && <span role="status" data-deck-sent="" style={{ alignSelf: "center", fontSize: ts(13), color: C.INK_MUTED }}>{sent}</span>}
-              </div>}
               {picking && <SendJobPicker job={picking} onClose={() => setPicking(null)} />}
             </div>
         )}

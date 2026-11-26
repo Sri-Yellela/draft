@@ -108,21 +108,23 @@ test("EVERY CONTROL THE PILL CARRIED IS STILL REACHABLE", () => {
   //   profile switcher             already in TopBar's avatar menu (ProfileSelectorDropdown)
   //   "Filter jobs…" input         already the main search bar's keyword field — both write the
   //                                same `localSearch`, which is why the board's third copy went in W4
-  assert.match(app, /function BoardTabs\(\)/, "the board's All/Saved/Pending tabs are gone");
-  assert.match(app, /const \{ boardTab, setBoardTab, boardHeadline \} = useJobBoard\(\);/,
-    "BoardTabs no longer writes the board's own state");
-  assert.match(app, /onChange=\{id => setBoardTab\?\.\(id\)\}/);
+  // 47j R2 (changed on purpose): the board's views are the shell's area nav (MARKET_AREA_VIEWS) — the classic BoardTabs
+  // segment is deleted; the nav still writes the board's own state
+  assert.match(app, /\{ id: "saved", label: "Starred", href: "\/app\/jobs\?view=saved"/, "the board's Starred view is gone");
+  assert.match(app, /\{ id: "imported", label: "Imported", href: "\/app\/jobs\?view=imported"/);
+  assert.match(app, /const \{ boardTab, setBoardTab, boardHeadline \} = useJobBoard\(\);/, "the nav no longer reads the board's own state");
+  assert.match(app, /else \{ setBoardTab\?\.\(id\); pressOpeningsTab\("index"\); \}/);
   // ⭐ D156 (4), changed on purpose (owner 11-05: "we dont need the drafted panel now"): All jobs · Starred · Imported.
   for (const id of ['"all"', '"saved"', '"imported"']) {
     assert.ok(app.includes(id), `the ${id} board view is gone`);
   }
-  assert.match(app, /<BoardTabs \/>/, "BoardTabs is defined but never rendered");
-  // ...and the three that did NOT need moving are still where they were.
-  assert.match(app, /<BoardControlIcons \/>/);
-  // D24 → D35 → D147 → ⭐ D156 (5): the sort control is an ICON inside the search field (it opens the sort panel); its
-  // label says the current order.
-  assert.match(app, /<SortIcon\b/);
-  assert.match(read("client/src/components/BoardBar.jsx"), /const said = label \? `Sort: \$\{label\}` : "Sort";/);
+  assert.match(app, /<ShellAreaNav area="The market" views=\{views\}/, "the views are defined but never rendered");
+  // ...and the three that did NOT need moving are still reachable.
+  // 47j R2 (changed on purpose): the sort is the cartouche's control beside the search (MarketSortSlot → MarketSortButton,
+  // the classic in-field SortIcon deleted); its label says the current order.
+  assert.match(app, /sort=\{<MarketSortSlot \/>\}/);
+  assert.match(app, /return <MarketSortButton label=\{label\}/);
+  assert.match(read("client/src/plate/MarketControls.jsx"), /aria-label=\{`Sort: \$\{label\} — change the order`\}/);
   assert.match(topbar, /<ProfileSelectorDropdown/, "the profile switcher left the avatar menu");
   assert.match(read("client/src/components/BoardBar.jsx"),
     /* D149 (11-03) changed this on purpose: the sketch's words */ /placeholder = "Search a company, title or skill"/   /* D199 C2 (47h, moved on purpose): the words are BoardSearch's default; the plate market passes its board's */);

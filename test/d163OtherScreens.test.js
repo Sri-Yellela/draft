@@ -19,7 +19,7 @@ const INTEG = read("client/src/panels/IntegrationsPanel.jsx");
 const WIDTHS = ["1280", "1440", "1920", "2560"];
 // ⭐ D167: profile / account / customise / integrations / saved-answers are measured at their Profile panels now, and the
 // Interview page joins them (scripts/fidelityShots.mjs screens163).
-const SCREENS = ["tracker", "atlas", "profile", "account", "customise", "integrations", "saved-answers", "interview", "admin"];
+const SCREENS = ["market" /* 47j R2: the plate market (D163 / D167 re-pointed from home163) */, "tracker", "atlas", "profile", "account", "customise", "integrations", "saved-answers", "interview", "admin"];
 
 let probe = null;
 function measured(t) {
@@ -65,13 +65,18 @@ test("d163NoCornerCramming, the other screens (real Chrome): nothing flush to an
     const m = out[s][w];
     assert.ok(m.group, `${s} ${w}: drew`);
     assert.deepEqual(m.flush, [], `${s} ${w}: nothing within 8 px of the dock or the viewport's edge`);
-    assert.ok(m.leftFree >= 8 && m.rightFree >= 8, `${s} ${w}: room on both sides (${m.leftFree} / ${m.rightFree})`);
+    // ✅ owner 11-26 (decision 2): a NAMED exception — Atlas Volume I's full-width region band (section.pl-at-regions) runs to
+    // the edge by the approved board's design; the probe leaves it (and only it) out of the flush list and the edge margins
+    if (s === "atlas") assert.deepEqual(m.exempted, ["section.pl-at-regions"], `${s} ${w}: the one named exception, nothing else`);
+    else assert.equal((m.exempted || []).length, 0, `${s} ${w}: no exception named`);
+    const lf = m.edgeLeftFree ?? m.leftFree, rf = m.edgeRightFree ?? m.rightFree;
+    assert.ok(lf >= 8 && rf >= 8, `${s} ${w}: room on both sides (${lf} / ${rf})`);
     assert.equal(m.sideScroll, false, `${s} ${w}: no sideways scroll`);
   }
   for (const s of SCREENS) {
-    const p = out[s].phone;
-    assert.ok(Math.abs(p.leftFree - p.rightFree) <= 0.05 * p.vw, `${s} phone: even margins (${p.leftFree} / ${p.rightFree})`);
-    assert.ok(p.leftFree <= 32 && p.rightFree <= 32, `${s} phone: tight (${p.leftFree} / ${p.rightFree})`);
+    const p = out[s].phone, pl = p.edgeLeftFree ?? p.leftFree, pr = p.edgeRightFree ?? p.rightFree;   // the named exception's band left out
+    assert.ok(Math.abs(pl - pr) <= 0.05 * p.vw, `${s} phone: even margins (${pl} / ${pr})`);
+    assert.ok(pl <= 32 && pr <= 32, `${s} phone: tight (${pl} / ${pr})`);
   }
 });
 

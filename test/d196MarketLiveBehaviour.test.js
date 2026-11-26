@@ -5,10 +5,10 @@
 // opens the post — the ticket has no "Open the posting" (FIX-4) — and the "bubbles" are the Index rows):
 //   · D156 (1c): the wheel accumulates to one card (1 → 1 → 2 → 2 → 3 → 2) and never scrolls the page; K J › ‹; ‹ is "K ArrowUp"
 //   · D156 (1c): a left swipe passes, the PASS stamp showing on the way
-//   · D156 (1c) / D168: a press opens the long post in the deck's slot (the fan put away), Enter opens, Esc and Fold it back
-//     fold, the wheel never opens or folds it; an Index row's posting opens on the deck (A240); the post's Pass decides the
-//     deck's own card and the next one returns; the phone keeps D149's full-screen posting (O99 (b))
-//   · the board's views, Import a job, the sort in the search; no sideways scroll at 1440 / 1280 / 390
+//   · ⭐ 47j (D199 C7): a press, Enter or an Index row opens the OPENING SHEET (/app/jobs/<id>) over the market; Esc and
+//     "← Back to the market" return to the same card; the wheel never opens or closes it; the sheet's Pass decides the card
+//   · ⭐ 47j (D199 C2): the area nav's views, Import a job, the sort beside the cartouche's search; no sideways scroll at
+//     1440 / 1280 / 390
 // The classic geometry (card sizes, the 2 × 2 stats, the bubbles' growth) stays d156Home's until R2 deletes it.
 // ⚠ Not held here on purpose: a ticket's height across a turn — the plate ticket is its own face's height (FIX-2).
 import test from "node:test";
@@ -39,37 +39,46 @@ test("d196MarketLiveDeckTurns (real Chrome, the plate market): one flick one car
   }
 });
 
-test("d196MarketLivePostOnDeck (real Chrome, the plate market): the long post on the deck, opened and folded every way; the post's Pass decides the card", { timeout: 300000 }, (t) => {
+// ⭐ 47j (D199 C7 — re-pointed on purpose; was d196MarketLivePostOnDeck): a posting no longer opens in the deck's slot.
+// The title, Enter and an Index row open the OPENING SHEET (/app/jobs/<id>) over the market at every width (the phone too);
+// Esc and "← Back to the market" return to the same card; the sheet's Pass is the board's own decide on the deck's card.
+test("d196MarketLiveOpensSheet (real Chrome, the plate market): the opening sheet, opened and closed every way; the sheet's Pass decides the card", { timeout: 300000 }, (t) => {
   const out = measured(t); if (!out) return;
   for (const size of SIZES) {
     const p = out[size].post;
-    if (size === "phone") {
-      assert.deepEqual([p.overlay, p.slotOpen, p.overlayClosed], [true, false, true], "phone: the full-screen posting, closed by Esc");
-      continue;
-    }
-    assert.deepEqual([p.wheelOpened, p.wheelTurned, p.wheelFolded], [false, true, false], `${size}: the wheel turns, never opens or folds`);
-    assert.equal(p.openedByPress, true, `${size}: a press on the front card's title opens the long post`);
-    assert.equal(p.postTitle, p.title, `${size}: the post is the front card's job`);
-    assert.deepEqual([p.factsInSlot, p.inSlot, p.stageHidden], [true, true, true], `${size}: drawn in the deck's slot, the fan put away`);
-    assert.equal(p.boardPost, false, `${size}: no posting panel beside the list`);
-    assert.equal(p.foldLabel, "Fold it back"); assert.equal(p.backTo, p.title);
-    assert.deepEqual([p.openedByEnter, p.foldedByEsc, p.foldedByButton], [true, true, true], `${size}: Enter / Esc / Fold it back`);
-    assert.equal(p.listOpensOnDeck, true, `${size}: an Index row's posting opens on the deck (A240)`); assert.equal(p.listOrigin, "board");
-    assert.deepEqual([p.passFolds, p.passAdvanced], [true, true], `${size}: the post's Pass decides the deck's card and the next one returns`);
+    assert.deepEqual([p.wheelOpened, p.wheelTurned], [false, true], `${size}: the wheel turns the deck and opens nothing`);
+    assert.equal(p.openedByPress, true, `${size}: a press on the front card's title opens the sheet`);
+    assert.match(p.path || "", /^\/app\/jobs\/[^/]+$/, `${size}: at the sheet's own address (${p.path})`);
+    assert.equal(p.sheetTitle, p.title, `${size}: the sheet is the front card's job`);
+    assert.deepEqual([p.over, p.marketBelow], [true, true], `${size}: drawn over the market, which stays mounted`);
+    assert.equal(p.wheelClosed, false, `${size}: the wheel never closes the sheet`);
+    assert.equal(p.closedByEsc, true, `${size}: Esc returns to the market`);
+    assert.deepEqual([p.backTo, p.backPath], [p.title, "/app/jobs"], `${size}: on the same card`);
+    assert.deepEqual([p.openedByEnter, p.closedByBack], [true, true], `${size}: Enter opens; ← Back to the market closes`);
+    assert.equal(p.listOpensSheet, true, `${size}: an Index row opens the same sheet`);
+    assert.match(p.listBackTab || "", /^Index/, `${size}: Back returns to the Index (${p.listBackTab})`);
+    assert.deepEqual([p.passCloses, p.passAdvanced], [true, true], `${size}: the sheet's Pass decides the deck's card and the next one comes to the front`);
     assert.match(p.passSaid, /^Passed /);
   }
 });
 
-test("d196MarketLiveBoard (real Chrome, the plate market): the views, Import a job, the sort in the search; never a sideways scroll", { timeout: 300000 }, (t) => {
+// ⭐ 47j (D199 C2 / 47h — re-pointed on purpose): the views are the shell's area nav, Import a job its More item (a view in
+// the phone's scroller, A245), search + sort the cartouche's row.
+test("d196MarketLiveBoard (real Chrome, the plate market): the area nav's views, Import a job, the sort beside the search; never a sideways scroll", { timeout: 300000 }, (t) => {
   const out = measured(t); if (!out) return;
   for (const size of SIZES) {
     const d = out[size];
-    assert.deepEqual(d.views.buttons.map(b => b.id), ["all", "saved", "imported"], `${size}: All jobs · Starred · Imported`);
-    assert.equal(d.views.importButton, "Import a job");
-    assert.equal(d.importBox.shown, true); assert.equal(d.importBox.inBoard, true, `${size}: the import box opens in the board, not over it`);
+    assert.equal(d.views.inAreaNav, true, `${size}: the market's area nav`);
+    assert.deepEqual(d.views.buttons.map(b => b.id), ["picks", "all", "saved", "imported"], `${size}: Today's picks · All jobs · Starred · Imported`);
+    assert.equal(d.views.importButton, "Import a job", `${size}: Import a job is reachable`);
+    assert.equal(d.importBox.shown, true, `${size}: the import box opens`); assert.equal(d.importBox.inBoard, true, `${size}: in the openings, not over them`);
+    assert.equal(d.importBox.overlay, false);
     assert.equal(d.importBox.noteKind, "ok", `${size}: an import answers on the board`);
-    assert.equal(d.sort.inSearch, true, `${size}: the sort sits in the search`);
+    assert.equal(d.importBox.viewAfter, "imported", `${size}: and the view turns to Imported`);
+    assert.deepEqual([d.sort.inSearch, d.sort.search], [true, true], `${size}: the sort sits beside the search, in the cartouche's row`);
     assert.equal(d.sort.menu.open, true); assert.ok(d.sort.menu.rows.length >= 4, `${size}: the sort's orders`);
+    assert.equal(d.sort.menu.underField, true, `${size}: the menu opens under the sort control`);
+    assert.match(d.sort.afterPick.label || "", /Newest/, `${size}: a pick takes`);
     assert.equal(d.hscroll, false, `${size}: no sideways scroll`);
   }
 });

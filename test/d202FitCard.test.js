@@ -35,9 +35,9 @@ async function load() {
       import { renderToStaticMarkup } from "react-dom/server";
       import { MemoryRouter } from "react-router-dom";
       import { FitCard } from ${j("plate/FitCard.jsx")};
-      import { OpeningSheetView, OPENING_ROUTE, openingSheetHref, openingSheetModel, numberWords, possessive } from ${j("plate/OpeningSheet.jsx")};
+      import { OpeningSheetView, OPENING_ROUTE, openingSheetHref, openingSheetModel, numberWords, possessive, openingFromJob } from ${j("plate/OpeningSheet.jsx")};
       import { BOARD_FIT, BOARD_OPENING, BOARD_COMPANY } from ${j("plate/fitCardFixtures.jsx")};
-      export { BOARD_FIT, BOARD_OPENING, BOARD_COMPANY, OPENING_ROUTE, openingSheetHref, openingSheetModel, numberWords, possessive };
+      export { BOARD_FIT, BOARD_OPENING, BOARD_COMPANY, OPENING_ROUTE, openingSheetHref, openingSheetModel, numberWords, possessive, openingFromJob };
       export const card = (props) => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(FitCard, props)));
       export const sheet = (props) => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(OpeningSheetView, props)));
     ` },
@@ -257,4 +257,20 @@ test("D199 C7 · d199OpeningSheetRoute — /app/jobs/<id> is the sheet, over the
   const m = B.openingSheetModel({ opening: B.BOARD_OPENING, company: B.BOARD_COMPANY, fit: B.BOARD_FIT });
   assert.equal(m.stack[0].name, "TypeScript", "their stack by share");
   assert.equal(m.tail[0].title, "Benefits and the equal-opportunity statement", "the boilerplate folds, kept whole");
+});
+
+// ⛔ A246 (47j): the LIVE path — a raw job from GET /api/jobs/by-id → openingFromJob → the sheet. The view read `data?.job ||
+// data` and openingFromJob carried the raw job as `job`, so production drew the raw job (no place, pay, type, posted).
+test("a246OpeningSheetReadsTheOpening: a raw job read by id draws its place, pay, type and posted on the sheet", async () => {
+  const B = await load();
+  const now = Date.parse("2026-11-26T12:00:00Z");
+  const raw = { jobId: "j0", id: "j0", company: "Northwind", title: "Senior Data Engineer", location: "Boston, MA", workType: "Hybrid",
+    contractType: "Full-time", salaryMin: 165000, salaryMax: 190000, postedAt: "2026-11-26T03:00:00Z", description: "" };
+  const o = B.openingFromJob(raw, now);
+  assert.equal(o.job, undefined, "the raw job is not carried as `job`");
+  assert.equal(o.raw, raw);
+  const t = text(B.sheet({ data: o, still: true }));
+  for (const want of ["Boston, MA", "$165k–$190k", "Full-time"]) assert.ok(t.includes(want), `the sheet shows ${want}`);
+  assert.ok(!t.includes("Not posted"), "the pay is posted");
+  assert.match(t, /POSTED/i, "the posted kicker");
 });

@@ -89,7 +89,8 @@ test("the board's Draft calls the SAME route, through the SAME function, as the 
   // the deck's (the same commitDecision), a bubble's posting is the board's decideJob; off the deck, decideJob as before.
   assert.match(board, /onDraft: \(\) => decidePostingRef\.current\?\.\(selectedJob, DECISIONS\.DRAFTED\)/);
   assert.match(board, /const decidePosting = \(job, decision\) => \{\n\s+if \(!besideMode\) \{ decideJob\(job, decision\); return; \}/);
-  assert.match(board, /onDraft=\{\(\) => decideJob\?\.\(job, DECISIONS\.DRAFTED\)\}/);
+  // 47j R2 (changed on purpose): the board's rows are the Index's — each row's Draft is the same decideJob
+  assert.match(board, /onDraft=\{\(\) => decideJob\?\.\(r\.job, DECISIONS\.DRAFTED\)\}/);
   // ⛔ No fork: lib/jobDecisions.js is the ONLY client file that POSTs a run.
   const posters = CLIENT.filter(f => /api\(\s*"\/api\/apply\/runs"\s*,\s*\{\s*method:\s*"POST"/.test(f.src)).map(f => f.p);
   assert.deepEqual(posters, ["client/src/lib/jobDecisions.js"]);

@@ -13,7 +13,12 @@ test("a156SendOnListRows: the board's rows carry their public path; the row offe
   assert.match(route, /readPool\.all\(`SELECT id, job_id, company, title FROM scraped_jobs WHERE job_id IN/, "one read, on the workers");
   assert.match(route, /publicPath: pub\.get/);
   const panel = read("client/src/panels/JobsPanel.jsx");
-  assert.match(panel, /onSend=\{networkOn && job\.publicPath \? \(\) => setSending\(job\) : null\}/);
+  // 47j R2 (changed on purpose): the bubble's Send left with the classic rows. A row opens its opening sheet (D199 C7), whose
+  // Send is the same rule — the network on → the picker; else the job's public path is shared
+  assert.match(panel, /onOpen=\{\(job\) => navigateSheet\(job\)\}/);
+  const sheet = read("client/src/plate/OpeningSheet.jsx");
+  assert.match(sheet, /if \(networkOn\) \{ setPicking\(job\); return; \}/);
+  assert.match(sheet, /if \(!job\.publicPath\) \{ setSaid\("This job has no public page yet"\); return; \}/);
   assert.match(panel, /api\("\/api\/network\/status"\)/);
   assert.match(panel, /<SendJobPicker job=\{sending\}/);
 });

@@ -47,7 +47,9 @@ test("jobs search button uses two-step local then scrape flow and pagination sup
   assert.match(jobsPanel, /searchPhase === "local" && roleIsSet \? "Search New" : "Set Role"/);
   // ⭐ D147 (owner 11-03) changed this on purpose: page numbers → scrolling (the next page appends at the list's end).
   assert.doesNotMatch(jobsPanel, /buildVisiblePageItems|Go to page/);
-  assert.match(jobsPanel, /<BoardMore /);
+  // 47j R2 (changed on purpose): D147's endless scroll (BoardMore) is deleted — D199 C3 pages (the pager reads setBoardPager)
+  assert.doesNotMatch(jobsPanel, /<BoardMore\b/);
+  assert.match(jobsPanel, /setBoardPager\?\.\(\{ page: currentPage, totalPages/);
   assert.doesNotMatch(jobsPanel, /resultsUpToDate/);
   assert.doesNotMatch(jobsPanel, /scrapeNewCount/);
 });

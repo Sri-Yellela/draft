@@ -115,7 +115,10 @@ test("⛔ layering by NAMED tier: --z-bg < --z-fan < --z-content < --z-nav, and 
   assert.deepEqual(literals, [], "a z-index number someone can nudge");
   assert.match(deckSrc, /zIndex: isFront \? Z\.CONTENT : Z\.FAN - t\.depth/, "only the face-up card rises into content");
   // ⭐ D145: and it lifts above the risen Dock (--appnav-lift, AppNav.jsx).
-  assert.match(deckSrc, /data-deck-actions style=\{\{ position: "sticky", bottom: "calc\(16px \+ var\(--appnav-lift, 0px\)\)", transition: "bottom \.3s ease", zIndex: Z\.NAV/, "the action row sticks, above the fan");
+  // 47j R2 (changed on purpose): the classic sticky action row is deleted — Pass · Save · Send · Draft ride in the ticket itself
+  // (plate/Tickets.jsx, data-deck-actions inside the face), so they are above the fan with the face-up card
+  assert.doesNotMatch(deckSrc, /<div data-deck-actions style=/, "the classic sticky action row is back");
+  assert.match(read("client/src/plate/Tickets.jsx"), /<div className="pl-opening__actions" data-deck-actions="">\{actions\}<\/div>/);
   const paper = codeOnly(read("client/src/components/PaperBackground.jsx"));
   assert.match(paper, /zIndex: Z\.BG/);
   assert.doesNotMatch(paper, /-z-10/, "the substrate's old Tailwind literal");

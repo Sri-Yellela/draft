@@ -30,11 +30,12 @@ test("D46(a) · the card's text block has a MIN-height and its lines never shrin
 });
 
 test("D46(b) · ONE card component, rendered once, for ALL · ★ · /d · +", () => {
-  assert.equal((panel.match(/<JobBubble\b/g) || []).length, 1, "a second card render site in the board");
+  // 47j R2 (changed on purpose): the board's rows are the Index's — ONE render site (MarketIndexTable with rows), no JobBubble
+  assert.equal((panel.match(/<JobBubble\b/g) || []).length, 0, "the classic card is back in the board");
+  assert.equal((panel.match(/<MarketIndexTable\s+rows=/g) || []).length, 1, "a second row render site in the board");
   assert.doesNotMatch(panel, /import JobCard\b/, "the board imports a second card component");
   assert.match(panel, /const displayJobs = useMemo\(\(\) => jobs, \[jobs\]\);/, "every view renders the one list (A91)");
   assert.doesNotMatch(panel, /api\("\/api\/jobs\/pending"\)/, "/d rendered raw rows from its own endpoint");
-  // Every card opens the posting: the root's click calls onOpen, and the board passes it for every job.
-  assert.match(read("client/src/components/JobBubble.jsx"), /data-dim=\{[^}]+\}[^>]*onClick=\{open\}/);
-  assert.match(panel, /onOpen=\{open\}/);
+  // Every row opens the posting. 47j R2 (changed on purpose): the Index's rows open the opening sheet (D199 C7), every job alike
+  assert.match(panel, /onOpen=\{\(job\) => navigateSheet\(job\)\}/);
 });

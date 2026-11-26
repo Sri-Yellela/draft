@@ -133,7 +133,10 @@ function Item({ yet, children }) {
  * `fit` = the FitCard read (or null: FitCard reads it by jobId). `still`: the F5 fixture (no reads, no motion).
  */
 export function OpeningSheetView({ data, company = null, fit = null, fitFront = null, fitPlausibility, still = false, onDecide, onSend, onBack, backHref = "/app/jobs" }) {
-  const o = data?.job || data || {};
+  // ⛔ A246 (47j): `data` IS the opening. It used to read `data?.job || data`, and openingFromJob carried the raw job as
+  // `job`, so every live sheet drew the RAW job: no place, pay, type, level, posted or match (the fixtures passed the opening
+  // itself, so F5 and d202 never saw it). The raw job now rides as `raw`.
+  const o = data || {};
   const m = useMemo(() => openingSheetModel({ opening: o, company, fit }), [o, company, fit]);
   const co = o.companyHref || companyPath(o.company) || null;
   const titleCrumb = String(o.title || "").split(",")[0].toUpperCase();
@@ -267,7 +270,7 @@ export function openingFromJob(job, now = Date.now()) {
   const pct = parseInt(o.match?.value, 10);
   return { ...o, match: Number.isFinite(pct) ? pct : null, jobId: job.jobId || job.id, level: job.experienceLevel || job.tagLevel || null, description: job.description || "",
     applyUrl: /^https?:\/\//i.test(String(job.applyUrl || job.url || "")) ? (job.applyUrl || job.url) : null, publicPath: job.publicPath || null,
-    region: o.region || sectorRegion(job.bucketRole || null), job };
+    region: o.region || sectorRegion(job.bucketRole || null), raw: job };
 }
 
 /**
@@ -309,7 +312,12 @@ export default function OpeningSheet({ jobId }) {
   }, [back, picking]);
   const opening = useMemo(() => (job ? openingFromJob(job) : null), [job]);
   const decide = useCallback(async (decision) => {
-    const fn = assistantAction("boardDecide");
+    // ⛔ A247 (47j): the sheet opened from the deck's FRONT card is decided by the deck's own decide (its exit, its "Passed …"
+    // line, its Undo — lib/assistantBridge.js "deckDecide", the same one Ask draft uses); any other opening by the board's.
+    // Before, every sheet called the board's decide, and the deck's card underneath stayed undecided in front.
+    const front = assistantAction("deckJob")?.();
+    const onDeck = !!front && String(front.jobId ?? front.id) === String(job?.jobId ?? job?.id);
+    const fn = onDeck ? assistantAction("deckDecide") : assistantAction("boardDecide");
     if (!fn) { setSaid("Open the market to decide on this one."); return; }
     try { await fn(job, decision); back(); }
     catch (e) { setSaid(e?.message || "That didn’t go through."); }

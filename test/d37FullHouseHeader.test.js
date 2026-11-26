@@ -36,8 +36,9 @@ test("D37(1) · each slot is a token PLUS its noun — plural unset, singular wi
   // ⛔ The location floor stands: it can be narrowed, never cleared.
   assert.ok(sentenceParts({}).slots.some(s => s.key === "location" && s.text === "the United States"));
   // Rendered: only the token is a control; the connective and the noun are prose in the same face.
-  const bh = read("client/src/components/BoardHeadline.jsx");
-  assert.match(bh, /\{s\.lead\}\s+<button type="button" className="tok"/);
+  // 47j R2 (changed on purpose): the sentence is the cartouche's (PlateBearing); the classic `.tok` header is deleted
+  const bh = read("client/src/plate/PlateBearing.jsx");
+  assert.match(bh, /\{s\.lead\}\s+<button type="button" className="pl-cartouche__part"/);
   assert.match(bh, /\{s\.noun \? ` \$\{s\.noun\}` : ""\}/);
 });
 
