@@ -65,6 +65,7 @@ export const MODULES = Object.freeze({
       "plate/Cards.jsx", "plate/Lists.jsx", "plate/Drawings.jsx", "plate/icons.jsx", "plate/motion.js", "plate/registry.js", "plate/fonts.js",
       "plate/drawings/index.js", "plate/fixtures.jsx", "pages/dev/PlateGallery.jsx",
       "pages/dev/platePages/index.js" /* D197 Wave 2 · M3: the page mocks (`/dev/plate?page=<id>`); each mock file joins here */,
+      "pages/dev/platePages/Interview.jsx" /* 47j lane w2-practice: #13 */,
       // P1 (the market): the switch, the card face, and the deck that wears it
       "plate/marketPlate.js", "plate/MarketCardFace.jsx", "plate/PlateBearing.jsx", "plate/MarketHero.jsx", "plate/MarketOpenings.jsx", "panels/DeckView.jsx",
       // 47f (the owner's P1 FIX): the deck at the board's size; the Index as the Gazetteer, drawn by the board's own column
