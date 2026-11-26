@@ -500,12 +500,16 @@ function stripLinks(text) {
  */
 const AMBIGUOUS_SKILL_WORDS = new Set([
   "go", "r", "c", "swift", "rust", "dart", "ruby", "scratch", "processing", "spring", "struts",
-  "unity", "shell", "bash", "spark", "hive", "pig", "storm", "kafka", "flink", "beam", "arrow",
+  "unity", "shell", "bash", "spark", "hive", "pig", "storm", "flink", "beam", "arrow",
+  // ⭐ A122 (1.7.3, owner 11-26 "go with your recs"): "kafka" left this list — in job text it is the technology, unless the
+  // posting means Kafka the author ("Franz Kafka"), which KAFKA_THE_AUTHOR catches below
   // ⭐ 47c (owner 11-24): CSI's slab-design program "SAFE" (civil tools) was admitted from "keep our members safe".
   "safe",
 ]);
 
-function isAmbiguousUncorroborated(key, enrichedKeys) {
+const KAFKA_THE_AUTHOR = " franz kafka ";
+function isAmbiguousUncorroborated(key, enrichedKeys, normJob = "") {
+  if (key === "kafka" && normJob.includes(KAFKA_THE_AUTHOR)) return !enrichedKeys.has(key);
   if (!AMBIGUOUS_SKILL_WORDS.has(key)) return false;
   return !enrichedKeys.has(key);
 }
@@ -538,12 +542,12 @@ function candidateTermsFromJob(jobText, runtimeBasis, { company = "", jobSkills 
     .map(normaliseAtsTerm).filter(Boolean));
   for (const term of companyStackTerms(company)) {
     const key = normaliseAtsTerm(term);
-    if (key && normJob.includes(` ${key} `) && !isAmbiguousUncorroborated(key, enrichedKeys)) {
+    if (key && normJob.includes(` ${key} `) && !isAmbiguousUncorroborated(key, enrichedKeys, normJob)) {
       admitUnlessSoft(term);
     }
   }
   for (const [key, label] of skillIndex()) {
-    if (normJob.includes(` ${key} `) && !isAmbiguousUncorroborated(key, enrichedKeys)) {
+    if (normJob.includes(` ${key} `) && !isAmbiguousUncorroborated(key, enrichedKeys, normJob)) {
       admitUnlessSoft(label);
     }
   }

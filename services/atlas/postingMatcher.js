@@ -57,8 +57,12 @@ export const POSTING_MATCH = Object.freeze({
 // posting only when the posting's own skills list names it. "Trust the reader, not the substring."
 export const AMBIGUOUS_TERMS = new Set([
   "go", "r", "c", "swift", "rust", "dart", "ruby", "scratch", "processing", "spring", "struts",
-  "unity", "shell", "bash", "spark", "hive", "pig", "storm", "kafka", "flink", "beam", "arrow", "can",
+  "unity", "shell", "bash", "spark", "hive", "pig", "storm", "flink", "beam", "arrow", "can",
+  "safe",   // 47i (A122's check): the scorer's 47c addition (CSI's SAFE from "keep our members safe"), never mirrored here
 ]);
+// ⭐ A122 (owner 11-26): "kafka" is the technology in job text — ambiguous only where the posting names Franz Kafka (the
+// scorer's KAFKA_THE_AUTHOR, mirrored)
+export const KAFKA_THE_AUTHOR_RE = /\bfranz\s+kafka\b/i;
 
 // ⭐ D116 · the board's postings — defined once, read by the stats pass, YOUR MAP and the boilerplate index.
 export const ACTIVE_POSTINGS_WHERE = "is_active = 1 AND duplicate_of IS NULL";
@@ -394,7 +398,8 @@ export function postingMatcher(db, nodes, { listOnly = false, bulk = false, role
     };
     let named = null;
     const listed = () => (named ??= skillKeysOf(p.skills_json));
-    const counted = (t) => !AMBIGUOUS_TERMS.has(t) || listed().has(t);
+    const authorKafka = () => KAFKA_THE_AUTHOR_RE.test(`${title}\n${sentences.join("\n")}`);
+    const counted = (t) => (t === "kafka" && authorKafka() ? listed().has(t) : !AMBIGUOUS_TERMS.has(t) || listed().has(t));
     const linkable = (t) => (listed().size ? listed().has(t) : counted(t));
     const plain = { grams };
     const outs = readings.map(() => []);
