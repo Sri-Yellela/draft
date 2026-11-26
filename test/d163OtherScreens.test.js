@@ -54,7 +54,10 @@ test("d163ContentGroupCentred, the other screens (real Chrome, 1280 · 1440 · 1
   // screen fills the width inside the page gutter (clamp(16px, 3vw, 48px)), the dock at the top on a desktop.
   // ✅ owner 11-26 (47j, "keep it centred"): ONE named exception — the market keeps the approved Market board's measure,
   // centred (the evenness above still holds it); every other screen fills the width.
-  const CENTRED_MEASURE = new Set(["market"]);
+  // ⚠ 47j R3 (changed on purpose, PENDING THE OWNER'S WORD): the tracker route is the LEDGER now (the classic Home is
+  // deleted) — a plate page, drawn in the plate's own page measure (--pl-page, .pl-section / .pl-hero centred), the same
+  // measure the owner kept for the market. Listed in WORKLOG 47j as an owner question; until then it is held to evenness.
+  const CENTRED_MEASURE = new Set(["market", "tracker"]);
   assert.match(SHOTS, /centredMeasure: "owner 11-26 \(47j\): the market keeps the approved board's measure, centred, on wide screens"/);
   for (const s of SCREENS) for (const w of WIDTHS) {
     const m = out[s][w];

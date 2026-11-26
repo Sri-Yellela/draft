@@ -1209,7 +1209,7 @@ button.pl-logdays__day { padding: 0; margin: 0; font: inherit; cursor: pointer; 
 button.pl-logdays__day[aria-pressed="true"] { outline: var(--pl-line) solid var(--pl-ink); outline-offset: 2px; }
 .pl-logdays__key { margin: 0; font-family: var(--pl-mono); font-size: var(--pl-t-mono); font-weight: 700; letter-spacing: var(--pl-track-mono); color: var(--pl-muted); }
 /* AskDraftCard (Cards.jsx): D190's panel — the conversation scrolls inside the card, the input at its foot */
-.pl-ask { display: flex; flex-direction: column; width: 100%; max-height: min(620px, 80vh); }
+.pl-ask { display: flex; flex-direction: column; width: 100%; box-sizing: border-box; max-height: min(620px, 80vh); }
 .pl-ask__strip { align-items: center; }
 .pl-ask__who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .pl-ask__name { font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-num-sm); line-height: 1.05; }

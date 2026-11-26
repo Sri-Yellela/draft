@@ -56,7 +56,7 @@ test("d197ShellOneDock (pure): the live dock IS the plate's Dock — D167's plac
   assert.match(PLATE, /\.pl-dock \{ flex: 0 0 auto; width: var\(--pl-dock-width\);[^}]*border: var\(--pl-border\); border-radius: var\(--pl-r-plate\); box-shadow: var\(--pl-s4\);/);
   assert.match(PLATE, /\.pl-dock__item\[aria-current="page"\], \.plate a\.pl-dock__item\[aria-current="page"\] \{ background: var\(--pl-card\); border: var\(--pl-border\); box-shadow: var\(--pl-s3\); \}/);
   assert.match(PLATE, /\.pl-badge \{ position: absolute;[^}]*font-family: var\(--pl-mono\);[^}]*background: var\(--pl-ink\); color: var\(--pl-on-ink\);/);
-  const place = CSS.slice(at(CSS, "/* ⭐ D197 Wave 1 #1 · A237 · THE SHELL"), at(CSS, "/* ── the side panel"));
+  const place = CSS.slice(at(CSS, "/* ⭐ D197 Wave 1 #1 · A237 · THE SHELL"), at(CSS, "/* ⛔ 47j w1-shell: the side panel's rules"));   // ⛔ 47j w1-shell (changed on purpose): the side panel's rules are deleted; the anchor is the note left in their place
   assert.doesNotMatch(place, /--c-|#[0-9a-f]{3,6}\b|rgba?\(/i, "the placing rules carry no colour (FIX-1)");
 });
 

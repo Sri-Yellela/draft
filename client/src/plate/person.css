@@ -34,8 +34,9 @@
 .pl-stamps { display: flex; flex-direction: column; gap: 18px; }
 .pl-stamps__group { display: flex; flex-direction: column; gap: 10px; }
 .pl-stamps__row { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 14px 18px; }
-.pl-stamps__stamp { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; max-width: 100%; }
-.pl-stamps__stamp .pl-stamp { overflow-wrap: anywhere; max-width: 100%; }
+.pl-stamps__stamp { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; max-width: 100%; min-width: 0; }
+/* 47j: a long skill name wraps inside its stamp (the library's .pl-stamp is nowrap — a short word) — measured by d196GalleryBrowser */
+.pl-stamps__stamp .pl-stamp { overflow-wrap: anywhere; max-width: 92%; white-space: normal; box-sizing: border-box; }   /* 92 %: its tilt stays inside the row */
 .pl-stamps__sub { font-family: var(--pl-mono); font-size: var(--pl-t-mono-xs); font-weight: 700; letter-spacing: .08em; color: var(--pl-muted); }
 .pl-stamps__yet { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: var(--pl-border-dashed); border-radius: var(--pl-r-small);
   background: var(--pl-card); font-size: var(--pl-t-small); max-width: 100%; overflow-wrap: anywhere; }
