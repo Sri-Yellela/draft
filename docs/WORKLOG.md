@@ -376,6 +376,22 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
     - ⏸ **D151 Rule 4 the archive** is a runtime Admin switch built "off until the owner turns it on"; production's settings are out of the agent's reach. **Owner: Admin → System → Diagnostics → Archive of closed postings → on.**
     - ⏸ **D151 Rule 1 zero-downtime deploys:** with the volume attached, Railway stops the old container before starting the new one (measured, memory `railway-volume-no-overlap`), so true overlap isn't available. The task is shrinking the warm-up gap, measured on staging (a staging push, outward — the next lane).
     - The rest (pricing later, CI scale run by hand, debriefs after counsel, CLOSE / PLAY after Wave 2, framing rule kept, no open-model provider, warm-paths line approved, Search Console by the owner, no BYOM listing) are decided with no agent step.
+- 🟡 **THE BROWSER TIER, at the end as the owner asked** (Chrome closed, ≈ 1.6 GB free; the client built, the probes refilled in the foreground before batch 1 and again before batch 3). **318 tests: 42 · 71 · 44 · 64 · 60 · 37. 14 red on the first pass; 4 fixed, 10 open.**
+  - **Fixed:**
+    - the A199 / A210 walk opened Home and found the ledger: it drives the CLASSIC tracker, pinned to `?plate=0` (2 / 2);
+    - the gallery's FitCard asked `/api/atlas/resolve` from a `file://` page: given its slugs (1 / 1);
+    - d163's route pin: the named addresses (1 / 1);
+    - FIX-1's plate-opaque check read a lead D200 Rule 3 removed: it reads the section's body text now (1 / 1).
+    - `5bfdf55b`, `478d0d50`.
+  - **The extension's new fit card walked in a real Chrome:** J12 light + dark ✓, the front, the trusted Turn over and the back's card.
+  - ⏸ **Open — 8 tests that measure the market as 47g built it, before D199 / C7:**
+    - **d153FactsNeverBreakWords** and **d168** ×4 (wheel, fade, never stuck, no hover opens): their probes (`posting-facts`, `home168`) open a posting on the DECK from an Index row. Since D199 C7 the row, the deck's title and its Open all go to the opening sheet (`/app/jobs/<id>`), so there is no post on the deck any more.
+    - **d196MarketLiveDeckTurns / LivePostOnDeck / LiveBoard** (probe `plate156`): the board's search bar (`[data-board-bar]`), the views and Import in the board — D199 C2 put search + sort in the cartouche and 47h put the views in the area nav.
+    - They need re-pointing at the D199 market (the sheet for opens; the cartouche's `[data-market-search]` + `[data-board-icon="sort"]`; the area nav's views), measured in Chrome. Same kind of work as R2, so they go with it.
+  - ⏸ **Open — 2 for the owner:**
+    - **d163NoCornerCramming:** Atlas Volume I's region band (`section.pl-at-regions`) runs from the rail to the viewport's edge. That's the approved board's layout (its F5 pair is 1280 wide and passes) against D163 / 46q's "no slab to the screen's edge".
+    - **D196 F5:** only `ys-want` (3.85 %, above).
+  - ⚠ **Not walked in Chrome:** the ledger face's own Needs-you stepper + Ask draft (A210 walks the classic tracker); Home's new area nav.
 - **Fast tier on main after all of the above: 6,479 — 6,478 / 0 + 1 skip** (`33b2e0a7`; the D141 commit's two files 14 / 14 after).
 
 ### ⛔⛔⛔ (47i's predecessor, kept as history) NEW SESSION (47h) STARTS HERE (end of 47g, 11-25 — the owner: *"continue and prepare for a new session"*)
