@@ -49,7 +49,8 @@ test("D102 P5 · list and detail: on a wide screen Draft House opens an applicat
   const manifest = fs.readFileSync("client/src/modules.manifest.js", "utf8");
   assert.match(panel, /const sideDetail = viewportWidth >= 1280;/);
   assert.match(panel, /if \(sideDetail\) setSideJob\(String\(jobId\)\); else navigate\(/, "narrower, it still goes to the page");
-  assert.match(panel, /\{sideJob && sideDetail \? \(\s*<aside data-draft-detail=""/);
+  // 47h (D197 #3, changed on purpose): one element for both faces — `const sideCol = (sideJob && sideDetail ? (<aside …`
+  assert.match(panel, /const sideCol = \(sideJob && sideDetail \? \(\s*<aside data-draft-detail=""/);
   assert.match(panel, /<JobWorkspacePanel jobId=\{sideJob\} embedded \/>/);
   assert.match(manifest, /from: "panels\/AutoApplyPanel\.jsx", to: "panels\/JobWorkspacePanel\.jsx"/, "a declared composition (A93)");
 });

@@ -68,7 +68,8 @@ export default function SurveySheet({ data, match = null, inApp = false, base = 
   const line = v.line;
   const yours = line.find((s) => s.yours) || null;
   const lead = line.length ? (yours || line[0]) : null;
-  const DialBox = v.match && inApp ? Link : "div";   // 04: the dial is the way to check and prove your skills (every mark answers)
+  const DialBox = v.match && inApp ? Link : "div";
+  const spSource = v.sponsorship?.source ? v.sponsorship.source["url"] || null : null;   // the stamp opens the filings' source   // 04: the dial is the way to check and prove your skills (every mark answers)
 
   return (
     <PlateRoot className="pl-sheetpage" region={region} data-plate-page="survey" data-company-page={c.slug}>
@@ -209,7 +210,7 @@ export default function SurveySheet({ data, match = null, inApp = false, base = 
                 {v.sponsorship.uscisSource ? <> · <a href={v.sponsorship.uscisSource.url} target="_blank" rel="noopener noreferrer">{v.sponsorship.uscisSource.name}</a></> : null}.</span>
             </div>
             {v.sponsorship.filed ? (
-              <a className="pl-sv-stamp at-stamp" href={v.sponsorship.source?.url || "#sponsor"} target={v.sponsorship.source?.url ? "_blank" : undefined} rel="noopener noreferrer"
+              <a className="pl-sv-stamp at-stamp" href={spSource || "#sponsor"} target={spSource ? "_blank" : undefined} rel="noopener noreferrer"
                 aria-label={`Sponsored in FY${v.sponsorship.year} — open the source`}>SPONSORED · {v.sponsorship.fy}</a>
             ) : null}
           </div>

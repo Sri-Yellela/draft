@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { ledgerTickets, runStops, squaresOf, tagOf, ledgerFront, countCells } from "../client/src/plate/ledgerModel.js";
 import { renderFixture } from "../test-support/renderPlateFixture.mjs";
+import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const paths = { market: "/app/jobs", interview: "/app/interview", company: (c) => `/app/companies/${c.toLowerCase().replace(/\s+/g, "-")}` };
@@ -33,7 +34,7 @@ test("d197LedgerTicketsOut: Home mounts them (plate on), the market's needs-you 
   assert.match(panel, /\{plate && <LedgerTicketsSlot rows=\{rows\} counts=\{lgCounts\} front=\{lgFront\}\/>\}/);
   assert.match(panel, /api\(`\/api\/jobs\/\$\{encodeURIComponent\(jobId\)\}\/contextual`\)/, "the gap comes from the front application's contextual card");
   const html = await renderFixture("LedgerBoard");
-  const sec = html.slice(html.indexOf('data-ledger-tickets=""'));
+  const sec = html.slice(at(html, 'data-ledger-tickets=""'));
   assert.equal((sec.match(/class="pl-ticket pl-lift"/g) || []).length, 4);
   assert.match(sec, /Where this page leads next — the market’s tickets now live here too\./);
 });

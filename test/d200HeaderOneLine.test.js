@@ -6,12 +6,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { renderFixture } from "../test-support/renderPlateFixture.mjs";
+import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 
 test("d200HeaderOneLine: the ledger's header is one plain line + a kicker, no page title, no lead", async () => {
   const html = await renderFixture("LedgerBoard");
-  const head = html.slice(html.indexOf('aria-labelledby="lg-title"'), html.indexOf("pl-lg-run"));
+  const head = html.slice(at(html, 'aria-labelledby="lg-title"'), at(html, "pl-lg-run"));
   assert.equal((head.match(/<h1/g) || []).length, 1);
   assert.match(head, /<h1 id="lg-title" class="pl-lg-title" data-ledger-title="">Your applications<\/h1>/, "the thing in plain words, no clay full stop");
   assert.doesNotMatch(head, /pl-title|pl-title__stop|pl-lead"/, "no 100 px page title, no lead paragraph");
