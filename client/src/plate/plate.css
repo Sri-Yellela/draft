@@ -1028,6 +1028,11 @@ p.pl-mk-notice { padding: 4px 0 10px; }
 .pl-mk-errorrow > .pl-error { flex: 1 1 auto; }
 .pl-mk-gate { padding: 24px 0; display: flex; justify-content: center; }
 .pl-mk-gate > .pl-drawer { width: min(100%, 520px); }
+.pl-mk-notice--ink { color: var(--pl-ink); }
+.pl-mk-drop { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; padding: 4px; border-radius: var(--pl-r-small); outline: var(--pl-line-mark) dashed transparent; outline-offset: 6px; }
+.pl-mk-drop--compact { padding: 0; }
+.pl-mk-drop[data-over="true"] { outline-color: var(--pl-clay); }   /* a résumé held over it: you, next */
+.pl-deckstate { display: flex; flex-direction: column; gap: 10px; }
 .pl-mk-statsbox { padding: 0 24px 20px; }
 .pl-mk-stats { display: flex; flex-wrap: wrap; border: var(--pl-border); border-radius: var(--pl-r-small); background: var(--pl-card); overflow: hidden; width: fit-content; max-width: 100%; }
 .pl-mk-stat { all: unset; cursor: pointer; box-sizing: border-box; padding: 12px 18px; display: flex; flex-direction: column; gap: 3px; background: var(--pl-card); color: var(--pl-ink); }
