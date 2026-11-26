@@ -256,7 +256,54 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 6. **The ATS card look → settled inside D199's *Opening sheet* sketch** (its section 02 IS the ATS card): one look, one ok. **The 28 OPEN-OWNER rows → triaged below.**
 **THE 28 OPEN-OWNER ROWS (46y's triage), WHERE EACH STANDS NOW:** **DONE / DECIDED since (strike):** ~~D140 Hirebase flags, the 100-job sample, Starter~~ (done 11-10) · ~~D149 / O98 the jobs page sign-off~~ (superseded by the plate market + D199) · ~~D166 T2 legacy-screen sketches~~ and ~~D150 T10 / T11 / T13 / T15 sketches~~ (superseded by D197's Wave 2 method — each page gets its mock there) · ~~[OPEN] 2 the clutter-audit feedback~~ (superseded by D182 / D197) · ~~D123 P7 routine model answers~~ (decided by D190: deterministic first, a model only when asked) · ~~the D133 Studio theme for users~~ (superseded by the plate system + D181 Plain) · ~~D171 FIX 5 blind pairs~~ (optional, decision (4) of 11-08 — lean stays default). **MANUAL — the owner does them when ready (no decision needed):** D170 (7) Railway variables (remove `JOBO_API_KEY` + revoke at Jobo; delete the stray `RESUME_MASTER_CLIENT_TOKENS`; O104 webhook token; `INBOX_RETENTION_DAYS=180`) · D170 (8) confirm the 90 audit questions in Admin · D153 (3) / A141 the 50 taxonomy spot-checks · D154 P8 approve the five builds (`content/decks/builds-v1.json`) · full auto M-1…M-7 + A-5's `test_account` on the canary · D173 (6) take the MCP keys off the laptop. **NEED THE OWNER'S CALL (chat assistant's recommendation in brackets):** D173 (10) pricing + Stripe [later — after outcomes (D185-5) show numbers] · D151 Rule 4 `posting_archive_enabled` [on] · D151 Rule 5 the scale run in CI [no — run it by hand before big releases] · D151 Rule 1 the deploy outage [infra: zero-downtime deploys on Railway, agent's task once approved] · D150 T12 anonymous debriefs [after counsel] · D142 CLOSE / PLAY builds + League / Challenges [after D197 Wave 2's #11] · D139 résumé framing in tailoring [keep the claim guard's rule: no new framing without the person's words] · D162 G5 / D123 P5 an open-model provider [not now] · D134 review `contract/atlas/v1/` [the agent drafts a one-page summary for the owner] · D138 the privacy line for warm paths [approve: *"we never read your LinkedIn connections"* stays true; warm paths use only draft's own data] · D141 the policy naming the public tools [yes, name them] · D128 P3 aggregator feeds + Search Console [Search Console yes (the owner verifies the domain); aggregators: Hirebase covers it] · A122 "kafka" [treat as the technology unless the posting says Kafka the author] · the D86 BYOM listing [not now]. **COUNSEL / SECURITY (owner books it):** D160 P0–P1 consent + data register · D161 consent + speech vendor · D158 security review + board terms · [OPEN] 8 the security review before D158 / D160 / D161. **⏸ owner: reply "go with your recs" for the NEED-A-CALL list, or change any.**
 
-### ⛔⛔⛔ NEW SESSION (47h) STARTS HERE (end of 47g, 11-25 — the owner: *"continue and prepare for a new session"*)
+### ⛔⛔⛔ NEW SESSION (47i) STARTS HERE (end of 47h, 11-26 — the owner: *"whats the status and finish and push without suite runs for a new session"*)
+
+**STATE AT THE END OF 47h (re-measure before quoting):** local `main` = shell + card + market lanes merged + this log, **pushed on the owner's word WITHOUT the browser tier** (the owner: "push without suite runs"; earlier: "push when all lanes are merged and green", superseded by this one). The last fast tier was on `64058d4e` + the two pin moves: **6,447 — 6,444 / 2 (both pins moved, `77797e38`, the two files 21 / 0) + 1 skip**. Boot smoke on `77797e3`: `/api/version` ok, migration 281 (none added in 47h; the next free is **282**), ready 200, `/app` 200. ⚠ **The browser tier has NOT run since 47g** (47h's partial first pass is in 47h PROGRESS). ⚠ **The new shell + market + FitCard go to production unwalked in a real signed-in Chrome.**
+
+**WHAT 47h DID (▶▶▶ 47h PROGRESS below):**
+- A238 decided cards unmount · D198 E1 landed (F5 ≤ 0.40 %) + E4 the export + E3 the Piper voice (render built, the owner runs it) · item 7 (a) / (c) / (d).
+- **A244 the oracle = the canvas's own board sources** (`docs/sketches/final/project/`, `scripts/d196FinalCanvas.mjs`).
+- The M1 inventories (`docs/revamp/market-m1.md`, `atlas-interview-m1.md`).
+- **The lanes:**
+  - **SHELL** (the plate Dock as the live rail / bottom bar, `ShellAreaNav`, the peek's notifications A236 (b)).
+  - **CARD** (D202 `plate/FitCard.jsx`, `/api/jobs/:id/fit-card`, D199 C7 the opening sheet at `/app/jobs/<id>`).
+  - **MARKET** (D199 C1–C6 + C8, D200 on the market, 50 per page + `?page=`, the deck paging the board, FitCard on the market + in the job panel, **the classic `AtsCard.jsx` deleted**, `@draft/ats-scorer` 1.7.2, the extension zip rebuilt at 537,530 bytes).
+  - Every F5 pair at 1280 + 390 ≤ 2 % (lists in each lane's entry).
+
+**THE ORDER FOR 47i (agent; the owner: one lane at a time):**
+1. **The browser tier FIRST** (`node scripts/testTier.mjs browser --batch i/6`, one per foreground call; refill the probes first, in the foreground), then a real signed-in Chrome walk of the market, the opening sheet, the job panel's FitCard, the rail / phone bar. Expected movers:
+   - the three market fixes never re-run (`d167Dock`'s counts on the plate only, `atsReportOneImplementation` ×2, `a201ShrinkGracefully` at 390);
+   - A238's fill-only red (47h PROGRESS);
+   - the probes measuring the old dock / classic market.
+   - Fix what's real; move pins on purpose.
+2. **Lane LEDGER** (`l47h-ledger`, worktree `.claude/worktrees/l47h-ledger`): Home = the ledger + the market's tickets out (D199 C1, `MarketTickets` still exported for it), the survey sheet = the company page. **At the stop it is ALREADY rebased onto `77797e38`** (head `40135496`, a WIP "UNTESTED"; nothing run since the rebase).
+   - **Built:** `docs/revamp/ledger.md` + `survey.md` (M1); `plate/SurveySheet.jsx` + `surveySheet.js` + `surveyDrawings.jsx` (the stack legend live from `stackFor`, every mark a link or button); `plate/Ledger.jsx` + `ledgerModel.js` (the one-line header whose counts filter the register, the run route, Run now, Needs you one at a time, the register opening the detail panel in place, Tickets out moved to Home); both behind the plate switch (`?plate=0` keeps the classic pages); tests `d197LedgerTicketsOut`, `d200HeaderOneLine`, `d200SurveyStackIsLiveData`, `d200SurveyEveryMarkAnswers`.
+   - **F5 at 1280** (before the last WIP): survey hero 0.81 · stack 0.05 · hiring 1.40 · sponsor 0.01 · match 1.25 · tickets 0.55; ledger run 1.19 · needs 0.06 · banner 0.42 · register 0.30 · tickets 0.72; `ledger-hero` a LOOK only (the board's 100 px title is what D200 Rule 3 removes).
+   - **Left, in order:**
+     - (a) re-run the related files + the 1280 pairs on the rebased tree. The last WIP swapped in card's `TeamDiorama` (+ a `beacon` prop) and `CompassDial`, and deleted its own `TeamPlate` / `MatchDial`.
+     - (b) **390: 10 of 11 pairs failed**. Height / wrapping at 292 px, not a sub-pixel offset.
+     - (c) add the pairs to `d196VisualDiff`.
+     - (d) the fast tier.
+     - (e) whether Home's views go in `ShellAreaNav`.
+   - ⚠ **A `color-scheme: light` on `.plate` breaks the theme mapping** (`light-dark()`), so the lane scoped it to the F5 sketch palette only.
+3. **Lane ATLAS** (`l47h-atlas`, 2 commits ahead of the merge base, the last a WIP "UNTESTED" save): Volume I, a region, the Library + Atlas's area nav. Rebase, finish, F5 at 1280 + 390.
+4. **Lane YOURSURVEY** (`l47h-yoursurvey`, 2 WIP commits, UNTESTED): D200 Your survey (the skill map kept whole + the cadastral plot map). Rebase, finish.
+5. **The extension's FitCard mirror** (MIRRORS; `extension/resumePanel.js`; fold `shared/contextualView.js` atsCardView into FitCard's model; `node scripts/buildExtension.mjs`).
+6. **R2: delete the classic market** (`?plate=0`; the list is in 47g's item-1 entry; the classic market at 1440 now stacks under the rail, so it isn't worth fixing).
+7. **D201**: the Gazetteer's index page + a full route wait on the chat assistant's sketches; the 12 "no home yet" Atlas / Interview features (`docs/revamp/atlas-interview-m1.md`, end) wait on the owner.
+
+**Worktrees left in place** (`git worktree list`): `l47h-market`, `l47h-card` (both merged, so remove them: **unlink the junctions FIRST**, in PowerShell, `(Get-Item <wt>\node_modules).Delete()` and the same for `<wt>\client\node_modules`, then verify 0 links, then a plain `git worktree remove <wt>` without `--force`), plus `l47h-ledger`, `l47h-atlas`, `l47h-yoursurvey` (unmerged; their branches are pushed to origin as backups).
+
+### 👤👤👤 OWNER — YOUR STEPS FROM 47h · tick each when done
+1. ☐ **Watch production after this push**: the dock is now the left rail (a bottom bar on phones), and the market has search / sort / filters, a pager, the political map and FitCard beside the deck. Say what's wrong.
+2. ☐ **The narration voice render** (Piper, decided): `! node scripts/d198Voice.mjs big-o-acted-out --piper tmp/piper-dl/piper/piper.exe --model tmp/piper-dl/en_US-ljspeech-high.onnx`, then `node scripts/d198Export.mjs big-o-acted-out`. (The agent's run of the downloaded binary was refused by the permission check.)
+3. ☐ **The store upload:** `extension/submission/resume-master-extension-v1.7.0.zip` is now **537,530 bytes** (rebuilt in 47h for FitCard's shared words).
+4. ☐ **resume-master:** scorer **1.7.2** (draft bumped it). resume-master's vendored copy needs `src/contextual.js`, `package.json`, `CHECKSUMS.json` re-copied (an agent commit there needs your "yes").
+5. ☐ **The mobile repos:** refresh `contract/CHECKSUMS.json` (`checkedAt`, additive, 47h item 7 (c)).
+6. ☐ **The 12 Atlas / Interview features with no home under D201** (`docs/revamp/atlas-interview-m1.md`, the end): say where each goes, or ask the chat assistant to sketch them.
+7. ☐ Carried: item 7 (b) (per-opening résumé matches; now also on every deck ticket chip, since the deck pages the board), A242 (a 16:9 explainer frame), the 28 OPEN-OWNER rows ("go with your recs").
+
+### ⛔⛔⛔ (47i's predecessor, kept as history) NEW SESSION (47h) STARTS HERE (end of 47g, 11-25 — the owner: *"continue and prepare for a new session"*)
 
 **STATE AT THE END OF 47g (measured 11-25 ~04:00Z — re-measure before quoting):** production **`5065652`** (`/api/version`: started 03:55:39Z, migration **281**, none added in 47g; the next free is **282**). `/api/health/ready`, `/jobs`, `/app` 200 in ≈ 0.12 s warm. Local `main` = `origin/main` = `50656527` plus this log commit (**NOT pushed**). Worktrees: `main` only. **Fast tier 6,407 — 6,406 / 0 + 1 skip; browser tier 322 / 0** on `c3ea8f25`'s tree (CLAUDE.md: 6,729). resume-master unchanged (`719ac43`, scorer 1.7.0). The store zip `extension/submission/resume-master-extension-v1.7.0.zip` is **537,358 bytes** (rebuilt in 47g for T26), not uploaded.
 
