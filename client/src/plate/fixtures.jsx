@@ -324,7 +324,7 @@ export function MarketSectionFinal() {
             deck={<PlateDeckStill cards={[card, ...BOARD_NEXT]} of={412} pager={{ page: 1, pageSize: 50, total: 412 }}/>}
             index={<MarketIndexTable rows={rows} bubble={(r) => <RowBubble job={r.job} saved={r.saved} drafted={r.status === "DRAFTED"}/>}/>}
             field={<FieldCard alike={["Role and level: frontend, mid — same as yours", "Their stack: React, TypeScript, Next.js all on your résumé", "Duties: “rebuild checkout” ≈ your Toast checkout rebuild"]}
-              gaps={[{ text: "They monitor with Datadog RUM.", link: { label: "Learn it →", href: "#atlas" } }]} figures={BOARD_FIGURES}>
+              gaps={[{ text: "They monitor with Datadog RUM.", link: { label: "Learn it →", href: "#atlas" } }]} figures={BOARD_FIGURES} inlineLinks>
               <CompanyBriefView company="Kestrel Payments" jobId="kestrel-1" status="ready" brief={FINAL_BRIEF}/>
             </FieldCard>}
             pager={<MarketPager page={1} totalPages={225} total={11247} pageSize={50}/>}/>

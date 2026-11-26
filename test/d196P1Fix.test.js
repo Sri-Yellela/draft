@@ -159,7 +159,8 @@ test("FIX-7 / FIX-8 · the Index is JobsColumn's own list and actions (one imple
   assert.ok(ix.includes("onSave={() => decideJob?.(r.job, DECISIONS.SAVED)}") && ix.includes("onDraft={() => decideJob?.(r.job, DECISIONS.DRAFTED)}"),
     "Star and Draft are the board's decideJob");
   assert.ok(ix.includes("draftBlocked={draftControls?.block} draftSlots={draftControls?.slots}"), "A181's limit, as the bubble has it");
-  assert.ok(ix.includes("onOpen={(job) => (onJobSelect ? onJobSelect(job)"), "a row opens the posting the board's way");
+  // D199 C7 (47h, moved on purpose): on the plate market a row opens its OPENING SHEET (/app/jobs/<id>, over the market)
+  assert.ok(ix.includes("onOpen={(job) => navigateSheet(job)}"), "a row opens the opening sheet");
   assert.ok(col.includes("plateIndex ? <MarketIndexTable state=\"loading\"/>"), "loading = the Gazetteer's skeleton rows");
   const mi = read("client/src/plate/MarketIndex.jsx");
   assert.ok(mi.includes("draftButtonState({ drafted, drafting, block: draftBlocked"), "the Draft state is lib/jobDecisions.js's");

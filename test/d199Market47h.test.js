@@ -333,3 +333,22 @@ test("D200 Rule 3 · d200HeaderOneLine — a mono kicker, 'Openings for you', on
   assert.match(css(), /\.pl-mk-hero__title \{[^}]*font-size: var\(--pl-t-header\)/);
   assert.match(read("client/src/styles/plate.css"), /--pl-t-header: calc\(42px \* var\(--pl-scale\)\)/);
 });
+
+test("D199 C7 (47h) · the deck's card, an Index row and the field card's link open the opening sheet; a direct link can still decide", () => {
+  const dv = read("client/src/panels/DeckView.jsx");
+  assert.match(dv, /if \(plateDeck\) navigate\(openingSheetHref\(cur\.job\.id\)\);\n\s*else openPostingOnDeck\(cur\.job\.id\);/);
+  const jp = read("client/src/panels/JobsPanel.jsx");
+  assert.match(jp, /onOpen=\{\(job\) => navigateSheet\(job\)\}/);
+  assert.match(jp, /navigateTo\(openingSheetHref\(id\)\)/);
+  assert.match(read("client/src/plate/MarketIndex.jsx"), /href=\{openingSheetHref\(r\.id\)\}/);
+  const mo = read("client/src/plate/MarketOpenings.jsx");
+  assert.match(mo, /href=\{openingSheetHref\(jobId\)\} data-opening-sheet=""/);
+  assert.match(mo, /import \{ openingSheetHref \} from "\.\/OpeningSheet\.jsx"/);
+  // a direct visit to /app/jobs/<id>: the route is the console tab, so Home (the market and its board) mounts underneath and
+  // registers boardDecide — the sheet's Pass / Save / Draft go through it (OpeningSheet's decide reads it at the press)
+  const a = app();
+  assert.match(a, /: openingRoute \|\| routeKey === CONSOLE_ROUTE \|\| LEGACY_CONSOLE_ROUTES\.has\(routeKey\)\n\s*\? "console"/);
+  assert.match(a, /const home = activeTab === "today" \|\| activeTab === "console";/);
+  assert.match(jp, /boardDecide: async \(job, decision\) => \{\n\s*const r = await decideJobRef\.current\?\.\(job, decision\);/);
+  assert.match(jp, /const jobId = job\?\.jobId \|\| job\?\.id;/, "the sheet's job (by id, `id`) is decided like a board row");
+});

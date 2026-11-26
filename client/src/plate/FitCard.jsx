@@ -27,6 +27,19 @@ import { fieldCardView } from "../../../shared/contextualView.js";
 import { TERM_KINDS } from "../../../shared/atsReportModel.js";
 import { fitCardModel, initialClaims, toggleClaim, FIT_FILTERS, filterCount, contextView, fitWords } from "../../../shared/fitCardModel.js";
 
+// ⭐ D199 C6 (owner 11-25, defect (g): "ROLE FIT shows —"): a score the scorer didn't give carries WHY in its own place — the
+// scorer's own reason in the card's words — never a bare "—". Here, not in shared/contextualView.js (bundled into the
+// extension's ATS card).
+const PART_WHY = Object.freeze({ posting_not_placed: "POSTING NOT PLACED YET", resume_not_placed: "YOUR RÉSUMÉ NOT PLACED YET",
+  no_responsibility_lines: "NO DUTIES LISTED", no_company_stack: "NO STACK ON RECORD", skill_match_declined: "NOT SCORED" });
+const PART_OF = { role: "role_fit", stack: "tech_stack", duties: "responsibility_overlap" };
+/** Pure: the field card's view with each unscored figure's reason (`why`). */
+export function withPartReasons(view, contextual) {
+  if (!view?.figures?.items) return view;
+  const items = view.figures.items.map((f) => (f.value != null ? f : { ...f, why: PART_WHY[contextual?.parts?.[PART_OF[f.key]]?.reason] || "NOT SCORED YET" }));
+  return { ...view, figures: { ...view.figures, items } };
+}
+
 export const FIT_SMALL_PRINT = "Claiming says it’s true of you: it counts toward this score and where jobs rank, and it’s used in résumés made from now on. It never rewrites one you already have, and you can withdraw it any time.";
 const KEY = (
   <span className="pl-fit__key" aria-hidden="true"><span>■ ON YOUR RÉSUMÉ</span><span className="pl-tone-clay">■ CLAIMED BY YOU</span><span className="pl-muted">□ MISSING</span></span>
@@ -173,7 +186,7 @@ function HistoryTab({ lines = [], history = null }) {
  * `company` names whose postings the stack is read from.
  */
 export function FitCard({ jobId = null, data: given = null, alike, gaps, figures, historyLines = [], history = null,
-  face: initialFace = "front", tab: initialTab = "words", plausibility: givenPlaus, atlasSlugs = null, company = null, className = "", ...gate }) {
+  face: initialFace = "front", tab: initialTab = "words", plausibility: givenPlaus, atlasSlugs = null, company = null, className = "", brief = null, ...gate }) {   // brief: the market's company in brief (D199 C6), under the front's scores
   const [state, setState] = useState(() => (given ? { status: "ready", data: given } : { status: jobId ? "loading" : "idle", data: null }));
   const [nonce, setNonce] = useState(0);
   const [face, setFace] = useState(initialFace);
@@ -202,7 +215,7 @@ export function FitCard({ jobId = null, data: given = null, alike, gaps, figures
 
   const d = state.data;
   const model = useMemo(() => fitCardModel({ report: d?.report || null, where: d?.where || {}, claimed }), [d, claimed]);
-  const front = useMemo(() => (d ? fieldCardView({ report: d.report || null, contextual: d.contextual || null }) : null), [d]);
+  const front = useMemo(() => (d ? withPartReasons(fieldCardView({ report: d.report || null, contextual: d.contextual || null }), d.contextual || null) : null), [d]);
   const ctx = useMemo(() => contextView(d?.contextual, { resumeTech: d?.resumeTech || [] }), [d]);
   const techs = useMemo(() => [...(front?.gaps || []).map((g) => g.tech), ...(ctx?.stack || []).filter((s) => s.kind === "gap").map((s) => s.tech)].filter(Boolean), [front, ctx]);
   const fetched = useAtlasSlugs(atlasSlugs ? [] : techs);
@@ -244,7 +257,7 @@ export function FitCard({ jobId = null, data: given = null, alike, gaps, figures
   if (face === "front" || !model) {
     return (
       <FieldCard className={`pl-fitcard ${className}`.trim()} data-fit-face="front" lead={count} groupRule={false} inlineLinks
-        alike={fAlike} gaps={fGaps} figures={fFigures}
+        alike={fAlike} gaps={fGaps} figures={fFigures} children={brief}
         foot={model ? <button type="button" className="pl-fit__turn" aria-expanded="false" data-fit-turn="" onClick={() => setFace("back")}>↻ Turn over · the full ATS card</button> : null}/>
     );
   }

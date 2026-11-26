@@ -14,12 +14,12 @@ import { useNavigate } from "react-router-dom";
 import { companyPath } from "../lib/companySlug.js";
 import { Drawer } from "./PlateState.jsx";
 import { useFrontCard } from "./marketPlate.js";
-import { api } from "../lib/api.js";
 import { fieldCardView } from "../../../shared/contextualView.js";
 import { POSTING_ON_DECK_EVENT, DECK_POST_SLOT_ID } from "../lib/jobUrl.js";   // ⭐ A240: a posting opened from the Index shows on the Deck tab
 import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
 import { useCompanyBrief } from "../lib/companyBrief.js";   // ⭐ D199 C6: the company in brief
-import { jobDetailHref } from "../lib/jobUrl.js";
+import FitCard, { fitCardFor, withPartReasons } from "./FitCard.jsx";   // ⭐ D202: the field card ⇄ the ATS card, one card
+import { openingSheetHref } from "./OpeningSheet.jsx";   // ⭐ D199 C7: /app/jobs/<id>
 import { CompanyStackPopover } from "./MarkPopover.jsx";
 
 export const MARKET_TABS = Object.freeze([
@@ -28,52 +28,30 @@ export const MARKET_TABS = Object.freeze([
   { id: "index", label: "Index", sub: "EVERY OPENING" },
 ]);
 
-// One request per card on top, shared by the field card and the onward tickets (a failed answer is not kept, so Try again
-// asks again).
-const contextualCache = new Map();
-function contextualFor(jobId) {
-  if (!contextualCache.has(jobId)) {
-    const p = api(`/api/jobs/${encodeURIComponent(jobId)}/contextual`).then((r) => r?.contextual || null);
-    p.catch(() => contextualCache.delete(jobId));
-    contextualCache.set(jobId, p);
-  }
-  return contextualCache.get(jobId);
-}
-
-// ⭐ D199 C6 (owner 11-25, defect (g): "ROLE FIT shows —"): a score the scorer didn't give carries WHY in its own place — the
-// scorer's own reason in the card's words — never a bare "—". Done here, not in shared/contextualView.js (its code is bundled
-// into the extension's ATS card, extension/atsReport.js, which this lane doesn't rebuild).
-const PART_WHY = Object.freeze({ posting_not_placed: "POSTING NOT PLACED YET", resume_not_placed: "YOUR RÉSUMÉ NOT PLACED YET",
-  no_responsibility_lines: "NO DUTIES LISTED", no_company_stack: "NO STACK ON RECORD", skill_match_declined: "NOT SCORED" });
-const PART_OF = { role: "role_fit", stack: "tech_stack", duties: "responsibility_overlap" };
-/** Pure: the field card's view with each unscored figure's reason (`why`). */
-export function withPartReasons(view, contextual) {
-  if (!view?.figures?.items) return view;
-  const items = view.figures.items.map((f) => (f.value != null ? f : { ...f, why: PART_WHY[contextual?.parts?.[PART_OF[f.key]]?.reason] || "NOT SCORED YET" }));
-  return { ...view, figures: { ...view.figures, items } };
-}
+// ⭐ D202 (47h): the card on top is read ONCE, through FitCard's own shared read (GET /api/jobs/:id/fit-card, cached in
+// plate/FitCard.jsx fitCardFor) — the field card beside the deck and the onward tickets share it (the old /contextual read
+// is gone). `withPartReasons` lives with FitCard now; it is re-exported here for the market's tests.
+export { withPartReasons };
 /** The card on top and its field-card view: { front, status: idle | loading | ready | error, view, retry }. */
 export function useFrontField() {
   const front = useFrontCard();
-  const [state, setState] = useState({ jobId: null, status: "idle", contextual: null });
+  const [state, setState] = useState({ jobId: null, status: "idle", data: null });
   const [nonce, setNonce] = useState(0);   // Try again
   useEffect(() => {
-    if (!front?.jobId) { setState({ jobId: null, status: "idle", contextual: null }); return undefined; }
+    if (!front?.jobId) { setState({ jobId: null, status: "idle", data: null }); return undefined; }
     let live = true;
-    setState({ jobId: front.jobId, status: "loading", contextual: null });
-    contextualFor(front.jobId)
-      .then((c) => { if (live) setState({ jobId: front.jobId, status: "ready", contextual: c }); })
-      .catch(() => { if (live) setState({ jobId: front.jobId, status: "error", contextual: null }); });
+    setState({ jobId: front.jobId, status: "loading", data: null });
+    fitCardFor(front.jobId)
+      .then((d) => { if (live) setState({ jobId: front.jobId, status: "ready", data: d || null }); })
+      .catch(() => { if (live) setState({ jobId: front.jobId, status: "error", data: null }); });
     return () => { live = false; };
   }, [front?.jobId, nonce]);
-  const view = useMemo(() => (state.status === "ready" ? withPartReasons(fieldCardView({ report: front?.report || null, contextual: state.contextual }), state.contextual) : null),
+  const view = useMemo(() => (state.status === "ready" ? withPartReasons(fieldCardView({ report: state.data?.report || front?.report || null, contextual: state.data?.contextual || null }), state.data?.contextual || null) : null),
     [state, front?.report]);
   return { front, status: state.status, view, retry: () => setNonce((n) => n + 1) };
 }
 
-// ⚠ D199 C7: the opening sheet's own address (/app/jobs/<id>) is lane card's; until it lands the link opens the posting the
-// board's one way (?job=). One line for the merge to change.
-export const openingSheetHref = (jobId) => jobDetailHref(jobId);
+// D199 C7: "Open the opening sheet" goes to the sheet's own address (/app/jobs/<id>, OpeningSheet's openingSheetHref).
 
 /** Pure: the brief's facts line — "214 H-1B filed, FY25 · Hiring ↑ 171 % since June · 38 open roles"; a part not held is left out. */
 export function briefFacts(brief) {
@@ -119,18 +97,12 @@ export function CompanyBriefView({ company, jobId, status = "idle", brief = null
   );
 }
 
-/** The field card for the card on top of the deck: D192's contextual block, fetched once per card (as the ATS card does). */
+/** ⭐ D202 (owner 11-25) · beside the deck, the FitCard for the card on top — the field card ⇄ the ATS card, the same
+ *  component as the opening sheet's section 02. Its front carries the market's company in brief (D199 C6). */
 export function MarketField() {
-  const { front, status, view, retry } = useFrontField();
-  const techs = useMemo(() => (view?.gaps || []).map((g) => g.tech).filter(Boolean), [view]);
-  const slugs = useAtlasSlugs(techs);
+  const front = useFrontCard();
   if (!front?.jobId) return <FieldCard state="empty" emptyText="The field card fills in for the opening on top of the deck."/>;
-  if (status === "loading" || status === "idle") return <FieldCard state="loading"/>;
-  if (status === "error") return <FieldCard state="error" errorText="Why it fits didn't load." onRetry={retry}/>;
-  const brief = <CompanyBrief company={front.company} jobId={front.jobId}/>;
-  if (!view) return <FieldCard state="partial" alike={[]} gaps={[]}>{brief}</FieldCard>;
-  const gaps = view.gaps.map((g) => ({ text: g.text, link: g.tech && slugs[g.tech] ? { label: "Learn it →", href: atlasHref(slugs[g.tech]) } : null }));
-  return <FieldCard alike={view.alike} gaps={gaps} figures={view.figures}>{brief}</FieldCard>;
+  return <FitCard key={front.jobId} jobId={front.jobId} company={front.company} brief={<CompanyBrief company={front.company} jobId={front.jobId}/>}/>;
 }
 
 /**

@@ -23,7 +23,7 @@ import { H1bStampPopover, CompanyStackPopover } from "./MarkPopover.jsx";   // �
 import { StarMark } from "../components/StarMark.jsx";
 import { draftButtonState } from "../lib/jobDecisions.js";
 import { companyPath } from "../lib/companySlug.js";
-import { jobDetailHref } from "../lib/jobUrl.js";
+import { openingSheetHref } from "./OpeningSheet.jsx";   // D199 C7: the title is the opening sheet's link
 
 // The widths are the board's own columns, set in plate.css (.pl-gzc--*): at 1280 the export measures 47 · 403 · 199 · 85 ·
 // 162 · 85 · 150 of 1132 px; on its 390 artboard the table holds at 760 with 35 · 250 · 133 · 64 · 106 · 64 · 108. Fixed,
@@ -131,7 +131,7 @@ export function MarketIndexTable({ rows = [], onOpen, bubble, state, ...s }) {
             <span role="cell" className="pl-ixc pl-ixc--n">{r.n}</span>
             <span role="cell" className="pl-ixc pl-ixc--title">
               {r.saved ? <span className="pl-ixrow__saved" aria-label="Starred">★</span> : null}
-              <a className="pl-gz__title" href={jobDetailHref(r.id)} data-index-title=""
+              <a className="pl-gz__title" href={openingSheetHref(r.id)} data-index-title=""
                 onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); onOpen?.(r.job); }}>{r.title}</a>
               {r.company ? <span className="pl-ixrow__co"> · {r.companyHref
                 ? <CompanyStackPopover company={r.company} markClass="pl-ixrow__comark"><span className="pl-gz__co">{r.company}</span></CompanyStackPopover>

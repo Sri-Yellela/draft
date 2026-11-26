@@ -277,16 +277,15 @@ test("D196 P1 · d196BoardBudgetsHold (A175) — the plate market adds no board 
   assert.deepEqual(calls, [
     "client/src/plate/FitCard.jsx: /api/jobs/${encodeURIComponent(jobId)}/fit-card",
     "client/src/plate/FitCard.jsx: /api/resume/plausibility",
-    "client/src/plate/MarketOpenings.jsx: /api/jobs/${encodeURIComponent(jobId)}/contextual",
     "client/src/plate/OpeningSheet.jsx: /api/jobs/by-id/${encodeURIComponent(jobId)}",
     "client/src/plate/OpeningSheet.jsx: /api/network/status",
     "client/src/plate/OpeningSheet.jsx: /api/public/companies/${encodeURIComponent(slug)}?job=${encodeURIComponent(jobId)}",
-  ], "the plate market's ONE request is the card-on-top's contextual block (the posting's ATS card makes the same one)");
+  ], "the plate market's ONE card read is FitCard's /fit-card (47h, D202 on the market: the /contextual read is gone)");
   const fit = read("client/src/plate/FitCard.jsx");
   assert.ok(fit.includes("if (!cache.has(jobId))"), "one fit-card read per opening, shared by every FitCard on the page");
   assert.ok(/face !== "back" \|\| tab !== "context"/.test(fit), "the plausibility check is read only when the Context tab opens");
   const open = read("client/src/plate/MarketOpenings.jsx");
-  assert.ok(open.includes("contextualCache.has(jobId)"), "one request per card, shared by the field card and the tickets");
+  assert.ok(open.includes("fitCardFor(front.jobId)") && !open.includes("api("), "the tickets share FitCard's one read (47h)");
   assert.ok(/panels=\{\{/.test(open), "the deck and the board stay mounted under the tabs (no reload on a switch)");
   for (const f of plateFiles) assert.ok(!/\/api\/jobs\/facets|\/api\/jobs\?|\/api\/deck/.test(read(f)), `${f} must not read the board, its facets or the deck itself`);
   const app = read("client/src/App.jsx");

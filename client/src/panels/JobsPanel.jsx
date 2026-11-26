@@ -12,6 +12,7 @@ import { GENERATE_TOOL, A_PLUS_TOOL, TOOL_LABELS, normalizeTool } from "../lib/a
 import { planPageFetch, recordPageCursor, readPageParam, pageInSearch } from "../lib/boardPaging.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { useMarketPlate } from "../plate/marketPlate.js";   // ⭐ D196 FIX-7: the plate market's Index draws this board's rows
+import { openingSheetHref } from "../plate/OpeningSheet.jsx";   // ⭐ D199 C7: the Index row opens the opening sheet
 import { MarketIndexTable, RowBubble, indexRow, indexStatus } from "../plate/MarketIndex.jsx";
 import { DECISIONS, DECISION_SURFACES, DECISION_TOAST_MS, commitDecision, undoDecision, undoFlagsFor, flagsFor, isDrafted, draftBlock } from "../lib/jobDecisions.js";
 import { registerAssistantActions } from "../lib/assistantBridge.js";   // D190: Ask draft calls the board's own decisions
@@ -4692,6 +4693,8 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
   // ⭐ D196 FIX-7 (owner 11-24, 47f): in the plate market the Index tab IS this list, drawn as the board's Gazetteer — the
   // same rows, order, paging, empty states and actions; only the look changes (R6). Its status tags read the apply feeds.
   const plateIndex = useMarketPlate();
+  const navigateTo = useNavigate();
+  const navigateSheet = (job) => { const id = job?.jobId || job?.id; if (id) navigateTo(openingSheetHref(id)); };   // D199 C7
   const { applySubmitted = [], applyGatedJobs = [], applyReviewJobs = [] } = useAutoApply() || {};
   const submittedIds = useMemo(() => new Set(applySubmitted.map((j) => j?.jobId).filter(Boolean)), [applySubmitted]);
   const needsYouIds = useMemo(() => new Set([...applyGatedJobs, ...applyReviewJobs].map((j) => j?.jobId).filter(Boolean)), [applyGatedJobs, applyReviewJobs]);
@@ -4817,7 +4820,8 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
               rows={jobs.map((job, i) => indexRow(job, i, { score: scoresFor(job, generated[job.jobId]).shown,
                 saved: !!(job._user?.starred ?? job.starred), offset: (Math.max(1, currentPage) - 1) * 50,   // D199 C8: ★ before a saved title; C3: # runs across pages
                 status: indexStatus(job.jobId, { drafted: isJobDrafted(job.jobId), submitted: submittedIds, needsYou: needsYouIds }) }))}
-              onOpen={(job) => (onJobSelect ? onJobSelect(job) : job.url ? visitUrl(job) : null)}
+              // ⭐ D199 C7 (47h): a row opens the opening sheet (/app/jobs/<id>, over the market — Back returns to this page and row)
+              onOpen={(job) => navigateSheet(job)}
               bubble={(r) => (
                 <RowBubble job={r.job} saved={!!(r.job._user?.starred ?? r.job.starred)} drafted={isJobDrafted(r.id)} drafting={draftingIds.has(r.id)}
                   onSave={() => decideJob?.(r.job, DECISIONS.SAVED)} onDraft={() => decideJob?.(r.job, DECISIONS.DRAFTED)}

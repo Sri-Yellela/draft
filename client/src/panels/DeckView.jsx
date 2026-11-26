@@ -59,6 +59,7 @@ import { EXPAND_CLOCK, HOME_CARD, HOME_FAN, HOME_FAN_WIDE, HOME_WIDE, cardSize, 
 import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
 import { readDeckOrder } from "../lib/deckOrder.js";
 import { postingClick } from "../lib/openPosting.js";
+import { openingSheetHref } from "../plate/OpeningSheet.jsx";   // ⭐ D199 C7: on the plate market the card opens its sheet
 import { cardFacts } from "../lib/deckCardFacts.js";
 import { shape, ts, TYPE_SCALE_VAR } from "../themes/shapes.js";
 import SendJobPicker from "../components/SendJobPicker.jsx";
@@ -1093,10 +1094,14 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   }, []);
 
   // ⭐ D156 (1c) · open the front card into its long post / fold it back (the board draws the posting in the slot).
+  // ⭐ D199 C7 (47h): on the plate market the card on top opens its OPENING SHEET (/app/jobs/<id>, drawn over the market, so
+  // Back returns to the same card, page and scroll); the classic Home keeps the long post in the deck's slot.
   const openPost = useCallback(() => {
     const cur = stateRef.current.cards[stateRef.current.index];
-    if (cur && !cur.decision) openPostingOnDeck(cur.job.id);
-  }, []);
+    if (!cur || cur.decision) return;
+    if (plateDeck) navigate(openingSheetHref(cur.job.id));
+    else openPostingOnDeck(cur.job.id);
+  }, [plateDeck, navigate]);
   const foldPost = useCallback(() => closePostingOnDeck(), []);
   useEffect(() => {
     if (!home) return undefined;

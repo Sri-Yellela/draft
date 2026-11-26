@@ -190,6 +190,11 @@ test("D202 · d202OneComponentTwoPlaces — the same FitCard beside the deck and
   const sheetSrc = read("client/src/plate/OpeningSheet.jsx");
   assert.match(sheetSrc, /import FitCard, \{ fitCardFor \} from "\.\/FitCard\.jsx"/);
   assert.match(sheetSrc, /<FitCard jobId=/);
+  // ⭐ 47h (D202 on the market): the market mounts the same component beside the deck — no FieldCard branch of its own
+  const marketSrc = read("client/src/plate/MarketOpenings.jsx");
+  assert.match(marketSrc, /import FitCard, \{ fitCardFor, withPartReasons \} from "\.\/FitCard\.jsx"/);
+  assert.match(marketSrc, /return <FitCard key=\{front\.jobId\} jobId=\{front\.jobId\} company=\{front\.company\} brief=\{<CompanyBrief /);
+  assert.ok(!/<FieldCard (?:alike|state="(?:loading|error|partial)")/.test(marketSrc), "no field card of its own on the market");
   // drop-in where the field card was: the market's own props (alike / gaps / figures + the states) render on FitCard
   const B = await load();
   for (const s of ["loading", "error", "empty"]) assert.ok(B.card({ state: s, errorText: "x", emptyText: "y" }).length > 0);
