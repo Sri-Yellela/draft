@@ -17,7 +17,8 @@ test("A146 · ALL is one of the board's panels — opened by its word, the same 
 test("A146 · the panel draws EVERY clause through its own panel's options; the word sits BESIDE the sentence", () => {
   const panel = fs.readFileSync("client/src/components/WordPanel.jsx", "utf8");
   assert.match(panel, /export function AllFilters\(/);
-  assert.match(panel, /\{sentenceClauses\(\)\.map\(c => \(\s*<div key=\{c\.key\} className="fh-all__sec" data-all-clause=\{c\.key\}>/);
+  // ⛔ 47j w1-market (changed on purpose): the section is a plate piece (.pl-mk-all__sec)
+  assert.match(panel, /\{sentenceClauses\(\)\.map\(c => \(\s*<div key=\{c\.key\} className="pl-mk-all__sec" data-all-clause=\{c\.key\}>/);
   assert.match(panel, /<ClauseOptions clause=\{c\} params=\{params\} facets=\{facets\}/, "the same options — so the same counts");
   assert.match(panel, /open === BOARD_PANEL\.ALL\s+\? <AllFilters/);
   assert.match(panel, /if \(open === BOARD_PANEL\.ALL\) return doc\?\.getElementById\?\.\(ALL_FILTERS_ID\)/, "focus returns to the word");

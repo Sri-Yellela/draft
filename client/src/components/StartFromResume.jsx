@@ -5,8 +5,8 @@
 import { useRef, useState } from "react";
 import { api } from "../lib/api.js";
 import { parseResumeFile } from "../lib/parseResumeFile.js";
-import { C } from "../styles/colorTokens.js";
-import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
+// ⛔ 47j w1-market (D197 Wave 1 #2): drawn as plate pieces (.pl-btn, .pl-mk-notice, .pl-mk-drop — plate/plate.css); it is
+// the deck's empty state on the plate market (its one mount). The upload, its route and its words are unchanged.
 
 const LEVEL = { junior: "entry level", mid: "mid level", senior: "senior", executive: "executive" };
 
@@ -32,24 +32,21 @@ export default function StartFromResume({ onDone, onManual, compact = false }) {
   };
 
   return (
-    <div data-start-from-resume="" onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
-      onDrop={(e) => { e.preventDefault(); setOver(false); start(e.dataTransfer.files?.[0]); }}
-      style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-start", padding: compact ? 0 : 4,
-        outline: over ? `2px dashed ${C.ACCENT_INK}` : "none", outlineOffset: 6, borderRadius: 6 }}>
+    <div data-start-from-resume="" className={compact ? "pl-mk-drop pl-mk-drop--compact" : "pl-mk-drop"} data-over={over ? "true" : undefined}
+      onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
+      onDrop={(e) => { e.preventDefault(); setOver(false); start(e.dataTransfer.files?.[0]); }}>
       <input ref={input} type="file" accept=".pdf,.docx,.txt" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; start(f); }} />
-      <button type="button" className="dbx-depth" disabled={busy} onClick={() => input.current?.click()}
-        style={{ border: "none", padding: "10px 16px", background: C.ACCENT, color: C.ON_ACCENT, fontWeight: 800, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
+      <button type="button" className="pl-btn pl-btn--primary" disabled={busy} aria-busy={busy || undefined} onClick={() => input.current?.click()}>
         {busy ? "Reading…" : "Upload your résumé"}
       </button>
-      <span style={{ fontSize: ts(12.5), color: "var(--c-ink-muted)", lineHeight: 1.5 }}>
+      <span className="pl-mk-notice">
         PDF or Word — or drop it here. draft reads your field, level, titles and skills from it and sets up your first job profile.
       </span>
-      {msg && <span role="status" style={{ fontSize: ts(12.5), color: C.INK }}>{msg}</span>}
+      {msg && <span role="status" className="pl-mk-notice pl-mk-notice--ink">{msg}</span>}
       {/* ⭐ D150 T08: the first screen offers the 3-minute audit beside the résumé — either order leads to the map. */}
-      <a href="/audit" data-start-audit="" style={{ color: "var(--c-accent-ink)", fontWeight: 700, fontSize: ts(12.5) }}>Or take the 3-minute audit first</a>
+      <a href="/audit" data-start-audit="" className="pl-mk-notice__link">Or take the 3-minute audit first</a>
       {onManual && (
-        <button type="button" onClick={onManual} style={{ border: 0, background: "none", padding: 0, color: "var(--c-accent-ink)",
-          fontWeight: 700, fontSize: ts(12.5), cursor: "pointer", textDecoration: "underline", fontFamily: "inherit" }}>
+        <button type="button" onClick={onManual} className="pl-mk-notice__link">
           Set it up by hand instead
         </button>
       )}

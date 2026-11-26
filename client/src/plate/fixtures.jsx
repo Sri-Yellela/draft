@@ -331,7 +331,7 @@ export function MarketSectionFinal() {
         <section className="pl-section" id="bearing" aria-labelledby="mk-bearing" data-market-section="">
           <LegHeader n={1} meta="YOUR BEARING AND OPENINGS · ONE SECTION" title={<span id="mk-bearing">Where you’re headed, and what’s there</span>}/>
           <p className="pl-lead">Set the bearing, search or filter; the counts and the openings follow. Pass, save or send any of them; Draft starts the application and it moves to your ledger.</p>
-          <header className="fh" data-fh-d147="">
+          <header className="pl-mk-head" data-market-head="">
             <PlateBearing params={{}} allSlot="all">
               <MarketSearchRow search={<BoardSearch placeholder="Search a company, role, technology or title" value=""/>} sort={<MarketSortButton label="Best match"/>}/>
               <MarketFilterRow params={{}}/>

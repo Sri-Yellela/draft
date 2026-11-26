@@ -4,7 +4,10 @@ import {
   BOARD_PANEL, facetsUsable, TECHNOLOGY,
 } from "../lib/filterSentenceModel.js";
 import { SENTENCE_ID, PANEL_ID, ALL_FILTERS_ID } from "./BoardHeadline.jsx";
-import "./FullHouse.css";
+// ⛔ 47j w1-market (D197 Wave 1 #2): drawn as a plate piece — the frame is plate/MarketControls.jsx MarketPanel, the
+// options `.pl-mk-op` (plate/plate.css, the cartouche's chip family). FullHouse.css's .fh-pan / .fh-op look is retired.
+// The logic (one panel, focus in, Escape / Close giving focus back, the counts, the dimmed zeros) is unchanged.
+import { MarketPanel } from "../plate/MarketControls.jsx";
 
 /** A145: how many technologies the panel shows before the find box is used. */
 export const TECH_SHOWN = 40;
@@ -38,8 +41,8 @@ export default function WordPanel(props) {
 export function panelFocusTarget(root) {
   if (!root?.querySelector) return null;
   return root.querySelector("input")
-    || root.querySelector('.fh-op[aria-checked="true"]:not([aria-disabled="true"])')
-    || root.querySelector('.fh-op:not([aria-disabled="true"])')
+    || root.querySelector('.pl-mk-op[aria-checked="true"]:not([aria-disabled="true"])')
+    || root.querySelector('.pl-mk-op:not([aria-disabled="true"])')
     || root.querySelector("button");
 }
 
@@ -70,13 +73,8 @@ function PanelBody({ open, params = {}, facets = null, facetsStatus = "idle", de
   const noteId = `${PANEL_ID}-note`;
 
   return (
-    <section ref={ref} id={PANEL_ID} className="fh-pan" data-panel={open}
+    <MarketPanel panelRef={ref} id={PANEL_ID} data-panel={open} label={panelKey(open)} labelId={`${PANEL_ID}-key`} onClose={close}
       role="region" aria-labelledby={`${PANEL_ID}-key`} onKeyDown={(e) => panelKeyDown(e, close)}>
-      <div className="fh-pin">
-        <div className="fh-ph">
-          <span className="fh-k" id={`${PANEL_ID}-key`}>{panelKey(open)}</span>
-          <button type="button" className="fh-cl" onClick={close}>Close ×</button>
-        </div>
         {open === BOARD_PANEL.ALL
           ? <AllFilters params={params} facets={usable} defaultDomain={defaultDomain} onPatch={onPatch}
               otherFilterCount={otherFilterCount} onMoreFilters={() => { onClose?.(); onMoreFilters?.(); }} />
@@ -85,21 +83,20 @@ function PanelBody({ open, params = {}, facets = null, facetsStatus = "idle", de
               find={find} setFind={setFind} onPatch={onPatch} noteId={note ? noteId : undefined} />
           : <AddOptions params={params} otherFilterCount={otherFilterCount} noteId={note ? noteId : undefined} onOpen={onOpen}
               onMoreFilters={() => { onClose?.(); onMoreFilters?.(); }} />}
-        {note && <p className="fh-cov" id={noteId}>{note}</p>}
+        {note && <p className="pl-mk-panel__note" id={noteId}>{note}</p>}
         {noCounts && (clause || open === BOARD_PANEL.ALL) && (
-          <p className="fh-cov">Counts aren't available right now — these still filter the board.</p>
+          <p className="pl-mk-panel__note">Counts aren't available right now — these still filter the board.</p>
         )}
         {/* ⭐ D42 (owner, 10-06): "+ add" LEFT THE SENTENCE. What can still be added — posted, fit,
             salary & more — sits here, in the box any filter word opens. */}
         {clause && (
-          <div className="fh-addrow" data-add-section>
-            <span className="fh-k" id={`${PANEL_ID}-add`}>Add a filter</span>
+          <div className="pl-mk-panel__sub" data-add-section>
+            <span className="pl-label pl-mk-panel__key" id={`${PANEL_ID}-add`}>Add a filter</span>
             <AddOptions params={params} otherFilterCount={otherFilterCount} labelledBy={`${PANEL_ID}-add`}
               exclude={open} onOpen={onOpen} onMoreFilters={() => { onClose?.(); onMoreFilters?.(); }} />
           </div>
         )}
-      </div>
-    </section>
+    </MarketPanel>
   );
 }
 
@@ -113,16 +110,16 @@ function PanelBody({ open, params = {}, facets = null, facetsStatus = "idle", de
 export function AllFilters({ params, facets, defaultDomain, onPatch, otherFilterCount = 0, onMoreFilters }) {
   const [finds, setFinds] = useState({});
   return (
-    <div className="fh-all" data-all-filters="">
+    <div className="pl-mk-all" data-all-filters="">
       {sentenceClauses().map(c => (
-        <div key={c.key} className="fh-all__sec" data-all-clause={c.key}>
-          <span className="fh-k">{c.label}</span>
+        <div key={c.key} className="pl-mk-all__sec" data-all-clause={c.key}>
+          <span className="pl-label pl-mk-panel__key">{c.label}</span>
           <ClauseOptions clause={c} params={params} facets={facets} defaultDomain={defaultDomain}
             find={finds[c.key] || ""} setFind={(v) => setFinds(f => ({ ...f, [c.key]: v }))} onPatch={onPatch} />
         </div>
       ))}
-      <div className="fh-all__sec">
-        <button type="button" className="fh-op" data-all-more="" onClick={() => onMoreFilters?.()}>
+      <div className="pl-mk-all__sec">
+        <button type="button" className="pl-mk-op" data-all-more="" onClick={() => onMoreFilters?.()}>
           {otherFilterCount > 0 ? `Salary & more · ${otherFilterCount} on` : "Salary & more"}
         </button>
       </div>
@@ -152,7 +149,7 @@ function ClauseOptions({ clause, params, facets, defaultDomain, find, setFind, o
   const options = (
     <>
       {openSet && (
-        <input className="fh-find" type="search" value={find} onChange={e => setFind(e.target.value)}
+        <input className="pl-mk-find" type="search" value={find} onChange={e => setFind(e.target.value)}
           placeholder={findLabel} aria-label={findLabel} />
       )}
       <PanelOptions clause={clause} rows={rows} params={params} onPatch={onPatch} openSet={openSet} noteId={noteId} />
@@ -164,8 +161,8 @@ function ClauseOptions({ clause, params, facets, defaultDomain, find, setFind, o
     return (
       <>
         <RolePicker params={params} facets={facets} onPatch={onPatch} />
-        <div className="fh-addrow" data-domain-kinds="">
-          <span className="fh-k">Or by kind of work</span>
+        <div className="pl-mk-panel__sub" data-domain-kinds="">
+          <span className="pl-label pl-mk-panel__key">Or by kind of work</span>
           {options}
         </div>
       </>
@@ -202,27 +199,27 @@ export function RolePicker({ params = {}, facets = null, onPatch }) {
   const chosen = params.subcategory || "";
   const shown = groups.find(g => g.id === openCat) || null;
   return (
-    <div className="fh-role" data-role-picker="">
-      <span className="fh-k" id={`${PANEL_ID}-role`}>By role</span>
-      <div className="fh-opts fh-opts--open" role="group" aria-labelledby={`${PANEL_ID}-role`}>
-        <button type="button" className="fh-op" aria-checked={!chosen && !params.category} role="radio"
+    <div className="pl-mk-role" data-role-picker="">
+      <span className="pl-label pl-mk-panel__key" id={`${PANEL_ID}-role`}>By role</span>
+      <div className="pl-mk-opts pl-mk-opts--open" role="group" aria-labelledby={`${PANEL_ID}-role`}>
+        <button type="button" className="pl-mk-op" aria-checked={!chosen && !params.category} role="radio"
           onClick={() => onPatch?.({ category: "", subcategory: "" })}>Any role</button>
         {groups.map(g => (
-          <button key={g.id} type="button" className="fh-op" role="radio" data-role-group={g.id}
+          <button key={g.id} type="button" className="pl-mk-op" role="radio" data-role-group={g.id}
             aria-checked={params.category === g.id && !chosen} aria-expanded={shown?.id === g.id}
             onClick={() => setOpenCat(c => (c === g.id ? null : g.id))}>
-            {g.name}<span className="n">{g.count}</span>
+            {g.name}<span className="pl-mk-op__n">{g.count}</span>
           </button>
         ))}
       </div>
       {shown && (
-        <div className="fh-opts fh-opts--open" role="group" aria-label={shown.name} data-role-subs={shown.id}>
-          <button type="button" className="fh-op" role="radio" aria-checked={params.category === shown.id && !chosen}
-            onClick={() => onPatch?.({ category: shown.id, subcategory: "" })}>All of {shown.name}<span className="n">{shown.count}</span></button>
+        <div className="pl-mk-opts pl-mk-opts--open" role="group" aria-label={shown.name} data-role-subs={shown.id}>
+          <button type="button" className="pl-mk-op" role="radio" aria-checked={params.category === shown.id && !chosen}
+            onClick={() => onPatch?.({ category: shown.id, subcategory: "" })}>All of {shown.name}<span className="pl-mk-op__n">{shown.count}</span></button>
           {shown.subs.map(s => (
-            <button key={s.value} type="button" className="fh-op" role="radio" data-role={s.value} aria-checked={chosen === s.value}
+            <button key={s.value} type="button" className="pl-mk-op" role="radio" data-role={s.value} aria-checked={chosen === s.value}
               onClick={() => onPatch?.({ category: shown.id, subcategory: s.value })}>
-              {s.label}<span className="n">{s.count}</span>
+              {s.label}<span className="pl-mk-op__n">{s.count}</span>
             </button>
           ))}
         </div>
@@ -235,17 +232,17 @@ export function RolePicker({ params = {}, facets = null, onPatch }) {
 export function PanelOptions({ clause, rows, params = {}, onPatch, openSet = false, noteId }) {
   const role = clause.dim.multi ? "checkbox" : "radio";
   return (
-    <div className={`fh-opts${openSet ? " fh-opts--open" : ""}`} role="group"
+    <div className={`pl-mk-opts${openSet ? " pl-mk-opts--open" : ""}`} role="group"
       aria-labelledby={`${PANEL_ID}-key`} aria-describedby={noteId}>
       {rows.map(r => (
-        <button key={`${r.kind}:${r.value}`} type="button" className={r.kind === "strict" ? "fh-op fh-op--strict" : "fh-op"}
+        <button key={`${r.kind}:${r.value}`} type="button" className={r.kind === "strict" ? "pl-mk-op pl-mk-op--strict" : "pl-mk-op"}
           role={r.kind === "strict" ? "checkbox" : role}
           data-kind={r.kind} data-value={r.value} aria-checked={r.selected}
           aria-disabled={r.disabled ? "true" : undefined}
           title={r.note || undefined}
           onClick={() => { const patch = panelPress(clause, params, r); if (patch) onPatch?.(patch); }}>
           {r.label}
-          {r.count != null && <span className="n">{r.count}</span>}
+          {r.count != null && <span className="pl-mk-op__n">{r.count}</span>}
         </button>
       ))}
     </div>
@@ -255,9 +252,9 @@ export function PanelOptions({ clause, rows, params = {}, onPatch, openSet = fal
 /** "+ add" — what can be added. Pure, like PanelOptions. */
 export function AddOptions({ params = {}, otherFilterCount = 0, onOpen, onMoreFilters, noteId, labelledBy, exclude = null }) {
   return (
-    <div className="fh-opts" role="group" aria-labelledby={labelledBy || `${PANEL_ID}-key`}>
+    <div className="pl-mk-opts" role="group" aria-labelledby={labelledBy || `${PANEL_ID}-key`}>
       {addRows(params, { otherFilterCount }).filter(r => r.key !== exclude).map(r => (
-        <button key={r.key} type="button" className="fh-op" data-add={r.key}
+        <button key={r.key} type="button" className="pl-mk-op" data-add={r.key}
           aria-disabled={r.disabled ? "true" : undefined}
           aria-describedby={r.kind === "employment" ? noteId : undefined}
           onClick={() => {

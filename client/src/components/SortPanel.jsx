@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 import { sortRows, tieBreakText, unscoredParts } from "../lib/filterSentenceModel.js";
-import "./FullHouse.css";
+// ⛔ 47j w1-market (D197 Wave 1 #2): drawn as a plate piece — plate/MarketControls.jsx MarketPanel (kind "menu"), its
+// orders `.pl-mk-op`; FullHouse.css's .fh-sortp look is retired. The rows, the tie-break, the unscored line, focus and
+// the outside press that closes it are unchanged.
+import { MarketPanel } from "../plate/MarketControls.jsx";
 
 // ── D24 → D35 · THE SORT PANEL — opened by the bar's ⇅ square, beneath the bar ───────────────────────
 //
@@ -39,29 +42,24 @@ export default function SortPanel({ value, onChange, atsAvailable = true, facets
     return () => document.removeEventListener("pointerdown", onDown);
   }, [onClose]);
   return (
-    <section ref={ref} id={SORT_PANEL_ID} className="fh-sortp" aria-labelledby={`${SORT_PANEL_ID}-key`}
+    <MarketPanel kind="menu" panelRef={ref} id={SORT_PANEL_ID} label="Sort by" labelId={`${SORT_PANEL_ID}-key`} onClose={close}
+      aria-labelledby={`${SORT_PANEL_ID}-key`}
       data-board-panel="sort" onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); close(); } }}>
-      <div className="fh-pin">
-        <div className="fh-ph">
-          <span className="fh-k" id={`${SORT_PANEL_ID}-key`}>Sort by</span>
-          <button type="button" className="fh-cl" onClick={close}>Close ×</button>
-        </div>
-        <div className="fh-opts" role="radiogroup" aria-labelledby={`${SORT_PANEL_ID}-key`}>
+        <div className="pl-mk-opts pl-mk-opts--col" role="radiogroup" aria-labelledby={`${SORT_PANEL_ID}-key`}>
           {rows.map(r => (
-            <button key={r.value} type="button" role="radio" aria-checked={r.value === value} className="fh-op"
+            <button key={r.value} type="button" role="radio" aria-checked={r.value === value} className="pl-mk-op"
               data-sort={r.value} title={r.subtitle} onClick={() => onChange?.(r.value)}>
               {r.short}
-              {r.tag && <span className="n">{r.tag}</span>}
+              {r.tag && <span className="pl-mk-op__n">{r.tag}</span>}
             </button>
           ))}
         </div>
         {atsAvailable && (
-          <p className="fh-cov" data-unscored="">
+          <p className="pl-mk-panel__note" data-unscored="">
             {lead}{newest && <>{" "}<b>{newest}</b> shows everything.</>}
           </p>
         )}
-        {tieBreakText(chosen) && <p className="fh-cov" data-tie-break="">{tieBreakText(chosen)}</p>}
-      </div>
-    </section>
+        {tieBreakText(chosen) && <p className="pl-mk-panel__note" data-tie-break="">{tieBreakText(chosen)}</p>}
+    </MarketPanel>
   );
 }

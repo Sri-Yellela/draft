@@ -92,68 +92,9 @@
 .bh .tok--add { border-style: dashed; color: var(--c-ink-faint); box-shadow: none; font-weight: 600; }
 .bh .tok--add:hover, .bh .tok--add:focus-visible { box-shadow: var(--c-depth-rest); color: var(--c-accent-ink); }
 
-/* ── 2 · THE PANEL a word opens — ONE, directly beneath the sentence ──────────────────────────── */
-@keyframes fh-open { from { max-height: 0; opacity: 0; margin-top: 0; } to { max-height: 520px; opacity: 1; margin-top: 14px; } }
-.fh-pan { margin: 14px 0 0; animation: fh-open var(--fh-t) var(--fh-e); overflow: visible; }
-.fh-sortp { margin: 10px 0 0; animation: fh-open var(--fh-t) var(--fh-e); }
-.fh-pin {
-  background: var(--c-fh-surface); border: 1px solid var(--c-fh-line); border-radius: 14px;
-  padding: 15px 17px; box-shadow: var(--c-depth-rest);
-}
-.fh-ph { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
-.fh-k { font: 800 italic 11.5px/1 var(--fh-logo-family); color: var(--c-ink-faint); text-transform: uppercase; }
-.fh-cl {
-  font: 800 italic 10.5px/1 var(--fh-logo-family); color: var(--c-accent-ink);
-  background: none; border: 0; padding: 4px 0; cursor: pointer;
-}
-.fh-cl:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; border-radius: 4px; }
-.fh-opts { display: flex; gap: 8px; flex-wrap: wrap; }
-.fh-opts--open { max-height: 176px; overflow-y: auto; padding: 4px 4px 6px; margin: -4px -4px 0; }
-.fh-op {
-  display: flex; align-items: center; gap: 9px;
-  border: 1px solid var(--c-fh-line); background: var(--c-fh-well); border-radius: 9px; padding: 9px 13px;
-  box-shadow: var(--c-depth-rest); font: inherit; font-size: 12.5px; line-height: 1.2; color: var(--c-ink);
-  cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s;
-}
-.fh-op:hover, .fh-op:focus-visible {
-  transform: translateY(-2px); box-shadow: var(--c-depth-hover); border-color: var(--c-accent-ink); outline: none;
-}
-.fh-op[aria-checked="true"] {
-  background: var(--c-accent); border-color: var(--c-fh-accent-edge); color: var(--c-fh-on-accent);
-  box-shadow: var(--c-depth-accent);
-}
-/* The count: the sketch's mono note behind a rule. At full opacity — the sketch's .5 is 3.2:1 and an
-   option's count is information (the 0 on intern most of all). */
-.fh-op .n {
-  font: 700 10px/1 var(--fh-mono); color: var(--c-ink-faint);
-  border-left: 1px solid currentColor; padding-left: 9px;
-}
-.fh-op[aria-checked="true"] .n { color: inherit; }
-/* ⛔ DIMMED AND NOT SELECTABLE, NEVER HIDDEN — the pill keeps its place and its 0. aria-disabled, so a
-   keyboard still reaches it and hears why; an inactive control is exempt from the contrast minimum. */
-.fh-op[aria-disabled="true"] { opacity: .36; cursor: not-allowed; }
-.fh-op[aria-disabled="true"]:hover { transform: none; box-shadow: var(--c-depth-rest); border-color: var(--c-fh-line); }
-.fh-op[aria-disabled="true"]:focus-visible { transform: none; outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
-.fh-cov { font-size: 11px; color: var(--c-ink-faint); font-style: italic; margin: 11px 0 0; }
-.fh-cov b { font-weight: 700; color: var(--c-ink-muted); }
-/* D42 · "+ add" left the sentence: what can still be added is the panel's last row. */
-.fh-addrow { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--c-fh-line); }
-.fh-addrow .fh-k { display: block; margin-bottom: 8px; }
-/* ⭐ A146 (45o): "All filters" — the word after the sentence, and its panel's sections (every clause at once). */
-/* ⭐ A221 (46r, the 46q audit): its size was 0.55em of whatever it sat in — beside the search bar's small text that drew it at
-   ~6 px, unreadable (shots 13, 43, 45). Now the page's small text size, whatever its parent; it follows Settings → Text size. */
-/* ⛔ 47j R2: the classic "All filters" word (.bh__all, beside the sentence) is deleted — the cartouche's chip row carries it. */
-.fh-all { display: flex; flex-direction: column; gap: 14px; }
-.fh-all__sec .fh-k { display: block; margin-bottom: 6px; }
-/* D42 · the strict toggle reads as a setting, not a value: dashed until it is on. */
-.fh-op--strict { border-style: dashed; }
-.fh-op--strict[aria-checked="true"] { border-style: solid; }
-.fh-find {
-  box-sizing: border-box; width: 100%; margin: 0 0 10px; padding: 9px 12px; border-radius: 10px;
-  border: 1px solid var(--c-fh-line); background: var(--c-fh-well); box-shadow: var(--c-fh-inset);
-  color: var(--c-ink); font: inherit; font-size: 13px;
-}
-.fh-find:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
+/* ── 2 · THE PANEL a word opens ── ⛔ 47j w1-market (D197 Wave 1 #2): DELETED. The word's panel, All filters and the sort's
+   menu are plate pieces now (plate/MarketControls.jsx MarketPanel, plate/plate.css .pl-mk-panel / .pl-mk-op); nothing wears
+   .fh-pan / .fh-sortp / .fh-pin / .fh-ph / .fh-k / .fh-cl / .fh-opts / .fh-op / .fh-cov / .fh-addrow / .fh-all / .fh-find. */
 
 /* ── 3 · THE CONDENSED BAR — one row: the views, the search, sort, + ─────────────────────────── */
 /* ⭐ D92 · ONE SURFACE with hairline dividers — not a surface holding wells holding buttons (the "box · box ·
@@ -226,13 +167,10 @@
   .fh-ico { order: 2; margin-left: auto; }
   .fh-srch { order: 4; flex: 1 1 100%; }
   .fh-bar .fh-srch { border-top: 1px solid var(--c-fh-line); border-radius: 0 0 10px 10px; }
-  .fh-pin { padding: 13px 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bh .tok, .fh-op, .fh-ico, .fh-views button { transition: none; }
-  .fh-pan, .fh-sortp { animation: none; }
-  .fh-op:hover, .fh-op:focus-visible { transform: none; }
+  .bh .tok, .fh-ico, .fh-views button { transition: none; }
 }
 
 /* ⛔ 47j A248: the board's sticky bar row (D49's bar row), its stuck frost (D92 rule 4) and A131's fringe rule are
@@ -246,16 +184,11 @@
 /* ⛔ D156 (1d): D147's sentence type (the serif, 400, 30px / 1.35, letter-spacing 0) is WITHDRAWN — the sentence is set in
    FULL_HOUSE_TYPE again (styles/type.js, D47: the logo face, Poppins 800 italic, at the logo's nav size, min(30px, 6.4vw),
    line 1.5, letter-spacing -.015em). Only A116's text size stays on it: the size times --type-scale (1 = the original). */
-.fh[data-fh-d147] { --fh-sentence-size: calc(min(30px, 6.4vw) * var(--type-scale, 1)); }
+/* ⛔ 47j w1-market: the market's header is the plate cartouche's (.pl-mk-head) — .fh[data-fh-d147] and its sentence size are deleted. */
 /* ⭐ D156 (5): D147's "Sort / view" word (.fh-sortw), the views inside its panel (.fh-show) and the "Full House" title row
    (.fh-title) are gone — the sort is an icon in the search field, the views a row under it (the Home block below). */
 /* The bar is the search alone. */
-/* The minimal counts. */
-.fh.fh-counts { display: flex; gap: 28px; flex-wrap: wrap; padding-top: 10px; padding-bottom: 14px; }
-.fh-count b { display: block; font: 500 calc(28px * var(--type-scale, 1))/1.1 var(--font-body); letter-spacing: -.03em; color: var(--c-ink); }
-.fh-count span { display: block; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-faint); }
-.fh-count--hot b { color: var(--c-accent-ink); }
-@media (max-width: 600px) { .fh.fh-counts { gap: 18px; padding-top: 6px; } .fh-count b { font-size: calc(24px * var(--type-scale, 1)); } }
+/* ⛔ 47j w1-market: the minimal counts (.fh-counts / .fh-count) are deleted — nothing wears them (D199 C4's stats box replaced them). */
 
 /* ── ⭐ D149 (owner 11-03) · THE HEADER, AS fullhouse-declutter.html DRAWS IT — its values verbatim ───────────────────────
  * The page column is the sketch's `.fhw` (1240 wide, 20px gutters, the content from its left edge), not D37's centred
@@ -263,10 +196,6 @@
  * no edge, no glyph · `.fsent` 400 30px/1.35 serif in --body, 18px above / 14 below, 30ch; its words ink, underlined
  * 1.5px in the accent · `.sbar` the field alone: the card, corner 14, padding 12 16, 16px, 620 wide, no edge, no shadow
  * · `.cnt` 30px 500 (-.03em) over 13px muted, 28px apart, 22px under the search, 14px above the list. */
-.fh[data-fh-d147], .fh.fh-counts { max-width: none; padding-left: var(--page-gutter); padding-right: var(--page-gutter); } /* 46q FULL WIDTH */
-.fh[data-fh-d147] { padding-top: 10px; font-family: var(--shape-font-ui, var(--font-body)); }
-/* ⭐ D156 (1d): the sentence's size is the original's (above), not the sketch's 30px at every width. */
-.fh[data-fh-d147] .bh { margin: 18px 0 14px; max-width: 30ch; color: var(--c-ink-muted); }
 .fh-bar {
   max-width: 620px; margin-top: 0; padding: 0; border: 0; border-radius: 14px; background: var(--c-surface-solid); box-shadow: none;
 }
@@ -275,15 +204,7 @@
   padding: 12px 16px; font: 400 calc(16px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body)); color: var(--c-ink);
 }
 .fh-bar .fh-srch input::placeholder { color: var(--c-ink-faint); }
-/* 10 + the list scroller's own 4px top padding = the sketch's 14 above the first row. */
-.fh.fh-counts { gap: 28px; padding-top: 0; padding-bottom: 10px; font-family: var(--shape-font-ui, var(--font-body)); }
-.fh-count { font-size: calc(16px * var(--type-scale, 1)); line-height: 1.55; }
-.fh-count b { font: 500 calc(30px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body)); letter-spacing: -.03em; }
-.fh-count span { display: inline; font-size: calc(13px * var(--type-scale, 1)); line-height: 1.55; color: var(--c-ink-faint); }
 @media (max-width: 600px) {
-  .fh[data-fh-d147], .fh.fh-counts { padding-left: 20px; padding-right: 20px; }
-  .fh.fh-counts { gap: 28px; }
-  .fh-count b { font-size: calc(30px * var(--type-scale, 1)); }
   .fh-bar .fh-srch { border-top: 0; border-radius: 14px; }
 }
 
@@ -321,47 +242,12 @@
    sketch's 44 px from the top of the screen, not 44 under an empty strip. The Menu keeps its button there, and the strip. */
 :root .home__deck { top: 28px; }
 .home__board { min-width: 0; }
-.home__board .fh[data-fh-d147], .home__board .fh.fh-counts, .home__board .fh.fh-viewrow { max-width: none; padding-left: 0; padding-right: 0; }
-.home__board .fh[data-fh-d147] { padding-top: 0; }
-.home__board .fh[data-fh-d147] .bh { margin-top: 0; max-width: 34ch; }
 .home__board { position: relative; }
-/* ⭐ D156 (5): the sort is an icon INSIDE the search field (D152's "Sort: For you" box at the column's top right is gone,
-   and with it the sentence's padding that kept its width free). Its menu opens under the field, at its right. */
+/* ⭐ D156 (5): the sort's menu opened under the field. ⛔ 47j w1-market: it is the plate's MarketPanel (kind "menu") now. */
 .fh-bar { position: relative; }
-/* ⛔ 47j R2: the classic bar's sort icon (.fh-sorti) is deleted — the cartouche's MarketSortButton opens the panel. */
-.fh-bar > .fh-sortp { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; width: min(340px, 100%); margin: 0; animation: none; }
-.fh-bar > .fh-sortp .fh-pin { background: var(--c-surface-menu); box-shadow: var(--c-shadow-lg); }
-.fh-bar > .fh-sortp .fh-opts { flex-direction: column; gap: 4px; }
-.fh-bar > .fh-sortp .fh-op { box-shadow: none; }
-.fh-bar > .fh-sortp .fh-op .n { display: none; }
-/* ⭐ D156 (4) · under the search: the views (All jobs · Starred · Imported, with counts) and "Import a job". Plain words in
-   the interface face; the chosen view a quiet box (D60: a box, never a capsule); the counts muted. */
-.fh.fh-viewrow { padding-top: 0; padding-bottom: 14px; font-family: var(--shape-font-ui, var(--font-body)); }
-/* ⛔ 47j R2: the classic views segment (.fh-views) and its Import button (.fh-importb) are deleted — the area nav carries both. */
-.fh-import { margin-top: 10px; padding: 12px; border-radius: 14px; background: var(--c-surface-solid); display: grid; gap: 10px; }
-.fh-import textarea {
-  box-sizing: border-box; width: 100%; resize: vertical; min-height: 44px; padding: 11px 14px; border-radius: 10px;
-  border: 1px solid var(--c-border); background: var(--c-surface-2); color: var(--c-ink);
-  font: 400 calc(15px * var(--type-scale, 1))/1.5 var(--shape-font-ui, var(--font-body));
-}
-.fh-import textarea::placeholder { color: var(--c-ink-faint); }
-.fh-import textarea:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
-.fh-import__row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.fh-import__go {
-  padding: 9px 18px; border: 0; border-radius: 10px; cursor: pointer; background: var(--c-accent); color: var(--c-on-accent);
-  box-shadow: var(--c-depth-accent); font: 600 calc(14px * var(--type-scale, 1))/1.3 var(--shape-font-ui, var(--font-body));
-}
-.fh-import__go:disabled { opacity: .5; cursor: default; }
-.fh-import__x {
-  padding: 9px 12px; border: 0; border-radius: 10px; cursor: pointer; background: transparent; color: var(--c-ink-muted);
-  font: 600 calc(14px * var(--type-scale, 1))/1.3 var(--shape-font-ui, var(--font-body));
-}
-.fh-import__go:focus-visible, .fh-import__x:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
-.fh-import__note { margin: 0; flex: 1 1 220px; font-size: calc(13.5px * var(--type-scale, 1)); line-height: 1.45; color: var(--c-ink-muted); }
-.fh-import__note[data-import-note="error"] { color: var(--c-danger); }
+/* ⛔ 47j w1-market: the view row (.fh-viewrow) and Import a job (.fh-import*) are deleted — the import box is a plate MarketPanel. */
 @media (max-width: 980px) {
   .home__deck { position: static; margin: 0 auto; width: min(330px, 100%); }
 }
 
-/* ⭐ D179 (a) · the domain panel's role picker: categories, then the open category's subcategories. */
-.fh-role { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+/* ⛔ 47j w1-market: the role picker's look (.fh-role) is the plate's (.pl-mk-role). */

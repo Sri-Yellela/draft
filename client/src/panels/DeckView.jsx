@@ -54,7 +54,9 @@ import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
 import { DECISIONS, counts, deckReducer, fanOrder, initialDeck, isFinished, stepTarget } from "../lib/deckState.js";
 import { DECISION_SURFACES, DECISION_TOAST_MS, DECISION_VERB, commitDecision, undoDecision } from "../lib/jobDecisions.js";
 import DecisionToast from "../components/DecisionToast.jsx";
-import { NoteCard } from "../components/TextBlocks.jsx";   // A233: the empties as note cards
+// ⛔ 47j w1-market (D197 Wave 1 #2): the deck's loading / error / stale / empty states are the plate's (plate/PlateState.jsx) —
+// the skeleton with its words, the error line, the drawer; A233's NoteCard no longer draws on the plate market.
+import { Drawer, ErrorLine, Skeleton } from "../plate/PlateState.jsx";
 import { EXPAND_CLOCK, HOME_CARD, HOME_FAN, HOME_FAN_WIDE, cardSize, fanTransform, geometryFor, homeDeckColumn, homeLandscape, orientationFor } from "../lib/fanGeometry.js";
 import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
 import { readDeckOrder } from "../lib/deckOrder.js";
@@ -1338,30 +1340,30 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
         <h1 style={visuallyHidden} data-deck-title="">Today's draft · {dateLabel}</h1>
 
         {(load.status === "loading" || load.status === "scoring") && (
-          <div style={{ ...glass({ radius: 28 }), padding: 40, minHeight: 340, display: "grid", placeItems: "center", color: C.INK_MUTED, textAlign: "center" }}
-            data-deck-scoring={load.status === "scoring" ? "" : undefined}>
+          <div className="plate pl-deckstate" data-deck-scoring={load.status === "scoring" ? "" : undefined}>
+            <Skeleton label={load.status === "scoring" ? "Scoring today's postings" : "Dealing today's draft"} height={340} radius="plate" lines={4} />
+            <p className="pl-mk-notice" role="status">
             {load.status === "scoring"
               ? "Reading today's postings against this résumé. Your best matches will be here in a few seconds…"
               : "Dealing today's draft…"}
+            </p>
           </div>
         )}
 
         {load.status === "error" && (
-          <div role="alert" style={{ ...glass({ radius: 28 }), padding: 36 }}>
-            <div style={{ fontSize: ts(18), fontWeight: 700, color: C.INK, marginBottom: 8 }}>Today's draft could not be dealt.</div>
-            <div style={{ fontSize: ts(14), color: C.INK_MUTED, marginBottom: 18 }}>{load.error}</div>
-            <button type="button" onClick={fetchDeck} style={{ ...glass({ radius: 12 }), padding: "10px 18px", fontWeight: 800, color: C.INK, cursor: "pointer" }}>Try again</button>
+          <div className="plate pl-deckstate" data-deck-error="">
+            <ErrorLine text={`Today's draft could not be dealt.${load.error ? ` ${load.error}` : ""}`} onRetry={fetchDeck} />
           </div>
         )}
 
         {load.status === "ready" && load.refreshing && !load.stale && (
-          <div role="status" data-deck-refreshing="" style={{ fontSize: ts(13.5), color: C.INK_MUTED, margin: "0 0 12px" }}>Refreshing today's draft…</div>
+          <div role="status" data-deck-refreshing="" className="plate pl-mk-notice">Refreshing today's draft…</div>
         )}
 
         {load.status === "ready" && load.stale && (
-          <div role="status" data-deck-stale style={{ fontSize: ts(13.5), color: C.INK_MUTED, margin: "0 0 12px", display: "flex", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}>
-            <span>Showing today's draft from earlier — {load.stale}</span>
-            <button type="button" onClick={fetchDeck} style={{ background: "none", border: 0, padding: 0, fontWeight: 800, color: C.ACCENT_INK, cursor: "pointer" }}>Try again</button>
+          <div role="status" data-deck-stale className="plate pl-mk-noticerow">
+            <span className="pl-mk-notice">Showing today's draft from earlier — {load.stale}</span>
+            <button type="button" onClick={fetchDeck} className="pl-mk-notice__link">Try again</button>
           </div>
         )}
 
@@ -1389,14 +1391,15 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
           }[s.reason] || null;
           const [title, body, links] = copy || [null, null, []];
           return (
-            // ⭐ A233: each empty is a note card — its title, one line, the way forward (a new account: the upload).
-            <NoteCard id={`deck-empty-${s.reason || "empty"}`} title={title || "Nothing strong enough today."} data-deck-empty={s.reason || "empty"}
-              style={{ maxWidth: "none" }}
+            // ⭐ A233: each empty — its title, one line, the way forward (a new account: the upload). ⛔ 47j w1-market: the
+            // plate's drawer (data-note-card keeps A233's id for the walks).
+            <div className="plate pl-deckstate">
+            <Drawer data-note-card={`deck-empty-${s.reason || "empty"}`} title={title || "Nothing strong enough today."} data-deck-empty={s.reason || "empty"}
+              text={body}
               actions={s.reason === "no_profile"
                 ? <StartFromResume onDone={(r) => { fetchDeck(); if (r?.profile?.id) setActiveProfileId?.(r.profile.id); }} onManual={() => navigate("/app/job-profiles")} />
-                : links.map(([to, label]) => <Link key={to} to={to} style={{ fontWeight: 800 }}>{label}</Link>)}>
-              {body}
-            </NoteCard>
+                : links.map(([to, label]) => <Link key={to} to={to} className="pl-btn pl-btn--secondary">{label}</Link>)} />
+            </div>
           );
         })()}
 
