@@ -282,3 +282,17 @@ These override the report above where they differ; everything else stands.
 - **A header that earns its space (owner 11-25, D200):** working pages (the market, the ledger, settings) get **one plain line** — serif 34–44 px, the thing in plain words (*"Openings for you"*) — a mono kicker for where / when, and at most one short sentence only if it tells the person something they'd otherwise miss; counts and controls do the rest. The 82–104 px serif titles stay for destinations (an Atlas place, a survey sheet, an opening sheet).
 - **Every mark answers (D200):** a stamp, logo, chip or number that looks like information does something when tapped or focused (the H-1B stamp opens the filings; a company logo opens its technographics); a mark with nothing behind it says so.
 - **Two maps (D200):** Atlas's map is the **physical** map (terrain, elevation = what you've proven); the market's map is the **political** map (hand-drawn territories, area = openings, hatching = the share that fits you, capitals = the companies hiring most). Only Atlas uses elevation; only the market uses borders. *Your survey* is the bridge between them.
+
+## Addendum (2026-11-26, 47j lane w2-person — D197 Wave 2 M3: the person's pieces, awaiting the owner's M4 look)
+
+New library components for *Your passport* (#9), *Setting out* (#15) and the plain-named settings / sign-in pages (#17); each in `client/src/plate/Person.jsx` (look: `plate/person.css`) with its states in `plate/registry.js`. Specs: `docs/revamp/profile.md`, `onboarding.md`, `settings.md`.
+
+| Component | Anatomy | Specs | States |
+| --- | --- | --- | --- |
+| Passport identity page (`PassportIdentity`) | Strip *PASSPORT · IDENTITY PAGE* + the visa stamp (*SEEN BY · ONLY YOU*); photo square or letter; serif name; headline; mono fields (HANDLE · FITS · LOCATION · YEARS); open-to-work line; actions strip | 112 × 136 px photo, 1.5 px ink, 3 px shadow; card 6 px shadow, region tint strip | ready · loading · empty · error · partial (a field says NOT SET) |
+| Visibility control (`VisibilityControl`) | *Only you · Connections · Public* as one bordered row of buttons | 44 px targets (36 px compact for a section's eye); pressed = ink fill | a level wider than `cap` is disabled and struck through, with its reason |
+| Stamps (`PassportStamps`) | *PROVEN IN ATLAS* — green stamps with how · date · proof; *FROM YOUR RÉSUMÉ* — dashed *not yet* tiles with *Prove it · 5 min* | stamps rotated −7° / +5°, not landing | green = proven only; empty groups say so |
+| Labelled field (`LabelledField`) | mono label over a 1.5 px ink input or textarea; note; error said in words (✕, `role=alert`) | 44 px min height, 12 px radius | invalid = dashed border + the sentence |
+| Settings sheet (`SettingsSheet`) | strip kicker, serif title, lead, optional drawing; rows of label (+ note) · control | card radius, 5 px shadow, rules between rows | tone *danger*: dashed border + *CAN'T BE UNDONE* (no red in the palette) |
+| Setting-out drop (`SettingOutDrop`) | dashed *not yet* plate, serif title, the line, the clay upload, a status line (`aria-live`) | the whole plate takes a dropped file | over = solid border + clay 4 px shadow; reading = busy |
+| Drawing to come (`DrawingToCome`) | a hatched, dashed plate in the region tint with *DRAWING TO COME* and what it will show | fixed `aspect-ratio`; `role=img`, label *drawing to come: …* | a placeholder only — never shipped in place of a drawing |
