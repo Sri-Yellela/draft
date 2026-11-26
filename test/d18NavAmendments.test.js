@@ -48,12 +48,11 @@ test("D18: NO symbol on any tab — the Draft House count rides on the button as
 });
 
 test("D18: Job Profiles lives in SETTINGS — the avatar menu's Settings group; the page stays route-only", () => {
-  const settingsAt = at(topBar, ">Settings</div>");
-  const group = topBar.slice(settingsAt, at(topBar, "Sign out", settingsAt));
-  assert.match(group, /onTabChange\?\.\("job-profiles"\)[\s\S]{0,200}Job Profiles/);
-  // Settings holds the other settings too — it is a group, not a lone relabelled link.
-  assert.match(group, /Account &amp; security/);
-  assert.match(group, /Integrations/);
+  // ⛔ 47j w1-shell (changed on purpose): the avatar menu's Settings group left with TopBar's ProfileMenuPanel (nothing
+  // opened it since D197 #1). The settings are Profile's own nav now (Account, Connections, Appearance, Saved answers), and
+  // Job Profiles is reached from Profile → Your profile (ProfilePanel's onOpenJobProfiles).
+  assert.doesNotMatch(topBar, />Settings<\/div>/);
+  assert.match(read("client/src/pages/profile/ProfilePage.jsx"), /onOpenJobProfiles=\{\(\) => navigate\("\/app\/job-profiles"\)\}/);
   // Not a tab, still a route.
   assert.doesNotMatch(tabsBlock(), /id: "job-profiles"/);
   assert.match(app, /const ROUTE_ONLY_TABS = \[[^\]]*"job-profiles"[^\]]*\];/);

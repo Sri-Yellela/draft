@@ -37,21 +37,27 @@ test("plans entry lives in profile menu, not main app tabs", () => {
   const topBar = fs.readFileSync("client/src/components/TopBar.jsx", "utf8");
 
   assert.doesNotMatch(app, /id:"plans"|id:\s*"plans"/);
-  assert.match(topBar, /onTabChange\?\.\("plans"\)/);
+  // ⛔ 47j w1-shell (changed on purpose): the profile menu (TopBar's ProfileMenuPanel) is gone — nothing opened it since
+  // D197 #1 — so View plans lives on Profile → Account, under the same monetisation lever.
+  assert.doesNotMatch(topBar, /onTabChange\?\.\("plans"\)/);
+  const profile = fs.readFileSync("client/src/pages/profile/ProfilePage.jsx", "utf8");
+  assert.match(profile, /\{monetisationEnabled && <ProfilePlanLine planTier=\{user\?\.planTier\} \/>\}/);
+  assert.match(profile, /<Link className="pf__quiet" to="\/app\/plans" data-view-plans="">View plans<\/Link>/);
 });
 
 test("top-right account controls are consolidated into avatar menu", () => {
   const topBar = fs.readFileSync("client/src/components/TopBar.jsx", "utf8");
-  const profileSelector = fs.readFileSync("client/src/components/ProfileSelectorDropdown.jsx", "utf8");
   const scrollDock = fs.readFileSync("client/src/components/ScrollDock.jsx", "utf8");
   const consoles = fs.readFileSync("client/src/consoles/PlanConsoles.jsx", "utf8");
 
   // D149 (11-03): the avatar menu is the Profile panel now (opened from the Dock / the Menu); the same contents.
-  assert.match(topBar, /function ProfileMenuPanel/);
-  assert.match(topBar, /Job Profile/);
-  assert.match(topBar, /ProfileSelectorDropdown/);
-  assert.match(topBar, /onActivateProfile/);
-  assert.match(profileSelector, /\+ Add Profile/);
+  // ⛔ 47j w1-shell (changed on purpose): that panel (ProfileMenuPanel) is gone — the plate dock never opened it (D197 #1)
+  // — and its ProfileSelectorDropdown, rendered nowhere else, is deleted. Its contents live in the dock's Profile peek
+  // and Profile's own nav; the job-profile switch (activate, delete, add) is Profile → Your profile and /app/job-profiles.
+  assert.doesNotMatch(topBar, /function ProfileMenuPanel|ProfileSelectorDropdown|onActivateProfile/);
+  const jobProfiles = fs.readFileSync("client/src/panels/JobProfilesPanel.jsx", "utf8");
+  assert.match(jobProfiles, /\/activate`, \{ method: "POST" \}/);
+  assert.match(jobProfiles, /method: "DELETE"/);
   // The accent picker was here. Removed by docs/UI_REDESIGN.md step 2 (one accent, the logo
   // orange); its absence is pinned in test/colorTokens.test.js.
   assert.doesNotMatch(topBar, /Accent Color/);
@@ -63,8 +69,10 @@ test("top-right account controls are consolidated into avatar menu", () => {
   // failed the moment that comment was deleted with the collapse it described. Removed rather than
   // repointed: a menu item that does not exist cannot be asserted, and inventing one is a product
   // decision, not a test fix.
-  assert.match(topBar, /Integrations/);
-  assert.match(topBar, /onTabChange\?\.\("profile"\)/);
+  // ⛔ 47j w1-shell (changed on purpose): Integrations and Profile are reached from the peek (Open Profile → Connections)
+  const peek = fs.readFileSync("client/src/components/AppNav.jsx", "utf8");
+  assert.match(peek, /\{link\("connections", "Connections"/);
+  assert.match(peek, /\{link\(null, "Open Profile", null, \{ className: "appnav-peek__open" \}\)\}/);
   assert.doesNotMatch(topBar, /function SettingsGear|<SettingsGear|function ProfileSwitcher|<ProfileSwitcher/);
   assert.doesNotMatch(scrollDock, /<ProfileSwitcher|<DockSettingsPanel/);
   // Was `assert.match(scrollDock, /Job Profile/)` — which contradicted this test's own premise.
@@ -81,7 +89,6 @@ test("jobs surface has compact profile selector and profile menu supports deleti
   const jobsPanel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
   const topBar = fs.readFileSync("client/src/components/TopBar.jsx", "utf8");
   const scrollDock = fs.readFileSync("client/src/components/ScrollDock.jsx", "utf8");
-  const profileSelector = fs.readFileSync("client/src/components/ProfileSelectorDropdown.jsx", "utf8");
 
   assert.doesNotMatch(jobsPanel, /Profile:/);
   assert.doesNotMatch(jobsPanel, /Profile switcher bar/);
@@ -101,18 +108,19 @@ test("jobs surface has compact profile selector and profile menu supports deleti
   // profiles" and there were two ProfileSelectorDropdowns in this file — the menu's and the pill's.
   // Y4 retired the pill, so the menu is the one place it lives, which is what makes this assertion
   // load-bearing rather than one of a pair.
-  assert.match(topBar, /<ProfileSelectorDropdown/, "the avatar menu must still switch profiles");
+  // ⛔ 47j w1-shell (changed on purpose): the avatar menu and its ProfileSelectorDropdown are gone (nothing opened the menu
+  // since D197 #1). Switching and deleting a job profile is the manager's (/app/job-profiles) and Profile → Your profile's.
+  assert.doesNotMatch(topBar, /<ProfileSelectorDropdown/);
+  const jobProfiles = fs.readFileSync("client/src/panels/JobProfilesPanel.jsx", "utf8");
+  assert.match(jobProfiles, /\/activate`, \{ method: "POST" \}/, "the manager must still switch profiles");
   // The pill's "Filter jobs…" input went with the pill. It wrote `localSearch`, which the main
   // search bar's keyword field also writes — so the state still has an input, and this file's own
   // assertion above (that JobsPanel must NOT re-grow a third one) is what keeps that from doubling.
   assert.doesNotMatch(topBar, /placeholder="Filter jobs/,
     "the retired pill's local search input is back in the top bar");
-  assert.match(topBar, /method: "DELETE"/);
-  assert.doesNotMatch(topBar, />\s*Delete\s*<\/button>/);
-  assert.match(profileSelector, /onDelete\?\.\(profile\.id\)/);
-  assert.match(profileSelector, /e\.stopPropagation\(\)/);
-  assert.match(profileSelector, /Cannot delete your only profile/);
-  // Deletion is asserted on topBar above. The old `scrollDock` copy of this assertion dated from
+  assert.match(jobProfiles, /method: "DELETE"/);
+  assert.doesNotMatch(topBar, /method: "DELETE"/, "47j: the top bar deletes nothing now");
+  // Deletion is asserted on the manager above (47j w1-shell; it was topBar's). The old `scrollDock` copy of this assertion dated from
   // when the dock hosted a profile switcher; it is now marketing/tools chrome only.
 });
 
@@ -141,14 +149,13 @@ test("profile menus use viewport scrolling and dropdown actions", () => {
   // The maxHeight/overflowY pair belongs to DockPortal, asserted above — it is the component that
   // actually renders the scrollable menu surface. These two assertions previously duplicated it
   // onto ScrollDock, which no longer hosts a menu at all.
-  assert.match(topBar, /const activeProfile = profiles\?\.find/);
+  // ⛔ 47j w1-shell (changed on purpose): the avatar menu's switcher (`const activeProfile = profiles?.find`) left with it.
   // `title="Switch profile"` was the PILL's ProfileSelectorDropdown — a compact, icon-sized copy
   // that needed a tooltip because it had no visible label. It went with the pill (Y4). The avatar
   // menu's copy sits under a "Job Profile" heading and shows the active profile's name, so it names
   // itself; asserting a tooltip it never had would be asserting the pill's version.
   assert.doesNotMatch(topBar, /title="Switch profile"/,
     "the pill's compact profile switcher is back");
-  assert.match(topBar, /Job Profile/, "the profile switcher lost the heading that names it");
   assert.doesNotMatch(topBar, /display:\s+"none"/);
 });
 

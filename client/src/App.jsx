@@ -450,7 +450,10 @@ function AtlasAreaNav({ onHome }) {
   return <ShellAreaNav area={nav.area} pill={nav.pill} views={nav.views} current={nav.current} more={nav.more} chip={nav.chip}
     placeholder={nav.placeholder} onGo={nav.onGo} onHome={onHome} />;
 }
-// the area's name for its nav's label (assistive tech) — the places the dock names
+// the area's name for its nav's label (assistive tech) — the places the dock names, and the route-only pages (no dock
+// entry, by design: D5 / D10): /app/job, /app/companies/<slug>, /app/job-profiles, /app/plans (lever on; reached from
+// Profile → Account's View plans, 47j) and /app/recruiter (a job card's and the company view's deep links) — each draws
+// this nav with its search, so each needs its name here (47j w1-shell checked: none is dead)
 const AREA_NAMES = { "auto-apply" : "Home",   // (the id, spaced for the D6 guard)
   atlas: "Atlas", interview: "Interview", profile: "Profile", network: "Network", feed: "Feed",
   messages: "Messages", job: "Application", company: "Company", "job-profiles": "Job profiles", plans: "Plans", recruiter: "Recruiter" };
@@ -659,10 +662,8 @@ function AppDashboard({ authUser, setAuthUser }) {
     }
   }, [activeTab, consolePath, navigate, NAVIGABLE_TABS, pathForTab]);
 
-  const handleProfileActivate = useCallback(() => {
-    setJobBoardRefreshKey(k => k + 1);
-  }, []);
-
+  // ⛔ 47j w1-shell: handleProfileActivate (the board's refresh after the account panel's job-profile switcher) left with
+  // the panel — the switcher lives on Profile → Your profile and /app/job-profiles.
   useInactivityLogout(handleLogout, true);
 
   // The account's appearance — theme and shape cues (D91 P5) — follows the user between devices
@@ -811,7 +812,6 @@ function AppDashboard({ authUser, setAuthUser }) {
             hrefForTab={pathForTab}
             onLogout={handleLogout}
             onUserChange={setAuthUser}
-            onProfileActivate={handleProfileActivate}
           />
 
           {/* ⭐ D197 #1 · A237: the area nav across the top of the content column (the rail is AppNav's, at the left) */}
@@ -833,7 +833,7 @@ function AppDashboard({ authUser, setAuthUser }) {
             {activeTab === "job" && jobRoute && <JobWorkspacePanel {...(jobByJobId ? { jobId: decodeURIComponent(jobRoute[1]) } : { applicationId: jobRoute[1] })}/>}
             {activeTab === "plans" && monetisationEnabled && <PlansPanel user={authUser} onUserChange={setAuthUser}/>}
             {/* ⭐ D167 · Profile (its own navigation, nine panels) and Interview (Coming up · Prepare · Practise · After). */}
-            {activeTab === "profile" && profilePanel && <ProfilePage panel={profilePanel} onSignedOut={() => { setAuthContext(""); setAuthUser(null); }}/>}
+            {activeTab === "profile" && profilePanel && <ProfilePage panel={profilePanel} user={authUser} onSignedOut={() => { setAuthContext(""); setAuthUser(null); }}/>}
             {activeTab === "interview" && interviewPanel && <InterviewPage panel={interviewPanel}/>}
             {activeTab === "job-profiles" && <JobProfilesPanel/>}
             {activeTab === "recruiter"    && <RecruiterPanel/>}

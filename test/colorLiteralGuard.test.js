@@ -196,7 +196,7 @@ test("the shell, the public pages and the shared surfaces are literal-free", () 
     "client/src/pages/marketing/PricingPage.jsx", "client/src/pages/marketing/ContactPage.jsx",
     "client/src/pages/marketing/FeaturesPage.jsx", "client/src/pages/AdminLoginPage.jsx",
     "client/src/components/InlineLoginPopover.jsx", "client/src/components/BookShelf.jsx",   // 46v: FindFitApply left with the old landing
-    "client/src/components/ProfileSelectorDropdown.jsx",
+    // ⛔ 47j w1-shell (changed on purpose): ProfileSelectorDropdown.jsx deleted with the account panel
     "client/src/components/AdminLayout.jsx",
     "client/src/components/ui/TileCard.jsx", "client/src/components/ui/DateCalendar.jsx",
     // Step 2b (09-30): the signed-in app — the 22 files the budget held.

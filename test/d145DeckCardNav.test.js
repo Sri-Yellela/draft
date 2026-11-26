@@ -203,5 +203,7 @@ test("d145LargestNoClip390: on Largest at 390 px nothing forces a horizontal scr
   assert.match(face, /<div style=\{\{ minWidth: 0 \}\}>/, "the company block can shrink beside the match");
   // ⭐ D152 (4), changed on purpose: the dock is a 212 px left column — never wider than a 390 screen.
   assert.match(navCss, /\.appnav-dock \{[^}]*width: 212px;/);
-  assert.match(navCss, /\.appnav-panel \{[^}]*width: min\(300px, 86vw\);/);
+  // ⛔ 47j w1-shell (changed on purpose): the side panel's rules (.appnav-panel) are deleted — the account panel that last
+  // wore them is gone (nothing opened it since D197 #1).
+  assert.doesNotMatch(navCss, /\.appnav-panel \{/);
 });

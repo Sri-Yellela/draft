@@ -170,8 +170,10 @@ test("Settings → Saved answers is reachable, and the panel has all four tools"
   // ⭐ D167 (changed on purpose): Saved answers is Profile → Saved answers — /app/saved-answers lands on /app/profile/answers.
   assert.match(fs.readFileSync("client/src/pages/profile/profilePanels.js", "utf8"), /"saved-answers": "answers",/);
   assert.match(fs.readFileSync("client/src/pages/profile/ProfilePage.jsx", "utf8"), /<ProfilePanel section="answers"[^\n]*\/>\r?\n\s+<SavedAnswersPanel \/>/);
-  const bar = fs.readFileSync("client/src/components/TopBar.jsx", "utf8");
-  assert.match(bar, /onTabChange\?\.\("saved-answers"\)/);
+  // ⛔ 47j w1-shell (changed on purpose): the profile menu's Saved answers link left with TopBar's ProfileMenuPanel (nothing
+  // opened it since D197 #1); the dock peek's Saved answers is the way in.
+  const nav = fs.readFileSync("client/src/components/AppNav.jsx", "utf8");
+  assert.match(nav, /\{link\("answers", "Saved answers"\)\}/);
   const panel = fs.readFileSync("client/src/panels/SavedAnswersPanel.jsx", "utf8");
   for (const p of ["/api/saved-answers\"", "/api/saved-answers/export?format=", "/api/saved-answers/import", "/api/saved-answers/test", "data-test-a-question"]) {
     assert.ok(panel.includes(p), p);

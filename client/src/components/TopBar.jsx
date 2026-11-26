@@ -11,22 +11,13 @@
 // and with the deck's in-place expansion a long card scrolled visibly THROUGH the tab labels. The bar is
 // now frosted SURFACE_2 with the glass hairline under it: INK and INK_MUTED on SURFACE_2 are declared,
 // contrast-proved pairs in both themes (colorTokens.js CONTRAST_PAIRS), so the labels stay AA over anything.
-import { useState, useEffect, useRef, useCallback } from "react";
-import { createPortal } from "react-dom";
-import { useTheme } from "../styles/theme.jsx";
-import { useMonetisationEnabled } from "../lib/monetisation.jsx";
+import { useState, useEffect, useCallback } from "react";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import { useSyncEvents } from "../hooks/useSyncEvents.js";
 import { api } from "../lib/api.js";
 import { StampLogo } from "./StampLogo.jsx";
-import ProfileSelectorDropdown from "./ProfileSelectorDropdown.jsx";
 import { Z } from "../styles/zLayers.js";
-import { useNavigate } from "react-router-dom";
-import { ABOUT_HREF, notifTimeAgo } from "./AppNav.jsx";   // A151: the username opens the About section
-import { C } from "../styles/colorTokens.js";
-import { ACTIVE_THEME, appearance, setAppearance } from "../themes/index.js";
 import AppNav from "./AppNav.jsx";
-import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 import "./TopBar.css";
 
 // The slideDown keyframes and injectKeyframes() were removed with the pill (Y4).
@@ -77,6 +68,7 @@ function AnimatedLucyLogo() {
 // items invisible — so the badge stays in the bar, on the avatar, and only the LIST moved. That
 // split is why this is a hook plus a section rather than one component: the badge and the list are
 // two renderings of one piece of state, in two places, and they must not be able to disagree.
+// ⭐ 47j w1-shell: the list is the dock peek's (AppNav ProfilePeek, D197 #1 · A236 (b)) — the panel that drew it is gone.
 function useNotifications() {
   const [notifs, setNotifs] = useState([]);
   const [unread, setUnread] = useState(0);
@@ -106,258 +98,25 @@ function useNotifications() {
   return { notifs, unread, load, markAll };
 }
 
-const NOTIF_TYPE_ICONS = {
-  scrape_complete: "🔍", resume_generated: "✦", ats_scored: "🎯",
-  enhance_ready: "✨", best_match: "⚡", apply_complete: "✅",
-  // D112 item 8 (services/notify.js): the person's pipeline events.
-  needs_you: "!", inbox_reply: "✉", auto_daily_summary: "☰",
-};
-
-// notifTimeAgo: AppNav.jsx's (D197 #1 — the peek's notifications list reads the same one)
-
-// The list, rendered inside the profile menu. Every row, the mark-all-read action, the per-item
-// unread dot, the icons and the relative timestamps are the bell's, unchanged — this is where they
-// live now, not a reduced version of them. Scrolls within itself so a long list cannot push the
-// rest of the menu off screen.
-function NotificationsSection({ theme, notifs, unread, markAll }) {
-  return (
-    <div style={{ borderBottom: `1px solid ${theme.border}` }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "10px 16px 8px" }}>
-        <span style={{ fontSize: ts(10), fontWeight: 700, textTransform: "uppercase",
-                       letterSpacing: "0.08em", color: theme.textDim }}>
-          Notifications{unread > 0 ? ` (${unread})` : ""}
-        </span>
-        {unread > 0 && (
-          <button onClick={markAll}
-            style={{ background: "none", border: "none", cursor: "pointer",
-                     fontSize: ts(10), color: theme.accentText, fontWeight: 700, padding: 0 }}>
-            Mark all read
-          </button>
-        )}
-      </div>
-      {notifs.length === 0 ? (
-        <div style={{ padding: "8px 16px 14px", fontSize: ts(12), color: theme.textDim }}>
-          No notifications yet
-        </div>
-      ) : (
-        <div style={{ maxHeight: 220, overflowY: "auto", paddingBottom: 6 }}>
-          {notifs.slice(0, 20).map(n => (
-            <div key={n.id} style={{
-              padding: "8px 16px", display: "flex", alignItems: "flex-start", gap: 10,
-              background: !n.read ? `${theme.accent}0d` : "transparent",
-            }}>
-              <span style={{ fontSize: ts(14), flexShrink: 0, marginTop: 1 }}>
-                {NOTIF_TYPE_ICONS[n.type] || "ℹ"}
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: ts(12), color: theme.text, lineHeight: 1.4 }}>{n.message}</div>
-                <div style={{ fontSize: ts(10), color: theme.textDim, marginTop: 2 }}>{notifTimeAgo(n.created_at)}</div>
-              </div>
-              {!n.read && (
-                <div style={{ width: 6, height: 6, borderRadius: "50%",
-                               background: theme.accent, flexShrink: 0, marginTop: 4 }}/>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Quick actions removed (W6). The control was a ⚡ button opening three items: "Search new role"
-// and "ATS sort", which both did nothing but navigate to the jobs tab — the same thing the JOBS tab
-// beside them already does, and neither actually searched or sorted anything — and "Export PDF",
-// which called window.print() on the whole application chrome. Nothing here is preserved elsewhere
-// because there was no behaviour to preserve.
-
-// ⭐ D93 · THE QUICK SCHEME SWITCH — System | Light | Dark, inside the family of the theme in use (Paper Light /
-// Charcoal Dark, or Contrast Light / Contrast Dark). Saved to the account like every appearance choice, then
-// applied (the palette resolves once, at load, so applying is a reload). The full choice is on Customise.
-const SCHEMES = [["system", "System"], ["light", "Light"], ["dark", "Dark"]];
-function QuickScheme() {
-  const cur = appearance();
-  const contrast = ACTIVE_THEME.contrast === "aaa";
-  const on = cur.pref === "system" || cur.pref === "contrast" ? "system" : ACTIVE_THEME.scheme;
-  const prefFor = (s) => (s === "system" ? (contrast ? "contrast" : "system")
-    : contrast ? (s === "dark" ? "contrast-dark" : "contrast-light") : (s === "dark" ? "charcoal-dark" : "paper-light"));
-  const pick = (s) => {
-    if (s === on) return;
-    const pref = prefFor(s);
-    api("/api/settings/appearance", { method: "PUT", body: JSON.stringify({ theme: pref, cues: cur.cues }) })
-      .catch(() => {}).finally(() => setAppearance({ pref, cues: cur.cues }));
-  };
-  return (
-    <div role="radiogroup" aria-label="Light or dark" data-quick-scheme=""
-      style={{ display: "flex", gap: 4, marginTop: 6 }}>
-      {SCHEMES.map(([id, label]) => (
-        <button key={id} type="button" role="radio" aria-checked={on === id} onClick={() => pick(id)}
-          style={{ flex: 1, padding: "6px 8px", borderRadius: 8, cursor: on === id ? "default" : "pointer", fontSize: ts(12), fontWeight: 700,
-                   background: on === id ? "var(--c-accent)" : "transparent", color: on === id ? "var(--c-fh-on-accent)" : "var(--c-ink)",
-                   border: on === id ? "1px solid var(--c-fh-accent-edge)" : "1px solid var(--c-border-strong)" }}>
-          {label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ⭐ D149 (owner 11-03): THE TOP BAR IS GONE, AND ITS ACCOUNT MENU IS THE PROFILE PANEL (ProfileMenuPanel — not panels/ProfilePanel.jsx, the Profile page, nor
-// panels/AccountPanel.jsx, the Account & security page) — opened by "Profile — you and
-// your résumé", the last button of the Dock and of the Menu (AppNav), it slides in from the right like the Menu's panel
-// (the same surface, Close, Esc and a click outside close it). What it holds is the old avatar menu's, unchanged:
-// Profile, the notifications, the job-profile switcher, the appearance shortcut, the plan, the settings links, Sign Out.
-function ProfileMenuPanel({ open, onClose, theme, user, onLogout, onTabChange, profiles, onActivateProfile, onDeleteProfile,
-                        notifs, unread, markAll }) {
-  const monetisationEnabled = useMonetisationEnabled();
-  const navigate = useNavigate();   // A151
-  const panelRef = useRef(null);
-  const planTier = user?.planTier || "BASIC";
-  const planLabel = planTier === "PRO" ? "Pro" : planTier === "PLUS" ? "Plus" : "Basic";
-  const toolLabel = planTier === "PRO" ? "Generate + A+ Resume"
-    : planTier === "PLUS" ? "Generate"
-    : "Your jobs and today's picks";
-  const menuItemStyle = {
-    padding: "10px 16px", cursor: "pointer", fontSize: ts(13),
-    color: theme.text, background: "transparent", border: "none",
-    display: "block", width: "100%", textAlign: "left",
-  };
-  const activeProfile = profiles?.find(p => p.is_active) || profiles?.[0] || null;
-  useEffect(() => {
-    if (!open) return undefined;
-    panelRef.current?.querySelector("button")?.focus({ preventScroll: true });
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-  if (typeof document === "undefined") return null;
-  return createPortal(
-    <>
-      <div className="appnav-scrim" data-open={open ? "true" : "false"} aria-hidden="true" onClick={onClose} />
-      <aside role="dialog" aria-modal="true" aria-label="Profile" ref={panelRef} className="appnav-panel acct-panel" data-account-panel=""
-        data-open={open ? "true" : "false"} {...(open ? null : { inert: "", "aria-hidden": true })}>
-        <button type="button" className="appnav-close" onClick={onClose}>Close</button>
-        {/* PROFILE nav */}
-          <div style={{ padding: "10px 16px 8px", borderBottom: `1px solid ${theme.border}` }}>
-            <button
-              onClick={() => { onClose(); onTabChange?.("profile"); }}
-              style={{
-                background: "transparent", border: "none", padding: 0, cursor: "pointer",
-                fontFamily: "var(--font-display)",
-                fontWeight: 400, fontSize: ts(18), color: theme.text,
-                display: "block", width: "100%", textAlign: "left",
-              }}
-              onMouseEnter={e => e.currentTarget.style.color = theme.accent}
-              onMouseLeave={e => e.currentTarget.style.color = theme.text}>
-              Profile
-            </button>
-            {/* ⭐ A151 (45o): the username opens the profile's About section. */}
-            <button type="button" data-username-about="" onClick={() => { onClose(); navigate(ABOUT_HREF); }}
-              title="Your About section"
-              style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", font: "inherit",
-                fontSize: ts(10), color: theme.textDim, marginTop: 2, textAlign: "left" }}>
-              {user?.username} - {user?.isAdmin ? "Administrator" : "Member"}
-            </button>
-          </div>
-
-          <NotificationsSection theme={theme} notifs={notifs} unread={unread} markAll={markAll}/>
-
-          <div style={{ padding: "10px 16px 10px", borderBottom: `1px solid ${theme.border}` }}>
-            <div style={{ fontSize: ts(10), fontWeight: 700, textTransform: "uppercase",
-                           letterSpacing: "0.08em", color: theme.textDim, marginBottom: 8 }}>
-              Job Profile
-            </div>
-            {/* D18: managing profiles is a SETTING (the Settings group below); this block only switches. */}
-            {profiles?.length > 0 ? (
-              <ProfileSelectorDropdown
-                theme={theme}
-                profiles={profiles}
-                activeProfile={activeProfile}
-                onActivate={onActivateProfile}
-                onDelete={onDeleteProfile}
-                onAdd={() => { onClose(); onTabChange?.("job-profiles"); }}
-              />
-            ) : (
-              <button onClick={() => { onClose(); onTabChange?.("job-profiles"); }}
-                style={{ width:"100%", border:`1px solid ${theme.border}`, borderRadius:6,
-                         background:theme.surfaceHigh, color:theme.text, padding:"8px 10px",
-                         cursor:"pointer", textAlign:"left", fontSize:ts(12), fontWeight:700 }}>
-                Add your first job profile
-              </button>
-            )}
-          </div>
-
-          {/* Appearance — ⭐ D93: the QUICK switch stays here as a shortcut (system / light / dark, within the
-              family of the theme in use: Paper, or Contrast); everything else — the four themes, shape cues, the
-              layout options — lives on the Customise page (the Settings group below). */}
-          <div style={{ padding: "10px 16px 10px", borderBottom: `1px solid ${theme.border}` }}>
-            <div className="rm-section-label">Appearance</div>
-            <QuickScheme />
-          </div>
-
-          {/* Plan heading, tier label, tool label and "View Plans" are all tier claims and go
-              together when the lever is off. INTEGRATIONS IS NOT ONE and stays either way — it
-              lived inside this same block, so hiding the block wholesale would have quietly
-              removed a feature that has nothing to do with monetisation. */}
-          <div style={{ padding: "8px 16px", borderBottom: `1px solid ${theme.border}` }}>
-            {monetisationEnabled && (
-              <>
-                <div style={{ fontSize: ts(10), fontWeight: 700, textTransform: "uppercase",
-                               letterSpacing: "0.08em", color: theme.textDim, marginBottom: 6 }}>
-                  Plan
-                </div>
-                <div style={{ fontSize: ts(13), color: theme.text, fontWeight: 700 }}>{planLabel}</div>
-                <div style={{ fontSize: ts(11), color: theme.textDim, marginTop: 2 }}>{toolLabel}</div>
-                <button onClick={() => { onClose(); onTabChange?.("plans"); }}
-                  style={{ ...menuItemStyle, marginTop:4, color:theme.accentText, fontWeight:700 }}>
-                  View Plans
-                </button>
-              </>
-            )}
-            {/* D18 (10-03): JOB PROFILES LIVES IN SETTINGS. It left the top bar in D10; the page stays
-                route-only (/app/job-profiles) and this group is its home, beside the other settings. */}
-            <div className="rm-section-label" style={{ marginTop: monetisationEnabled ? 10 : 2 }}>Settings</div>
-            <button onClick={() => { onClose(); onTabChange?.("job-profiles"); }}
-              style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
-              Job Profiles
-            </button>
-            <button onClick={() => { onClose(); onTabChange?.("saved-answers"); }}
-              style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
-              Saved answers
-            </button>
-            <button onClick={() => { onClose(); onTabChange?.("account"); }}
-              style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
-              Account &amp; security
-            </button>
-            {/* ⭐ D93: Customise — its own page (theme, shape cues, the layout options), beside the other settings. */}
-            <button onClick={() => { onClose(); onTabChange?.("customise"); }} data-customise-link=""
-              style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
-              Customise
-            </button>
-            <button onClick={() => { onClose(); onTabChange?.("integrations"); }}
-              style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
-              Integrations
-            </button>
-          </div>
-
-          {/* Sign out */}
-          <button
-            onClick={() => { onClose(); onLogout?.(); }}
-            onMouseEnter={e => e.currentTarget.style.background = "var(--c-danger-quiet)"}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-            style={{ ...menuItemStyle, color: "var(--c-danger)", fontWeight: 600 }}>
-            Sign Out
-          </button>
-      </aside>
-    </>, document.body);
-}
+// ⛔ 47j w1-shell (D197 Wave 1 #1): THE ACCOUNT PANEL IS GONE. ProfileMenuPanel (D149's Profile panel — the old avatar
+// menu) opened only through the dock's `profile.onOpen`, which D197 #1's plate dock never calls, so nothing could reach it.
+// Every link and action it carried has a home in the live shell (D200 Rule 1):
+//   Profile / the username → About      the peek's Open Profile / its name (ABOUT_HREF)
+//   the notifications list, Mark all read  the peek's Notifications row (the same useNotifications state, below)
+//   the job-profile switcher (activate, delete, add)  Profile → Your profile → Behind your profile (ProfilePanel's Job
+//                                       Profiles) and the full manager, /app/job-profiles
+//   the quick System / Light / Dark switch  the peek's Appearance → Profile → Appearance (the Customise screen, D93)
+//   Plan · tier words · View Plans (lever on)  Profile → Account (ProfilePage's ProfilePlanLine, the same lever)
+//   Job Profiles · Saved answers · Account & security · Customise · Integrations  Profile's own nav (Your profile's
+//                                       Behind your profile · Saved answers · Account · Appearance · Connections)
+//   Sign Out                            the peek's Sign out (the same onLogout)
+// The panel's notification type icons were its own decoration; the peek's list draws a dot, the words and the time.
 
 // ═══════════════════════════════════════════════════════════════
 // Main TopBar — position:fixed, convergence animation
 // ═══════════════════════════════════════════════════════════════
 export default function TopBar({
-  user, onTabChange, onLogout, onUserChange, onProfileActivate,
+  user, onTabChange, onLogout, onUserChange,
   // THE TAB ROW LIVES HERE NOW (Y4). It used to sit in UnifiedSearchBar, which meant the app's
   // primary navigation was a slot on the search bar — so it appeared and disappeared with a control
   // that is only meaningful on the Jobs board.
@@ -385,8 +144,6 @@ export default function TopBar({
   // the href and the click can never point at different places.
   hrefForTab,
 }) {
-  const { theme } = useTheme();
-
   // GONE WITH THE PILL (Y4): `searchSurface` / `boardIsActive` props, `pillIsTheSearchSurface`,
   // `hovered` + `setHovered` + `hoverTimerRef` + handleMouseEnter/handleMouseLeave (a 100ms grace
   // period for the gap between two pills that no longer exists — and `hovered` was write-only: two
@@ -397,7 +154,7 @@ export default function TopBar({
   // machinery, and removing them meant changing the logo's signature, which Y1 forbade. Y4 reported
   // them as provably dead instead and recommended this pass. Confirmed with the owner, then removed.
 
-  const { setActiveProfileId, deleteProfileCache } = useJobBoard() || {};
+  const { setActiveProfileId } = useJobBoard() || {};
 
   const [vw, setVw] = useState(typeof window !== "undefined" ? window.innerWidth : 1280);
   useEffect(() => {
@@ -410,14 +167,15 @@ export default function TopBar({
   // Menu (AppNav.jsx, the user's choice in Settings → Appearance → Navigation). Its width tiers and overflow
   // measuring went with it.
 
-  // Domain profiles for docked pill switcher
-  const [profiles, setProfiles] = useState([]);
+  // The active job profile, read once and followed (profile_switched) — the board's profile cache keys on it
+  // (JobBoardContext setActiveProfileId). ⛔ 47j w1-shell: the account panel's switcher (activate / delete) that also lived
+  // here went with the panel; switching is Profile → Your profile and /app/job-profiles, whose activation emits
+  // profile_switched, read below.
   const loadProfiles = useCallback(() => {
     if (!user) return;
     api("/api/domain-profiles")
       .then(d => {
         const rows = Array.isArray(d) ? d : [];
-        setProfiles(rows);
         const active = rows.find(p => p.is_active) || rows[0];
         if (active) setActiveProfileId?.(active.id);
       })
@@ -432,39 +190,6 @@ export default function TopBar({
       loadProfiles();
     },
   });
-
-  const activateProfile = async (id) => {
-    const prev = profiles;
-    setProfiles(ps => ps.map(pr => ({ ...pr, is_active: pr.id === id ? 1 : 0 })));
-    setActiveProfileId?.(id);
-    onProfileActivate?.(id);
-    try {
-      await api(`/api/domain-profiles/${id}/activate`, { method: "POST" });
-    } catch {
-      setProfiles(prev);
-      const active = prev.find(p => p.is_active) || prev[0];
-      if (active) setActiveProfileId?.(active.id);
-    }
-  };
-
-  const deleteProfile = async (id) => {
-    const profile = profiles.find(p => p.id === id);
-    if (!profile) return;
-    if (profiles.length <= 1) return;
-    if (!confirm(`Delete job profile "${profile.profile_name}"?`)) return;
-    try {
-      await api(`/api/domain-profiles/${id}`, { method: "DELETE" });
-      deleteProfileCache?.(id);
-      const next = await api("/api/domain-profiles");
-      const rows = Array.isArray(next) ? next : [];
-      setProfiles(rows);
-      const active = rows.find(p => p.is_active) || rows[0];
-      if (active) setActiveProfileId?.(active.id);
-      onProfileActivate?.(active?.id);
-    } catch(e) {
-      alert(e.message || "Could not delete profile");
-    }
-  };
 
   // ── Geometry ──
   //
@@ -485,11 +210,8 @@ export default function TopBar({
   // The bar is still centred on the viewport rather than left-anchored, which is why dockCenter and
   // the translateX(-50%) survive a full-width bar: the board's content column is centred too, so the
   // two coincide (measured at vw=1600: search bar spans 340..1260, centre 800 = vw/2).
-  // ⭐ D149: the Profile panel's state and the notifications (their unread count rides on the Profile button).
+  // The notifications: their unread count rides on the dock's Profile item, the list opens in the peek (one state).
   const { notifs, unread, load: loadNotifs, markAll } = useNotifications();
-  const [accountOpen, setAccountOpen] = useState(false);
-  const openAccount = useCallback(() => { loadNotifs(); setAccountOpen(true); }, [loadNotifs]);
-  const closeAccount = useCallback(() => setAccountOpen(false), []);
 
   const dockCenter = vw / 2;
   const padH       = 20;
@@ -549,23 +271,17 @@ export default function TopBar({
         {/* Right: utility icons */}
         <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0, marginLeft: 8, pointerEvents: "auto" }}>
           {/* The bell and the quick-actions button are gone from the bar (W6). Notifications live
-              in the profile menu below; their unread count rides on the avatar so it is still
-              visible without opening anything. */}
+              in the dock's Profile peek (AppNav); their unread count rides on the Profile item so it is
+              still visible without opening anything. */}
           {/* ⭐ D145: the Menu button (shown when Navigation is Menu, or Automatic on a phone) and the Dock (portalled to
               the bottom of the screen) — one list, the same `tabs` the row used to draw. */}
           <AppNav tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onTabChange={onTabChange}
-            profile={user ? { onOpen: openAccount, badge: unread, name: user.displayName || user.name || user.username || user.email,
+            profile={user ? { badge: unread, name: user.displayName || user.name || user.username || user.email,
               badgeLabel: `${unread} unread notification${unread === 1 ? "" : "s"}`,
-              // ⭐ D167: the dock's quick peek shows the email and signs out with the same handler as the Profile panel.
+              // ⭐ D167: the dock's quick peek shows the email and signs out (App's one handleLogout).
               email: user.email || "", onSignOut: onLogout,
               // ⭐ D197 #1 · A236 (b): the peek's Notifications row opens the list (the same hook as the badge — one state)
               notifs, onLoadNotifs: loadNotifs, onMarkAll: markAll } : null} />
-          {user && (
-            <ProfileMenuPanel open={accountOpen} onClose={closeAccount}
-              theme={theme} user={user} onLogout={onLogout} onTabChange={onTabChange}
-              profiles={profiles} onActivateProfile={activateProfile} onDeleteProfile={deleteProfile}
-              notifs={notifs} unread={unread} markAll={markAll} />
-          )}
         </div>
       </div>
   );

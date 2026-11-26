@@ -105,7 +105,9 @@ test("d164NoActionLost · every action the posting and the deck card had before 
     ["Deck full report / the posting", deck, "Full report on the board →"], ["Deck drafted today", deck, 'aria-label="Drafted today"'],
     ["Deck keyboard shortcuts", deck, 'aria-label="Keyboard shortcuts"'], ["Deck order", customise, "DECK_ORDERS"],
     ["Bubble company profile", bubble, "<CompanyStackPopover company={r.company}"], ["Bubble save", bubble, 'data-bubble-action="star"'], ["Bubble draft", bubble, 'draft.action === "draft" ? onDraft'],
-    ["Job-profile switcher (whole board)", topBar, "<ProfileSelectorDropdown"],
+    // ⛔ 47j w1-shell (changed on purpose): the account panel's ProfileSelectorDropdown is deleted with the panel (nothing
+    // opened it since D197 #1) — the switch is the job-profile manager's (and Profile → Your profile's)
+    ["Job-profile switcher (whole board)", read("client/src/panels/JobProfilesPanel.jsx"), "/activate`, { method: \"POST\" }"],
   ];
   const lost = CHECKLIST.filter(([, src, anchor]) => !src.includes(anchor)).map(([name]) => name);
   assert.deepEqual(lost, [], `actions with no home now: ${lost.join(", ")}`);

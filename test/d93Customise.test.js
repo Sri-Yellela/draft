@@ -188,12 +188,12 @@ test("D93 · Account no longer renders Appearance; the menu has Customise, and i
   assert.match(app, /customise: "appearance"|LEGACY_PROFILE_ROUTES\[routeKey\]/);
   assert.match(read("client/src/pages/profile/profilePanels.js"), /customise: "appearance",/);
   assert.match(read("client/src/pages/profile/ProfilePage.jsx"), /else if \(panel === "appearance"\) body = <CustomisePanel \/>;/);
+  // ⛔ 47j w1-shell (changed on purpose): the avatar menu (TopBar's ProfileMenuPanel) — its Customise link and its quick
+  // System / Light / Dark switch — is gone; nothing opened it since D197 #1. Customise is reached from the dock peek's
+  // Appearance (Profile → Appearance, the Customise screen), where the full choice lives.
   const top = read("client/src/components/TopBar.jsx");
-  assert.match(top, /onTabChange\?\.\("customise"\); \}\} data-customise-link=""/);
-  assert.match(top, />\s*Customise\s*</);
-  // The quick switch stays: three choices, inside the family of the theme in use.
-  assert.match(top, /const SCHEMES = \[\["system", "System"\], \["light", "Light"\], \["dark", "Dark"\]\];/);
-  assert.match(top, /contrast \? \(s === "dark" \? "contrast-dark" : "contrast-light"\) : \(s === "dark" \? "charcoal-dark" : "paper-light"\)/);
+  assert.doesNotMatch(top, /data-customise-link=""|const SCHEMES = /);
+  assert.match(read("client/src/components/AppNav.jsx"), /\{link\("appearance", "Appearance", themeName \|\| null, \{\}, true\)\}/);
 });
 
 test("D93 · ⛔ the old designs are gone and not offered — no boxed tab, no boxed sentence word", () => {

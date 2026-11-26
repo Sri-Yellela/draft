@@ -14,13 +14,15 @@ test("job board context exposes profile-scoped cache primitives", () => {
   assert.match(context, /rm_jobs_profile_ui_v1/);
 });
 
-test("profile menu switches optimistically and invalidates deleted profile cache", () => {
+// ⛔ 47j w1-shell (changed on purpose): the profile menu's optimistic switcher and its delete (with deleteProfileCache) left
+// with TopBar's ProfileMenuPanel — nothing opened it since D197 #1. What stays in TopBar is the board's active-profile read
+// and its follow of profile_switched (the manager's activation emits it, routes/domainProfiles.js).
+test("the top bar keeps the board's active profile in step", () => {
   const topBar = fs.readFileSync("client/src/components/TopBar.jsx", "utf8");
 
-  assert.match(topBar, /setActiveProfileId\?\.\(id\);[\s\S]*await api\(`\/api\/domain-profiles\/\$\{id\}\/activate`/);
-  assert.match(topBar, /setProfiles\(ps => ps\.map\(pr => \(\{ \.\.\.pr, is_active: pr\.id === id \? 1 : 0 \}\)\)\)/);
-  assert.match(topBar, /deleteProfileCache\?\.\(id\)/);
   assert.match(topBar, /setActiveProfileId\?\.\(active\.id\)/);
+  assert.match(topBar, /if \(profileId\) setActiveProfileId\?\.\(Number\(profileId\)\);/);
+  assert.doesNotMatch(topBar, /setProfiles\(|deleteProfileCache/);
 });
 
 test("jobs panel restores profile cache and guards stale profile responses", () => {
