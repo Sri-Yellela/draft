@@ -238,6 +238,18 @@ export function ShellRailMarket() {
     </ShellFrame>
   );
 }
+/** C · ATLAS (47h, lane atlas): the rail with Atlas current beside Atlas's area nav — the VOL. I pill, Your map current,
+ *  Library · Today's question · League · More, "Make sense of…" and the run chip (4 of 7 days, today clay). */
+export function ShellRailAtlas() {
+  const views = [{ id: "map", label: "Your map", href: "#map", icon: "map" }, { id: "library", label: "Library", href: "#lib", icon: "library" },
+    { id: "question", label: "Today’s question", href: "#q", icon: "question" }, { id: "league", label: "League", href: "#league", icon: "league" }];
+  return (
+    <ShellFrame current="atlas">
+      <AreaNav area="Vol. I" pill={{ tag: "VOL. I", name: "Computing" }} views={views} current="map" more={[{ label: "Your run", href: "#run" }]}
+        search={{ placeholder: "Make sense of…" }} chip={{ kind: "run", days: ["lit", "lit", "lit", "lit", "today", null, null], href: "#run" }}/>
+    </ShellFrame>
+  );
+}
 /** B · THE LEDGER: the same rail with Home current (the active item: white tile, 1.5 px ink, 3 px shadow, the name in 800). */
 export function ShellRailLedger() {
   return <ShellFrame current={SHELL_DOCK[0].id}><div style={{ height: 70 }}/></ShellFrame>;
@@ -427,4 +439,4 @@ export function AtlasLibraryBoard() {
 }
 
 export const FIXTURES = { ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellPhoneTop, ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard,
-  AtlasHomeBoard, AtlasVolumesBoard, AtlasMapBoard, AtlasLibraryBoard };
+  AtlasHomeBoard, AtlasVolumesBoard, AtlasMapBoard, AtlasLibraryBoard, ShellRailAtlas };

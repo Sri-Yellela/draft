@@ -60,6 +60,8 @@ export const PAIRS = {
   "atlas-home-footer": { source: "final", board: "Home", fixture: "AtlasHomeBoard", boardSel: "footer", buildSel: "footer.pl-at-foot", pad: 0, reduced: true, subpixel: true, boardPrep: atFreezeTimers },
   "atlas-home-volumes": { source: "final", board: "Home", fixture: "AtlasVolumesBoard", boardSel: "header .at-drop", buildSel: ".pl-at-vols", pad: 10, reduced: true, subpixel: true,
     boardPrep: async (page) => { await atFreezeTimers(page); await page.evaluate(() => document.querySelector("header button[aria-expanded]")?.click()); await new Promise((r) => setTimeout(r, 400)); } },
+  // Atlas's area nav: the Shell board's figure C (the VOL. I pill, the views with Your map current, More, search, the run chip)
+  "atlas-areanav": { source: "final", board: "Shell", fixture: "ShellRailAtlas", boardSel: 'header:has(nav[aria-label="Vol. I"])', buildSel: "header.pl-areanav", pad: 0, subpixel: true },
   "atlas-map-header": { source: "final", board: "Map", fixture: "AtlasMapBoard", boardSel: "main#region > section", buildSel: "main#region > section", pad: 8, reduced: true, subpixel: true },
   "atlas-map-terrain": { source: "final", board: "Map", fixture: "AtlasMapBoard", boardSel: "main#region > div", buildSel: ".pl-at-views", pad: 8, reduced: true, subpixel: true },
   "atlas-map-route": { source: "final", board: "Map", fixture: "AtlasMapBoard", boardSel: "main#region > div", buildSel: ".pl-at-views", pad: 8, reduced: true, subpixel: true, boardTab: "Route",
