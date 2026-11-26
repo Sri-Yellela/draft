@@ -2,7 +2,7 @@
 // plate's linework: a paper plate with a 1.5 px ink edge and a hard shadow, a masthead (the /d tile, the header icons, a
 // ruler), a mono status line, the body, the foot; closed, it is the /d square on the screen's edge. docs/revamp/extension.md
 // is the brief. The extension can't import client code, so at M5 these are MIRRORS rows (extension/jobPanel.js, dock.js's
-// .launch) — this file is the drawing both follow. Tiny's side panel on Resume Master (D190) can wear the same frame.
+// .launch) — this file is the drawing both follow. Tiny's side panel on the résumé tools site (D190, D197 #20) can wear the same frame.
 // ⛔ No capsule (D60): the square is a square tile; the need dot is a perfect circle. Nothing here drags or places itself —
 // the extension's dock keeps that (geometry is behaviour, not look).
 import { plateState } from "./PlateState.jsx";
