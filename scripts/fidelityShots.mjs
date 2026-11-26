@@ -24,12 +24,15 @@ import { resolveBrowserExecutable } from "../services/browserLauncher.js";
 // ⛔ 47j R2: the classic market is DELETED (its probes — home, home-dock, home-open, home-match, home156, home163, home-wide,
 // deck, fullhouse — retired with it); every market probe measures the plate market.
 // ⭐ 47i: the plate probes pin ?plate=1. The switch is REMEMBERED (marketPlate.js, localStorage) and the fill runs every probe
-// in ONE Chrome profile; since R2 the switch governs only Home (the ledger) and the company page, so CLASSIC_HOME below pins
-// ?plate=0 for the classic tracker and these pin ?plate=1 so a probe never inherits the other's choice.
+// in ONE Chrome profile. ⛔ 47j R3 (w1-retire): the switch is retired (nothing reads ?plate= now); the param is left in
+// these addresses, harmless.
 const PLATE_MARKET = "/app/jobs?plate=1";
-// ⭐ 47h (D197 #3): the plate ledger is Home with the plate market; these probes measure the CLASSIC tracker against its
-// sketches (tracker-options.html, home-sketch.html), so they pin ?plate=0 until the classic Home is retired, as the market's do.
-const CLASSIC_HOME = "/app/auto-apply?plate=0";
+// ⛔ 47j R3 (w1-retire): the classic Home (the tracker table measured against tracker-options.html / home-sketch.html) is
+// DELETED — Home is always the ledger. The Home probes below load the ledger; their rows are the register's
+// (.pl-register__row, opened by the company button .pl-register__whobtn). The classic-vs-sketch probes (tracker,
+// tracker-open, tracker-timeline) and their computed-styles reader are retired with test/fidelityTracker.test.js.
+const HOME_LEDGER = "/app/auto-apply";
+const LEDGER_ROW = "[data-tracker-table] .pl-register__row";
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\//, "")), "..");
 // ⭐ A232 R2 (46t): FIDELITY_OUT sends the shots elsewhere — the tests' shared probe writes to tmp/, so a suite run no longer
 // rewrites the tracked docs/fidelity-shots/*.png (they changed on every run). Run the script yourself to refresh them.
@@ -349,11 +352,11 @@ const SCREENS = {
     sizes: { "1440": [1440, 900], "1280": [1280, 800], "1024": [1024, 768], "900": [900, 800], "768": [768, 1024], "600": [600, 900], "390": [390, 844] },
     routes: {
       home: { app: PLATE_MARKET, fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } } }, ready: "[data-nav-dock]", appPrep: async () => { await sleep(1200); } },
-      draft: { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr", appPrep: async () => { await sleep(600); } },
-      "draft-held": { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr",
-        appPrep: async (page) => { await sleep(500); await page.evaluate(() => { const r = [...document.querySelectorAll("[data-tracker-table] tbody tr.trk-row")].find(tr => /Halcyon/.test(tr.textContent)); (r || document.querySelector("[data-tracker-table] tbody tr.trk-row"))?.click(); }); await sleep(900); } },
-      "draft-posting": { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr",
-        appPrep: async (page) => { await sleep(500); await page.evaluate(() => document.querySelector("[data-tracker-table] tbody tr.trk-row")?.click()); await sleep(300);
+      draft: { app: HOME_LEDGER, fixtures: TRK, ready: LEDGER_ROW, appPrep: async () => { await sleep(600); } },
+      "draft-held": { app: HOME_LEDGER, fixtures: TRK, ready: LEDGER_ROW,
+        appPrep: async (page) => { await sleep(500); await page.evaluate(() => { const r = [...document.querySelectorAll("[data-tracker-table] .pl-register__row")].find(tr => /Halcyon/.test(tr.textContent)); (r || document.querySelector("[data-tracker-table] .pl-register__row"))?.querySelector(".pl-register__whobtn")?.click(); }); await sleep(900); } },
+      "draft-posting": { app: HOME_LEDGER, fixtures: TRK, ready: LEDGER_ROW,
+        appPrep: async (page) => { await sleep(500); await page.evaluate(() => document.querySelector("[data-tracker-table] .pl-register__row .pl-register__whobtn")?.click()); await sleep(300);
           await page.evaluate(() => document.querySelector('[data-row-detail] [data-pane="posting"]')?.click()); await sleep(700); } },
       // 47g R1: the home / board / posting routes on the PLATE market (the page people use) — the board is the Index tab,
       // the posting opened from its Index row (A240: the openings turn to Deck)
@@ -367,7 +370,7 @@ const SCREENS = {
       profile: { app: "/app/profile/about", fixtures: PROFILE163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
       account: { app: "/app/profile/account", fixtures: ACCOUNT163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
       answers: { app: "/app/profile/answers", fixtures: SETTINGS, ready: "main", appPrep: async () => { await sleep(900); } },
-      settings: { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-settings-open]",
+      settings: { app: HOME_LEDGER, fixtures: TRK, ready: "[data-settings-open]",
         appPrep: async (page) => { await page.click("[data-settings-open]").catch(() => {}); await page.waitForSelector("[data-fold-top]", { timeout: 8000 }).catch(() => {}); await sleep(700); } },
       admin: { app: "/admin", fixtures: { "/api/admin/auth/me": { authenticated: true, enforced: true, admin: { email: "admin@example.invalid" } },
         "/api/auth/me": { authenticated: false } }, strict: true, ready: "h1", appPrep: async () => { await sleep(900); } },
@@ -390,7 +393,7 @@ const SCREENS = {
   // ⭐ A200 (46k) · ASK DRAFT'S QUESTIONS THREAD — measured, not compared (`--styles ask200`): at each width, with a held
   // application's three questions open in Ask draft (synthetic: Yes / No, a choice, a written answer), nothing of the panel
   // sits under the dock, the question is in the stepper's large type, the timeline column is folded away, no sideways scroll.
-  ask200: { sketch: null, app: CLASSIC_HOME, fixtures: { ...TRK,
+  ask200: { sketch: null, app: HOME_LEDGER, fixtures: { ...TRK,
       "/api/apply/questions/greenhouse%3A%3A4000001/draft": { draft: "I built the alerting for a payments service and kept its on-call quiet for a year." } },
     ready: "[data-nav-dock]", shoot: true,
     sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], phone: [390, 844] },
@@ -628,14 +631,14 @@ const SCREENS = {
   screens163: { sketch: null, shoot: true,
     sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], phone: [390, 844] },
     routes: {
-      tracker: { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr", appPrep: async () => { await sleep(600); } },
+      tracker: { app: HOME_LEDGER, fixtures: TRK, ready: LEDGER_ROW, appPrep: async () => { await sleep(600); } },
       // ⭐ 47j R2 (D163's dock gutter, re-pointed): the PLATE market, measured by the same probe as every other screen (home163,
       // the classic grid's own probe, retires with it)
       // ✅ owner 11-26 (47j, "keep it centred"): the market keeps the approved Market board's measure on a wide screen —
       // centred, the free space even on both sides — rather than 46q's fill-the-width (a named exception in d163)
       market: { app: PLATE_MARKET, fixtures: HOME156, ready: "[data-plate-market-openings] [data-fan-offset]", appPrep: async () => { await sleep(1200); },
         centredMeasure: "owner 11-26 (47j): the market keeps the approved board's measure, centred, on wide screens" },
-      settings: { app: CLASSIC_HOME, fixtures: TRK, ready: "[data-settings-open]", probe: { root: "[data-settings-drawer]" },
+      settings: { app: HOME_LEDGER, fixtures: TRK, ready: "[data-settings-open]", probe: { root: "[data-settings-drawer]" },
         appPrep: async (page) => { await page.click("[data-settings-open]").catch(() => {}); await page.waitForSelector("[data-fold-top]", { timeout: 8000 }).catch(() => {}); await sleep(700); } },
       // ✅ OWNER 11-26 (end of 47i, decision 2 — "go with your recs"): Atlas Volume I's region band runs from the rail to the
       // viewport's edge on purpose — the approved board's layout wins over D163's "no slab to the screen's edge". A NAMED
@@ -662,34 +665,12 @@ const SCREENS = {
   // (pay · type · level · stack you have), measured the same way — no word broken, cells wrap rather than squeeze.
   "posting-facts": { sketch: null, app: PLATE_MARKET, fixtures: FACTS, ready: "[data-plate-market-openings]",
     appPrep: async (page) => { await openSheetFromIndex(page, "Senior Data Engineer"); await sleep(900); } },
-  settings: { sketch: "settings-declutter.html", app: CLASSIC_HOME, fixtures: SETTINGS, ready: "[data-settings-open]",
+  settings: { sketch: "settings-declutter.html", app: HOME_LEDGER, fixtures: SETTINGS, ready: "[data-settings-open]",
     appPrep: async (page) => { await page.click("[data-settings-open]").catch(() => {}); await page.waitForSelector("[data-fold-top]", { timeout: 8000 }).catch(() => {}); await sleep(600); },
     // ⭐ D149 settings: --styles opens the drawer first too; and the comparison that matters is the DRAWER (the page behind
     // it is a stand-in in the sketch) — its 520 px at the right edge on a computer, the whole screen on a phone.
     stylesWithPrep: true, region: ([w, h]) => (w >= 520 ? [w - 520, 0, 520, h] : null) },
-  // ⭐ D149 · TRACKER — the owner's pick: layout 1 (table + timeline beside) on a computer, layout 3 (the switch) on phones.
-  tracker: { sketch: "tracker-options.html", app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr",
-    sketchPrep: async (page) => {
-      await page.evaluate(() => document.querySelector(`[data-l="${window.innerWidth < 700 ? "tabs" : "side"}"]`)?.click());
-      await sleep(400);
-    } },
-  // The two states the first screen does not show: the first row opened (its posting pane chosen, as the sketch opens
-  // it), and on a phone the switch's other side, the timeline.
-  "tracker-open": { sketch: "tracker-options.html", app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr",
-    sketchPrep: async (page) => {
-      await page.evaluate(() => { document.querySelector(`[data-l="${window.innerWidth < 700 ? "tabs" : "side"}"]`)?.click(); document.querySelector(".tr")?.click(); });
-      await sleep(700);
-    },
-    appPrep: async (page) => {
-      await page.evaluate(() => document.querySelector("[data-tracker-table] tbody tr.trk-row")?.click()); await sleep(300);
-      await page.evaluate(() => document.querySelector('[data-row-detail] [data-pane="posting"]')?.click()); await sleep(700);
-    } },
-  "tracker-timeline": { sketch: "tracker-options.html", app: CLASSIC_HOME, fixtures: TRK, ready: "[data-tracker-table] tbody tr",
-    sketchPrep: async (page) => {
-      await page.evaluate(() => { document.querySelector(`[data-l="${window.innerWidth < 700 ? "tabs" : "side"}"]`)?.click(); document.querySelector('[data-tv="tl"]')?.click(); });
-      await sleep(400);
-    },
-    appPrep: async (page) => { await page.evaluate(() => document.querySelector('[data-phone-view="timeline"]')?.click()); await sleep(500); } },
+  // ⛔ 47j R3 (w1-retire): tracker · tracker-open · tracker-timeline (the classic table against tracker-options.html) retired
 };
 
 // ⚠ D149 · THE SELF-HOSTED FONTS IN A GIT WORKTREE. A worktree's node_modules is a junction to the main checkout, so
@@ -926,58 +907,7 @@ const STYLE_PROBES = {
                           border: `${cs(pb).borderTopWidth} ${cs(pb).borderTopColor}`, bg: cs(pb).backgroundColor, radius: cs(pb).borderTopLeftRadius, padding: cs(pb).padding };
     return out;
   },
-  // ⭐ D149 · TRACKER (tracker-options.html) — the page, the header's controls, the counts, the filters, the table, a
-  // row, the status dot and the timeline card, as computed (test/fidelityTracker.test.js holds them to the sketch).
-  tracker: () => {
-    const q = (s) => document.querySelector(s);
-    const cs = (el) => (el ? getComputedStyle(el) : null);
-    const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; };
-    const font = (el) => el && { family: cs(el).fontFamily, size: cs(el).fontSize, weight: cs(el).fontWeight, color: cs(el).color, lh: cs(el).lineHeight };
-    const fill = (el) => el && { bg: cs(el).backgroundColor, bgImage: cs(el).backgroundImage, radius: cs(el).borderTopLeftRadius, border: cs(el).borderTopWidth, shadow: cs(el).boxShadow, padding: cs(el).padding };
-    const title = q("[data-house-header] h1");
-    const tbl = q("[data-tracker-table]");
-    const row = q("[data-tracker-table] tbody tr.trk-row");
-    const tl = q("[data-timeline]");
-    const dot = q("[data-tracker-table] .trk-dot");
-    return {
-      dock: (() => { const e = document.querySelector("[data-nav-dock]"); if (!e) return null; const r = e.getBoundingClientRect(); return { place: document.documentElement.getAttribute("data-dock-place"), left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), reserve: Math.round(document.querySelector("[data-area-nav]")?.getBoundingClientRect().bottom || 0) }; })(),   // D167: where the dock sits; ⭐ D197 #1: the room the page leaves above it — the area nav across the content column's top
-      canvas: cs(document.documentElement).getPropertyValue("--c-canvas").trim(),
-      title: { ...font(title), ...box(title) },
-      line: font(q("[data-house-header] .dh-head__say")),   /* 45s: D182 (45n) removed the [data-house-line] sentence; the line under the title is the daily question's */
-      /* ⭐ 46y (home-sketch.html): the mode sits in the auto-apply bar; the header's quiet button is Import (Settings is the bar's link) */
-      mode: fill(q(".dh-auto .dh-mode")), modeOn: { ...fill(q('[data-mode][aria-pressed="true"]')), ...font(q('[data-mode][aria-pressed="true"]')) },
-      quiet: { ...fill(q("[data-import-open]")), ...font(q("[data-import-open]")) },
-      bar: { ...fill(q("[data-home-auto]")), ...box(q("[data-home-auto]")) }, need: { ...fill(q("[data-home-need]")), ...box(q("[data-home-need]")) },
-      needKinds: [...document.querySelectorAll("[data-home-need]")].map(e => e.getAttribute("data-home-need")),
-      tabs: { ...fill(q("[data-home-tabs]")), ...box(q("[data-home-tabs]")) }, tabOn: { ...fill(q('[data-home-tab][aria-pressed="true"]')), ...font(q('[data-home-tab][aria-pressed="true"]')) },
-      send: { ...fill(q("[data-send-all-ready]")), ...font(q("[data-send-all-ready]")) },
-      /* ⭐ 46y (home-sketch.html): the counts row is gone — each filter button carries its count */
-      counts: !!q("[data-tracker-counts]"), count: font(q(".trk-chip__n")), countText: q('[data-filter="all"] .trk-chip__n')?.textContent ?? null,
-      filter: { ...fill(q('[data-filter="needs"]')), ...font(q('[data-filter="needs"]')) }, filterOn: fill(q('[data-filter][aria-pressed="true"]')),
-      table: { ...fill(tbl), ...box(tbl) },
-      th: font(q("[data-tracker-table] thead .trk-sort")), thTransform: cs(q("[data-tracker-table] thead .trk-sort"))?.textTransform,
-      row: box(row), rowBorder: row && cs(row).borderTopWidth,
-      company: font(q("[data-tracker-table] .trk-pos__t b")), role: font(q("[data-tracker-table] .trk-pos__t span")),
-      logo: box(q("[data-tracker-table] [data-company-bubble]")),
-      dot: dot && { w: cs(dot).width, h: cs(dot).height, radius: cs(dot).borderTopLeftRadius },
-      statusNeeds: font(q('[data-tracker-table] [data-status-ring="need"]')),
-      timeline: { ...fill(tl), ...box(tl), shown: !!tl && tl.offsetParent !== null },
-      tlTitle: font(q("[data-timeline-title]")),
-      bubble: box(q("[data-timeline] [data-company-bubble]")),
-      phoneSwitch: (() => { const b = q('[data-phone-view="timeline"]'); return !!b && b.offsetParent !== null; })(),
-      hscroll: document.documentElement.scrollWidth > window.innerWidth + 1,
-    };
-  },
-  // ⭐ D156 · HOME, REVISED (owner 11-05) — measured at 1440 (the landscape card), 1280 and 390: the card's fixed box and that
-  // nothing in it scrolls; its stats; the buttons never over it; the deck and the list never overlapping at any scroll; the
-  // flip by ‹ ›, the keys, the wheel (one card per gesture); the dock's rail of four 30 px icons, the house and the globe in
-  // the accent, /d, the picture or initials, expanding on hover / focus and pushing the page; All jobs · Starred · Imported
-  // with counts; Import a job inline; the sort icon in the search field; the D1 bubble growth.
-  // ⭐ D163 · USE THE SPACE — where the jobs page's things sit: the content group (everything drawn inside .home, by its
-  // leaves' boxes, so an empty column end does not count as content), the free space left of it (from the dock's right
-  // edge — the dock keeps its own gutter) and right of it (to the viewport's edge), the gap between the two columns, the
-  // side gutters, the deck (card + fan) inside its column, the dock's vertical centre, anything flush to an edge, and the
-  // bubbles' width — at rest and with the dock expanded (it still pushes the page, D156 (3)).
+  // ⛔ 47j R3 (w1-retire): the classic tracker's computed-styles reader (`tracker`) is retired with its page
   // ⭐ D163 · USE THE SPACE, the other screens — ONE probe for every screen (`--styles screens163 [tracker,atlas,…]`):
   // the screen's content group (the union of what is DRAWN inside its root — leaves, and boxes with their own background
   // or border, so an empty container does not count as content), the free space left of it (from the dock's right edge,
