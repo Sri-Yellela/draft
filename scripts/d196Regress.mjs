@@ -154,9 +154,9 @@ export const PAIRS = {
   // ⭐ D197 Wave 1 #4 (47h) · THE SURVEY SHEET, section by section against the final `Survey` board — the page's own
   // component (plate/SurveySheet.jsx) on the board's data, shaped as the API answers (plate/sheetFixtures.jsx).
   ...Object.fromEntries(["hero", "stack", "hiring", "sponsor", "match", "tickets"].map((k, i) => [`survey-${k}`, { source: "final", board: "Survey",
-    fixture: "SurveyBoard", boardSel: `section:nth-of-type(${i + 1})`, buildSel: `.pl-sheetpage > section:nth-of-type(${i + 1})`, pad: 0, reduced: true,
+    fixture: "SurveyBoard", subpixel: true, boardSel: `section:nth-of-type(${i + 1})`, buildSel: `.pl-sheetpage > section:nth-of-type(${i + 1})`, pad: 0, reduced: true,
     // 02: the newest open roles under the two figures are the page's own (today's list, kept — D200 Rule 1); the board ends at the figures
-    ...(k === "hiring" ? { cropTo: { 1280: 503 } } : {}),
+    ...(k === "hiring" ? { cropTo: { 1280: 503, 390: 826 } } : {}),   // 47i: and at 390 (the board ends at the figures there too)
     // the title block: the board's dock (x 14–98) throws its 4 px shadow into the section's first pixels — the page's frame
     ...(k === "hero" ? { masks: [[0, 0, 6, 420]] } : {}),
     // 03: the board's cells (H-1B APPLICATIONS · FOR SOFTWARE ROLES · CERTIFIED · PERM) and MOST FILED TITLES are figures our
@@ -166,12 +166,16 @@ export const PAIRS = {
   // ⭐ D197 Wave 1 #3 (47h) · THE LEDGER (Home) against the final `Ledger` board, piece by piece (plate/Ledger.jsx on the board's
   // data, plate/sheetFixtures.jsx). The header is a LOOK pair: D200 Rule 3 replaces the board's 100 px "The ledger." + lead
   // with one plain serif line on a working page (docs/revamp/ledger.md, disagreement 1).
-  "ledger-hero": { source: "final", board: "Ledger", fixture: "LedgerBoard", boardSel: 'section[aria-labelledby="lg-title"]', buildSel: 'section[aria-labelledby="lg-title"]', pad: 0, reduced: true, look: true },
-  "ledger-run": { source: "final", board: "Ledger", fixture: "LedgerBoard", boardSel: 'section[aria-labelledby="lg-title"] figure', buildSel: ".pl-lg-run", pad: 0, reduced: true },
-  "ledger-needs": { source: "final", board: "Ledger", fixture: "LedgerBoard", boardSel: "section:nth-of-type(2)", buildSel: "[data-home-needs]", pad: 0, reduced: true },
-  "ledger-banner": { source: "final", board: "Ledger", fixture: "LedgerBoard", boardSel: "section:nth-of-type(3) > div:nth-of-type(2)", buildSel: "[data-held-before-update]", pad: 0, reduced: true },
-  "ledger-register": { source: "final", board: "Ledger", fixture: "LedgerBoard", boardSel: "section:nth-of-type(3) > div:nth-of-type(3)", buildSel: "[data-ledger-register] .pl-register", pad: 0, reduced: true },
-  "ledger-tickets": { source: "final", board: "Ledger", fixture: "LedgerBoard", boardSel: "section:nth-of-type(4)", buildSel: "[data-ledger-tickets]", pad: 0, reduced: true },
+  "ledger-hero": { source: "final", board: "Ledger", fixture: "LedgerBoard", subpixel: true, boardSel: 'section[aria-labelledby="lg-title"]', buildSel: 'section[aria-labelledby="lg-title"]', pad: 0, reduced: true, look: true },
+  "ledger-run": { source: "final", board: "Ledger", fixture: "LedgerBoard", subpixel: true, boardSel: 'section[aria-labelledby="lg-title"] figure', buildSel: ".pl-lg-run", pad: 0, reduced: true ,
+    // 47i, 390: Run now's kicker and the worker's line are the run's live words (runNow / worker from the auto-apply status —
+    // "2 OF 10 SENT TODAY · NEXT 6:30 PM", "Running · 2 of 10 today"), the board's sample phrasing beside them; at 292 px they
+    // wrap to two lines, so they're masked there; the ticket, its notches, the dial and the stops are compared
+    masksAt: { 390: [[0, 108, 244, 44], [30, 262, 214, 26]] } },
+  "ledger-needs": { source: "final", board: "Ledger", fixture: "LedgerBoard", subpixel: true, boardSel: "section:nth-of-type(2)", buildSel: "[data-home-needs]", pad: 0, reduced: true },
+  "ledger-banner": { source: "final", board: "Ledger", fixture: "LedgerBoard", subpixel: true, boardSel: "section:nth-of-type(3) > div:nth-of-type(2)", buildSel: "[data-held-before-update]", pad: 0, reduced: true },
+  "ledger-register": { source: "final", board: "Ledger", fixture: "LedgerBoard", subpixel: true, boardSel: "section:nth-of-type(3) > div:nth-of-type(3)", buildSel: "[data-ledger-register] .pl-register", pad: 0, reduced: true },
+  "ledger-tickets": { source: "final", board: "Ledger", fixture: "LedgerBoard", subpixel: true, boardSel: "section:nth-of-type(4)", buildSel: "[data-ledger-tickets]", pad: 0, reduced: true },
 };
 // what each Opening pair keeps out of the pixel gate, and why (D196: masks only for example data, with the reason)
 function opPair(k) { return {
@@ -331,7 +335,7 @@ export async function runPair(name, { width = 1280, threshold = THRESHOLD_PCT, b
   fs.writeFileSync(path.join(dir, "build.png"), build.png);
   fs.writeFileSync(path.join(dir, "diff.png"), Buffer.from(r.diff, "base64"));
   fs.writeFileSync(path.join(dir, "pair.png"), Buffer.from(r.pair, "base64"));
-  const report = { pair: name, width, board: board.clip, build: build.clip, sizeBoard: r.sizeA, sizeBuild: r.sizeB,
+  const report = { pair: name, width, board: board.clip, build: build.clip, boardBox: board.box, buildBox: build.box, /* 47i: the raw (fractional) boxes */ sizeBoard: r.sizeA, sizeBuild: r.sizeB,
     differing: r.differing, compared: r.compared, pct: +r.pct.toFixed(3), threshold,
     ...(p.look ? { look: true, pass: true, note: "side by side for the owner's look — sizes differ on purpose (the deck's form factor)" }
       : { pass: r.pct <= threshold && r.sizeA.join() === r.sizeB.join() }) };
@@ -341,7 +345,7 @@ export async function runPair(name, { width = 1280, threshold = THRESHOLD_PCT, b
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
-  const names = arg("--pair") ? [arg("--pair")] : Object.keys(PAIRS);
+  const names = arg("--pair") ? arg("--pair").split(",") : arg("--prefix") ? Object.keys(PAIRS).filter((k) => arg("--prefix").split(",").some((p) => k.startsWith(p))) : Object.keys(PAIRS);   // 47i: a comma list, or --prefix survey-,ledger-
   const { launchBrowser } = await import("../services/browserLauncher.js");
   // 47f: text in a composited layer (the deck's 3-D flip — the owner's keep) rasterises in greyscale, the board's flat page
   // in LCD sub-pixel colour; the run compares the DESIGN, so both sides render greyscale (one Chrome flag for both).

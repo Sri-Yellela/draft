@@ -58,6 +58,9 @@
 
 .pl-sv-workshere { margin-top: 22px; }
 @media (max-width: 980px) { .pl-title.pl-sv-title { font-size: var(--pl-t-region); } }
+/* 47i: a phone column (≈ 292 px) can't hold the tile and a two-word name side by side — "anywhere" split "Paymen / ts".
+   The tile rides above the name and the words stay whole (the board at 390 is its desktop frame squeezed: its title clips). */
+@media (max-width: 520px) { .pl-sv-name { flex-wrap: wrap; } .pl-title.pl-sv-title { overflow-wrap: normal; } }
 .pl-sv-applyline { margin-top: 18px; justify-content: flex-start; }
 .plate a.pl-sv-dial { color: var(--pl-ink); text-decoration: none; }
 .plate a.pl-sv-dial:hover { box-shadow: var(--pl-s-hover); }
@@ -115,8 +118,7 @@
 .pl-lg-controls { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .pl-lg-after { margin-top: 28px; }
 .pl-register__open { padding: 4px 16px 16px; border-top: var(--pl-border-rule); background: var(--pl-card); }
-.pl-register__sort { font-family: var(--pl-sans); font-size: var(--pl-t-13); font-weight: 700; color: var(--pl-on-ink); background: transparent; border: var(--pl-line) solid var(--pl-on-ink); border-radius: var(--pl-r-stamp); min-height: 32px; padding: 0 8px; }
-.pl-register__sort option { color: var(--pl-ink); background: var(--pl-card); }
+.pl-lg-sort { width: auto; min-height: 44px; }   /* 47i: the register's Sort, with the list's controls (was in the ink bar) */
 .pl-register__msg { flex: 1 1 100%; font-size: var(--pl-t-tiny); color: var(--pl-on-ink); }
 .pl-lg-done[data-tone="clay"] { box-shadow: var(--pl-s6-clay); }
 .pl-register__whobtn { all: unset; cursor: pointer; box-sizing: border-box; display: flex; flex-direction: column; flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; text-align: left; }

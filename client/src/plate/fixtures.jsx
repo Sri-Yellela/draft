@@ -20,7 +20,7 @@ import { PlateDeckStill } from "../panels/DeckView.jsx";
 import { MarketIndexTable, RowBubble, indexRow } from "./MarketIndex.jsx";   // FIX-7 / FIX-8   // FIX-2: the Deck tab is the real FanCard, at the board's size
 import { Explainer } from "./explainer/Explainer.jsx";
 import { FIT_FIXTURES } from "./fitCardFixtures.jsx";   // D202 / D199 C7 (the card lane)
-import { SHEET_FIXTURES } from "./sheetFixtures.jsx";   // 47h (D197 #3 / #4): the ledger and the survey sheet
+import { SHEET_FIXTURES, useAtBoardFraction } from "./sheetFixtures.jsx";   // 47h (D197 #3 / #4): the ledger and the survey sheet
 import PILOT_EXPLAINER from "../../../content/explainers/big-o-acted-out/script.json" with { type: "json" };
 
 const MARKET_VIEWS = [
@@ -203,24 +203,8 @@ const SHELL_DOCK = [
   { id: "profile", label: "Profile", onPress: () => {}, initials: "MC", badge: 12 },
 ];
 const SHELL_HOME = { id: "today", href: "#market", label: "draft — the market" };
-// the compared element (#sel) lands at the board element's own sub-pixel fraction (#ox / #oy): measured after layout and
-// corrected (the board's 1.5 px frame and rail borders put it on a half pixel), as ExplainerBoard does
-function useShellAt() {
-  const q = new URLSearchParams((globalThis.location?.hash || "").slice(1));
-  const want = { x: 100 + (Number(q.get("ox")) || 0), y: 100 + (Number(q.get("oy")) || 0) }, sel = q.get("sel");
-  const ref = useRef(null);
-  const [at, setAt] = useState({ x: 100, y: 100 });
-  useLayoutEffect(() => {
-    const el = sel ? ref.current?.querySelector(sel) : null;
-    if (!el) return;
-    const r = el.getBoundingClientRect(), fx = (v) => v - Math.floor(v);
-    const dx = fx(want.x) - fx(r.left + scrollX), dy = fx(want.y) - fx(r.top + scrollY);
-    if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) setAt((p) => ({ x: p.x + dx, y: p.y + dy }));
-  });
-  return [ref, { position: "absolute", left: at.x, top: at.y }];
-}
 function ShellFrame({ current, children }) {
-  const [ref, at] = useShellAt();
+  const [ref, at] = useAtBoardFraction();
   // the area nav's pair passes the board header's own width (#w, fractional: the frame's 1.5 px border) — the column is it
   const q = new URLSearchParams((globalThis.location?.hash || "").slice(1));
   const col = /header/.test(q.get("sel") || "") && Number(q.get("w")) ? Number(q.get("w")) : 1131;
@@ -250,7 +234,7 @@ export function ShellRailLedger() {
  *  Profile without its badge; the board's data is kept here (the live bar keeps the badge — the noted disagreement). */
 export function ShellPhoneBar() {
   const items = SHELL_DOCK.map((d) => (d.id === "profile" ? { ...d, badge: 0 } : d));
-  const [ref, at] = useShellAt();
+  const [ref, at] = useAtBoardFraction();
   return (
     <PlateRoot style={{ minHeight: "100vh" }}>
       <div ref={ref} style={{ width: 390, ...at }}>
@@ -262,7 +246,7 @@ export function ShellPhoneBar() {
 
 /** D · PHONE: the top bar over the market's views (the /d tile, the search button; the market has no pill). */
 export function ShellPhoneTop() {
-  const [ref, at] = useShellAt();
+  const [ref, at] = useAtBoardFraction();
   return (
     <PlateRoot style={{ minHeight: "100vh" }}>
       <div ref={ref} style={{ width: 390, ...at }}>

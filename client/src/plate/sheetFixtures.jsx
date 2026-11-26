@@ -2,6 +2,7 @@
 // component on the final boards' example data (docs/sketches/final/project/Ledger.dc.html, Survey.dc.html), shaped as the
 // API returns it, so the diff checks the real mapping (plate/surveySheet.js, plate/ledgerModel.js) as well as the look.
 // A fixture is never tuned to pass (D196 F5): every value below is the board's own.
+import { useLayoutEffect, useRef, useState } from "react";
 import { MemoryRouter } from "react-router-dom";
 import SurveySheet from "./SurveySheet.jsx";
 import { LedgerPage, LedgerHeader, LedgerRun, LedgerNeeds, LedgerRegister, LedgerBanner, LedgerTickets } from "./Ledger.jsx";
@@ -10,6 +11,25 @@ import { Register } from "./Lists.jsx";
 import { FilterChips } from "./Marks.jsx";
 import { runStops, countCells, ledgerTickets } from "./ledgerModel.js";
 
+// the compared element (#sel) lands at the board element's own sub-pixel fraction (#ox / #oy): measured after layout and
+// corrected (the board's 1.5 px frame and rail borders put it on a half pixel), as ExplainerBoard does (47i: shared by the shell fixtures and the sheets)
+export function useAtBoardFraction() {
+  const q = new URLSearchParams((globalThis.location?.hash || "").slice(1));
+  const want = { x: 100 + (Number(q.get("ox")) || 0), y: 100 + (Number(q.get("oy")) || 0) }, sel = q.get("sel");
+  const ref = useRef(null);
+  const [at, setAt] = useState({ x: 100, y: 100 });
+  // 47i: measure again once the web fonts have laid the text out (the sheets' first pass ran on the fallback fonts)
+  const [, setFontsTick] = useState(0);
+  useLayoutEffect(() => { let live = true; globalThis.document?.fonts?.ready?.then(() => { if (live) setFontsTick((n) => n + 1); }); return () => { live = false; }; }, []);
+  useLayoutEffect(() => {
+    const el = sel ? ref.current?.querySelector(sel) : null;
+    if (!el) return;
+    const r = el.getBoundingClientRect(), fx = (v) => v - Math.floor(v);
+    const dx = fx(want.x) - fx(r.left + scrollX), dy = fx(want.y) - fx(r.top + scrollY);
+    if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) setAt((p) => ({ x: p.x + dx, y: p.y + dy }));
+  });
+  return [ref, { position: "absolute", left: at.x, top: at.y }];
+}
 const DAY = 86400;
 // the boards keep their 84 px dock rail (+ its 14 px margin) at every width: the page column is the viewport less 98 px
 // (1182 at 1280, 292 at 390) — the build page is opened at the pair's width, so the fixture reads it
@@ -60,9 +80,10 @@ const PEOPLE = { count: 1, people: [{ handle: "divya", name: "Divya Rao", title:
 
 /** The survey sheet as the board draws it — in the shell, signed in, opened from Kestrel's Frontend Engineer II posting. */
 export function SurveyBoard() {
+  const at = useAtBoardFraction();   // 47i: the compared section lands on the board's own sub-pixel grid (390: y .156 vs .672)
   return (
     <MemoryRouter>
-      <div style={{ width: boardColumn() }}>
+      <div ref={at[0]} style={{ width: boardColumn(), ...at[1] }}>
         <SurveySheet data={KESTREL_PAGE} match={KESTREL_MATCH} inApp base="/app/companies" resumeName="Maya_Chen.pdf" people={PEOPLE}
           onBack={() => {}} onFollow={() => {}} onSend={() => {}}/>
       </div>
@@ -87,12 +108,13 @@ const FILLED = [["Name", "Maya Chen"], ["Email", "maya.chen@example.com"], ["Cur
 
 /** Home as the ledger board draws it (D200 Rule 3's one-line header in place of the board's title). */
 export function LedgerBoard() {
+  const at = useAtBoardFraction();   // 47i: as SurveyBoard
   const counts = { needs: 1, progress: 2, sent: 2, replied: 0, interview: 0 };
   const tickets = ledgerTickets({ newToday: 179, best: { match: "91%", company: "Kestrel Payments" }, front: { company: "Sailor Health" }, sent: 2,
     sentCompanies: ["Brightline Health", "Orbital Works"], gap: { tech: "Webhooks", company: "Sailor Health", href: "#atlas" },
     paths: { market: "#market", interview: "#interview", company: () => "#survey" } });
   return (
-    <div style={{ width: boardColumn() }}>
+    <div ref={at[0]} style={{ width: boardColumn(), ...at[1] }}>
       <LedgerPage>
         <LedgerHeader week={47} summary="5 this month" cells={countCells(counts, { filter: "all", onFilter: () => {} })}
           actions={<><a className="pl-lg-daily" href="#q">Today’s question · 2 minutes</a><span className="pl-grow"/><button type="button" className="pl-btn">Import</button>
@@ -104,13 +126,14 @@ export function LedgerBoard() {
           lead="Everything else is filled. One question at a time; each one goes away once you’ve answered it."
           ask={<QuestionTicket kicker="ONLY YOU CAN ANSWER THIS" n="QUESTION 1 OF 4" text="Are you legally authorized to work in the country of employment?" kind="yesno"
             options={["Yes", "No"]} pressed={null} progress={["today", null, null, null]} saved onSaved={() => {}} onAnswer={() => {}} onBack={() => {}}
-            more={<><button type="button" className="pl-q-link">Ask draft</button><span aria-hidden="true"> · </span><button type="button" className="pl-q-link">See all 4</button></>}/>}
+            aside={<button type="button" className="pl-q-link">Ask draft</button>} more={<button type="button" className="pl-q-link">See all 4</button>}/>}
           filled={{ kicker: "FILLED FOR YOU · 22 OF 24", label: "What draft filled for you", foot: "From your résumé and profile. Nothing here is guessed.", rows: FILLED.map(([label, value]) => ({ label, value })) }}/>
         <LedgerRegister count={5} lead="Each line says what really happened. Re-running a draft is free; cancelling one gives the day’s credit back."
           banner={<LedgerBanner action={<button type="button" className="pl-btn pl-btn--ink">Re-run all 3</button>}>
             <b>3 drafts were held by a problem we’ve fixed.</b> Re-run them with the fix, free.{" "}<button type="button" className="pl-q-link pl-lg-notnow">Not now</button></LedgerBanner>}
-          controls={<div className="pl-lg-controls"><FilterChips label="Show" chips={[{ id: "apps", label: "Applications", count: 5, on: true }, { id: "inbox", label: "Inbox", count: 0 }]}/></div>}
-          register={<Register label="Your applications" rows={LEDGER_APPS} onRowOpen={() => {}} barExtra={<select className="pl-register__sort" aria-label="Sort the register" defaultValue="status:asc"><option value="status:asc">Sort · status</option></select>}/>}/>
+          controls={<div className="pl-lg-controls"><FilterChips label="Show" chips={[{ id: "apps", label: "Applications", count: 5, on: true }, { id: "inbox", label: "Inbox", count: 0 }]}/>
+            <select className="pl-q-select pl-lg-sort" aria-label="Sort the register" defaultValue="status:asc"><option value="status:asc">Sort · status</option></select></div>}
+          register={<Register label="Your applications" rows={LEDGER_APPS} onRowOpen={() => {}}/>}/>
         <LedgerTickets tickets={tickets}/>
       </LedgerPage>
     </div>

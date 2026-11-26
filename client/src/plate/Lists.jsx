@@ -77,9 +77,9 @@ const WINDOW = 60;
  * reported (■ done · □ underway · ▧ needs you · ⬚ not yet). Past 60 rows the list windows itself (500 rows stay smooth).
  */
 // ⭐ 47h (D197 #3, Home): four optional additions, none of which changes the markup without them — `openId` + `renderOpen(row)`
-// draw the row's detail IN PLACE under it (Home's opened row, D146); `barExtra` sits in the ink bar before the bulk buttons
+// draw the row's detail IN PLACE under it (Home's opened row, D146)
 // (the sort); `message` is a line under the bar (what a bulk action did); `a.attrs` lands on the row.
-export function Register({ rows = [], onBulk, label = "Applications", openId = null, renderOpen, barExtra = null, message = null, onRowOpen, ...s }) {
+export function Register({ rows = [], onBulk, label = "Applications", openId = null, renderOpen, message = null, onRowOpen, ...s }) {
   const [sel, setSel] = useState(() => new Set());
   const [top, setTop] = useState(0);
   const gate = plateState(s, { height: 360, radius: "card", label: "Loading your applications", lines: 5 });
@@ -98,7 +98,6 @@ export function Register({ rows = [], onBulk, label = "Applications", openId = n
             onChange={() => setSel(all ? new Set() : new Set(rows.map((r) => r.id)))}/>SELECT ALL
         </label>
         <span className="pl-grow"/>
-        {barExtra}
         <button type="button" className="pl-register__barbtn" disabled={!sel.size} onClick={() => onBulk?.("rerun", [...sel])}>Re-run selected · free</button>
         <button type="button" className="pl-register__barbtn" data-dashed="" disabled={!sel.size} onClick={() => onBulk?.("cancel", [...sel])}>Cancel selected</button>
         {message ? <span className="pl-register__msg" role="status">{message}</span> : null}

@@ -197,7 +197,7 @@ function HeldQuestionStepper({ jobId, questions, values, setValue, remember, set
             saveLabel={q.kind === "draft" ? null : saveForNextTimeLabel(q)} saved={remember[q.question]} onSaved={(v) => setRemember(q.question, v)}
             onNext={q.kind === "yesno" ? undefined : () => { if (q.kind === "draft") setRemember(q.question, false); next(); }}
             nextLabel={i + 1 === total ? "Done" : "Next"} canNext={answered(q)}
-            onBack={() => (i > 0 ? setI(n => Math.max(0, n - 1)) : onLeave?.())} more={<>{askDraftLink}{askDraftLink ? <span aria-hidden="true"> · </span> : null}{seeAll}</>}>
+            onBack={() => (i > 0 ? setI(n => Math.max(0, n - 1)) : onLeave?.())} aside={askDraftLink} more={seeAll}>
             {q.kind === "draft" && drafts[q.question]?.state === "asked" && !String(values[q.question] ?? "").trim() ? (
               <span className="pl-q-note" data-held-asked="">Ask draft is writing a suggestion (the /d at the bottom-right) — use it there, or type your own.{" "}
                 <button type="button" className="pl-q-link" data-action="open-ask-draft" onClick={() => askDraft(q.question)}>Ask again</button></span>
@@ -1751,6 +1751,10 @@ export function AutoApplyPanel({ user = null } = {}) {
             onToggle={(id) => { if (id === "inbox") setOpen(null); setHomeTab(id); }}/>
           {homeTab === "apps" ? <>
             <FilterChips label="Filter" chips={TRACKER_FILTERS.map(([id, label]) => ({ id, label, count: fcounts[id] ?? 0, on: filter === id }))} onToggle={(id) => setFilter(id)}/>
+            {/* 47i: the register's Sort sits with the list's other controls (at 292 px it took its own line in the ink bar) */}
+            <select className="pl-q-select pl-lg-sort" aria-label="Sort the register" value={`${sort.key}:${sort.dir}`}
+              onChange={(e) => { const [key, dir] = e.target.value.split(":"); setSort({ key, dir }); }}>
+              {lgSorts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
             <button type="button" className="pl-btn pl-btn--dashed" aria-expanded={findOpen || !!q || period !== "any"}
               onClick={() => { const on = !(findOpen || !!q || period !== "any"); setFindOpen(on); if (!on) { setQ(""); setPeriod("any"); } }}>Find</button>
             {(findOpen || !!q || period !== "any") && <>
@@ -1767,9 +1771,6 @@ export function AutoApplyPanel({ user = null } = {}) {
         <div data-tracker-table="">
           <Register label="Your applications" rows={lgRows} openId={open?.type === "job" ? open.key : null} renderOpen={(a) => renderRow(a.row)} message={bulkMsg || null}
             onRowOpen={(a) => lgToggle(a.id)}
-            barExtra={<select className="pl-register__sort" aria-label="Sort the register" value={`${sort.key}:${sort.dir}`}
-              onChange={(e) => { const [key, dir] = e.target.value.split(":"); setSort({ key, dir }); }}>
-              {lgSorts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>}
             onBulk={lgBulk} {...(rows.length ? {} : { state: "empty", emptyText: nothingYet ? "Nothing drafted yet. Draft jobs from the market." : "Nothing to show yet." })}/>
           {rows.length > 0 && !shownRows.length ? <p className="pl-q-note">Nothing here with this filter.</p> : null}
         </div>

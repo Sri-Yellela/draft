@@ -162,7 +162,7 @@ export default function SurveySheet({ data, match = null, inApp = false, base = 
             </figcaption>
           </figure>
           <figure className="pl-sv-fig pl-sv-fig--line" data-company-roles="">
-            <div className="pl-sv-figstrip"><span className="pl-label">THE {c.name.toUpperCase()} LINE · {v.openJobs} OPEN, BY ROLE</span></div>
+            <div className="pl-sv-figstrip"><span className="pl-label">THE {short.toUpperCase()} LINE · {v.openJobs} OPEN, BY ROLE</span></div>
             <div className="pl-sv-linescroll">
               {line.length ? <RoleLine stops={line} company={c.name} href={(s) => jobsHref(s.category)}/> : <div className="pl-sv-none"><NoData>NO OPEN ROLES RIGHT NOW</NoData></div>}
             </div>

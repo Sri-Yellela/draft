@@ -469,6 +469,34 @@ const MARKET_AREA_VIEWS = [
 ];
 // the openings' binder tabs (plate/MarketOpenings.jsx, idBase "mk-tab") are pressed, never re-implemented here
 const pressOpeningsTab = (id) => { const b = document.getElementById(`mk-tab-${id}`); if (b && b.getAttribute("aria-selected") !== "true") b.click(); return !!b; };
+// ⭐ D197 #3 (47i) · HOME's area nav = the final Ledger board's views (Needs you · In progress · Sent · Replies). Each presses
+// the ledger header's own count cell (plate/ledgerModel.js countCells, data-ledger-count), which filters the register —
+// one filter, never a second one here; the current view follows the cell that is pressed.
+const LEDGER_AREA_VIEWS = [
+  { id: "needs", cell: "needs", label: "Needs you", href: "/app/auto-apply", icon: "needs" },
+  { id: "progress", cell: "progress", label: "In progress", href: "/app/auto-apply", icon: "progress" },
+  { id: "sent", cell: "sent", label: "Sent", href: "/app/auto-apply", icon: "sent" },
+  { id: "replies", cell: "replied", label: "Replies", href: "/app/auto-apply", icon: "replies" },
+];
+const ledgerCell = (cell) => document.querySelector(`[data-ledger-count="${cell}"] button`);
+function LedgerAreaNav({ onHome }) {
+  const [current, setCurrent] = useState(null);
+  useEffect(() => {
+    if (typeof MutationObserver === "undefined") return undefined;
+    const read = () => setCurrent(LEDGER_AREA_VIEWS.find((v) => ledgerCell(v.cell)?.getAttribute("aria-pressed") === "true")?.id || null);
+    read();
+    const mo = new MutationObserver(read);
+    mo.observe(document.body, { subtree: true, attributes: true, attributeFilter: ["aria-pressed"] });
+    return () => mo.disconnect();
+  }, []);
+  const onGo = (id) => {
+    const v = LEDGER_AREA_VIEWS.find((x) => x.id === id);
+    const b = v && ledgerCell(v.cell);
+    if (b && b.getAttribute("aria-pressed") !== "true") b.click();
+    requestAnimationFrame(() => document.querySelector("[data-ledger-register]")?.scrollIntoView?.({ block: "start", behavior: "smooth" }));
+  };
+  return <ShellAreaNav area="Home" views={LEDGER_AREA_VIEWS} current={current} onGo={onGo} onHome={onHome} />;
+}
 function AppAreaNavSlot({ activeTab, marketPlate, onHome }) {
   const navigate = useNavigate();
   const { boardTab, setBoardTab, boardHeadline } = useJobBoard();
@@ -485,6 +513,7 @@ function AppAreaNavSlot({ activeTab, marketPlate, onHome }) {
   }, [market, marketPlate]);
   const [slots, setSlots] = useState(null);
   useEffect(() => { if (market) api("/api/draft/slots").then(setSlots).catch(() => {}); }, [market]);
+  if (!market && activeTab === "auto-apply" && marketPlate) return <LedgerAreaNav onHome={onHome} />;   // the ledger (the plate switch)
   if (!market) return <ShellAreaNav area={AREA_NAMES[activeTab] || "draft"} onHome={onHome} />;
   const current = marketPlate && deckShown ? "picks" : boardTab;
   // the views' counts (the facets answer's, as the classic segment showed them) ride on the nav's words — never a 0 guessed

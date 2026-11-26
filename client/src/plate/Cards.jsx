@@ -61,7 +61,8 @@ export function FactSheet({ kicker, rows = [], foot, label, ...s }) {
       <div className="pl-card__strip"><span className="pl-label">{kicker}</span></div>
       <div className="pl-card__body" style={{ gap: 8 }}>
         {rows.map((r) => (
-          <div key={r.label} className="pl-card__item" style={{ justifyContent: "space-between", gap: 10, borderBottom: "var(--pl-border-rule)", paddingBottom: 7 }}>
+          <div key={r.label} className="pl-card__item" style={{ justifyContent: "space-between", gap: 10, borderBottom: "var(--pl-border-rule)", paddingBottom: 7, overflowWrap: "normal" }}>
+            {/* 47i: as the board — the label wraps at its spaces ("Alma / mater"), a value stays whole ("anywhere" split the email) */}
             <span className="pl-muted">{r.label}</span>{r.value == null ? <NoData/> : <b style={{ textAlign: "right" }}>{r.value}</b>}
           </div>
         ))}

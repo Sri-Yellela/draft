@@ -385,7 +385,9 @@
 .pl-question__strip { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; padding: 10px 22px; border-bottom: var(--pl-border); background: var(--pl-clay-tint); }
 .pl-question__strip .pl-label { color: var(--pl-clay-text); }
 .pl-question__body { padding: 26px 28px 22px; display: flex; flex-direction: column; gap: 18px; }
-.pl-question__text { margin: 0; font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-question); line-height: 1.08; overflow-wrap: anywhere; }
+.pl-question__text { margin: 0; font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-question); line-height: 1.08; overflow-wrap: normal; }   /* 47i: words stay whole (anywhere split "employmen / t?" at 292 px; the board keeps the word) */
+.pl-question__top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 8px; }
+.pl-question__top > .pl-q-link { line-height: 1; }   /* the line keeps the kicker's height */
 .pl-answers { display: flex; flex-wrap: wrap; gap: 14px; }
 .pl-answer { all: unset; cursor: pointer; box-sizing: border-box; flex: 1 1 180px; min-height: 76px; border-radius: var(--pl-r-q); border: var(--pl-border); background: var(--pl-card); box-shadow: var(--pl-s5-region);
   display: flex; align-items: center; justify-content: center; font-family: var(--pl-serif); font-size: var(--pl-t-bearing); }

@@ -61,7 +61,9 @@ test("⛔ Apply for me (FULL AUTO) has a handler only when selectable, is disabl
   assert.match(auto, /disabled=\{!mode\.selectable \|\| holdBusy\}/);
   assert.match(panel, /const mode = autoToggle\(runBar\);/);
   // The reason is a visible paragraph, not a tooltip a phone cannot show.
-  assert.match(panel, /<p className="dh-head__why" id="dh-auto-why" data-auto-locked-reason="">Apply for me is locked: \{mode\.reason\}<\/p>/);
+  // 47i (D197 #3): Home's controls are built once for both faces, so the class is the face's (classic dh-head__why, the
+  // ledger's pl-lg-why) — still a visible paragraph with the reason in its words
+  assert.match(panel, /<p className=(?:"dh-head__why"|\{cls\("dh-head__why", "pl-lg-why"\)\}) id="dh-auto-why" data-auto-locked-reason="">Apply for me is locked: \{mode\.reason\}<\/p>/);
   // Nothing in the client writes a lock state of its own (an object literal, not prose about one).
   for (const src of [panel, ctx]) assert.doesNotMatch(src, /locked:\s*false\s*[,}]/);
   // The pressed segment is the SERVER's mode.

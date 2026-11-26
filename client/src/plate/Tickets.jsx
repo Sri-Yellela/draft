@@ -95,7 +95,7 @@ export function DeckPile({ children }) {
  * input) with `value` / `onChange`, `onNext` + `nextLabel` + `canNext` (the step's own button), `backDisabled`, `children`
  * (a line under the answer). Without them the markup is the gallery's.
  */
-export function QuestionTicket({ kicker, n, text, kind = "yesno", draft, onAnswer, onBack, progress = [], saveLabel = "Save this answer for next time", more,
+export function QuestionTicket({ kicker, n, text, kind = "yesno", draft, onAnswer, onBack, progress = [], saveLabel = "Save this answer for next time", more, aside = null,
   options, pressed, saved, onSaved, value, onChange, onNext, nextLabel = "Next", canNext = true, backDisabled = false, children, rootProps, ...s }) {
   const gate = plateState(s, { height: 380, radius: "hero", label: "Loading the question", lines: 4 });
   if (gate) return gate;
@@ -115,7 +115,9 @@ export function QuestionTicket({ kicker, n, text, kind = "yesno", draft, onAnswe
         </span>
       </div>
       <div className="pl-question__body">
-        {n ? <span className="pl-kicker pl-muted" data-held-progress="">{n}</span> : null}
+        {/* 47i: `aside` (Ask draft) rides the progress line — in the foot it pushed See all onto a second line at 292 px */}
+        {n ? (aside ? <div className="pl-question__top"><span className="pl-kicker pl-muted" data-held-progress="">{n}</span>{aside}</div>
+          : <span className="pl-kicker pl-muted" data-held-progress="">{n}</span>) : null}
         <h3 className="pl-question__text" data-held-question="">{text}</h3>
         {kind === "yesno" ? (
           <>
