@@ -18,9 +18,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api.js";
-import { DraftMark } from "./DraftMark.jsx";
 import { EXTENSION_PAGE } from "../../../shared/extension.js";
-import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
+// ⛔ 47j w1-market (D197 Wave 1 #2): both are drawn on the plate market's Index (the first-run prompt above the list, the ★
+// empty in it), so both are the plate's drawer (plate/PlateState.jsx) — the conditions, words and links are unchanged.
+import { Drawer } from "../plate/PlateState.jsx";
 
 const DISMISS_KEY = "draft:extension-prompt-dismissed";
 
@@ -79,35 +80,24 @@ export function ExtensionFirstRunPrompt() {
     setDismissed(true);
   };
   return (
-    <div role="note" data-extension-first-run=""
-      style={{
-        maxWidth: 920, width: "calc(100% - 32px)", margin: "14px auto 0", padding: "12px 16px", boxSizing: "border-box",
-        display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
-        border: "1px solid var(--border-glass)", borderRadius: 14,
-        background: "var(--c-hover)", color: "var(--color-text)", fontSize: ts(13),
-      }}>
-      <DraftMark style={{ fontSize: ts(18), color: "var(--color-primary)" }}/>
+    <Drawer role="note" data-extension-first-run="" kicker={status.state === "not_connected" ? "NOT CONNECTED" : "THE EXTENSION"}
+      title={status.state === "not_connected" ? "Your draft extension isn't connected." : "Add jobs from any site."}
+      actions={<>
+        <Link to={EXTENSION_PAGE} target="_blank" rel="noopener" className="pl-btn pl-btn--secondary">
+          {status.state === "not_connected" ? "How to connect it" : "Get the extension"}
+        </Link>
+        <button type="button" onClick={dismiss} className="pl-btn pl-btn--flat">Not now</button>
+      </>}>
       {status.state === "not_connected" ? (
-        <div data-extension-state="not_connected" style={{ flex: "1 1 260px", minWidth: 0, lineHeight: 1.5 }}>
-          <strong>Your draft extension isn't connected.</strong>{" "}
-          <span style={{ color: "var(--color-text-muted)" }}>
-            Click it once in your browser's toolbar while you're signed in here, and it connects.
-          </span>
-        </div>
+        <p data-extension-state="not_connected">
+          Click it once in your browser's toolbar while you're signed in here, and it connects.
+        </p>
       ) : (
-        <div data-extension-state="not_installed" style={{ flex: "1 1 260px", minWidth: 0, lineHeight: 1.5 }}>
-          <strong>Add jobs from any site.</strong>{" "}
-          <span style={{ color: "var(--color-text-muted)" }}>
-            The draft browser extension captures the posting you're viewing onto your board — find it under Sort → Imported.
-          </span>
-        </div>
+        <p data-extension-state="not_installed">
+          The draft browser extension captures the posting you're viewing onto your board — find it under Sort → Imported.
+        </p>
       )}
-      <Link to={EXTENSION_PAGE} target="_blank" rel="noopener" className="rm-btn rm-btn-primary rm-btn-sm"
-        style={{ textDecoration: "none" }}>
-        {status.state === "not_connected" ? "How to connect it" : "Get the extension"}
-      </Link>
-      <button type="button" onClick={dismiss} className="rm-btn rm-btn-secondary rm-btn-sm">Not now</button>
-    </div>
+    </Drawer>
   );
 }
 
@@ -116,24 +106,18 @@ export function SavedEmptyState({ theme }) {
   // D33: someone whose extension is connected is told how to USE it, not offered it again.
   const connected = status?.state === "connected";
   return (
-    <div data-saved-empty="" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
-                  justifyContent: "center", gap: 14, padding: 40, color: theme?.textDim }}>
-      <div style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: ts(29), color: theme?.text, textAlign: "center" }}>
-        Nothing saved yet
-      </div>
-      <div style={{ fontSize: ts(13), textAlign: "center", color: theme?.textDim, maxWidth: 400, lineHeight: 1.7 }}>
-        {connected
-          ? <>Save a job on the board (★) to keep it here. Your extension is connected: on any job posting,
-              click it or press Ctrl+Shift+K and the job lands on your board, under +.</>
-          : <>Save a job on the board (★) to keep it here. To add a job you found somewhere else, capture it
-              with the draft browser extension — it lands on your board, under +.</>}
-      </div>
-      {!connected && (
-        <Link to={EXTENSION_PAGE} target="_blank" rel="noopener" className="rm-btn rm-btn-secondary rm-btn-sm"
-          data-extension-state={status?.state || "unknown"} style={{ textDecoration: "none" }}>
+    <Drawer data-saved-empty="" title="Nothing saved yet"
+      actions={!connected && (
+        <Link to={EXTENSION_PAGE} target="_blank" rel="noopener" className="pl-btn pl-btn--secondary"
+          data-extension-state={status?.state || "unknown"}>
           {status?.state === "not_connected" ? "Connect the extension" : "Get the extension"}
         </Link>
-      )}
-    </div>
+      )}>
+      {connected
+        ? <p>Save a job on the board (★) to keep it here. Your extension is connected: on any job posting,
+            click it or press Ctrl+Shift+K and the job lands on your board, under +.</p>
+        : <p>Save a job on the board (★) to keep it here. To add a job you found somewhere else, capture it
+            with the draft browser extension — it lands on your board, under +.</p>}
+    </Drawer>
   );
 }

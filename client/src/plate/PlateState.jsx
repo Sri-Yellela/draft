@@ -19,14 +19,21 @@ export function Skeleton({ label = "Loading", height, radius, lines = 3 }) {
   );
 }
 
-export function Drawer({ text, action }) {
+// ⭐ 47j w1-market (D197 Wave 1 #2): a page's own empty state is this same drawer — `title` (a serif line above the text),
+// `kicker` (what the stamp says, NOT YET unless the case is something else — "PAST THE END", "SOMETHING WENT WRONG"),
+// `children` (richer text than one string) and `actions` (its own buttons / links, e.g. a router Link or the résumé upload)
+// are optional; `role` / data-* pass through. Without them it is exactly the gate's drawer.
+export function Drawer({ text, action, title, kicker = "NOT YET", children = null, actions = null, ...rest }) {
   return (
-    <div className="pl-state pl-drawer">
-      <span className="pl-label">NOT YET</span>
-      <p className="pl-drawer__text">{text}</p>
+    <div className="pl-state pl-drawer" {...rest}>
+      <span className="pl-label">{kicker}</span>
+      {title ? <p className="pl-drawer__title">{title}</p> : null}
+      {text ? <p className="pl-drawer__text">{text}</p> : null}
+      {children ? <div className="pl-drawer__text">{children}</div> : null}
       {action ? (action.href
         ? <a className="pl-btn" href={action.href}>{action.label}</a>
         : <button type="button" className="pl-btn" onClick={action.onClick}>{action.label}</button>) : null}
+      {actions ? <div className="pl-drawer__actions">{actions}</div> : null}
     </div>
   );
 }

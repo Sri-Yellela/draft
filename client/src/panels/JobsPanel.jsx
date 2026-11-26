@@ -1,9 +1,10 @@
 // client/src/panels/JobsPanel.jsx — Lucy Brand, shared job pool
 import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from "react";
-import { NoteCard } from "../components/TextBlocks.jsx";   // A233: the empty states as note cards
+// ⛔ 47j w1-market (D197 Wave 1 #2): the board's empty / notice / error states are the plate's drawer and error line
+// (plate/PlateState.jsx) — A233's NoteCard and the shared EmptyState no longer draw anything on the plate market.
+import { Drawer, ErrorLine } from "../plate/PlateState.jsx";
 import { Link, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
-import EmptyState from "../components/EmptyState.jsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 import { api, printResume, downloadBlob, authHeaders, authContextQuery } from "../lib/api.js";
@@ -4634,27 +4635,27 @@ export function ImportedHeader({ theme, status = undefined }) {
 export function ImportedHeaderView({ theme, status = null }) {
   const connected = status?.state === "connected";
   return (
-    <div data-imported-header="" style={{ display:"flex", alignItems:"center", gap:14, flexWrap:"wrap",
-                                           padding:"12px 16px 4px" }}>
-      <Link to={EXTENSION_PAGE} className="rm-btn rm-btn-primary rm-btn-sm" data-import-jobs="">Import jobs</Link>
+    // ⛔ 47j w1-market: drawn on the plate — the action a plate button, the line beside it a plate notice
+    <div data-imported-header="" className="pl-mk-noticerow">
+      <Link to={EXTENSION_PAGE} className="pl-btn pl-btn--secondary" data-import-jobs="">Import jobs</Link>
       {connected
-        ? <span data-extension-connected="" style={{ fontSize:ts(13), color:theme.textMuted }}>Capture any posting with ⌃⇧K — it lands here.</span>
+        ? <span data-extension-connected="" className="pl-mk-notice">Capture any posting with ⌃⇧K — it lands here.</span>
         : EXTENSION_STORE_URL
-          ? <a href={EXTENSION_STORE_URL} target="_blank" rel="noopener noreferrer" data-get-extension="" style={{ fontSize:ts(13), color:theme.accentText }}>Get the extension →</a>
-          : <span style={{ fontSize:ts(13), color:theme.textMuted }}>The extension's Web Store listing is not published yet.</span>}
+          ? <a href={EXTENSION_STORE_URL} target="_blank" rel="noopener noreferrer" data-get-extension="" className="pl-mk-notice__link">Get the extension →</a>
+          : <span className="pl-mk-notice">The extension's Web Store listing is not published yet.</span>}
     </div>
   );
 }
 
 export function ImportedEmptyState({ theme }) {
   return (
-    <div data-imported-empty="" style={{ padding:"28px 16px", color:theme.textMuted, fontSize:ts(14), lineHeight:1.6, maxWidth:560 }}>
-      <p style={{ margin:"0 0 8px", color:theme.text, fontWeight:700 }}>No imported jobs yet.</p>
-      <p style={{ margin:0 }}>
+    // ⛔ 47j w1-market: the plate's drawer
+    <Drawer data-imported-empty="" title="No imported jobs yet.">
+      <p>
         Open any job in Chrome and save it with the draft extension (⌃⇧K). It lands on your board, in
         All jobs and here. Use <strong>Import jobs</strong> above to set the extension up.
       </p>
-    </div>
+    </Drawer>
   );
 }
 
@@ -4733,7 +4734,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
       {importedTab && <ImportedHeader theme={theme}/>}
       {/* A126 (7): the postings held back until they are matched — said, never silently missing. */}
       {!boardLoading && beingMatched > 0 && (
-        <p data-being-matched="" style={{ margin:"4px 2px 10px", fontSize:ts(12.5), color:theme.textMuted }}>
+        <p data-being-matched="" className="pl-mk-notice">
           {beingMatched.toLocaleString()}{beingMatchedMore ? "+" : ""} more {beingMatched === 1 && !beingMatchedMore ? "posting is" : "postings are"} being matched to your résumé — they appear here as they're scored.
         </p>
       )}
@@ -4743,9 +4744,9 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
       ) : shouldShowEmptyState ? (
         // ⭐ 45s: held back because they are being matched — never "nothing matches your filters" (they DO match).
         beingMatched > 0 ? (
-          <div data-matching-empty="" style={{ padding:"28px 6px", color:theme.textMuted, fontSize:ts(14), lineHeight:1.5 }}>
-            <b style={{ color:theme.text }}>Matching {beingMatched.toLocaleString()}{beingMatchedMore ? "+" : ""} {beingMatched === 1 && !beingMatchedMore ? "job" : "jobs"} to your résumé…</b>
-            <div>They appear here as each one is scored — usually within a minute of a new résumé.</div>
+          <div data-matching-empty="">
+            <Drawer kicker="MATCHING" title={<>Matching {beingMatched.toLocaleString()}{beingMatchedMore ? "+" : ""} {beingMatched === 1 && !beingMatchedMore ? "job" : "jobs"} to your résumé…</>}
+              text="They appear here as each one is scored — usually within a minute of a new résumé." />
           </div>
         ) : pagingProblem
           ? <PagingEmptyState theme={theme} reason={pagingProblem} onFirstPage={() => goPage(1)}/>
@@ -4766,24 +4767,10 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
 
           {/* Scrape error banner */}
           {scrapeError && (
-            <div style={{ margin:"8px 16px 0", padding:"10px 14px", borderRadius:4,
-                          background:C.DANGER_QUIET, border:`1px solid ${C.DANGER}`,
-                          display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-              <span style={{ fontSize:ts(12), color:C.DANGER }}>
-                Error: {scrapeError}
-              </span>
-              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                {pollStatus === "error" && onRetryPoll && (
-                  <button onClick={onRetryPoll}
-                    style={{ background:"none", border:`1px solid ${C.DANGER}`, borderRadius:4,
-                             cursor:"pointer", color:C.DANGER, fontSize:ts(11), padding:"2px 8px",
-                             fontWeight:700 }}>
-                    Retry
-                  </button>
-                )}
-                <button onClick={onClearScrapeError} style={{ background:"none", border:"none",
-                  cursor:"pointer", color:C.DANGER, fontSize:ts(14) }}>x</button>
-              </div>
+            // ⛔ 47j w1-market: the plate's error line — the same words, Retry (the poll's) and the dismiss, drawn once
+            <div className="pl-mk-errorrow" data-scrape-error="">
+              <ErrorLine text={`Error: ${scrapeError}`} onRetry={pollStatus === "error" && onRetryPoll ? onRetryPoll : undefined} />
+              <button type="button" className="pl-btn pl-btn--flat" aria-label="Dismiss the error" onClick={onClearScrapeError}>×</button>
             </div>
           )}
 
@@ -4838,11 +4825,11 @@ const BESIDE_MIN_VIEWPORT = 1000;
 // A93: the board's genuinely-unfiltered empty state, drawn by the shared EmptyState. It said "Search for a
 // role above · LinkedIn + Indeed" — false since the board became direct-ATS only (greenhouse, ashby,
 // lever, workable, recruitee) and a search box no longer leads it.
-function BoardEmptyState({ theme }) {
-  const { theme: t } = useTheme();
+// ⛔ 47j w1-market: the plate's drawer (it was the shared EmptyState).
+function BoardEmptyState() {
   return (
-    <EmptyState theme={theme || t} title="No jobs on the board yet"
-      body="Nothing on the board matches right now. Add any job with the extension; it lands under +." />
+    <Drawer data-board-empty="board" title="No jobs on the board yet"
+      text="Nothing on the board matches right now. Add any job with the extension; it lands under +." />
   );
 }
 
@@ -4860,30 +4847,15 @@ function BoardEmptyState({ theme }) {
 //                         empty, which the count and list cannot both be right about. Saying
 //                         "adjust your filters" here would send someone to fix something that is
 //                         not broken, which is exactly what the old fall-through did.
-function PagingEmptyState({ theme, reason, onFirstPage }) {
-  const { theme: t } = useTheme();
-  const th = theme || t;
+function PagingEmptyState({ reason, onFirstPage }) {
+  // ⛔ 47j w1-market: the plate's drawer; the server defect says so in its stamp and as an alert, never as "your filters"
   const isBug = reason?.code === "count_list_mismatch";
   return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
-                  justifyContent:"center", gap:14, padding:40, color:th.textDim }}>
-      <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                    fontSize:ts(29), color:th.text,
-                    textAlign:"center" }}>
-        {isBug ? "Something went wrong loading this page" : "You are past the end of the list"}
-      </div>
-      <div style={{ fontSize:ts(12), textAlign:"center", color:th.textDim, maxWidth:380, lineHeight:1.8 }}>
-        {reason?.message}
-        {!isBug && reason?.total ? ` There ${reason.total === 1 ? "is" : "are"} ${reason.total} job${reason.total === 1 ? "" : "s"} on this board.` : ""}
-      </div>
-      {onFirstPage && (
-        <button type="button" onClick={onFirstPage}
-          style={{ border:"none", borderRadius:6, padding:"8px 16px", background:th.accent,
-                   color:C.ON_ACCENT, fontWeight:800, fontSize:ts(12), cursor:"pointer" }}>
-          Go to the first page
-        </button>
-      )}
-    </div>
+    <Drawer data-board-empty={isBug ? "paging-defect" : "paging"} role={isBug ? "alert" : undefined}
+      kicker={isBug ? "SOMETHING WENT WRONG" : "PAST THE END"}
+      title={isBug ? "Something went wrong loading this page" : "You are past the end of the list"}
+      text={`${reason?.message || ""}${!isBug && reason?.total ? ` There ${reason.total === 1 ? "is" : "are"} ${reason.total} job${reason.total === 1 ? "" : "s"} on this board.` : ""}`}
+      actions={onFirstPage ? <button type="button" className="pl-btn pl-btn--secondary" onClick={onFirstPage}>Go to the first page</button> : null} />
   );
 }
 
@@ -4900,34 +4872,26 @@ function PagingEmptyState({ theme, reason, onFirstPage }) {
 //
 // ⚠ DELIBERATELY NOT A BLOCKER AND NOT A MODAL. One line, above a board that works. The old gate's
 // mistake was treating an optional refinement as a prerequisite.
-function FitRankingNotice({ theme, show, failed = false, onRetry, onAddResume }) {
-  const { theme: t } = useTheme();
-  const th = theme || t;
+function FitRankingNotice({ show, failed = false, onRetry, onAddResume }) {
   if (!show) return null;
   // ⛔ D156 (6) · d156FailedReadNeverShownAsMissing: a read that failed says so — never "Add one" to a user who may have one.
+  // ⛔ 47j w1-market: one plate notice line (.pl-mk-notice); its press is a plate text button.
   if (failed) return (
-    <div role="status" data-resume-read-failed="" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-                  padding: "6px 14px", fontSize: ts(11), color: th.textDim }}>
-      <span>We couldn't load this profile's résumé — draft didn't answer in time. Sorting by fit waits for it.</span>
+    <div role="status" data-resume-read-failed="" className="pl-mk-noticerow">
+      <span className="pl-mk-notice">We couldn't load this profile's résumé — draft didn't answer in time. Sorting by fit waits for it.</span>
       {onRetry && (
-        <button type="button" onClick={onRetry}
-          style={{ background: "none", border: "none", padding: 0, cursor: "pointer",
-                   color: "var(--c-accent-ink)", fontSize: ts(11), fontWeight: 700, textDecoration: "underline" }}>
+        <button type="button" className="pl-mk-notice__link" onClick={onRetry}>
           Try again
         </button>
       )}
     </div>
   );
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-                  padding: "6px 14px", fontSize: ts(11), color: th.textDim }}>
+    <div className="pl-mk-noticerow" data-fit-notice="">
       {/* ⛔ D92: no full-width hairline under it — one line ruled across the whole window is a seam. */}
-      <span>Sorting by fit needs this profile's base resume — the rest of the board works without it.</span>
+      <span className="pl-mk-notice">Sorting by fit needs this profile's base resume — the rest of the board works without it.</span>
       {onAddResume && (
-        <button type="button" onClick={onAddResume}
-          style={{ background: "none", border: "none", padding: 0, cursor: "pointer",
-                   // the ACCENT_INK text token, not the orange fill (2.41:1 as text — D93's matrix scan)
-                   color: "var(--c-accent-ink)", fontSize: ts(11), fontWeight: 700, textDecoration: "underline" }}>
+        <button type="button" className="pl-mk-notice__link" onClick={onAddResume}>
           Add one
         </button>
       )}
@@ -4938,29 +4902,12 @@ function FitRankingNotice({ theme, show, failed = false, onRetry, onAddResume })
 // Says WHICH empty this is and gives the one action that resolves it. Never "no jobs available" —
 // the jobs are there, the filter set is hiding them, and those are different problems with
 // different fixes. Excluding every provider or every tier lands here.
-function FilteredEmptyState({ theme, count, onClearFilters }) {
-  const { theme: t } = useTheme();
-  const th = theme || t;
+function FilteredEmptyState({ count, onClearFilters }) {
+  // ⛔ 47j w1-market: the plate's drawer — which empty it is, and its one action
   return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
-                  justifyContent:"center", gap:14, padding:40, color:th.textDim }}>
-      <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                    fontSize:ts(29), color:th.text,
-                    textAlign:"center" }}>
-        Your filters exclude all jobs
-      </div>
-      <div style={{ fontSize:ts(12), textAlign:"center", color:th.textDim, maxWidth:360, lineHeight:1.8 }}>
-        Nothing matches all {count} filter{count === 1 ? "" : "s"}. The jobs are still there; widen or
-        clear the filters to see them.
-      </div>
-      {onClearFilters && (
-        <button type="button" onClick={onClearFilters}
-          style={{ border:"none", borderRadius:6, padding:"8px 16px", background:th.accent,
-                   color:C.ON_ACCENT, fontWeight:800, fontSize:ts(12), cursor:"pointer" }}>
-          Clear all filters
-        </button>
-      )}
-    </div>
+    <Drawer data-board-empty="filtered" kicker="NOTHING MATCHES" title="Your filters exclude all jobs"
+      text={`Nothing matches all ${count} filter${count === 1 ? "" : "s"}. The jobs are still there; widen or clear the filters to see them.`}
+      actions={onClearFilters ? <button type="button" className="pl-btn pl-btn--secondary" onClick={onClearFilters}>Clear all filters</button> : null} />
   );
 }
 
@@ -4978,12 +4925,10 @@ function FilteredEmptyState({ theme, count, onClearFilters }) {
 function NoPoolEmptyState() {
   // ⭐ A233: a note card — the cause in plain words (the board is empty for everyone, not this person's filters), the way on.
   return (
-    <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:40 }}>
-      <NoteCard id="board-no-jobs" title="No jobs collected yet"
-        actions={<Link to="/extension" target="_blank" rel="noopener">Add a job with the draft extension</Link>}>
-        The board is empty for everyone right now, not just for you. draft looks for new jobs every night.
-      </NoteCard>
-    </div>
+    // ⛔ 47j w1-market: the plate's drawer (data-note-card kept: the empty-board walk finds it by this id)
+    <Drawer data-note-card="board-no-jobs" data-board-empty="no-jobs" title="No jobs collected yet"
+      text="The board is empty for everyone right now, not just for you. draft looks for new jobs every night."
+      actions={<Link to="/extension" target="_blank" rel="noopener" className="pl-btn pl-btn--secondary">Add a job with the draft extension</Link>} />
   );
 }
 
@@ -4999,30 +4944,22 @@ function NoPoolEmptyState() {
 function RoleScopedEmptyState({ profileName }) {
   // ⭐ A233: a note card. Nothing on the board is sorted into this job profile's role, and no filter is hiding any.
   return (
-    <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:40 }}>
-      <NoteCard id="board-no-role-jobs" title={profileName ? `No jobs in your profile\u2019s role (${profileName}) yet` : "No jobs in your profile\u2019s role yet"}>
-        Nothing on the board is sorted into this role yet, and no filter is hiding any. Switch job profile, or search to bring in new jobs.
-      </NoteCard>
-    </div>
+    // ⛔ 47j w1-market: the plate's drawer
+    <Drawer data-note-card="board-no-role-jobs" data-board-empty="no-role-jobs" title={profileName ? `No jobs in your profile\u2019s role (${profileName}) yet` : "No jobs in your profile\u2019s role yet"}
+      text="Nothing on the board is sorted into this role yet, and no filter is hiding any. Switch job profile, or search to bring in new jobs." />
   );
 }
 
-function SetupGateNotice({ theme, title, body, actionLabel, onAction, children = null }) {
-  // ⭐ A233: a set-up gate is a note card — its title, one line, its one action.
+function SetupGateNotice({ title, body, actionLabel, onAction, children = null }) {
+  // ⭐ A233: a set-up gate — its title, one line, its one action. ⛔ 47j w1-market: drawn as the plate's drawer.
   return (
-    <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center",
-                  padding:32, background:theme.bg }}>
-      <NoteCard id={`board-gate-${String(title || "").slice(0, 24)}`} title={title} style={{ width:"min(92vw, 520px)" }}
+    <div className="pl-mk-gate">
+      <Drawer data-note-card={`board-gate-${String(title || "").slice(0, 24)}`} title={title} text={body}
         actions={children || (actionLabel && (
-          <button className="dbx-depth" onClick={onAction}
-            style={{ border:"none", padding:"10px 16px",
-                     background:theme.accent, color:C.ON_ACCENT, fontWeight:800,
-                     cursor:"pointer", fontFamily:"inherit"}}>
+          <button type="button" className="pl-btn pl-btn--primary" onClick={onAction}>
             {actionLabel}
           </button>
-        ))}>
-        {body}
-      </NoteCard>
+        ))} />
     </div>
   );
 }
