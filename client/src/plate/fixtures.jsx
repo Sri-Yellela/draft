@@ -16,6 +16,7 @@ import { PlateDeckStill } from "../panels/DeckView.jsx";
 import { MarketIndexTable, RowBubble, indexRow } from "./MarketIndex.jsx";   // FIX-7 / FIX-8   // FIX-2: the Deck tab is the real FanCard, at the board's size
 import { Explainer } from "./explainer/Explainer.jsx";
 import { FIT_FIXTURES } from "./fitCardFixtures.jsx";   // D202 / D199 C7 (the card lane)
+import { YS_FIXTURES } from "../pages/atlas/yourSurveyFixtures.jsx";   // D200 (a) (the yoursurvey lane): Your survey
 import PILOT_EXPLAINER from "../../../content/explainers/big-o-acted-out/script.json" with { type: "json" };
 
 const MARKET_VIEWS = [
@@ -266,4 +267,4 @@ export function ShellPhoneTop() {
   );
 }
 
-export const FIXTURES = { ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellPhoneTop, ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard, ...FIT_FIXTURES };
+export const FIXTURES = { ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellPhoneTop, ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard, ...FIT_FIXTURES, ...YS_FIXTURES };
