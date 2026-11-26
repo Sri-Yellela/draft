@@ -52,7 +52,8 @@ test("the panel is organised as D113 UI's tree + side column — no sub-tabs, he
   // for what matters now. Stopped is a ring and a filter, never a column of its own.
   // ⭐ D146 (changed on purpose, 11-03): the side column is gone — ONE tracker, the table and the timeline beside it.
   assert.match(panel, /<DraftHouseTree view=\{view\}/);
-  assert.match(panel, /<ApplicationTracker rows=\{shownRows\}/);
+  // ⛔ 47j w1-retire (changed on purpose): R3 — Home's list is the ledger's register (the classic table is deleted)
+  assert.match(panel, /<Register label="Your applications" rows=\{lgRows\}/);
   assert.doesNotMatch(panel, /DraftHouseSide/);
   // "Stopped" here is the D14 COLUMN of exceptions, never a SectionHeading that flattens
   // held-on-purpose into failed — only the BROKE half of splitByFault reaches it.

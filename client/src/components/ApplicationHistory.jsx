@@ -66,7 +66,12 @@ const resumeLink = (row) => RESUME_LINK[row.resumeSource] || RESUME_LINK.current
  * ⛔ Imported rows are SENT applications with their dates and outcomes — never Drafts, never a score.
  */
 // ⭐ D146: exported — the one tracker's header Import opens this same panel (the full sheet keeps its own button).
-export function ImportPanel({ onClose, onImported }) {
+// ⭐ 47j R3 (w1-retire): `face="plate"` — opened from the ledger (inside its PlateRoot), the panel's CONTROLS wear the plate
+// library's buttons, link and select (pl-btn / pl-q-link / pl-q-select) so Home reads as one page; the panel itself, its
+// steps and its words are unchanged. The full sheet's own Import keeps this file's look.
+export function ImportPanel({ onClose, onImported, face = null }) {
+  const plate = face === "plate";
+  const btn = plate ? "pl-btn" : "ah__btn";
   const [file, setFile] = useState(null);       // { name, text, headers }
   const [mapping, setMapping] = useState({});
   const [preview, setPreview] = useState(null);
@@ -106,14 +111,14 @@ export function ImportPanel({ onClose, onImported }) {
     <section className="ah__import" aria-label="Import past applications" data-import="">
       <div className="ah__import-head">
         <strong>Import past applications</strong>
-        <button type="button" className="ah__link" onClick={onClose}>Close</button>
+        <button type="button" className={plate ? "pl-q-link" : "ah__link"} onClick={onClose}>Close</button>
       </div>
       <p className="ah__meta">
         A CSV with one application per row — company, title and the date you applied; an outcome if you have one.
         They arrive as sent applications, with no ATS score (no résumé of ours was scored for them). Rows already
         in The Table — the same company and title — are skipped. Up to {IMPORT_LIMITS.maxRows} rows.
       </p>
-      <label className="ah__btn ah__file">
+      <label className={`${plate ? "pl-btn pl-btn--dashed" : "ah__btn"} ah__file`}>
         {file ? `File: ${file.name}` : "Choose a CSV…"}
         <input type="file" accept=".csv,text/csv" onChange={pick} className="ah__sr"/>
       </label>
@@ -122,7 +127,7 @@ export function ImportPanel({ onClose, onImported }) {
           {IMPORT_FIELDS.map(f => (
             <label key={f.id} className="ah__date">
               {f.label}{f.required ? " *" : ""}
-              <select value={mapping[f.id] ?? ""} data-field={f.id}
+              <select className={plate ? "pl-q-select" : undefined} value={mapping[f.id] ?? ""} data-field={f.id}
                 onChange={e => { setPreview(null); setMapping(m => ({ ...m, [f.id]: e.target.value || undefined })); }}>
                 <option value="">{f.required ? "Choose a column…" : "— not in the file"}</option>
                 {file.headers.map(h => <option key={h} value={h}>{h}</option>)}
@@ -133,11 +138,11 @@ export function ImportPanel({ onClose, onImported }) {
       )}
       {file && (
         <div className="ah__answers">
-          <button type="button" className="ah__btn" disabled={busy || missing.length > 0} onClick={() => run(false)}>
+          <button type="button" className={btn} disabled={busy || missing.length > 0} onClick={() => run(false)}>
             {missing.length ? `Choose ${missing.map(f => f.label).join(", ")}` : "Preview"}
           </button>
           {preview && preview.imported.length > 0 && (
-            <button type="button" className="ah__btn" data-primary="" disabled={busy} onClick={() => run(true)}>
+            <button type="button" className={plate ? "pl-btn pl-btn--ink" : "ah__btn"} data-primary="" disabled={busy} onClick={() => run(true)}>
               Import {plural(preview.imported.length, "application")}
             </button>
           )}

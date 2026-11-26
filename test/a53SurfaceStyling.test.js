@@ -36,7 +36,8 @@ test("the page titles use the deck's type scale", () => {
   assert.match(type, /PAGE_TITLE: \{ fontFamily: FONT\.DISPLAY, fontWeight: 400/);
   // D149 (11-03) changed this on purpose: tracker-options.html's title is an h1 at a fixed 44 px — the deck's page-title
   // type is still the base, with the sketch's size on top (DH_TITLE).
-  assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /<h1 style=\{\{ \.\.\.TYPE\.PAGE_TITLE, \.\.\.DH_TITLE \}\}>/);
+  // ⛔ 47j w1-retire (changed on purpose): R3 deleted the classic Home's h1 (DH_TITLE) — Home's title is the ledger's (plate/Ledger.jsx)
+  assert.doesNotMatch(read("client/src/panels/AutoApplyPanel.jsx"), /DH_TITLE|TYPE\.PAGE_TITLE/);
   assert.match(read("client/src/panels/RecruiterPanel.jsx"), /<h1 style=\{TYPE\.PAGE_TITLE\}>/);
   assert.match(read("client/src/panels/JobProfilesPanel.jsx"), /<h1 style=\{\{ \.\.\.TYPE\.PAGE_TITLE/);
 });

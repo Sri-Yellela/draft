@@ -39,9 +39,10 @@ function learnLine(r) {
  * shell · `resumeName` = the résumé the match reads (the kicker's "FROM …") · `people` = who works here (network on) ·
  * `onBack`, `onFollow`, `onSend(job)` = the page's own handlers · `applyOpen` = ApplyLink's onOpen (signed out: no Pending).
  * `worksHere` = the page's WorksHere element (its own component, kept whole); `sendPicker` = SendJobPicker when open.
+ * `recruiterHref` = the Recruiter view's address for this company (signed in only; 47j R3) — a ticket out when given.
  */
 export default function SurveySheet({ data, match = null, inApp = false, base = "/companies", resumeName = null, people = null,
-  onBack, onFollow, onSend, networkOn = false, applyOpen, worksHere = null, sendPicker = null }) {
+  onBack, onFollow, onSend, networkOn = false, applyOpen, worksHere = null, sendPicker = null, recruiterHref = null }) {
   const v = surveyView(data, match);
   const c = v.company;
   const short = shortName(c.name);   // the name as the prose says it ("Kestrel")
@@ -262,6 +263,12 @@ export default function SurveySheet({ data, match = null, inApp = false, base = 
             <Ticket href={jobsHref(null)} onClick={go(jobsHref(null))} kicker={`THE MARKET · ${v.openJobs} OPEN HERE`} title={`Every ${c.name} opening`} line="On the market, with your fit on each." go="See them all →"/>
           )}
           <Ticket href={`/contact?topic=company&company=${encodeURIComponent(c.slug)}`} onClick={go(`/contact?topic=company&company=${encodeURIComponent(c.slug)}`)} kicker="IS THIS YOUR COMPANY?" title="Correct or remove this sheet" line="Handled within a day." go="Request a change →"/>
+          {/* ⭐ 47j R3 (w1-retire): the Recruiter view's way in (its KB reference + the claim consistency check) — signed in only; its
+              other ways in were classic screens (CompanyViewModal, JobCard). The page passes the address; no address, no ticket. */}
+          {recruiterHref ? (
+            <Ticket href={recruiterHref} onClick={go(recruiterHref)} kicker="RECRUITER VIEW" title={`${c.name}’s hiring reference`}
+              line="Its postings’ stack, teams and filings, and a check of a candidate’s claims against them." go="Open it →"/>
+          ) : null}
         </div>
         {newestJob?.applyUrl ? (
           <p className="pl-sv-more pl-sv-applyline" data-company-focus={focus ? focus.jobId : undefined}>

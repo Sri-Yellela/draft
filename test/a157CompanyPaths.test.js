@@ -37,9 +37,10 @@ test("a157NameOpensPage: the name links to the company page (with the job), the 
   assert.match(link, /export function ApplyLink\(/);
   // 47j A248 (changed on purpose): the board's row is the Index's — its company carries the page's address with the job
   assert.match(read("client/src/plate/MarketIndex.jsx"), /companyHref: companyPath\(job\.company, \{ job: id \}\) \|\| null,/, "the row's company opens the page");
-  const page = read("client/src/pages/companies/CompanyPage.jsx");
-  assert.match(page, /data-company-focus=\{focus\.jobId\}/, "the job the reader opened, first");
-  assert.match(page, /<ApplyLink href=\{focus\.applyUrl\}/);
+  // ⛔ 47j w1-retire (changed on purpose): R3 deleted the classic page — the survey sheet draws the job you opened and Apply
+  const page = read("client/src/plate/SurveySheet.jsx");
+  assert.match(page, /data-company-focus=\{focus \? focus\.jobId : undefined\}/, "the job the reader opened, first");
+  assert.match(page, /<ApplyLink href=\{newestJob\.applyUrl\} jobId=\{newestJob\.jobId\}/);
   assert.match(page, /<ApplyLink href=\{j\.applyUrl\} jobId=\{j\.jobId\}/, "Apply beside each open job");
   const server = read("server.js");
   assert.ok(server.indexOf('app.get(["/:company/:id(') > server.indexOf('app.get("/jobs/:slug"'), "draft's own routes win");

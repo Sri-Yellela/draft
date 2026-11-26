@@ -19,7 +19,8 @@ export const SHOTS = "tmp/fidelity-shots";
 /** Every probe a test asks for. A test asking for one not listed here fails loudly (add it here). */
 export const PROBES = [
   // ⛔ 47j R2: deck · fullhouse · home · home156 · home163 retired with the classic market (their pages are deleted)
-  { id: "settings" }, { id: "tracker" },
+  // ⛔ 47j R3 (w1-retire): tracker retired with the classic Home (fidelityTracker.test.js deleted)
+  { id: "settings" },
   { id: "home168" }, { id: "plate156" },
   { id: "dock167" }, { id: "dock167place" }, { id: "posting-facts" }, { id: "ask200" }, { id: "a238" },
   { id: "screens163" }, { id: "shrink201", routes: "draft-held,board,profile", sizes: "768,390" },

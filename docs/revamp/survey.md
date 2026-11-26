@@ -59,5 +59,7 @@ A destination, not a working page (D200 Rule 3): the survey sheet keeps the big 
 
 `plate/SurveySheet.jsx` (draws) · `plate/surveySheet.js` (pure model of the read) · `plate/surveyDrawings.jsx` (the team
 plate, the elevation profile, the line of roles, the dial — drawn from the data) · `plate/Marks.jsx` `Legend` (rebuilt to the
-final board) · `pages/companies/CompanyPage.jsx` (the reads; `?plate=0` keeps the classic page) · `services/companies/
+final board) · `pages/companies/CompanyPage.jsx` (the reads; ~~`?plate=0` keeps the classic page~~ ⛔ 47j R3: the classic page and
+`CompanyPage.css` are deleted; loading / error / missing are `plate/PlateState.jsx`'s; the sheet's tickets out gain
+*RECRUITER VIEW* → `/app/recruiter?company=…`, signed in only) · `services/companies/
 publicCompany.js` `focusJob` (+ the subcategory, for your stop on the line) · F5 pairs `survey-*`.
