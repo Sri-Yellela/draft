@@ -202,7 +202,9 @@ export function atlasPlaces(base, compete = null) {
     { label: "You", links: [p("your-run", "Your run"), p("your-map", "Your survey"), p("your-skills", "Your skills")] },
     { label: "Grow", links: [p("library", "Library"), { id: "shelf", label: "Courses and guides", href: `${base}/library/shelf` }, p("todays-question", "Today’s question"), p("the-audit", "The audit"), p("how-it-works", "How it works")] },
     { label: "Compete", links: [...(compete?.league ? [p("league", "League")] : []), ...(compete?.challenges ? [p("challenges", "Challenges")] : [])] },
-    { label: "Explore", links: [p("roles-and-skills", "Roles and skills"), p("this-weeks-market", "This week’s market"), p("glossary", "Glossary"), p("overview", "Overview")] },
+    { label: "Explore", links: [p("roles-and-skills", "Roles and skills"), p("this-weeks-market", "This week’s market"), p("glossary", "Glossary"),
+      // the old overview's address is /atlas/overview now (panelHref sends "overview" to the mount, which is Volume I since 47h)
+      { id: "overview", label: "Overview", href: `${base}/overview` }] },
   ];
   return groups.filter((g) => g.links.length);
 }

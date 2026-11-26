@@ -386,7 +386,7 @@ function useAtFrac() {
 /** Home: Volume I — the hero (its plate and three tags), the eight region plates, the footer, at the board's 1280. */
 export function AtlasHomeBoard() {
   return (
-    <PlateRoot region="I" style={{ minHeight: "100vh", fontSize: 15, lineHeight: 1.5 }}>
+    <PlateRoot region="I" style={{ minHeight: "100vh", fontSize: "var(--pl-t-ui-lg)", lineHeight: 1.5 }}>
       <AtlasHero tapes={AT_TAPES} lead="Every field is a territory. Atlas draws it as a map you walk lesson by lesson, and a square lights up only when you can explain what you learned."
         actions={{ primary: { label: "Resume the route", href: "#map" }, secondary: { label: "Open the atlas", href: "#map" } }}
         stats={[{ value: 8, label: "REGIONS" }, { value: 108, label: "LESSONS" }, { value: 13, label: "FIELD NOTES" }]}
@@ -401,7 +401,7 @@ export function AtlasHomeBoard() {
 }
 /** Home's VOL. I panel, as the board's pill opens it. */
 export function AtlasVolumesBoard() {
-  return <PlateRoot style={{ minHeight: "100vh" }}><div style={{ position: "absolute", left: 24, right: 24, top: 78, maxWidth: 1232, margin: "0 auto" }}><VolumesPanel regions={AT_REGIONS}/></div></PlateRoot>;
+  return <PlateRoot style={{ minHeight: "100vh" }}><div style={{ position: "absolute", left: 24, right: 24, top: 78 }}><VolumesPanel regions={AT_REGIONS}/></div></PlateRoot>;
 }
 
 // Map: Region IV — the board's fifteen places (state, checks, field notes, where it sits) and its three interchanges
@@ -431,7 +431,7 @@ export function AtlasMapBoard() {
   const [ref, at] = useAtFrac();
   const [view, setView] = useState("terrain");
   return (
-    <PlateRoot region="IV" style={{ minHeight: "100vh", fontSize: 15, lineHeight: 1.5 }}><div ref={ref} style={at}>
+    <PlateRoot region="IV" style={{ minHeight: "100vh", fontSize: "var(--pl-t-ui-lg)", lineHeight: 1.5 }}><div ref={ref} style={at}>
       <main className="pl-at-region" id="region">
         <RegionHeader emblem="net" roman="IV" name="Systems & networks" lead="How machines talk, wait and scale. Climb from how the internet works to designing a system out loud."
           chips={["15 PLACES", "4 FIELD NOTES", "3 PRIMARY SOURCES"]} lit={4} total={15}
@@ -476,7 +476,7 @@ export function AtlasLibraryBoard() {
   const [cat, setCat] = useState(sources ? "sources" : "notes");
   const pool = cat === "sources" ? AT_PAPERS : AT_NOTES;
   return (
-    <PlateRoot region="I" style={{ minHeight: "100vh", fontSize: 15, lineHeight: 1.5 }}><div ref={ref} style={at}>
+    <PlateRoot region="I" style={{ minHeight: "100vh", fontSize: "var(--pl-t-ui-lg)", lineHeight: 1.5 }}><div ref={ref} style={at}>
       <div className="pl-at-lib" id="lib">
         <LibraryAside cats={AT_CATS} current={cat} onCat={setCat}/>
         <main className="pl-at-lmain">

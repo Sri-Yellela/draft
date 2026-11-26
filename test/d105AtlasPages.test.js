@@ -287,7 +287,8 @@ test("D105 P4 · the top bar gains Atlas; /atlas is public and a signed-in reade
   assert.match(app, /new Set\(\[\.\.\.appTabs\.map\(t => t\.id\)/);
   // + D116 M7: /app/atlas/family/:key is a page too.
   // ⭐ D172 (2) (changed on purpose): the rule also admits /app/atlas/library/<course>, a course page.
-  assert.match(app, /const atlasRoute = \/\^atlas\(\?:\\\/\(\?:family\|library\)\)\?\(\?:\\\/\[\^\/\]\+\)\?\$\/\.test\(routeKey\);/);
+  // ⭐ D197 #6 (47h, changed on purpose): and /app/atlas/region/<n>, a region of Volume I.
+  assert.match(app, /const atlasRoute = \/\^atlas\(\?:\\\/\(\?:family\|library\|region\)\)\?\(\?:\\\/\[\^\/\]\+\)\?\$\/\.test\(routeKey\);/);
   // ⭐ D167 (changed on purpose): Profile's and Interview's panel addresses are not bounced either.
   assert.match(app, /if \(!jobRoute && !atlasRoute && !companyRoute && profilePanel === undefined && interviewPanel === undefined[\s\S]{0,160}?routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS\.has\(routeKey\)\)/, "/app/atlas/<slug> is not bounced");
   assert.match(app, /\{activeTab === "atlas"\s+&& <AtlasPage base="\/app\/atlas"\/>\}/);

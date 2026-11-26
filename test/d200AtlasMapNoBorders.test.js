@@ -5,11 +5,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1").replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
 const src = strip(read("client/src/plate/AtlasRegion.jsx"));
-const terrain = src.slice(src.indexOf("function Terrain("), src.indexOf("function Route("));
+const terrain = src.slice(at(src, "function Terrain("), at(src, "function Route("));
 
 test("⛔ D200 · Atlas's map is the physical map: the terrain says so, and its bands are elevations", () => {
   assert.ok(terrain.length > 500, "the terrain was found");

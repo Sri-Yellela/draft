@@ -123,7 +123,7 @@ test("⛔ D200 Rule 2 · every mark answers on Atlas's three pages", () => {
   // each callout tag, the volumes panel's rows and the footer's places are links
   assert.match(page, /stats=\{vol \? volumeStats\(vol\)\.map\(\(c, i\) => \(\{ \.\.\.c, href: \[/);
   assert.match(home, /<a className="pl-at-rplate" href=\{r\.href\}/);
-  assert.match(home, /<a className="pl-at-vols__row" href=\{r\.href\}/);
+  assert.match(home, /<a (?:key=\{r\.roman\} )?className="pl-at-vols__row" href=\{r\.href\}/);
   assert.match(home, /tags\.here\.href \? <a className="pl-at-tag__line"/);
   // the region: the waypoint, every place (a button → its field card → Open this place), every index row, every interchange
   assert.match(region, /<a className="pl-at-waypoint" href=\{waypoint\.href\}/);

@@ -21,7 +21,10 @@ test("⛔ D196 F5 · every built piece is within 2 % of its sketch", { timeout: 
     for (const name of ["market-face", "final-market-hero", "final-market-head", "final-market-cartouche", "final-market-tabs", "final-market-field", "final-market-deck", "final-market-pager", "final-market-index",
       // 47i (D197 #3 / #4): the ledger and the survey sheet's pairs that hold at 390. survey-hero / -hiring / -sponsor / -match /
       // -tickets and ledger-tickets still differ there (wording from live data, a board that clips) — open, in the WORKLOG
-      "survey-stack", "ledger-run", "ledger-needs", "ledger-banner", "ledger-register"]) results.push({ ...(await runPair(name, { browser, width: 390 })), pair: `${name}@390` });
+      "survey-stack", "ledger-run", "ledger-needs", "ledger-banner", "ledger-register",
+      // 47i (D197 #5–#7): Atlas's three boards at 390 (every pair holds there)
+      "atlas-home-hero", "atlas-home-regions", "atlas-home-footer", "atlas-home-volumes", "atlas-areanav", "atlas-map-header",
+      "atlas-map-terrain", "atlas-map-route", "atlas-map-index", "atlas-library-notes", "atlas-library-sources"]) results.push({ ...(await runPair(name, { browser, width: 390 })), pair: `${name}@390` });
   } finally { await browser.close(); }
   const failing = results.filter((r) => !r.pass).map((r) => `${r.pair}: ${r.pct} % (board ${r.sizeBoard.join("×")}, build ${r.sizeBuild.join("×")}) — see tmp/d196-regress/${r.pair}/pair.png`);
   assert.deepEqual(failing, [], `over ${THRESHOLD_PCT} % or a different size — fix the component, never the threshold`);
