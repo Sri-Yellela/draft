@@ -57,6 +57,7 @@ import DecisionToast from "../components/DecisionToast.jsx";
 // ⛔ 47j w1-market (D197 Wave 1 #2): the deck's loading / error / stale / empty states are the plate's (plate/PlateState.jsx) —
 // the skeleton with its words, the error line, the drawer; A233's NoteCard no longer draws on the plate market.
 import { Drawer, ErrorLine, Skeleton } from "../plate/PlateState.jsx";
+import { LitSquares, LetterTile } from "../plate/Marks.jsx";   // ⛔ 47j w1-market r2: the end of the deck's tally and drafted rows
 import { EXPAND_CLOCK, HOME_CARD, HOME_FAN, HOME_FAN_WIDE, cardSize, fanTransform, geometryFor, homeDeckColumn, homeLandscape, orientationFor } from "../lib/fanGeometry.js";
 import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
 import { readDeckOrder } from "../lib/deckOrder.js";
@@ -111,8 +112,7 @@ const VERB = DECISION_VERB;
 
 // ── small pieces ────────────────────────────────────────────────────────────────────────────
 const visuallyHidden = { position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" };
-const kbd = { fontSize: ts(11), fontWeight: 700, padding: "1px 6px", borderRadius: 5, border: `1px solid ${C.BORDER_STRONG}`,
-              color: C.INK_MUTED, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", lineHeight: "16px" };
+// ⛔ 47j w1-market r2: the deck's inline key style (kbd) is gone — the plate's .pl-kbd draws every key.
 const isInteractive = (el) => !!el?.closest?.("a,button,input,textarea,select,[role=button]");
 
 // ⭐ D145: the card's facts (salary · type · mode, the time since posted) are lib/deckCardFacts.js — one function.
@@ -123,20 +123,7 @@ function untilTomorrow() {
   return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
 }
 
-// The mark is a slash; the deck's progress fills it along its diagonal — drafted ÷ size.
-function SlashProgress({ drafted, size, big = false }) {
-  const p = size ? drafted / size : 0;
-  const px = big ? 64 : 30;
-  return (
-    <svg width={px} height={px} viewBox="0 0 30 30" aria-hidden="true">
-      <line x1="8" y1="26" x2="22" y2="4" stroke={C.BORDER_STRONG} strokeWidth="5" strokeLinecap="round" />
-      <motion.line x1="8" y1="26" x2="22" y2="4" stroke={C.ACCENT_INK} strokeWidth="5" strokeLinecap="round"
-        // opacity 0 at zero: a round cap on a zero-length path draws a stray dot.
-        initial={big ? { pathLength: 0, opacity: 0 } : false} animate={{ pathLength: p, opacity: p > 0 ? 1 : 0 }}
-        transition={{ duration: big ? 0.7 : 0.2, delay: big ? 0.25 : 0 }} />
-    </svg>
-  );
-}
+// ⛔ 47j w1-market r2: SlashProgress (the slash filling with the day's drafts) is deleted — the end of the deck counts in LitSquares.
 
 // ⭐ D145: raised neutral buttons, Draft in the accent with its glow; no key hints on them (the keys stay, said by
 // aria-keyshortcuts and the "?" legend).
@@ -744,57 +731,59 @@ function leaveFor(decision, target, geometry) {
 }
 
 // ── the end of the deck: a moment, not an empty state (queue 28) ────────────────────────────
+// ⛔ 47j w1-market (round 2, D197 Wave 1 #2): drawn on the plate — a plate card (.pl-deckend), the tally as LitSquares (one
+// square per card dealt, lit = drafted; it was the slash mark filling), each drafted row's company a LetterTile, the actions
+// plate buttons (Review = clay: your next step). The words, the counts, the links, Undo (U) and the staged entrance are kept.
 function EndOfDeck({ s, tally, needsReview, onUndo }) {
   const navigate = useNavigate();
   const drafted = s.cards.filter(c => c.decision === DECISIONS.DRAFTED);
   const line = (i) => ({ initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { delay: 0.15 + i * 0.09, duration: 0.3 } });
   return (
-    <motion.div data-deck-end initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}
-      style={{ ...glass({ radius: 28 }), padding: "40px 36px 36px", position: "relative", zIndex: Z.CONTENT }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 18 }}>
-        <SlashProgress drafted={tally.drafted} size={s.size} big />
-        <div>
-          <motion.div {...line(0)} style={{ fontFamily: "var(--font-display)", fontSize: "clamp(34px, 6vw, 46px)", lineHeight: 1, color: C.INK }}>
-            That's today's draft.
-          </motion.div>
-          <motion.div {...line(1)} style={{ fontSize: ts(14.5), color: C.INK_MUTED, marginTop: 8 }}>
-            {s.size} dealt · {tally.drafted} drafted · {tally.saved} saved · {tally.passed} passed
-          </motion.div>
-        </div>
+    <motion.div data-deck-end className="plate pl-deckend" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}
+      style={{ zIndex: Z.CONTENT }}>
+      <div className="pl-deckend__head">
+        <motion.div {...line(0)}>
+          <span className="pl-label">THE END OF TODAY'S DEAL</span>
+          <h2 className="pl-deckend__title">That's today's draft.</h2>
+        </motion.div>
+        <motion.div {...line(1)} className="pl-deckend__tally">
+          <LitSquares squares={Array.from({ length: s.size }, (_, i) => (i < tally.drafted ? "lit" : null))} size={12}
+            label={`${tally.drafted} of ${s.size} drafted`} />
+          <span className="pl-mk-notice">{s.size} dealt · {tally.drafted} drafted · {tally.saved} saved · {tally.passed} passed</span>
+        </motion.div>
       </div>
 
       {drafted.length > 0 && (
-        <motion.ul {...line(2)} aria-label="Drafted today" style={{ listStyle: "none", padding: 0, margin: "0 0 20px", display: "grid", gap: 8 }}>
+        <motion.ul {...line(2)} aria-label="Drafted today" className="pl-deckend__list">
           {drafted.map(c => (
-            <li key={c.job.id} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: ts(14.5), color: C.INK }}>
-              <CompanyLogo company={c.job.company} iconUrl={c.job.companyIconUrl} size={28} radius={8} />
-              <span style={{ minWidth: 0 }}>
-                <strong {...{ [TITLE_ATTR]: c.job.id }} style={{ fontWeight: 700 }}>{c.job.title}</strong>
-                <span style={{ color: C.INK_MUTED }}> · {c.job.company}</span>
+            <li key={c.job.id} className="pl-deckend__row">
+              <LetterTile name={c.job.company || ""} logo={c.job.companyIconUrl || null} size="sm" />
+              <span className="pl-deckend__what">
+                <strong {...{ [TITLE_ATTR]: c.job.id }}>{c.job.title}</strong>
+                <span className="pl-deckend__co"> · {c.job.company}</span>
               </span>
             </li>
           ))}
         </motion.ul>
       )}
 
-      <motion.p {...line(3)} style={{ fontSize: ts(15), color: C.INK_MUTED, lineHeight: 1.6, margin: "0 0 22px" }}>
+      <motion.p {...line(3)} className="pl-deckend__text">
         {tally.drafted > 0
-          ? <>Nothing has been sent. {tally.drafted === 1 ? "That draft waits" : "Each draft waits"} for your review{needsReview > 0 ? <> (<strong style={{ color: C.INK }}>{needsReview}</strong> {needsReview === 1 ? "needs" : "need"} you now)</> : null}.</>
+          ? <>Nothing has been sent. {tally.drafted === 1 ? "That draft waits" : "Each draft waits"} for your review{needsReview > 0 ? <> (<strong>{needsReview}</strong> {needsReview === 1 ? "needs" : "need"} you now)</> : null}.</>
           : <>You drafted nothing today, which is a fine answer when nothing fits.</>}
         {" "}That's it until tomorrow: your next picks arrive in {untilTomorrow()}.
       </motion.p>
 
-      <motion.div {...line(4)} style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+      <motion.div {...line(4)} className="pl-actions pl-deckend__actions">
         {tally.drafted > 0 && (
-          <Link to="/app/auto-apply" onClick={transitionClick(navigate, "/app/auto-apply")} style={{ background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`,
-            padding: "12px 20px", borderRadius: 14, fontWeight: 800, textDecoration: "none", boxShadow: C.SHADOW_GLASS }}>
+          <Link to="/app/auto-apply" onClick={transitionClick(navigate, "/app/auto-apply")} className="pl-btn pl-btn--primary">
             Review your drafts →
           </Link>
         )}
-        <Link to="/app/jobs" onClick={transitionClick(navigate, "/app/jobs")} style={{ ...glass({ radius: 14 }), padding: "12px 20px", fontWeight: 800, color: C.INK, textDecoration: "none" }}>Your jobs</Link>
+        <Link to="/app/jobs" onClick={transitionClick(navigate, "/app/jobs")} className="pl-btn pl-btn--secondary">Your jobs</Link>
         {onUndo && (
-          <button type="button" onClick={onUndo} style={{ background: "transparent", border: "none", color: C.ACCENT_INK, fontWeight: 800, cursor: "pointer" }}>
-            Undo the last one <span style={kbd}>U</span>
+          <button type="button" onClick={onUndo} className="pl-toast__act">
+            Undo the last one <kbd className="pl-kbd">U</kbd>
           </button>
         )}
       </motion.div>
@@ -1455,8 +1444,9 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
         <DecisionToast toast={toast} onUndo={undo} undoKey="U" />
 
         {legend && (
-          <div role="dialog" aria-label="Keyboard shortcuts" style={{ ...glass({ radius: 18 }), backgroundColor: C.SURFACE_MENU, position: "fixed", right: 24, bottom: 96,
-                                                                    zIndex: Z.NAV, padding: "16px 20px", fontSize: ts(13.5), color: C.INK }}>
+          // ⛔ 47j w1-market (round 2): the shortcut legend is a plate card (.pl-keys) — each key a .pl-kbd, the same rows
+          <div role="dialog" aria-label="Keyboard shortcuts" className="plate pl-keys" style={{ zIndex: Z.NAV }}>
+            <span className="pl-label">KEYBOARD</span>
             {(home
               // ⭐ D156 (1c): on Home Enter opens the card into its long post, and Esc folds it.
               ? [["D  →", "Draft — queue it for your review"], ["X  ←", "Pass — it won't come back"], ["S", "Save for later"],
@@ -1465,7 +1455,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
               : [["D  →", "Draft — queue it for your review"], ["X  ←", "Pass — it won't come back"], ["S", "Save for later"],
               ["U", "Undo the last one"], ["J ↓ / K ↑", "Next / previous card (as the wheel does)"], ["Enter", "Why this job — open or fold it"],
               ["Esc", "Collapse"], ["?", "This list"]]).map(([k, v]) => (
-              <div key={k} style={{ display: "flex", gap: 14, padding: "3px 0" }}><span style={{ ...kbd, minWidth: 64, textAlign: "center" }}>{k}</span>{v}</div>
+              <div key={k} className="pl-keys__row"><kbd className="pl-kbd pl-keys__k">{k}</kbd><span>{v}</span></div>
             ))}
           </div>
         )}
