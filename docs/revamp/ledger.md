@@ -10,8 +10,13 @@ The header follows **D200 Rule 3**, not the board: the ledger is a working page,
 become one plain serif line (≈ 40 px, *Your applications*) under a mono kicker (*THE LEDGER · WEEK 47*). Listed as a
 disagreement below.
 
-The plate ledger is on with the plate market (`plate/marketPlate.js` — one switch, `?plate=0` turns both off in a browser);
-`?plate=0` keeps today's Home exactly (the classic render branch is untouched).
+~~The plate ledger is on with the plate market (`plate/marketPlate.js` — one switch, `?plate=0` turns both off in a browser);
+`?plate=0` keeps today's Home exactly (the classic render branch is untouched).~~ ⛔ **47j R3 (lane w1-retire): the switch
+and the classic Home are DELETED** — Home is always the ledger. Every row below already had its home on the ledger; the
+ledger's last classic controls (the export choices, the full sheet's Back, the import panel's controls) wear plate buttons.
+Still classic INSIDE the ledger, with no approved sketch: JobWorkspacePanel (the side detail), DraftHouseTree (the
+timeline), DatabasePanel (the full sheet) and RowOpen's panes, AutoSettingsDrawer's body, the phone switch, the
+broken-connection banner's Fix button.
 
 ## 1 · The header (`AutoApplyPanel.jsx:1482-1503`)
 
