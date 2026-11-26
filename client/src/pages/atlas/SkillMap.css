@@ -1,111 +1,174 @@
-/* ⭐ A228 (46r) · YOUR MAP, the skill map (SkillMap.jsx and its four charts) — docs/sketches/A228-ab-combined.html in the
-   site's tokens: every colour a theme token (var(--c-*)), so every theme paints it. The three states are ONE hue:
-   proven = solid accent · on your résumé = hatched accent · not yet = a dashed outline; the jobs not yet within reach are
-   the chart neutral (--c-chart-neutral, A228: the dataviz validator's normal-vision ΔE ≥ 15 and 3:1 on every theme's
-   surface). No capsules (D60): squares and perfect circles only. FULL WIDTH (docs/BRAND.md): the charts grow into the
-   width; running text keeps ~70ch. Font sizes follow Settings → Text size (--type-scale). */
-.skm { display: grid; gap: 20px; min-width: 0; }
-.skm-panel { display: grid; gap: 14px; min-width: 0; padding: clamp(16px, 2vw, 24px); border: 1px solid var(--c-border);
-  border-radius: 10px; background: var(--c-surface-solid); align-content: start; }
-.skm-head { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; justify-content: space-between; min-width: 0; }
-.skm-h2 { margin: 0; font: 400 calc(clamp(20px, 1.8vw, 26px) * var(--type-scale, 1))/1.2 var(--font-display); color: var(--c-ink); text-wrap: balance; }
-.skm-small { font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-muted); }
-.skm-faint { color: var(--c-ink-faint); }
-.skm-eyebrow { font-size: calc(12px * var(--type-scale, 1)); letter-spacing: .08em; text-transform: uppercase; color: var(--c-ink-faint); }
-.skm-num { font-variant-numeric: tabular-nums; }
-.skm-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+/* ⭐ A228 (46r) · YOUR MAP, the skill map (SkillMap.jsx and its four charts).
+   ⭐ D200 (a) (47h) · YOUR SURVEY — the same page in the plate system (docs/sketches/final/project/YourSurvey.dc.html):
+   every colour a plate token (var(--pl-*), which follow the person's theme — styles/plate.css), so every theme paints it;
+   the 1.5 px ink line, the hard shadows (6 px a plate, 5 px a card, 3 px a chip), the serif / mono / sans faces. The
+   survey's three states: proven = owned, the proven green (--pl-lit) · on your résumé = claimed, a solid outline · not
+   yet = unclaimed, hatched and dashed. No capsules (D60): squares and perfect circles only. The charts draw at the
+   board's sizes and scale to the width; running text keeps ~70ch. Font sizes follow Settings → Text size (--pl-scale). */
+.ys { font-family: var(--pl-sans); color: var(--pl-ink); background: var(--pl-paper); padding-bottom: 70px; min-width: 0; }
+.ys-head { max-width: 1180px; margin: 0 auto; padding: 26px 24px 0; box-sizing: border-box; }
+.ys-sec { max-width: 1180px; margin: 54px auto 0; padding: 0 24px; box-sizing: border-box; }
+.ys-h1 { margin: 10px 0 0; font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-question); line-height: 1; overflow-wrap: anywhere; }
+.ys-lead { margin: 8px 0 0; max-width: 760px; font-size: var(--pl-t-body); line-height: 1.5; color: var(--pl-ink-soft); }
+.ys-p { margin: 14px 0 0; max-width: 720px; font-size: var(--pl-t-body); line-height: 1.55; color: var(--pl-ink-soft); }
+.ys-note { margin: 12px 0 0; font-size: var(--pl-t-small); color: var(--pl-ink-soft); }
+.ys-quiet { margin: 0; padding: 24px; color: var(--pl-muted); }
+.ys-label { font-family: var(--pl-mono); font-size: var(--pl-t-mono); font-weight: 700; letter-spacing: var(--pl-track-mono); color: var(--pl-ink); text-transform: uppercase; }
+.ys-muted { color: var(--pl-muted); }
+.ys-grow { flex: 1 1 auto; }
+.ys-num { font-variant-numeric: tabular-nums; }
 
-/* 1 · the number and the histogram */
-.skm-hero { grid-template-columns: minmax(0, 1fr); gap: 20px; }
-@media (min-width: 1000px) { .skm-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); align-items: center; } }
-.skm-hero__lead, .skm-hero__chart { display: grid; gap: 10px; min-width: 0; align-content: start; }
-.skm-hero__num { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: baseline; margin: 0; }
-.skm-hero__num b { font: 400 calc(clamp(52px, 6vw, 84px) * var(--type-scale, 1))/1 var(--font-display); color: var(--c-ink); }
-.skm-hero__line { margin: 0; max-width: 44ch; font-size: calc(15px * var(--type-scale, 1)); line-height: 1.5; color: var(--c-ink); }
-.skm-levels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 110px), 1fr)); gap: 12px; }
-.skm-levels > div { display: grid; gap: 2px; }
-.skm-levels b { font: 400 calc(30px * var(--type-scale, 1))/1 var(--font-display); color: var(--c-ink); }
+/* the head · the levels, the role chips */
+.ys-levels { margin-top: 16px; display: flex; flex-wrap: wrap; border: var(--pl-border); border-radius: var(--pl-r-small); background: var(--pl-card); overflow: hidden; width: fit-content; max-width: 100%; }
+.ys-levels > div { padding: 12px 18px; display: flex; flex-direction: column; gap: 3px; }
+.ys-levels > div + div { border-left: var(--pl-border); }
+.ys-levels__n { font-family: var(--pl-serif); font-size: var(--pl-t-card); line-height: 1; }
+.ys-levels__of { font-size: var(--pl-t-body); color: var(--pl-muted); }
+.ys-roles { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 6px; }
+.ys-chip { all: unset; cursor: pointer; box-sizing: border-box; min-height: 40px; padding: 0 12px; display: inline-flex; align-items: center; border-radius: var(--pl-r-btn);
+  border: var(--pl-border); font-size: var(--pl-t-meta); font-weight: 600; background: var(--pl-card); color: var(--pl-ink); }
+.ys-chip[aria-pressed="true"] { font-weight: 800; background: var(--pl-ink); color: var(--pl-on-ink); box-shadow: var(--pl-s3-clay); }
+.ys-chip:hover { background: var(--pl-paper-hover); }
+.ys-chip[aria-pressed="true"]:hover { background: var(--pl-ink); }
 
-/* 2 + 3 · the map beside Learn next (the map takes the width; Learn next a column from 1200 px) */
-.skm-main { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
-@media (min-width: 1200px) { .skm-main { grid-template-columns: minmax(0, 1.9fr) minmax(360px, 1fr); align-items: start; } }
-.skm-roles { display: flex; flex-wrap: wrap; gap: 6px; }
-.skm-seg { display: inline-flex; border: 1px solid var(--c-border); border-radius: 6px; overflow: hidden; }
-.skm-seg button { font: inherit; font-size: calc(13px * var(--type-scale, 1)); border: 0; background: var(--c-surface-solid); color: var(--c-ink-muted); padding: 5px 12px; cursor: pointer; }
-.skm-seg button[aria-pressed="true"] { background: var(--c-ink); color: var(--c-canvas); }
-.skm-seg button:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: -2px; }
-.skm-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-muted); }
-.skm-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.skm-sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: none; }
-.skm-sw--proven { background: var(--c-accent); }
-.skm-sw--claimed { background: repeating-linear-gradient(45deg, color-mix(in oklab, var(--c-accent) 45%, transparent) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--c-accent); }
-.skm-sw--missing { border: 1.25px dashed var(--c-ink-faint); }
+/* a chart: the plate figure, its caption strip, its table */
+.ys-fig { margin: 18px 0 0; border: var(--pl-border); border-radius: var(--pl-r-plate); overflow: hidden; background: var(--pl-paper-warm); box-shadow: var(--pl-s6); }
+.ys-chart { position: relative; min-width: 0; }
+.ys-fig__draw { overflow-x: auto; }
+.ys-fig__draw > svg { display: block; width: 100%; height: auto; min-width: 720px; }
+.ys-fig__draw > svg[data-skm-plots] { min-width: 760px; }
+.ys-fig__cap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 9px 14px; border-top: var(--pl-border); background: var(--pl-card); }
+.ys-fig__toggle { all: unset; cursor: pointer; font-size: var(--pl-t-13); font-weight: 700; color: var(--pl-ink); text-decoration: underline; }
+.ys-table { overflow-x: auto; border-top: var(--pl-border-rule); background: var(--pl-card); }
+.ys-table table { border-collapse: collapse; width: 100%; font-size: var(--pl-t-meta); }
+.ys-table th, .ys-table td { text-align: left; padding: 6px 14px; border-bottom: var(--pl-border-rule); }
+.ys-table th { font-family: var(--pl-mono); font-size: var(--pl-t-mono); letter-spacing: var(--pl-track-mono); text-transform: uppercase; }
+.ys-tip { position: fixed; z-index: 40; max-width: 280px; padding: 8px 10px; background: var(--pl-card); color: var(--pl-ink); border: var(--pl-border);
+  border-radius: var(--pl-r-btn); box-shadow: var(--pl-s3); font-size: var(--pl-t-13); line-height: 1.4; pointer-events: none; }
 
-/* the charts (SVG drawn from tokens) */
-.skm-chart { width: 100%; min-width: 0; position: relative; }
-.skm-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
-.skm-t { fill: var(--c-ink-muted); font-family: var(--font-body); font-size: calc(12px * var(--type-scale, 1)); }
-.skm-t--ink { fill: var(--c-ink); }
-.skm-t--strong { fill: var(--c-ink); font-weight: 600; }
-.skm-on-accent { fill: var(--c-on-accent); }
-.skm-grid { stroke: var(--c-border); stroke-width: 1; }
-.skm-reach { stroke: var(--c-ink); stroke-width: 1.5; stroke-dasharray: 4 3; }
-.skm-fam { fill: var(--c-ink-faint); font-family: var(--font-body); font-size: calc(11px * var(--type-scale, 1)); letter-spacing: .06em; }
-.skm-nohit { pointer-events: none; }
-.skm-tile__n { fill: var(--c-ink); font-family: var(--font-body); font-weight: 600; }
-/* a tile's words: a halo of the surface keeps them legible on the hatch; on a proven (solid accent) tile they are
-   the on-accent ink, with no halo (more specific than .skm-t / .skm-tile__n on purpose) */
-[data-skm-tile] text { paint-order: stroke; stroke: var(--c-surface-solid); stroke-width: 3px; stroke-linejoin: round; }
-.skm-chart [data-skm-tile] .skm-on-accent { fill: var(--c-on-accent); stroke: none; }
-.skm-logo { fill: var(--c-surface-solid); stroke: var(--c-border); }
-.skm-logo__t { fill: var(--c-ink); font-family: var(--font-body); font-weight: 700; }
-.skm-f-proven { fill: var(--c-accent); }
-.skm-f-claimed { stroke: var(--c-accent); stroke-width: 1; }
-.skm-f-missing { fill: var(--c-surface-solid); stroke: var(--c-ink-faint); stroke-width: 1.25; stroke-dasharray: 3 2; }
-.skm-f-neutral { fill: var(--c-chart-neutral); }
-.skm-hatch__ground { fill: var(--c-surface-solid); }
-.skm-hatch__line { fill: var(--c-accent); fill-opacity: .45; }
-.skm-route__area { fill: var(--c-accent); opacity: .12; }
-.skm-route__line { fill: none; stroke: var(--c-accent); stroke-width: 2; }
-.skm-route__dot { fill: var(--c-accent); stroke: var(--c-surface-solid); stroke-width: 2; }
-.skm-dot { fill: var(--c-chart-neutral); stroke: var(--c-surface-solid); stroke-width: 2; }
-.skm-dot--on { fill: var(--c-accent); }
-.skm-chart [data-tip] { cursor: default; }
-.skm-chart [data-tip]:hover, .skm-chart [data-tip]:focus { filter: brightness(1.08); }
-.skm-chart [data-tip]:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
-.skm-tip { position: fixed; z-index: 40; pointer-events: none; max-width: 280px; padding: 8px 10px; border: 1px solid var(--c-border);
-  border-radius: 8px; background: var(--c-surface-solid); color: var(--c-ink); font-size: calc(13px * var(--type-scale, 1)); box-shadow: var(--c-shadow-lg); }
-.skm-tip b { display: block; margin-bottom: 2px; }
-@media (prefers-reduced-motion: no-preference) { .skm-chart rect, .skm-chart circle, .skm-chart path { transition: opacity .15s, filter .15s; } }
+/* the drawings' marks (SVG, drawn from tokens) */
+.ys-ground { fill: var(--pl-paper-warm); }
+.ys-rules { stroke: var(--pl-ink); stroke-width: .5; opacity: .25; }
+.ys-gridv { stroke: var(--pl-ink); stroke-width: .5; opacity: .25; }
+.ys-floor { stroke: var(--pl-ink); stroke-width: 1.5; }
+.ys-reach { stroke: var(--pl-ink); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.ys-bar { fill: var(--pl-iv-5); stroke: var(--pl-ink); stroke-width: 1.5; }
+.ys-bar--ok { fill: var(--pl-clay); }
+.ys-t-serif { font-family: var(--pl-serif); font-size: calc(16px * var(--pl-scale, 1)); fill: var(--pl-ink); }
+.ys-t-mono { font-family: var(--pl-mono); font-size: calc(10px * var(--pl-scale, 1)); font-weight: 700; fill: var(--pl-ink); }
+.ys-t-sm { font-size: calc(9px * var(--pl-scale, 1)); }
+.ys-t-muted { fill: var(--pl-muted); }
+.ys-t-clay { fill: var(--pl-clay-text); }
+.ys-t-row { font-family: var(--pl-sans); font-size: calc(13px * var(--pl-scale, 1)); font-weight: 600; fill: var(--pl-ink); }
+.ys-climb__area { fill: var(--pl-iv-1); }
+.ys-climb__line { fill: none; stroke: var(--pl-ink); stroke-width: 2.4; }
+.ys-pt { fill: var(--pl-card); stroke: var(--pl-ink); stroke-width: 2; }
+.ys-pt--now { fill: var(--pl-lit); }
+.ys-pt--next { fill: var(--pl-clay); }
+.ys-dot { fill: var(--pl-card); stroke: var(--pl-ink); stroke-width: 2; }
+.ys-dot--on { fill: var(--pl-clay); }
+.ys-t-dot { font-family: var(--pl-sans); font-size: calc(12px * var(--pl-scale, 1)); font-weight: 600; fill: var(--pl-ink); paint-order: stroke; stroke: var(--pl-paper-warm); stroke-width: 3px; stroke-linejoin: round; }
+.ys-t-dot--on { font-weight: 800; }
+.ys-nohit { pointer-events: none; }
+[data-tip]:focus-visible { outline: none; stroke: var(--pl-clay); stroke-width: 3; }
 
-/* "Show as a table" */
-.skm-table { font-size: calc(13px * var(--type-scale, 1)); }
-.skm-table summary { cursor: pointer; color: var(--c-ink-muted); }
-.skm-table__wrap { overflow-x: auto; margin-top: 8px; }
-.skm-table table { border-collapse: collapse; width: 100%; min-width: 360px; }
-.skm-table th, .skm-table td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--c-border); font-variant-numeric: tabular-nums; color: var(--c-ink); }
-.skm-table th { color: var(--c-ink-faint); font-weight: 500; }
+/* 02 · the survey of plots */
+.ys-keyrow { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: 16px; font-size: var(--pl-t-meta); }
+.ys-legend { display: contents; }
+.ys-legend > span { display: inline-flex; gap: 6px; align-items: center; }
+.ys-sw { width: 14px; height: 14px; box-sizing: border-box; border: var(--pl-border); border-radius: var(--pl-r-sq-lg); background: var(--pl-card); display: inline-block; flex: none; }
+.ys-sw--proven { background: var(--pl-lit); }
+.ys-sw--missing { border-style: dashed; background: repeating-linear-gradient(45deg, var(--pl-card) 0 3px, color-mix(in srgb, var(--pl-ink) 20%, var(--pl-card)) 3px 4px); }
+.ys-seg { display: inline-flex; border: var(--pl-border); border-radius: var(--pl-r-btn); overflow: hidden; }
+.ys-seg button { all: unset; cursor: pointer; padding: 8px 14px; background: var(--pl-card); color: var(--pl-ink); font-weight: 700; font-size: var(--pl-t-13); }
+.ys-seg button[aria-pressed="true"] { background: var(--pl-ink); color: var(--pl-on-ink); font-weight: 800; }
+.ys-district { fill: none; stroke: var(--pl-ink); stroke-width: 2.2; stroke-dasharray: 10 5; }
+.ys-district__t { font-family: var(--pl-mono); font-size: calc(10px * var(--pl-scale, 1)); font-weight: 700; letter-spacing: 1.3px; fill: var(--pl-ink); }
+.ys-plot { fill: var(--pl-card); stroke: var(--pl-ink); stroke-width: 1.5; stroke-linejoin: round; cursor: pointer; }
+.ys-plot--missing { stroke-dasharray: 4 3; }
+.ys-plot--proven { fill: var(--pl-lit); }
+.ys-plot:hover { fill: var(--pl-paper-hover); }
+.ys-plot--proven:hover { fill: var(--pl-lit-deep); }
+.ys-plot__picked { fill: none; stroke: var(--pl-clay); stroke-width: 3; stroke-linejoin: round; }
+.ys-hatch { stroke: var(--pl-ink); stroke-width: 1; opacity: .3; }
+.ys-plot__lot { font-family: var(--pl-mono); font-size: calc(9px * var(--pl-scale, 1)); font-weight: 700; fill: var(--pl-muted); }
+.ys-plot__name { font-family: var(--pl-serif); fill: var(--pl-ink); }
+.ys-plot__share { font-family: var(--pl-sans); font-size: calc(11.5px * var(--pl-scale, 1)); fill: var(--pl-ink-soft); }
+.ys-plot__t--on { fill: var(--pl-on-ink); }
+.ys-picked { padding: 10px 14px; border-top: var(--pl-border-rule); background: var(--pl-card); display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.ys-picked b { font-size: var(--pl-t-small); }
+.ys-picked__line { font-size: var(--pl-t-13); color: var(--pl-ink-soft); }
 
-/* a skill's mark (its Wikipedia picture, else a letter mark) and the companies */
-.skm-mark { display: inline-grid; place-items: center; flex: none; border-radius: 6px; border: 1px solid var(--c-border);
-  background: var(--c-surface-2); color: var(--c-ink); font-weight: 700; letter-spacing: -.02em; overflow: hidden; }
-.skm-mark--img { background: var(--c-surface-solid); padding: 2px; }
-.skm-mark--img img { width: 100%; height: 100%; object-fit: contain; display: block; }
-.skm-cos { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+/* buttons (depth boxes: an ink border and a hard shadow) */
+.ys-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 48px; box-sizing: border-box; padding: 0 18px; border-radius: var(--pl-r-input); border: var(--pl-border);
+  background: var(--pl-card); color: var(--pl-ink); text-decoration: none; font-family: inherit; font-weight: 700; font-size: var(--pl-t-ui-lg); box-shadow: var(--pl-s3); cursor: pointer; }
+.ys-btn:hover { background: var(--pl-paper-hover); color: var(--pl-ink); }
+.ys-btn--clay { background: var(--pl-clay); color: var(--pl-on-clay); font-weight: 800; padding: 0 20px; box-shadow: var(--pl-s4); }
+.ys-btn--clay:hover { background: var(--pl-clay-hover); color: var(--pl-on-clay); }
+.ys-btn--sm { min-height: 40px; padding: 0 12px; border-radius: var(--pl-r-btn); font-size: var(--pl-t-13); box-shadow: none; }
+.ys-btn--ink { background: var(--pl-ink); color: var(--pl-on-ink); font-weight: 800; }
+.ys-btn--ink:hover { background: var(--pl-ink); color: var(--pl-on-ink); }
+.ys-btn--region { box-shadow: var(--pl-s3-region); }
+.ys-btn:disabled { opacity: .6; cursor: default; }
+.ys-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
 
-/* Learn next — the steps */
-.skm-steps { list-style: none; margin: 0; padding: 0; display: grid; }
-.skm-step { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--c-border); }
-.skm-step__name { font-weight: 700; color: var(--c-ink); text-decoration: none; }
-.skm-step__name:hover { text-decoration: underline; }
-.skm-step__plus { font-variant-numeric: tabular-nums; font-size: calc(15px * var(--type-scale, 1)); color: var(--c-ink); }
-.skm-step__sub { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-muted); }
+/* a skill's tile */
+.ys-tile { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; flex: none; border-radius: var(--pl-r-stamp); border: var(--pl-border);
+  background: var(--pl-card); font-family: var(--pl-mono); font-weight: 700; color: var(--pl-ink); overflow: hidden; }
+.ys-tile--not { border-style: dashed; background: var(--pl-paper); }
+.ys-tile--img img { width: 76%; height: 76%; object-fit: contain; }
 
-/* 4 · jobs you could move to */
-.skm-move { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); }
-.skm-card { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-surface); min-width: 0; align-content: start; }
-.skm-meter { height: 8px; border-radius: 2px; background: var(--c-surface-2); box-shadow: inset 0 0 0 1px var(--c-border); overflow: hidden; }
-.skm-meter i { display: block; height: 100%; background: var(--c-accent); }
+/* 03 · Learn next */
+.ys-card { background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-card); box-shadow: var(--pl-s5); }
+.ys-steps { margin-top: 18px; padding: 4px 18px 14px; }
+.ys-steps__list { list-style: none; margin: 0; padding: 0; }
+.ys-step { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 12px 0; border-top: var(--pl-border-rule); }
+.ys-step__name { flex: 1 1 200px; font-size: var(--pl-t-ui-lg); font-weight: 700; color: var(--pl-ink); text-decoration: none; }
+.ys-step__name:hover { color: var(--pl-ink); text-decoration: underline; }
+.ys-step__h { font-size: var(--pl-t-13); color: var(--pl-ink-soft); }
+.ys-cos { display: contents; }
+.ys-cos__logos { display: inline-flex; gap: 4px; }
+.ys-cos__more { font-size: var(--pl-t-tiny); color: var(--pl-muted); }
+.ys-step__plus { font-family: var(--pl-serif); font-size: var(--pl-t-num-sm); }
 
-/* "Your route, step by step" — the track board and the route, below the page, closed */
-.skm-route-more > summary { cursor: pointer; }
+/* 04 · Roles next door */
+.ys-move { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 18px; }
+.ys-role { flex: 1 1 300px; min-width: 0; box-sizing: border-box; background-color: var(--pl-card);
+  background-image: radial-gradient(circle at 0 62%, var(--pl-paper) 11px, transparent 12px), radial-gradient(circle at 100% 62%, var(--pl-paper) 11px, transparent 12px);
+  border: var(--pl-border); border-radius: var(--pl-r-card); box-shadow: var(--pl-s5); padding: 14px 16px; display: flex; flex-direction: column; gap: 9px; }
+.ys-role--on { box-shadow: 5px 5px 0 var(--pl-clay); }
+.ys-role__top { display: flex; justify-content: space-between; gap: 8px; }
+.ys-role__name { font-size: var(--pl-t-co); }
+.ys-role__open { font-size: var(--pl-t-meta); color: var(--pl-muted); }
+.ys-meter { display: block; height: 10px; box-sizing: content-box; border: var(--pl-border); border-radius: var(--pl-r-bar); position: relative; overflow: hidden; background: var(--pl-card); }
+.ys-meter > i { position: absolute; inset: 0 auto 0 0; background: var(--pl-iv-6); }
+.ys-role__have { font-size: var(--pl-t-small); }
+.ys-role__tiles { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.ys-role__note { font-size: var(--pl-t-tiny); color: var(--pl-muted); margin-left: 4px; }
+.ys-role__rule { border-top: 2px dashed var(--pl-ink); margin-top: 2px; }
+.ys-role__acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.ys-to-market { display: inline-flex; align-items: center; min-height: 40px; font-size: var(--pl-t-13); font-weight: 700; color: var(--pl-clay); }
+
+/* 05 · the whole route */
+.ys-route { margin-top: 16px; padding: 6px 18px 10px; }
+.ys-route > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 800; color: var(--pl-clay-text); }
+.ys-route__list { list-style: none; margin: 0; padding: 0 0 0 4px; border-left: 2px dashed var(--pl-ink); }
+.ys-route__list > li { display: flex; gap: 14px; align-items: flex-start; padding: 10px 0; font-size: var(--pl-t-ui-lg); }
+.ys-route__n { flex: 0 0 auto; width: 30px; height: 30px; box-sizing: border-box; border-radius: 50%; border: var(--pl-border-dashed); background: var(--pl-card); color: var(--pl-muted);
+  display: inline-flex; align-items: center; justify-content: center; font-family: var(--pl-mono); font-size: var(--pl-t-mono-lg); font-weight: 700; }
+.ys-route__n--done { border-style: solid; background: var(--pl-lit); color: var(--pl-on-clay); }
+.ys-route__n--next { border-style: solid; background: var(--pl-clay); color: var(--pl-on-clay); }
+.ys-route__sub { color: var(--pl-muted); font-size: var(--pl-t-meta); }
+
+/* the climb draws itself once — only when the reader allows motion */
+@media (prefers-reduced-motion: no-preference) {
+  .ys-climb__line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ysDraw 3.2s cubic-bezier(.4, 0, .2, 1) .3s forwards; }
+}
+@keyframes ysDraw { to { stroke-dashoffset: 0; } }
+
+/* a phone: the 16 px gutter, the head's line a step smaller */
+@media (max-width: 640px) {
+  .ys-head, .ys-sec { padding-left: 16px; padding-right: 16px; }
+  .ys-sec { margin-top: 40px; }
+  .ys-h1 { font-size: var(--pl-t-bearing); }
+}

@@ -205,7 +205,15 @@ export const PAIRS = {
   "ledger-banner": { source: "final", board: "Ledger", fixture: "LedgerBoard", subpixel: true, boardSel: "section:nth-of-type(3) > div:nth-of-type(2)", buildSel: "[data-held-before-update]", pad: 0, reduced: true },
   "ledger-register": { source: "final", board: "Ledger", fixture: "LedgerBoard", subpixel: true, boardSel: "section:nth-of-type(3) > div:nth-of-type(3)", buildSel: "[data-ledger-register] .pl-register", pad: 0, reduced: true },
   "ledger-tickets": { source: "final", board: "Ledger", fixture: "LedgerBoard", subpixel: true, boardSel: "section:nth-of-type(4)", buildSel: "[data-ledger-tickets]", pad: 0, reduced: true },
+  // ⭐ D200 (a) (47h, the yoursurvey lane) · YOUR SURVEY — the final canvas's YourSurvey board, section by section (the
+  // board's sections are siblings in its column: the head, then 01–05); the build is SkillMapView from the board's data
+  // (pages/atlas/yourSurveyFixtures.jsx), each section put at the board piece's own sub-pixel offset.
+  ...Object.fromEntries([["head", 1, "number"], ["close", 2, "close"], ["want", 3, "wants"], ["learn", 4, "learn"], ["move", 5, "move"], ["route", 6, "route"]]
+    .map(([k, n, s]) => [`ys-${k}`, { source: "final", board: "YourSurvey", fixture: "YourSurveyBoard", boardSel: `section:nth-of-type(${n})`,
+      buildSel: `[data-skm-section="${s}"]`, pad: 0, reduced: true, subpixel: true, ...(ysPair(k) || {}) }])),
 };
+// what each Your survey pair keeps out of the pixel gate, and why (D196: masks only for example data, with the reason)
+function ysPair(k) { return ({})[k]; }
 // what each Opening pair keeps out of the pixel gate, and why (D196: masks only for example data, with the reason)
 function opPair(k) { return {
   // 02: the board drew the contextual-score card before D202; the approved D202 card (FitCard, gated on its own board by the

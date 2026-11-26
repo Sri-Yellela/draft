@@ -1,14 +1,20 @@
-// ⭐ A228 (46r, owner 11-16 "Build it" — docs/sketches/A228-ab-combined.html, docs/A228_SKILL_MAP.md) · YOUR MAP: the skill
-// map as one page, top to bottom —
-//   1 the number: "N jobs you can apply for today" (+ the level tiles where the jobs carry a level), and "How close you
-//     are to each job" (JobsHistogram);
-//   2 "What <role> jobs want" — the map by family, or the same as a ranked List (SkillTreemap; one view at a time), with
-//     buttons that re-size it for another role and "Aim for this";
-//   3 "Learn next" — the step chart (LearnNextChart) and the steps, each with the skill's picture, "+N jobs", the hours
-//     and the companies it opens (CompanyLogo);
-//   4 "Jobs you could move to" — the scatter (MoveRolesScatter) and a card per role.
-// Plain words throughout ("jobs", never postings / asks / coverage). Everything comes from ONE reading,
-// GET /api/atlas/skill-map (services/atlas/skillMap.js) — counted, no model (D190). Theme tokens only (SkillMap.css).
+// ⭐ A228 (46r, owner 11-16 "Build it" — docs/A228_SKILL_MAP.md) · YOUR MAP: the skill map as one page.
+// ⭐ D200 (a) (47h, owner 11-25 approved the `YourSurvey` board, docs/sketches/final/project/YourSurvey.dc.html) · YOUR
+// SURVEY — today's skill map KEPT WHOLE, restyled into the plate system; the page at /atlas/your-map (Atlas's signed-in
+// default) IS Your survey. Top to bottom, as the board:
+//   the head — the aim line (YOUR SURVEY · ATLAS · <today> → aiming for <aim>), "N jobs you can apply for today", the
+//     sentence (Out of N open … Learn X and that grows by N), the levels, the role chips (re-survey another role);
+//   01 How close you are to each job — the histogram (JobsHistogram);
+//   02 What the jobs want, plot by plot — THE THIRD MAP, the cadastral survey (SkillTreemap: plots, districts, lots;
+//      Map / List; proven / on your résumé / not yet); tap a plot → its place in Atlas;
+//   03 The climb to every job — Learn next: the step chart (LearnNextChart), each skill's +N jobs / ≈ h / the companies,
+//      Start / See these jobs;
+//   04 Roles next door — Jobs you could move to: the scatter (MoveRolesScatter) and a card per role (carry over / to
+//      learn, Show its map, Aim for this, ⇄ N openings · the market — the interchange to the market, a real count);
+//   05 The whole route — your route, step by step (+ the track board and the navigator, handed in by Atlas: routeMore).
+// Every chart keeps "Show as a table". Plain words throughout ("jobs", never postings / asks / coverage). Everything comes
+// from ONE reading, GET /api/atlas/skill-map (services/atlas/skillMap.js) — counted, no model (D190). Tokens only
+// (SkillMap.css, the plate's --pl-* tokens); no capsules (D60).
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../lib/api.js";
@@ -16,6 +22,9 @@ import { loginHref } from "../../lib/signInReturn.js";
 import DepthButton from "../../components/DepthButton.jsx";
 import { NoteCard } from "../../components/TextBlocks.jsx";   // A233
 import CompanyLogo from "../../components/CompanyLogo.jsx";
+import PlateRoot from "../../plate/PlateRoot.jsx";
+import { LegHeader } from "../../plate/Plates.jsx";
+import { Kickers } from "../../plate/Marks.jsx";
 import JobsHistogram from "./JobsHistogram.jsx";
 import SkillTreemap from "./SkillTreemap.jsx";
 import LearnNextChart from "./LearnNextChart.jsx";
@@ -39,67 +48,80 @@ export function heroLine(m) {
   return `Out of ${fmt(m.role.open)} open ${m.role.name} jobs, you have most of what these ask for.${grow}`;
 }
 
-function Hero({ m }) {
+/** The market's address for a role — the interchange "⇄ N openings · the market" (the market reads ?search=). */
+export const marketHref = (name) => `/app/jobs?search=${encodeURIComponent(name)}`;
+
+const roleTag = (r) => (r.isAim ? " · your aim" : r.isCurrent ? " · today" : "");
+
+function Head({ m, onRole }) {
   const who = m.current && m.aim && m.current.id !== m.aim.id ? `${m.current.name} → aiming for ${m.aim.name}`
     : m.aim ? `Aiming for ${m.aim.name}` : m.current ? `Today: ${m.current.name}` : null;
+  // the aim's chip first, then today's, then the rest (the board's order)
+  const rank = (r) => (r.isAim ? 0 : r.isCurrent ? 1 : 2);
+  const roles = [...m.roles].sort((a, b) => rank(a) - rank(b));
   return (
-    <section className="skm-panel skm-hero" data-skm-section="number" aria-labelledby="skm-n">
-      <div className="skm-hero__lead">
-        {who && <p className="skm-small" data-skm-who="">{who}</p>}
-        <p className="skm-hero__num" id="skm-n"><b className="skm-num" data-skm-applicable={m.applicable}>{fmt(m.applicable)}</b>
-          <span className="skm-small">jobs you can apply for today</span></p>
-        <p className="skm-hero__line">{heroLine(m)}</p>
-        {m.levels && (
-          <div className="skm-levels" data-skm-levels="">
-            {m.levels.map(l => (
-              <div key={l.level} data-skm-level={l.level}>
-                <span className="skm-eyebrow">{LEVEL_WORD[l.level] || l.level}</span>
-                <b className="skm-num">{fmt(l.applicable)}</b>
-                <span className="skm-small">of {jobsWord(l.open)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        {(m.skills.proven + m.skills.claimed) === 0 && (
-          <p className="skm-small" data-skm-no-skills="">Add your skills (or a résumé) and this number becomes yours.{" "}
-            <Link className="atl__link" to="/app/atlas/your-skills">Your skills</Link></p>
-        )}
-      </div>
-      <div className="skm-hero__chart">
-        <div className="skm-head"><h2 className="skm-h2">How close you are to each job</h2>
-          <span className="skm-small">Every open {m.role.name} job, by how much of it you have</span></div>
-        <JobsHistogram bins={m.histogram} threshold={m.threshold} roleName={m.role.name} />
+    <section className="ys-head" data-skm-section="number" aria-labelledby="ys-n">
+      <div data-skm-who={who ? "" : undefined}><Kickers parts={["Your survey · Atlas", ...(who ? [who] : [])]} /></div>
+      <h1 className="ys-h1" id="ys-n"><span className="ys-num" data-skm-applicable={m.applicable}>{fmt(m.applicable)}</span> jobs you can apply for today</h1>
+      <p className="ys-lead">{heroLine(m)}</p>
+      {m.levels && (
+        <div className="ys-levels" role="list" aria-label="By level" data-skm-levels="">
+          {m.levels.map(l => (
+            <div key={l.level} role="listitem" data-skm-level={l.level}>
+              <span className="ys-levels__n">{fmt(l.applicable)}<span className="ys-levels__of"> of {fmt(l.open)}</span></span>
+              <span className="ys-label">{LEVEL_WORD[l.level] || l.level}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {(m.skills.proven + m.skills.claimed) === 0 && (
+        <p className="ys-note" data-skm-no-skills="">Add your skills (or a résumé) and this number becomes yours.{" "}
+          <Link to="/app/atlas/your-skills">Your skills</Link></p>
+      )}
+      <div className="ys-roles" role="group" aria-label="Roles to survey" data-skm-roles="">
+        {roles.map(r => (
+          <button key={r.id} type="button" className="ys-chip" aria-pressed={r.id === m.role.id} data-skm-role-btn={r.slug} onClick={() => onRole(r.slug)}>
+            {r.name}{roleTag(r)}
+          </button>
+        ))}
       </div>
     </section>
   );
 }
 
-function RoleButtons({ m, onRole }) {
+function Leg({ n, id, meta, title, lead, children, section }) {
   return (
-    <div className="skm-roles" role="group" aria-label="Show the map for a job" data-skm-roles="">
-      {m.roles.map(r => (
-        <DepthButton key={r.id} pressed={r.id === m.role.id} onClick={() => onRole(r.slug)}>
-          <span data-skm-role-btn={r.slug}>{r.name}{r.isCurrent ? <span className="skm-faint"> · today</span> : r.isAim ? <span className="skm-faint"> · your aim</span> : null}</span>
-        </DepthButton>
-      ))}
-    </div>
+    <section className="ys-sec" data-skm-section={section} aria-labelledby={id}>
+      <LegHeader n={n} id={id} meta={meta} title={title} />
+      {lead && <p className="ys-p">{lead}</p>}
+      {children}
+    </section>
   );
 }
 
-function WantPanel({ m, view, setView, onRole }) {
+function ClosePanel({ m }) {
   return (
-    <section className="skm-panel" data-skm-section="wants" aria-labelledby="skm-wants">
-      <div className="skm-head">
-        <h2 className="skm-h2" id="skm-wants">What {m.role.name} jobs want</h2>
-        <div className="skm-seg" role="group" aria-label="View" data-skm-view={view}>
+    <Leg n={1} id="close" section="close" meta={`Every open ${m.role.name} job · by how much of it you have`} title="How close you are to each job"
+      lead="Each bar is a group of jobs; past the dashed line you have enough to apply.">
+      <JobsHistogram bins={m.histogram} threshold={m.threshold} roleName={m.role.name} open={m.role.open} applicable={m.applicable} />
+    </Leg>
+  );
+}
+
+function WantPanel({ m, view, setView, base }) {
+  return (
+    <Leg n={2} id="want" section="wants" meta={`The survey · What ${m.role.name} jobs want · plots sized by demand`} title="What the jobs want, plot by plot"
+      lead="Every skill these jobs ask for, as a plot sized by how many want it. Tap one to open its place in Atlas.">
+      <div className="ys-keyrow">
+        <StateLegend extra={view === "map" ? "Bigger plot = more jobs want it" : "Longer bar = more jobs want it"} />
+        <span className="ys-grow" />
+        <span className="ys-seg" role="group" aria-label="View" data-skm-view={view}>
           <button type="button" aria-pressed={view === "map"} onClick={() => setView("map")}>Map</button>
           <button type="button" aria-pressed={view === "list"} onClick={() => setView("list")}>List</button>
-        </div>
+        </span>
       </div>
-      <RoleButtons m={m} onRole={onRole} />
-      <StateLegend extra={view === "map" ? "Bigger square = more jobs want it" : "Longer bar = more jobs want it"} />
-      <SkillTreemap asks={m.asks} view={view} roleName={m.role.name} />
-    </section>
+      <SkillTreemap asks={m.asks} view={view} roleName={m.role.name} base={base} firstPick={m.route?.steps?.[0]?.slug || null} />
+    </Leg>
   );
 }
 
@@ -107,62 +129,86 @@ function LearnPanel({ m, base }) {
   const navigate = useNavigate();
   const steps = m.route.steps;
   const f = steps[0];
+  const meta = steps.length ? `Learn next · about ${fmt(m.route.hours)} hours in all${m.route.estimated ? " (some hours are an estimate)" : ""}` : "Learn next";
   return (
-    <section className="skm-panel" data-skm-section="learn" aria-labelledby="skm-learn">
-      <div className="skm-head"><h2 className="skm-h2" id="skm-learn">Learn next</h2>
-        {steps.length > 0 && <span className="skm-small">about {fmt(m.route.hours)} hours in all{m.route.estimated ? " (some hours are an estimate)" : ""}</span>}</div>
-      <LearnNextChart applicable={m.applicable} steps={steps} />
-      <ol className="skm-steps" data-skm-steps="">
-        {steps.length === 0 && <li className="skm-step"><span /><span>Prove what's on your résumé to grow this.</span><span /></li>}
-        {steps.map(s => (
-          <li key={s.id} className="skm-step" data-skm-step={s.slug} data-kind={s.kind}>
-            <SkillMark name={s.name} thumb={s.thumb} size={30} />
-            <Link className="skm-step__name" to={stepHref(base, s)}>{stepVerb(s)}</Link>
-            <span className="skm-step__plus" tabIndex={0} title={`Then ${fmt(s.total)} jobs you can apply for`}>+{jobsWord(s.gain)}</span>
-            <span className="skm-step__sub">
-              <span>about {fmt(s.hours)} h{s.estimated ? " (an estimate)" : ""}</span>
+    <Leg n={3} id="learn" section="learn" meta={meta} title="The climb to every job"
+      lead="Each step is one skill; the line is how many of these jobs you could apply for after it.">
+      <LearnNextChart applicable={m.applicable} steps={steps} open={m.role.open} roleName={m.role.name} />
+      <div className="ys-card ys-steps">
+        <ol className="ys-steps__list" data-skm-steps="">
+          {steps.length === 0 && <li className="ys-step"><span>Prove what's on your résumé to grow this.</span></li>}
+          {steps.map(s => (
+            <li key={s.id} className="ys-step" data-skm-step={s.slug} data-kind={s.kind}>
+              <SkillMark name={s.name} thumb={s.thumb} have={s.kind === "prove"} />
+              <Link className="ys-step__name" to={stepHref(base, s)}>{stepVerb(s)}</Link>
+              <span className="ys-step__h">about {fmt(s.hours)} h{s.estimated ? " (an estimate)" : ""}</span>
               {s.companies.length > 0 && (
-                <span className="skm-cos" aria-label={`Jobs at ${s.companies.map(c => c.name).join(", ")}`}>
-                  {s.companies.map(c => <span key={c.name} title={c.name}><CompanyLogo company={c.name} iconUrl={c.iconUrl} size={26} radius={6} /></span>)}
-                  {s.gain > s.companies.reduce((a, c) => a + c.jobs, 0) && <span>and more</span>}
+                <span className="ys-cos" aria-label={`Jobs at ${s.companies.map(c => c.name).join(", ")}`}>
+                  <span className="ys-cos__logos">
+                    {s.companies.map(c => <span key={c.name} title={c.name}><CompanyLogo company={c.name} iconUrl={c.iconUrl} size={24} radius={12} /></span>)}
+                  </span>
+                  {s.gain > s.companies.reduce((a, c) => a + c.jobs, 0) && <span className="ys-cos__more">and more</span>}
                 </span>
               )}
-            </span>
-          </li>
-        ))}
-      </ol>
-      <div className="skm-actions">
-        {f ? <span data-skm-next="" data-href={stepHref(base, f)}><DepthButton primary onClick={() => navigate(stepHref(base, f))}>{f.kind === "prove" ? "Prove" : "Start"} {f.name} · {fmt(f.hours)} h</DepthButton></span>
-          : <span data-skm-next="" data-href={`${base}/your-skills`}><DepthButton primary onClick={() => navigate(`${base}/your-skills`)}>Prove a skill</DepthButton></span>}
-        <span data-skm-see-jobs=""><DepthButton onClick={() => navigate(`/app/jobs?search=${encodeURIComponent(m.role.name)}`)}>See these jobs</DepthButton></span>
+              <span className="ys-step__plus" tabIndex={0} title={`Then ${fmt(s.total)} jobs you can apply for`}>+{jobsWord(s.gain)}</span>
+            </li>
+          ))}
+        </ol>
+        <div className="ys-actions">
+          {f ? <span data-skm-next="" data-href={stepHref(base, f)}><button type="button" className="ys-btn ys-btn--clay" onClick={() => navigate(stepHref(base, f))}>{f.kind === "prove" ? "Prove" : "Start"} {f.name} · {fmt(f.hours)} h</button></span>
+            : <span data-skm-next="" data-href={`${base}/your-skills`}><button type="button" className="ys-btn ys-btn--clay" onClick={() => navigate(`${base}/your-skills`)}>Prove a skill</button></span>}
+          <span data-skm-see-jobs=""><button type="button" className="ys-btn" onClick={() => navigate(marketHref(m.role.name))}>See these jobs</button></span>
+        </div>
       </div>
-    </section>
+    </Leg>
   );
 }
 
 function MovePanel({ m, onRole, onAim, aiming }) {
   return (
-    <section className="skm-panel" data-skm-section="move" aria-labelledby="skm-move">
-      <div className="skm-head"><h2 className="skm-h2" id="skm-move">Jobs you could move to</h2>
-        <span className="skm-small">Further right = you already have more of what they want. Higher = more open jobs.</span></div>
+    <Leg n={4} id="move" section="move" meta="Jobs you could move to · further right = you have more · higher = more open jobs" title="Roles next door"
+      lead="Every role your skills carry into, and what each would take.">
       <MoveRolesScatter roles={m.move} />
-      <div className="skm-move" data-skm-move="">
+      <div className="ys-move" data-skm-move="">
         {[...m.move].sort((a, b) => b.coverage - a.coverage).map(r => (
-          <div key={r.id} className="skm-card" data-skm-card={r.slug}>
-            <div className="skm-head"><b>{r.name}{r.isCurrent ? " · today" : r.isAim ? " · your aim" : ""}</b><span className="skm-small skm-num">{fmt(r.open)} open</span></div>
-            <div className="skm-meter" role="img" aria-label={`You have ${pct(r.coverage)} of it`}><i style={{ width: `${Math.round(r.coverage * 100)}%` }} /></div>
-            <div className="skm-small">You have {pct(r.coverage)} of it · {jobsWord(r.applicable)} to apply for now</div>
-            {r.carries.length > 0 && <div className="skm-cos">{r.carries.map(c => <span key={c.id} title={c.name}><SkillMark name={c.name} thumb={c.thumb} size={22} /></span>)}<span className="skm-small">carry over</span></div>}
-            {r.missing.length > 0 && <div className="skm-cos">{r.missing.map(c => <span key={c.id} title={c.name}><SkillMark name={c.name} thumb={c.thumb} size={22} /></span>)}
-              <span className="skm-small">to learn{r.hoursTo30 ? ` · about ${fmt(r.hoursTo30)} h to apply for 3 in 10` : ""}</span></div>}
-            <div className="skm-actions">
-              {!r.isShown && <DepthButton onClick={() => onRole(r.slug)}>Show its map</DepthButton>}
-              {!r.isAim && <DepthButton disabled={aiming} onClick={() => onAim(r.slug)}>Aim for this</DepthButton>}
+          <article key={r.id} className={`ys-role${r.isShown ? " ys-role--on" : ""}`} data-skm-card={r.slug}>
+            <div className="ys-role__top"><b className="ys-role__name">{r.name}{roleTag(r)}</b><span className="ys-role__open">{fmt(r.open)} open</span></div>
+            <span className="ys-meter" role="img" aria-label={`You have ${pct(r.coverage)} of it`}><i style={{ width: `${Math.round(r.coverage * 100)}%` }} /></span>
+            <span className="ys-role__have">You have <b>{pct(r.coverage)}</b> of it · {jobsWord(r.applicable)} to apply for now</span>
+            {r.carries.length > 0 && <div className="ys-role__tiles">{r.carries.map(c => <SkillMark key={c.id} name={c.name} thumb={c.thumb} have />)}<span className="ys-role__note">carry over</span></div>}
+            {r.missing.length > 0 && <div className="ys-role__tiles">{r.missing.map(c => <SkillMark key={c.id} name={c.name} thumb={c.thumb} />)}
+              <span className="ys-role__note">to learn{r.hoursTo30 ? ` · about ${fmt(r.hoursTo30)} h to apply for 3 in 10` : ""}</span></div>}
+            <div className="ys-role__rule" aria-hidden="true" />
+            <div className="ys-role__acts">
+              {!r.isShown && <button type="button" className="ys-btn ys-btn--sm" onClick={() => onRole(r.slug)}>Show its map</button>}
+              {!r.isAim && <button type="button" className="ys-btn ys-btn--sm ys-btn--ink" disabled={aiming} onClick={() => onAim(r.slug)}>Aim for this</button>}
+              <Link className="ys-to-market" to={marketHref(r.name)} data-skm-to-market={r.slug}>⇄ {fmt(r.open)} openings · the market</Link>
             </div>
-          </div>
+          </article>
         ))}
       </div>
-    </section>
+    </Leg>
+  );
+}
+
+function RoutePanel({ m, routeMore }) {
+  const steps = m.route.steps;
+  return (
+    <Leg n={5} id="route" section="route" meta="Your route, step by step" title="The whole route" lead="Open it to see every step in order.">
+      <details open className="ys-card ys-route" data-atlas-route-steps="">
+        <summary>Your route, step by step</summary>
+        <ol className="ys-route__list" data-skm-route-steps="">
+          <li><span className="ys-route__n ys-route__n--done" aria-hidden="true">✓</span><span><b>Your résumé today</b> <span className="ys-route__sub">· {jobsWord(m.applicable)}</span></span></li>
+          {steps.map((s, i) => (
+            <li key={s.id} data-skm-route-step={s.slug}>
+              <span className={`ys-route__n${i === 0 ? " ys-route__n--next" : ""}`} aria-hidden="true">{i + 2}</span>
+              <span><b>{stepVerb(s)}</b> <span className="ys-route__sub">· +{jobsWord(s.gain)} · {fmt(s.hours)} h</span></span>
+            </li>
+          ))}
+        </ol>
+        {routeMore}
+      </details>
+    </Leg>
   );
 }
 
@@ -178,20 +224,20 @@ export function SkillMapEmpty({ base = "/app/atlas", reason = "no_roles", onBack
 }
 
 /** The page drawn from GET /api/atlas/skill-map's answer — pure apart from its callbacks (tests render it). */
-export function SkillMapView({ m, base = "/app/atlas", view = "map", setView = () => {}, onRole = () => {}, onAim = () => {}, aiming = false }) {
+export function SkillMapView({ m, base = "/app/atlas", view = "map", setView = () => {}, onRole = () => {}, onAim = () => {}, aiming = false, routeMore = null }) {
   return (
-    <div className="skm" data-skill-map={m.role.slug}>
-      <Hero m={m} />
-      <div className="skm-main">
-        <WantPanel m={m} view={view} setView={setView} onRole={onRole} />
-        <LearnPanel m={m} base={base} />
-      </div>
+    <PlateRoot className="ys" data-skill-map={m.role.slug} data-your-survey="">
+      <Head m={m} onRole={onRole} />
+      <ClosePanel m={m} />
+      <WantPanel m={m} view={view} setView={setView} base={base} />
+      <LearnPanel m={m} base={base} />
       <MovePanel m={m} onRole={onRole} onAim={onAim} aiming={aiming} />
-    </div>
+      <RoutePanel m={m} routeMore={routeMore} />
+    </PlateRoot>
   );
 }
 
-export default function SkillMap({ base = "/app/atlas", signedIn = true }) {
+export default function SkillMap({ base = "/app/atlas", signedIn = true, routeMore = null }) {
   const [role, setRole] = useState(null);   // null = the aim (the server's default)
   const [view, setView] = useState("map");
   const [state, setState] = useState({ status: "loading", m: null });
@@ -217,5 +263,5 @@ export default function SkillMap({ base = "/app/atlas", signedIn = true }) {
     catch { /* the map stays as it is */ }
     finally { setAiming(false); }
   };
-  return <SkillMapView m={state.m} base={base} view={view} setView={setView} onRole={setRole} onAim={onAim} aiming={aiming} />;
+  return <SkillMapView m={state.m} base={base} view={view} setView={setView} onRole={setRole} onAim={onAim} aiming={aiming} routeMore={routeMore} />;
 }

@@ -461,16 +461,15 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
               you are to the rest, what the role's jobs want, Learn next and the jobs you could move to (SkillMap.jsx).
               It retires the market tree (the five sections, the families list), Your skills' ring map, For a role and
               Compare roles. */}
-          <PanelHead eyebrow="Your map" title="Your skill map" />
-          <SkillMap base={base} signedIn={signedIn} />
-          {/* ⭐ D172 (4) / D178: the track board and the route (D143's navigator) stay — below the page, closed. */}
-          {signedIn && (
-            <details className="atl-more skm-route-more" data-atlas-route-steps="">
-              <summary className="atl__link">Your route, step by step</summary>
+          {/* ⭐ D200 (a) (47h): the page IS Your survey (its own head, SkillMap.jsx); D172 (4) / D178's track board and
+              the route (D143's navigator) stay, inside its 05 "Your route, step by step" (routeMore). */}
+          <SkillMap base={base} signedIn={signedIn} routeMore={signedIn && (
+            <details className="atl-more skm-route-more" data-atlas-route-more="">
+              <summary className="atl__link">Fly my route · the track board and the navigator</summary>
               <TrackBoard base={base} signedIn={signedIn} />
               <section className="atl__section" data-atlas-route-in-map=""><YourRoutePanel base={base} signedIn={signedIn} /></section>
             </details>
-          )}
+          )} />
         </div>
       )}
       {panel === "your-skills" && <YourSkillsSlot signedIn={signedIn} base={base} />}

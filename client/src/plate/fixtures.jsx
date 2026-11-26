@@ -21,6 +21,7 @@ import { MarketIndexTable, RowBubble, indexRow } from "./MarketIndex.jsx";   // 
 import { Explainer } from "./explainer/Explainer.jsx";
 import { FIT_FIXTURES } from "./fitCardFixtures.jsx";   // D202 / D199 C7 (the card lane)
 import { SHEET_FIXTURES, useAtBoardFraction } from "./sheetFixtures.jsx";   // 47h (D197 #3 / #4): the ledger and the survey sheet
+import { YS_FIXTURES } from "../pages/atlas/yourSurveyFixtures.jsx";   // D200 (a) (the yoursurvey lane): Your survey
 import PILOT_EXPLAINER from "../../../content/explainers/big-o-acted-out/script.json" with { type: "json" };
 import { AtlasHero, RegionPlates, AtlasFooter, VolumesPanel } from "./AtlasHome.jsx";   // ⭐ D197 #5 (47h, lane atlas)
 import { RegionHeader, RegionViews } from "./AtlasRegion.jsx";   // ⭐ D197 #6
@@ -509,4 +510,4 @@ export function AtlasLibraryBoard() {
   );
 }
 
-export const FIXTURES = { ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellPhoneTop, ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard, MarketHeroFinal, MarketSectionFinal, AtlasHomeBoard, AtlasVolumesBoard, AtlasMapBoard, AtlasLibraryBoard, ShellRailAtlas, ...FIT_FIXTURES, ...SHEET_FIXTURES };
+export const FIXTURES = { ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellPhoneTop, ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard, MarketHeroFinal, MarketSectionFinal, AtlasHomeBoard, AtlasVolumesBoard, AtlasMapBoard, AtlasLibraryBoard, ShellRailAtlas, ...FIT_FIXTURES, ...SHEET_FIXTURES, ...YS_FIXTURES };
