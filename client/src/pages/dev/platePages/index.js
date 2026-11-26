@@ -8,4 +8,5 @@ export const PLATE_PAGES = {
   "public-jobs": { title: "The market, signed out (/jobs)", wave2: "#16", load: () => import("./PublicJobs.jsx") },
   "public-chrome": { title: "The signed-out nav + footer, on the server pages", wave2: "#16", load: () => import("./PublicChrome.jsx") },
   network: { title: "Correspondence (Network · Feed · Messages)", wave2: "#14", load: () => import("./Network.jsx") },
+  "off-the-map": { title: "Off the map (404, faults, empty states)", wave2: "#22", load: () => import("./OffTheMap.jsx") },
 };
