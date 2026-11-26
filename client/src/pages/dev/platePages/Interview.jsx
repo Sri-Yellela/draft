@@ -147,8 +147,8 @@ function Prepare() {
   );
 }
 
-/** The one operable model: Defend — ask → out loud (a clock) or typed → the harder follow-up → next. Nothing recorded. */
-function Defend() {
+/** The one operable model: DefendWalk — ask → out loud (a clock) or typed → the harder follow-up → next. Nothing recorded. */
+function DefendWalk() {
   const [pos, setPos] = useState({ line: 0, q: 0, stage: "ask", mode: null });
   const [typed, setTyped] = useState("");
   const [sec, setSec] = useState(0);
@@ -216,7 +216,7 @@ function Practise() {
         lead="The coach picks a bullet and asks the follow-ups an interviewer would."/>
       <section className="pl-section" aria-labelledby="iv-defend">
         <LegHeader n={1} meta="FROM YOUR BASE RÉSUMÉ · TEMPLATES, NO MODEL · NOTHING RECORDED" title="Defend your résumé" id="iv-defend"/>
-        <Defend/>
+        <DefendWalk/>
       </section>
       <section className="pl-section" aria-labelledby="iv-drills">
         <LegHeader n={2} meta="TIMED · EXTENDED TIME · UNTIMED — NEVER COUNTS AGAINST YOU" title="Drills" id="iv-drills"/>
@@ -243,7 +243,7 @@ function Practise() {
 }
 
 /** Debrief, one question at a time (every field of today's form, in its order). */
-function Debrief() {
+function DebriefSteps() {
   const steps = [
     { kind: "choice", text: "Which application was it for?", options: ["No application", ...UPCOMING.map((u) => `${u.company} · ${u.title}`), `${RECENT[0].company} · ${RECENT[0].title}`] },
     { kind: "choice", text: "Which round?", options: ["Coding", "System design", "Machine learning", "Behavioural", "Other"] },
@@ -280,7 +280,7 @@ function After() {
       <section className="pl-section" aria-labelledby="iv-debrief">
         <LegHeader n={1} meta="ITS QUESTIONS GO INTO YOUR BANK, UNDER ITS ROUND" title="Debrief" id="iv-debrief"/>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 24, alignItems: "flex-start" }}>
-          <div style={{ flex: "999 1 520px", minWidth: 0 }}><Debrief/></div>
+          <div style={{ flex: "999 1 520px", minWidth: 0 }}><DebriefSteps/></div>
           <div style={{ flex: "1 1 260px", minWidth: 0, maxWidth: 360 }}>
             <DrawingToCome what="A ruled logbook page, the round's questions written in" aspect="4 / 3" note="VI'S RAMP · FROM THE DESIGN DOC"/>
           </div>

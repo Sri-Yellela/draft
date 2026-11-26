@@ -7,4 +7,5 @@ export const PLATE_PAGES = {
   // 47j lane w2-practice — docs/revamp/interview.md, atlas-extras.md, ask-draft.md
   interview: { title: "Interview → Proving ground", wave2: "#13", load: () => import("./Interview.jsx") },
   logbook: { title: "Atlas → Your map's Logbook (Your run, League, Challenges)", wave2: "#11", load: () => import("./Logbook.jsx") },
+  "todays-question": { title: "Atlas → Your map's Today card (Today's question)", wave2: "#11", load: () => import("./TodaysQuestion.jsx") },
 };
