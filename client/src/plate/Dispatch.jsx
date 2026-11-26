@@ -12,7 +12,7 @@ const T = {
   region: "var(--pl-r4)", tint: "var(--pl-r4-tint)", serif: "var(--pl-serif)", sans: "var(--pl-sans)", mono: "var(--pl-mono)",
 };
 const LINE = `1.5px solid ${T.ink}`;
-const mono = (size = "var(--pl-t-mono)") => ({ fontFamily: T.mono, fontSize: size, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: T.ink });
+const mono = (size = "var(--pl-t-mono)") => ({ fontFamily: "var(--pl-mono)", fontSize: size, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: T.ink });
 const cell = (extra = {}) => ({ padding: 0, ...extra });
 
 /** The one action: a bulletproof link in a clay cell (≥ 44 px), or ink text when `tone="ink"` (a per-entry link). */
@@ -20,13 +20,13 @@ export function DispatchButton({ label, href = "#", tone = "clay", ...s }) {
   const gate = plateState(s, { height: 48, radius: "input", lines: 1, label: "Loading the action" });
   if (gate) return gate;
   if (tone === "ink") {
-    return <a href={href} style={{ fontFamily: T.sans, fontSize: "var(--pl-t-small)", fontWeight: 700, color: T.ink, textDecoration: "underline" }}>{label}</a>;
+    return <a href={href} style={{ fontFamily: "var(--pl-sans)", fontSize: "var(--pl-t-small)", fontWeight: 700, color: T.ink, textDecoration: "underline" }}>{label}</a>;
   }
   return (
     <table role="presentation" cellPadding="0" cellSpacing="0" style={{ borderCollapse: "separate" }}>
       <tbody><tr>
         <td style={cell({ background: T.clay, border: LINE, borderRadius: "var(--pl-r-input)", boxShadow: "var(--pl-s4)" })}>
-          <a href={href} style={{ display: "inline-block", padding: "14px 22px", fontFamily: T.sans, fontSize: "var(--pl-t-ui-lg)", fontWeight: 800,
+          <a href={href} style={{ display: "inline-block", padding: "14px 22px", fontFamily: "var(--pl-sans)", fontSize: "var(--pl-t-ui-lg)", fontWeight: 800,
             color: T.onClay, textDecoration: "none", lineHeight: "20px" }}>{label}</a>
         </td>
       </tr></tbody>
@@ -50,8 +50,8 @@ export function DispatchEntry({ n, title, company, facts = [], squares = null, l
           </span>
         </td>
         <td valign="top" style={cell({ padding: "14px 0 16px" })}>
-          <div style={{ fontFamily: T.serif, fontSize: "var(--pl-t-num-sm)", lineHeight: 1.15, color: T.ink, overflowWrap: "anywhere" }}>{title}</div>
-          {company ? <div style={{ fontFamily: T.sans, fontSize: "var(--pl-t-small)", fontWeight: 700, color: T.soft, marginTop: 4, overflowWrap: "anywhere" }}>{company}</div> : null}
+          <div style={{ fontFamily: "var(--pl-serif)", fontSize: "var(--pl-t-num-sm)", lineHeight: 1.15, color: T.ink, overflowWrap: "anywhere" }}>{title}</div>
+          {company ? <div style={{ fontFamily: "var(--pl-sans)", fontSize: "var(--pl-t-small)", fontWeight: 700, color: T.soft, marginTop: 4, overflowWrap: "anywhere" }}>{company}</div> : null}
           {facts.length ? <div style={{ ...mono(), color: T.muted, marginTop: 8, lineHeight: 1.6 }}>{facts.join(" · ")}</div> : null}
           {squares ? (
             <table role="img" cellPadding="0" cellSpacing="0" style={{ marginTop: 8, borderCollapse: "separate", borderSpacing: "3px 0" }} aria-label={`${squares.lit} of your ${squares.of} top skills`}>
@@ -90,10 +90,10 @@ export function DispatchFrame({ kicker, title, lead, stats = [], children, actio
             <tr><td style={cell({ paddingBottom: 10 })}>
               <table role="presentation" cellPadding="0" cellSpacing="0"><tbody><tr>
                 <td style={cell({ width: 28, height: 28, border: LINE, background: T.card, borderRadius: "var(--pl-r-stamp)", textAlign: "center",
-                  fontFamily: T.serif, fontSize: "var(--pl-t-num-sm)", lineHeight: "26px", color: T.ink })}>
+                  fontFamily: "var(--pl-serif)", fontSize: "var(--pl-t-num-sm)", lineHeight: "26px", color: T.ink })}>
                   <span style={{ color: T.clay }}>/</span>d
                 </td>
-                <td style={cell({ paddingLeft: 10, fontFamily: T.serif, fontSize: "var(--pl-t-num-sm)", color: T.ink })}>draft</td>
+                <td style={cell({ paddingLeft: 10, fontFamily: "var(--pl-serif)", fontSize: "var(--pl-t-num-sm)", color: T.ink })}>draft</td>
               </tr></tbody></table>
             </td></tr>
             <tr><td style={cell({ borderTop: LINE, height: 6, fontSize: 0, lineHeight: 0,
@@ -106,16 +106,16 @@ export function DispatchFrame({ kicker, title, lead, stats = [], children, actio
               <table role="presentation" width="100%" cellPadding="0" cellSpacing="0"
                 style={{ borderCollapse: "separate", background: T.card, border: LINE, borderRadius: "var(--pl-r-card)", boxShadow: "var(--pl-s5)" }}>
                 <tbody><tr><td style={cell({ padding: "24px 24px 22px" })}>
-                  <h1 style={{ margin: 0, fontFamily: T.serif, fontWeight: 400, fontSize: "var(--pl-t-card-xl)", lineHeight: 1.05, color: T.ink, overflowWrap: "anywhere" }}>
+                  <h1 style={{ margin: 0, fontFamily: "var(--pl-serif)", fontWeight: 400, fontSize: "var(--pl-t-card-xl)", lineHeight: 1.05, color: T.ink, overflowWrap: "anywhere" }}>
                     {title}<span style={{ color: T.clay }}>.</span>
                   </h1>
-                  {lead ? <p style={{ margin: "12px 0 0", fontFamily: T.sans, fontSize: "var(--pl-t-body)", lineHeight: 1.55, color: T.soft }}>{lead}</p> : null}
+                  {lead ? <p style={{ margin: "12px 0 0", fontFamily: "var(--pl-sans)", fontSize: "var(--pl-t-body)", lineHeight: 1.55, color: T.soft }}>{lead}</p> : null}
                   {stats.length ? (
                     <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style={{ marginTop: 18, borderCollapse: "separate", border: LINE, borderRadius: "var(--pl-r-small)" }}>
                       <tbody><tr>
                         {stats.map((c, i) => (
                           <td key={c.label} valign="top" style={cell({ padding: "10px 12px", borderLeft: i ? LINE : "none" })}>
-                            <div style={{ fontFamily: T.serif, fontSize: "var(--pl-t-card)", lineHeight: 1, color: c.tone === "lit" ? T.lit : T.ink }}>{c.value == null ? "—" : Number(c.value).toLocaleString("en-US")}</div>
+                            <div style={{ fontFamily: "var(--pl-serif)", fontSize: "var(--pl-t-card)", lineHeight: 1, color: c.tone === "lit" ? T.lit : T.ink }}>{c.value == null ? "—" : Number(c.value).toLocaleString("en-US")}</div>
                             <div style={{ ...mono(), color: c.tone === "lit" ? T.lit : T.muted, marginTop: 6 }}>{c.label}</div>
                           </td>
                         ))}
@@ -126,7 +126,7 @@ export function DispatchFrame({ kicker, title, lead, stats = [], children, actio
                   {action ? <div style={{ marginTop: 22 }}><DispatchButton {...action}/></div> : null}
                   {smallPrint.length ? (
                     <div style={{ marginTop: 18, paddingTop: 12, borderTop: `2px dashed ${T.rule}` }}>
-                      {smallPrint.map((p) => <p key={p} style={{ margin: "0 0 6px", fontFamily: T.sans, fontSize: "var(--pl-t-tiny)", lineHeight: 1.5, color: T.muted }}>{p}</p>)}
+                      {smallPrint.map((p) => <p key={p} style={{ margin: "0 0 6px", fontFamily: "var(--pl-sans)", fontSize: "var(--pl-t-tiny)", lineHeight: 1.5, color: T.muted }}>{p}</p>)}
                     </div>
                   ) : null}
                 </td></tr></tbody>
@@ -134,7 +134,7 @@ export function DispatchFrame({ kicker, title, lead, stats = [], children, actio
             </td></tr>
             {/* the foot: why you get it, where to change it */}
             <tr><td style={cell({ padding: "16px 4px 0" })}>
-              {foot.map((f) => <p key={f} style={{ margin: "0 0 6px", fontFamily: T.sans, fontSize: "var(--pl-t-tiny)", lineHeight: 1.5, color: T.muted }}>{f}</p>)}
+              {foot.map((f) => <p key={f} style={{ margin: "0 0 6px", fontFamily: "var(--pl-sans)", fontSize: "var(--pl-t-tiny)", lineHeight: 1.5, color: T.muted }}>{f}</p>)}
             </td></tr>
           </tbody>
         </table>
