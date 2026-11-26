@@ -21,10 +21,10 @@
 // (report.claimed_matches) reads CLAIMED, not on your résumé. `claimed` is the live set (keys) — toggling a key moves its
 // word between missing and claimed, and every count here follows at once.
 // ⛔ No model (D190): the groups are lookups (shared/techVocabulary.js's groups), the words the scorer's own.
-import { reportAsks } from "./atsReportModel.js";
+// D202 (47h): the count's words come from atsReportModel, one place (47i: one import line — the extension's bundler is strict)
+import { reportAsks, experienceState, EXPERIENCE_MARK, askCountWords, NUMBER_SENTENCE_TAIL } from "./atsReportModel.js";
 import { profileSignalKey } from "./profileSignals.js";
 import { technologiesIn, TECHNOLOGIES } from "./techVocabulary.js";
-import { experienceState, EXPERIENCE_MARK, askCountWords, NUMBER_SENTENCE_TAIL } from "./atsReportModel.js";   // D202 (47h): the count's words, one place
 
 /** The five groups of the board's Every word tab, in its order. */
 export const FIT_GROUPS = Object.freeze([

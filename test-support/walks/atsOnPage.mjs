@@ -141,6 +141,16 @@ export default async function run(h, { check, section }) {
   scoreNow = FULL;
   const before4 = lookups(h);
   await h.send({ type: 'RESUME_PANEL_OPEN', tab: 'ats' });
+  // ⭐ D202 (47i, moved on purpose): the ATS tab opens on THE FIT CARD's front (plate/FitCard.jsx, mirrored) — the field card
+  // opening on the count and the bar; the person's "Turn over" shows today's ATS card, word for word, on the back
+  const front = await waitUntil(async () => (await h.readShadow(ATS, (root) => {
+    const f = root.querySelector('[data-role="fit-card"][data-face="front"]');
+    return f ? { count: f.querySelector('[data-role="fit-count"]')?.textContent.trim() || null, bar: !!f.querySelector('[data-role="fit-bar"]'),
+      turn: f.querySelector('[data-role="fit-turn"]')?.textContent.trim() || null, text: f.textContent.replace(/\s+/g, ' ') } : null;
+  })) || null, BUSY_MS);
+  check('D202: the tab opens on the fit card’s front — the count and the bar', /^\d+ of \d+ things$/.test(front?.count || '') && front?.bar === true, JSON.stringify(front));
+  check('…Lines up / Doesn’t, yet, and the Turn over', /LINES UP/.test(front?.text || '') && /DOESN’T, YET/.test(front?.text || '') && /Turn over/.test(front?.turn || ''), JSON.stringify(front));
+  await h.page.click(`#${ATS} >>> [data-role="fit-turn"]`);
   const p5 = await waitUntil(async () => {
     const c = await h.readShadow(ATS, (root) => {
       const card = root.querySelector('[data-role="ats-card-view"]');
@@ -219,7 +229,8 @@ export default async function run(h, { check, section }) {
   const gone = await waitUntil(async () => ((await h.readShadow(ATS, flagRows))?.length === 0 ? true : null), BUSY_MS);
   check('…and the row leaves the panel', gone === true, JSON.stringify(await h.readShadow(ATS, flagRows)));
   await h.send({ type: 'RESUME_PANEL_OPEN', tab: 'ats' });
-  await waitUntil(async () => (await h.readShadow(ATS, (root) => !!root.querySelector('[data-role="ats-card-view"]'))) || null, BUSY_MS);
+  // 47i: either face (the fit card keeps its face for the panel's life); "Does it add up?" is on both
+  await waitUntil(async () => (await h.readShadow(ATS, (root) => !!root.querySelector('[data-role="ats-card-view"], [data-role="fit-card"]'))) || null, BUSY_MS);
   await sleep(800);   // the flags are asked after the card is drawn — give them the time to come back (expects none)
   const again = await h.send({ type: 'RESUME_FLAGS' }).catch(() => null);
   check('reopened, it stays dismissed (the panel and the server\'s answer)', (await h.readShadow(ATS, flagRows))?.length === 0, JSON.stringify(await h.readShadow(ATS, flagRows)));

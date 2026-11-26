@@ -25,9 +25,10 @@ export function atsFacts(ats) {
   // older server, and then the panel shows the summary lines it showed before.
   const report = ats.report ? globalThis.__draftAtsReport?.cleanReport(ats.report) ?? null : null;
   const card = cardOf(ats);
+  const fit = fitOf(ats);
   return { state: 'ready', score: Number.isFinite(ats.score) ? Math.round(ats.score) : null,
            band: typeof ats.band === 'string' ? ats.band.slice(0, 40) : null, scorable: ats.scorable !== false,
-           matched: words(ats.matched), missing: words(ats.missing), ...(report ? { report } : {}), ...(card ? { card } : {}) };
+           matched: words(ats.matched), missing: words(ats.missing), ...(report ? { report } : {}), ...(card ? { card } : {}), ...(fit ? { fit } : {}) };
 }
 
 /**
@@ -55,6 +56,33 @@ export function cardOf(ats) {
     // ⭐ D194 P4 (47c): the lesson for the biggest gain (routes/extensionJob.js lessonFor) — an approved deck's id, title and
     // first three points, kept to their shape here; the panel plays them in the expanded view.
     lesson: lessonOf(ats.lesson) };
+}
+/**
+ * ⭐ D202 (47i) · THE FIT CARD's two faces for the panel — plate/FitCard.jsx's, from the SAME shared model
+ * (shared/fitCardModel.js fitCardModel / fitWords, shared/contextualView.js fieldCardView, bundled in atsReport.js).
+ * Front: the field card's Lines up / Doesn't, yet, opening on the count and the bar. Back: the ATS card above (cardOf) +
+ * Every word: every ask the scorer read, grouped, each marked on your résumé / claimed / missing. Like cardOf, only the
+ * view's words and numbers leave the service worker — never the contextual block.
+ */
+export function fitOf(ats) {
+  const A = globalThis.__draftAtsReport;
+  if (!ats || typeof A?.fitCardModel !== 'function' || !ats.report || typeof ats.report !== 'object') return null;
+  let m = null, front = null;
+  try { m = A.fitCardModel({ report: ats.report }); } catch { m = null; }
+  if (!m || !m.total) return null;
+  try { front = A.fieldCardView({ report: ats.report, contextual: ats.contextual && typeof ats.contextual === 'object' ? ats.contextual : null }); } catch { front = null; }
+  const s = (x, n = 160) => (typeof x === 'string' ? x.replace(/\s+/g, ' ').trim().slice(0, n) : '');
+  const STATES = new Set(['on', 'claimed', 'missing']);
+  const w = A.fitWords(m);
+  return {
+    count: s(w.count, 60), sentence: s(w.sentence, 200), total: m.total, on: m.on, claimed: m.claimed, missing: m.missing,
+    onShare: Number(m.onShare) || 0, clShare: Number(m.clShare) || 0,
+    alike: (front?.alike || []).map(t => s(t)).filter(Boolean).slice(0, 4),
+    gaps: (front?.gaps || []).map(g => s(g?.text)).filter(Boolean).slice(0, 4),
+    groups: m.groups.filter(g => g.total).map(g => ({ id: s(g.id, 20), name: s(g.name, 40), total: g.total, have: g.have,
+      words: g.words.slice(0, 60).map(x => ({ label: s(x.label, 80), state: STATES.has(x.state) ? x.state : 'missing', where: x.where ? s(x.where, 80) : null })) })),
+    facts: (m.facts || []).map(f => s(f.text, 160)).filter(Boolean).slice(0, 4),
+  };
 }
 const DECK_ID = /^[a-z]+(?:-[a-z]+)*-\d{2}$/;
 function lessonOf(l) {

@@ -164,6 +164,8 @@ export function reportModel(ats) {
     // ⭐ 47a (owner 11-21, E1): THE ATS CARD (boardJob.js cardOf — the web's atsCardView words). When it is here the ATS tab
     // draws the card (the number, its four parts with their figures, the biggest gain), as the web's posting panel does.
     card: ats.card && typeof ats.card === 'object' ? ats.card : null,
+    // ⭐ D202 (47i): THE FIT CARD's faces (boardJob.js fitOf — plate/FitCard.jsx's model): the front opens on the count
+    fit: ats.fit && typeof ats.fit === 'object' && Number.isFinite(ats.fit.total) ? ats.fit : null,
     // ⭐ D105 P5: the report's terms that have a PUBLISHED Atlas page ({ base, slugs } — atlasForReport), or null.
     atlas: ats.atlas && typeof ats.atlas === 'object' && ats.atlas.slugs ? { base: String(ats.atlas.base || ''), slugs: ats.atlas.slugs } : null,
     action: fromPage ? null : { role: 'report', label: 'Full report in draft' } };
@@ -357,6 +359,30 @@ export function renderResumePanel(model, meta) {
     .ac .bar { height: 6px; border-radius: 1px; background: var(--c-border); overflow: hidden; margin-top: 5px; }
     .ac .bar i { display: block; height: 6px; background: currentColor; }
     .ac .gn { padding-top: 6px; font-size: 12.5px; }
+    /* ⭐ D202 (47i) · THE FIT CARD (plate/FitCard.jsx, mirrored) in the panel's own colours: the front's count + bar + Lines up /
+       Doesn't, yet + Turn over; the back's tabs (the card above · Every word). On your résumé = the strong band's colour,
+       claimed = the accent ink, missing = a dashed square. The bar is 6 px at a 1 px corner (D60); no rule, no tinted box (T26). */
+    .fc { display: grid; gap: 8px; }
+    .fc-strip { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; font-weight: 700; letter-spacing: .12em; color: var(--c-ink-muted); }
+    .fc-count .fc-n { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .fc-bar { display: flex; height: 6px; border-radius: 1px; background: var(--c-border); overflow: hidden; }
+    .fc-bar i { display: block; height: 6px; } .fc-bar i[data-k="on"] { background: var(--c-band-strong); } .fc-bar i[data-k="claimed"] { background: var(--c-accent-ink); }
+    .fc-key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 10px; font-weight: 700; letter-spacing: .08em; color: var(--c-band-strong); }
+    .fc-key [data-k="claimed"] { color: var(--c-accent-ink); } .fc-key [data-k="missing"] { color: var(--c-ink-muted); }
+    .fc-gl { font-size: 10px; font-weight: 700; letter-spacing: .12em; color: var(--c-band-strong); padding-top: 4px; } .fc-gl[data-k="yet"] { color: var(--c-ink-muted); }
+    .fc-it { margin: 0; font-size: 12.5px; overflow-wrap: break-word; }
+    .fc-turn, .fc-tab, .fc-filter { font: inherit; font-size: 12px; font-weight: 700; background: none; color: var(--c-ink); border: 1px solid var(--c-border); border-radius: 6px; padding: 6px 10px; cursor: pointer; justify-self: start; min-height: 32px; }
+    .fc-tabs, .fc-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+    .fc-tab[aria-selected="true"], .fc-filter[aria-pressed="true"] { border-color: var(--c-ink); }
+    .fc-group { display: grid; gap: 4px; padding-top: 6px; }
+    .fc-gh { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; letter-spacing: .1em; color: var(--c-ink-muted); }
+    .fc-word { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 12.5px; }
+    .fc-mark { width: 8px; height: 8px; border-radius: 1px; background: var(--c-band-strong); }
+    .fc-word[data-state="claimed"] .fc-mark { background: var(--c-accent-ink); }
+    .fc-word[data-state="missing"] .fc-mark { background: none; border: 1px dashed var(--c-ink-muted); width: 6px; height: 6px; }
+    .fc-where { font-size: 11px; color: var(--c-ink-muted); text-align: right; }
+    .fc-words[data-filter="missing"] .fc-word:not([data-state="missing"]), .fc-words[data-filter="on"] .fc-word:not([data-state="on"]),
+    .fc-words[data-filter="claimed"] .fc-word:not([data-state="claimed"]) { display: none; }
     /* ⭐ 47b (owner 11-22: "a detailed analysis on demand") — the card opens short; the facts line and each part's line and
        figures show only after "Show the analysis" (the web card's toggle, AtsCard.jsx). */
     .ac[data-detail="0"] [data-detail-line] { display: none; }
@@ -473,6 +499,8 @@ export function renderResumePanel(model, meta) {
   let flagsAsk = 0;
   // ⭐ 47b: the card's analysis on demand — held for this panel's life, kept across redraws; nothing stored
   let atsDetail = false;
+  // ⭐ D202 (47i): the fit card's face, its back's tab and the Every word filter — this panel's life, nothing stored
+  let fitFace = 'front', fitTab = 'card', fitFilter = 'all';
   function drawFlags() {
     const ask = ++flagsAsk;
     send({ type: 'RESUME_FLAGS' }).then((r) => {
@@ -522,6 +550,38 @@ export function renderResumePanel(model, meta) {
           ${(ac.parts || []).some(p => p.line || p.facts?.length) ? `<button type="button" class="dt" data-role="ats-card-detail" aria-expanded="${atsDetail}">${atsDetail ? 'Hide the analysis' : 'Show the analysis'}</button>` : ''}
           <div class="pl" data-role="plausibility"></div>
         </div>`;
+    // ⭐ D202 (47i) · THE FIT CARD, mirrored (MIRRORS: plate/FitCard.jsx) — one card, two faces. FRONT = the field card
+    // (Lines up / Doesn't, yet) opening on the ATS card's count and bar + "Turn over". BACK = today's ATS card (acHtml,
+    // word for word) + Every word: every ask the scorer read, grouped, marked on your résumé / claimed / missing, with
+    // where it sits on the résumé, and the four filters. Claiming stays in draft (the posting's own card).
+    const fit = m.report?.fit || null;
+    const fitBar = (f) => `<div class="fc-count" data-role="fit-count"><span class="fc-n">${esc(f.count)}</span></div>
+      <div class="fc-bar" role="img" aria-label="${f.on} on your résumé, ${f.claimed} claimed by you, ${f.missing} missing, of ${f.total}" data-role="fit-bar">
+        <i data-k="on" style="width:${Number(f.onShare) || 0}%"></i><i data-k="claimed" style="width:${Number(f.clShare) || 0}%"></i></div>
+      <div class="fc-key" aria-hidden="true"><span>■ ON YOUR RÉSUMÉ</span><span data-k="claimed">■ CLAIMED BY YOU</span><span data-k="missing">□ MISSING</span></div>`;
+    const fitWordsHtml = (f) => `<div class="fc-words" data-role="fit-words" data-filter="${esc(fitFilter)}">
+      <div class="fc-filters" role="group" aria-label="Show">${[['all', 'All', f.total], ['missing', 'Missing', f.missing], ['on', 'On your résumé', f.on], ['claimed', 'Claimed', f.claimed]]
+        .map(([id, name, n]) => `<button type="button" class="fc-filter" data-fit-filter="${id}" aria-pressed="${fitFilter === id}">${esc(name)} · ${n}</button>`).join('')}</div>
+      ${f.groups.map(g => `<div class="fc-group" data-fit-group="${esc(g.id)}"><div class="fc-gh"><span>${esc(g.name.toUpperCase())}</span><span>${g.have} OF ${g.total}</span></div>
+        ${g.words.map(w => `<div class="fc-word" data-fit-word="" data-state="${esc(w.state)}"><span class="fc-mark" aria-hidden="true"></span><span class="fc-wl">${esc(w.label)}</span>${
+          w.where ? `<span class="fc-where">${esc(w.where)}</span>` : `<span class="fc-where">${w.state === 'claimed' ? 'claimed by you' : 'missing'}</span>`}</div>`).join('')}</div>`).join('')}
+      ${f.facts.length ? `<div class="fc-facts">${f.facts.map(t => `<p class="fx">${esc(t)}</p>`).join('')}</div>` : ''}
+    </div>`;
+    const fitHtml = !fit || !ac || ac.declined ? '' : fitFace === 'front'
+      ? `<div class="fc" data-role="fit-card" data-face="front">
+          <div class="fc-strip"><span>FIELD CARD · WHY IT FITS</span><span>NO AI</span></div>
+          ${fitBar(fit)}
+          <div class="fc-gl">LINES UP</div>${fit.alike.length ? fit.alike.map(t => `<p class="fc-it">${esc(t)}</p>`).join('') : '<p class="fc-it fx">Nothing to show yet.</p>'}
+          <div class="fc-gl" data-k="yet">DOESN’T, YET</div>${fit.gaps.length ? fit.gaps.map(t => `<p class="fc-it">${esc(t)}</p>`).join('') : '<p class="fc-it fx">Nothing to show yet.</p>'}
+          <button type="button" class="fc-turn" data-role="fit-turn" aria-expanded="false">↻ Turn over · the full ATS card</button>
+          <div class="pl" data-role="plausibility"></div>
+        </div>`
+      : `<div class="fc" data-role="fit-card" data-face="back">
+          <button type="button" class="fc-turn" data-role="fit-turn" aria-expanded="true">↻ Back to the field card</button>
+          <div class="fc-tabs" role="tablist">${[['card', 'The card'], ['words', `Every word · ${fit.total}`]].map(([id, label]) =>
+            `<button type="button" role="tab" class="fc-tab" data-fit-tab="${id}" aria-selected="${fitTab === id}">${esc(label)}</button>`).join('')}</div>
+          ${fitTab === 'words' ? `${fitBar(fit)}${fitWordsHtml(fit)}` : acHtml}
+        </div>`;
     // ⭐ T26: the title and the job are hidden words; the report (T9's shared component, or its summary marks) is the view
     atsPanel.innerHTML = `
       <div class="hd">
@@ -532,7 +592,7 @@ export function renderResumePanel(model, meta) {
         ${m.report ? `<div class="rpt" data-role="ats-report" data-state="${esc(m.report.state)}">${
           // ⭐ T9: THE web app's ATS report — the shared component, mounted below into its own shadow root — when the
           // scorer's report came with the answer and the component was injected; else the summary lines, as before.
-          ac ? acHtml : card ? '<div data-role="ats-card"></div>' : `${
+          fitHtml ? fitHtml : ac ? acHtml : card ? '<div data-role="ats-card"></div>' : `${
           m.report.head ? `<div class="marks"><span class="mark ${esc(m.report.tone || '')}" data-role="ats-score">${esc(m.report.head)}</span></div>` : ''}${
           m.report.matched?.length ? `<p class="ln" data-role="ats-matched"><b>Matched:</b> ${esc(m.report.matched.join(', '))}</p>` : ''}${
           m.report.missing?.length ? `<p class="ln" data-role="ats-missing"><b>Missing:</b> ${esc(m.report.missing.join(', '))}</p>` : ''}`}${
@@ -546,6 +606,10 @@ export function renderResumePanel(model, meta) {
         <div class="say" data-role="say" aria-live="polite"></div>
       </div>`;
     if (ac) drawFlags();
+    // ⭐ D202 (47i): the fit card's turn, tabs and filters — local state, a redraw of this tab (no request)
+    atsRoot.querySelector('[data-role="fit-turn"]')?.addEventListener('click', () => { fitFace = fitFace === 'front' ? 'back' : 'front'; drawAts(); });
+    atsRoot.querySelectorAll('[data-fit-tab]').forEach(b => b.addEventListener('click', () => { fitTab = b.getAttribute('data-fit-tab'); drawAts(); }));
+    atsRoot.querySelectorAll('[data-fit-filter]').forEach(b => b.addEventListener('click', () => { fitFilter = b.getAttribute('data-fit-filter'); drawAts(); }));
     // ⭐ 47b: "Show the analysis" — flips this card's details in place (no redraw, no request)
     atsRoot.querySelector('[data-role="ats-card-detail"]')?.addEventListener('click', (e) => {
       atsDetail = !atsDetail;
