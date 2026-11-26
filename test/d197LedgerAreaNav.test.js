@@ -26,7 +26,8 @@ test("d197LedgerAreaNav: a view presses the header's count cell (one filter), an
   assert.match(nav, /b\.click\(\)/, "it presses the cell, never sets a filter of its own");
   assert.doesNotMatch(nav, /setFilter|filter:/, "no second filter state");
   // 47j R2 (changed on purpose): the switch is named for what it still governs (Home's ledger); the market is always plates
-  assert.match(app, /if \(!market && activeTab === "auto-apply" && ledgerPlate\) return <LedgerAreaNav onHome=\{onHome\} \/>;/);
+  // ⛔ 47j w1-retire (changed on purpose): R3 retired the switch — Home is always the ledger, so its nav always shows
+  assert.match(app, /if \(!market && activeTab === "auto-apply"\) return <LedgerAreaNav onHome=\{onHome\} \/>;/);
   const model = read("client/src/plate/ledgerModel.js");
   for (const cell of ["needs", "progress", "sent", "replied"]) assert.match(model, new RegExp(`cell\\("${cell}"`), `the header has a ${cell} cell`);
   assert.match(model, /attrs: \{ "data-ledger-count": key \}/);

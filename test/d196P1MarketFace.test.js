@@ -15,7 +15,7 @@
 //   d196P1FieldCardWords      — the field card's lines are templates over the scorer's fields; no data → no line;
 //   d196P1TicketsBacked       — Tickets out: the ledger always (its count = the dock's), the survey sheet only for a company
 //                               on top of the deck, the Atlas interchange only for a gap with an Atlas page;
-//   d196P1SwitchOnAfterApproval — the plate market is ON since the owner's ok (47f); ?plate=1 / ?plate=0 and the stored value.
+//   d196P1SwitchRetired       — ⛔ 47j w1-retire (changed on purpose): the ?plate= switch is deleted (R3); the sector palette stays.
 // ⛔ Verified to fail before it was committed: the CardBack line removed from the plate branch, data-deck-open-posting
 // dropped from the face, MARKET_PLATE_DEFAULT set true — each failed, naming it.
 import test from "node:test";
@@ -25,7 +25,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import { at } from "../test-support/sourceAnchors.js";
-import { marketPlateOn, sectorRegion, MARKET_PLATE_DEFAULT } from "../client/src/plate/marketPlate.js";
+import { sectorRegion } from "../client/src/plate/marketPlate.js";
 
 const ROOT = process.cwd();
 const CLIENT = path.join(ROOT, "client");
@@ -143,14 +143,12 @@ test("D196 P1 · d196P1FaceHonestData — nothing invented (R2)", async () => {
   assert.match(sponsored, /data-tier="lg"/);
 });
 
-test("D196 P1 · d196P1SwitchOnAfterApproval (was d196P1SwitchOffByDefault)", () => {
-  // 47f: the owner approved the P1 FIX (11-24, "looked and approved") — the plate market is the default now
-  assert.equal(MARKET_PLATE_DEFAULT, true, "on after the owner's ok to the P1 FIX");
-  assert.equal(marketPlateOn("", null), true);
-  assert.equal(marketPlateOn("?plate=1", null), true);
-  assert.equal(marketPlateOn("?plate=0", "1"), false);
-  assert.equal(marketPlateOn("", "1"), true);
-  assert.equal(marketPlateOn("?x=1", "0"), false);
+test("D196 P1 · d196P1SwitchRetired (was d196P1SwitchOnAfterApproval)", () => {
+  // ⛔ 47j w1-retire (changed on purpose): R3 retired the switch — Home and the company page are always plates (the market
+  // since R2); no ?plate= reader, no remembered value, no default to flip
+  const mp = fs.readFileSync(path.join(ROOT, "client/src/plate/marketPlate.js"), "utf8");
+  assert.doesNotMatch(mp, /export (const|function) (MARKET_PLATE_DEFAULT|MARKET_PLATE_KEY|marketPlateOn|isMarketPlate|setMarketPlate|useMarketPlate)\b/);
+  assert.doesNotMatch(mp, /get\("plate"\)/, "nothing reads ?plate=");
   assert.equal(sectorRegion("Software engineering"), "IV");
   assert.equal(sectorRegion("Data and AI"), "VIII");
   assert.equal(sectorRegion("Project management"), "VII");

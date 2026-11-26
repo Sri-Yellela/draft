@@ -45,7 +45,7 @@ import { RecruiterPanel }        from "./panels/RecruiterPanel.jsx";
 import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
 import { ALL_FILTERS_ID } from "./components/BoardHeadline.jsx";   // A146: the All filters word (47j R2: the classic sentence header is deleted)
 import PlateBearing from "./plate/PlateBearing.jsx";   // ⭐ D196 P1: the bearing as a cartouche (off until the owner's ok)
-import { useMarketPlate, useBestCard } from "./plate/marketPlate.js";
+import { useBestCard } from "./plate/marketPlate.js";
 import MarketHero from "./plate/MarketHero.jsx";   // ⭐ D196 P1: the market's hero on real data
 import MarketOpenings from "./plate/MarketOpenings.jsx";   // ⭐ D196 P1: Deck · Terrain · Index + the field card
 import { MarketSearchRow, MarketSortButton, MarketFilterRow, MarketStatsBox } from "./plate/MarketControls.jsx";   // ⭐ D199 C2 / C4
@@ -399,7 +399,7 @@ function LedgerAreaNav({ onHome }) {
   };
   return <ShellAreaNav area="Home" views={LEDGER_AREA_VIEWS} current={current} onGo={onGo} onHome={onHome} />;
 }
-function AppAreaNavSlot({ activeTab, ledgerPlate, onHome }) {
+function AppAreaNavSlot({ activeTab, onHome }) {
   const navigate = useNavigate();
   const { boardTab, setBoardTab, boardHeadline } = useJobBoard();
   const market = activeTab === "today" || activeTab === "console";
@@ -415,7 +415,7 @@ function AppAreaNavSlot({ activeTab, ledgerPlate, onHome }) {
   }, [market]);
   const [slots, setSlots] = useState(null);
   useEffect(() => { if (market) api("/api/draft/slots").then(setSlots).catch(() => {}); }, [market]);
-  if (!market && activeTab === "auto-apply" && ledgerPlate) return <LedgerAreaNav onHome={onHome} />;   // the ledger (the plate switch stays for Home)
+  if (!market && activeTab === "auto-apply") return <LedgerAreaNav onHome={onHome} />;   // the ledger (⛔ 47j R3: always — the ?plate= switch is retired)
   if (activeTab === "atlas") return <AtlasAreaNav onHome={onHome} />;
   if (!market) return <ShellAreaNav area={AREA_NAMES[activeTab] || "draft"} onHome={onHome} />;
   const current = deckShown ? "picks" : boardTab;
@@ -516,7 +516,6 @@ function AppDashboard({ authUser, setAuthUser }) {
   // With the lever off the tool is simply AVAILABLE — the tier is never consulted. This mirrors the
   // server, where requireToolEntitlement returns true before it looks at a plan, so the button the
   // client offers and the answer the server gives cannot disagree.
-  const ledgerPlate = useMarketPlate();   // ⭐ D196 P1's switch — since 47j R2 it governs Home (the ledger) only; the market is always plates
   const canUseAPlusResumeHere =
     !monetisationEnabled || String(authUser?.planTier || "BASIC").toUpperCase() === "PRO";
   const { theme } = useTheme();
@@ -815,7 +814,7 @@ function AppDashboard({ authUser, setAuthUser }) {
           />
 
           {/* ⭐ D197 #1 · A237: the area nav across the top of the content column (the rail is AppNav's, at the left) */}
-          <AppAreaNavSlot activeTab={home ? "today" : activeTab} ledgerPlate={!!ledgerPlate} onHome={() => handlePanelChange("today")} />
+          <AppAreaNavSlot activeTab={home ? "today" : activeTab} onHome={() => handlePanelChange("today")} />
           {/* D149: the deck (like Full House) starts right under the mark — its card sits at the sketch's 90 px. */}
           {/* D149 (11-03): Draft House too — its own top padding puts its title at tracker-options.html's 84 px. */}
           <main style={{ flex:1, paddingTop: activeTab === "console" || activeTab === "today" || activeTab === "auto-apply" ? 0 : 24 }}>

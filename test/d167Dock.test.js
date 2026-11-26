@@ -98,7 +98,9 @@ test("d197ShellSearch (pure): the dock's search (people / companies / roles) liv
   assert.match(NAV, /renderInput: \(\{ className, placeholder: ph \}\) => <ShellSearchInput className=\{className\} placeholder=\{ph\} inputRef=\{inputRef\} \/>/);
   assert.match(NAV, /onOpen: \(\) => setSheet\(\(s\) => !s\), sheet: sheet \? <DockSearch onClose=\{\(\) => setSheet\(false\)\} \/> : null/, "the phone's search button opens the sheet");
   // 47j R2 (changed on purpose): the market's views are always the plate's; the switch reaches only the ledger's nav
-  assert.match(read("client/src/App.jsx"), /<AppAreaNavSlot activeTab=\{home \? "today" : activeTab\} ledgerPlate=\{!!ledgerPlate\}/);
+  // ⛔ 47j w1-retire (changed on purpose): R3 retired the switch — the ledger's nav is Home's always, so no prop carries it
+  assert.match(read("client/src/App.jsx"), /<AppAreaNavSlot activeTab=\{home \? "today" : activeTab\} onHome=/);
+  assert.doesNotMatch(read("client/src/App.jsx"), /ledgerPlate|useMarketPlate/);
 });
 
 test("d167ProfilePeekBasics → d197 (pure): the peek's items link to Profile's panels; the mode switch; the notifications list (A236 (b))", () => {
