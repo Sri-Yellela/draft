@@ -10,8 +10,10 @@ test("A151 · the name opens the About section; no separate About you link", () 
   assert.match(nav, /export const ABOUT_HREF = "\/app\/profile\/about#profile-about";/);
   assert.match(nav, /<a href=\{ABOUT_HREF\} className="appnav-peek__name" data-peek-name=""/);
   assert.doesNotMatch(nav, /link\("about", "About you"\)/);
+  // ⛔ 47j w1-shell (changed on purpose): the profile menu's username link left with TopBar's ProfileMenuPanel (nothing
+  // opened it since D197 #1) — the peek's name above is the one way in.
   const bar = fs.readFileSync("client/src/components/TopBar.jsx", "utf8");
-  assert.match(bar, /data-username-about="" onClick=\{\(\) => \{ onClose\(\); navigate\(ABOUT_HREF\); \}\}/);
+  assert.doesNotMatch(bar, /function ProfileMenuPanel|data-username-about/);
   const sections = fs.readFileSync("client/src/components/ProfileSections.jsx", "utf8");
   assert.match(sections, /export const ABOUT_ANCHOR = "profile-about";/);
   assert.match(sections, /<Box id=\{ABOUT_ANCHOR\} title=\{titles\.summary \|\| "Summary"\}/);

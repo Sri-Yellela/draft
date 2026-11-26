@@ -99,8 +99,10 @@ test("job profiles have a dedicated app section and menu entry", () => {
   // gated on the same key, only the variable was renamed.
   assert.match(app, /activeTab === "job-profiles"/);
   // D18: the menu entry is "Job Profiles" in the avatar menu's Settings group (was "Manage Job Profiles").
-  assert.match(topBar, />Settings<\/div>[\s\S]{0,400}Job Profiles/);
-  assert.match(topBar, /onTabChange\?\.\("job-profiles"\)/);
+  // ⛔ 47j w1-shell (changed on purpose): that menu (TopBar's ProfileMenuPanel) is gone — nothing opened it since D197 #1;
+  // the way in is Profile → Your profile's Job Profiles (ProfilePanel, below) and the Deck's set-up state.
+  assert.doesNotMatch(topBar, /onTabChange\?\.\("job-profiles"\)/);
+  assert.match(fs.readFileSync("client/src/pages/profile/ProfilePage.jsx", "utf8"), /onOpenJobProfiles=\{\(\) => navigate\("\/app\/job-profiles"\)\}/);
   assert.match(panel, /export function JobProfilesPanel/);
   assert.match(profile, /Open Job Profiles/);
 });

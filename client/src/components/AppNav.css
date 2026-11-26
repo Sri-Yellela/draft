@@ -72,17 +72,8 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 .appnav-areanav .pl-search { position: relative; }
 .appnav-areanav .appnav-search { padding: 0 14px 10px; box-sizing: border-box; }
 
-/* ── the side panel (the Menu's, retired 45n) — kept for the Profile panel (TopBar.jsx), which wears these classes ── */
-.appnav-scrim { position: fixed; inset: 0; z-index: 800; /* Z.MODAL_SCRIM */ background: var(--c-scrim); display: none; }
-.appnav-scrim[data-open="true"] { display: block; }
-.appnav-panel {
-  position: fixed; top: 0; bottom: 0; right: 0; width: min(300px, 86vw); z-index: 850; /* Z.MODAL */
-  display: flex; flex-direction: column; gap: 6px; padding: 70px 14px 20px; overflow-y: auto;
-  background: var(--c-surface-menu); border-left: 1px solid var(--c-border);
-  transform: translateX(105%); visibility: hidden; transition: transform .3s ease, visibility 0s linear .3s;
-}
-.appnav-panel[data-open="true"] { transform: none; visibility: visible; transition: transform .3s ease; }
-.appnav-panel .appnav-item { align-items: flex-start; padding: 12px 16px; }
+/* ⛔ 47j w1-shell: the side panel's rules (.appnav-scrim, .appnav-panel — the Menu's, retired 45n, then the account panel's,
+   retired 47j with TopBar's ProfileMenuPanel) are gone; nothing wears them. The Close box stays: Tiny's card wears it. */
 .appnav-close {
   position: absolute; top: 16px; right: 16px; cursor: pointer; padding: 6px 12px; font: inherit; font-weight: 600;
   font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink);
@@ -236,13 +227,10 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 
 /* Reduced motion: every one of these is instant (the rail, the mark's slide and clip, the names, the peek, Tiny). */
 @media (prefers-reduced-motion: reduce) {
-  .appnav-dock, .appnav-dock[data-nav-dock], .appnav-panel, .appnav-item, .appnav-words, .appnav-dock[data-nav-dock] .appnav-words,
+  .appnav-dock, .appnav-dock[data-nav-dock], .appnav-item, .appnav-words, .appnav-dock[data-nav-dock] .appnav-words,
   .appnav-dock[data-nav-dock][data-open="true"] .appnav-words, .appnav-ico--mark [data-draft-mark], .appnav-ico--mark [data-draft-raft],
   .appnav-peek, .appnav-peek[data-open="true"], .appnav-ask, .appnav-ask[data-open="true"], .appnav-tiny { transition: none; }
 }
-
-/* ⭐ D149 · the Profile panel (TopBar AccountPanel): the Menu panel's surface, the old account menu's width. */
-.acct-panel { width: min(360px, 92vw); gap: 0; padding: 64px 4px 20px; }
 
 /* ⭐ 45n · the dock's search: the dock becomes one search bar in its own place (open width; a top dock spans its row). */
 .appnav-dock[data-searching="true"] { justify-content: flex-start; }

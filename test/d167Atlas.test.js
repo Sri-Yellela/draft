@@ -129,9 +129,14 @@ test("D167 · d167AtlasHasOwnNav — every panel has its own address, lit in the
     assert.equal(panelHref("/atlas", id), id === "overview" ? "/atlas" : `/atlas/${id}`);
   }
   // The app mount: the same panels under /app/atlas.
+  // ⛔ 47j w1-shell (changed on purpose, D197 #5): signed in, the PlaceNav card is not drawn — the shell's Atlas area nav
+  // (useAtlasAreaNav: its views + More, volumeModel atlasPlaces) carries every place; the panel is drawn alone.
   const app = u.page("/app/atlas/glossary", "/app/atlas");
-  assert.match(app, /href="\/app\/atlas\/glossary"/);
-  assert.deepEqual(currentOf(app), ["glossary"]);
+  assert.match(app, /data-atlas-panel="glossary"/);
+  assert.match(app, /<div class="pl pl--fill pl--bare" data-place="atlas">/);
+  assert.doesNotMatch(app, /class="pl__nav"/, "the app's Atlas draws a second navigation again");
+  const places = read("client/src/pages/atlas/volumeModel.js");
+  for (const id of PANEL_IDS) assert.ok(places.includes(`p("${id}", `), `${id} has no place in the area nav`);
   // The app's route already accepts /app/atlas/<one segment> (App.jsx atlasRoute) — the panels need no new route.
   // ⭐ D172 (2) (changed on purpose): the rule also admits /app/atlas/library/<course>, a course page.
   // ⭐ D197 #6 (47h, changed on purpose): and /app/atlas/region/<n>, a region of Volume I.

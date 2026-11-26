@@ -19,11 +19,13 @@ export function companySlug(name) {
 /**
  * Every first path segment draft uses or may use — routes in client/src/App.jsx, server.js and routes/, the public files,
  * and words kept back for later. test/a157CompanyPaths.test.js derives the routes in use and fails when one is missing.
+ * ⭐ 47j w1-shell: + "learn" — the server renders /learn/data-engineering-roadmap (D193-5, server.js app.get(ROADMAP_PATH)),
+ * a route the derivation could not see (its path is a constant), so /learn was read as a company's address.
  */
 export const RESERVED = Object.freeze(new Set([
   "about", "account", "admin", "api", "app", "apply", "assets", "atlas", "ats-score", "audit", "auth", "blog", "careers",
   "companies", "company", "contact", "crawler", "dev", "docs", "draft", "edit", "email", "extension", "faq", "features", "health",
-  "help", "home", "how-it-works", "in", "interview", "job", "jobs", "legal", "login", "logout", "me", "network", "new",
+  "help", "home", "how-it-works", "in", "interview", "job", "jobs", "learn", "legal", "login", "logout", "me", "network", "new",
   "oauth", "p", "press", "pricing", "privacy", "products", "profile", "public", "register", "resume", "search", "security",
   "settings", "signup", "static", "status", "support", "survey", "team", "terms", "tools", "try", "user", "users", "www",
 ]));

@@ -19,10 +19,9 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import { loginHref } from "../../lib/signInReturn.js";
-import DepthButton from "../../components/DepthButton.jsx";
-import { NoteCard } from "../../components/TextBlocks.jsx";   // A233
 import CompanyLogo from "../../components/CompanyLogo.jsx";
 import PlateRoot from "../../plate/PlateRoot.jsx";
+import { Skeleton, Drawer, ErrorLine } from "../../plate/PlateState.jsx";   // 47j w1-shell: the page's states are the library's
 import { LegHeader } from "../../plate/Plates.jsx";
 import { Kickers } from "../../plate/Marks.jsx";
 import JobsHistogram from "./JobsHistogram.jsx";
@@ -212,14 +211,18 @@ function RoutePanel({ m, routeMore }) {
   );
 }
 
-/** ⭐ 46u · no map to draw: no role is read from the board's jobs yet (no_roles), or the asked role isn't one (unknown_role). */
+/** ⭐ 46u · no map to draw: no role is read from the board's jobs yet (no_roles), or the asked role isn't one (unknown_role).
+ *  ⭐ 47j w1-shell (D196 R1): drawn as the plate's empty state (PlateState's Drawer — "NOT YET", one plain next step) in
+ *  the survey's own PlateRoot, as the page around it is; the words and the one action per reason are 46u's. */
 export function SkillMapEmpty({ base = "/app/atlas", reason = "no_roles", onBack = null }) {
+  const navigate = useNavigate();
   const unknown = reason === "unknown_role";
   return (
-    <NoteCard id="skill-map-empty" title={unknown ? "That role isn't on the map" : "Your map is on its way"} data-skm-empty={reason}
-      actions={unknown && onBack ? <DepthButton primary onClick={onBack}>Back to your role</DepthButton> : <Link to={`${base}/library`}>Open the Library</Link>}>
-      {unknown ? "Pick another role, or go back to the one you're aiming for." : "It appears once draft has read enough jobs to know what each role asks for. Meanwhile, start with a guide."}
-    </NoteCard>
+    <PlateRoot className="ys" data-your-survey="" data-skm-empty={reason}>
+      <Drawer text={unknown ? "That role isn't on the map. Pick another role, or go back to the one you're aiming for."
+        : "Your map is on its way. It appears once draft has read enough jobs to know what each role asks for. Meanwhile, start with a guide."}
+        action={unknown && onBack ? { label: "Back to your role", onClick: onBack } : { label: "Open the Library", onClick: () => navigate(`${base}/library`) }} />
+    </PlateRoot>
   );
 }
 
@@ -252,10 +255,21 @@ export default function SkillMap({ base = "/app/atlas", signedIn = true, routeMo
       .catch(e => live && setState({ status: "error", m: null, error: e.message, reason: e.status === 404 ? (e.payload?.reason || "no_roles") : null }));
     return () => { live = false; };
   }, [role, signedIn, n]);
-  if (!signedIn) return <p className="atl__quiet" data-skm-sign-in="">Sign in with a résumé to see how many jobs you can apply for today. <Link to={loginHref()} className="atl__link">Sign in</Link></p>;
+  // ⭐ 47j w1-shell (D196 R1): signed out, loading and error are the plate's states (PlateState), in the survey's PlateRoot.
+  if (!signedIn) return (
+    <PlateRoot className="ys" data-your-survey="" data-skm-sign-in="">
+      <Drawer text="Sign in with a résumé to see how many jobs you can apply for today." action={{ label: "Sign in", href: loginHref() }} />
+    </PlateRoot>
+  );
   // ⭐ 46u: Your map is Atlas's first screen now — "no map yet" is a page of its own, never a raw "Request failed (404)".
   if (state.reason || (state.m && !state.m.role)) return <SkillMapEmpty base={base} reason={state.reason || "no_roles"} onBack={role ? () => setRole(null) : null} />;
-  if (!state.m) return <p className="atl__quiet" role="status">{state.status === "error" ? `Your map could not be read: ${state.error}` : "Opening…"}</p>;
+  if (!state.m) return (
+    <PlateRoot className="ys" data-your-survey="" data-skm-state={state.status === "error" ? "error" : "loading"}>
+      {state.status === "error"
+        ? <ErrorLine text={`Your map could not be read: ${state.error}`} onRetry={() => setN(x => x + 1)} />
+        : <Skeleton label="Opening your survey" height={420} radius="plate" lines={4} />}
+    </PlateRoot>
+  );
   // "Aim for this" sets the aim through the navigator's own endpoint (D143), and the map follows it.
   const onAim = async (slug) => {
     setAiming(true);

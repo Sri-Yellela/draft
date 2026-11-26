@@ -125,7 +125,9 @@ test("EVERY CONTROL THE PILL CARRIED IS STILL REACHABLE", () => {
   assert.match(app, /sort=\{<MarketSortSlot \/>\}/);
   assert.match(app, /return <MarketSortButton label=\{label\}/);
   assert.match(read("client/src/plate/MarketControls.jsx"), /aria-label=\{`Sort: \$\{label\} — change the order`\}/);
-  assert.match(topbar, /<ProfileSelectorDropdown/, "the profile switcher left the avatar menu");
+  // ⛔ 47j w1-shell (changed on purpose): the avatar menu (TopBar's ProfileMenuPanel) is gone — nothing opened it since
+  // D197 #1 — and its ProfileSelectorDropdown with it; the profile switch is the job-profile manager's.
+  assert.match(read("client/src/panels/JobProfilesPanel.jsx"), /\/activate`, \{ method: "POST" \}/, "the profile switcher has no home");
   assert.match(read("client/src/components/BoardBar.jsx"),
     /* D149 (11-03) changed this on purpose: the sketch's words */ /placeholder = "Search a company, title or skill"/   /* D199 C2 (47h, moved on purpose): the words are BoardSearch's default; the plate market passes its board's */);
 });
@@ -230,7 +232,7 @@ test("no surface on the scale carries a literal any more", () => {
   }
   // The MENUS keep the default, which is the tier Y2 explicitly assigns them: the profile menu is a
   // dropdown FROM the bar and belongs to the overlay tier when open, not to the bar's own level.
-  for (const f of ["client/src/components/TopBar.jsx", "client/src/components/ProfileSelectorDropdown.jsx"]) {
+  for (const f of ["client/src/components/TopBar.jsx"]) {   // ⛔ 47j w1-shell (changed on purpose): ProfileSelectorDropdown.jsx deleted with the account panel
     assert.ok(!/tier=\{/.test(read(f)), `${f} should take DockPortal's default menu tier`);
   }
   // And no surface on the scale may carry a raw number that collides with a tier.

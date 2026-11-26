@@ -35,8 +35,9 @@ test("47h · the strip draws it, App reads /api/base-resume once on the plate ma
   // D199 (47h, moved on purpose): with the market's controls inside, the strip reads the approved board's words
   assert.match(pb, /\{fromWords\(from\) \|\| \(children \? "FROM YOUR RÉSUMÉ · YOURS TO CHANGE" : "SET FROM YOUR RÉSUMÉ · YOURS TO CHANGE"\)\}/);
   const app = read("client/src/App.jsx");
-  assert.match(app, /function useResumeSource\(on\) \{[\s\S]{0,300}api\("\/api\/base-resume"\)/);
+  // ⛔ 47j w1-shell (changed on purpose): the hook's `on` argument is gone (every caller passed true since R2)
+  assert.match(app, /function useResumeSource\(\) \{[\s\S]{0,300}api\("\/api\/base-resume"\)/);
   // 47j R2 (changed on purpose): the market is always the plate market, so the read is always on there
-  assert.match(app, /const resumeFrom = useResumeSource\(true\);/);
+  assert.match(app, /const resumeFrom = useResumeSource\(\);/);
   assert.match(app, /from=\{resumeFrom\}/);
 });

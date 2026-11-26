@@ -75,7 +75,7 @@ test("the href and the click resolve through ONE mapping", () => {
   assert.match(APP, /hrefForTab=\{pathForTab\}/);
   assert.match(APP, /onTabChange=\{handlePanelChange\}/);
   // handlePanelChange must still route through the same rule rather than keeping its own copy.
-  const handler = APP.slice(at(APP, "const handlePanelChange = useCallback"), at(APP, "const handleProfileActivate"));
+  const handler = APP.slice(at(APP, "const handlePanelChange = useCallback"), at(APP, "useInactivityLogout(handleLogout"));   // ⛔ 47j w1-shell (changed on purpose): handleProfileActivate left with the account panel
   assert.match(handler, /NAVIGABLE_TABS\.has\(tab\)/);
 });
 

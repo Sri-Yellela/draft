@@ -425,6 +425,11 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   // /library the Library of outside resources (the shelf of draft's own courses and guides moved to /library/shelf).
   // These are plate pages: the area nav (the shell's, signed in; its plate twin, public) carries Atlas's navigation, so
   // they draw no PlaceNav. Every other Atlas address below is unchanged.
+  // ⭐ 47j w1-shell (D197 #5): signed in, the other addresses draw no PlaceNav card either — the shell's Atlas area nav
+  // (App's AtlasAreaNav, useAtlasAreaNav) carries every place the card offered: Your survey (Your map) · Library ·
+  // Today's question · League as its views, and Your run · Your skills · Courses and guides · The audit · How it works ·
+  // Challenges · Roles and skills · This week's market · Glossary · Overview in its More (volumeModel atlasPlaces). The
+  // card showed them twice. Signed out (the public mount) keeps the card — it has no area nav on these pages.
   const regionN = slug && /^region\/\d+$/.test(slug) ? Number(slug.slice("region/".length)) : null;
   const plateView = !slug && !q ? "home" : regionN ? "region" : slug === "library" ? "library" : null;
   if (plateView) {
@@ -445,7 +450,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   const body = (
     <main className={`atl atl--panels${wide ? " atl--wide" : ""}`} data-atlas-page={learning ? "learn" : checking ? "check" : familyKey ? "family" : courseId ? "course" : panelOnly ? "panel" : slug ? "node" : "search"}
       data-atlas-panel={panel}>
-     <PlaceNav place="atlas" name="Atlas" eyebrow="Your way through the market" title="Atlas" fill panelId="atlas-panel"
+     <PlaceNav place="atlas" name="Atlas" eyebrow="Your way through the market" title="Atlas" fill panelId="atlas-panel" nav={!signedIn}
        groups={navGroups(compete).map(g => ({ label: g.group, items: g.panels }))} current={panel} hrefFor={(id) => panelHref(base, id)}>
       {/* ⭐ D120 P2 · THE HOME IS YOUR MAP (owner 10-31: "very text rich with no direction"): signed in, the direction
           line, the tree, the course and the five sections, with the families in a side column; signed out (or no

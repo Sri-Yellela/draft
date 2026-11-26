@@ -84,10 +84,12 @@ test("jobs UI opens ATS panel from stored base ATS reports without requiring reg
     "the cross-user priority-2 cache read must stay deleted");
 });
 
-test("profile selector exposes direct manage-profiles access from the jobs flow", () => {
-  const selector = fs.readFileSync("client/src/components/ProfileSelectorDropdown.jsx", "utf8");
-  assert.match(selector, /Manage Profiles/);
-  assert.match(selector, /href="\/app\/profile"/);
+// ⛔ 47j w1-shell (changed on purpose): ProfileSelectorDropdown.jsx is deleted — its one renderer, the account panel
+// (TopBar's ProfileMenuPanel), was opened by nothing since D197 #1. Its "Manage Profiles" way to Profile is the peek's Open
+// Profile, and Profile → Your profile opens the full manager.
+test("the job profiles' manager is reached from Profile", () => {
+  assert.ok(!fs.existsSync("client/src/components/ProfileSelectorDropdown.jsx"));
+  assert.match(fs.readFileSync("client/src/pages/profile/ProfilePage.jsx", "utf8"), /onOpenJobProfiles=\{\(\) => navigate\("\/app\/job-profiles"\)\}/);
 });
 
 test("the imported-LinkedIn section is gone, and the bulk-import CTA stays gone (E2)", () => {

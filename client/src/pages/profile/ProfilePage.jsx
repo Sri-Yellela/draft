@@ -16,6 +16,7 @@
 //   Notifications  Account's Product news + Notifications cards
 //   Privacy        Account's Your data (download, base-résumé-only, generated résumés) + Delete account
 //   Account        Account's profile photo and name, email, sign-in and security, sessions, merge, plan, help, Sign out
+//                  (+ 47j: the plan line and View plans → /app/plans while monetisation is on — ProfilePlanLine)
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PlaceNav, { PlaceHead } from "../../components/PlaceNav.jsx";
@@ -36,6 +37,7 @@ import YourProfile from "./YourProfile.jsx";
 import { EXTENSION_PAGE } from "../../../../shared/extension.js";
 import { PROFILE_GROUPS, profilePath } from "./profilePanels.js";
 import { api } from "../../lib/api.js";
+import { useMonetisationEnabled } from "../../lib/monetisation.jsx";
 import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 import "./ProfilePage.css";
 
@@ -158,8 +160,26 @@ function AssistantPrivacy() {
   );
 }
 
-export default function ProfilePage({ panel = "about", onSignedOut }) {
+// ⭐ 47j w1-shell (D200 Rule 1): the plan line and "View plans" — the tier's words and the one way into /app/plans, both
+// from the retired account panel (TopBar's ProfileMenuPanel, which nothing opened after D197 #1). Only while the
+// monetisation lever is on, as there: off, the tier claims go and /app/plans bounces to the board (App's NAVIGABLE_TABS).
+const PLAN_LABELS = Object.freeze({ PRO: ["Pro", "Generate + A+ Resume"], PLUS: ["Plus", "Generate"], BASIC: ["Basic", "Your jobs and today's picks"] });
+function ProfilePlanLine({ planTier }) {
+  const [label, tool] = PLAN_LABELS[planTier] || PLAN_LABELS.BASIC;
+  return (
+    <div className="pf__card" data-profile-plan="">
+      <div className="pf__kv">
+        <span>Plan</span>
+        <b>{label} — {tool}</b>
+        <Link className="pf__quiet" to="/app/plans" data-view-plans="">View plans</Link>
+      </div>
+    </div>
+  );
+}
+
+export default function ProfilePage({ panel = "about", onSignedOut, user = null }) {
   const navigate = useNavigate();
+  const monetisationEnabled = useMonetisationEnabled();
   const { runBar = null } = useAutoApply() || {};
   const metas = {
     autoapply: runBar ? (runBar?.mode?.current === "auto" ? "Apply for me" : "Ask me first") : null,
@@ -222,6 +242,7 @@ export default function ProfilePage({ panel = "about", onSignedOut }) {
   else if (panel === "account") body = (
     <>
       <PlaceHead eyebrow="Account" title="Signing in and your plan" />
+      {monetisationEnabled && <ProfilePlanLine planTier={user?.planTier} />}
       <AccountPanel only={ACCOUNT_CARDS.account} onSignedOut={onSignedOut} />
     </>
   );

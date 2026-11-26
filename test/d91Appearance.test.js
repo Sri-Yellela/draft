@@ -97,9 +97,11 @@ test("Appearance: four preview cards, follow-the-system, the shape-cues switch �
   assert.match(page, /<AccessibilitySection \/>/);
   assert.doesNotMatch(read("client/src/panels/AccountPanel.jsx"), /AppearanceSettings|ThemeSection|AccessibilitySection|id="appearance"/);
   // The avatar menu keeps a QUICK system / light / dark switch (D93's recommendation) and links to Customise.
-  const top = read("client/src/components/TopBar.jsx");
-  assert.match(top, /data-quick-scheme=""/);
-  assert.match(top, /onTabChange\?\.\("customise"\)/);
+  // ⛔ 47j w1-shell (changed on purpose): the avatar menu (TopBar's ProfileMenuPanel) and its quick switch are gone —
+  // nothing opened it since D197 #1. The way to Customise is the dock peek's Appearance (Profile → Appearance).
+  const nav = read("client/src/components/AppNav.jsx");
+  assert.match(nav, /\{link\("appearance", "Appearance", themeName \|\| null, \{\}, true\)\}/);
+  assert.doesNotMatch(read("client/src/components/TopBar.jsx"), /data-quick-scheme=""/);
 });
 
 test("prefers-contrast: more OFFERS the Contrast pair in one line — never switches by itself", () => {

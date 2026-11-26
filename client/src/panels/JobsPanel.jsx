@@ -33,7 +33,6 @@ import { PanelScrim, PanelDock, PANEL_TOP_INSET, PANEL_BOTTOM_INSET } from "../c
 import { usePanelHost } from "../hooks/usePanelHost.js";
 import { useBoardLock } from "../hooks/useBoardLock.js";
 import DomainProfileWizard from "../components/DomainProfileWizard.jsx";
-import ProfileSelectorDropdown from "../components/ProfileSelectorDropdown.jsx";
 import { useSyncEvents } from "../hooks/useSyncEvents.js";
 import { useAppScroll } from "../contexts/AppScrollContext.jsx";
 import { useJobBoard, viewFromUrl } from "../contexts/JobBoardContext.jsx";

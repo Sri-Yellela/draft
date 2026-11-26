@@ -193,7 +193,6 @@ export const SHARED = Object.freeze({
   "components/IngestFunnel.jsx":        { what: "a source's last crawl as a funnel (10-14) — the glance's Ingestion card and the inspector's Pipeline Health", module: "admin" },
   "components/EmptyState.jsx":          { what: "THE empty state — the board and The Table (A93)" },
   "components/DomainProfileWizard.jsx": { what: "the job-profile wizard — profiles, board, profile panel" },
-  "components/ProfileSelectorDropdown.jsx": { what: "the active-profile picker — top bar and board" },
   "components/ExtensionPrompt.jsx":     { what: "the get-the-extension prompt — app, extension page, board" },
   "components/SurveyForm.jsx":          { what: "D129 v2 + D130 · THE ONE survey form: dropdowns, labelled stars, follow-ups, required, progress; /survey (the trial's in-app survey was removed 11-07)" },
   "components/ScrollDock.jsx":          { what: "the marketing and tools pages' dock" },

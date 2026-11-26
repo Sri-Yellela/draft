@@ -36,17 +36,16 @@ test("notifications moved INTO the profile menu, whole", () => {
   // timestamps and mark-all-read all came across.
   assert.ok(!/function NotificationsBell/.test(topBarCode), "the standalone bell is back in the bar");
   assert.match(topBar, /function useNotifications\(\)/);
-  assert.match(topBar, /function NotificationsSection\(/);
-  // Rendered inside the Profile panel (D149: the avatar menu's new home), not beside it in the bar.
-  const menu = topBar.slice(at(topBar, "function ProfileMenuPanel"));
-  assert.match(menu, /<NotificationsSection theme=\{theme\} notifs=\{notifs\} unread=\{unread\} markAll=\{markAll\}\/>/);
-  // Everything the bell did:
+  // ⛔ 47j w1-shell (changed on purpose): the Profile panel (ProfileMenuPanel) that drew the list is gone — the plate dock
+  // never opened it (D197 #1). The list is the dock peek's (AppNav ProfilePeek, A236 (b)), fed by this same hook.
+  assert.doesNotMatch(topBar, /function NotificationsSection\(|function ProfileMenuPanel/);
+  const peek = fs.readFileSync("client/src/components/AppNav.jsx", "utf8");
+  // Everything the bell did (the type icons were the panel's own decoration; the peek draws a dot, the words, the time):
   assert.match(topBar, /api\("\/api\/notifications"\)/);
   assert.match(topBar, /api\("\/api\/notifications\/read-all", \{ method: "PATCH" \}\)/);
-  assert.match(topBar, /Mark all read/);
-  assert.match(topBar, /No notifications yet/);
-  assert.match(topBar, /NOTIF_TYPE_ICONS/);
-  assert.match(topBar, /notifTimeAgo/);
+  assert.match(peek, /Mark all read/);
+  assert.match(peek, /No notifications yet/);
+  assert.match(peek, /notifTimeAgo\(n\.created_at\)/);
   // Live updates still arrive while the menu is closed.
   assert.match(topBar, /notification:\s*\(\) => setUnread\(n => n \+ 1\)/);
 });
@@ -70,19 +69,11 @@ test("the unread count stays OUTSIDE the menu — D149: on the Profile button of
   assert.match(topBar, /const \{ notifs, unread, load: loadNotifs, markAll \} = useNotifications\(\);/);
 });
 
-test("the profile menu kept everything it already had", () => {
-  // Notifications were inserted into this menu, not swapped in for something.
-  const menu = topBar.slice(at(topBar, "function ProfileMenuPanel"));
-  // "Accent Color" WAS in this list. docs/UI_REDESIGN.md step 2 removed it on purpose — the
-  // per-session accent and the picker that chose among four were killed by the owner (2026-09-27),
-  // and the accent is the logo orange, always. So it is asserted GONE, not merely dropped from here:
-  // test/colorTokens.test.js pins the picker's absence from comment-stripped source.
-  // D18: "Manage Job Profiles" MOVED into the menu's Settings group as "Job Profiles" — moved, not lost.
-  for (const kept of [/PROFILE/, /Job Profile/, />Settings<\/div>[\s\S]{0,400}Job Profiles/, /<ProfileSelectorDropdown/,
-                      /Sign Out|onLogout/]) {
-    assert.match(menu, kept, `the profile menu lost ${kept}`);
-  }
-  assert.doesNotMatch(menu, /Accent Color/, "the killed accent picker is back in the profile menu");
+// ⛔ 47j w1-shell (changed on purpose): "the profile menu kept everything it already had" is retired with the menu
+// (TopBar's ProfileMenuPanel — nothing opened it since D197 #1). Where each of its items lives now is pinned in
+// test/menuSurfaceStyle.test.js and listed in TopBar.jsx's note; the killed accent picker stays absent from TopBar.
+test("the profile menu is gone, and the accent picker with it", () => {
+  assert.doesNotMatch(topBar, /function ProfileMenuPanel|Accent Color/);
 });
 
 // THE LOGO IS WHITE, AND THIS TEST USED TO ASSERT THE OPPOSITE.

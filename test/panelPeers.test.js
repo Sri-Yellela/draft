@@ -448,7 +448,10 @@ test("the two redundant controls are removed, and both are still reachable elsew
   // The profile selector here was the third on screen. Of the two that remained, the pill's went
   // with the pill, leaving TopBar's avatar menu as the one place it lives.
   assert.ok(!/<ProfileSelectorDropdown/.test(panel));
-  assert.match(topBar, /<ProfileSelectorDropdown/);
+  // ⛔ 47j w1-shell (changed on purpose): the avatar menu's copy left with the menu (TopBar's ProfileMenuPanel, opened by
+  // nothing since D197 #1) and the dropdown is deleted; the switch is the job-profile manager's.
+  assert.doesNotMatch(topBar, /<ProfileSelectorDropdown/);
+  assert.match(read("client/src/panels/JobProfilesPanel.jsx"), /\/activate`, \{ method: "POST" \}/);
 });
 
 test("A74 (owner, 10-03): the count bar and the filters-active chip are GONE — the SENTENCE signals filters", () => {

@@ -175,7 +175,7 @@ function placesOf(tabs, network = false, netUnread = 0) {
   return list;
 }
 
-// the notifications' times (seconds since the epoch) — the one copy: the peek's list and TopBar's account panel read it
+// the notifications' times (seconds since the epoch) — the one copy: the peek's list reads it (47j: the account panel is gone)
 export function notifTimeAgo(ts) {
   const s = Math.floor(Date.now() / 1000 - Number(ts || 0));
   if (s < 60) return "just now";
