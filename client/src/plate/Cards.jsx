@@ -1,5 +1,6 @@
 // ⭐ D196 F3 · cards: the field card (why an opening fits — D192's Lines up / Doesn't, yet), the side panel, the catalogue
 // card (a primary source) and the field-note card (a harvested reel). The boards' / the report's anatomy in plate classes.
+import { useId } from "react";
 import { plateState, NoData } from "./PlateState.jsx";
 import { Stamp } from "./Marks.jsx";
 
@@ -67,6 +68,7 @@ const ASK_TIER = { T1: "T1 • ACTION", T2: "T2 • FROM YOUR DATA", T3: "T3 •
 export function AskDraftCard({ name = "Ask draft", sub = "draft’s helper — no AI for anything draft already holds", intro, turns = [], busy = false,
   value = "", onChange, onSend, placeholder, canSpeak = false, listening = false, onSpeak, voiceNote, improve = null,
   onClose, onUndo, onAnswerBack, onDecide, onUseAnswer, children = null, bodyRef, ...s }) {
+  const inputId = useId();   // the gallery draws several cards on one page — no shared id
   const gate = plateState(s, { height: 420, radius: "plate", label: `Loading ${name}`, lines: 5 });
   if (gate) return gate;
   const send = (e) => { e.preventDefault(); if (value.trim() && !busy) onSend?.(value.trim()); };
@@ -109,8 +111,8 @@ export function AskDraftCard({ name = "Ask draft", sub = "draft’s helper — n
         {busy ? <p className="pl-label pl-muted" role="status">THINKING…</p> : null}
       </div>
       <form className="pl-ask__form" onSubmit={send}>
-        <label className="pl-sr" htmlFor="pl-ask-input">{`Ask ${name}`}</label>
-        <textarea id="pl-ask-input" className="pl-textarea pl-ask__input" rows={2} maxLength={600} value={value} placeholder={placeholder || `Ask ${name}`}
+        <label className="pl-sr" htmlFor={inputId}>{`Ask ${name}`}</label>
+        <textarea id={inputId} className="pl-textarea pl-ask__input" rows={2} maxLength={600} value={value} readOnly={!onChange} placeholder={placeholder || `Ask ${name}`}
           onChange={(e) => onChange?.(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) send(e); }}/>
         <div className="pl-ask__formacts">
           {canSpeak ? <button type="button" className="pl-btn" aria-pressed={!!listening} aria-label="Speak a command" onClick={onSpeak}>{listening ? "Stop" : "Speak"}</button> : null}
