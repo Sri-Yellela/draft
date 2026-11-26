@@ -296,7 +296,7 @@ test("D105 P4 · the top bar gains Atlas; /atlas is public and a signed-in reade
   const route = app.slice(at(app, '<Route path="/atlas/*"'), at(app, "}/>", at(app, '<Route path="/atlas/*"')));
   assert.doesNotMatch(route, /UserRouteGate|AdminRouteGate|requireAuth/);
   assert.match(route, /<AtlasPage base="\/atlas" publicChrome\/>/);
-  assert.match(route, /<AtlasInApp\/>/);
+  assert.match(route, /<SamePageInApp\/>/);   // ⛔ 47j w1-shell (changed on purpose): AtlasInApp renamed — /companies/<slug> uses it too
   assert.match(app, /return <Navigate to=\{`\/app\$\{pathname\}\$\{search\}`\} replace\/>;/);
   // The signed-out navs reach it too.
   assert.match(read("client/src/components/ScrollDock.jsx"), /\{ label: "Atlas",\s+to: "\/atlas" \}/);

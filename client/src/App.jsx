@@ -100,19 +100,8 @@ const LEGACY_CONSOLE_ROUTES = new Set(["simple-apply", "tailored", "custom-sampl
 // ⭐ D146: The Table's old route — it redirects to Draft House, the one application tracker.
 const TABLE_ROUTE = "database";
 
-function AuthBootstrapScreen({ theme }) {
-  return (
-    <div style={{ height:"100vh", display:"flex", flexDirection:"column",
-                  alignItems:"center", justifyContent:"center",
-                  background:theme.bg, gap:14 }}>
-      <div style={{ width:32, height:32,
-                    border:`3px solid ${theme.border}`,
-                    borderTop:`3px solid ${theme.accent}`,
-                    borderRadius:"50%", animation:"spin 0.8s linear infinite" }}/>
-      <span style={{ color:theme.textMuted, fontSize:ts(13) }}>Loading…</span>
-    </div>
-  );
-}
+// ⛔ 47j w1-shell: AuthBootstrapScreen (a "Loading…" spinner nothing rendered — the gates return null while auth is
+// unknown) is deleted.
 
 function UserRouteGate({ authStatus, authUser, children }) {
   if (authStatus === "unknown") return null;
@@ -207,21 +196,21 @@ function BoardSearchBar(props) {
 // and opening another closes the first. The panel renders HERE, directly beneath the sentence and
 // above the bar — D35 §4's order: the sentence, the open panel, the bar, the jobs.
 // 47h: the bearing's "FROM file · date" — the active profile's résumé (its name and when it was set), read once per page
-// and only on the plate market; no résumé (or a failed read) → nothing, and the strip keeps its words
-function useResumeSource(on) {
+// and only on the plate market; no résumé (or a failed read) → nothing, and the strip keeps its words. (⛔ 47j w1-shell: its
+// `on` argument is gone — 47j R2 made the market the plate market only, so every caller passed true.)
+function useResumeSource() {
   const [src, setSrc] = useState(null);
   useEffect(() => {
-    if (!on) return undefined;
     let live = true;
     api("/api/base-resume").then((r) => { if (live && r?.name) setSrc({ name: r.name, at: r.updatedAt ?? null }); }).catch(() => {});
     return () => { live = false; };
-  }, [on]);
+  }, []);
   return src;
 }
 
 function BoardHeadlineSlot() {
   const { boardHeadline, boardPanel, setBoardPanel, localSearch, applyBarFilters } = useJobBoard();
-  const resumeFrom = useResumeSource(true);
+  const resumeFrom = useResumeSource();
   if (!boardHeadline) return null;
   const { params, defaultDomain, nothingMatches, facets, facetsStatus, otherFilterCount, onPatch, onMoreFilters, onClearAll } = boardHeadline;
   // ⭐ D196 P1: the sentence, controls and panel, drawn as the board's cartouche. ⛔ 47j R2: the classic market's sentence
@@ -292,10 +281,8 @@ function AppTopBar({ tabs, ...props }) {
 }
 
 
-// ⛔ A157 (45q): the board's parts in order — the Companies view that once swapped them out is gone (no Companies tab).
-function BoardOrCompanies({ head, views, board }) {
-  return (<>{head}{views}{board}</>);
-}
+// ⛔ A157 (45q): the Companies view that once swapped the board's parts out is gone (no Companies tab) — and 47j w1-shell
+// deleted BoardOrCompanies, the wrapper left behind, which only concatenated its children.
 // ⛔ D156 (4) (owner 11-05: "we dont need the drafted panel now"): the Pending / Drafted view is not offered on Home — the
 // tracker (Draft House) holds every application. ?view=pending still reads (JobBoardContext's BOARD_VIEWS).
 
@@ -750,15 +737,11 @@ function AppDashboard({ authUser, setAuthUser }) {
   );
   const homeBoard = (
     <section className="home__board" aria-label="Every job" data-home-board="">
-      <BoardOrCompanies
-        head={null}
-        views={<BoardViews onImported={() => setJobBoardRefreshKey(k => k + 1)} />}
-        board={<>
-          {/* ⭐ D199 C4: the stats box (in the cartouche) replaces the counts strip */}
-          <ExtensionFirstRunPrompt />
-          <JobsConsole user={authUser} onUserChange={setAuthUser}
-            refreshKey={jobBoardRefreshKey} isActive={home}/>
-        </>} />
+      <BoardViews onImported={() => setJobBoardRefreshKey(k => k + 1)} />
+      {/* ⭐ D199 C4: the stats box (in the cartouche) replaces the counts strip */}
+      <ExtensionFirstRunPrompt />
+      <JobsConsole user={authUser} onUserChange={setAuthUser}
+        refreshKey={jobBoardRefreshKey} isActive={home}/>
     </section>
   );
 
@@ -929,7 +912,9 @@ function CompanyJobRoute({ navBar }) {
   return <FromServer/>;
 }
 
-function AtlasInApp() {
+// A public address a signed-in reader reads inside the app: the same path under /app, its query kept — /atlas/… and
+// /companies/<slug>. (⛔ 47j w1-shell: was AtlasInApp, a name that was wrong for the company route that also uses it.)
+function SamePageInApp() {
   const { pathname, search } = useLocation();
   return <Navigate to={`/app${pathname}${search}`} replace/>;
 }
@@ -1088,7 +1073,7 @@ function AppRouter() {
             pages. A signed-in person is taken to the same page inside the app (/app/atlas…), under the top bar. */}
         <Route path="/atlas/*" element={
           authStatus === "authenticated" && authUser && !authUser.isAdmin
-            ? <AtlasInApp/>
+            ? <SamePageInApp/>
             : <AtlasPage base="/atlas" publicChrome/>
         }/>
 
@@ -1107,7 +1092,7 @@ function AppRouter() {
         {/* ⭐ D179 P4b · a page for every company — PUBLIC (no sign-in); a signed-in reader gets it inside the app. */}
         <Route path="/companies/:slug" element={
           authStatus === "authenticated" && authUser && !authUser.isAdmin
-            ? <AtlasInApp/>
+            ? <SamePageInApp/>
             : <>{navBar}<PublicCompanyRoute/></>
         }/>
         {/* ⭐ A157 (45q, owner 11-09) · a company's OWN address, /<company>, and its postings under it, /<company>/<id> (the
