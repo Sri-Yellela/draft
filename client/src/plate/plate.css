@@ -1091,3 +1091,45 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
   .pl-ixrow__co { display: none; }
   .pl-ixc--title > a { visibility: hidden; }   /* the board's phone row squeezes the title to nothing; a link drawn 0 px wide is out of reach (A201) — the row itself opens it */   /* the squeezed title cell can't hold the company's button; the posting and the deck's logo still open it */
 }
+
+/* ── ⭐ 47j (D197 Wave 2 · M3, lane w2-practice) · three pieces the Wave 2 practice mocks needed ──────────────────────────── */
+/* DrawingToCome (Drawings.jsx): a placeholder plate — the region tint, faint contours, dashed = "not yet", the grid letters */
+.pl-tocome { position: relative; aspect-ratio: var(--pl-aspect, 16 / 9); width: 100%; box-sizing: border-box; border: var(--pl-border-dashed); border-radius: var(--pl-r-plate);
+  background-color: var(--pl-region-tint); background-image: repeating-radial-gradient(circle at 62% 58%, transparent 0 22px, var(--pl-region-ring) 22px 23.5px);
+  display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.pl-tocome__grid { position: absolute; top: 8px; left: 14px; right: 14px; display: flex; justify-content: space-between; font-family: var(--pl-mono); font-size: var(--pl-t-mono);
+  color: var(--pl-muted); opacity: .6; }
+.pl-tocome__body { position: relative; max-width: min(440px, 86%); display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center; padding: 12px 16px;
+  background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-input); box-shadow: var(--pl-s3); }
+.pl-tocome__what { font-family: var(--pl-serif); font-size: var(--pl-t-num-sm); line-height: 1.1; color: var(--pl-ink); overflow-wrap: anywhere; }
+/* LogbookDays (Marks.jsx): Your run's month as a grid of 16 px squares under the weekday letters */
+.pl-logdays { display: flex; flex-direction: column; gap: 10px; }
+.pl-logdays__grid { display: grid; grid-template-columns: repeat(7, 16px); gap: 6px 8px; justify-content: start; }
+.pl-logdays__wd { font-family: var(--pl-mono); font-size: var(--pl-t-mono); font-weight: 700; color: var(--pl-muted); text-align: center; }
+.pl-sq[data-s="rest"] { background: var(--pl-paper); border: var(--pl-border-dashed); }
+.pl-sq[data-s="off"] { background: repeating-linear-gradient(45deg, var(--pl-paper-deep) 0 3px, var(--pl-rule) 3px 4.5px); }
+.pl-logdays__key { margin: 0; font-family: var(--pl-mono); font-size: var(--pl-t-mono); font-weight: 700; letter-spacing: var(--pl-track-mono); color: var(--pl-muted); }
+/* AskDraftCard (Cards.jsx): D190's panel — the conversation scrolls inside the card, the input at its foot */
+.pl-ask { display: flex; flex-direction: column; width: 100%; max-height: min(620px, 80vh); }
+.pl-ask__strip { align-items: center; }
+.pl-ask__who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pl-ask__name { font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-num-sm); line-height: 1.05; }
+.pl-ask__body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.pl-ask__intro { margin: 0; font-size: var(--pl-t-small); line-height: 1.5; color: var(--pl-ink-soft); }
+.pl-ask__turns { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.pl-ask__turn { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: var(--pl-border-rule); border-radius: var(--pl-r-input); background: var(--pl-paper-warm); }
+.pl-ask__turn[data-who="you"] { background: var(--pl-card); border: var(--pl-border); margin-left: 24px; }
+.pl-ask__turn[data-who="question"] { background: var(--pl-region-tint); }
+.pl-ask__turn[data-failed] { border: var(--pl-border-dashed); }
+.pl-ask__tier[data-tier="T3"] { color: var(--pl-clay-text); }
+.pl-ask__text { margin: 0; font-size: var(--pl-t-small); line-height: 1.5; overflow-wrap: anywhere; }
+.pl-ask__links { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: var(--pl-t-small); }
+.pl-ask__links a, .plate .pl-ask__links a { color: var(--pl-ink); font-weight: 700; }
+.pl-ask__next { margin: 0; font-size: var(--pl-t-small); }
+.pl-ask__acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pl-ask__acts:empty { display: none; }
+.pl-ask__summary { font-size: var(--pl-t-small); font-weight: 700; }
+.pl-ask__form { border-top: var(--pl-border); padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 8px; background: var(--pl-paper-warm); }
+.pl-ask__input { min-height: 64px; }
+.pl-ask__formacts { display: flex; gap: 8px; justify-content: flex-end; }
+.pl-ask__opt { display: flex; gap: 8px; align-items: center; font-size: var(--pl-t-tiny); color: var(--pl-ink-soft); }

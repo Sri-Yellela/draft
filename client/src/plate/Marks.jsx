@@ -18,6 +18,30 @@ export function LitSquares({ squares = [], size = 12, label, pop = false, ...s }
   );
 }
 
+const DAY_WORD = { lit: "proof that day", today: "today", rest: "the week’s rest day", off: "a weekend — not counted" };
+/**
+ * ⭐ 47j (D197 Wave 2 · M3, lane w2-practice; D203 (1)) · THE LOGBOOK'S LIT DAYS — Your run's month grid (YourRun.jsx's
+ * run-month, D178-4) as a plate piece: a week per row under mono weekday letters, each day a 16 px square — lit = proof that
+ * day (green), today = clay, the week's rest day dashed, a weekend when weekdays-only is on hatched paper, an unlit day white.
+ * `days` = [{ day: "2026-11-23", s: "lit" | "today" | "rest" | "off" | null }] in date order, Monday first; `label` says what
+ * the grid counts (the one thing a screen reader hears); `showKey` = false hides the key line. Colour is never the only
+ * signal: each square carries its word as a title, and the key spells the four.
+ */
+export function LogbookDays({ days = [], label, showKey = true, ...s }) {
+  const gate = plateState(s, { height: 150, radius: "card", lines: 4, label: "Loading your days" });
+  if (gate) return gate;
+  const lit = days.filter((d) => d.s === "lit").length;
+  return (
+    <div className="pl-logdays">
+      <div className="pl-logdays__grid" role="img" aria-label={label || `${lit} of ${days.length} days lit`}>
+        {["M", "T", "W", "T", "F", "S", "S"].map((w, i) => <span key={`h${i}`} className="pl-logdays__wd" aria-hidden="true">{w}</span>)}
+        {days.map((d) => <span key={d.day} className="pl-sq pl-sq--16 pl-logdays__day" data-s={d.s || undefined} title={`${d.day}${DAY_WORD[d.s] ? ` · ${DAY_WORD[d.s]}` : ""}`}/>)}
+      </div>
+      {showKey ? <p className="pl-logdays__key">■ PROOF THAT DAY · ■ TODAY · ⬚ REST DAY · ▨ WEEKEND, NOT COUNTED</p> : null}
+    </div>
+  );
+}
+
 /** A stamp: mono caps, a 3 px double border, rotated; lands from 1.9× (off under reduced motion). tone region | lit | ink. */
 export function Stamp({ children, tone = "region", rotate = -8, land = true, className = "", ...s }) {
   const gate = plateState(s, { height: 36, radius: "stamp", lines: 1 });

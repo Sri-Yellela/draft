@@ -52,6 +52,80 @@ export function FieldCard({ kicker = "FIELD CARD · WHY IT FITS", note = "NO AI"
   );
 }
 
+const ASK_TIER = { T1: "T1 • ACTION", T2: "T2 • FROM YOUR DATA", T3: "T3 • WRITTEN BY THE ASSISTANT", ask: "ASKS BACK" };
+/**
+ * ⭐ 47j (D197 Wave 2 #12 · M3, lane w2-practice) · ASK DRAFT'S CARD — D190's panel (components/AppNav.jsx AskDraftPanel) as a
+ * plate piece: the strip (its name + the one rule), the conversation scrolling inside the card (newest kept in view by the
+ * page), each of draft's turns labelled with its tier as a plain mono word (T1 • ACTION · T2 • FROM YOUR DATA ·
+ * T3 • WRITTEN BY THE ASSISTANT · ASKS BACK — the D152 mark, no box), its lessons and links, *Next:*, Undo on a T1 change,
+ * Yes / No on an ask-back, Confirm / Cancel on a proposed action, *Use as my answer* on an application draft; then the input
+ * with Speak (only where the browser can listen) and Ask, the voice note, and the "improve Atlas" opt-in.
+ * `turns` = [{ who: "you" | "draft" | "question", tier, text, lessons: [{ name, href, kind }], links: [{ title, href }], next,
+ * undo, undone, confirm, action: { summary }, decided, usable, used, failed }]; `children` = what sits above the turns (a held
+ * application's thread). The page owns every behaviour: `on*` callbacks receive the turn's index.
+ */
+export function AskDraftCard({ name = "Ask draft", sub = "draft’s helper — no AI for anything draft already holds", intro, turns = [], busy = false,
+  value = "", onChange, onSend, placeholder, canSpeak = false, listening = false, onSpeak, voiceNote, improve = null,
+  onClose, onUndo, onAnswerBack, onDecide, onUseAnswer, children = null, bodyRef, ...s }) {
+  const gate = plateState(s, { height: 420, radius: "plate", label: `Loading ${name}`, lines: 5 });
+  if (gate) return gate;
+  const send = (e) => { e.preventDefault(); if (value.trim() && !busy) onSend?.(value.trim()); };
+  return (
+    <aside className="pl-card pl-ask" aria-label={name} data-ask-card="">
+      <div className="pl-card__strip pl-ask__strip">
+        <span className="pl-ask__who"><b className="pl-ask__name">{name}</b><span className="pl-label pl-muted">{sub}</span></span>
+        {onClose ? <button type="button" className="pl-btn" onClick={onClose} aria-label={`Close ${name}`}>Close</button> : null}
+      </div>
+      <div className="pl-ask__body" ref={bodyRef}>
+        {children}
+        {!turns.length && intro ? <p className="pl-ask__intro">{intro}</p> : null}
+        <ol className="pl-ask__turns" aria-live="polite">
+          {turns.map((t, i) => (
+            <li key={i} className="pl-ask__turn" data-who={t.who} data-tier={t.tier || undefined} data-failed={t.failed ? "" : undefined}>
+              {t.who === "draft" && ASK_TIER[t.tier] ? <span className="pl-label pl-ask__tier" data-tier={t.tier}>{ASK_TIER[t.tier]}</span> : null}
+              <p className="pl-ask__text">{t.who === "you" ? <b>You: </b> : t.who === "question" ? <b>Question: </b> : null}{t.text}</p>
+              {t.lessons?.length ? (
+                <ul className="pl-ask__links" aria-label="Lessons">
+                  {t.lessons.map((l) => <li key={l.href}><a href={l.href}>{l.name}</a>{l.kind ? <span className="pl-label pl-muted"> {l.kind}</span> : null}</li>)}
+                </ul>
+              ) : null}
+              {t.links?.length ? <ul className="pl-ask__links" aria-label="Links">{t.links.map((l) => <li key={l.href}><a href={l.href}>{l.title}</a></li>)}</ul> : null}
+              {t.next ? <p className="pl-ask__next"><b>Next: </b>{t.next}</p> : null}
+              <div className="pl-ask__acts">
+                {t.usable ? (t.used ? <span className="pl-label pl-muted">IN YOUR ANSWER — EDIT IT THERE</span>
+                  : <button type="button" className="pl-btn" onClick={() => onUseAnswer?.(i)}>Use as my answer</button>) : null}
+                {t.undo && !t.undone ? <button type="button" className="pl-btn" onClick={() => onUndo?.(i)}>Undo</button> : null}
+                {t.undone ? <span className="pl-label pl-muted">{t.undone}</span> : null}
+                {t.confirm ? <><button type="button" className="pl-btn" onClick={() => onAnswerBack?.(i, true)}>Yes</button>
+                  <button type="button" className="pl-btn pl-btn--dashed" onClick={() => onAnswerBack?.(i, false)}>No</button></> : null}
+                {t.action ? (t.decided ? <span className="pl-label pl-muted">{t.decided}</span> : <>
+                  <span className="pl-ask__summary">{t.action.summary}?</span>
+                  <button type="button" className="pl-btn pl-btn--ink" onClick={() => onDecide?.(i, true)}>Confirm</button>
+                  <button type="button" className="pl-btn pl-btn--dashed" onClick={() => onDecide?.(i, false)}>Cancel</button></>) : null}
+              </div>
+            </li>
+          ))}
+        </ol>
+        {busy ? <p className="pl-label pl-muted" role="status">THINKING…</p> : null}
+      </div>
+      <form className="pl-ask__form" onSubmit={send}>
+        <label className="pl-sr" htmlFor="pl-ask-input">{`Ask ${name}`}</label>
+        <textarea id="pl-ask-input" className="pl-textarea pl-ask__input" rows={2} maxLength={600} value={value} placeholder={placeholder || `Ask ${name}`}
+          onChange={(e) => onChange?.(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) send(e); }}/>
+        <div className="pl-ask__formacts">
+          {canSpeak ? <button type="button" className="pl-btn" aria-pressed={!!listening} aria-label="Speak a command" onClick={onSpeak}>{listening ? "Stop" : "Speak"}</button> : null}
+          <button type="submit" className="pl-btn pl-btn--primary" disabled={busy || !value.trim()}>Ask</button>
+        </div>
+        {voiceNote ? <p className="pl-label pl-muted" aria-live="polite">{voiceNote}</p> : null}
+        {improve ? (
+          <label className="pl-ask__opt"><input type="checkbox" className="pl-check" checked={!!improve.on} onChange={improve.onToggle}/>
+            Use my questions to improve Atlas (stored without your name or contact details)</label>
+        ) : null}
+      </form>
+    </aside>
+  );
+}
+
 /** A side panel: a strip, then label / value rows (the ledger's "Filled for you"). Values are never guessed. */
 export function FactSheet({ kicker, rows = [], foot, label, ...s }) {
   const gate = plateState(s, { height: 260, radius: "plate", label: "Loading", lines: 4 });
