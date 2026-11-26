@@ -2,7 +2,7 @@
 // at 1280 or 390 px, with the sketch's example data, so a component can sit beside its sketch. The eight ported
 // drawings follow. `?w=390` sets the frame's width; `?only=Name` shows one component (the regression harness uses it);
 // `?state=name` one state; `?extremes=1` adds R2's extreme-data fixtures; `?plain=1` the Plain mapping.
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import PlateRoot from "../../plate/PlateRoot.jsx";
 import { PLATE_REGISTRY, PORTED_DRAWINGS } from "../../plate/registry.js";
 import * as Shell from "../../plate/Shell.jsx";
@@ -15,6 +15,7 @@ import * as Drawings from "../../plate/Drawings.jsx";
 import * as Explainer from "../../plate/explainer/Explainer.jsx";
 import { FitCard } from "../../plate/FitCard.jsx";   // D202: the field card ⇄ the ATS card
 import { DRAWINGS } from "../../plate/drawings/index.js";
+import { PLATE_PAGES } from "./platePages/index.js";   // D197 Wave 2 · M3: the page mocks (`?page=<id>`)
 
 const LIB = { ...Shell, ...Marks, ...Plates, ...Tickets, ...Cards, ...Lists, ...Drawings, ...Explainer, FitCard };
 
@@ -61,6 +62,18 @@ function Cell({ entry, stateName, props, ctx }) {
   );
 }
 
+/** D197 Wave 2 · M3: one page mock, at the frame's width (`?page=<id>`, `&w=390`). */
+function PageMock({ id, width }) {
+  const entry = PLATE_PAGES[id];
+  const Mock = useMemo(() => (entry ? lazy(entry.load) : null), [entry]);
+  if (!Mock) return <PlateRoot style={{ minHeight: "100vh", padding: 24 }}><p className="pl-label">No page mock “{id}”. Mocks: {Object.keys(PLATE_PAGES).join(" · ") || "none yet"}</p></PlateRoot>;
+  return (
+    <div data-plate-page-mock={id} style={{ width, maxWidth: "100%", margin: "0 auto" }}>
+      <Suspense fallback={null}><Mock width={width}/></Suspense>
+    </div>
+  );
+}
+
 export default function PlateGallery() {
   const q = useMemo(params, []);
   const [width, setWidth] = useState(q.get("w") === "390" ? 390 : 1280);
@@ -70,6 +83,7 @@ export default function PlateGallery() {
   const onlyState = q.get("state");
   const extremes = q.get("extremes") === "1";
   const ctx = { tab, setTab, note: setLog };
+  if (q.get("page")) return <PageMock id={q.get("page")} width={width}/>;
   const entries = PLATE_REGISTRY.filter((e) => !only || e.name === only || `${e.name}:${e.variant}` === only);
   const groups = [...new Set(entries.map((e) => e.group))];
   return (
