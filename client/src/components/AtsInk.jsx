@@ -1,6 +1,6 @@
 // client/src/components/AtsInk.jsx — ⭐ 46x (owner 11-19: "the font color on the ats number should do it no need for the
 // words", then "yes switch the held panel rows to colour too") · AN ATS NUMBER PAINTED BY ITS BAND, inline, in a sentence.
-// The one implementation (A93): the ATS card's numbers and bars (AtsCard.jsx) and Home's held rows
+// The one implementation (A93): the retired option-C ATS card's numbers and bars (D202 replaced it with FitCard, 47h) and Home's held rows
 // (AutoApplyPanel) draw it. The colour is styles/bandStyle.js's (tokens); the cutpoints are shared/atsBands.js's.
 //   <AtsInk score={64} />                 → "64%" in the Strong colour
 //   <AtsInk score={null} band="strong" /> a row stored before its number was kept: the band's colour on a dot, its

@@ -71,7 +71,7 @@ export const MODULES = Object.freeze({
       "plate/MarketControls.jsx", "plate/MarketPager.jsx", "plate/MarketMap.jsx", "plate/MarkPopover.jsx" /* D199 / D200 (47h): the market rebuilt */,
       "plate/explainer/Explainer.jsx", "plate/explainer/explainerModel.js" /* D198 E1: the explainer engine */,
       "plate/FitCard.jsx" /* D202: the field card ⇄ the ATS card, one card on the market and the sheet */, "plate/OpeningSheet.jsx" /* D199 C7: the opening sheet, /app/jobs/<id> */,
-      "plate/TeamDiorama.jsx" /* D199 C7: the sheet's hero plate — the survey diorama with its words as props */, "plate/fitCardFixtures.jsx" /* the card lane's F5 fixtures */] },
+      "plate/TeamDiorama.jsx" /* D199 C7: the sheet's hero plate — the survey diorama with its words as props */, "plate/fitCardFixtures.jsx" /* the card lane's F5 fixtures */, "components/ATSPanel.jsx" /* D202 (47h, owner yes): the posting's match panel draws THE FitCard */] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminGateway.jsx", "panels/adminFlags.jsx","panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "panels/adminReports.jsx", "panels/adminCompanyRecords.jsx", "panels/adminNetwork.jsx", "panels/adminRuns.jsx", "panels/adminPhase1.jsx", "panels/adminDiagnostics.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.
@@ -120,7 +120,6 @@ export const SHARED = Object.freeze({
   "components/ATSPanel.jsx":            { what: "the ATS report LOADER (fetch, cache, claims) — the deck and the ATS panel mount it" },
   "components/AtsInk.jsx":             { what: "an ATS number painted by its band, inline (46x, owner 11-19: colour, not words) — the ATS card and Home's held rows" },
   "components/PlausibilityFlags.jsx":  { what: "D192 (4d): does the résumé add up — a quiet ⚠ per bullet that doesn't line up with its employer, a reason, Dismiss (the ATS card; Home's held review)" },
-  "components/AtsCard.jsx":            { what: "THE ATS card in the posting's match panel (owner's option C, 11-19): the number, the four parts as one bar each, the biggest gain; each part's line and figures on demand (47b) — no claims, no quick check" },
   "components/AtsReport.jsx":           { what: "THE ATS report in the web app — a thin React wrapper of the ONE component, shared/atsReportElement.js (A52 → T9; see CROSS_PRODUCT)" },
   "components/AtsNumberBox.jsx":        { what: "THE ATS number box (D50) — posting header, ATS panel, résumé rows (A93)" },
   "components/AtsNumberBox.css":        { what: "its look", owner: "components/AtsNumberBox.jsx" },

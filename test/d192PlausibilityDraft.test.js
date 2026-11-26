@@ -101,6 +101,8 @@ test("wired: the routes, the merge plan, migration 277 in both runners, and no s
   const flags = read("client/src/components/PlausibilityFlags.jsx");
   assert.match(flags, /api\("\/api\/resume\/plausibility\/dismiss", \{ method: "POST", body: JSON\.stringify\(\{ key \}\) \}\)/);
   assert.doesNotMatch(flags, /#[0-9a-fA-F]{3,6}\b|rgba?\(/, "tokens only");
-  assert.match(read("client/src/components/AtsCard.jsx"), /<PlausibilityFlags src="\/api\/resume\/plausibility" \/>/);
+  // D202 (47h, the owner's yes — moved on purpose): the classic ATS card (components/AtsCard.jsx) is retired; the match panel draws FitCard — the check sits on its Context tab
+  assert.match(read("client/src/plate/FitCard.jsx"), /api\("\/api\/resume\/plausibility"\)/);
+  assert.match(read("client/src/plate/FitCard.jsx"), /<PlausibilityFlags data=\{plausibility\}/);
   assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /<PlausibilityFlags src=\{`\/api\/resumes\/\$\{encodeURIComponent\(node\.ref\.resume\.artifactId\)\}\/plausibility`\} title="Does the tailored résumé add up\?" \/>/);
 });

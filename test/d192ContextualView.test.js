@@ -48,16 +48,11 @@ test("no band word, no claim, no term lists beyond one line; a declined score is
 
 test("the panel draws ONE card: no claims, no quick check, no old report, no In context section", () => {
   const panel = read("client/src/components/ATSPanel.jsx").replace(/^\s*\/\/.*$/gm, "");
-  assert.match(panel, /return <AtsCard report=\{shown\} jobId=\{jobId\} history=\{history\} \/>;/);
+  // D202 (47h, the owner's yes — moved on purpose): the classic ATS card (components/AtsCard.jsx) is retired; the match panel draws FitCard
+  assert.match(panel, /<FitCard key=\{`\$\{jobId\}\|\$\{activeProfileId \?\? ""\}`\} jobId=\{given \? null : jobId\} data=\{given\} history=\{history\}\/>/);
   assert.doesNotMatch(panel, /SkillCheck|toggleClaim|setProfileClaim|buildProfileClaimLookup|claims|<AtsReport|ContextualFit/);
   assert.equal(fs.existsSync(path.join(ROOT, "client/src/components/ContextualFit.jsx")), false, "the In context section is folded into the card");
-  const card = read("client/src/components/AtsCard.jsx");
-  assert.match(card, /color: atsInk\(view\.score\)/, "the number painted by its band");
-  assert.match(card, /background: atsInk\(p\.score\)/);
-  assert.match(card, /view\.gain\.tech && slugs\[view\.gain\.tech\] && \(/, "Learn only to a published Atlas page");
-  assert.match(card, /borderRadius: 2/, "D60: a 6 px bar with a 2 px corner");
-  assert.doesNotMatch(card, /#[0-9a-fA-F]{3,6}\b|rgba?\(|Strong|Moderate|Weak/, "tokens only, no band word");
-  assert.match(read("client/src/modules.manifest.js"), /"components\/AtsCard\.jsx":/);
+  // the retired card's own look (atsInk by band, its bars) went with it; FitCard's words are shared/fitCardModel.js
 });
 
 test("Home's held rows (owner 11-19: \"switch the held panel rows to colour too\"): the résumé's number in its band's colour, no band word", () => {

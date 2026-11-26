@@ -32,10 +32,10 @@ test("atsCard47c: a résumé with no role placed keeps Role on the card — no n
 });
 
 test("atsCard47c: the web card draws it with no bar and a dash, its line always shown; the extension keeps and draws it the same", () => {
-  const web = read("client/src/components/AtsCard.jsx");
-  assert.match(web, /\{p\.score != null && <div style=\{\{ height: 6, width: `\$\{p\.score\}%`/);
-  assert.match(web, /\{\(detail \|\| p\.pending\) && p\.line && <div data-ats-card-line=\{p\.id\}/);
-  assert.match(web, /\{p\.score \?\? "—"\}/);
+  // D202 (47h, the owner's yes — moved on purpose): the classic ATS card (components/AtsCard.jsx) is retired; the match panel draws FitCard: its front says why the Role has no number, in its own place
+  const web = read("client/src/plate/FitCard.jsx");
+  assert.match(web, /resume_not_placed: "YOUR RÉSUMÉ NOT PLACED YET"/);
+  assert.match(web, /withPartReasons\(fieldCardView\(/);
   const c = cardOf({ report, contextual: unplaced });
   const role = c.parts.find(p => p.id === "role_fit");
   assert.ok(role && role.pending === true && role.score === null);

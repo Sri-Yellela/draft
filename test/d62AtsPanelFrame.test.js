@@ -87,7 +87,8 @@ test("⭐ D62 → D152 (8) · History is the report's switch, and counts THIS jo
   assert.match(jd, /api\(`\/api\/resumes\/\$\{encodeURIComponent\(versionsJobId\)\}\/versions`\)/, "the job's résumé versions");
   assert.match(jd, /history=\{matchHistory\} bare \/>/);
   // ⭐ 46x: the versions ride with the ATS card behind one toggle; the report's History switch is retired.
-  assert.match(read("client/src/components/AtsCard.jsx"), /"Your résumés for this job"/);
+  // D202 (47h, the owner's yes — moved on purpose): the classic ATS card (components/AtsCard.jsx) is retired; the match panel draws FitCard — the versions are its History tab
+  assert.match(read("client/src/plate/FitCard.jsx"), /\{tab === "hist" \? <HistoryTab lines=\{historyLines\} history=\{history\}\/> : null\}/);
   assert.doesNotMatch(read("shared/atsReportElement.js"), /\["history", "History"\]/);
 });
 

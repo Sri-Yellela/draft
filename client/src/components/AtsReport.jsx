@@ -4,7 +4,7 @@
 // (shared/atsReportElement.js — its structure, copy and classes; shared/atsReportStyles.js — its look;
 // shared/atsReportModel.js — the report's shape and the two adapters). The web app and the extension draw THAT component
 // from the same JSON. Web surfaces that render from here: the deck's collapsed score, the free public tool (/tools/ats)
-// and the signup hook (AtsBandCard). ⭐ 46x (owner 11-19): the posting's match is the ATS card (AtsCard.jsx), not this.
+// and the signup hook (AtsBandCard). ⭐ 46x (owner 11-19): the posting's match is the ATS card — since D202 (47h) FitCard (plate/FitCard.jsx) — not this.
 // test/atsReportOneImplementation.test.js refuses a second copy, in the client or the extension.
 //
 // What the wrapper does, and only this:

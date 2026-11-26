@@ -27,9 +27,11 @@ test("the client: one scoring read per screen", () => {
   assert.match(jobs, /atsPayload: buildAtsPayload\(selectedJob, g2\), activeProfileId, onAtsReport: adoptPanelVerdict,/);
   assert.match(jobs, /report\.report_basis === "generated_resume"\) return;/, "a generated résumé's report is not the base verdict");
   assert.match(jd, /onReport=\{selectedJobMeta\?\.onAtsReport \|\| null\}/);
-  assert.match(read("client/src/components/ATSPanel.jsx"), /if \(data && onReport\) onReport\(jobId, data\);/);
+  // D202 (47h, the owner's yes — moved on purpose): the classic ATS card (components/AtsCard.jsx) is retired; the match panel draws FitCard: the verdict the card read is handed to the board
+  assert.match(read("client/src/components/ATSPanel.jsx"), /fitCardFor\(jobId\)\.then\(\(d\) => \{ if \(live && d\?\.report\) onReport\(jobId, d\.report\); \}\)/);
   // ATSPanel: a declined report's null is the band, never replaced by a stored number.
   // 46x: the same rule, handed to the ATS card (AtsCard) as the report it draws
-  assert.ok(read("client/src/components/ATSPanel.jsx").includes('Object.prototype.hasOwnProperty.call(activeReport, "score") ? activeReport : { ...activeReport, score: score ?? null }'));
+  assert.ok(read("client/src/components/ATSPanel.jsx").includes('Object.prototype.hasOwnProperty.call(report, "score") ? report : { ...report, score: score ?? null }'))   // D202 (47h): the generated report, given to FitCard
+  assert.ok(true);
   assert.match(SERVER, /report_basis: "generated_resume"/);
 });

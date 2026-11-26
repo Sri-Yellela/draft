@@ -18,49 +18,9 @@ const requireClient = createRequire(path.join(CLIENT, "package.json"));
 const REPORT = Object.freeze({ score: 72, scorable: true, tier1_matched: ["Go", "Kafka"], tier1_missing: ["Terraform"],
   action_verbs_matched: ["Built"], action_verbs_missing: ["Scaled"], experience: { requiredYears: 4, candidateYears: 6, fit: true } });
 
-async function renderCard(props) {
-  const esbuild = requireClient("esbuild");
-  const abs = JSON.stringify(path.join(CLIENT, "src", "components/AtsCard.jsx").split(path.sep).join("/"));
-  const result = await esbuild.build({
-    stdin: { contents: `
-        import { createElement as h } from "react";
-        import { MemoryRouter } from "react-router-dom";
-        import { renderToStaticMarkup } from "react-dom/server.browser";
-        import { AtsCard } from ${abs};
-        export const render = (props) => renderToStaticMarkup(h(MemoryRouter, null, h(AtsCard, props)));`,
-      resolveDir: CLIENT, loader: "jsx" },
-    bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
-    loader: { ".css": "empty", ".js": "jsx", ".png": "empty", ".svg": "empty" }, logLevel: "silent",
-    define: { "process.env.NODE_ENV": '"production"' },
-  });
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ats47b-"));
-  const file = path.join(dir, "card.mjs");
-  fs.writeFileSync(file, result.outputFiles[0].text);
-  try { return (await import(pathToFileURL(file).href)).render(props); }
-  finally { fs.rmSync(dir, { recursive: true, force: true }); }
-}
 
-test("atsCardDetailOnDemand — the web card opens short: number, parts, gain; the analysis only behind 'Show the analysis'", async () => {
-  const view = atsCardView({ report: REPORT });
-  assert.ok(view.parts.some(p => p.line || p.facts?.length), "the fixture has analysis to hide");
-  const html = await renderCard({ report: REPORT });
-  assert.match(html, /data-ats-card-score/, "the number");
-  assert.match(html, /data-ats-card-part="skill_match"/, "each part, with its bar and number");
-  assert.match(html, /<button[^>]*data-ats-card-detail[^>]*aria-expanded="false"[^>]*>Show the analysis<\/button>/, "one quiet toggle, closed");
-  assert.doesNotMatch(html, /data-ats-card-facts/, "no facts line or part figures by default");
-  assert.doesNotMatch(html, /data-ats-card-line/, "no part line by default");
-  for (const p of view.parts) for (const f of p.facts || []) assert.ok(!html.includes(f), `the figure "${f}" waits for the toggle`);
-});
-
-test("atsCardDetailOnDemand — the toggle reveals the same analysis and remembers it per viewer (never required)", () => {
-  const src = fs.readFileSync("client/src/components/AtsCard.jsx", "utf8");
-  assert.match(src, /\{detail && view\.facts\?\.length > 0 && <div data-ats-card-facts="card"/);
-  // 47c (moved on purpose): a pending part (Role with no placement) shows its one step in the short view too
-  assert.match(src, /\{\(detail \|\| p\.pending\) && p\.line && <div data-ats-card-line=\{p\.id\}/);
-  assert.match(src, /\{detail && p\.facts\?\.length > 0 && <div data-ats-card-facts=\{p\.id\}/);
-  assert.match(src, /const readDetail = \(\) => \{ try \{ return localStorage\.getItem\(DETAIL_KEY\) === "1"; \} catch \{ return false; \} \};/);
-  assert.match(src, /\{detail \? "Hide the analysis" : "Show the analysis"\}/);
-});
+// ⭐ D202 (47h, the owner's yes — moved on purpose): the web card these two tests read (components/AtsCard.jsx, option C) is
+// retired; the posting's match panel draws FitCard (test/d202FitCard.test.js). The extension's own card stays, tested below.
 
 test("atsCardDetailOnDemand — the extension's mirror: the same default and toggle, in its own CSS, nothing stored", () => {
   const src = fs.readFileSync("extension/resumePanel.js", "utf8");
