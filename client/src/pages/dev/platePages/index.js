@@ -7,4 +7,5 @@ export const PLATE_PAGES = {
   // 47j lane w2-public: #16 the public pages (docs/revamp/public.md)
   "public-jobs": { title: "The market, signed out (/jobs)", wave2: "#16", load: () => import("./PublicJobs.jsx") },
   "public-chrome": { title: "The signed-out nav + footer, on the server pages", wave2: "#16", load: () => import("./PublicChrome.jsx") },
+  network: { title: "Correspondence (Network · Feed · Messages)", wave2: "#14", load: () => import("./Network.jsx") },
 };

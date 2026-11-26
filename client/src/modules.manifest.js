@@ -68,6 +68,7 @@ export const MODULES = Object.freeze({
       // 47j lane w2-public (D197 Wave 2 #16 / #14 / #22 + the proposed marketing rows): the library pieces and the mocks
       "plate/PublicPages.jsx", "plate/Correspondence.jsx",
       "pages/dev/platePages/publicFixtures.jsx", "pages/dev/platePages/PublicJobs.jsx", "pages/dev/platePages/PublicChrome.jsx",
+      "pages/dev/platePages/Network.jsx",
       // P1 (the market): the switch, the card face, and the deck that wears it
       "plate/marketPlate.js", "plate/MarketCardFace.jsx", "plate/PlateBearing.jsx", "plate/MarketHero.jsx", "plate/MarketOpenings.jsx", "panels/DeckView.jsx",
       // 47f (the owner's P1 FIX): the deck at the board's size; the Index as the Gazetteer, drawn by the board's own column
