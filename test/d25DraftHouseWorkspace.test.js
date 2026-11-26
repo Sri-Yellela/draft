@@ -63,7 +63,8 @@ test("⛔ Apply for me (FULL AUTO) has a handler only when selectable, is disabl
   // The reason is a visible paragraph, not a tooltip a phone cannot show.
   // 47i (D197 #3): Home's controls are built once for both faces, so the class is the face's (classic dh-head__why, the
   // ledger's pl-lg-why) — still a visible paragraph with the reason in its words
-  assert.match(panel, /<p className=(?:"dh-head__why"|\{cls\("dh-head__why", "pl-lg-why"\)\}) id="dh-auto-why" data-auto-locked-reason="">Apply for me is locked: \{mode\.reason\}<\/p>/);
+  // ⛔ 47j w1-retire (changed on purpose): R3 — one face left, the ledger's (pl-lg-why)
+  assert.match(panel, /<p className="pl-lg-why" id="dh-auto-why" data-auto-locked-reason="">Apply for me is locked: \{mode\.reason\}<\/p>/);
   // Nothing in the client writes a lock state of its own (an object literal, not prose about one).
   for (const src of [panel, ctx]) assert.doesNotMatch(src, /locked:\s*false\s*[,}]/);
   // The pressed segment is the SERVER's mode.
@@ -220,7 +221,8 @@ test("PanelControls is reused, not forked — and the Database panel keeps all t
   }
   assert.match(dbPanel, /import \{ PanelSubTabs, PanelSearch, DateFilterButton \} from "\.\.\/components\/ui\/PanelControls\.jsx";/);
   assert.match(panel, /import \{ PanelSearch \} from "\.\.\/components\/ui\/PanelControls\.jsx";/);
-  assert.match(panel, /search=\{<PanelSearch theme=\{theme\} value=\{q\} onChange=\{setQ\}/, "the tree's search is the shared one");
+  // ⛔ 47j w1-retire (changed on purpose): R3 — the ledger's Find draws it (TrackerFilters' search= slot was the classic table's)
+  assert.match(panel, /<PanelSearch theme=\{theme\} value=\{q\} onChange=\{setQ\}/, "the tree's search is the shared one");
   for (const src of [panel, tree]) {
     assert.doesNotMatch(src, /function (PanelSubTabs|PanelSearch|DateFilterButton)\b/, "a control was forked");
   }

@@ -31,7 +31,8 @@ test("d197LedgerTicketsOut: each ticket only when the page can back it", () => {
 
 test("d197LedgerTicketsOut: Home mounts them (plate on), the market's needs-you ticket is Home's own section 01", async () => {
   const panel = read("client/src/panels/AutoApplyPanel.jsx");
-  assert.match(panel, /\{plate && <LedgerTicketsSlot rows=\{rows\} counts=\{lgCounts\} front=\{lgFront\}\/>\}/);
+  // ⛔ 47j w1-retire (changed on purpose): R3 retired the switch — Home always mounts them
+  assert.match(panel, /\n\s*<LedgerTicketsSlot rows=\{rows\} counts=\{lgCounts\} front=\{lgFront\}\/>/);
   assert.match(panel, /api\(`\/api\/jobs\/\$\{encodeURIComponent\(jobId\)\}\/contextual`\)/, "the gap comes from the front application's contextual card");
   const html = await renderFixture("LedgerBoard");
   const sec = html.slice(at(html, 'data-ledger-tickets=""'));

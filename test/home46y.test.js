@@ -42,26 +42,28 @@ test("home46y · homeNeeds — Needs you, the next interview, Ready to send, in 
 });
 
 test("home46y · Home draws the bar, the cards and the two parts (AutoApplyPanel)", () => {
-  const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
-  const head = panel.slice(at(panel, '<header className="dh-head"'), at(panel, "</header>"));
-  assert.doesNotMatch(head, /data-mode="ask"/, "the mode left the header");
-  assert.doesNotMatch(head, /data-settings-open=""/, "Settings left the header");
-  assert.match(head, /data-home-summary=""/);
-  const bar = panel.slice(at(panel, 'data-home-auto=""'), at(panel, 'data-home-needs=""'));
-  // ⭐ 47h (D197 #3, changed on purpose): the controls are built ONCE as elements (askBtn · autoBtn · pauseBtn · settingsBtn)
-  // and placed by the face — the classic bar here, the ledger's header on the plate — so the bar holds them by name.
-  for (const piece of ["{askBtn}", "{autoBtn}", "{pauseBtn}", "{settingsBtn}", '"Auto-apply is running"', '"Auto-apply is paused"'])
-    assert.ok(bar.includes(piece), `the auto-apply bar holds ${piece}`);
+  const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8").replace(/\r\n/g, "\n");
+  // ⛔ 47j w1-retire (changed on purpose): R3 deleted the classic Home — its header (.dh-head), the auto-apply bar
+  // (data-home-auto, the live dot), the needs cards (data-home-needs) and the classic tabs (data-home-tab). Each lives on the
+  // ledger now (docs/revamp/ledger.md §1–§5): the summary under the title, the mode / Pause / Settings beside the run, the
+  // worker card's state line, section 01, the register's Applications · Inbox chips.
+  for (const gone of ['<header className="dh-head"', 'data-home-auto=""', 'data-home-needs=""', 'data-home-tab="', '"Auto-apply is running"'])
+    assert.ok(!panel.includes(gone), `the classic ${gone} is deleted`);
+  const head = panel.slice(at(panel, "const lgHeader = ("), at(panel, "// 01 · Needs you"));
+  assert.match(head, /<LedgerHeader week=\{isoWeekOf\(new Date\(now\)\)\} summary=\{summary\}/, "the line under the title");
+  assert.match(head, /<div className="pl-lg-mode" role="group" aria-label="Auto-apply" data-ledger-auto="" data-held=\{held \? "true" : "false"\}>\{askBtn\}\{autoBtn\}\{pauseBtn\}\{settingsBtn\}<\/div>/,
+    "the mode, Pause and Settings, built once and placed once");
+  assert.match(panel, /\{ state: "running", line: `Running\$\{autoLine\}`/, "the run's state line (the worker card)");
+  assert.match(panel, /<FilterChips label="Show" chips=\{\[\{ id: "apps", label: "Applications"/, "Applications · Inbox");
   for (const [name, hook] of [["askBtn", 'data-mode="ask"'], ["autoBtn", 'data-mode="auto"'], ["pauseBtn", 'data-stop-everything=""'], ["settingsBtn", 'data-settings-open=""']])
     assert.match(panel, new RegExp(`const ${name} = [\\s\\S]{0,40}<button[^>]*${hook.replace(/"/g, '"')}`), `${name} is the one ${hook}`);
   assert.equal(panel.split('data-stop-everything=""').length - 1, 1, "ONE Pause (A93): it moved, it was not copied");
   assert.equal(panel.split('data-settings-open=""').length - 1, 1, "ONE Settings");
-  assert.match(panel, /data-home-tab="apps"[\s\S]*data-home-tab="inbox"/);
   assert.match(panel, /<ApplicationInbox theme=\{theme\} onSeen=\{inboxSeen\} \/>/, "the Inbox is Home's second part — the one ApplicationInbox");
   assert.doesNotMatch(panel, /<TrackerCounts/, "the counts row is gone (the filters carry the counts)");
   const css = fs.readFileSync("client/src/components/DraftHouse.css", "utf8");
   assert.match(css, /\.dh-main \{ display: grid; grid-template-columns: minmax\(0, 1fr\) 320px;/, "the sketch's .grid2 320 px aside");
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.dh-live \{ animation: none; \} \}/, "the live dot rests under Reduce motion");
+  assert.doesNotMatch(css, /\.dh-live|\.dh-auto|\.dh-head|\.dh-needs|\.dh-nd\b|\.dh-tabs/, "the classic Home's rules left with it (47j R3)");
 });
 
 test("home46y · the Inbox list: rows open in place, the category as a dot + word, the select only inside", () => {

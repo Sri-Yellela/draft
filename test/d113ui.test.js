@@ -378,15 +378,19 @@ test("d113uiNarrow — below 900 px: one column and a switch (D146 layout 3), br
   // table and the timeline instead of stacking them.
   const narrow = css.slice(at(css, "@media (max-width: 899px) {"), at(css, "/* ── THE TIMELINE CARD"));
   assert.match(narrow, /\.dh-main, \.dh-main\[data-detail="true"\] \{ grid-template-columns: minmax\(0, 1fr\); \}/);
-  assert.match(narrow, /\.dh-main\[data-phone-view="table"\] > \.dht, \.dh-main\[data-phone-view="timeline"\] > \.dh-table-col \{ display: none; \}/);
+  // ⛔ 47j w1-retire (changed on purpose): R3 deleted the classic Home — its table column (.dh-table-col) is gone; the phone's
+  // "Applications" side still folds the timeline away
+  assert.match(narrow, /\.dh-main\[data-phone-view="table"\] > \.dht \{ display: none; \}/);
+  assert.doesNotMatch(css, /\.dh-table-col/);
   assert.match(narrow, /\.dht-branch \{ margin-left: 16px; \}/);
   assert.match(narrow, /\.dht-acts \{ flex-wrap: wrap; \}/);
   // ⭐ 46y (changed on purpose, home-sketch.html's .grid2): the timeline column is 320 px.
   assert.match(css, /\.dh-main \{ display: grid; grid-template-columns: minmax\(0, 1fr\) 320px;/, "wide: the timeline is 320 px");
   // DOM order is table then timeline. ⭐ 47h (D197 #3, changed on purpose): the timeline (or the opened application's page)
   // is ONE element, `sideCol`, placed after the table here and under the register on the ledger.
-  const mainJsx = panel.slice(at(panel, '<div className="dh-main" data-draft-split=""'));
-  assert.ok(at(mainJsx, "<ApplicationTracker rows={shownRows}") < at(mainJsx, "{sideCol}"));
+  // ⛔ 47j w1-retire (changed on purpose): R3 — Home is always the ledger: the register, then `sideCol` in its `after`
+  const mainJsx = panel.slice(at(panel, "const lgRegister = ("));
+  assert.ok(at(mainJsx, '<Register label="Your applications"') < at(mainJsx, "{sideCol}"));
   assert.ok(at(panel, "const sideCol = (") < at(panel, "<DraftHouseTree view={view}", at(panel, "const sideCol = (")));
 });
 
@@ -416,7 +420,9 @@ test("D113 UI · the adapter falls back when the runs route 404s, and the next r
 
 // Moved from test/d14DraftPanelSplit.test.js (its Stopped │ Queued split is gone; these two still hold).
 test("D10 follow-up (from d14): the empty tree names the new tabs", () => {
-  assert.match(panel, /Draft jobs from \/draft\./);   // ⭐ 46q A215 (owner: keep /draft + Home; the retired names leave the copy)
+  // ⛔ 47j w1-retire (changed on purpose): R3 deleted the classic table's empty line ("Draft jobs from /draft."); the ledger's
+  // register says the same in the plate's words (47h)
+  assert.match(panel, /Nothing drafted yet\. Draft jobs from the market\./);
   assert.doesNotMatch(panel, /Draft jobs from Today or the board/);
 });
 test("D14 (kept): a section heading wraps rather than breaking its title in a narrow column", () => {
@@ -928,13 +934,15 @@ test("d146OnePanelOneNavEntry — one Dock / Menu entry, Draft House · your app
 });
 
 test("d146ImportExportKept — every Table import and export works from the header (Excel, CSV out, CSV in)", () => {
-  const head = panel.slice(at(panel, "THE HEADER — the name and its line"), at(panel, "a broken connection is one banner line"));
+  const head = panel.slice(at(panel, "THE HEADER — the ledger's"), at(panel, "a broken connection is one banner line"));
   // ⭐ 47h (D197 #3, changed on purpose): Import / Export are built ONCE (importBtn · exportBtn) and the header places them;
   // the ledger's header places the same two
-  assert.match(head, /\{importBtn\}\{exportBtn\}/);
+  // ⛔ 47j w1-retire (changed on purpose): R3 — only the ledger's header is left; it places them in its actions row
+  assert.match(panel.slice(at(panel, "const lgHeader = ("), at(panel, "// 01 · Needs you")), /\{importBtn\}\{exportBtn\}\{sendAllBtn\}/);
   assert.match(panel, /const importBtn = <button[^>]*data-import-open=""[^>]*onClick=\{\(\) => setImporting\(v => !v\)\}>Import</);
   assert.match(panel, /const exportBtn = <button[^\n]*data-export-open=""[^\n]{0,120}onClick=\{\(\) => setExporting\(v => !v\)\}>Export</);
-  assert.match(head, /\{importing && <ImportPanel onClose=\{\(\) => setImporting\(false\)\} onImported=/);
+  // ⛔ 47j w1-retire (changed on purpose): R3 — the panel's controls wear the plate's buttons on the ledger (face="plate")
+  assert.match(head, /\{importing && <ImportPanel face="plate" onClose=\{\(\) => setImporting\(false\)\} onImported=/);
   assert.match(head, /data-export-kind="excel" onClick=\{exportExcel\}/);
   assert.match(head, /data-export-kind="csv"[\s\S]{0,200}onClick=\{\(\) => saveText\(csvName\(\), historyToCsv\(csvRows\)\)\}/);
   assert.match(panel, /const exportExcel = async \(\) => \{ try \{ await downloadExcel\(user\?\.username\); \}/);
@@ -946,7 +954,7 @@ test("d146ImportExportKept — every Table import and export works from the head
   assert.match(history, /onClick=\{\(\) => saveText\(csvName\(\), historyToCsv\(view\.rows\)\)\}/);
   assert.doesNotMatch(history, /function saveText/, "no second CSV writer");
   // The import is The Table's own panel, exported — the same dry run, mapping and refusals.
-  assert.match(history, /export function ImportPanel\(\{ onClose, onImported \}\)/);
+  assert.match(history, /export function ImportPanel\(\{ onClose, onImported, face = null \}\)/);   // 47j w1-retire (on purpose): + the plate face
   assert.match(history, /api\("\/api\/applications\/import", \{ method: "POST", body: JSON\.stringify\(\{ csv: file\.text, mapping, apply \}\) \}\)/);
   // The CSV of the rows shown is The Table's CSV: the history rows behind the rows on screen.
   const rows = rowsOf();
@@ -1030,8 +1038,11 @@ test("d146RowOpensInPlaceOneAtATime — a row opens under itself, never a new pa
   [...walk(el)].find(e => e.props?.["data-row"] === k).props.onClick();
   assert.deepEqual(seen, [byJob(rows, "j-sent").key, null], "another row opens instead; the open one closes");
   // The panel holds ONE open thing (branchStep) — a row, or a run in the timeline — and Escape closes it.
-  assert.match(panel, /onOpen=\{\(key\) => step\(key == null \? \{ type: "close" \} : \{ type: "job", key \}\)\}/);
-  assert.match(panel, /openKey=\{open\?\.type === "job" \? open\.key : null\}/);
+  // ⛔ 47j w1-retire (changed on purpose): R3 — Home's list is the ledger's register (the classic table is deleted); the same
+  // one-open-thing step: a row opens, the open one closes
+  assert.match(panel, /const lgToggle = \(key\) => step\(open\?\.type === "job" && open\.key === key \? \{ type: "close" \} : \{ type: "job", key \}\);/);
+  assert.match(panel, /openId=\{open\?\.type === "job" \? open\.key : null\}/);
+  assert.match(panel, /onRowOpen=\{\(a\) => lgToggle\(a\.id\)\}/);
   // ⭐ A232 R6 (46y, owner 11-19 "all four approved"): the Escape line is asserted in d113uiOneBranchOpen above (the same file, the same words)
   assert.doesNotMatch(code(panel.slice(at(panel, "const renderRow = (row) => {"), at(panel, "const seeLeftOut"))), /navigate\(/, "opening a row is not a page change");
 });
@@ -1102,9 +1113,10 @@ test("d146SendAllReadyConfirms — Send all ready (n): every Ready to send, ONE 
 
 test("d146TimelineBesideDesktop — the table, and the timeline card beside it at 300 px", () => {
   // ⭐ A232 R6 (46y, owner 11-19 "all four approved"): the 300 px grid is asserted in d113uiNarrow above ("wide: the timeline is 300 px")
-  const mainJsx = panel.slice(at(panel, "THE TABLE, AND THE AUTO-APPLY TIMELINE BESIDE IT"));
   // 47h (changed on purpose): the timeline is the one `sideCol` element (its DraftHouseTree is asserted in d113uiNarrow)
-  assert.ok(at(mainJsx, "<ApplicationTracker rows={shownRows}") < at(mainJsx, "{sideCol}"), "the table, then the timeline");
+  // ⛔ 47j w1-retire (changed on purpose): R3 — the ledger's register, then the timeline in its `after`
+  const mainJsx = panel.slice(at(panel, "const lgRegister = ("));
+  assert.ok(at(mainJsx, '<Register label="Your applications"') < at(mainJsx, "{sideCol}"), "the register, then the timeline");
   // D149 (11-03) changed this on purpose: the sketch's head is two lines — "Auto-apply", then the mode and run times.
   assert.match(panel, />Auto-apply<\/h3>/);
   // 45n D182 (bb297b05): the mode words left this line (the header's mode switch shows them); the run times stay,
@@ -1122,7 +1134,7 @@ test("d146TimelineSwitchPhone — on a phone, a switch: Applications · Auto-app
   // ⭐ 46y (changed on purpose, home-sketch.html): the phone's switch also carries the Inbox, so Applications sets the tab too.
   assert.match(sw, /data-phone-view="table"[^>]*onClick=\{\(\) => \{ setPhoneView\("table"\); setHomeTab\("apps"\); \}\}>Applications</);
   assert.match(sw, /data-phone-view="timeline"[^>]*onClick=\{\(\) => setPhoneView\("timeline"\)\}>Auto-apply timeline</);
-  assert.match(panel, /<div className="dh-main" data-draft-split="" data-phone-view=\{phoneView\}/);
+  assert.match(panel, /<div className="pl-lg-after dh-main" data-draft-split="" data-phone-view=\{phoneView\}/);   // 47j w1-retire (on purpose): the ledger's
   const narrow = dhCss.slice(at(dhCss, "@media (max-width: 899px) {"));
   assert.match(narrow, /\.dh-switch \{ display: inline-flex;/);
   // ⭐ A232 R6 (46y, owner 11-19 "all four approved"): the phone view's display: none line is asserted in d113uiNarrow above, inside the 899px block only (stricter)
@@ -1195,7 +1207,9 @@ test("d146NothingDropped — every capability in the row's map survives, where t
   // ⭐ 46y (changed on purpose): the Emails pane's "The inbox" opens Home's own Inbox tab (home-sketch.html); the full sheet keeps its Inbox too.
   check("Inbox → the Emails pane", byJob(rows, "j-sent").panes.includes("emails") && /data-open-inbox="" onClick=\{\(\) => \{ setOpen\(null\); setHomeTab\("inbox"\); \}\}/.test(panel) && /\["inbox","Inbox"\]/.test(dbPanel));
   // The date range / search → a search field and the period in the filter row.
-  check("search + period in the filter row", TRACKER_PERIODS.length === 4 && /<TrackerFilters filter=\{filter\} onFilter=\{setFilter\} period=\{period\} onPeriod=\{setPeriod\}/.test(panel)
+  // ⛔ 47j w1-retire (changed on purpose): R3 — the ledger's Find opens the search and the period (TrackerFilters was the classic table's)
+  check("search + period in the filter row", TRACKER_PERIODS.length === 4 && /<PanelSearch theme=\{theme\} value=\{q\} onChange=\{setQ\}/.test(panel)
+    && /aria-label="When" value=\{period\} onChange=\{\(e\) => setPeriod\(e\.target\.value\)\}/.test(panel)
     && trackerView(rows, { periodDays: 7, now: NOW }).every(r => r.at >= NOW - 7 * 86400000)
     && trackerView(rows, { q: "saltmarsh", now: NOW }).length === 1);
   // Draft House's branches and leaves → the row's on-demand panes.

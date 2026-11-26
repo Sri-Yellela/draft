@@ -13,13 +13,6 @@
 }
 .dh-page > .dht-acts, .dh-page > .dh-note, .dh-page > .dh-handoff, .dh-page > .dh-banner { margin-top: 12px; }
 
-/* ── U1 · THE HEADER — the sketch's .ph3: the name and its line; .tools3 to the right, wrapping under on a phone ── */
-.dh-head { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; justify-content: space-between; }
-.dh-head__text { min-width: 0; }
-.dh-head__say { margin: 6px 0 0; font-size: calc(16px * var(--type-scale, 1)); color: var(--c-ink-muted); }
-.dh-head[data-held="true"] .dh-head__say { color: var(--c-ink); font-weight: 700; }
-.dh-head__ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.dh-head__why { flex-basis: 100%; margin: 0; font-size: 11.5px; color: var(--c-ink-muted); }
 .dh-note { font-size: 11.5px; color: var(--c-ink-muted); }
 .dh-note[data-tone="accent"] { color: var(--c-accent-ink); }
 .dh-handoff {
@@ -29,6 +22,9 @@
 .dh-handoff[data-kind="open"] { border-color: var(--c-info); border-left-color: var(--c-info); }
 .dh-handoff span { flex: 1; line-height: 1.6; color: var(--c-ink); }
 .dh-handoff button { border: 0; background: transparent; color: var(--c-ink-faint); cursor: pointer; font-size: 16px; line-height: 1; }
+/* ⛔ 47j R3 (w1-retire): the classic Home's rules are deleted with it — the header (.dh-head*), the auto-apply bar (.dh-auto*,
+   .dh-live), the needs cards (.dh-needs / .dh-nd*), the tabs (.dh-tabs), the table column (.dh-table-col) and their buttons
+   (.dh-quiet / .dh-send). Home is the ledger (plate/Ledger.jsx, plate/sheets.css). */
 
 /* the sketch's .seg2 — the card colour, 4 px in; the chosen side raised (the mode, and the phone's switch) */
 .dh-mode { display: inline-flex; padding: 4px; border-radius: 14px; background: var(--c-surface-solid); }
@@ -39,65 +35,6 @@
 .dh-mode__seg[aria-pressed="true"] { background: var(--c-fh-well); color: var(--c-ink); }
 .dh-mode__seg:disabled:not([aria-pressed="true"]) { cursor: not-allowed; }
 .dh-mode__seg:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 3px; }
-/* the sketch's .quiet (Settings · Import · Export) and its `.btn.p` at 10 × 16 (Send all ready) */
-.dh-head__ctl { gap: 8px; }
-.dh-quiet {
-  border: 0; border-radius: 12px; padding: 9px 14px; background: var(--c-surface-solid); color: var(--c-ink-muted); cursor: pointer;
-  font: inherit; line-height: 1.55; font-size: calc(14px * var(--type-scale, 1)); font-weight: 600;
-}
-.dh-quiet:hover, .dh-quiet[aria-pressed="true"] { color: var(--c-ink); }
-.dh-send {
-  border: 0; border-radius: 16px; padding: 10px 16px; cursor: pointer; font: inherit; line-height: 1.55; font-size: calc(15.5px * var(--type-scale, 1)); font-weight: 600;
-  background: linear-gradient(180deg, var(--c-accent), var(--c-accent-hover)); color: var(--c-on-accent); box-shadow: var(--c-depth-accent);
-}
-.dh-send:disabled { cursor: default; }
-.dh-quiet:focus-visible, .dh-send:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 3px; }
-.dh-mode__why { margin: 0; font-size: 11.5px; color: var(--c-ink-muted); max-width: 30ch; }
-/* ⭐ 46y · home-sketch.html's .acts — Import · Export as its .btn (the raised colour, the ink, 14 radius, 11 × 16) and
-   Send all ready as its .btn.p, at its 15 px. */
-.dh-head__ctl .dh-quiet, .dh-head__ctl .dh-send { border-radius: 14px; padding: 11px 16px; font-size: calc(15px * var(--type-scale, 1)); }
-.dh-head__ctl .dh-quiet { background: var(--c-fh-well); color: var(--c-ink); }
-
-/* ── ⭐ 46y · home-sketch.html's .auto — THE AUTO-APPLY BAR: the card colour, radius 24, 14 × 18, 18 under; the live dot
-   (8 px, the ok green, pulsing 1.6 s), the words in body grey with the state in ink 600; .mode on the raised colour (3 in,
-   the chosen side the card colour in the accent); Pause the raised .btn; Settings the accent .quiet. ── */
-.dh-auto { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; margin: 18px 0 18px;
-  padding: 14px 18px; border-radius: 24px; background: var(--c-surface-solid); }
-.dh-auto__st { display: flex; gap: 10px; align-items: center; color: var(--c-ink-muted); min-width: 0; }
-.dh-auto__st b { color: var(--c-ink); font-weight: 600; }
-.dh-auto__ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.dh-auto .dh-head__why { flex-basis: 100%; }
-.dh-live { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--c-success);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-success) 60%, transparent); animation: dh-pulse 1.6s infinite; }
-.dh-auto[data-held="true"] .dh-live { background: var(--c-ink-faint); animation: none; }
-@keyframes dh-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-success) 55%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
-.dh-auto .dh-mode { padding: 3px; border-radius: 13px; background: var(--c-fh-well); }
-.dh-auto .dh-mode__seg { padding: 7px 12px; border-radius: 10px; font-size: calc(13.5px * var(--type-scale, 1)); }
-.dh-auto .dh-mode__seg[aria-pressed="true"] { background: var(--c-surface-solid); color: var(--c-accent-ink); }
-.dh-auto .dh-quiet { border-radius: 14px; padding: 11px 16px; background: var(--c-fh-well); color: var(--c-ink); font-size: calc(15px * var(--type-scale, 1)); }
-.dh-auto .dh-auto__rules { color: var(--c-accent-ink); font-weight: 600; font-size: calc(14px * var(--type-scale, 1)); }
-@media (prefers-reduced-motion: reduce) { .dh-live { animation: none; } }
-
-/* ── ⭐ 46y · home-sketch.html's .needs / .nd — what needs you first: cards in a 260 px-minimum grid, 12 apart, 26 under;
-   each the card colour, radius 24, padding 18, 6 between: the kind in the accent (13), the name (16 / 600), the line
-   (14, body grey), the button (.btn.p for Needs you, .btn otherwise) 6 below. ── */
-.dh-needs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin: 0 0 26px; }
-.dh-nd { display: grid; gap: 6px; align-content: start; padding: 18px; border-radius: 24px; background: var(--c-surface-solid); }
-.dh-nd__k { color: var(--c-accent-ink); font-size: calc(13px * var(--type-scale, 1)); }
-.dh-nd b { font-size: calc(16px * var(--type-scale, 1)); font-weight: 600; color: var(--c-ink); }
-.dh-nd p { margin: 0; color: var(--c-ink-muted); font-size: calc(14px * var(--type-scale, 1)); }
-.dh-nd .dht-acts { margin-top: 6px; }
-.dh-nd .dh-send, .dh-nd .dh-quiet { border-radius: 14px; padding: 11px 16px; font-size: calc(15px * var(--type-scale, 1)); }
-.dh-nd .dh-quiet { background: var(--c-fh-well); color: var(--c-ink); }
-
-/* ── ⭐ 46y · home-sketch.html's .tabs — Applications n · Inbox n new: the card colour, radius 16, 4 in, 14 under; each
-   8 × 16, radius 12, 14 / 600 in body grey; the chosen one raised in ink; the count muted at 500, 6 px in. ── */
-.dh-tabs { display: inline-flex; align-self: flex-start; padding: 4px; border-radius: 16px; background: var(--c-surface-solid); margin: 0 0 2px; }
-.dh-tabs button { border: 0; background: transparent; cursor: pointer; padding: 8px 16px; border-radius: 12px; font: inherit; line-height: 1.55;
-  font-size: calc(14px * var(--type-scale, 1)); font-weight: 600; color: var(--c-ink-muted); }
-.dh-tabs button[aria-pressed="true"] { background: var(--c-fh-well); color: var(--c-ink); }
-.dh-tabs button span { margin-left: 6px; color: var(--c-ink-faint); font-weight: 500; }
-.dh-tabs button:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 3px; }
 
 /* ── ⭐ 46y · home-sketch.html's Inbox — .list (one card, radius 24) of .it rows: bubble · subject over the sender ·
    a dot + the category · when; 13 × 18, 14 between, a line between rows; hovered / opened raised. An opened row's .det:
@@ -160,8 +97,6 @@
 /* ── ⭐ D146 · THE MAIN GRID — the table, and the auto-apply timeline card beside it at 300 px ───── */
 .dh-main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }   /* 46y: home-sketch.html's .grid2 */
 .dh-main[data-detail="true"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
-.dh-table-col { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-.dh-table-col > .trk-filters { margin: 0; }
 .dh-detail { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; position: sticky; top: 8px; }
 .dh-switch { display: none; }
 /* D149 (11-03): a broken connection is one line on the card colour — no border, no coloured edge (no card borders). */
@@ -183,8 +118,7 @@
 @media (max-width: 899px) {
   .dh-main, .dh-main[data-detail="true"] { grid-template-columns: minmax(0, 1fr); }
   .dh-switch { display: inline-flex; align-self: flex-start; margin-bottom: 14px; }
-  .dh-table-col > .dh-tabs { display: none; }   /* 46y: the phone's switch carries Applications · Inbox · timeline */
-  .dh-main[data-phone-view="table"] > .dht, .dh-main[data-phone-view="timeline"] > .dh-table-col { display: none; }
+  .dh-main[data-phone-view="table"] > .dht { display: none; }   /* ⛔ 47j R3: the classic table column (.dh-table-col) is deleted */
   .dht { position: static; }
   .dh-main > .dh-detail { order: -1; }
   .dht-branch { margin-left: 16px; }

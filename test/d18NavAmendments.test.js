@@ -78,7 +78,10 @@ test("D18: no display string still sends the user to 'the Draft tab'", () => {
   }
   assert.deepEqual(hits, [], "a display string names the old tab — it is Home (D18):\n" + hits.join("\n"));
   // D149 (11-03) changed this on purpose: the sketch's h1 at 44 px on the deck's page-title type (DH_TITLE).
-  assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /<h1 style=\{\{ \.\.\.TYPE\.PAGE_TITLE, \.\.\.DH_TITLE \}\}>\s*Home\s*</);
+  // ⛔ 47j w1-retire (changed on purpose): R3 — the classic "Home" h1 is deleted; the page is the ledger (its header, plate/Ledger.jsx), and
+  // the dock still names the place Home
+  assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /<LedgerHeader week=/);
+  assert.match(read("client/src/components/AppNav.jsx"), /"auto-apply" : "Home"/);
 });
 
 test("O56e → D145: the phone's tab row is gone — the Menu (or the dock, chosen) reaches every section at any width", () => {
