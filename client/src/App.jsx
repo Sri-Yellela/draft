@@ -317,7 +317,8 @@ function MarketSortSlot() {
 }
 
 
-// D35: the sort panel — ⭐ D156 (5): a small menu under the search field's sort icon (FullHouse.css .fh-bar > .fh-sortp).
+// D35: the sort panel — ⭐ D156 (5): a small menu under the search field's sort icon. ⛔ 47j w1-market: drawn as a plate
+// MarketPanel (kind "menu", plate/MarketControls.jsx) under the cartouche's search row — no FullHouse.css.
 function BoardSortSlot() {
   const { boardPanel, setBoardPanel, sortBy, setSortBy, atsSortAvailable, boardHeadline } = useJobBoard();
   if (boardPanel !== BOARD_PANEL.SORT) return null;
@@ -346,7 +347,9 @@ function BoardViews({ onImported }) {
   }, []);
   if (!importing) return null;
   return (
-    <div className="fh fh-viewrow" data-board-views="">
+    // ⛔ 47j w1-market (D197 Wave 1 #2): the box is a plate panel (BoardBar.jsx ImportJobBox → MarketPanel), on the
+    // Index's paper — no `.fh` row around it
+    <div className="pl-mk-importrow" data-board-views="">
       {importing && (
         <ImportJobBox onClose={() => setImporting(false)}
           onImported={() => { setBoardTab?.("imported"); onImported?.(); }} />
@@ -485,7 +488,7 @@ function MarketHeroSlot() {
 }
 
 // ⭐ D196 P1 · section 01, the bearing: the board's leg header and lead over the cartouche (BoardHeadlineSlot picks it) and
-// WordPanel beneath, inside `.fh` so the panel keeps its look. The board's "How the board is ordered" aside is NOT drawn: it
+// WordPanel beneath (⛔ 47j w1-market: a plate MarketPanel now — the `.fh` header around them is gone). The board's "How the board is ordered" aside is NOT drawn: it
 // explains a skills-band order, and draft's deck is ranked by A133 (ATS · best bets · role similarity, with rotation).
 // ⭐ D199 C1 (owner 11-25: "the 3rd can live in home and the 1st and 2nd can be merged") · THE MARKET'S ONE SECTION, *Your
 // bearing and openings*: the bearing cartouche with its controls → Deck · Terrain · Index → the pager. Tickets out left the
@@ -496,7 +499,7 @@ function MarketSectionSlot({ deck, index }) {
       <section className="pl-section" id="bearing" aria-labelledby="mk-bearing" data-market-section="">
         <LegHeader n={1} meta="YOUR BEARING AND OPENINGS · ONE SECTION" title={<span id="mk-bearing">Where you’re headed, and what’s there</span>}/>
         <p className="pl-lead">Set the bearing, search or filter; the counts and the openings follow. Pass, save or send any of them; Draft starts the application and it moves to your ledger.</p>
-        <header className="fh" data-fh-d147=""><BoardHeadlineSlot /></header>
+        <header className="pl-mk-head" data-market-head=""><BoardHeadlineSlot /></header>
         <MarketOpenings deck={deck} index={index} pager={<MarketPagerSlot />} />
       </section>
     </PlateRoot>

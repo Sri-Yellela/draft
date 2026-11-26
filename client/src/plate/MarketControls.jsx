@@ -79,6 +79,25 @@ export function MarketSearchRow({ search, sort }) {
   );
 }
 
+/**
+ * ⭐ D197 Wave 1 #2 (47j w1-market) · THE PANEL THE CARTOUCHE'S CONTROLS OPEN — a filter word's options (WordPanel), All
+ * filters, and the sort's orders (SortPanel) — drawn once, in place under the controls: a card on the paper, its key in mono
+ * caps and "Close ×", then the body. `kind="menu"` is the sort's narrower menu (right-aligned under the search row). The
+ * options inside are `.pl-mk-op` — the same look as the cartouche's filter chips (`.pl-mk-chip`), so a chip and the
+ * options it opens read as one family. The behaviour (focus in, Escape, Close returning focus) stays with the caller.
+ */
+export function MarketPanel({ id, kind = "panel", label, labelId, onClose, panelRef, children, ...rest }) {
+  return (
+    <section ref={panelRef} id={id} className={kind === "menu" ? "pl-mk-panel pl-mk-panel--menu" : "pl-mk-panel"} {...rest}>
+      <div className="pl-mk-panel__head">
+        <span className="pl-label pl-mk-panel__key" id={labelId}>{label}</span>
+        <button type="button" className="pl-mk-panel__close" onClick={() => onClose?.()}>Close ×</button>
+      </div>
+      {children}
+    </section>
+  );
+}
+
 /** The sort control: "SORT  Best match ▾" — it opens the board's one sort panel (the code's five orders, D199 C2). */
 export function MarketSortButton({ label = "Best match", open = false, chosen = false, onPress }) {
   return (
@@ -94,7 +113,7 @@ export function MarketSortButton({ label = "Best match", open = false, chosen = 
 
 /**
  * The filter chips row + the active chips + Clear all. `open` = the board's one open panel key; `onOpen(key)` opens a word's
- * panel (WordPanel, in place beneath); `onMore()` opens the drawer; `onPatch` / `onClearQuery` / `onClearAll` write back.
+ * panel (WordPanel, in place beneath, drawn by MarketPanel); `onMore()` opens the drawer; `onPatch` / `onClearQuery` / `onClearAll` write back.
  */
 // `all` = { id, slot, open, onPress }: the board's "All filters" (every facet at once, A146) — kept as the row's last chip so
 // nothing the classic board had is lost (D200 Rule 1); the `Market` board doesn't draw it.

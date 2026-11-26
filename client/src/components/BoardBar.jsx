@@ -4,7 +4,9 @@ import UsbSuggest from "./UsbSuggest.jsx";
 import { api } from "../lib/api.js";
 // The typeahead list's own rules (.usb__suggest*) live with the landing page's bar.
 import "./UnifiedSearchBar.css";
-import "./FullHouse.css";
+// ⛔ 47j w1-market (D197 Wave 1 #2): the search field and Import a job are drawn as plate pieces (plate/plate.css
+// .pl-mk-field, plate/MarketControls.jsx MarketPanel + .pl-textarea / .pl-btn); FullHouse.css no longer dresses them.
+import { MarketPanel } from "../plate/MarketControls.jsx";
 
 // ⭐ D147 (owner 11-03): the bar is the SEARCH alone now — the views moved into the Sort / view control's panel (as
 // words) and the sort control moved to the title row (SortWord). D35's account below is the history.
@@ -45,7 +47,7 @@ export function BoardSearch({ onSubmit, onPickRole, onPickTech, children = null,
     setQ(v);
   }, [value]);
   return (
-    <div className="fh-srch" role="search" aria-label="Job search">
+    <div className="pl-mk-field" role="search" aria-label="Job search">
       {/* ⭐ D149 (fullhouse-declutter.html `.sbar`): the field alone — no magnifier — and the sketch's words. */}
       <UsbSuggest field="title" value={q} onChange={change} onPickRole={onPickRole} onPickTech={onPickTech}>
         {sugg => (
@@ -60,7 +62,7 @@ export function BoardSearch({ onSubmit, onPickRole, onPickTech, children = null,
         )}
       </UsbSuggest>
       {q && (
-        <button type="button" className="fh-srch__clear" aria-label="Clear the search"
+        <button type="button" className="pl-mk-field__clear" aria-label="Clear the search"
           onClick={() => { setQ(""); commit(""); }}>
           <X size={12} aria-hidden="true" />
         </button>
@@ -102,17 +104,18 @@ export function ImportJobBox({ onImported, onClose }) {
     } finally { setBusy(false); }
   };
   return (
-    <form className="fh-import" data-import-box="" onSubmit={submit} aria-label="Import a job"
+    <MarketPanel id="import-job" label="Import a job" labelId="import-job-key" onClose={onClose} data-import-panel="">
+    <form className="pl-mk-import" data-import-box="" onSubmit={submit} aria-labelledby="import-job-key"
       onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); onClose?.(); } }}>
-      <textarea value={value} onChange={(e) => setValue(e.target.value)} rows={isLink || !v ? 1 : 4} autoFocus
+      <textarea className="pl-textarea" value={value} onChange={(e) => setValue(e.target.value)} rows={isLink || !v ? 1 : 4} autoFocus
         placeholder="Paste a link to the posting, or its description" aria-label="A link to the posting, or its description"
         onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && isLink) submit(e); }} />
-      <div className="fh-import__row">
-        <button type="submit" className="fh-import__go" disabled={!v || busy}>{busy ? "Reading it…" : "Import"}</button>
-        <button type="button" className="fh-import__x" onClick={() => onClose?.()}>Close</button>
-        {note && <p className="fh-import__note" data-import-note={note.kind} role={note.kind === "error" ? "alert" : "status"}>{note.text}</p>}
+      <div className="pl-mk-import__row">
+        <button type="submit" className="pl-btn pl-btn--primary" data-import-go="" disabled={!v || busy}>{busy ? "Reading it…" : "Import"}</button>
+        {note && <p className="pl-mk-import__note" data-import-note={note.kind} role={note.kind === "error" ? "alert" : "status"}>{note.text}</p>}
       </div>
     </form>
+    </MarketPanel>
   );
 }
 
