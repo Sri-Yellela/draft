@@ -25,8 +25,10 @@ export function useRepeatsNav(eyebrow) {
   return !!cur && !!eyebrow && (norm(eyebrow) === norm(cur.label) || norm(eyebrow) === norm(cur.group));
 }
 
-/** The nav card + the panel. `groups`: [{ label, items: [{ id, label, meta? }] }]. */
-export default function PlaceNav({ name, eyebrow, title, groups, current, hrefFor, children, place, fill = false, panelId }) {
+/** The nav card + the panel. `groups`: [{ label, items: [{ id, label, meta? }] }]. ⭐ 47j w1-shell: `nav={false}` draws the
+ *  panel alone — for a place whose navigation is the shell's area nav (Atlas in the app, D197 #5), so the card would be a
+ *  second copy of the same places. With no card beside it, a panel's eyebrow is drawn (nothing repeats it). */
+export default function PlaceNav({ name, eyebrow, title, groups, current, hrefFor, children, place, fill = false, panelId, nav = true }) {
   const ref = useRef(null);
   const onKeyDown = (e) => {
     if (!(e.key in MOVE)) return;
@@ -39,6 +41,13 @@ export default function PlaceNav({ name, eyebrow, title, groups, current, hrefFo
   };
   const group = groups.find((g) => g.items.some((i) => i.id === current));
   const here = { label: labelOf(groups, current), group: group?.label || "" };
+  if (!nav) return (
+    <div className={fill ? "pl pl--fill pl--bare" : "pl pl--bare"} data-place={place || name}>
+      <section className="pl__panel" data-place-panel={current} key={current} id={panelId} aria-label={here.label || title}>
+        {children}
+      </section>
+    </div>
+  );
   return (
     <div className={fill ? "pl pl--fill" : "pl"} data-place={place || name}>
       <aside className="pl__nav" aria-label={name || title} data-place-nav="" ref={ref} onKeyDown={onKeyDown}>

@@ -8,6 +8,8 @@
 }
 /* ⭐ A136 · inside a page that already pads it (Atlas's <main>): no second padding, and the panel takes the rest. */
 .pl--fill { padding: 0; }
+/* ⭐ 47j w1-shell · the panel alone (nav={false}): the shell's area nav carries the place's navigation. */
+.pl--bare { grid-template-columns: minmax(0, 1fr); }
 .pl__item:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
 .pl__nav {
   position: sticky; top: calc(var(--app-chrome-height, 0px) + 20px); align-self: start;
