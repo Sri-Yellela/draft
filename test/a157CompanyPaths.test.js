@@ -25,6 +25,11 @@ test("a157ReservedCoversEveryRoute: every first path segment draft serves is res
   for (const f of ["server.js", ...fs.readdirSync(new URL("../routes/", import.meta.url)).map(x => `routes/${x}`)]) {
     for (const m of read(f).matchAll(/app\.(?:get|post|put|patch|delete|use)\(\s*"\/([a-z0-9-]+)(?=[/"?])/g)) segs.add(m[1]);
   }
+  // ⛔ 47j w1-shell (added on purpose): a route registered through a constant (server.js app.get(ROADMAP_PATH)) escapes the
+  // regex above — /learn/data-engineering-roadmap's first word is read from its constant
+  const roadmap = /export const ROADMAP_PATH = "\/([a-z0-9-]+)\//.exec(read("services/learn/roadmapPage.js"));
+  assert.ok(roadmap, "ROADMAP_PATH moved — re-point this read");
+  segs.add(roadmap[1]);
   const missing = [...segs].filter(s => !isReserved(s));
   assert.deepEqual(missing, [], `add to RESERVED in shared/companyPaths.js: ${missing.join(", ")}`);
   assert.ok(RESERVED.has("app") && RESERVED.has("api") && RESERVED.has("jobs"));
