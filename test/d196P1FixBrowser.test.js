@@ -57,7 +57,10 @@ test("FIX-1 · d196PlatePageAlwaysPaper + d196NoThemeLeakIntoPlate — opaque in
     const r = await page.evaluate(() => {
       const bg = (el) => getComputedStyle(el).backgroundColor;
       const sections = [...document.querySelectorAll(".pl-marketopenings, .pl-markethero, .pl-marketbearing, .pl-marketpage")];
-      const lead = document.querySelector(".pl-marketopenings .pl-lead");
+      // 47i (on purpose): D200 Rule 3 took the section's lead away (one plain header line); its body text is measured
+      // instead — the first paragraph, else a binder tab's words — readable on the plate's ground in every theme
+      const lead = document.querySelector(".pl-marketopenings .pl-lead") || document.querySelector(".pl-marketopenings p")
+        || document.querySelector(".pl-marketopenings [role=tab]");
       const meta = document.querySelector(".pl-marketopenings .pl-leg .pl-label, .pl-marketopenings .pl-label");
       const root = document.querySelector(".pl-marketopenings");
       return { sections: sections.map((s) => [s.className, bg(s)]), lead: getComputedStyle(lead).color, meta: meta ? getComputedStyle(meta).color : null,
