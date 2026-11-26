@@ -30,6 +30,7 @@
   .plate .at-march, .plate .at-tick, .plate .at-stamp, .plate .pl-lit-pop, .plate .pl-tape__word { animation: none; }
   .plate .at-draw { animation: none; stroke-dashoffset: 0; }
   .plate .pl-lift, .plate .pl-lift:hover { transition: none; transform: none; }
+  .plate .pl-ixrow__star, .plate .pl-ixrow__draft { animation: none !important; }   /* D199 C8: the Index actions just appear */
 }
 
 /* ── Base ── */
@@ -1068,4 +1069,3 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
   .pl-ixrow__star > span { display: none; }
   .pl-ixrow__co { display: none; }   /* the squeezed title cell can't hold the company's button; the posting and the deck's logo still open it */
 }
-@media (prefers-reduced-motion: reduce) { .pl-ixrow__star, .pl-ixrow__draft { animation: none !important; } }

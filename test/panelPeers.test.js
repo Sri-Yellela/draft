@@ -452,7 +452,7 @@ test("the two redundant controls are removed, and both are still reachable elsew
   assert.ok(!/placeholder="Filter loaded jobs/.test(panel));
   // D35: the board's keyword field is the condensed bar's search (BoardBar.jsx), through BoardSearchBar.
   assert.match(read("client/src/components/BoardBar.jsx"),
-    /* D149 (11-03) changed this on purpose: the sketch's words */ /placeholder="Search a company, title or skill"/,
+    /* D149 (11-03) changed this on purpose: the sketch's words */ /placeholder = "Search a company, title or skill"/   /* D199 C2 (47h, moved on purpose): the words are BoardSearch's default; the plate market passes its board's */,
     "nothing writes localSearch any more — the board's own input was removed as redundant to it");
   // The profile selector here was the third on screen. Of the two that remained, the pill's went
   // with the pill, leaving TopBar's avatar menu as the one place it lives.

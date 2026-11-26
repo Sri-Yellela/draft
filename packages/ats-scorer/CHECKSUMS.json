@@ -10,7 +10,7 @@
     "index.d.ts": "f78cd474f96e426d30ad10857a933cfed34c07c8c58f5235afd50f0338f83cc4",
     "package.json": "231c7eed7ef1f3b11b68ca1a74225c75018d3a7e74abec6b7371145df1d04f32",
     "scripts/checksums.mjs": "3d53d92f1fcc7cbeb4283db942f83909016c8b2b838d3309035c5ac798cb37cd",
-    "src/contextual.js": "a7b434bbdeba222011b1753acf2b4bf7e4e70214a8b6d62fe87390395a07e0bc",
+    "src/contextual.js": "b299635163d8aba458548e2d43051486f2fdb255dfbaf393a8fae7a10d1f7c9b",
     "src/index.js": "66e80ee7998e3a100e03e675763aafdedf7b2b44f273e304cd46b2bd0beedbae",
     "src/plausibility.js": "a2ba53926f71cd15b8260a553f629d9ce87f81f291abf1840b87e8e10dea0006",
     "src/scorer.js": "cd91dbdcadb55d91615182929c781a6fdbc07c639e990092a0067c7cec91be11",

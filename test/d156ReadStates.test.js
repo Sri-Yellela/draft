@@ -47,7 +47,7 @@ test("d156FailedReadNeverShownAsMissing · the profiles (Full House) and the job
 });
 
 test("d156FailedReadNeverShownAsMissing · the deck: a failure is an error with Try again or the last good deal — never an empty deck", () => {
-  const fetch = DECK.slice(at(DECK, "const fetchDeck = useCallback(async () => {"), at(DECK, "useEffect(() => { fetchDeck(); }, [fetchDeck]);"));
+  const fetch = DECK.slice(at(DECK, "const fetchDeck = useCallback(async () => {"), at(DECK, "useEffect(() => { if (!plateDeck) fetchDeck(); }, [fetchDeck, plateDeck]);"   /* D199 C3 (47h, moved on purpose): no daily deal on the plate market */));
   const katch = fetch.slice(at(fetch, "} catch (e) {"));
   assert.match(katch, /const last = lastGoodDeck\.get\(cacheKey\);/);
   assert.match(katch, /setLoad\(\{ status: "error", error: e\.message/);
@@ -57,7 +57,7 @@ test("d156FailedReadNeverShownAsMissing · the deck: a failure is an error with 
 });
 
 test("d156DeckShowsLastGoodWhileRefreshing · today's last good picks stay on screen while the deck refreshes or scores", () => {
-  const fetch = DECK.slice(at(DECK, "const fetchDeck = useCallback(async () => {"), at(DECK, "useEffect(() => { fetchDeck(); }, [fetchDeck]);"));
+  const fetch = DECK.slice(at(DECK, "const fetchDeck = useCallback(async () => {"), at(DECK, "useEffect(() => { if (!plateDeck) fetchDeck(); }, [fetchDeck, plateDeck]);"   /* D199 C3 (47h, moved on purpose): no daily deal on the plate market */));
   const head = fetch.slice(0, at(fetch, "try {"));
   assert.match(head, /const held = rememberedDeck\(cacheKey\);/);
   assert.match(head, /if \(held\) \{[\s\S]{0,300}setLoad\(\{ status: "ready", error: null, refreshing: true \}\);[\s\S]{0,40}\} else \{/);

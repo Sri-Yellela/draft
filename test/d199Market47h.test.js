@@ -45,8 +45,8 @@ async function load() {
     import MarketCardFace from ${src("plate/MarketCardFace.jsx")};
     import { MarketIndexTable, RowBubble, indexRow } from ${src("plate/MarketIndex.jsx")};
     import * as Pop from ${src("plate/MarkPopover.jsx")};
-    import MarketOpenings, { briefFacts } from ${src("plate/MarketOpenings.jsx")};
-    export { Controls, Map, heroLine, indexRow, Pop, briefFacts };
+    import MarketOpenings, { briefFacts, withPartReasons } from ${src("plate/MarketOpenings.jsx")};
+    export { Controls, Map, heroLine, indexRow, Pop, briefFacts, withPartReasons };
     const h = React.createElement;
     export const r = (C, p) => renderToStaticMarkup(h(MemoryRouter, null, h(C, p)));
     export const C = { MarketHero, MarketPager, MarketCardFace, MarketIndexTable, RowBubble, MarketOpenings };
@@ -228,7 +228,7 @@ test("D199 · d199PlateDrawingsTokensOnly — the map takes only its own tokens,
   }
   const tok = read("client/src/styles/plate.css");
   const themed = tok.slice(at(tok, ':root:not([data-plate-palette="sketch"]) .plate {'));
-  assert.ok(!/--pl-map-/.test(themed.slice(0, themed.indexOf("}"))), "the theme block leaves the map's palette alone");
+  assert.ok(!/--pl-map-/.test(themed.slice(0, at(themed, "}"))), "the theme block leaves the map's palette alone");
   assert.match(tok, /--pl-map-ground: #FBF8F4/);
 });
 
@@ -240,9 +240,11 @@ test("D199 C6 · d199DeckTicketFixedWidth / d199FieldCardGrows — the deck colu
 });
 
 test("D199 C6 · the field card's three scores are labelled and a missing one says why; duties drop context lines", async () => {
-  const v = fieldCardView({ report: { score: 70 }, contextual: { score: 70, parts: {
+  const contextual = { score: 70, parts: {
     role_fit: { score: null, status: "no_data", reason: "posting_not_placed" }, tech_stack: { score: 69, status: "ok", exact: [], gaps: [] },
-    responsibility_overlap: { score: null, status: "no_data", reason: "no_responsibility_lines", matched: [], missing: [] } } } });
+    responsibility_overlap: { score: null, status: "no_data", reason: "no_responsibility_lines", matched: [], missing: [] } } };
+  const { withPartReasons } = await load();
+  const v = withPartReasons(fieldCardView({ report: { score: 70 }, contextual }), contextual);
   assert.deepEqual(v.figures.items.map((f) => [f.label, f.value, f.why || null]), [["ROLE FIT", null, "POSTING NOT PLACED YET"], ["STACK", 69, null], ["DUTIES", null, "NO DUTIES LISTED"]]);
   assert.match(read("client/src/plate/Cards.jsx"), /<span className="pl-card__why">\{f\.why \|\| "NOT SCORED YET"\}<\/span>/, "never a bare —");
   const { briefFacts } = await load();

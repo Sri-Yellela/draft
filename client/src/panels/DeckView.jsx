@@ -888,8 +888,8 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   // A214 (46r): the deck's "Start with your résumé" is the newcomer's one set-up card — the board beside it only says
   // its jobs show once the résumé is in — so the profile the upload sets up is handed to the shared active id, and the
   // board (whose profile read re-runs on that id) leaves its empty state on its own.
-  const board = useJobBoard();
-  const setActiveProfileId = board?.setActiveProfileId;
+  const board = useJobBoard();   // D199 C3: the board's page (the plate deck deals it)
+  const setActiveProfileId = useJobBoard()?.setActiveProfileId;
   // Cards present on the first ready paint are simply THERE (unless this is the deal); a card that
   // arrives later — an undo, a refusal — fades into its slot.
   const firstPaint = useRef(true);

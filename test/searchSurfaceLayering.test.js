@@ -125,7 +125,7 @@ test("EVERY CONTROL THE PILL CARRIED IS STILL REACHABLE", () => {
   assert.match(read("client/src/components/BoardBar.jsx"), /const said = label \? `Sort: \$\{label\}` : "Sort";/);
   assert.match(topbar, /<ProfileSelectorDropdown/, "the profile switcher left the avatar menu");
   assert.match(read("client/src/components/BoardBar.jsx"),
-    /* D149 (11-03) changed this on purpose: the sketch's words */ /placeholder="Search a company, title or skill"/);
+    /* D149 (11-03) changed this on purpose: the sketch's words */ /placeholder = "Search a company, title or skill"/   /* D199 C2 (47h, moved on purpose): the words are BoardSearch's default; the plate market passes its board's */);
 });
 
 test("the second, unrelated scroll source is still gone", () => {

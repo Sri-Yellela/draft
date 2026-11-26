@@ -40,6 +40,18 @@ function contextualFor(jobId) {
   return contextualCache.get(jobId);
 }
 
+// ⭐ D199 C6 (owner 11-25, defect (g): "ROLE FIT shows —"): a score the scorer didn't give carries WHY in its own place — the
+// scorer's own reason in the card's words — never a bare "—". Done here, not in shared/contextualView.js (its code is bundled
+// into the extension's ATS card, extension/atsReport.js, which this lane doesn't rebuild).
+const PART_WHY = Object.freeze({ posting_not_placed: "POSTING NOT PLACED YET", resume_not_placed: "YOUR RÉSUMÉ NOT PLACED YET",
+  no_responsibility_lines: "NO DUTIES LISTED", no_company_stack: "NO STACK ON RECORD", skill_match_declined: "NOT SCORED" });
+const PART_OF = { role: "role_fit", stack: "tech_stack", duties: "responsibility_overlap" };
+/** Pure: the field card's view with each unscored figure's reason (`why`). */
+export function withPartReasons(view, contextual) {
+  if (!view?.figures?.items) return view;
+  const items = view.figures.items.map((f) => (f.value != null ? f : { ...f, why: PART_WHY[contextual?.parts?.[PART_OF[f.key]]?.reason] || "NOT SCORED YET" }));
+  return { ...view, figures: { ...view.figures, items } };
+}
 /** The card on top and its field-card view: { front, status: idle | loading | ready | error, view, retry }. */
 export function useFrontField() {
   const front = useFrontCard();
@@ -54,7 +66,7 @@ export function useFrontField() {
       .catch(() => { if (live) setState({ jobId: front.jobId, status: "error", contextual: null }); });
     return () => { live = false; };
   }, [front?.jobId, nonce]);
-  const view = useMemo(() => (state.status === "ready" ? fieldCardView({ report: front?.report || null, contextual: state.contextual }) : null),
+  const view = useMemo(() => (state.status === "ready" ? withPartReasons(fieldCardView({ report: front?.report || null, contextual: state.contextual }), state.contextual) : null),
     [state, front?.report]);
   return { front, status: state.status, view, retry: () => setNonce((n) => n + 1) };
 }

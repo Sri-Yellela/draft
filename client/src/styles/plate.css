@@ -57,15 +57,6 @@
   --pl-lit-deep: #2F5446; --pl-lit-soft: #9FD3BE;                             /* the isometric tile's queue (proven, deep / soft) */
   --pl-road: #C9BFB6;                                                         /* the isometric tile's road */
   --pl-r4-plate: #C9D2DF; --pl-contour-1: #CDBFB3; --pl-contour-2: #D9CBBE;   /* Home's volume plate: IV's ground, paper contours */
-  /* ⭐ D199 C5 / D200 (47h) · THE POLITICAL MAP's own palette (plate/MarketMap.jsx) — the paper ramp, and deliberately NOT
-     redefined by the theme block below: a plate DRAWING keeps these in every theme (defect (c): Dusk drew the hero plate
-     navy on black). The territory fills are the region tints; the legend dots the board's ring tones. */
-  --pl-map-ground: #FBF8F4; --pl-map-water: #9FB3CE; --pl-map-ink: #1B1B1B; --pl-map-card: #FFFFFF; --pl-map-muted: #55504C; --pl-map-you: #C2593A;
-  --pl-map-t1: #EDF1F7; --pl-map-t2: #F1F2E8; --pl-map-t3: #F5EFE5; --pl-map-t4: #F4EDF5; --pl-map-t5: #EAF3F5;
-  --pl-map-c1: #1F3A63; --pl-map-c2: #5A5F2E; --pl-map-c3: #7A5A2A; --pl-map-c4: #6A3E73; --pl-map-c5: #2F6B7A;
-  --pl-map-k1: #DCE4EE; --pl-map-k2: #E5E7D3; --pl-map-k3: #EBDDC6; --pl-map-k4: #E7D7EA; --pl-map-k5: #D3E7EB;
-  --pl-s3-map1: 3px 3px 0 var(--pl-map-c1); --pl-s3-map2: 3px 3px 0 var(--pl-map-c2); --pl-s3-map3: 3px 3px 0 var(--pl-map-c3);
-  --pl-s3-map4: 3px 3px 0 var(--pl-map-c4); --pl-s3-map5: 3px 3px 0 var(--pl-map-c5);
 
   /* ── Region IV's hypsometric ramp, light → deep (report). Every other sector palette gets its 10 steps
      here BEFORE its page is built (D196 F1); a sector with no ramp falls back to IV's (R2). ── */
@@ -214,6 +205,16 @@
   --pl-paper-veil: color-mix(in srgb, var(--pl-paper) 96%, transparent);   /* D199 C7: the sheet's sticky action bar over the page */
   --pl-ledger-lines: repeating-linear-gradient(180deg, transparent 0 63px, var(--pl-rule) 63px 64px);
   --pl-hatch: repeating-linear-gradient(45deg, var(--pl-rule) 0 1px, transparent 1px 7px);
+  /* ⭐ D199 C5 / D200 (47h) · THE POLITICAL MAP's own palette (plate/MarketMap.jsx) — the paper ramp, and deliberately NOT
+     redefined by the theme block below: a plate DRAWING keeps these in every theme (defect (c): Dusk drew the hero plate
+     navy on black). The territory fills are the region tints; the legend dots the board's ring tones. LAST in the block: the drawings' port maps a
+     hex to the FIRST token holding it (scripts/d196PortDrawings.mjs), so these never take over a ported drawing's colour. */
+  --pl-map-ground: #FBF8F4; --pl-map-water: #9FB3CE; --pl-map-ink: #1B1B1B; --pl-map-card: #FFFFFF; --pl-map-muted: #55504C; --pl-map-you: #C2593A;
+  --pl-map-t1: #EDF1F7; --pl-map-t2: #F1F2E8; --pl-map-t3: #F5EFE5; --pl-map-t4: #F4EDF5; --pl-map-t5: #EAF3F5;
+  --pl-map-c1: #1F3A63; --pl-map-c2: #5A5F2E; --pl-map-c3: #7A5A2A; --pl-map-c4: #6A3E73; --pl-map-c5: #2F6B7A;
+  --pl-map-k1: #DCE4EE; --pl-map-k2: #E5E7D3; --pl-map-k3: #EBDDC6; --pl-map-k4: #E7D7EA; --pl-map-k5: #D3E7EB;
+  --pl-s3-map1: 3px 3px 0 var(--pl-map-c1); --pl-s3-map2: 3px 3px 0 var(--pl-map-c2); --pl-s3-map3: 3px 3px 0 var(--pl-map-c3);
+  --pl-s3-map4: 3px 3px 0 var(--pl-map-c4); --pl-s3-map5: 3px 3px 0 var(--pl-map-c5);
 
   background: var(--pl-paper);
   color: var(--pl-ink);

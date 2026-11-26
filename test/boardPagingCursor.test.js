@@ -142,7 +142,8 @@ test("JobsPanel routes every navigation through the shared policy", () => {
   // The decision is only worth testing if the component actually asks it. A second copy of the
   // rule inside the click handler is exactly the shape of defect this repository keeps finding.
   const panel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
-  assert.match(panel, /import \{ planPageFetch, recordPageCursor \} from "\.\.\/lib\/boardPaging\.js"/);
+  // D199 C3 (47h, moved on purpose): + the page-in-the-address helpers, from the same module
+  assert.match(panel, /import \{ planPageFetch, recordPageCursor, readPageParam, pageInSearch \} from "\.\.\/lib\/boardPaging\.js"/);
   assert.match(panel, /const plan = planPageFetch\(\{/, "goPage must use the shared policy");
   assert.match(panel, /recordPageCursor\(cursorStackRef\.current, page, cursor\)/);
   // And no hand-rolled second decision alongside it.

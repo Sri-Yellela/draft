@@ -32,7 +32,8 @@ test("47h · fromWords: FROM <FILE> · <MON D>; no name → null", async () => {
 
 test("47h · the strip draws it, App reads /api/base-resume once on the plate market", () => {
   const pb = read("client/src/plate/PlateBearing.jsx");
-  assert.match(pb, /\{fromWords\(from\) \|\| "SET FROM YOUR RÉSUMÉ · YOURS TO CHANGE"\}/);
+  // D199 (47h, moved on purpose): with the market's controls inside, the strip reads the approved board's words
+  assert.match(pb, /\{fromWords\(from\) \|\| \(children \? "FROM YOUR RÉSUMÉ · YOURS TO CHANGE" : "SET FROM YOUR RÉSUMÉ · YOURS TO CHANGE"\)\}/);
   const app = read("client/src/App.jsx");
   assert.match(app, /function useResumeSource\(on\) \{[\s\S]{0,300}api\("\/api\/base-resume"\)/);
   assert.match(app, /const resumeFrom = useResumeSource\(!!plate\);/);
