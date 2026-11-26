@@ -11,6 +11,9 @@ import { FilterChips } from "./Marks.jsx";
 import { runStops, countCells, ledgerTickets } from "./ledgerModel.js";
 
 const DAY = 86400;
+// the boards keep their 84 px dock rail (+ its 14 px margin) at every width: the page column is the viewport less 98 px
+// (1182 at 1280, 292 at 390) — the build page is opened at the pair's width, so the fixture reads it
+const boardColumn = () => Math.max(240, (globalThis.innerWidth || 1280) - 98);
 const now = Math.floor(Date.now() / 1000);
 const tech = (t, postings, teams, extra = {}) => ({ tech: t, postings, of: 38, teams, firstSeen: now - 300 * DAY, lastSeen: now - 2 * DAY, newThisQuarter: false, ...extra });
 const fresh = { newThisQuarter: true, firstSeen: now - 40 * DAY };
@@ -59,7 +62,7 @@ const PEOPLE = { count: 1, people: [{ handle: "divya", name: "Divya Rao", title:
 export function SurveyBoard() {
   return (
     <MemoryRouter>
-      <div style={{ width: 1182 }}>
+      <div style={{ width: boardColumn() }}>
         <SurveySheet data={KESTREL_PAGE} match={KESTREL_MATCH} inApp base="/app/companies" resumeName="Maya_Chen.pdf" people={PEOPLE}
           onBack={() => {}} onFollow={() => {}} onSend={() => {}}/>
       </div>
@@ -89,7 +92,7 @@ export function LedgerBoard() {
     sentCompanies: ["Brightline Health", "Orbital Works"], gap: { tech: "Webhooks", company: "Sailor Health", href: "#atlas" },
     paths: { market: "#market", interview: "#interview", company: () => "#survey" } });
   return (
-    <div style={{ width: 1182 }}>
+    <div style={{ width: boardColumn() }}>
       <LedgerPage>
         <LedgerHeader week={47} summary="5 this month" cells={countCells(counts, { filter: "all", onFilter: () => {} })}
           actions={<><a className="pl-lg-daily" href="#q">Today’s question · 2 minutes</a><span className="pl-grow"/><button type="button" className="pl-btn">Import</button>
