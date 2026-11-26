@@ -121,7 +121,7 @@
 .pl-areanav__pill { all: unset; cursor: pointer; box-sizing: border-box; display: inline-flex; align-items: center; gap: 10px; min-height: var(--pl-target); padding: 0 12px 0 6px;
   border-radius: var(--pl-r-input); border: var(--pl-border); background: var(--pl-paper); }
 .pl-areanav__pillname { font-size: var(--pl-t-ui); font-weight: 700; }
-.pl-areanav__pill + .pl-areanav__views { margin-left: 8px; }
+.pl-areanav__pill + .pl-areanav__views, .pl-rel:has(> .pl-areanav__pill) + .pl-areanav__views { margin-left: 8px; }   /* 47h: the pill sits in its .pl-rel (its panel), so the sibling rule needs both */
 .pl-areanav__pill[aria-expanded="true"] { background: var(--pl-card); box-shadow: var(--pl-s3); }
 .pl-areanav__tag { font-family: var(--pl-mono); font-size: var(--pl-t-mono-lg); font-weight: 700; background: var(--pl-ink); color: var(--pl-on-ink); border-radius: var(--pl-r-status); padding: 5px 7px; }
 .pl-areanav__views { display: flex; flex-wrap: wrap; gap: 2px; }

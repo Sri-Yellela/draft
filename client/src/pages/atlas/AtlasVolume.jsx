@@ -78,7 +78,7 @@ export function AtlasVolumeHome({ base, signedIn, compete }) {
   const resume = here ? regionHref(base, here.module, here.id) : regionHref(base, 1);
   return (
     <PlateRoot region="I" className="pl-at-page" data-atlas-volume="">
-      <AtlasHero tapes={TAPES} lead={LEAD} onGo={go}
+      <AtlasHero tapes={TAPES} lead={LEAD} onGo={(href) => (href.includes("#") ? document.getElementById(href.split("#")[1])?.scrollIntoView({ behavior: "smooth", block: "start" }) : go(href))}
         actions={{ primary: { label: started ? "Resume the route" : "Start the route", href: resume, onClick: () => go(resume) },
           secondary: { label: "Open the atlas", href: regionHref(base, 1), onClick: () => go(regionHref(base, 1)) } }}
         stats={vol ? volumeStats(vol).map((c, i) => ({ ...c, href: [`${base}#pl-at-regions-title`, `${base}/library/${VOLUME.course}`, `${base}/library`][i] })) : []}

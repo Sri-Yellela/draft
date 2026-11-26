@@ -122,6 +122,9 @@ test("D167 · d167AtlasHasOwnNav — every panel has its own address, lit in the
   for (const id of PANEL_IDS) {
     const html = u.page(`/atlas/${id}`);
     assert.match(html, new RegExp(`data-atlas-panel="${id}"`), id);
+    // ⭐ D197 #7 (47h, changed on purpose): the Library is a plate page now — Atlas's area nav (the shell's, signed in;
+    // PublicAtlasNav on the public mount) lights it, not a PlaceNav card (test/d197AtlasPlatePages.test.js)
+    if (id === "library") { assert.match(html, /data-atlas-page="library"/); continue; }
     assert.deepEqual(currentOf(html), [id], `${id} is the current entry`);
     assert.equal(panelHref("/atlas", id), id === "overview" ? "/atlas" : `/atlas/${id}`);
   }
