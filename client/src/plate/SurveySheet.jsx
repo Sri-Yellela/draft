@@ -12,7 +12,9 @@ import { LegHeader, StatsStrip, CalloutTag } from "./Plates.jsx";
 import { Ticket } from "./Tickets.jsx";
 import { Gazetteer } from "./Lists.jsx";
 import { NoData } from "./PlateState.jsx";
-import { TeamPlate, HiringProfile, RoleLine, MatchDial } from "./surveyDrawings.jsx";
+import { HiringProfile, RoleLine } from "./surveyDrawings.jsx";
+import TeamDiorama from "./TeamDiorama.jsx";   // the card lane's diorama with its words as props — one plate, the sheet and the opening
+import { CompassDial } from "./Drawings.jsx";
 import { surveyView, teamsWord, andList, numWord, shortName } from "./surveySheet.js";
 import { sectorRegion } from "./marketPlate.js";
 import { ApplyLink } from "../components/CompanyLink.jsx";
@@ -101,7 +103,8 @@ export default function SurveySheet({ data, match = null, inApp = false, base = 
           </div>
           <figure className="pl-platehero pl-platehero--sheet">
             <div className="pl-platehero__frame" style={{ "--pl-aspect": "640 / 460" }}>
-              <TeamPlate teams={plate.teams} beacon={plate.beacon} hq={v.facts.hq || ""}
+              <TeamDiorama company={c.name} left={(plate.teams[0] || "").toUpperCase()} right={(plate.teams[1] || "").toUpperCase()} team={(plate.teams[2] || "").toUpperCase()}
+                beacon={plate.beacon === 2} place={v.facts.hq ? `${v.facts.hq.toUpperCase()} · HQ` : ""}
                 label={plate.teams.length ? `${c.name} drawn as an isometric plate of its ${numWord(plate.teams.length)} most-named teams: ${andList(plate.teams)}.${plate.yours ? ` A beacon marks ${plate.yours.team}, the team of the job you opened.` : ""}`
                   : `${c.name}'s plate — their postings name no teams yet`}/>
             </div>
@@ -109,7 +112,7 @@ export default function SurveySheet({ data, match = null, inApp = false, base = 
             {plate.largest ? <CalloutTag kicker="LARGEST TEAM" line={plate.largest.team} sub={plate.largest.techs.join(", ")} x={2} y={62} index={1}/> : null}
             <figcaption className="pl-platehero__cap pl-platehero__cap--box">
               <span className="pl-label">PLATE · {c.name.toUpperCase()}, BY TEAM</span>
-              <span className="pl-label pl-muted">FROM THEIR {v.stackPostings} POSTINGS</span>
+              <span className="pl-label pl-muted">{plate.teams.length ? `FROM THEIR ${v.stackPostings} POSTINGS` : "NO TEAMS NAMED IN THEIR POSTINGS"}</span>
             </figcaption>
           </figure>
         </div>
@@ -226,7 +229,7 @@ export default function SurveySheet({ data, match = null, inApp = false, base = 
         <div className="pl-sv-matchrow">
           <DialBox className="pl-sv-dial" {...(DialBox === Link ? { to: "/app/atlas/your-skills", "aria-label": "Your match — check and prove your skills in Atlas", "data-company-check-skills": "" } : {})}>
             {v.match ? <>
-              <MatchDial have={v.match.have} of={v.match.of}/>
+              <CompassDial lit={v.match.have} total={v.match.of} label={`Compass dial: you have ${v.match.have} of their top ${v.match.of} technologies on your résumé`}/>
               <div className="pl-sv-dialtext">
                 <span className="pl-sv-dialnum">{v.match.have} of {v.match.of}</span>
                 <span className="pl-label">OF THEIR TOP TECHNOLOGIES</span>

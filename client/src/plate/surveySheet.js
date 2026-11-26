@@ -137,7 +137,9 @@ export function teamPlate(stack, focus = null) {
   const title = String(focus?.title || "").toLowerCase();
   const beacon = title ? teams.findIndex((team) => new RegExp(`\\b${team.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(title)) : -1;
   const topTechs = (team) => (techs.get(team) || []).sort((a, b) => b.postings - a.postings).slice(0, 2).map((t) => t.tech);
-  return { teams, beacon: beacon >= 0 ? beacon : null, largest: teams[0] ? { team: teams[0], techs: topTechs(teams[0]) } : null,
+  // the plate's front block carries the beacon (plate/TeamDiorama.jsx): the job's team goes there, the others left / right
+  const drawn = beacon >= 0 && teams.length === 3 ? [...teams.filter((_, i) => i !== beacon), teams[beacon]] : teams;
+  return { teams: drawn, beacon: beacon >= 0 ? drawn.indexOf(teams[beacon]) : null, largest: teams[0] ? { team: teams[0], techs: topTechs(teams[0]) } : null,
     yours: beacon >= 0 ? { team: teams[beacon], job: focus } : null };
 }
 

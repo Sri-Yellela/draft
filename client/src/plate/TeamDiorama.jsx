@@ -4,10 +4,11 @@
 // company's own: `team` = this opening's role (the beacon's block), `left` / `right` = the company's two other most-hiring
 // roles (its open jobs by role), `place` = where the opening is. A word the page can't back is left blank — never invented.
 // ⛔ Copied from the generated drawing ON PURPOSE (it is "do not edit"); the generator owns the original, this owns the words.
+// 47h (D197 #4): the survey sheet draws its hero with this same plate — `beacon={false}` when no opening marks a team there.
 import { useId } from "react";
 import { usePlateMotion } from "./motion.js";
 
-export default function TeamDiorama({ team = "", left = "", right = "", place = "", company = "", label, className }) {
+export default function TeamDiorama({ team = "", left = "", right = "", place = "", company = "", label, className, beacon = true }) {
   const uid = useId().replace(/:/g, "");
   const motion = usePlateMotion();
   return (
@@ -173,7 +174,7 @@ export default function TeamDiorama({ team = "", left = "", right = "", place = 
       <text x="320" y="348" textAnchor="middle" fontSize="10" fontWeight="700" letterSpacing="1.2" style={{"fontFamily":"var(--pl-mono)","fill":"var(--pl-ink)"}}>
         {team}
       </text>
-      <g transform="translate(320 224)">
+      {beacon ? <g transform="translate(320 224)">
         <circle r="10" fill="none" strokeWidth="2" style={{"stroke":"var(--pl-clay)"}}>
           {motion && (<>
           <animate attributeName="r" values="10;26" dur="2s" repeatCount="indefinite">
@@ -186,7 +187,7 @@ export default function TeamDiorama({ team = "", left = "", right = "", place = 
         </circle>
         <circle r="9" strokeWidth="2" style={{"fill":"var(--pl-clay)","stroke":"var(--pl-ink)"}}>
         </circle>
-      </g>
+      </g> : null}
       <g fontSize="10" opacity=".58" style={{"fontFamily":"var(--pl-mono)","fill":"var(--pl-ink)"}}>
         <text x="40" y="16">
           {"A"}

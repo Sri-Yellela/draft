@@ -44,7 +44,7 @@ test("d200SurveyEveryMarkAnswers: a section with nothing says so", () => {
   assert.match(sheet, /"No filings found"/);
   assert.match(sheet, /That isn’t a no — only that nothing is on record\./);
   assert.match(read("client/src/plate/Marks.jsx"), /NO TECHNOLOGY IN TWO OR MORE OF THEIR POSTINGS YET/);
-  assert.match(read("client/src/plate/surveyDrawings.jsx"), /NO TEAMS NAMED IN THEIR POSTINGS/);
+  assert.match(sheet, /NO TEAMS NAMED IN THEIR POSTINGS/, "the team plate's caption says when the postings name no teams");
   const v = surveyView({ company: { slug: "x", name: "X" }, openJobs: 0, byCategory: [], hiringTrend: [], jobs: [], locations: [] }, null);
   assert.equal(v.match, null, "signed out: no match drawn as if it were one");
   assert.deepEqual(v.stats.map((s) => s.key), ["open"], "only the figures the read holds");
