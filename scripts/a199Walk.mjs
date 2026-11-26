@@ -91,7 +91,9 @@ try {
     json(fixtures()[u.pathname] ?? {});
   });
   await page.evaluateOnNewDocument(() => { try { localStorage.setItem("draft:extension-prompt-seen", "1"); } catch {} });
-  await page.goto(`${vite.url}/app/auto-apply`, { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
+  // 47i: the CLASSIC tracker (?plate=0), as the classic tracker probes pin it (CLASSIC_HOME) — the plate ledger is Home by
+  // default since 47i's merge; its own Needs-you stepper and Ask draft are a separate walk (not yet written)
+  await page.goto(`${vite.url}/app/auto-apply?plate=0`, { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
   await page.waitForSelector("[data-tracker-table] tbody tr", { timeout: 30000 }).catch(() => {});
   await sleep(600);
   // 1 · open the held row → its thread opens

@@ -33,7 +33,8 @@ function measured(t) {
 // ── pure ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 test("d163 other screens (pure): one probe measures every screen; Integrations paints no slab to the screen's edge", () => {
   assert.match(SHOTS, /screens163: async \(arg\) =>/, "the shared probe");
-  for (const s of [...SCREENS, "settings"]) assert.match(SHOTS, new RegExp(`\\n      "?${s}"?: \\{ app: "/(app|admin)`), `${s} is measured`);
+  // 47i (on purpose): a route's address may be one of the file's named ones (CLASSIC_HOME / PLATE_MARKET — the plate switch)
+  for (const s of [...SCREENS, "settings"]) assert.match(SHOTS, new RegExp(`\\n      "?${s}"?: \\{ app: (?:"/(app|admin)|CLASSIC_HOME|CLASSIC_MARKET|PLATE_MARKET)`), `${s} is measured`);
   assert.match(SHOTS, /sizes: \{ "1280": \[1280, 800\], "1440": \[1440, 900\], "1920": \[1920, 1080\], "2560": \[2560, 1440\], phone: \[390, 844\] \},\n    routes:/);
   // the wrapper was background: var(--color-bg) (= --bg-page = SURFACE): a lighter slab from the dock to the right edge
   assert.match(INTEG, /<div style=\{\{ flex:1, overflowY:"auto", padding:"28px 24px 44px" \}\}>\n      <div className="page-cards" data-page-width="cards">/); // ⭐ 46q FULL WIDTH

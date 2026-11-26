@@ -173,10 +173,11 @@ export const PLATE_REGISTRY = [
     extremes: { alike: [LONG, LONG], gaps: [{ text: LONG, link: { label: "Learn it →", href: "#x" } }], figures: { label: "ROLE FIT · STACK · DUTIES", value: "100 · 0 · 100" } } },
   // ⭐ D202 · the field card ⇄ the ATS card — one card, two faces (FitCard.jsx); the front here, the back by Turn over
   { name: "FitCard", file: "FitCard.jsx", group: "Cards",
-    states: four({ data: FIT_SAMPLE, alike: ["Role and level: frontend, mid — the same as yours"], gaps: [{ text: "They watch the front end with Datadog RUM.", link: { label: "Learn it →", href: "#atlas" } }],
+    // 47i: atlasSlugs given (the gallery has no server — it asked /api/atlas/resolve from a file:// page)
+    states: four({ data: FIT_SAMPLE, atlasSlugs: {}, alike: ["Role and level: frontend, mid — the same as yours"], gaps: [{ text: "They watch the front end with Datadog RUM.", link: { label: "Learn it →", href: "#atlas" } }],
       figures: { label: "ROLE FIT · STACK · DUTIES", value: "91 · 88 · 80", items: [{ label: "ROLE FIT", key: "role", value: 91 }, { label: "STACK", key: "stack", value: 88 }, { label: "DUTIES", key: "duties", value: 80 }] } },
-      "Open an opening to see why it fits.", { back: { data: FIT_SAMPLE, face: "back", tab: "words" }, context: { data: FIT_SAMPLE, face: "back", tab: "context", plausibility: { entries: [] } } }),
-    extremes: { data: { ...FIT_SAMPLE, report: { ...FIT_SAMPLE.report, tier1_missing: [LONG] } }, face: "back", tab: "words", alike: [LONG] } },
+      "Open an opening to see why it fits.", { back: { data: FIT_SAMPLE, atlasSlugs: {}, face: "back", tab: "words" }, context: { data: FIT_SAMPLE, atlasSlugs: {}, face: "back", tab: "context", plausibility: { entries: [] } } }),
+    extremes: { data: { ...FIT_SAMPLE, report: { ...FIT_SAMPLE.report, tier1_missing: [LONG] } }, atlasSlugs: {}, face: "back", tab: "words", alike: [LONG] } },
   { name: "FactSheet", file: "Cards.jsx", group: "Cards",
     states: four({ kicker: "FILLED FOR YOU · 22 OF 24", label: "What draft filled for you", foot: "From your résumé and profile. Nothing here is guessed.",
       rows: [{ label: "Name", value: "Maya Chen" }, { label: "Email", value: "maya.chen@example.com" }, { label: "Current company", value: "Toast" }, { label: "Alma mater", value: "Northeastern University" }] }, "Nothing filled yet.",
