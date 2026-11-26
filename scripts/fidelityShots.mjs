@@ -25,6 +25,9 @@ import { resolveBrowserExecutable } from "../services/browserLauncher.js";
 // [data-home-board] grid, the Full House bar, the deck under it), so they pin it with ?plate=0 until the classic branch is
 // retired (the 47g order, item 1); the plate market is gated by its own D196 files (d196VisualDiff, d196P1FixBrowser, …).
 const CLASSIC_MARKET = "/app/jobs?plate=0";
+// ⭐ 47i: the plate probes pin ?plate=1 too. The switch is REMEMBERED (marketPlate.js, localStorage) and the fill runs every
+// probe in ONE Chrome profile, so a probe after a CLASSIC_MARKET one landed on the classic deck (A238 red only inside the fill).
+const PLATE_MARKET = "/app/jobs?plate=1";
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\//, "")), "..");
 // ⭐ A232 R2 (46t): FIDELITY_OUT sends the shots elsewhere — the tests' shared probe writes to tmp/, so a suite run no longer
 // rewrites the tracked docs/fidelity-shots/*.png (they changed on every run). Run the script yourself to refresh them.
@@ -235,14 +238,14 @@ const SCREENS = {
   // ⭐ 47g R1 · THE PLATE MARKET'S DECK, LIVE: home156's own measuring (STYLE_PROBES.plate156 = home156's, and its swipe)
   // on the page people use, /app/jobs — test/d196MarketLiveBehaviour.test.js reads only what carries over (the flip,
   // J / K / › / ‹, the wheel, the swipe, the long post on the deck); the classic geometry stays home156's until R2.
-  plate156: { sketch: null, app: "/app/jobs", fixtures: HOME156, ready: "[data-plate-market-openings] [data-fan-offset]", probe: { plate: true },
+  plate156: { sketch: null, app: PLATE_MARKET, fixtures: HOME156, ready: "[data-plate-market-openings] [data-fan-offset]", probe: { plate: true },
     sizes: { wide: [1440, 900], desktop: [1280, 800], phone: [390, 844] },
     appPrep: async (page) => { await page.evaluate(() => document.querySelector("[data-deck-stage]")?.scrollIntoView({ block: "center" })); await sleep(1200); },
     nodeProbe: async (page, size, routeId) => { await page.evaluate(() => document.querySelector("[data-deck-stage]")?.scrollIntoView({ block: "center" })); await sleep(500); return SCREENS.home156.nodeProbe(page, size, routeId); } },
   // ⭐ A238 (47h) · A DECIDED CARD LEAVES THE DOM: after Pass · Save · Pass on the live plate market (motion on), the
   // [data-fan-offset] count falls by one per decision and no card lingers at offset 0, invisible (test/a238DecidedCardsUnmount).
   // A day deals ten (the walk's real deck); the fixture's three were all mounted at once, and showed no ghost.
-  a238: { sketch: null, app: "/app/jobs", fixtures: { ...HOME156, "/api/draft/today": { ...DECK["/api/draft/today"], size: 10,
+  a238: { sketch: null, app: PLATE_MARKET, fixtures: { ...HOME156, "/api/draft/today": { ...DECK["/api/draft/today"], size: 10,
       cards: Array.from({ length: 10 }, (_, i) => { const c = DECK["/api/draft/today"].cards[i % 3]; const id = `${c.job.id}-a238-${i}`;
         return { ...c, position: i, job: { ...c.job, id, jobId: id, title: `${c.job.title} ${i + 1}` } }; }) } }, ready: "[data-plate-market-openings] [data-fan-offset]",
     sizes: { desktop: [1280, 800] },
@@ -256,7 +259,7 @@ const SCREENS = {
   // and a real hover (puppeteer's mouse), which a dispatched event cannot (an untrusted wheel scrolls nothing).
   // ⭐ 47g R1 (retiring the classic market): D168 measured on the PLATE market — the page people use. The wheel "elsewhere"
   // is over the hero (the classic list is the Index tab now); the bubbles are the Index rows (the tab opened for them).
-  home168: { sketch: null, app: "/app/jobs", fixtures: HOME156, ready: "[data-plate-market-openings] [data-fan-offset]", motion: true,
+  home168: { sketch: null, app: PLATE_MARKET, fixtures: HOME156, ready: "[data-plate-market-openings] [data-fan-offset]", motion: true,
     sizes: { wide: [1440, 900], desktop: [1280, 800] },
     appPrep: async () => { await sleep(1200); },
     nodeProbe: async (page) => {
@@ -326,7 +329,7 @@ const SCREENS = {
   shrink201: { sketch: null,
     sizes: { "1440": [1440, 900], "1280": [1280, 800], "1024": [1024, 768], "900": [900, 800], "768": [768, 1024], "600": [600, 900], "390": [390, 844] },
     routes: {
-      home: { app: "/app/jobs", fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } } }, ready: "[data-nav-dock]", appPrep: async () => { await sleep(1200); } },
+      home: { app: PLATE_MARKET, fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } } }, ready: "[data-nav-dock]", appPrep: async () => { await sleep(1200); } },
       draft: { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr", appPrep: async () => { await sleep(600); } },
       "draft-held": { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr",
         appPrep: async (page) => { await sleep(500); await page.evaluate(() => { const r = [...document.querySelectorAll("[data-tracker-table] tbody tr.trk-row")].find(tr => /Halcyon/.test(tr.textContent)); (r || document.querySelector("[data-tracker-table] tbody tr.trk-row"))?.click(); }); await sleep(900); } },
@@ -335,9 +338,9 @@ const SCREENS = {
           await page.evaluate(() => document.querySelector('[data-row-detail] [data-pane="posting"]')?.click()); await sleep(700); } },
       // 47g R1: the home / board / posting routes on the PLATE market (the page people use) — the board is the Index tab,
       // the posting opened from its Index row (A240: the openings turn to Deck)
-      board: { app: "/app/jobs", fixtures: FULLHOUSE, ready: "[data-plate-market-openings]",
+      board: { app: PLATE_MARKET, fixtures: FULLHOUSE, ready: "[data-plate-market-openings]",
         appPrep: async (page) => { await page.evaluate(() => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click()); await sleep(900); } },
-      posting: { app: "/app/jobs", fixtures: FACTS, ready: "[data-plate-market-openings]",
+      posting: { app: PLATE_MARKET, fixtures: FACTS, ready: "[data-plate-market-openings]",
         appPrep: async (page) => { await page.evaluate(() => [...document.querySelectorAll(".pl-marketopenings [role=tab]")].find(t => /index/i.test(t.textContent))?.click());
           await page.waitForSelector("[data-market-index] [data-index-title]", { timeout: 20000 }).catch(() => {});
           await openIndexRow(page, "Senior Data Engineer"); await sleep(600); } },
@@ -630,7 +633,7 @@ const SCREENS = {
   // D153 (5): the facts box measured, not compared (no sketch of its own) — `--styles posting-facts` only.
   // ⭐ 47g R1: on the PLATE market — the posting opened from its Index row (which turns the openings to Deck, A240).
   // (The classic probe waited on [data-fh-title], which no client file draws, and fell through to its prep.)
-  "posting-facts": { sketch: null, app: "/app/jobs", fixtures: FACTS, ready: "[data-plate-market-openings]",
+  "posting-facts": { sketch: null, app: PLATE_MARKET, fixtures: FACTS, ready: "[data-plate-market-openings]",
     appPrep: async (page) => {
       // 47h browser tier: one tab press under a loaded refill was dropped (no rows → no posting → `facts: null`); press until the rows show
       for (const t0 = Date.now(); Date.now() - t0 < 20000;) {

@@ -9,11 +9,13 @@ import { Stamp } from "./Marks.jsx";
  * partial: a list with no data says so; nothing is invented.
  */
 // D199 C6 (47h): `children` = what the page adds under the scores (the market's company in brief and the sheet link).
+// 47i: a caller's data-* hooks reach the DOM (FitCard's data-fit-face="front" was swallowed into the state props)
+const dataAttrs = (s) => Object.fromEntries(Object.entries(s).filter(([k]) => k.startsWith("data-")));
 export function FieldCard({ kicker = "FIELD CARD · WHY IT FITS", note = "NO AI", alike = [], gaps = [], figures, className = "", lead = null, foot = null, groupRule = true, inlineLinks = false, children = null, ...s }) {   // D202: lead / foot — FitCard's count on top, its Turn over below
   const gate = plateState(s, { height: 300, radius: "plate", label: "Loading why it fits", lines: 4 });
   if (gate) return gate;
   return (
-    <aside className={`pl-card pl-fieldcard ${className}`.trim()} aria-label="Why this opening fits you">
+    <aside className={`pl-card pl-fieldcard ${className}`.trim()} aria-label="Why this opening fits you" {...dataAttrs(s)}>
       <div className="pl-card__strip"><span className="pl-label">{kicker}</span>{note ? <span className="pl-label pl-muted">{note}</span> : null}</div>
       <div className="pl-card__body">
         {lead ? <>{lead}<div className="pl-card__rule"/></> : null}

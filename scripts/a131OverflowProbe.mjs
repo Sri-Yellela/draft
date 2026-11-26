@@ -41,6 +41,14 @@ const job = (i) => ({
   visited: false, starred: i === 1, disliked: false, alreadyApplied: false, companyIconUrl: null,
 });
 const JOBS = Array.from({ length: 50 }, (_, i) => job(i));
+const FIT_CARD = { score: 66, profileId: null, resumeTech: ["Spark"],
+  report: { score: 66, claimed_matches: [], tier1_matched: ["Spark", "Airflow", "Python"], tier1_missing: ["Flink", "dbt"],
+    action_verbs_matched: ["Design batch and streaming pipelines"], action_verbs_missing: ["Own the data platform roadmap"], competencies_matched: ["Senior level"], competencies_missing: [] },
+  where: { Spark: "Northwind · bullet 1", Airflow: "Northwind · bullet 1", Python: "Northwind · bullet 2" },
+  contextual: { score: 81, weights: { skill_match: 0.5, role_fit: 0.2, responsibility_overlap: 0.15, tech_stack: 0.15 },
+    parts: { skill_match: { status: "ok", score: 80, weight: 0.5 }, role_fit: { status: "ok", score: 88, weight: 0.2 },
+      tech_stack: { status: "ok", score: 75, weight: 0.15, of: 6, exact: [{ tech: "Spark", postings: 5, of: 6 }], ecosystem: [], gaps: [{ tech: "Flink", postings: 3, of: 6 }] },
+      responsibility_overlap: { status: "ok", score: 70, weight: 0.15, matched: [], missing: [] } }, similarities: {}, dissimilarities: [] } };
 const FIXTURES = {
   "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", planTier: "PRO", applyMode: "TAILORED" } },
   "/api/domain-profiles": [{ id: 1, profile_name: "Data Engineering", is_active: 1, target_titles: ["Data Engineer"], seniority: "mid", generate_at_queue: 0 }],
@@ -131,7 +139,9 @@ try {
       const u = new URL(raw);
       if (selfHostedFont(u, req)) return;
       if (!u.pathname.startsWith("/api/")) return req.continue();
-      req.respond({ status: 200, contentType: "application/json", body: JSON.stringify(FIXTURES[u.pathname] ?? {}) });
+      // 47i: the opening sheet's FitCard reads its own payload — a small sample so the back face (Every word) is drawn
+      const body = /^\/api\/jobs\/[^/]+\/fit-card$/.test(u.pathname) ? FIT_CARD : (FIXTURES[u.pathname] ?? {});
+      req.respond({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
     });
     await page.evaluateOnNewDocument((t) => { try { localStorage.setItem("draft-theme", t); localStorage.setItem("draft:extension-prompt-seen", "1"); } catch {} }, theme);
     // ⭐ 47g R1 (the classic market retires): A131 measured on the PLATE market. The posting opens from its Index row (the
@@ -148,20 +158,26 @@ try {
     await page.waitForSelector("[data-market-index] [data-index-title]", { timeout: 20000 }).catch(() => {});
     await page.evaluate(() => { const rows = [...document.querySelectorAll("[data-market-index] [data-index-title]")];
       (rows.find(e => e.textContent.trim() === "Senior Data Engineer") || rows[0])?.click(); });
-    await page.waitForSelector("[data-jd-panel]", { timeout: 10000 }).catch(() => {});
+    // ⭐ 47i: since D199 C7 (47h) the Index row opens the OPENING SHEET (`/app/jobs/<id>`), not the classic posting panel —
+    // "a posting opened" = the sheet; "more" = its 04 full posting scrolled into view; "its match" = FitCard turned to the
+    // ATS card's back face on its Every word tab (the widest table the sheet draws).
+    await page.waitForSelector("[data-opening-sheet]", { timeout: 15000 }).catch(() => {});
     await sleep(1200);
-    r.postingOpen = !!(await page.$("[data-jd-panel]"));
+    r.postingOpen = !!(await page.$("[data-opening-sheet]"));
     r.posting = await page.evaluate(measure);
-    // d147's walk (where 45a saw the 1284): More opened, and left open, before the match box is pressed.
-    await page.click("[data-posting-more-toggle]").catch(() => {});
-    await sleep(500);
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight)); await sleep(500);
     r.more = await page.evaluate(measure);
-    await page.click("[data-posting-match] [data-ats-box]").catch(() => {});
-    await sleep(1200);
-    r.matchOpen = !!(await page.$('[data-posting-match-row][data-open="true"]'));
+    await page.evaluate(() => document.querySelector('.pl-fitcard [data-fit-turn]')?.click()); await sleep(600);
+    await page.evaluate(() => document.querySelector('[data-fit-tabbtn="words"], [data-fit-tabbtn="every"]')?.click()
+      || [...document.querySelectorAll("[data-fit-tabbtn]")].find(b => /every word/i.test(b.textContent))?.click()); await sleep(600);
+    r.matchOpen = !!(await page.$('[data-fit-face="back"]'));
     r.match = await page.evaluate(measure);
     // THE CAUSE (A131): the board's bar STICKS when the page scrolls past it, and its stuck frost (FullHouse.css
-    // `.fh.fh--bar-row[data-stuck="true"]::before`) reached past the page's gutter. On the plate the bar is the Index tab's.
+    // `.fh.fh--bar-row[data-stuck="true"]::before`) reached past the page's gutter. On the plate the bar is the Index tab's —
+    // back to the market for it.
+    await page.goBack({ waitUntil: "networkidle2", timeout: 30000 }).catch(() => {});
+    await page.waitForSelector("[data-plate-market-openings]", { timeout: 20000 }).catch(() => {});
+    await sleep(800);
     await tab("index"); await sleep(600);
     await page.evaluate(() => window.scrollTo(0, (document.querySelector("[data-board-sticky]")?.getBoundingClientRect().top || 0) + window.scrollY + 300));
     await sleep(700);

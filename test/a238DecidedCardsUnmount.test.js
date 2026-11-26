@@ -33,7 +33,9 @@ test("A238 (real Chrome, the plate market): each decision takes one card out of 
   const out = fidelityProbe("a238");
   if (out.skipped) { t.skip(out.skipped); return; }
   const d = out.desktop;
-  assert.equal(d.before, 10, "a day deals ten");
+  // 47i: since 47h the plate deck pages the BOARD (D199 C3) — the stage holds the board page's cards (HOME156: 14), not
+  // the day's ten; what A238 is about is the count falling by one per decision, below
+  assert.ok(d.before >= 4, `the deck dealt enough cards for three decisions (${d.before})`);
   d.steps.forEach((s, i) => {
     assert.notEqual(s.now, s.was, `${s.act} decided the card`);
     assert.equal(s.mounted, d.before - (i + 1), `after ${i + 1} decision(s) the stage holds ${d.before - (i + 1)} cards`);

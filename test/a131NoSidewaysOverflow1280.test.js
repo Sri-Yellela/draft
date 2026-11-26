@@ -23,8 +23,10 @@ test("a131NoSidewaysOverflow1280 (real Chrome): the board, a posting, its match,
     assert.deepEqual(r.errors, [], `${size}: no page errors`);
     assert.equal(r.postingOpen, true, `${size}: a posting opened`);
     assert.equal(r.matchOpen, true, `${size}: its match opened`);
-    // at 1280 the walk reaches the stuck bar (the case A131 is about); at 920 (one column) the bar does not stick
-    if (size.startsWith("1280")) assert.equal(r.stuck, "true", `${size}: the bar was stuck`);
+    // at 1280 the walk reaches the stuck bar (the case A131 is about); at 920 (one column) the bar does not stick.
+    // ⭐ 47i: the plate market mounts no StickyBar (App.jsx `!marketPlate`), so r.stuck is null there and the frost case
+    // can't arise; if a sticky bar comes back, it must stick at 1280 and its fringe stay inside the window (below).
+    if (size.startsWith("1280") && r.stuck != null) assert.equal(r.stuck, "true", `${size}: the bar was stuck`);
     for (const step of ["board", "posting", "more", "scrolled", "match"]) {
       assert.equal(r[step].over, false, `${size} ${step}: ${r[step].sw} wide in a ${r[step].vw} window (${JSON.stringify(r[step].sticking)})`);
       if (r[step].frostRight != null) assert.ok(r[step].frostRight <= r[step].vw, `${size} ${step}: the fringe ends at ${r[step].frostRight}`);
