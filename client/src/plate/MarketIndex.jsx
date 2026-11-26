@@ -56,10 +56,20 @@ export function stackCell(job, yours = null) {
 }
 
 /** Pure: one index row from a board job. `score` = the shown score (null = declined → "—", never 0). */
-export function indexRow(job, i, { score = null, status = "NEW", yours = null, saved = false, offset = 0 } = {}) {
+/** ⭐ D40 → A251 (47j): an imported posting's line — "captured Nov 26 · from linkedin.com" (the retired card's words). Pure. */
+export function capturedWords(c) {
+  if (!c) return null;
+  const day = c.at ? new Date(c.at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : null;
+  return [day ? `captured ${day}` : "captured", c.from ? `from ${c.from}` : null].filter(Boolean).join(" · ");
+}
+
+export function indexRow(job, i, { score = null, status = "NEW", yours = null, saved = false, offset = 0, ready = false } = {}) {
   const id = job.jobId || job.id;
   return {
     id, job, n: String(offset + i + 1), title: job.title || "", company: job.company || "", saved: !!saved,
+    // ⭐ D57 → A249 (47j): a résumé generated for this job is stored — said on its row, so it is never "found nowhere"
+    ready: !!ready,
+    captured: capturedWords(job.captured),
     companyHref: companyPath(job.company, { job: id }) || null,
     match: Number.isFinite(score) ? `${Math.round(score)}%` : "—",
     stack: stackCell(job, yours),
@@ -136,6 +146,10 @@ export function MarketIndexTable({ rows = [], onOpen, bubble, state, ...s }) {
               {r.company ? <span className="pl-ixrow__co"> · {r.companyHref
                 ? <CompanyStackPopover company={r.company} markClass="pl-ixrow__comark"><span className="pl-gz__co">{r.company}</span></CompanyStackPopover>
                 : r.company}</span> : null}
+              {/* ⭐ A249 (D57) / A251 (D40), 47j: plain-word marks in the row's one line (D60 / D152: no box) — the title
+                  cell is the row's flexible one, so they end in its ellipsis and the row's height never changes (C8) */}
+              {r.ready ? <span className="pl-ixrow__mark" data-resume-ready="" title="A résumé is ready for this job — open the posting to view, download or regenerate it"> · résumé ready</span> : null}
+              {r.captured ? <span className="pl-ixrow__mark" data-captured=""> · {r.captured}</span> : null}
             </span>
             <span role="cell" className="pl-ixc pl-ixc--match">{r.match}</span>
             <span role="cell" className="pl-ixc pl-ixc--stack pl-hide-sm">{r.stack}</span>

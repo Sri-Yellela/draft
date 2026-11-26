@@ -1052,6 +1052,8 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
 .pl-ixrow .pl-gz__title, .plate .pl-ixrow a.pl-gz__title { color: var(--pl-ink); font-weight: 700; font-size: var(--pl-t-ui); text-decoration: none; }
 .pl-ixrow .pl-gz__title:hover { text-decoration: underline; text-underline-offset: 3px; }
 .pl-ixrow__co { font-size: var(--pl-t-meta); color: var(--pl-muted); }
+/* A249 / A251 (47j): the row's plain-word marks — résumé ready (D57), captured … · from … (D40) */
+.pl-ixrow__mark { font-size: var(--pl-t-meta); color: var(--pl-muted); }
 .pl-ixrow__co .pl-gz__co { color: var(--pl-muted); }
 .pl-ixrow__comark { display: inline; }
 .pl-ixrow__saved { color: var(--pl-ink); margin-right: 6px; font-size: var(--pl-t-13); }

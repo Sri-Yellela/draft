@@ -4798,7 +4798,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
           {/* ⭐ D196 FIX-7 / FIX-8: the plate market's Index — the same jobs as the Gazetteer, each row's bubble the board's
               Star (Save) and Draft, wired to the same decideJob / draftControls as the bubble below. */}
             <MarketIndexTable
-              rows={jobs.map((job, i) => indexRow(job, i, { score: scoresFor(job, generated[job.jobId]).shown,
+              rows={jobs.map((job, i) => indexRow(job, i, { score: scoresFor(job, generated[job.jobId]).shown, ready: !!generated[job.jobId]?.html,   // A249 (D57)
                 saved: !!(job._user?.starred ?? job.starred), offset: (Math.max(1, currentPage) - 1) * 50,   // D199 C8: ★ before a saved title; C3: # runs across pages
                 status: indexStatus(job.jobId, { drafted: isJobDrafted(job.jobId), submitted: submittedIds, needsYou: needsYouIds }) }))}
               // ⭐ D199 C7 (47h): a row opens the opening sheet (/app/jobs/<id>, over the market — Back returns to this page and row)

@@ -66,8 +66,12 @@ test("D40 · the + head: Import jobs → /extension; a CONNECTED extension is ne
 
 test("D40 · each imported card adds ONE line: captured <date> · from <host>", () => {
   // 47j A248 (changed on purpose): the card's "captured … · from …" line (capturedLine) is deleted with JobBubble's card; the server still
-  // sends `captured` on the + view. ⚠ The Index row draws no captured line — logged with A248 in the WORKLOG (47j).
+  // sends `captured` on the + view. ⭐ A251 (47j): the Index row says it — the same words, in the row's one line.
   assert.doesNotMatch(read("client/src/components/JobBubble.jsx"), /capturedLine/);
+  const ix = read("client/src/plate/MarketIndex.jsx");
+  assert.match(ix, /return \[day \? `captured \$\{day\}` : "captured", c\.from \? `from \$\{c\.from\}` : null\]\.filter\(Boolean\)\.join\(" · "\);/);
+  assert.match(ix, /captured: capturedWords\(job\.captured\),/);
+  assert.match(ix, /\{r\.captured \? <span className="pl-ixrow__mark" data-captured=""> · \{r\.captured\}<\/span> : null\}/);
   assert.match(server, /\.\.\.\(importedTab \? \{ captured: captureMeta\(capturedBy\.get\(j\.job_id\)\) \} : \{\}\)/);
   // Read after the list, so the list statement interpolates exactly what the count does.
   assert.match(server, /const capturedBy = new Map\(\);\s+if \(importedTab && rows\.length\)/);

@@ -233,7 +233,13 @@ test("D57 · after a reload the stored résumé reads 'Résumé ready · 2h ago'
 
 test("D57 · the job card carries a 'résumé ready' marker in every view", () => {
   // 47j R2 + A248 (changed on purpose): the board no longer draws JobBubble (the Index draws the rows), and A248 deleted the
-  // card with its "résumé ready" marker. ⚠ The Index row has no marker of its own — A249 in the WORKLOG (47j), open.
+  // card with its "résumé ready" marker. ⭐ A249 (47j): the Index row carries it — a plain word in the row's one line
+  // (D60 / D152: no box), from the same read the card had (generated[jobId].html).
   assert.doesNotMatch(read("client/src/panels/JobsPanel.jsx"), /<JobBubble\b/);
   assert.doesNotMatch(read("client/src/components/JobBubble.jsx"), /jb__ready/);
+  const ix = read("client/src/plate/MarketIndex.jsx");
+  assert.match(ix, /ready: !!ready,/);
+  assert.match(ix, /\{r\.ready \? <span className="pl-ixrow__mark" data-resume-ready="" title="A résumé is ready for this job — open the posting to view, download or regenerate it"> · résumé ready<\/span> : null\}/);
+  assert.match(read("client/src/panels/JobsPanel.jsx"), /indexRow\(job, i, \{ score: scoresFor\(job, generated\[job\.jobId\]\)\.shown, ready: !!generated\[job\.jobId\]\?\.html,/);
+  assert.match(read("client/src/plate/plate.css"), /\.pl-ixrow__mark \{ font-size: var\(--pl-t-meta\); color: var\(--pl-muted\); \}/, "a word, no box");
 });
