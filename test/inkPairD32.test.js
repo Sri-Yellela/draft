@@ -103,7 +103,9 @@ test("⭐ the header is the count · one sentence · ONE bar and its key — the
   const bar = card.indexOf("askBar(doc, ");
   assert.ok(count > 0 && score > 0 && bar > count && bar > score, "the header's order is count, sentence, bar");
   // 46x (owner 11-19: "ditch the whole prove it and claim it gimmick", "do the clean up"): no claimed count
-  assert.match(card, /`\$\{matched\} of \$\{total\} things this posting asks for`/);
+  // 47h (moved on purpose): the count's words live once in shared/atsReportModel.js (askCountWords), which FitCard reads too
+  assert.match(card, /askCountWords\(matched, total\)/);
+  assert.match(fs.readFileSync("shared/atsReportModel.js", "utf8"), /`\$\{n\} of \$\{of\} things this posting asks for`/);
   assert.doesNotMatch(card, /ats-sum__band|meta\.label\)/, "the band heading is back");
   assert.equal((card.match(/askBar\(doc, /g) || []).length, 1, "ONE bar");
   const order = ["data-ats-count", "data-ats-score", "data-ats-bar"].map((k) => DRAWN.indexOf(k));

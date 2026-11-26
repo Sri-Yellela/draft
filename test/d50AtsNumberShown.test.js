@@ -32,7 +32,9 @@ test("D50 · the board card's square and the ATS card show it — beside the not
   assert.match(card, /const showNumber = ATS_NUMBER_SHOWN && !isUnknown && Number\.isFinite\(report\?\.score\);/);
   assert.match(card, /\? h\(doc, "p", \{ class: "ats-sum__sub", "data-ats-number-note": true, title: ATS_NUMBER_NOTE \},\s*"A ", h\(doc, "span", \{ "data-ats-score": true \}/,
     "the note goes wherever the number goes");
-  assert.match(card, /The score is still being tuned, so read it with the count\./);
+  // 47h (moved on purpose): the sentence lives once in shared/atsReportModel.js (NUMBER_SENTENCE_TAIL), which FitCard reads too
+  assert.match(card, /` match\. \$\{NUMBER_SENTENCE_TAIL\}`/);
+  assert.match(read("shared/atsReportModel.js"), /NUMBER_SENTENCE_TAIL = "The score is still being tuned, so read it with the count\."/);
   // "Best fit" stays a word in the sort panel.
   assert.match(read("shared/filterSentence.js"), /label: "Best fit"/);
 });
