@@ -8,14 +8,15 @@ import fs from "node:fs";
 const page = fs.readFileSync("client/src/pages/companies/CompanyPage.jsx", "utf8");
 
 test("A149 · the header carries the logo and industry · HQ; the stack says what you have; what they ask for most", () => {
-  assert.match(page, /<CompanyLogo company=\{c\.name\} size=\{56\} radius=\{12\} \/>/);
-  assert.doesNotMatch(page, /co__tile/, "the letter tile is gone");
-  assert.match(page, /\[about\?\.facts\?\.industry, about\?\.facts\?\.hq, c\.domain,/);
-  assert.match(page, /match\.proven\?\.includes\(tech\) \? \{ kind: "proven", word: "you've proven it" \}/);
-  assert.match(page, /match\.listed\?\.includes\(tech\) \? \{ kind: "listed", word: "on your résumé" \}/);
-  assert.match(page, /<h2>What they ask for most<\/h2>/);
-  assert.match(page, /Math\.round\(\(100 \* t\.postings\) \/ Math\.max\(1, t\.of\)\)\}% of their postings/);
-  assert.match(page, /Request a correction or removal/, "the sketch's correction / removal stays");
+  // ⛔ 47j w1-retire (changed on purpose): R3 deleted the classic company page — the page is the survey sheet (plate/
+  // SurveySheet.jsx); each A149 piece is held where docs/revamp/survey.md says it lives now
+  const sheet = fs.readFileSync("client/src/plate/SurveySheet.jsx", "utf8");
+  const model = fs.readFileSync("client/src/plate/surveySheet.js", "utf8");
+  assert.doesNotMatch(page, /CompanyLogo|className="co\b|co__|useMarketPlate/, "no classic page left");
+  assert.match(sheet, /<LetterTile name=\{c\.name\} logo=\{getKnownLogoUrl\(c\.name\)\} region=\{region\}\/>/, "the company's logo (else its letter)");
+  assert.match(sheet, /\["SURVEY SHEET", v\.facts\.industry, v\.facts\.hq,/, "industry · HQ in the kicker row");
+  assert.match(model, /return has\(match\.proven\) \? "proven" : has\(match\.listed\) \? "listed" : "not";/, "your mark on each technology");
+  assert.match(sheet, /Correct or remove this sheet/, "the sketch's correction / removal stays");
 });
 
 test("A149 · a board row's company reaches its page through the hiring-data view (D147's logo, unchanged)", () => {

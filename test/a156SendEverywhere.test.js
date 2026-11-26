@@ -26,7 +26,8 @@ test("a156SendOnListRows: the board's rows carry their public path; the row offe
 test("a156SendOnCompanyPage: inside the shell, network on → Send beside each open job, the same picker", () => {
   const page = read("client/src/pages/companies/CompanyPage.jsx");
   assert.match(page, /if \(!inApp\) return undefined;\s*let live = true;\s*api\("\/api\/network\/status"\)/, "signed out never asks");
-  assert.match(page, /\{networkOn && <button type="button" className="co__send"/);
+  // ⛔ 47j w1-retire (changed on purpose): R3 deleted the classic page — Send is the survey sheet's, the same picker from the page
+  assert.match(read("client/src/plate/SurveySheet.jsx"), /\{networkOn \? <button type="button" className="pl-btn" data-company-send=""/);
   assert.match(page, /<SendJobPicker job=\{sending\}/);
   assert.equal((read("client/src/components/SendJobPicker.jsx").match(/export default function SendJobPicker/g) || []).length, 1, "one picker");
 });
