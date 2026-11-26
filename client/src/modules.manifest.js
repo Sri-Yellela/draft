@@ -361,6 +361,7 @@ export const SHARED = Object.freeze({
 // ── COMPOSITIONS: a panel or page mounting ANOTHER panel whole. Allowed only when declared, with why.
 export const COMPOSITIONS = Object.freeze([
   { from: "components/AdminLayout.jsx", to: "panels/AdminPanel.jsx", why: "the admin frame renders the admin panel" },
+  { from: "plate/fixtures.jsx", to: "pages/atlas/yourSurveyFixtures.jsx", why: "D200 (a) (47i): the F5 build pages draw Your survey (Atlas's SkillMapView) on the YourSurvey board's data — test fixtures only, never the app" },
   { from: "consoles/PlanConsoles.jsx", to: "panels/JobsPanel.jsx", why: "each plan console renders the board" },
   { from: "panels/JobsPanel.jsx", to: "panels/SandboxPanel.jsx", why: "the board's panel dock mounts the PDF panel beside the posting" },
   { from: "panels/AutoApplyPanel.jsx", to: "panels/JobWorkspacePanel.jsx", why: "D102 P5: on a wide screen Draft House shows an opened application beside its list" },

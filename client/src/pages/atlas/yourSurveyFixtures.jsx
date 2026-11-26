@@ -55,14 +55,25 @@ export function YourSurveyBoard() {
   useLayoutEffect(() => {
     const q = new URLSearchParams((globalThis.location?.hash || "").slice(1));
     const sel = q.get("sel"), want = Number(q.get("oy")) || 0;
-    const el = sel && document.querySelector(sel);
-    if (!el || !wrap.current) return;
-    const got = (el.getBoundingClientRect().top + scrollY) % 1;
-    wrap.current.style.paddingTop = `${(((want - got) % 1) + 1) % 1}px`;
+    // 47i: once now and again after the web fonts have laid the text out (the first pass ran on the fallback fonts)
+    const place = () => {
+      const el = sel && document.querySelector(sel);
+      if (!el || !wrap.current) return;
+      const pad = parseFloat(wrap.current.style.paddingTop) || 0;
+      const got = (el.getBoundingClientRect().top + scrollY - pad) % 1;
+      wrap.current.style.paddingTop = `${(((want - got) % 1) + 1) % 1}px`;
+    };
+    place();
+    let live = true;
+    globalThis.document?.fonts?.ready?.then(() => { if (live) place(); });
+    return () => { live = false; };
   }, []);
+  // 47i: the board keeps its 98 px rail at every width — the column is the viewport less 98 (1182 at 1280, 292 at 390)
+  // (#w = the board section's own width, as the market's final fixtures draw at theirs: the board caps its sections at 1180)
+  const col = Number(new URLSearchParams((globalThis.location?.hash || "").slice(1)).get("w")) || Math.max(240, (globalThis.innerWidth || 1280) - 98);
   return (
     <MemoryRouter>
-      <div ref={wrap} data-your-survey-fixture="" style={{ marginLeft: 98, width: 1182 }}>
+      <div ref={wrap} data-your-survey-fixture="" style={{ marginLeft: 98, width: col }}>
         <SkillMapView m={BOARD_SURVEY} base="/atlas" />
       </div>
     </MemoryRouter>

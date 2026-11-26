@@ -6,8 +6,9 @@
    yet = unclaimed, hatched and dashed. No capsules (D60): squares and perfect circles only. The charts draw at the
    board's sizes and scale to the width; running text keeps ~70ch. Font sizes follow Settings → Text size (--pl-scale). */
 .ys { font-family: var(--pl-sans); color: var(--pl-ink); background: var(--pl-paper); padding-bottom: 70px; min-width: 0; }
-.ys-head { max-width: 1180px; margin: 0 auto; padding: 26px 24px 0; box-sizing: border-box; }
-.ys-sec { max-width: 1180px; margin: 54px auto 0; padding: 0 24px; box-sizing: border-box; }
+/* 47i: no centred cap (BRAND § FULL WIDTH) — the page fills its column; the board's 1180 is its column there */
+.ys-head { padding: 26px 24px 0; box-sizing: border-box; }
+.ys-sec { margin: 54px 0 0; padding: 0 24px; box-sizing: border-box; }
 .ys-h1 { margin: 10px 0 0; font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-question); line-height: 1; overflow-wrap: anywhere; }
 .ys-lead { margin: 8px 0 0; max-width: 760px; font-size: var(--pl-t-body); line-height: 1.5; color: var(--pl-ink-soft); }
 .ys-p { margin: 14px 0 0; max-width: 720px; font-size: var(--pl-t-body); line-height: 1.55; color: var(--pl-ink-soft); }
@@ -98,6 +99,7 @@
 .ys-picked { padding: 10px 14px; border-top: var(--pl-border-rule); background: var(--pl-card); display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .ys-picked b { font-size: var(--pl-t-small); }
 .ys-picked__line { font-size: var(--pl-t-13); color: var(--pl-ink-soft); }
+.ys-picked .ys-btn--sm { box-sizing: content-box; }   /* 47i: as the board's picked-plot link — 40 + its border, the row 63 */
 
 /* buttons (depth boxes: an ink border and a hard shadow) */
 .ys-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 48px; box-sizing: border-box; padding: 0 18px; border-radius: var(--pl-r-input); border: var(--pl-border);
@@ -154,7 +156,9 @@
 .ys-route > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 800; color: var(--pl-clay-text); }
 .ys-route__list { list-style: none; margin: 0; padding: 0 0 0 4px; border-left: 2px dashed var(--pl-ink); }
 .ys-route__list > li { display: flex; gap: 14px; align-items: flex-start; padding: 10px 0; font-size: var(--pl-t-ui-lg); }
-.ys-route__n { flex: 0 0 auto; width: 30px; height: 30px; box-sizing: border-box; border-radius: 50%; border: var(--pl-border-dashed); background: var(--pl-card); color: var(--pl-muted);
+/* 47i: as the board — a content-box circle (30 + its 1.5 px border = 33), and a step not reached yet drawn empty (the board
+   paints its number in the card's colour; the number is aria-hidden, the step's words carry it) */
+.ys-route__n { flex: 0 0 auto; width: 30px; height: 30px; box-sizing: content-box; border-radius: 50%; border: var(--pl-border-dashed); background: var(--pl-card); color: var(--pl-card);
   display: inline-flex; align-items: center; justify-content: center; font-family: var(--pl-mono); font-size: var(--pl-t-mono-lg); font-weight: 700; }
 .ys-route__n--done { border-style: solid; background: var(--pl-lit); color: var(--pl-on-clay); }
 .ys-route__n--next { border-style: solid; background: var(--pl-clay); color: var(--pl-on-clay); }

@@ -36,7 +36,10 @@ test("d172MapTrackBoardWithStations: the loop — top row left to right, the tur
 // route are KEPT, below it, inside a closed <details> "Your route, step by step" (the market tree it led is retired).
 test("d172MapTrackBoardWithStations: wired — the board and the route stay, below the skill map, on demand; the navigator sends the stations", () => {
   const page = read("client/src/pages/atlas/AtlasPage.jsx");
-  assert.match(page, /<SkillMap base=\{base\} signedIn=\{signedIn\} \/>[\s\S]{0,300}<details className="atl-more skm-route-more" data-atlas-route-steps="">\n\s*<summary className="atl__link">Your route, step by step<\/summary>\n\s*<TrackBoard base=\{base\} signedIn=\{signedIn\} \/>\n\s*<section className="atl__section" data-atlas-route-in-map=""><YourRoutePanel base=\{base\} signedIn=\{signedIn\} \/><\/section>/);
+  // ⭐ D200 (a) (47i, on purpose): Your survey's 05 "Your route, step by step" holds the route's steps; the track board and
+  // the navigator (D172 (4) / D178) stay inside it, closed, as its "Fly my route" (routeMore) — nothing lost
+  assert.match(page, /<SkillMap base=\{base\} signedIn=\{signedIn\} routeMore=\{signedIn && \(\n\s*<details className="atl-more skm-route-more" data-atlas-route-more="">\n\s*<summary className="atl__link">Fly my route · the track board and the navigator<\/summary>\n\s*<TrackBoard base=\{base\} signedIn=\{signedIn\} \/>\n\s*<section className="atl__section" data-atlas-route-in-map=""><YourRoutePanel base=\{base\} signedIn=\{signedIn\} \/><\/section>/);
+  assert.match(read("client/src/pages/atlas/SkillMap.jsx"), /<details open className="ys-card ys-route" data-atlas-route-steps="">[\s\S]*?\{routeMore\}\n\s*<\/details>/);
   assert.doesNotMatch(page, /data-atlas-market-tree|See the whole market around you/);
   // ⭐ A154 (45o, on purpose): + the You pill's years.
   assert.match(read("services/navigator.js"), /route: route \? \{ \.\.\.route, stations, openRoles: aimReading\?\.role\?\.postings \?\? null, youYears \} : null/);

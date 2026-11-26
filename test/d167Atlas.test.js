@@ -192,7 +192,7 @@ test("D167 · d167AtlasKeepsEverySurface — each existing surface is mounted by
   // 5, 8, 10, 12 · Your map — ⭐ A228 (46r, owner 11-16 "Build it", moved on purpose): the skill map (SkillMap.jsx) replaces
   // the tree, the course, the five sections and the families on this panel (the tree stays on role and family pages).
   assert.match(page, /\{panel === "your-map" && !familyKey && \(/);
-  assert.match(page, /<SkillMap base=\{base\} signedIn=\{signedIn\} \/>/);
+  assert.match(page, /<SkillMap base=\{base\} signedIn=\{signedIn\} routeMore=\{signedIn && \(/);   // ⭐ D200 (a) (47i, on purpose): the route's extras ride in its 05
   assert.doesNotMatch(page, /<YourMap /);
   // 7 · the navigator is Your route; 6 · its next step (or D120's line) is Overview's Next step.
   assert.match(panels, /<Navigator base=\{base\} fallback=/);
@@ -238,7 +238,7 @@ test("D167 · d167AtlasKeepsEverySurface — Your map is the skill map; the move
     route: { steps: [step], hours: 8, estimated: false },
     move: [{ id: 5, slug: "data-engineer", name: "Data Engineer", open: 5, judged: 5, coverage: 0.5, applicable: 3, carries: [], missing: [], hoursTo30: 0, isAim: false, isCurrent: false, isShown: true }],
     roles: [{ id: 5, slug: "data-engineer", name: "Data Engineer" }] });
-  assert.deepEqual([...html.matchAll(/data-skm-section="([^"]+)"/g)].map(m => m[1]), ["number", "wants", "learn", "move"]);
+  assert.deepEqual([...html.matchAll(/data-skm-section="([^"]+)"/g)].map(m => m[1]), ["number", "close", "wants", "learn", "move", "route"]);   // ⭐ D200 (a) (47i, on purpose): the YourSurvey board's six — + How close (01) and The whole route (05)
   assert.doesNotMatch(html, /data-your-map=""|data-map-section=|data-atlas-home-families=""|data-atlas-explore=""|data-atlas-home-recent=""/);
 });
 

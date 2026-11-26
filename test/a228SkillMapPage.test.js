@@ -6,6 +6,7 @@
 // a228PlainWords (the verb "ask for" is the sketch's own; the noun "asks" is not) · a228LevelsHidden · a228TokensOnly.
 import test from "node:test";
 import assert from "node:assert/strict";
+import { at } from "../test-support/sourceAnchors.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -104,13 +105,15 @@ test("a228LabelNudge: a scatter label that would overlap one already placed move
 test("a228PageOrder: the sketch's four sections in order, one reading — the number, what the jobs want, Learn next, the moves", async () => {
   const u = await loadUi();
   const html = u.page(ANSWER());
-  assert.deepEqual([...html.matchAll(/data-skm-section="([^"]+)"/g)].map(m => m[1]), ["number", "wants", "learn", "move"]);
-  assert.match(html, /data-skm-applicable="412"[^>]*>412<\/b><span class="skm-small">jobs you can apply for today<\/span>/);
+  assert.deepEqual([...html.matchAll(/data-skm-section="([^"]+)"/g)].map(m => m[1]), ["number", "close", "wants", "learn", "move", "route"]);   // ⭐ D200 (a) (47i, on purpose): the YourSurvey board's six — + How close (01) and The whole route (05)
+  // ⭐ D200 (a) (47i, on purpose): the YourSurvey board's head — the number in the serif title line itself
+  assert.match(html, /data-skm-applicable="412"[^>]*>412<\/span> jobs you can apply for today<\/h1>/);
   assert.match(html, /Backend Engineer → aiming for Data Engineer/);
   assert.equal(u.heroLine(ANSWER()), "Out of 1,842 open Data Engineer jobs, you have most of what these ask for. Learn Apache Spark and that grows by 214.");
   // every chart: an SVG drawn from tokens, hover/focus marks (data-tip + tabindex), and a table view
   for (const k of ["data-skm-histogram", "data-skm-treemap=\"map\"", "data-skm-route", "data-skm-scatter"]) assert.match(html, new RegExp(k), k);
-  assert.equal((html.match(/<summary>Show as a table<\/summary>/g) || []).length, 4);
+  // ⭐ D200 (a) (47i, on purpose): each figure's caption carries its "▸ Show as a table" toggle (the board's), still four
+  assert.equal((html.match(/class="ys-fig__toggle"[^>]*>▸ Show as a table<\/button>/g) || []).length, 4);
   assert.ok((html.match(/tabindex="0"[^>]*data-tip=|data-tip=[^>]*tabindex="0"/g) || []).length >= 10, "marks are focusable and carry words");
   // the map: Map | List, one view at a time; the List is the same skills as ranked bars
   assert.match(html, /aria-pressed="true"[^>]*>Map<\/button><button type="button" aria-pressed="false"[^>]*>List</);
@@ -119,17 +122,21 @@ test("a228PageOrder: the sketch's four sections in order, one reading — the nu
   assert.doesNotMatch(list, /data-skm-treemap="map"/);
   // the three states: one hue — solid, hatched, dashed — and NAMED in the legend (never colour alone)
   assert.match(html, /data-skm-legend=""[\s\S]*Proven[\s\S]*On your résumé[\s\S]*Not yet/);
-  assert.match(html, /class="skm-f-claimed" fill="url\(#skm-hatch-/);
+  // ⭐ D200 (a) (47i, on purpose): the cadastral map — claimed = a solid outline, NOT YET = hatched (the board's states)
+  const plot = (slug) => { const i = at(html, `data-skm-tile="${slug}"`); return html.slice(i, at(html, "</g>", i)); };   // a plot is its own <g>
+  assert.match(plot("apache-spark"), /data-state="missing"[\s\S]*fill="url\(#ys-hatch-/);
+  assert.doesNotMatch(plot("aws"), /ys-hatch-/, "a claimed plot is not hatched");
   assert.match(html, /data-skm-tile="sql" data-state="proven"/);
   // Learn next: the skill's mark, "+N jobs", the hours, the companies (CompanyLogo), the button to the piece
-  assert.match(html, /data-skm-step="apache-spark" data-kind="learn"[\s\S]*?Learn Apache Spark[\s\S]*?\+214 jobs[\s\S]*?about 30 h[\s\S]*?data-company-logo=/);
+  // ⭐ D200 (a) (47i, on purpose): the board's order — the skill, the hours, the companies, then "+N jobs"
+  assert.match(html, /data-skm-step="apache-spark" data-kind="learn"[\s\S]*?Learn Apache Spark[\s\S]*?about 30 h[\s\S]*?data-company-logo=[\s\S]*?\+214 jobs/);
   assert.match(html, /data-skm-step="kafka" data-kind="prove"[\s\S]*?Prove Kafka/);
   assert.equal(u.stepHref("/app/atlas", ANSWER().route.steps[0]), "/app/atlas/library/silicon-to-software?view=circle#step-o4");
   assert.equal(u.stepHref("/app/atlas", ANSWER().route.steps[1]), "/app/atlas/your-skills?prove=Kafka");
   assert.match(html, /data-skm-next="" data-href="\/app\/atlas\/library\/silicon-to-software\?view=circle#step-o4"/);
   // the moves: a card per role, its meter, what carries over / to learn, Aim for this
   assert.equal((html.match(/data-skm-card=/g) || []).length, 3);
-  assert.match(html, /data-skm-card="backend-engineer"[\s\S]*?You have 61% of it · 1,300 jobs to apply for now/);
+  assert.match(html, /data-skm-card="backend-engineer"[\s\S]*?You have <b>61%<\/b> of it · 1,300 jobs to apply for now/);   // 47i: the share in bold, as the board
   assert.match(html, />Aim for this</);
 });
 
@@ -148,19 +155,24 @@ test("a228LevelsHidden: the level tiles only when the server sends levels (null 
   const u = await loadUi();
   assert.doesNotMatch(u.page(ANSWER()), /data-skm-levels/);
   const html = u.page(ANSWER({ levels: [{ level: "mid", open: 900, applicable: 200 }, { level: "senior", open: 500, applicable: 60 }] }));
-  assert.match(html, /data-skm-level="mid"[\s\S]*Mid-level[\s\S]*200[\s\S]*of 900 jobs[\s\S]*data-skm-level="senior"/);
+  // ⭐ D200 (a) (47i, on purpose): the board's level cells — "200 of 900" over the level's name
+  assert.match(html, /data-skm-level="mid"[\s\S]*200[\s\S]*of 900[\s\S]*Mid-level[\s\S]*data-skm-level="senior"/);
   assert.match(u.page(ANSWER({ skills: { proven: 0, claimed: 0 } })), /data-skm-no-skills=""/);
 });
 
 test("a228TokensOnly: the skill map's look is theme tokens only, no capsule, reduced motion respected, the chart neutral a token", () => {
   const css = read("client/src/pages/atlas/SkillMap.css");
   assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ""), /#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(/, "every colour a theme token");
-  assert.doesNotMatch(css, /border-radius:\s*(999|50%)/);
-  assert.match(css, /\.skm-f-neutral \{ fill: var\(--c-chart-neutral\); \}/);
-  assert.match(css, /\.skm-f-proven \{ fill: var\(--c-accent\); \}/);
-  assert.match(css, /\.skm-f-missing \{[^}]*stroke-dasharray/);
+  assert.doesNotMatch(css, /border-radius:\s*999/);
+  // ⭐ D200 (a) (47i, on purpose): the page is the YourSurvey board in plate tokens. A 50 % radius only on a square (the
+  // route's 30 × 30 step circles — D60 keeps perfect circles round), never a capsule
+  for (const m of css.matchAll(/\{([^}]*border-radius:\s*50%[^}]*)\}/g)) {
+    const w = m[1].match(/(?:^|;|\s)width:\s*(\d+)px/), h = m[1].match(/(?:^|;|\s)height:\s*(\d+)px/);
+    assert.ok(w && h && w[1] === h[1], `a 50 % radius on a square only: ${m[1].trim().slice(0, 80)}`);
+  }
+  assert.match(css, /\.ys-plot--proven \{ fill: var\(--pl-lit\); \}/, "owned = proven, the plate's lit");
+  assert.match(css, /\.ys-plot--missing \{[^}]*stroke-dasharray/, "unclaimed = dashed");
   assert.match(css, /@media \(prefers-reduced-motion: no-preference\)/, "motion only when the reader allows it");
-  assert.match(css, /@media \(min-width: 1200px\) \{ \.skm-main \{ grid-template-columns: minmax\(0, 1\.9fr\) minmax\(360px, 1fr\);/, "the sketch's two columns from 1200 px; one below");
   for (const t of ["dusk-light", "dusk-dark", "plain-light", "plain-dark"]) assert.match(read(`client/src/themes/${t}.js`), /CHART_NEUTRAL: +"#[0-9A-F]{6}"/, t);
 });
 
@@ -195,7 +207,10 @@ test("A231: the move-to scatter reads heights on a log scale with clean decade t
   assert.ok(new Set(ps.map(p => p.toFixed(2))).size === prod.length, "each role at its own height");
   assert.equal(s.pos(0), 0, "no open jobs sits on the floor");
   assert.deepEqual(logScale([]).ticks, [1, 10], "nothing to draw still gives an axis");
+  // ⭐ D200 (a) (47i, on purpose): the scale is plateScatter's (skillMapModel.js) with the board's decade top; the
+  // scatter draws its ticks from it
+  const model = fs.readFileSync(new URL("../client/src/pages/atlas/skillMapModel.js", import.meta.url), "utf8");
+  assert.match(model, /const ys = logScale\(roles\.map\(r => r\.open\), \{ decade: true \}\);/);
   const src = fs.readFileSync(new URL("../client/src/pages/atlas/MoveRolesScatter.jsx", import.meta.url), "utf8");
-  assert.match(src, /const ys = logScale\(roles\.map\(r => r\.open\)\);/);
-  assert.match(src, /\{ys\.ticks\.map\(t => \(/);
+  assert.match(src, /\{g\.ticks\.map\(\(\{ t, y \}\) =>/);
 });
