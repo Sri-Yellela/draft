@@ -60,11 +60,12 @@ export const MODULES = Object.freeze({
   // ⭐ D196 (owner 11-24) · THE PLATE SYSTEM — one component library (plate/) built from the design report and ported from the
   // canvas export; its pages are composed only from these. The gallery (/dev/plate) shows every component in every state.
   // plate/plate.css is the library's look, worn by the library's files and the gallery only; P1–P5's pages join as members.
-  plate: { why: "D196's plate component library and its gallery (F3 / F4)", css: ["plate/plate.css", "plate/sheets.css" /* 47h: the ledger + the survey sheet */, "plate/atlasPlate.css" /* 47h: Atlas */],
+  plate: { why: "D196's plate component library and its gallery (F3 / F4)", css: ["plate/plate.css", "plate/sheets.css" /* 47h: the ledger + the survey sheet */, "plate/atlasPlate.css" /* 47h: Atlas */, "plate/person.css" /* 47j (w2-person): the person's pieces */],
     members: ["App.jsx", "plate/PlateRoot.jsx", "plate/PlateState.jsx", "plate/Shell.jsx", "plate/Marks.jsx", "plate/Plates.jsx", "plate/Tickets.jsx",
       "plate/Cards.jsx", "plate/Lists.jsx", "plate/Drawings.jsx", "plate/icons.jsx", "plate/motion.js", "plate/registry.js", "plate/fonts.js",
       "plate/drawings/index.js", "plate/fixtures.jsx", "pages/dev/PlateGallery.jsx",
       "pages/dev/platePages/index.js" /* D197 Wave 2 · M3: the page mocks (`/dev/plate?page=<id>`); each mock file joins here */,
+      "plate/Person.jsx" /* 47j (w2-person): the passport / setting out / settings pieces */, "pages/dev/platePages/Profile.jsx", "pages/dev/platePages/Onboarding.jsx", "pages/dev/platePages/Settings.jsx", "pages/dev/platePages/SignIn.jsx" /* 47j (w2-person): D197 Wave 2 #9 / #15 / #17 mocks */,
       // P1 (the market): the switch, the card face, and the deck that wears it
       "plate/marketPlate.js", "plate/MarketCardFace.jsx", "plate/PlateBearing.jsx", "plate/MarketHero.jsx", "plate/MarketOpenings.jsx", "panels/DeckView.jsx",
       // 47f (the owner's P1 FIX): the deck at the board's size; the Index as the Gazetteer, drawn by the board's own column

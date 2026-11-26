@@ -14,10 +14,11 @@ import * as Lists from "../../plate/Lists.jsx";
 import * as Drawings from "../../plate/Drawings.jsx";
 import * as Explainer from "../../plate/explainer/Explainer.jsx";
 import { FitCard } from "../../plate/FitCard.jsx";   // D202: the field card ⇄ the ATS card
+import * as Person from "../../plate/Person.jsx";   // 47j (w2-person): the passport / setting out / settings pieces
 import { DRAWINGS } from "../../plate/drawings/index.js";
 import { PLATE_PAGES } from "./platePages/index.js";   // D197 Wave 2 · M3: the page mocks (`?page=<id>`)
 
-const LIB = { ...Shell, ...Marks, ...Plates, ...Tickets, ...Cards, ...Lists, ...Drawings, ...Explainer, FitCard };
+const LIB = { ...Shell, ...Marks, ...Plates, ...Tickets, ...Cards, ...Lists, ...Drawings, ...Explainer, FitCard, ...Person };
 
 function params() {
   if (typeof window === "undefined") return new URLSearchParams();

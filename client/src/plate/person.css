@@ -1,0 +1,80 @@
+/* ⭐ D197 Wave 2 (47j, lane w2-person) · the person's pieces (plate/Person.jsx): the passport's identity page, the
+   visibility control, the stamps, the labelled field, the settings sheet, Setting out's drop and the drawing-to-come plate.
+   Plate tokens only (styles/plate.css); 1.5 px ink, hard shadows, no blur, no capsules (D60). */
+
+/* the identity page */
+.pl-passport { min-width: 0; background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-plate); box-shadow: var(--pl-s6); overflow: hidden; }
+.pl-passport__strip { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 16px;
+  border-bottom: var(--pl-border); background: var(--pl-region-tint); }
+.pl-passport__body { display: flex; flex-wrap: wrap; gap: 20px; padding: 18px 16px; }
+.pl-passport__photo { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.pl-passport__photo > img, .pl-passport__photo > span { width: 112px; height: 136px; box-sizing: border-box; border: var(--pl-border); border-radius: var(--pl-r-small);
+  box-shadow: var(--pl-s3); object-fit: cover; background: var(--pl-region-tint); display: flex; align-items: center; justify-content: center;
+  font-family: var(--pl-serif); font-size: var(--pl-t-num-lg); color: var(--pl-region); }
+.pl-passport__text { flex: 999 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.pl-passport__name { margin: 0; font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-section); line-height: 1; overflow-wrap: anywhere; }
+.pl-passport__headline { margin: 0; font-size: var(--pl-t-lead); font-weight: 500; line-height: 1.45; color: var(--pl-ink-soft); overflow-wrap: anywhere; }
+.pl-passport__fields { margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px 16px; padding-top: 10px; border-top: var(--pl-border-rule); }
+.pl-passport__field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pl-passport__field dd { margin: 0; font-family: var(--pl-mono); font-size: var(--pl-t-mono-lg); font-weight: 700; letter-spacing: .04em; overflow-wrap: anywhere; }
+.pl-passport__open { margin: 0; font-size: var(--pl-t-small); font-weight: 700; }
+.pl-passport__actions { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 16px; border-top: var(--pl-border); background: var(--pl-paper-warm); }
+
+/* who can see it */
+.pl-visibility { display: inline-flex; flex-wrap: wrap; border: var(--pl-border); border-radius: var(--pl-r-btn); background: var(--pl-card); box-shadow: var(--pl-s3); overflow: hidden; }
+.pl-visibility__opt { all: unset; box-sizing: border-box; cursor: pointer; min-height: var(--pl-target); padding: 0 16px; display: inline-flex; align-items: center;
+  font-family: var(--pl-sans); font-size: var(--pl-t-ui); font-weight: 600; color: var(--pl-ink); }
+.pl-visibility__opt + .pl-visibility__opt { border-left: var(--pl-border); }
+.pl-visibility__opt[aria-pressed="true"] { background: var(--pl-ink); color: var(--pl-on-ink); font-weight: 800; }
+.pl-visibility__opt[disabled] { cursor: default; color: var(--pl-muted); background: var(--pl-paper-warm); text-decoration: line-through; }
+.pl-visibility__opt:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: -3px; }
+.pl-visibility--compact .pl-visibility__opt { min-height: 36px; padding: 0 10px; font-size: var(--pl-t-small); }
+
+/* stamps */
+.pl-stamps { display: flex; flex-direction: column; gap: 18px; }
+.pl-stamps__group { display: flex; flex-direction: column; gap: 10px; }
+.pl-stamps__row { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 14px 18px; }
+.pl-stamps__stamp { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; max-width: 100%; }
+.pl-stamps__stamp .pl-stamp { overflow-wrap: anywhere; max-width: 100%; }
+.pl-stamps__sub { font-family: var(--pl-mono); font-size: var(--pl-t-mono-xs); font-weight: 700; letter-spacing: .08em; color: var(--pl-muted); }
+.pl-stamps__yet { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: var(--pl-border-dashed); border-radius: var(--pl-r-small);
+  background: var(--pl-card); font-size: var(--pl-t-small); max-width: 100%; overflow-wrap: anywhere; }
+.pl-stamps__yet a { font-weight: 700; color: var(--pl-ink); }
+
+/* a labelled field */
+.pl-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pl-field__input { box-sizing: border-box; width: 100%; min-height: var(--pl-target); border: var(--pl-border); border-radius: var(--pl-r-input); background: var(--pl-card);
+  padding: 10px 14px; font: inherit; font-size: var(--pl-t-body); color: var(--pl-ink); }
+textarea.pl-field__input { resize: vertical; line-height: 1.5; }
+.pl-field__input:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 2px; }
+.pl-field__input[aria-invalid="true"] { border-style: dashed; }
+.pl-field__note { font-size: var(--pl-t-tiny); color: var(--pl-muted); }
+.pl-field__error { font-size: var(--pl-t-small); font-weight: 700; color: var(--pl-ink); }
+.pl-field__error::before { content: "✕ "; }
+
+/* a settings sheet */
+.pl-settings[data-tone="danger"] { border-style: dashed; }
+.pl-settings__body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.pl-settings__head { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.pl-settings__words { flex: 999 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.pl-settings__title { margin: 0; font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-card); line-height: 1.05; overflow-wrap: anywhere; }
+.pl-settings__lead { margin: 0; font-size: var(--pl-t-small); line-height: 1.5; color: var(--pl-ink-soft); overflow-wrap: anywhere; }
+.pl-settings__drawing { flex: 0 0 auto; }
+.pl-settings__rows { display: flex; flex-direction: column; border-top: var(--pl-border-rule); }
+.pl-settings__row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: var(--pl-border-rule); }
+.pl-settings__label { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--pl-t-small); overflow-wrap: anywhere; }
+.pl-settings__note { font-size: var(--pl-t-tiny); color: var(--pl-muted); line-height: 1.45; }
+.pl-settings__control { flex: 0 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: var(--pl-t-small); overflow-wrap: anywhere; }
+
+/* Setting out's drop */
+.pl-drop { display: flex; flex-direction: column; gap: 10px; padding: 22px 20px; border: var(--pl-border-dashed); border-radius: var(--pl-r-plate); background: var(--pl-paper-warm); }
+.pl-drop[data-over] { border-style: solid; box-shadow: var(--pl-s4-clay); }
+.pl-drop__title { margin: 0; font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-card); line-height: 1.05; }
+.pl-drop__line { margin: 0; max-width: 520px; font-size: var(--pl-t-small); line-height: 1.5; color: var(--pl-ink-soft); }
+.pl-drop__status { margin: 0; min-height: 1.2em; font-size: var(--pl-t-small); font-weight: 600; }
+
+/* the drawing-to-come plate */
+.pl-tocome { box-sizing: border-box; width: 100%; aspect-ratio: var(--pl-aspect, 640 / 520); display: flex; flex-direction: column; justify-content: flex-end; gap: 8px;
+  padding: 18px; border: var(--pl-border-dashed); border-radius: var(--pl-r-hero); background-color: var(--pl-region-tint); background-image: var(--pl-hatch); }
+.pl-tocome__what { max-width: 440px; font-family: var(--pl-serif); font-style: italic; font-size: var(--pl-t-card); line-height: 1.15; color: var(--pl-ink); overflow-wrap: anywhere;
+  background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-small); padding: 8px 12px; box-shadow: var(--pl-s3); }
