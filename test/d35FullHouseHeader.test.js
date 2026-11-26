@@ -771,8 +771,10 @@ test("D26/D28: the board's bar is the search input only; a search never touches 
   const panel = strip(read("client/src/panels/JobsPanel.jsx"));
   assert.match(panel, /if \(has\("query"\)\) setLocalSearch\(query\);/);
   assert.match(panel, /if \(has\("status"\)\) \{/, "a search without a status must not reset ageFilter or the tab");
-  assert.doesNotMatch(panel, /<div style=\{labelStyle\}>Provider<\/div>/, "the provider filter is an admin concept (D26)");
-  assert.doesNotMatch(panel, /<div style=\{labelStyle\}>Location<\/div>/, "location is the sentence's word now, not free text");
+  // ⛔ 47j w1-market r2 (changed on purpose): the filters drawer is drawn on the plate — its labels are `.pl-label pl-fdrawer__k`
+  assert.doesNotMatch(panel, /<div className="pl-label pl-fdrawer__k">Provider<\/div>/, "the provider filter is an admin concept (D26)");
+  assert.doesNotMatch(panel, /<div className="pl-label pl-fdrawer__k">Location<\/div>/, "location is the sentence's word now, not free text");
+  assert.match(panel, /<div className="pl-label pl-fdrawer__k">Salary Range \(USD\)<\/div>/, "the drawer's labels moved with the redraw — keep the two checks above live");
 });
 
 // ── 6. The sort panel ───────────────────────────────────────────────────────────────────────────

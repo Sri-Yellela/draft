@@ -1033,6 +1033,53 @@ p.pl-mk-notice { padding: 4px 0 10px; }
 .pl-mk-drop--compact { padding: 0; }
 .pl-mk-drop[data-over="true"] { outline-color: var(--pl-clay); }   /* a résumé held over it: you, next */
 .pl-deckstate { display: flex; flex-direction: column; gap: 10px; }
+/* 47j w1-market (round 2) · the decision toast (components/DecisionToast.jsx): fixed, centred by margins, a plate card */
+.pl-toast { position: fixed; left: 0; right: 0; margin: 0 auto; width: fit-content; max-width: calc(100vw - 32px); box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 12px 16px; background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-small); box-shadow: var(--pl-s4); font-family: var(--pl-sans); font-size: var(--pl-t-ui); line-height: 1.45; color: var(--pl-ink); }
+.pl-toast strong { font-weight: 800; }
+.pl-toast__act { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 8px; border-radius: var(--pl-r-btn); font-weight: 800; color: var(--pl-ink); text-decoration: underline; text-underline-offset: 3px; }
+.pl-toast__act:hover { background: var(--pl-paper-hover); }
+.pl-toast__act:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 3px; }
+/* 47j w1-market (round 2) · the end of the deck (DeckView EndOfDeck) and the deck's shortcut legend */
+.pl-deckend { position: relative; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px; padding: 28px 28px 26px; background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-sheet); box-shadow: var(--pl-s6); color: var(--pl-ink); font-family: var(--pl-sans); }
+.pl-deckend__head { display: flex; flex-direction: column; gap: 12px; }
+.pl-deckend__title { margin: 6px 0 0; font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-section); line-height: 1; color: var(--pl-ink); }
+.pl-deckend__tally { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.pl-deckend__tally .pl-mk-notice { padding: 0; }
+.pl-deckend__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pl-deckend__row { display: flex; align-items: center; gap: 12px; font-size: var(--pl-t-ui); min-width: 0; }
+.pl-deckend__what { min-width: 0; overflow-wrap: anywhere; }
+.pl-deckend__what strong { font-weight: 700; }
+.pl-deckend__co { color: var(--pl-ink-soft); }
+.pl-deckend__text { margin: 0; font-size: var(--pl-t-ui); line-height: 1.6; color: var(--pl-ink-soft); max-width: 60ch; }
+.pl-deckend__text strong { color: var(--pl-ink); }
+.pl-deckend__actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.pl-keys { position: fixed; right: 24px; bottom: 96px; box-sizing: border-box; max-width: calc(100vw - 48px); display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-small); box-shadow: var(--pl-s5); font-family: var(--pl-sans); font-size: var(--pl-t-small); color: var(--pl-ink); }
+.pl-keys > .pl-label { margin-bottom: 4px; }
+.pl-keys__row { display: flex; align-items: center; gap: 14px; padding: 3px 0; }
+.pl-keys__k { min-width: 64px; box-sizing: border-box; text-align: center; }
+/* 47j w1-market (round 2) · the filters drawer, "Salary & more" (JobsPanel FiltersPanel) — portalled to <body> with its own .plate */
+.pl-fdrawer { background: color-mix(in srgb, var(--pl-ink) 32%, transparent); box-sizing: border-box; font-family: var(--pl-sans); }
+.pl-fdrawer__panel { box-sizing: border-box; padding: 22px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; background: var(--pl-paper); color: var(--pl-ink); border: var(--pl-border); border-right: 0; border-radius: var(--pl-r-small) 0 0 var(--pl-r-small); box-shadow: var(--pl-s6); }
+.pl-fdrawer__head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.pl-fdrawer__title { font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-card); line-height: 1; }
+.pl-fdrawer__close { all: unset; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: var(--pl-t-ui-lg); line-height: 1; color: var(--pl-ink); }
+.pl-fdrawer__close:hover { background: var(--pl-paper-hover); }
+.pl-fdrawer__close:focus-visible, .pl-fdrawer__check:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 3px; }
+.pl-fdrawer__sec { display: flex; flex-direction: column; gap: 8px; }
+.pl-fdrawer__k { font-size: var(--pl-t-mono); color: var(--pl-ink-soft); }
+.pl-fdrawer__pair { display: flex; gap: 6px; align-items: center; }
+.pl-fdrawer__pair > .pl-mk-find { flex: 1 1 0; min-width: 0; }
+.pl-fdrawer__saved { display: flex; align-items: center; gap: 4px; }
+.pl-fdrawer__savedname { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-fdrawer__check { all: unset; cursor: pointer; box-sizing: border-box; width: 100%; min-height: 44px; padding: 8px 12px; display: flex; align-items: center; gap: 10px; border: var(--pl-border); border-radius: var(--pl-r-input); background: var(--pl-card); font-size: var(--pl-t-small); font-weight: 600; color: var(--pl-ink); }
+.pl-fdrawer__box { flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border: var(--pl-line-thin) solid var(--pl-ink); border-radius: var(--pl-r-sq); background: var(--pl-card); }
+.pl-fdrawer__check[aria-pressed="true"] .pl-fdrawer__box { background: var(--pl-ink); }
+.pl-fdrawer__check[aria-pressed="true"] { box-shadow: var(--pl-s3); }
+.pl-fdrawer__foot { display: flex; gap: 8px; padding-top: 8px; }
+.pl-fdrawer__foot > .pl-btn { flex: 1 1 0; }
+.pl-mk-op[aria-pressed="true"] { background: var(--pl-ink); color: var(--pl-on-ink); font-weight: 800; box-shadow: var(--pl-s3-clay); }   /* the drawer's options press as the panel's options check */
+.pl-mk-op[data-state="out"] { text-decoration: line-through; border-style: dashed; color: var(--pl-ink-soft); }   /* excluded: struck through, never a warning colour */
+.pl-mk-op[disabled] { cursor: not-allowed; border-style: dashed; color: var(--pl-muted); }
 .pl-mk-statsbox { padding: 0 24px 20px; }
 .pl-mk-stats { display: flex; flex-wrap: wrap; border: var(--pl-border); border-radius: var(--pl-r-small); background: var(--pl-card); overflow: hidden; width: fit-content; max-width: 100%; }
 .pl-mk-stat { all: unset; cursor: pointer; box-sizing: border-box; padding: 12px 18px; display: flex; flex-direction: column; gap: 3px; background: var(--pl-card); color: var(--pl-ink); }

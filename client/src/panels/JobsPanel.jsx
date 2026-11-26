@@ -423,7 +423,11 @@ function FiltersPanel({
   // applyTrackedSearch / clearTrackedSearch.
   onSaveSearch, onApplySearch, onClearSearch, trackedSearch, canSaveSearch,
 }) {
-  const { theme } = useTheme();
+  // ⛔ 47j w1-market (round 2, D197 Wave 1 #2): the drawer is drawn on the plate — its root carries `.plate` (it is
+  // portalled to <body>, outside the market's plate root, so it brings the tokens with it) and every control is a plate
+  // piece: the options `.pl-mk-op` (aria-pressed), the fields `.pl-mk-find`, the toggles `.pl-fdrawer__check`, the notes
+  // `.pl-mk-panel__note`, Reset All / Apply plate buttons. The staging model, every setter, the counts, the tri-state, the
+  // tier geometry (Z.DRAWER_SCRIM / Z.DRAWER, the PanelShell insets) and the close target are unchanged.
   const [skillDraft, setSkillDraft] = useState("");
   if (!open) return null;
 
@@ -442,7 +446,7 @@ function FiltersPanel({
   // can otherwise reach and the server cannot answer sensibly. Include and exclude are therefore
   // mutually exclusive by construction here, not by validation after the fact.
   const IncludeExcludeRow = ({ options, dimension, included, setIncluded, excluded, setExcluded }) => (
-    <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+    <div className="pl-mk-opts">
       {options.map(opt => {
         const isIn  = included.includes(opt.value);
         const isOut = excluded.includes(opt.value);
@@ -456,18 +460,11 @@ function FiltersPanel({
             setIncluded([...included, opt.value]);
           }
         };
-        const border = isIn ? theme.accent : isOut ? C.DANGER : theme.border;
-        const bg     = isIn ? theme.accentMuted : isOut ? C.DANGER_QUIET : "transparent";
-        const fg     = isIn ? theme.accentText : isOut ? C.DANGER : theme.textMuted;
         return (
-          <button className="dbx-depth" key={opt.value} type="button" onClick={cycle}
+          <button className="pl-mk-op" key={opt.value} type="button" onClick={cycle}
+            data-state={isIn ? "in" : isOut ? "out" : undefined} aria-pressed={isIn}
             title={[opt.hint, isIn ? "Included — click to exclude" : isOut ? "Excluded — click to clear" : "Click to include"]
-              .filter(Boolean).join(" · ")}
-            style={{
-              padding:"5px 12px", fontSize:ts(11), fontWeight:600,
-              cursor:"pointer", border:`1px solid ${border}`, background:bg, color:fg,
-              transition:"all 0.15s", textDecoration: isOut ? "line-through" : "none",
-            }}>
+              .filter(Boolean).join(" · ")}>
             {isOut ? "− " : isIn ? "+ " : ""}
             {withCount(opt.label, dimension ? countFor(dimension, opt.value) : null)}
           </button>
@@ -476,13 +473,17 @@ function FiltersPanel({
     </div>
   );
 
-  const selStyle = {
-    width:"100%", height:36, padding:"0 10px",
-    border:`1px solid ${theme.border}`, borderRadius:4,
-    background:theme.surface, color:theme.text, fontSize:ts(12), outline:"none",
-  };
-  const labelStyle = { fontSize:ts(11), fontWeight:700, color:theme.textMuted,
-                        textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 };
+  // A multi-select option row (Employment Type, Work Model, Experience Level, Company sector) — the same chip, pressed = on.
+  const opt = (key, active, onClick, label) => (
+    <button className="pl-mk-op" key={key} type="button" aria-pressed={active} onClick={onClick}>{label}</button>
+  );
+  // A yes / no setting — the drawer's toggles: a box that fills when on, and the setting's words.
+  const check = (on, onClick, label) => (
+    <button type="button" className="pl-fdrawer__check" aria-pressed={!!on} onClick={onClick}>
+      <span className="pl-fdrawer__box" aria-hidden="true"/>
+      <span>{label}</span>
+    </button>
+  );
   // PORTALLED TO document.body, which is what makes the drawer inertable — see the note on
   // FILTER_DRAWER_TOP above and useBoardLock. This drawer rendered inside JobsPanel, i.e. inside
   // <main>, i.e. inside [data-app-shell]. useBoardLock inerts the shell's CHILDREN, so inerting the
@@ -492,7 +493,7 @@ function FiltersPanel({
   // ancestor's stacking context); this one adds a third: a modal surface must not be a descendant of
   // the thing it makes inert.
   return createPortal(
-    <div data-filters-drawer="" style={{
+    <div data-filters-drawer="" className="plate pl-fdrawer" style={{
       position:"fixed", inset:0, zIndex:Z.DRAWER_SCRIM,
       // `stretch`, not `flex-start`: the panel's height now comes from this container's padding
       // (see FILTER_DRAWER_TOP below), so it must fill the padded box rather than hug its content.
@@ -501,40 +502,25 @@ function FiltersPanel({
       // — including behind the top bar — while the panel inside it starts below the nav. A scrim
       // that stopped at the nav would leave an undimmed strip across the top of a modal surface.
       padding:`${FILTER_DRAWER_TOP} 0 ${FILTER_DRAWER_BOTTOM}px`,
-      background:C.SCRIM,
       isolation:"isolate",
     }}
     onClick={e => { if(e.target===e.currentTarget) onClose(); }}>
-      <motion.div
+      <motion.div className="pl-fdrawer__panel"
         initial={{ x:360 }} animate={{ x:0 }} exit={{ x:360 }}
         transition={{ type:"tween", duration:0.22 }}
         style={{
           width:320, height:"100%", zIndex:Z.DRAWER,
-          background:theme.modalSurface || C.SURFACE_MODAL,
-          borderLeft:`3px solid ${theme.accent}`,
-          padding:"24px 20px", overflowY:"auto",
-          display:"flex", flexDirection:"column", gap:16,
-          boxShadow:theme.shadowXl || C.SHADOW_SM,
         }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <span style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                          fontSize:ts(26)}}>
+        <div className="pl-fdrawer__head">
+          <span className="pl-fdrawer__title">
             Filters
           </span>
           {/* A real hit target. With no padding this was the width of the glyph alone — measured at
               9x27px, under the 24x24 minimum, and easy to miss even once it stopped being covered
               by the nav. Square, centred, and the same 6px radius the drawer's other controls use.
               `aria-label` because "x" is not a name. */}
-          <button onClick={onClose} aria-label="Close filters" title="Close filters"
-            style={{ width:28, height:28, flexShrink:0, borderRadius:6,
-                     display:"flex", alignItems:"center", justifyContent:"center",
-                     background:"none", border:"none",
-                     cursor:"pointer", fontSize:ts(18), lineHeight:1, color:theme.textMuted,
-                     transition:"background 0.15s, color 0.15s" }}
-            onMouseEnter={e => { e.currentTarget.style.background = theme.surfaceHigh || C.HOVER;
-                                 e.currentTarget.style.color = theme.text; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "none";
-                                 e.currentTarget.style.color = theme.textMuted; }}>x</button>
+          <button onClick={onClose} aria-label="Close filters" title="Close filters" className="pl-fdrawer__close"
+            style={{ width:28, height:28, flexShrink:0, borderRadius:6 }}>×</button>
         </div>
 
         {/* ── Quick filters and saved searches ──────────────────────────────────────────
@@ -544,65 +530,39 @@ function FiltersPanel({
             The saved-search trio keeps its own semantics exactly: Save captures the currently
             COMMITTED filter set (buildParams' querystring), which is what is on screen, not the
             edits being staged above it. */}
-        <div>
-          <div style={labelStyle}>Quick</div>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-            <button className="dbx-depth" type="button"
+        <div className="pl-fdrawer__sec">
+          <div className="pl-label pl-fdrawer__k">Quick</div>
+          <div className="pl-mk-opts">
+            <button className="pl-mk-op" type="button" aria-pressed={ageFilter === "1d"}
               onClick={() => setAgeFilter(ageFilter === "1d" ? "" : "1d")}
-              title="Show only jobs posted in the last 24 hours"
-              style={{
-                padding:"6px 12px", fontSize:ts(11), fontWeight:700, cursor:"pointer",
-                border:`1px solid ${ageFilter === "1d" ? theme.accent : theme.border}`,
-                background: ageFilter === "1d" ? theme.accentMuted : "transparent",
-                color: ageFilter === "1d" ? (theme.accentText || theme.text) : theme.textMuted,
-                textTransform:"uppercase", letterSpacing:"0.06em",
-              }}>
+              title="Show only jobs posted in the last 24 hours">
               New in 24h
             </button>
-            <button className="dbx-depth" type="button"
+            <button className="pl-mk-op" type="button"
               onClick={onSaveSearch}
-              disabled={!canSaveSearch}
-              title="Save the filter set currently applied to the board"
-              style={{
-                padding:"6px 12px", fontSize:ts(11), fontWeight:700,
-                border:`1px solid ${theme.border}`, background:"transparent",
-                color: canSaveSearch ? theme.text : theme.textDim,
-                cursor: canSaveSearch ? "pointer" : "not-allowed",
-                opacity: canSaveSearch ? 1 : 0.5,
-              }}>
+              disabled={!canSaveSearch} aria-disabled={!canSaveSearch || undefined}
+              title="Save the filter set currently applied to the board">
               Save Search
             </button>
           </div>
           {trackedSearch && (
-            <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:6 }}>
-              <button className="dbx-depth" type="button" onClick={onApplySearch}
-                title={trackedSearch.name || "Apply saved search"}
-                style={{
-                  flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
-                  padding:"5px 12px", fontSize:ts(11), fontWeight:700, cursor:"pointer",
-                  border:`1px solid ${theme.accent}`, background:theme.accentMuted || theme.surface,
-                  color:theme.accentText || theme.text,
-                }}>
+            <div className="pl-fdrawer__saved">
+              <button className="pl-mk-op pl-fdrawer__savedname" type="button" onClick={onApplySearch} aria-pressed="true"
+                title={trackedSearch.name || "Apply saved search"}>
                 {trackedSearch.name || "Saved Search"}
               </button>
-              <button type="button" onClick={onClearSearch} title="Remove saved search"
-                aria-label="Remove saved search"
-                style={{
-                  width:22, height:22, borderRadius:"50%", border:`1px solid ${theme.border}`,
-                  background:"transparent", color:theme.textMuted, cursor:"pointer",
-                  fontSize:ts(12), lineHeight:1, flexShrink:0,
-                }}>
-                x
+              <button type="button" className="pl-mk-active__x" onClick={onClearSearch} title="Remove saved search"
+                aria-label="Remove saved search">
+                ×
               </button>
             </div>
           )}
         </div>
 
-        <div>
-          <div style={labelStyle}>Role</div>
-          <input value={role} onChange={e=>setRole(e.target.value)}
-            placeholder="e.g. Software Engineer"
-            style={{...selStyle, padding:"0 10px", height:36, borderRadius:4}}/>
+        <div className="pl-fdrawer__sec">
+          <div className="pl-label pl-fdrawer__k">Role</div>
+          <input className="pl-mk-find" value={role} onChange={e=>setRole(e.target.value)}
+            placeholder="e.g. Software Engineer"/>
         </div>
 
         {/* D29/D30: no free-text Location here. It was `sj.location LIKE %x%` — "IN" matched
@@ -617,90 +577,51 @@ function FiltersPanel({
             a real board), and covers the same intent. The workType PARAM is still honoured by
             /api/jobs, soft-null, so saved searches and API callers are unaffected. */}
 
-        <div>
-          <div style={labelStyle}>Employment Type</div>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-            {EMP_TYPE_OPTIONS.map(opt => {
-              const active = employmentTypePrefs.includes(opt.value);
-              return (
-                <button className="dbx-depth" key={opt.value}
-                  type="button"
-                  onClick={() => {
-                    const next = active
-                      ? employmentTypePrefs.filter(v => v !== opt.value)
-                      : [...employmentTypePrefs, opt.value];
-                    // Always keep at least one selected
-                    if (next.length > 0) setEmploymentTypePrefs(next);
-                  }}
-                  style={{
-                    padding:"5px 12px", fontSize:ts(11), fontWeight:600,
-                    cursor:"pointer", border:`1px solid ${active ? theme.accent : theme.border}`,
-                    background: active ? theme.accentMuted : "transparent",
-                    color: active ? theme.accentText : theme.textMuted,
-                    transition:"all 0.15s",
-                  }}>
-                  {withCount(opt.label, countFor("employment_type", opt.value))}
-                </button>
-              );
+        <div className="pl-fdrawer__sec">
+          <div className="pl-label pl-fdrawer__k">Employment Type</div>
+          <div className="pl-mk-opts">
+            {EMP_TYPE_OPTIONS.map(o => {
+              const active = employmentTypePrefs.includes(o.value);
+              return opt(o.value, active, () => {
+                const next = active
+                  ? employmentTypePrefs.filter(v => v !== o.value)
+                  : [...employmentTypePrefs, o.value];
+                // Always keep at least one selected
+                if (next.length > 0) setEmploymentTypePrefs(next);
+              }, withCount(o.label, countFor("employment_type", o.value)));
             })}
           </div>
         </div>
 
-        <div>
-          <div style={labelStyle}>Work Model</div>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-            {WORK_MODEL_OPTIONS.map(opt => {
-              const active = workModels.includes(opt.value);
-              return (
-                <button className="dbx-depth" key={opt.value}
-                  type="button"
-                  onClick={() => setWorkModels(active
-                    ? workModels.filter(v => v !== opt.value)
-                    : [...workModels, opt.value])}
-                  style={{
-                    padding:"5px 12px", fontSize:ts(11), fontWeight:600,
-                    cursor:"pointer", border:`1px solid ${active ? theme.accent : theme.border}`,
-                    background: active ? theme.accentMuted : "transparent",
-                    color: active ? theme.accentText : theme.textMuted,
-                    transition:"all 0.15s",
-                  }}>
-                  {withCount(opt.label, countFor("work_model", opt.value))}
-                </button>
-              );
+        <div className="pl-fdrawer__sec">
+          <div className="pl-label pl-fdrawer__k">Work Model</div>
+          <div className="pl-mk-opts">
+            {WORK_MODEL_OPTIONS.map(o => {
+              const active = workModels.includes(o.value);
+              return opt(o.value, active, () => setWorkModels(active
+                ? workModels.filter(v => v !== o.value)
+                : [...workModels, o.value]), withCount(o.label, countFor("work_model", o.value)));
             })}
           </div>
-          <div style={{ fontSize:ts(10), color:theme.textDim, marginTop:4 }}>
+          <p className="pl-mk-panel__note">
             Remote / hybrid / onsite as tagged by enrichment. Postings not yet tagged are kept
             rather than hidden, so coverage may lag for very recently-crawled jobs.
-          </div>
+          </p>
         </div>
 
-        <div>
-          <div style={labelStyle}>Experience Level</div>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-            {EXPERIENCE_LEVEL_OPTIONS.map(opt => {
-              const active = experienceLevels.includes(opt.value);
-              return (
-                <button className="dbx-depth" key={opt.value}
-                  type="button"
-                  onClick={() => setExperienceLevels(active
-                    ? experienceLevels.filter(v => v !== opt.value)
-                    : [...experienceLevels, opt.value])}
-                  style={{
-                    padding:"5px 12px", fontSize:ts(11), fontWeight:600,
-                    cursor:"pointer", border:`1px solid ${active ? theme.accent : theme.border}`,
-                    background: active ? theme.accentMuted : "transparent",
-                    color: active ? theme.accentText : theme.textMuted,
-                    transition:"all 0.15s",
-                  }}>
-                  {withCount(opt.label, countFor("experience_level", opt.value))}
-                </button>
-              );
+        <div className="pl-fdrawer__sec">
+          <div className="pl-label pl-fdrawer__k">Experience Level</div>
+          <div className="pl-mk-opts">
+            {EXPERIENCE_LEVEL_OPTIONS.map(o => {
+              const active = experienceLevels.includes(o.value);
+              return opt(o.value, active, () => setExperienceLevels(active
+                ? experienceLevels.filter(v => v !== o.value)
+                : [...experienceLevels, o.value]), withCount(o.label, countFor("experience_level", o.value)));
             })}
           </div>
-          <div style={{ fontSize:ts(10), color:theme.textDim, marginTop:4 }}>
+          <p className="pl-mk-panel__note">
             Selecting any level here overrides your profile's derived default for this search.
-          </div>
+          </p>
         </div>
 
         {/* Category removed for two independent reasons, either of which is fatal: sj.category is
@@ -724,26 +645,26 @@ function FiltersPanel({
             "Not linked". The sources_include/_exclude params are still honoured server-side, so an
             admin view or an API caller can still narrow by provider. */}
 
-        <div>
-          <div style={labelStyle}>Automation Tier</div>
+        <div className="pl-fdrawer__sec">
+          <div className="pl-label pl-fdrawer__k">Automation Tier</div>
           <IncludeExcludeRow
             options={TIER_OPTIONS}
             dimension="automation_tier"
             included={tiersInclude} setIncluded={setTiersInclude}
             excluded={tiersExclude} setExcluded={setTiersExclude}
           />
-          <div style={{ fontSize:ts(10), color:theme.textDim, marginTop:4 }}>
+          <p className="pl-mk-panel__note">
             What the apply page will ask of you. <strong>Unknown</strong> means we have not
             established it — those postings may apply cleanly or may need an account, and are
             neither promised nor ruled out.
-          </div>
+          </p>
         </div>
 
-        <div>
-          <div style={labelStyle}>Date Posted</div>
+        <div className="pl-fdrawer__sec">
+          <div className="pl-label pl-fdrawer__k">Date Posted</div>
           {/* Rendered from POSTING_AGE, which also owns the days each key means — so the option
               the user picks and the `posted_after` timestamp derived from it cannot disagree. */}
-          <select value={ageFilter} onChange={e=>setAgeFilter(e.target.value)} style={selStyle}>
+          <select className="pl-mk-find" value={ageFilter} onChange={e=>setAgeFilter(e.target.value)} aria-label="Date posted">
             {POSTING_AGE.options.map(o => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
@@ -763,37 +684,33 @@ function FiltersPanel({
             orphaned from a feature that no longer exists, and no ATS board exposes an applicant
             count. The param stays honoured server-side, soft-null. */}
 
-        <div>
-          <div style={labelStyle}>Status</div>
-          <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-            <select value={visitedFilter} onChange={e=>setVisitedFilter(e.target.value)} style={selStyle}>
-              {VISITED.options.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
+        <div className="pl-fdrawer__sec">
+          <div className="pl-label pl-fdrawer__k">Status</div>
+          <select className="pl-mk-find" value={visitedFilter} onChange={e=>setVisitedFilter(e.target.value)} aria-label="Status">
+            {VISITED.options.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
         </div>
 
-        <div>
-          <div style={labelStyle}>Salary Range (USD)</div>
-          <div style={{ display:"flex", gap:6 }}>
-            <input type="number" min={0} placeholder="$60000"
-              value={salaryMin} onChange={e=>setSalaryMin(e.target.value)}
-              style={{...selStyle, flex:1}}/>
-            <input type="number" min={0} placeholder="$200000"
-              value={salaryMax} onChange={e=>setSalaryMax(e.target.value)}
-              style={{...selStyle, flex:1}}/>
+        <div className="pl-fdrawer__sec">
+          <div className="pl-label pl-fdrawer__k">Salary Range (USD)</div>
+          <div className="pl-fdrawer__pair">
+            <input className="pl-mk-find" type="number" min={0} placeholder="$60000" aria-label="Salary at least (USD)"
+              value={salaryMin} onChange={e=>setSalaryMin(e.target.value)}/>
+            <input className="pl-mk-find" type="number" min={0} placeholder="$200000" aria-label="Salary at most (USD)"
+              value={salaryMax} onChange={e=>setSalaryMax(e.target.value)}/>
           </div>
-          <div style={{ fontSize:ts(10), color:theme.textDim, marginTop:4 }}>
+          <p className="pl-mk-panel__note">
             Matches jobs whose posted range overlaps this window — postings with no
             salary data are excluded once either bound is set.
-          </div>
+          </p>
         </div>
 
-        <div>
-          <div style={labelStyle}>Skills (must include)</div>
-          <div style={{ display:"flex", gap:6 }}>
-            <input value={skillDraft} onChange={e=>setSkillDraft(e.target.value)}
+        <div className="pl-fdrawer__sec">
+          <div className="pl-label pl-fdrawer__k">Skills (must include)</div>
+          <div className="pl-fdrawer__pair">
+            <input className="pl-mk-find" value={skillDraft} onChange={e=>setSkillDraft(e.target.value)} aria-label="A skill the job must include"
               onKeyDown={e => {
                 if (e.key !== "Enter") return;
                 e.preventDefault();
@@ -803,25 +720,20 @@ function FiltersPanel({
                 }
                 setSkillDraft("");
               }}
-              placeholder="e.g. React, SQL"
-              style={{...selStyle, flex:1}}/>
-            <LucyBtn onClick={() => {
+              placeholder="e.g. React, SQL"/>
+            <button type="button" className="pl-btn pl-btn--secondary" onClick={() => {
               const v = skillDraft.trim();
               if (v && !skillsInclude.some(s => s.toLowerCase() === v.toLowerCase())) {
                 setSkillsInclude([...skillsInclude, v]);
               }
               setSkillDraft("");
-            }}>Add</LucyBtn>
+            }}>Add</button>
           </div>
           {skillsInclude.length > 0 && (
-            <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:8 }}>
+            <div className="pl-mk-opts">
               {skillsInclude.map(skill => (
-                <button className="dbx-depth" key={skill} type="button" onClick={() => setSkillsInclude(skillsInclude.filter(s => s !== skill))}
-                  style={{
-                    padding:"4px 10px", fontSize:ts(11), fontWeight:600,
-                    cursor:"pointer", border:`1px solid ${theme.accent}`,
-                    background:theme.accentMuted, color:theme.accentText,
-                  }}>
+                <button className="pl-mk-op" key={skill} type="button" aria-pressed="true" aria-label={`Remove ${skill}`}
+                  onClick={() => setSkillsInclude(skillsInclude.filter(s => s !== skill))}>
                   {skill} ×
                 </button>
               ))}
@@ -829,22 +741,8 @@ function FiltersPanel({
           )}
         </div>
 
-        <div>
-          <button type="button" onClick={() => setSponsorFriendly(!sponsorFriendly)}
-            style={{
-              display:"flex", alignItems:"center", gap:8, width:"100%",
-              padding:"8px 10px", borderRadius:4, cursor:"pointer",
-              border:`1px solid ${sponsorFriendly ? theme.accent : theme.border}`,
-              background: sponsorFriendly ? theme.accentMuted : "transparent",
-              color: sponsorFriendly ? theme.accentText : theme.text,
-            }}>
-            <span style={{
-              width:16, height:16, borderRadius:3, flexShrink:0,
-              border:`1px solid ${sponsorFriendly ? theme.accent : theme.border}`,
-              background: sponsorFriendly ? theme.accent : "transparent",
-            }}/>
-            <span style={{ fontSize:ts(12), fontWeight:600 }}>Sponsor-friendly only</span>
-          </button>
+        <div className="pl-fdrawer__sec">
+          {check(sponsorFriendly, () => setSponsorFriendly(!sponsorFriendly), "Sponsor-friendly only")}
         </div>
 
         {/* X3: the COMPANY-level filter, deliberately a second control rather than a mode of the one
@@ -855,101 +753,45 @@ function FiltersPanel({
             The label says what it DOES — hides companies with no filings — not "sponsors only". The
             filter cannot confirm that a company sponsors, and a label promising that would be the
             exact overclaim the company view's copy is written to avoid. */}
-        <div>
-          <button type="button" onClick={() => setCompanySponsors(companySponsors === "1" ? "" : "1")}
-            style={{
-              display:"flex", alignItems:"center", gap:8, width:"100%",
-              padding:"8px 10px", borderRadius:4, cursor:"pointer",
-              border:`1px solid ${companySponsors === "1" ? theme.accent : theme.border}`,
-              background: companySponsors === "1" ? theme.accentMuted : "transparent",
-              color: companySponsors === "1" ? theme.accentText : theme.text,
-            }}>
-            <span style={{
-              width:16, height:16, borderRadius:3, flexShrink:0,
-              border:`1px solid ${companySponsors === "1" ? theme.accent : theme.border}`,
-              background: companySponsors === "1" ? theme.accent : "transparent",
-            }}/>
-            <span style={{ fontSize:ts(12), fontWeight:600 }}>Hide employers with no H-1B filings</span>
-          </button>
-          <div style={{ fontSize:ts(10), color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
+        <div className="pl-fdrawer__sec">
+          {check(companySponsors === "1", () => setCompanySponsors(companySponsors === "1" ? "" : "1"), "Hide employers with no H-1B filings")}
+          <p className="pl-mk-panel__note">
             From the US government's visa sponsorship records. Hides only employers we're sure filed none
             lately; a company we couldn't identify stays.
-          </div>
+          </p>
         </div>
 
         {/* ⛔ D59 (owner, 10-07): the posting's OWN stated requirements — U.S. citizenship, U.S.-person
             (export control), a security clearance or a polygraph. It reads what the POSTING says; it never
             reads or decides the user's eligibility. A posting not yet read is kept. */}
-        <div data-filter="eligibility">
-          <button type="button" aria-pressed={!!hideEligibility} onClick={() => setHideEligibility(!hideEligibility)}
-            style={{
-              display:"flex", alignItems:"center", gap:8, width:"100%",
-              padding:"8px 10px", borderRadius:4, cursor:"pointer",
-              border:`1px solid ${hideEligibility ? theme.accent : theme.border}`,
-              background: hideEligibility ? theme.accentMuted : "transparent",
-              color: hideEligibility ? theme.accentText : theme.text,
-            }}>
-            <span style={{
-              width:16, height:16, borderRadius:3, flexShrink:0,
-              border:`1px solid ${hideEligibility ? theme.accent : theme.border}`,
-              background: hideEligibility ? theme.accent : "transparent",
-            }}/>
-            <span style={{ fontSize:ts(12), fontWeight:600 }}>Hide roles that require clearance or citizenship</span>
-          </button>
-          <div style={{ fontSize:ts(10), color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
+        <div className="pl-fdrawer__sec" data-filter="eligibility">
+          {check(hideEligibility, () => setHideEligibility(!hideEligibility), "Hide roles that require clearance or citizenship")}
+          <p className="pl-mk-panel__note">
             Hides jobs that ask for U.S. citizenship, U.S.-person status, a security clearance or a polygraph,
             read from the job's own words. Jobs we haven't read yet stay.
-          </div>
+          </p>
         </div>
 
         {/* ⭐ D106 (owner, 10-30): "seniorised" entry-level roles — a junior title over a mid-level ask. This keeps
             only postings whose TEXT asks for entry or early level (years, system design, leading others…), or
             that ask nothing that says a level and are titled entry. */}
-        <div data-filter="truly-entry">
-          <button type="button" aria-pressed={!!trulyEntry} onClick={() => setTrulyEntry(!trulyEntry)}
-            style={{
-              display:"flex", alignItems:"center", gap:8, width:"100%",
-              padding:"8px 10px", borderRadius:4, cursor:"pointer",
-              border:`1px solid ${trulyEntry ? theme.accent : theme.border}`,
-              background: trulyEntry ? theme.accentMuted : "transparent",
-              color: trulyEntry ? theme.accentText : theme.text,
-            }}>
-            <span style={{
-              width:16, height:16, borderRadius:3, flexShrink:0,
-              border:`1px solid ${trulyEntry ? theme.accent : theme.border}`,
-              background: trulyEntry ? theme.accent : "transparent",
-            }}/>
-            <span style={{ fontSize:ts(12), fontWeight:600 }}>Truly entry level</span>
-          </button>
-          <div style={{ fontSize:ts(10), color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
+        <div className="pl-fdrawer__sec" data-filter="truly-entry">
+          {check(trulyEntry, () => setTrulyEntry(!trulyEntry), "Truly entry level")}
+          <p className="pl-mk-panel__note">
             Leaves out postings titled junior or entry that ask for 3+ years, system design or leading others.
             Read from the posting's own words.
-          </div>
+          </p>
         </div>
 
         {/* ⭐ D137 (owner, 11-02): THE GHOST SCORE. Off by default — a posting is only ever RANKED DOWN by its score;
             this leaves out the ones scored Likely not hiring, for a user who asks. A posting gone from the company's
             own site is already off the board. */}
-        <div data-filter="hide-ghost">
-          <button type="button" aria-pressed={!!hideGhost} onClick={() => setHideGhost(!hideGhost)}
-            style={{
-              display:"flex", alignItems:"center", gap:8, width:"100%",
-              padding:"8px 10px", borderRadius:4, cursor:"pointer",
-              border:`1px solid ${hideGhost ? theme.accent : theme.border}`,
-              background: hideGhost ? theme.accentMuted : "transparent",
-              color: hideGhost ? theme.accentText : theme.text,
-            }}>
-            <span style={{
-              width:16, height:16, borderRadius:3, flexShrink:0,
-              border:`1px solid ${hideGhost ? theme.accent : theme.border}`,
-              background: hideGhost ? theme.accent : "transparent",
-            }}/>
-            <span style={{ fontSize:ts(12), fontWeight:600 }}>Hide likely not hiring</span>
-          </button>
-          <div style={{ fontSize:ts(10), color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
+        <div className="pl-fdrawer__sec" data-filter="hide-ghost">
+          {check(hideGhost, () => setHideGhost(!hideGhost), "Hide likely not hiring")}
+          <p className="pl-mk-panel__note">
             Leaves out jobs that look like no one is hiring: a talent-pool title, many reposts, months open.
             Each one shows its reasons; turned off, they stay at the end of the board.
-          </div>
+          </p>
         </div>
 
         {/* D42 (owner, 10-06): THE COMPANY'S SECTOR — a different thing from the job's domain, which is
@@ -957,39 +799,27 @@ function FiltersPanel({
             about than an SDE role at Fidelity": domain is the work, sector is the employer. Read from
             the company name (shared/companySectors.js), never guessed from a posting's words; a company
             with no sector on file is kept, after the known matches. */}
-        <div data-filter="sectors">
-          <div style={labelStyle}>Company sector</div>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-            {SECTORS.options.map(opt => {
-              const active = sectors.includes(opt.value);
-              return (
-                <button className="dbx-depth" key={opt.value} type="button" aria-pressed={active}
-                  onClick={() => setSectors(active ? sectors.filter(v => v !== opt.value) : [...sectors, opt.value])}
-                  style={{
-                    padding:"5px 12px", fontSize:ts(11), fontWeight:600,
-                    cursor:"pointer", border:`1px solid ${active ? theme.accent : theme.border}`,
-                    background: active ? theme.accentMuted : "transparent",
-                    color: active ? theme.accentText : theme.textMuted,
-                    transition:"all 0.15s",
-                  }}>
-                  {opt.label}
-                </button>
-              );
+        <div className="pl-fdrawer__sec" data-filter="sectors">
+          <div className="pl-label pl-fdrawer__k">Company sector</div>
+          <div className="pl-mk-opts">
+            {SECTORS.options.map(o => {
+              const active = sectors.includes(o.value);
+              return opt(o.value, active, () => setSectors(active ? sectors.filter(v => v !== o.value) : [...sectors, o.value]), o.label);
             })}
           </div>
-          <div style={{ fontSize:ts(10), color:theme.textDim, marginTop:4 }}>
+          <p className="pl-mk-panel__note">
             The employer's industry, not the kind of work (pick that in the sentence above). Companies
             whose industry we don't know are kept, after the rest.
-          </div>
+          </p>
         </div>
 
-        <div style={{ display:"flex", gap:8, paddingTop:8 }}>
-          <LucyBtn onClick={onReset} accent={theme.surfaceHigh} style={{ flex:1 }}>
+        <div className="pl-fdrawer__foot">
+          <button type="button" className="pl-btn pl-btn--secondary" onClick={onReset}>
             Reset All
-          </LucyBtn>
-          <LucyBtn onClick={onApply} style={{ flex:1 }}>
+          </button>
+          <button type="button" className="pl-btn pl-btn--primary" onClick={onApply}>
             Apply
-          </LucyBtn>
+          </button>
         </div>
       </motion.div>
     </div>,

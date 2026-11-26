@@ -81,6 +81,7 @@ export const MODULES = Object.freeze({
       // ⛔ 47j w1-market (D197 Wave 1 #2): the cartouche's panels (a word's options, the sort's menu), its search field, Import a
       // job and the deck's first upload are drawn as plate pieces (MarketPanel, .pl-mk-*) — they wear plate.css, so they join
       "components/WordPanel.jsx", "components/SortPanel.jsx", "components/BoardBar.jsx", "components/StartFromResume.jsx", "components/ExtensionPrompt.jsx",
+      "components/DecisionToast.jsx" /* 47j w1-market round 2: the toast is a plate card on both its mounts (deck, Index) */,
       "plate/explainer/Explainer.jsx", "plate/explainer/explainerModel.js" /* D198 E1: the explainer engine */,
       "plate/FitCard.jsx" /* D202: the field card ⇄ the ATS card, one card on the market and the sheet */, "plate/OpeningSheet.jsx" /* D199 C7: the opening sheet, /app/jobs/<id> */,
       "plate/TeamDiorama.jsx" /* D199 C7: the sheet's hero plate — the survey diorama with its words as props */, "plate/fitCardFixtures.jsx" /* the card lane's F5 fixtures */, "components/ATSPanel.jsx" /* D202 (47h, owner yes): the posting's match panel draws THE FitCard */,
