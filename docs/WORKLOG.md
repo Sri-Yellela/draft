@@ -450,6 +450,7 @@ Each is the agent's recommendation from the end of 47i, now the owner's decision
     - **d163NoCornerCramming:** Atlas Volume I's region band (`section.pl-at-regions`) runs from the rail to the viewport's edge. That's the approved board's layout (its F5 pair is 1280 wide and passes) against D163 / 46q's "no slab to the screen's edge".
     - **D196 F5:** only `ys-want` (3.85 %, above).
   - ⚠ **Not walked in Chrome:** the ledger face's own Needs-you stepper + Ask draft (A210 walks the classic tracker); Home's new area nav.
+- ✅ **PUSHED on the owner's "record all decisions push everything and prepare for a new session"** (11-26): draft `e4ba4c6b..c0ab9133` after the boot smoke (empty `RM_DATA_DIR`, keys blanked: `/api/version` c0ab913, migration 281, ready 200; `/app`, `/app/jobs`, `/app/auto-apply`, `/atlas`, `/tools/ats` 200) · resume-master `719ac43..6ae996a` (scorer 1.7.2 → 1.7.3, 605 / 605). **Production on `c0ab913`** (started 16:10:39Z): `/api/health/ready`, `/`, `/app`, `/jobs`, `/atlas` 200 in 0.3–1.6 s. Pushed with the 10 known reds (CLAUDE.md). Not walked signed in.
 - **Fast tier on main after all of the above: 6,479 — 6,478 / 0 + 1 skip** (`33b2e0a7`; the D141 commit's two files 14 / 14 after).
 
 ### ⛔⛔⛔ (47i's predecessor, kept as history) NEW SESSION (47h) STARTS HERE (end of 47g, 11-25 — the owner: *"continue and prepare for a new session"*)
