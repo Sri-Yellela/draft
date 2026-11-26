@@ -9,10 +9,11 @@ import { execFileSync } from "node:child_process";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 
-test("a131 (pure): on Home the stuck fringe stops at the page's gutter", () => {
+test("a131 (pure): the classic bar's stuck fringe is gone with the bar (47j R2 / A248)", () => {
+  // ⛔ 47j A248 (changed on purpose): the classic market's sticky bar (and its stuck frost / fringe, the rule A131 bounded) is
+  // DELETED — the market's search is the cartouche's. The real-Chrome half below still holds "never wider than the window".
   const css = read("client/src/components/FullHouse.css");
-  assert.match(css, /\.home__board \.fh\.fh--bar-row\[data-stuck="true"\]::before \{ right: calc\(-1 \* min\(28px, var\(--home-gutter, 28px\)\)\); \}/);
-  assert.match(css, /@media \(min-width: 861px\) and \(max-width: 980px\) \{\n  \.home__board \.fh\.fh--bar-row\[data-stuck="true"\]::before \{ right: -16px; \}/);
+  assert.doesNotMatch(css, /\.fh--bar-row\[data-stuck/, "the stuck bar's rules are deleted");
 });
 
 test("a131NoSidewaysOverflow1280 (real Chrome): the board, a posting, its match, the bar stuck — never wider than the window", { timeout: 300000 }, (t) => {

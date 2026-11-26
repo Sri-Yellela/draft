@@ -34,7 +34,8 @@ test("⭐ A201 (Chrome): the screens that garbled read cleanly at 768 and 390, w
 test("A201: the fixes — the table and the card pairs follow their OWN width; Tiny floats over the page (owner 11-15)", () => {
   assert.match(read("client/src/components/ApplicationTracker.css"), /\.trk \{[^}]*container-type: inline-size; container-name: trk; \}[\s\S]*@container trk \(max-width: 700px\) \{/);
   const jb = read("client/src/components/JobBubble.css");
-  assert.match(jb, /container-type: inline-size; container-name: jbrows;/);
+  // ⛔ 47j A248 (changed on purpose): the bubble rows (.jb-rows, their `jbrows` container) are deleted with the card
+  assert.doesNotMatch(jb, /container-name: jbrows/);
   // ⛔ 47j R2 (changed on purpose): the bubble PAIR (.jb-pair) is deleted with the classic market — the market's list is the
   // Index (shrink201's board route measures its rows); the pair's stacking rule left with it
   assert.doesNotMatch(jb, /(^|\n)\s*\.jb-pair\b/, "the classic pair's rules are deleted");
