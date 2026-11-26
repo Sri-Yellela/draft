@@ -427,7 +427,8 @@ test("NEW IN 24H and Save Search moved INTO the filters panel, and still exist",
     assert.ok(!gone.test(rowCode), `${gone} is back in the control row`);
   }
   // ...present in the panel, wired to the same things they always were.
-  assert.match(panel, /<div style=\{labelStyle\}>Quick<\/div>/);
+  // ⛔ 47j w1-market r2 (changed on purpose): the filters drawer is drawn on the plate — its labels are `.pl-label pl-fdrawer__k`
+  assert.match(panel, /<div className="pl-label pl-fdrawer__k">Quick<\/div>/);
   assert.match(panel, /onClick=\{\(\) => setAgeFilter\(ageFilter === "1d" \? "" : "1d"\)\}/);
   assert.match(panel, /onSaveSearch=\{saveTrackedSearch\}/);
   assert.match(panel, /onApplySearch=\{applyTrackedSearch\}/);
