@@ -103,6 +103,9 @@ import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follo
 // before the extension ships it). (2) The last capture's result is no longer stored (nothing reads it any more).
 // (3) The popup's places — the account and Disconnect, automatic reading's one-time offer, "Always read here", the Copy
 // sheet, Report this form — are named where they are now: the settings page and draft's panel on the page.
+// November 26, 2026 (owner, 11-26 — 47i, D141 "yes, name them"): The Free Tools names the four public tools and what each
+// does with what it's given, as the code does it. Not material (no new collection or use; it says what already happens).
+// ⚠ Effective the day it goes live — move the date to that push's day if it isn't 11-26.
 // November 19, 2026 (owner, 11-19 — 46x, "push to prod"): the push that applies D191 sketch 2's Browser Extension text (46w B2:
 // the panel opens by itself on a posting on the six job boards, with install-time access to them; Chrome's side panel
 // retired) — effective the day it goes live (the file's convention, 46w's owner note (3)).
@@ -155,7 +158,7 @@ import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follo
 // that push (the owner's word), not before — it is still the 10-31 date until then.
 // ⭐ 45n push (owner 11-08, decision (5)): the push carrying D183's profile lines, the Google sign-in and crawl-sources
 // lines, and people search (a public profile findable by name) — effective the day it goes live.
-const EFFECTIVE_DATE = 'November 19, 2026';
+const EFFECTIVE_DATE = 'November 26, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
 export function PrivacyPage() {
@@ -1069,6 +1072,29 @@ export function PrivacyPage() {
             because it was a real recipient until that
             date, and because a reader who checks what this page loads should find it accounted for.
           </P>
+        </PolicySection>
+
+        {/* ⭐ D141 (owner 11-26, "go with your recs": name the public tools) — each said as the code does it (server.js
+            /api/standalone/*: memory-only uploads; the ATS and honesty checks call no model and keep nothing). */}
+        <PolicySection title="The Free Tools">
+          <P>
+            draft offers four tools at <Strong>/tools</Strong> that work without a draft account. What each one does with what you
+            give it:
+          </P>
+          <UL>
+            <LI><Strong>ATS check</Strong> (<Strong>/tools/ats</Strong>): you upload a résumé (a PDF, up to 5 MB) and paste a job description.
+              Both are read in memory, scored by draft&apos;s own scorer, the same one the board uses, and the result is sent back to you.
+              No model is called, and neither the résumé nor the job description is written anywhere.</LI>
+            <LI><Strong>Honesty check</Strong> (<Strong>/tools/honesty</Strong>): you give a résumé, optionally the original it came from, and the
+              job. They are read in memory, line by line. The check reports what the original doesn&apos;t support and how to fix it.
+              No model is called. Nothing you send is kept, either in the database or in a log line.</LI>
+            <LI><Strong>Generate a résumé</Strong> (<Strong>/tools/generate</Strong>): this needs a tools account (an email address, a phone number
+              or Google sign-in), kept separate from a draft account. Your résumé and the job description are sent to our separate
+              résumé tools service, described under Third-Party Services, which writes the tailored résumé. draft keeps a record that
+              you used the tool, and when, to apply its usage limit. It doesn&apos;t keep the résumé.</LI>
+            <LI><Strong>Apply</Strong> (<Strong>/tools/apply</Strong>): needs the same tools account. It doesn&apos;t submit applications yet; it
+              accepts the request and does nothing with it.</LI>
+          </UL>
         </PolicySection>
 
         {/* Your Rights */}
