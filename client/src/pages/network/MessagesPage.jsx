@@ -1,7 +1,8 @@
 // ⭐ 46f (owner 11-11: "build a page for feed and messaging into the menu with their own pages and interface fully built") ·
 // MESSAGES' own place, /app/messages: the conversation list (Messages · Requests · Waiting for them — live on the sync
 // stream, polled as the fallback) beside the open conversation (?thread=<id>). On a phone it is one or the other.
-// Behind the network switch, like D180's Network: off → "This isn't available yet." (data-network-off).
+// Behind the network switch, like D180's Network: off → straight to the board, /app/jobs (46q A222 — the page draws no
+// "not available" state; 47j w1-shell corrected this line, which still said it did).
 // ⛔ D60: no capsules. Colours from tokens only (NetworkPage.css).
 import { Link, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { Inbox, Thread, useInbox } from "./MessagesPane.jsx";

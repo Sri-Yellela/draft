@@ -1,7 +1,8 @@
 // ⭐ 46f (owner 11-11: "build a page for feed and messaging into the menu with their own pages and interface fully built") ·
 // THE FEED's own place, /app/feed: the posts column (FeedPane — the composer, my posts and my connections', newest first,
 // Helpful, comments, report / delete) beside a side column (What you share; where your people and conversations are).
-// Behind the network switch, like D180's Network: off → "This isn't available yet." (data-network-off).
+// Behind the network switch, like D180's Network: off → straight to the board, /app/jobs (46q A222 — the page draws no
+// "not available" state; 47j w1-shell corrected this line, which still said it did).
 // ⛔ D60: no capsules. Colours from tokens only (NetworkPage.css).
 import { Link, Navigate } from "react-router-dom";
 import FeedPane, { WhatYouShare } from "./FeedPane.jsx";
