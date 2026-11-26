@@ -1400,7 +1400,7 @@ export function AutoApplyPanel({ user = null } = {}) {
        sub && `${sub.used} of ${settings?.dailyCap ?? sub.limit} sent today.`,
        fullAuto ? "Good matches are sent for you." : picksOn ? "You tap Apply on each pick." : "Nothing is submitted until you approve it."]
       .filter(Boolean).join(" ");
-  // ⭐ 46y · the auto-apply bar's words after "Auto-apply is running": " · 4 of 10 today · next run at 3:00 pm".
+  // ⭐ 46y · the run's words after "Running" (the ledger's worker card): " · 4 of 10 today · next run at 3:00 pm".
   const autoLine = held ? "" : [sub && ` · ${sub.used} of ${settings?.dailyCap ?? sub.limit} today`,
     nextRunAt && ` · next run at ${timeLabel(nextRunAt, timeZone)}`].filter(Boolean).join("");
   // ⭐ D146 · the timeline's head: "Auto-apply · Runs at 9 AM and 6 PM" (D182: the mode words left), the sentence.

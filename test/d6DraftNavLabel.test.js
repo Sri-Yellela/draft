@@ -38,6 +38,9 @@ const LOWER = /auto[ -]apply/g;
 const LOWER_OK = [
   /^auto-apply$/,                   // the tab id (internal)
   /^\/app\/auto-apply$/,            // the route (internal)
+  // ⛔ 47j w2-outside (changed on purpose): the route with the quick-check query — the link services/notify.js sends
+  // (`/app/auto-apply?check=<id>`), shown by the email mock (pages/dev/platePages/Dispatches.jsx)
+  /^\/app\/auto-apply\?check=\d+$/,
 ];
 // ⭐ The ONE prose use kept on purpose, with its reason. Each entry must still match (self-pruning).
 const PROSE_ALLOWLIST = [

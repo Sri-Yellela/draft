@@ -35,8 +35,11 @@ test("A116 · D147 — Full House's header block and the sentence's size follow 
   const fh = raw("client/src/components/FullHouse.css");
   const block = slice(fh, "/* ── ⭐ D147 (owner 11-03, fullhouse-declutter.html) · FULL HOUSE, RESTYLED");
   assert.deepEqual(unscaled(block.replace(/\/\*[\s\S]*?\*\//g, "")), []);
-  // ⭐ D156 (1d) (changed on purpose): the sentence's ORIGINAL size (FULL_HOUSE_TYPE, min(30px, 6.4vw)) — still times the text size.
-  assert.match(block, /--fh-sentence-size: calc\(min\(30px, 6\.4vw\) \* var\(--type-scale, 1\)\);/);
+  // ⛔ 47j w1-market (changed on purpose): `.fh[data-fh-d147]` and its sentence size are deleted with the classic header — the
+  // market's sentence is the plate cartouche's (plate sizes follow --type-scale through --pl-scale). The one .bh left (the
+  // Customise preview) sets its own size token (Customise.css .cz-pv).
+  assert.doesNotMatch(block, /--fh-sentence-size: calc/);
+  assert.match(raw("client/src/components/Customise.css"), /\.cz-pv \{ --fh-sentence-size: 24px; \}/);
 });
 
 test("A116 · D147 — the opened posting (its header, actions, facts box and match box) follows the text size", () => {
@@ -68,9 +71,11 @@ test("A116 · the guard itself catches a bare size", () => {
 const jsxFiles = (d, out = []) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) {
   const f = `${d}/${e.name}`; if (e.isDirectory()) jsxFiles(f, out); else if (e.name.endsWith(".jsx")) out.push(f); } return out; };
 test("A116 · 46g — no inline font size anywhere in the client ignores the text size", () => {
+  // ⛔ 47j w2-outside (changed on purpose): `fontSize: 0` is not a text size — the email form's spacer cells (plate/Dispatch.jsx)
+  // zero it so Outlook draws no line box; nothing scales a zero.
   const files = jsxFiles("client/src");
   assert.ok(files.length > 170 && files.includes("client/src/panels/JobsPanel.jsx") && files.includes("client/src/panels/AdminPanel.jsx"), `the scan found the client (${files.length})`);
-  const bare = files.flatMap(f => raw(f).split("\n").map((l, i) => [i + 1, l]).filter(([, l]) => /fontSize:\s?\d/.test(l) || /fontSize:\s*(?!\s|ts\()[^,}"'`]*\?\s*\d+(\.\d+)?\s*:\s*\d/.test(l)).map(([n, l]) => `${f}:${n} ${l.trim().slice(0, 80)}`));
+  const bare = files.flatMap(f => raw(f).split("\n").map((l, i) => [i + 1, l]).filter(([, l]) => /fontSize:\s?(?!0\b)\d/.test(l) || /fontSize:\s*(?!\s|ts\()[^,}"'`]*\?\s*\d+(\.\d+)?\s*:\s*\d/.test(l)).map(([n, l]) => `${f}:${n} ${l.trim().slice(0, 80)}`));
   assert.deepEqual(bare, [], "bare inline font sizes — wrap them in ts()");
   assert.match(raw("client/src/themes/shapes.js"), /export const ts = \(px\) => `calc\(\$\{px\}px \* var\(\$\{TYPE_SCALE_VAR\}, 1\)\)`;/);
 });

@@ -401,7 +401,7 @@ export function MarketView({ base, roles, cards }) {
   );
 }
 
-export function MarketPanel({ base }) {
+export function AtlasMarketPanel({ base }) {   // 47j: renamed — MarketPanel is the plate market's (plate/MarketControls.jsx)
   const [roles, setRoles] = useState(null);
   const [cards, setCards] = useState({});
   useEffect(() => {

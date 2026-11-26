@@ -7,7 +7,7 @@ import PlateRoot from "../../../plate/PlateRoot.jsx";
 import { Kickers, LetterTile, LitSquares, StatusTag } from "../../../plate/Marks.jsx";
 import { PageTitle, LegHeader, StatsStrip } from "../../../plate/Plates.jsx";
 import { NavSearch } from "../../../plate/Shell.jsx";
-import { SidePanel, ReopenTab } from "../../../plate/Panels.jsx";
+import { FloatingPanel, ReopenTab } from "../../../plate/Panels.jsx";
 
 const JOB = { title: "Frontend Engineer II, Checkout", company: "Kestrel Payments", place: "Boston, MA", region: "IV" };
 
@@ -52,31 +52,31 @@ const go = (label, disabled = false) => <button type="button" className="pl-btn 
 const note = (text) => <p className="pl-muted" style={{ margin: 0, textAlign: "center", fontSize: "var(--pl-t-meta)" }}>{text}</p>;
 
 /** The panel in one state (the words are jobPanelModel.js's). */
-function Panel({ kind, width }) {
+function ExtPanelBody({ kind, width }) {
   if (kind === "job") return (
-    <SidePanel width={width} status={{ text: "86% MATCH · FILED H-1B", tone: "ok" }} foot={foot}>
+    <FloatingPanel width={width} status={{ text: "86% MATCH · FILED H-1B", tone: "ok" }} foot={foot}>
       <JobHead/>{go("Draft this job")}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <LitSquares squares={["lit", "lit", "lit", "lit", null]} size={10} label="4 of your 5 top skills"/>
         <span className="pl-label pl-muted">4 OF YOUR 5 TOP SKILLS</span>
       </div>
       <HowIApply/>
-    </SidePanel>
+    </FloatingPanel>
   );
   if (kind === "arriving") return (
-    <SidePanel width={width} status={{ text: "CHECKING DRAFT…", tone: "busy" }} foot={foot}><JobHead/>{go("Draft this job")}<HowIApply/></SidePanel>
+    <FloatingPanel width={width} status={{ text: "CHECKING DRAFT…", tone: "busy" }} foot={foot}><JobHead/>{go("Draft this job")}<HowIApply/></FloatingPanel>
   );
   if (kind === "ready") return (
-    <SidePanel width={width} status={{ text: "RÉSUMÉ READY · 86% MATCH", tone: "ok" }} foot={foot}><JobHead/>{go("Apply from here")}{note("Fills the form. You press Submit.")}<HowIApply/></SidePanel>
+    <FloatingPanel width={width} status={{ text: "RÉSUMÉ READY · 86% MATCH", tone: "ok" }} foot={foot}><JobHead/>{go("Apply from here")}{note("Fills the form. You press Submit.")}<HowIApply/></FloatingPanel>
   );
   if (kind === "out") return (
-    <SidePanel width={width} status={{ text: "SPONSORS VISAS · 38 OPEN JOBS", tone: "quiet" }} foot={foot}>
+    <FloatingPanel width={width} status={{ text: "SPONSORS VISAS · 38 OPEN JOBS", tone: "quiet" }} foot={foot}>
       <JobHead/>{go("Sign in to see your match")}
       <p style={{ margin: 0, textAlign: "center", fontSize: "var(--pl-t-meta)" }}><a href="#sign-up" style={{ fontWeight: 700, color: "var(--pl-ink)" }}>New here? Get started</a></p>
-    </SidePanel>
+    </FloatingPanel>
   );
   return (
-    <SidePanel width={width} status={{ text: "YOUR DAY", tone: "quiet" }} foot={foot}>
+    <FloatingPanel width={width} status={{ text: "YOUR DAY", tone: "quiet" }} foot={foot}>
       <StatsStrip label="Your day" cells={[{ value: 12, label: "NEW MATCHES", href: "#matches" }, { value: 1, label: "NEED YOU", tone: "clay", href: "#needs" }, { value: 3, label: "DRAFTED", href: "#drafted" }]}/>
       <NavSearch placeholder="Search jobs, or ask draft"/>
       <div role="status" aria-live="polite" style={{ fontSize: "var(--pl-t-small)" }}>
@@ -85,7 +85,7 @@ function Panel({ kind, width }) {
       </div>
       {note("2 waiting to send from this browser")}
       <HowIApply/>
-    </SidePanel>
+    </FloatingPanel>
   );
 }
 
@@ -112,7 +112,7 @@ export default function ExtensionPanelMock({ width = 1280 }) {
   const panelW = phone ? Math.max(300, width - 32) : 380;
   return (
     <PlateRoot region="IV" style={{ minHeight: "100vh", padding: phone ? "20px 16px 64px" : "32px 24px 72px", boxSizing: "border-box" }}>
-      <div style={{ maxWidth: 1232, margin: "0 auto", display: "flex", flexDirection: "column", gap: 48 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 48 }}>
         <header style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <Kickers parts={["D197 · WAVE 2 · #19", "D191", "M3 MOCK", "EXAMPLE DATA"]}/>
           <PageTitle>The extension’s panel</PageTitle>
@@ -124,8 +124,8 @@ export default function ExtensionPanelMock({ width = 1280 }) {
           <LegHeader n={1} meta="ON A POSTING · 380 PX · STEPPED CLEAR OF THE APPLY" title="On the employer’s page"/>
           <EmployerPage phone={phone}>
             {phone
-              ? <div style={{ padding: 16, display: "flex", justifyContent: "center" }}><Panel kind="job" width={panelW}/></div>
-              : <div style={{ position: "absolute", left: 32, top: 220 }}><Panel kind="job" width={panelW}/></div>}
+              ? <div style={{ padding: 16, display: "flex", justifyContent: "center" }}><ExtPanelBody kind="job" width={panelW}/></div>
+              : <div style={{ position: "absolute", left: 32, top: 220 }}><ExtPanelBody kind="job" width={panelW}/></div>}
           </EmployerPage>
         </section>
 
@@ -135,7 +135,7 @@ export default function ExtensionPanelMock({ width = 1280 }) {
             {[["arriving", "ARRIVING · PAGE FIRST"], ["ready", "READY · APPLY FROM HERE"], ["out", "SIGNED OUT · THE PUBLIC CARD"], ["other", "ANY OTHER PAGE · YOUR DAY"]].map(([k, label]) => (
               <div key={k} style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
                 <span className="pl-label">{label}</span>
-                <Panel kind={k} width={panelW}/>
+                <ExtPanelBody kind={k} width={panelW}/>
               </div>
             ))}
           </div>

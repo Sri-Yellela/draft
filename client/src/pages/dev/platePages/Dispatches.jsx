@@ -55,7 +55,7 @@ export default function DispatchesMock({ width = 1280 }) {
   const mailWidth = width < 640 ? width - 32 : 600;
   return (
     <PlateRoot region="IV" style={{ minHeight: "100vh", padding: width < 640 ? "20px 16px 64px" : "32px 24px 72px", boxSizing: "border-box" }}>
-      <div style={{ maxWidth: 1232, margin: "0 auto", display: "flex", flexDirection: "column", gap: 48 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 48 }}>
         <header style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <Kickers parts={["D197 · WAVE 2 · #18", "M3 MOCK", "EXAMPLE DATA"]}/>
           <PageTitle>Dispatches</PageTitle>

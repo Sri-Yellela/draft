@@ -645,7 +645,8 @@ test("D24: a ZERO-COUNT option is DIMMED, NOT HIDDEN — it keeps its row and it
   const { html, WordPanel } = await loadUi();
   const out = html(WordPanel, { open: "level", params: {}, facets: FACETS, facetsStatus: "ready" });
   const word = panelWord(lvl, firstValue("level"));
-  assert.match(out, new RegExp(`aria-disabled="true"[^>]*>${word}<span class="n">0</span>`), "the 0 itself is information — show it");
+  // ⛔ 47j w1-market (changed on purpose): the option is the plate op; its count is `.pl-mk-op__n` (was `.n`)
+  assert.match(out, new RegExp(`aria-disabled="true"[^>]*>${word}<span class="pl-mk-op__n">0</span>`), "the 0 itself is information — show it");
   for (const o of lvl.dim.options.filter(o => o.value)) assert.match(out, new RegExp(`>${panelWord(lvl, o.value)}<`));
 });
 
@@ -701,7 +702,7 @@ test("D24: NO FACETS ANSWER, NO NUMBERS — a 404 draws no counts, no dims, no w
   const { html, WordPanel } = await loadUi();
   const out = html(WordPanel, { open: "level", params: {}, facets: null, facetsStatus: "unavailable" });
   assert.match(out, /Counts aren(?:&#x27;|')t available right now — these still filter the board\./);
-  assert.doesNotMatch(out, /class="n"/, "a count was drawn without a facets answer");
+  assert.doesNotMatch(out, /class="pl-mk-op__n"/, "a count was drawn without a facets answer");   // ⛔ 47j w1-market (changed on purpose): the plate op's count
   // The clause's own options only — D42's "Add a filter" row lists employment type disabled on purpose.
   const options = out.split("data-add-section")[0];
   assert.doesNotMatch(options, /aria-disabled="true"/, "an option was dimmed without a facets answer");

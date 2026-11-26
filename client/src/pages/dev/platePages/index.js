@@ -12,7 +12,7 @@ export const PLATE_PAGES = {
   "public-chrome": { title: "The signed-out nav + footer, on the server pages", wave2: "#16", load: () => import("./PublicChrome.jsx") },
   network: { title: "Correspondence (Network · Feed · Messages)", wave2: "#14", load: () => import("./Network.jsx") },
   "off-the-map": { title: "Off the map (404, faults, empty states)", wave2: "#22", load: () => import("./OffTheMap.jsx") },
-  landing: { title: "The front door (/) — PROPOSED, owner to place", wave2: "#16a (proposed)", load: () => import("./Landing.jsx") },
+  landing: { title: "The front door (/) — PROPOSED, owner to place", wave2: "#16 · a (proposed)", load: () => import("./Landing.jsx") },
   // 47j lane w2-practice — docs/revamp/interview.md, atlas-extras.md, ask-draft.md
   interview: { title: "Interview → Proving ground", wave2: "#13", load: () => import("./Interview.jsx") },
   logbook: { title: "Atlas → Your map's Logbook (Your run, League, Challenges)", wave2: "#11", load: () => import("./Logbook.jsx") },

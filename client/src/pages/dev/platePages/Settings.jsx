@@ -46,7 +46,7 @@ function SettingsMockAppearance() {
         </div>
       </aside>
       <div style={{ ...col, flex: "999 1 480px" }}>
-        <SettingsSheet kicker="THEME" title="Theme" lead="How draft looks on this account, on every device. Documents — your résumé and cover letter — always stay black on white.">
+        <SettingsSheet kicker="LOOK" title="Theme" lead="How draft looks on this account, on every device. Documents — your résumé and cover letter — always stay black on white.">
           {radios([{ id: "dusk", label: "Dusk" }, { id: "dusk-light", label: "Dusk light" }, { id: "plain-light", label: "Plain light" }, { id: "plain-dark", label: "Plain dark" },
             { id: "plate", label: "Plate", tag: "ASK THE OWNER" }], theme, setTheme, "Theme")}
           <label className="pl-body" style={{ display: "flex", gap: 10, alignItems: "center", minHeight: 44 }}>{sw(follow, setFollow, "Follow my system")} Follow my system's light / dark setting</label>

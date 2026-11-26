@@ -45,7 +45,7 @@ export default function AdminMock({ width = 1280 }) {
     <PlateRoot region="IV" style={{ minHeight: "100vh", boxSizing: "border-box" }}>
       <AreaNav area="Admin" views={GROUPS} current="people" phone={phone} more={[{ label: "Database inspector", href: "#db" }]}
         search={{ placeholder: "Find a person — name, email, username or id" }}/>
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: phone ? "16px 16px 64px" : "20px 24px 72px", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ padding: phone ? "16px 16px 64px" : "20px 24px 72px", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 18 }}>
         <Kickers parts={["ADMIN · PEOPLE", "WHO IS USING IT?", "D197 #21 · M3 MOCK · EXAMPLE DATA"]}/>
         <PageTitle as="h1">People</PageTitle>
         <Ticket kicker="DISK · AMBER · 81% FULL" title="The data volume is filling" line="12.1 GB of 15 GB. Admin → Today → Disk shows the largest files." go="Open Disk and backups →" href="#disk"/>

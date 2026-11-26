@@ -22,9 +22,8 @@
 .dh-handoff[data-kind="open"] { border-color: var(--c-info); border-left-color: var(--c-info); }
 .dh-handoff span { flex: 1; line-height: 1.6; color: var(--c-ink); }
 .dh-handoff button { border: 0; background: transparent; color: var(--c-ink-faint); cursor: pointer; font-size: 16px; line-height: 1; }
-/* ⛔ 47j R3 (w1-retire): the classic Home's rules are deleted with it — the header (.dh-head*), the auto-apply bar (.dh-auto*,
-   .dh-live), the needs cards (.dh-needs / .dh-nd*), the tabs (.dh-tabs), the table column (.dh-table-col) and their buttons
-   (.dh-quiet / .dh-send). Home is the ledger (plate/Ledger.jsx, plate/sheets.css). */
+/* ⛔ 47j R3 (w1-retire): the classic Home's rules are deleted with it — the header, the auto-apply bar and its live dot, the
+   needs cards, the tabs, the table column and their buttons. Home is the ledger (plate/Ledger.jsx, plate/sheets.css). */
 
 /* the sketch's .seg2 — the card colour, 4 px in; the chosen side raised (the mode, and the phone's switch) */
 .dh-mode { display: inline-flex; padding: 4px; border-radius: 14px; background: var(--c-surface-solid); }
@@ -118,7 +117,7 @@
 @media (max-width: 899px) {
   .dh-main, .dh-main[data-detail="true"] { grid-template-columns: minmax(0, 1fr); }
   .dh-switch { display: inline-flex; align-self: flex-start; margin-bottom: 14px; }
-  .dh-main[data-phone-view="table"] > .dht { display: none; }   /* ⛔ 47j R3: the classic table column (.dh-table-col) is deleted */
+  .dh-main[data-phone-view="table"] > .dht { display: none; }   /* ⛔ 47j R3: the classic table column is deleted */
   .dht { position: static; }
   .dh-main > .dh-detail { order: -1; }
   .dht-branch { margin-left: 16px; }

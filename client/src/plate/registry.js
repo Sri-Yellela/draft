@@ -247,7 +247,7 @@ export const PLATE_REGISTRY = [
     extremes: { label: LONG, href: "#x" } },
 
   // ── panels (D197 Wave 2 #19, 47j lane w2-outside): the extension's one floating panel (D191) and its /d square ──
-  { name: "SidePanel", file: "Panels.jsx", group: "Panels", width: 380,
+  { name: "FloatingPanel", file: "Panels.jsx", group: "Panels", width: 380,
     states: four({ status: { text: "86% MATCH · FILED H-1B", tone: "ok" } }, "Nothing on this page yet.", { arriving: { status: { text: "CHECKING DRAFT…", tone: "busy" } } }),
     extremes: { status: { text: LONG.toUpperCase(), tone: "quiet" }, label: LONG } },
   { name: "ReopenTab", file: "Panels.jsx", group: "Panels", width: 120,

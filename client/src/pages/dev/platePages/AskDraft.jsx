@@ -88,7 +88,7 @@ export default function AskDraftMock({ width = 1280 }) {
         <div className="pl-hero__main">
           <Kickers parts={["MOCK · D197 WAVE 2 #12", "EXAMPLE DATA", "NOTHING HERE IS LIVE"]}/>
           <LegHeader meta="ANY PAGE · THE CARD FLOATS OVER IT" title="Ask draft, over the market" level={1}/>
-          <p className="pl-body" style={{ maxWidth: 520 }}>The card opens from the fox bubble or the dock's Ask draft, floats bottom-right over the page (never over the dock), and on a phone becomes a bottom sheet. On Resume Master the same card is Tiny's side panel, which moves the page over.</p>
+          <p className="pl-body" style={{ maxWidth: 520 }}>The card opens from the fox bubble or the dock's Ask draft, floats bottom-right over the page (never over the dock), and on a phone becomes a bottom sheet. On the résumé site the same card is the assistant's side panel, which moves the page over.</p>
         </div>
       </section>
       {phone ? (

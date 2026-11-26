@@ -121,7 +121,7 @@ hard shadow, the ink *d* with the clay slash (= `PlateLogo`); a clay dot (a perf
 you; the same corner / edge it was closed on.
 
 **MIRRORS (M5).** The extension can't import client code, so at M5: a `MIRRORS` row for the panel (`plate/Panels.jsx`
-`SidePanel` ⇄ `extension/jobPanel.js`), one for the square (`ReopenTab` ⇄ `dock.js .launch`), and FitCard's mirror made a
+`FloatingPanel` ⇄ `extension/jobPanel.js`), one for the square (`ReopenTab` ⇄ `dock.js .launch`), and FitCard's mirror made a
 row (today a comment). The plate token values reach the extension through `extension/tokens.js` (a generated plate
 block, as the Dusk / Plain palettes are).
 
@@ -137,7 +137,7 @@ block, as the Dusk / Plain palettes are).
 | §2 How I apply (Résumé ▾, Review, Open by itself, All settings) | a mono `HOW I APPLY` label + `pl-btn` toggles (`aria-checked`, ✓ word); Résumé ▾ = a `pl-btn` with the plate menu (`.pl-menu`) |
 | §2 the other-page view (three counts, the box, the reply) | `StatsStrip` with three linked cells (D200 Rule 2 — every number answers) + `NavSearch`-style input + the reply line (tier label in mono) |
 | §2 height to content, never over Apply | unchanged (`dock.fit`, `dock.avoid`) |
-| §3 the dock's header, move / snap / resize / pop-out / settings / close / Esc | `SidePanel`'s header icons (`pl-btn--icon`); the geometry code unchanged |
+| §3 the dock's header, move / snap / resize / pop-out / settings / close / Esc | `FloatingPanel`'s header icons (`pl-btn--icon`); the geometry code unchanged |
 | §3 the `/d` square + its need dot | `ReopenTab` |
 | §3 the tab row (This job · Fill · ATS · Résumé · Copy sheet) | `BinderTabs` with icons (shown only once a second view exists — unchanged rule) |
 | §4 Fill tab | a `pl-btn--primary` + its counts as `StatsStrip` |
@@ -153,4 +153,4 @@ Engineer II, Checkout*, its own *Apply* button at the top right) with the panel 
 left of the Apply button, then the states side by side: **job** (86 % match · FILED H-1B), **arriving** (page first),
 **ready** (Apply from here), **signed out** (the public card), **the other-page view** (your day + the box), and **the `/d`
 square** (with its need dot). At 390 the page column stacks and the panel takes the phone width (min 300). New library
-pieces: **`SidePanel`** and **`ReopenTab`** (`client/src/plate/Panels.jsx`, registry group "Panels").
+pieces: **`FloatingPanel`** and **`ReopenTab`** (`client/src/plate/Panels.jsx`, registry group "Panels").

@@ -38,7 +38,7 @@ export default function PublicChromeMock({ width }) {
 
         {/* a posting's page (server-rendered today, publicJobPage.js) — the opening sheet's head, signed out */}
         <section style={{ display: "flex", flexDirection: "column", gap: 14 }} aria-labelledby="pc-post">
-          <LegHeader n={2} meta="/<COMPANY>/<ID> · SERVER-RENDERED · JOBPOSTING JSON-LD KEPT" title="A posting, signed out"/>
+          <LegHeader n={2} meta="/:COMPANY/:ID · SERVER-RENDERED · JOBPOSTING JSON-LD KEPT" title="A posting, signed out"/>
           <Kickers parts={["OPENING", "KESTREL PAYMENTS", "BOSTON, MA", "POSTED 2 H AGO"]}/>
           <PageTitle id="pc-post">Frontend Engineer II, Checkout</PageTitle>
           <p className="pl-body">Kestrel Payments · Hybrid · Boston, MA · $150k–$180k</p>
@@ -55,7 +55,7 @@ export default function PublicChromeMock({ width }) {
 
         {/* a gazetteer sheet: the D179 P7 / D185-6 landing pages, with real counts (no thin pages) */}
         <section style={{ display: "flex", flexDirection: "column", gap: 14 }} aria-labelledby="pc-gz">
-          <LegHeader n={3} meta="/JOBS/SPONSOR-H1B/<ROLE>/IN/<METRO> · ITEMLIST JSON-LD · 404 UNDER 10 JOBS" title="A gazetteer sheet"/>
+          <LegHeader n={3} meta="/JOBS/SPONSOR-H1B/:ROLE/IN/:METRO · ITEMLIST JSON-LD · 404 UNDER 10 JOBS" title="A gazetteer sheet"/>
           <Kickers parts={["GAZETTEER", "SOFTWARE ENGINEERING", "BACKEND", "BOSTON", "EMPLOYERS WITH CERTIFIED H-1B FILINGS"]}/>
           <PageTitle id="pc-gz">Backend engineering jobs in Boston at H-1B filers</PageTitle>
           <StatsStrip label="This page's counts" cells={[{ value: 214, label: "OPEN NOW" }, { value: 31, label: "EMPLOYERS" }, { value: 1880, label: "CERTIFIED FILINGS" }]}/>

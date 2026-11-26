@@ -21,12 +21,13 @@ test("jobs filters are staged and only committed by Apply", () => {
 test("filter panel uses an opaque modal surface", () => {
   const jobsPanel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
 
-  // A real dim behind the drawer.
-  // Re-pinned at UI step 2b (09-30): the scrim and the modal fallback are tokens now.
-  assert.match(jobsPanel, /background:C\.SCRIM/);
-  // The drawer itself uses the dedicated modal token, never theme.surface (var(--bg-card), 0.68).
-  assert.match(jobsPanel, /background:theme\.modalSurface \|\| C\.SURFACE_MODAL/);
-  assert.match(jobsPanel, /boxShadow:theme\.shadowXl/);
+  // ⛔ 47j w1-market r2 (changed on purpose): the drawer is drawn on the plate (.plate .pl-fdrawer) — the dim is the plate
+  // ink at 32 %, the panel is opaque paper (never a translucent card). Same intent.
+  assert.match(jobsPanel, /data-filters-drawer="" className="plate pl-fdrawer"/);
+  assert.match(jobsPanel, /<motion\.div className="pl-fdrawer__panel"/);
+  const css = fs.readFileSync("client/src/plate/plate.css", "utf8");
+  assert.match(css, /\.pl-fdrawer \{ background: color-mix\(in srgb, var\(--pl-ink\) 32%, transparent\);/, "a real dim behind the drawer");
+  assert.match(css, /\.pl-fdrawer__panel \{[^}]*background: var\(--pl-paper\);/, "the panel is opaque paper");
 });
 
 // Replaces "LinkedIn import CTA is only rendered from the Starred LinkedIn section", which

@@ -111,7 +111,9 @@ test("44p · deckNeverSpinsForever — the deck's request has a timeout and a fa
   const deck = read("client/src/panels/DeckView.jsx");
   assert.match(deck, /const DECK_TIMEOUT_MS = 8000;/);
   assert.match(deck, /api\(`\/api\/draft\/today\?[^`]*`, \{ timeoutMs: DECK_TIMEOUT_MS \}\)/);
-  assert.match(deck, /load\.status === "error"[\s\S]{0,600}Try again/);
+  // ⛔ 47j w1-market (changed on purpose): the failure is the plate's ErrorLine (PlateState.jsx) — its button says Try again
+  assert.match(deck, /load\.status === "error"[\s\S]{0,300}<ErrorLine [^>]*onRetry=\{fetchDeck\}/);
+  assert.match(read("client/src/plate/PlateState.jsx"), /onRetry \? <button type="button" className="pl-btn" onClick=\{onRetry\}>Try again<\/button>/);
   const api = read("client/src/lib/api.js");
   assert.match(api, /AbortSignal\.timeout\(timeoutMs\)/);
   assert.match(api, /TimeoutError[\s\S]{0,120}didn't answer in time/);

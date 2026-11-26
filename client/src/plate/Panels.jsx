@@ -21,7 +21,7 @@ const HEAD_ICONS = [
  * the word carries the state), `children` (the body), `foot` (a node), `width` (380 = the dock's default), `onHead(id)`
  * for the header icons, `tabs` (a node — the binder tabs, only once a second view exists).
  */
-export function SidePanel({ label = "draft — this job", status, children, foot, width = 380, tabs = null, onHead, ...s }) {
+export function FloatingPanel({ label = "draft — this job", status, children, foot, width = 380, tabs = null, onHead, ...s }) {
   const gate = plateState(s, { height: 320, radius: "plate", lines: 4, label: "Loading the panel" });
   const tone = status?.tone || "quiet";
   const dot = tone === "ok" ? "var(--pl-lit)" : tone === "busy" ? "var(--pl-clay)" : "var(--pl-muted-2)";

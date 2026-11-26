@@ -101,7 +101,7 @@ Tools (`Ticket`s). The workspace and the editor: no drawings (tool surfaces).
 FitCard does).
 
 **Tiny.** The row says "Tiny in its side panel"; the code since 11-15 is a floating fox bubble + card (owner 11-15). **Owner
-to decide at M4:** a side panel (the plate's `SidePanel` from `client/src/plate/Panels.jsx` — the same frame as the
+to decide at M4:** a side panel (the plate's `FloatingPanel` from `client/src/plate/Panels.jsx` — the same frame as the
 extension's panel) or keep the bubble restyled (a 1.5 px ink circle with a hard shadow).
 
 **How the tokens get there.** RM can't import draft's client. At M5: `scripts/site/themes.mjs` gains a `plate` block
@@ -117,10 +117,10 @@ Tiny only).
 | §3 top bar, modes, tools, strip, canvas, page nav, zoom, properties, sheet bar, dialog, versions | `pl-btn` / `pl-btn--icon` / `BinderTabs` / a `pl-card` properties panel / `FactSheet` for *the changes*; behaviour unchanged |
 | §4 ATS panel | form in plate inputs; the result = **`FitCard`** (the number, parts, gain, "not enough signal"); plausibility rows as `StatusTag` marks with *Dismiss* / *Bring it back* |
 | §5 editor toolbar, sections menu, paper, start, embed refusal | `pl-btn--icon` groups; the section list as a `TrailRail`-like list (**unclear: drag-to-reorder has no plate piece**); the paper stays white; start = `Ticket`s |
-| §6 Tiny | `SidePanel` or the restyled bubble — owner's call (above) |
+| §6 Tiny | `FloatingPanel` or the restyled bubble — owner's call (above) |
 | §7 the 16 tool pages | each as a small `TitleBlock` + one `Ticket` into the workspace — M5 inventory first |
 
 ## M3
 No mock: Resume Master's pages are not React and live in another repository, so a `/dev/plate` mock would show draft's
 components, not RM's pages. The two library pieces RM would wear are already drawn here: `FitCard` (the ATS card) and
-`SidePanel` (Tiny, if the owner picks the side panel) — see `/dev/plate?page=extension-panel`.
+`FloatingPanel` (Tiny, if the owner picks the side panel) — see `/dev/plate?page=extension-panel`.

@@ -35,7 +35,8 @@ test("A221 (46r) · the All filters word is drawn at the page's small text size 
   // 47j R2 (changed on purpose): the word is the cartouche's chip (.pl-mk-chip) — the plate's meta size, which follows
   // Settings → Text size (--pl-scale = --type-scale)
   const css = fs.readFileSync("client/src/plate/plate.css", "utf8");
-  const rule = css.match(/^\.pl-mk-chip \{([^}]*)\}/m)[1];
+  // ⛔ 47j w1-market (changed on purpose): the chip shares one rule with the panel's ops (`.pl-mk-chip, .pl-mk-op {`)
+  const rule = css.match(/^\.pl-mk-chip(?:, \.pl-mk-op)? \{([^}]*)\}/m)[1];
   assert.match(rule, /font-size: var\(--pl-t-meta\);/);
   const tokens = fs.readFileSync("client/src/styles/plate.css", "utf8");
   assert.match(tokens, /--pl-t-meta: calc\(13\.5px \* var\(--pl-scale\)\);/);

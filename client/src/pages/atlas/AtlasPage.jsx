@@ -23,7 +23,7 @@ import AtlasGraph from "./AtlasGraph.jsx";
 import { RoleMap, FamilyMap } from "./YourMap.jsx";
 import SkillMap from "./SkillMap.jsx";   // ⭐ A228: Your map
 import PlaceNav from "../../components/PlaceNav.jsx";
-import { OverviewPanel, YourSkillsSlot, YourRoutePanel, TodaysQuestionPanel, HowItWorksPanel, AuditPanel, RolesPanel, MarketPanel, GlossaryPanel,
+import { OverviewPanel, YourSkillsSlot, YourRoutePanel, TodaysQuestionPanel, HowItWorksPanel, AuditPanel, RolesPanel, AtlasMarketPanel, GlossaryPanel,
   PanelHead } from "./AtlasPanels.jsx";
 import { panelFor, isPanelSlug, PANEL_LABEL, navGroups, panelHref, courseIdOf } from "./atlasPanels.js";
 import { LeaguePanel, ChallengesPanel, SharedBar } from "./CompetePanels.jsx";   // A154 / D172 (4) (45s): behind their switches
@@ -484,7 +484,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
       {panel === "roles-and-skills" && panelOnly && (
         <RolesPanel base={base} search={<section className="atl__section" data-atlas-home-search=""><h2 className="atl__h2">Search the Atlas</h2><SearchBox base={base} /></section>} />
       )}
-      {panel === "this-weeks-market" && <MarketPanel base={base} />}
+      {panel === "this-weeks-market" && <AtlasMarketPanel base={base} />}
       {panel === "glossary" && <GlossaryPanel base={base} />}
       {familyKey && <FamilyMap base={base} familyKey={familyKey} />}
       {panel === "your-run" && <YourRun base={base} signedIn={signedIn} />}
