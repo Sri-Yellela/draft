@@ -56,20 +56,22 @@ test("D6/D18: the nav tab DISPLAYS Draft House — its id and route stay auto-ap
 
 test("D6/D18: the /d mark is ONE implementation on the card — and D18 took it OFF the tab", () => {
   const app = read("client/src/App.jsx");
-  const bubble = read("client/src/components/JobBubble.jsx");
   const mark = read("client/src/components/DraftMark.jsx");
   // D18 (owner, 10-03) REVERSES D6 here: no tab carries a symbol. ⭐ D147 (owner 11-03): the board's Pending chip became
   // the word "Pending" (inside the Sort / view panel), so App.jsx no longer imports the mark at all.
   assert.doesNotMatch(app, /import \{ DraftMark \}/);
   assert.doesNotMatch(app, /t\.id === "auto-apply"[\s\S]{0,400}<DraftMark /, "the Home tab renders the mark again (D18: no symbol on any tab)");
-  assert.match(bubble, /<DraftMark \/>/, "the card's Draft button no longer renders the shared mark");
+  // 47j A248 (changed on purpose): the board card's Draft square (and the /d on it) is deleted with JobBubble's card — the Index row's Draft
+  // says the word. The mark stays ONE implementation (DraftMark.jsx) wherever it is still drawn.
+  assert.doesNotMatch(read("client/src/components/JobBubble.jsx"), /DraftMark/);
+  assert.match(mark, /export function DraftMark\(/);
   // The mark is decorative (the word or the button's aria-label names the action), and it must not be
   // uppercased by the tab row's text-transform — "/D" is not the mark.
   assert.match(mark, /aria-hidden="true"/);
   assert.match(mark, /textTransform: "none"/);
   assert.match(mark, /'Poppins'/);
   // No second copy of the glyphs as the card's or the tab's content.
-  assert.doesNotMatch(bubble, />\s*\/d\s*</);
+  assert.doesNotMatch(read("client/src/plate/MarketIndex.jsx"), />\s*\/d\s*</, "the board row's Draft draws no copy of the glyphs");
 });
 
 test("D6: the badge says what it counts — drafts that need you, not drafts", () => {

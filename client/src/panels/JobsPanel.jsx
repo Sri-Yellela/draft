@@ -1384,7 +1384,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setAtsSortAvailable, atsSortAvailable,
     setBoardPanel, setBoardHeadline, setBoardPager,
   } = useJobBoard();
-  const plateMarketBoard = true;   // ⭐ D199 C3: pages, not endless scroll. ⛔ 47j R2: the market is the plate market only
   // The open posting's id, for callbacks that must not re-bind on every selection (openAtsPanel, D152 (8)).
   const selectedJobIdRef = useRef(null);
   selectedJobIdRef.current = selectedJob?.jobId ?? null;
@@ -3967,30 +3966,19 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
 
   const isLastPage = currentPage >= totalPages;
 
-  // ⭐ D147 (owner 11-03) · PAGE NUMBERS → SCROLLING. The next page is APPENDED (fetchJobs' merge mode) when the end of
-  // the list comes into view — the same request Next made (its cursor when the chain has one, planPageFetch's rule), so
-  // the board's two paging modes are unchanged underneath. One load at a time.
-  const loadingMoreRef = useRef(false);
-  const loadMore = useCallback(async () => {
-    if (loadingMoreRef.current || !totalPages || currentPage >= totalPages) return;
-    loadingMoreRef.current = true;
-    try {
-      const plan = planPageFetch({ target: currentPage + 1, currentPage, nextCursor: nextCursorRef.current, stack: cursorStackRef.current });
-      await fetchJobs(currentPage + 1, true, plan.cursor ? { cursor: plan.cursor } : {});
-    } catch { /* fetchJobs says so on the board (A73) */ }
-    finally { loadingMoreRef.current = false; }
-  }, [currentPage, totalPages, fetchJobs]);
+  // ⛔ 47j A248: D147's endless scroll (loadMore — the next page appended as the list's end came into view) is DELETED with
+  // the classic market; the board pages (D199 C3, below).
 
   // ⭐ D199 C3 (owner 11-25: "use the page system from the older version … when i'm scrolling down to end it keeps loading
   // more jobs") · ON THE PLATE MARKET THE BOARD PAGES. The pager (plate/MarketPager.jsx) reads what this publishes; a move
   // goes through goPage (the cursor / offset plan above, unchanged). The page lives in the address: `?page=N` (absent on
   // page 1), pushed on a pager move so Back / Forward page, replaced when a filter / sort / search sends the board to page 1,
-  // and read once on load so a reload lands on the same page. No fetch happens on reaching a page's end (BoardMore is not
-  // drawn on the plate). The classic market (?plate=0) keeps D147's scroll.
+  // and read once on load so a reload lands on the same page. No fetch happens on reaching a page's end. (47j: the market
+  // is the plate market only — R2 — so the board always pages.)
   const goPageRef = useRef(goPage);
   goPageRef.current = goPage;
   const pagerNavRef = useRef(null);   // "push" (a pager move) | "pop" (Back / Forward) | null (anything else → replace)
-  const initialPageRef = useRef(plateMarketBoard ? readPageParam(window.location.search) : 1);
+  const initialPageRef = useRef(readPageParam(window.location.search));
   const pagerGoTo = useCallback((p) => {
     const n = Math.max(1, Math.floor(Number(p) || 1));
     pagerNavRef.current = "push";
@@ -3999,14 +3987,14 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   }, []);
   // a reload on ?page=N: once page 1 has answered and the page count is known, go to N (clamped to the last page)
   useEffect(() => {
-    if (!plateMarketBoard || initialPageRef.current <= 1 || boardLoading || !totalPages) return;
+    if (initialPageRef.current <= 1 || boardLoading || !totalPages) return;
     const want = Math.min(initialPageRef.current, totalPages);
     initialPageRef.current = 1;
     if (want !== currentPage) { pagerNavRef.current = "pop"; goPageRef.current?.(want)?.catch?.(() => {}); }
-  }, [plateMarketBoard, boardLoading, totalPages, currentPage]);
+  }, [boardLoading, totalPages, currentPage]);
   // state → address
   useEffect(() => {
-    if (!plateMarketBoard || initialPageRef.current > 1) return;
+    if (initialPageRef.current > 1) return;
     const nav = pagerNavRef.current;
     pagerNavRef.current = null;
     const url = pageInSearch(window.location.search, currentPage);
@@ -4014,10 +4002,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     const next = `${window.location.pathname}${url}${window.location.hash}`;
     if (nav === "push") window.history.pushState({ ...(window.history.state || {}), boardPage: currentPage }, "", next);
     else window.history.replaceState(window.history.state, "", next);
-  }, [plateMarketBoard, currentPage]);
+  }, [currentPage]);
   // Back / Forward → the page the address names
   useEffect(() => {
-    if (!plateMarketBoard) return undefined;
     const onPop = () => {
       const want = readPageParam(window.location.search);
       if (want === currentPageRef.current) return;
@@ -4026,13 +4013,12 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, [plateMarketBoard]);
+  }, []);
   const currentPageRef = useRef(currentPage);
   currentPageRef.current = currentPage;
   useEffect(() => {
-    if (!plateMarketBoard) return;
     setBoardPager?.({ page: currentPage, totalPages, total: totalJobs, pageSize: PAGE_SIZE, jobs, loading: boardLoading, goTo: pagerGoTo });
-  }, [plateMarketBoard, currentPage, totalPages, totalJobs, jobs, boardLoading, pagerGoTo, setBoardPager]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentPage, totalPages, totalJobs, jobs, boardLoading, pagerGoTo, setBoardPager]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => setBoardPager?.(null), [setBoardPager]);
 
   // BUTTON STATES: first click applies local role filter, second click triggers fresh scrape.
@@ -4426,7 +4412,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               totalPages={totalPages} currentPage={currentPage} isLastPage={isLastPage}
               generate={generate} openSandbox={openSandbox} exportAndTrack={exportAndTrack}
               visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds} draftControls={draftControls} openAtsPanel={openAtsPanel}
-              goPage={goPage} onLoadMore={loadMore} totalJobs={totalJobs} onPullRefresh={handlePullRefresh}
+              goPage={goPage} totalJobs={totalJobs} onPullRefresh={handlePullRefresh}
               isMobile={isMobile}
               onJobSelect={handleJobSelect} selectedJobId={selectedJob?.jobId}
               activeFilterCount={activeFilterCount}
@@ -4513,7 +4499,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               generate={generate} openSandbox={openSandbox} exportAndTrack={exportAndTrack}
               visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds} draftControls={draftControls}
               openAtsPanel={openAtsPanel}
-              goPage={goPage} onLoadMore={loadMore} totalJobs={totalJobs} onPullRefresh={handlePullRefresh}
+              goPage={goPage} totalJobs={totalJobs} onPullRefresh={handlePullRefresh}
               isMobile={isMobile}
               compact={false} selectedJobId={selectedJob?.jobId} onJobSelect={handleJobSelect}
               activeFilterCount={activeFilterCount}
@@ -4679,7 +4665,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       theme, totalPages, currentPage, isLastPage,
                       generate, openSandbox, exportAndTrack,
                       visitUrl, decideJob, isJobDrafted = () => false, draftingIds = new Set(), draftControls = null, openAtsPanel,
-                      goPage, onLoadMore, totalJobs = 0, onPullRefresh,
+                      goPage, totalJobs = 0, onPullRefresh,
                       isMobile,
                       compact, selectedJobId, onJobSelect,
                       activeFilterCount = 0, onClearFilters,
@@ -4690,7 +4676,6 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       cardTier = 1, containerRef }) {
   // ⭐ D196 FIX-7 (owner 11-24, 47f): in the plate market the Index tab IS this list, drawn as the board's Gazetteer — the
   // same rows, order, paging, empty states and actions; only the look changes (R6). Its status tags read the apply feeds.
-  const plateIndex = true;   // ⛔ 47j R2: the classic bubble rows (JobBubbleRows) are deleted with the classic market
   const navigateTo = useNavigate();
   const navigateSheet = (job) => { const id = job?.jobId || job?.id; if (id) navigateTo(openingSheetHref(id)); };   // D199 C7
   const { applySubmitted = [], applyGatedJobs = [], applyReviewJobs = [] } = useAutoApply() || {};

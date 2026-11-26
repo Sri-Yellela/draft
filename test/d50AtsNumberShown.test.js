@@ -17,12 +17,9 @@ test("D50 · the number is on, and the provisional note exists once", () => {
 });
 
 test("D50 · the board card's square and the ATS card show it — beside the note — and only for a real score", () => {
-  const bubble = read("client/src/components/JobBubble.jsx");
-  assert.match(bubble, /const showNumber = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/, "no score → no digit");
-  // ⭐ D152 (5), changed on purpose: the board card's ATS square is gone — its number is the match on the right (.jb__mt),
-  // drawn only for a real score (no score → nothing, never a 0); the note travels with the report (below).
-  assert.match(bubble, /\{showNumber \? <><b>\{score\}%<\/b><span>match<\/span><\/> : null\}/, "no score → nothing, never a 0");
-  assert.doesNotMatch(bubble, /jb__ats-n|BarMark/);
+  // 47j A248 (changed on purpose): the board's row is the Index's — its MATCH cell is a real score or "—" (never a 0); JobBubble's
+  // card (its .jb__mt match) is deleted
+  assert.match(read("client/src/plate/MarketIndex.jsx"), /match: Number\.isFinite\(score\) \? `\$\{Math\.round\(score\)\}%` : "—",/, "no score → no digit, never a 0");
   // T9: the ATS card is the one shared component (shared/atsReportElement.js) — the web app and the extension draw it.
   const card = read("shared/atsReportElement.js");
   // ⭐ D152 (8), changed on purpose (option A): the count is the heading and the number is ONE sentence under it, the

@@ -567,8 +567,6 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
 /* ── D196 FIX-1 · the plate page: one paper ground, full height, under every section (the app shell's ground and its
    texture never show through) ── */
 .pl-marketpage { background: var(--pl-paper); min-height: calc(100vh - var(--app-chrome-height, 74px)); isolation: isolate; }
-/* A241 / A131 (47g): the board's stuck frost stops at the page's gutter — `.home` set this; the plate page sets it too */
-.pl-marketpage { --home-gutter: var(--pl-gutter); }   /* the plate section's own side padding (24 px), where the board ends */
 .pl-marketbearing { background: var(--pl-paper); }
 
 /* ── D196 P1 · the bearing (plate/PlateBearing.jsx): the cartouche over the board, its parts' two states ── */

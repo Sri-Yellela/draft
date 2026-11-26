@@ -102,7 +102,8 @@ test("D61 → D149 · the letter fallback is a bold TILE_* colour with a white u
 });
 
 test("⛔ D61 · ONE CompanyLogo — every surface that draws a company mark imports it, and no other tile exists", () => {
-  for (const f of ["client/src/components/JobBubble.jsx", "client/src/components/JobCard.jsx",
+  // 47j A248 (changed on purpose): JobBubble's card (and its logo) is deleted
+  for (const f of ["client/src/components/JobCard.jsx",
                    "client/src/components/JobDetailPanel.jsx", "client/src/panels/DeckView.jsx",
                    "client/src/components/ResumeList.jsx"]) {   // (AtsReportPanel.jsx: retired, D152 (8))
     const src = read(f);

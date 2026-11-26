@@ -50,6 +50,7 @@ test("D11: never more than 3 tiles per row; ~50 per page", () => {
   // D149 (11-03) changed this on purpose: fullhouse-declutter.html draws the postings as ONE column of rows (`.list`), so
   // lib/bubbleColumns.js (2 or 3 per row) is deleted — one per row is within D11's "never more than 3".
   assert.ok(!fs.existsSync("client/src/lib/bubbleColumns.js"), "the per-row column rule is back");
-  assert.match(read("client/src/components/JobBubble.jsx"), /<div className="jb-rows" data-columns=\{1\}>\{jobs\.map\(children\)\}<\/div>/);
+  // 47j A248 (changed on purpose): the bubble rows are deleted — the board's rows are the Index's, one opening per line
+  assert.match(read("client/src/panels/JobsPanel.jsx"), /<MarketIndexTable\s+rows=\{jobs\.map\(/);
   assert.match(read("client/src/panels/JobsPanel.jsx"), /const PAGE_SIZE = 50;/);
 });

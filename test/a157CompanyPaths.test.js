@@ -35,7 +35,8 @@ test("a157NameOpensPage: the name links to the company page (with the job), the 
   assert.match(link, /const to = companyPath\(company, \{ inApp, job: jobId \}\);/);
   assert.match(link, /<Link className=\{cls\} to=\{to\} data-company-page-link=""/);
   assert.match(link, /export function ApplyLink\(/);
-  assert.match(read("client/src/components/JobBubble.jsx"), /navigate\(companyPath\(job\.company, \{ job: id \}\)\)/, "the row's logo opens the page");
+  // 47j A248 (changed on purpose): the board's row is the Index's — its company carries the page's address with the job
+  assert.match(read("client/src/plate/MarketIndex.jsx"), /companyHref: companyPath\(job\.company, \{ job: id \}\) \|\| null,/, "the row's company opens the page");
   const page = read("client/src/pages/companies/CompanyPage.jsx");
   assert.match(page, /data-company-focus=\{focus\.jobId\}/, "the job the reader opened, first");
   assert.match(page, /<ApplyLink href=\{focus\.applyUrl\}/);

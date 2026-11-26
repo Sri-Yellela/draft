@@ -5,8 +5,8 @@
 // feathered · (5) wells are for INPUTS only — navigation is ghost until active.
 //
 // Part 1 reads the source for what P0 measured on the running app (scripts/d92SurfaceProbe.mjs). Part 2 is THE
-// SEAM TEST: the real stylesheets (TopBar.css, FullHouse.css, StickyBar.css) rendered in headless Chrome over
-// each theme's tokens, at desktop and phone, every layout variant, at rest and stuck — the page's luminance is
+// SEAM TEST: the real stylesheets (TopBar.css, AppNav.css, FullHouse.css) rendered in headless Chrome over
+// each theme's tokens, at desktop and phone, every layout variant (47j A248: at rest only — the stuck bar is deleted) — the page's luminance is
 // sampled down and across every region boundary, and a step larger than the threshold where no boundary is
 // intended fails. It SKIPS, saying why, on a machine with no Chrome.
 import test from "node:test";
@@ -64,16 +64,13 @@ test("D92 ④ the seam: nothing paints behind the jobs or The Table; no full-wid
   assert.doesNotMatch(notice, /borderBottom/, "the fit notice rules a hairline across the whole window again");
 });
 
-test("D92 ⑤ stuck, the board's bar is its own column, frosted and FEATHERED — not a band with a hairline and a shadow", () => {
+// ⛔ 47j A248 (changed on purpose): rule 4's subject — the board's bar stuck under the chrome, frosted and feathered — is
+// DELETED with the classic market (R2 retired its bar; A248 its stuck frost, `.fh--bar-row[data-stuck]`, and StickyBar).
+// The plate market's search sits in the cartouche, which does not stick. Rule 4 holds for any sticky chrome built later.
+test("D92 ⑤ → 47j A248: the classic bar's stuck frost and the StickyBar module are deleted", () => {
   const css = read("client/src/components/FullHouse.css");
-  const i0 = at(css, '.fh.fh--bar-row[data-stuck="true"] {');
-  const stuck = css.slice(i0, at(css, "}", i0));
-  assert.match(stuck, /background: transparent;/); assert.match(stuck, /box-shadow: none;/); assert.match(stuck, /border-bottom: 0;/);
-  const before = css.slice(at(css, '.fh.fh--bar-row[data-stuck="true"]::before {'));
-  assert.match(before, /backdrop-filter: blur\(10px\)/);
-  assert.match(before, /mask-image: linear-gradient\(to right, transparent, var\(--c-ink\) 6%, var\(--c-ink\) 94%, transparent\), linear-gradient\(to bottom, var\(--c-ink\) 72%, transparent\)/);
-  // ⛔ 47j R2 (changed on purpose): the StickyBar module is DELETED — its last consumer was the classic market's bar (the
-  // posting panel's action bar left it in D147). The frost rules above stay until A248 retires them with the bar's markup.
+  assert.doesNotMatch(css, /fh--bar-row/, "the classic bar row's rules are deleted");
+  assert.doesNotMatch(css, /\[data-stuck=/, "the stuck frost is deleted");
   assert.equal(fs.existsSync("client/src/components/StickyBar.css"), false, "the StickyBar module is deleted");
 });
 
@@ -84,7 +81,7 @@ let browserPath = null;
 try { browserPath = (await resolveBrowserExecutable())?.path || null; } catch { browserPath = null; }
 const NO_CHROME = browserPath && fs.existsSync(browserPath) ? false : "no Chrome on this machine (services/browserLauncher.js found none)";
 
-test("D92 · THE SEAM TEST — no hard step where no boundary is intended: 4 themes × desktop / phone × every variant × rest / stuck", { skip: NO_CHROME, timeout: 180000 }, async () => {
+test("D92 · THE SEAM TEST — no hard step where no boundary is intended: 4 themes × desktop / phone × every variant", { skip: NO_CHROME, timeout: 180000 }, async () => {
   const { default: puppeteer } = await import("puppeteer-core");
   const { THEME_LIST, cssVarName } = await import("../client/src/themes/index.js");
   const { FULL_HOUSE_TYPE, typeVarName } = await import("../client/src/styles/type.js");
@@ -105,11 +102,10 @@ test("D92 · THE SEAM TEST — no hard step where no boundary is intended: 4 the
          seams here are read with it at rest. -->
     <nav class="appnav-dock" data-up="false"><a class="appnav-item" aria-current="page"><span class="appnav-name">Full House</span><small class="appnav-plain">every job</small></a><a class="appnav-item"><span class="appnav-name">Draft House</span><small class="appnav-plain">in progress</small></a></nav>
     <div data-app-shell><!-- ⭐ D156 (3): the app shell, as App.jsx draws it — AppNav.css pads it by the always-visible rail -->
-    ${stuck === "true" ? "" : `<header class="fh" id="hd"><h1 class="bh"><span class="bh__verb">discovering</span> <button class="tok">all</button> roles at <button class="tok">all</button> career levels and <button class="tok">all</button> workstyles in <button class="tok" aria-pressed="true">the United States</button>.</h1></header>`}
-    <!-- stuck: the bar's box at the chrome's edge, as top: var(--app-chrome-height) puts it (the bar's 16px margin collapses outside the box) -->
-    <main style="${stuck === "true" ? "margin-top:-16px" : "padding-top:24px"}"><div class="sticky-bar fh fh--bar-row" id="bar" data-stuck="${stuck}"><div class="fh-bar">
-      <div class="fh-views"><button aria-pressed="true">ALL <em class="fh-ct">454</em></button><button>★ <em class="fh-ct">3</em></button></div>
-      <div class="fh-srch"><input placeholder="Job title, company, or anything in the posting…"></div><button class="fh-ico">⇅</button></div></div>
+    <!-- 47j A248: the classic sentence header, views and sticky bar row are deleted; the search row (.fh-bar / .fh-srch, still
+         worn by BoardSearch and Customise's preview) stands in flow above the list -->
+    <main style="padding-top:24px"><div class="fh" id="bar"><div class="fh-bar">
+      <div class="fh-srch"><input placeholder="Job title, company, or anything in the posting…"></div></div></div>
       <div class="list" id="list">${"<div class=card></div>".repeat(6)}</div></main></div></body></html>`;
   const browser = await puppeteer.launch({ executablePath: browserPath, headless: "new", pipe: true, args: ["--no-first-run"] });
   const failures = [];
@@ -131,12 +127,11 @@ test("D92 · THE SEAM TEST — no hard step where no boundary is intended: 4 the
     const THRESHOLD = 3;   // in 0–255 luminance, per 4px — a hairline or a hard band edge is 10–40
     for (const t of THEME_LIST) for (const [vp, size] of [["desktop", { width: 1440, height: 760 }], ["phone", { width: 390, height: 760 }]])
       // 45s: 45n retired the navigation option (the dock, D167, is the one navigation) — LAYOUT_OPTION_IDS.navigation is gone.
-      for (const nav of ["dock"]) for (const sentence of LAYOUT_OPTION_IDS.sentence.values) for (const stuck of ["false", "true"]) {
+      for (const nav of ["dock"]) for (const sentence of LAYOUT_OPTION_IDS.sentence.values) for (const stuck of ["false"]) {   // 47j A248: no stuck bar any more
         await page.setViewport(size);
         await page.setContent(page0(t, nav, sentence, stuck), { waitUntil: "load" });
         const g = await page.evaluate(() => {
           const r = (id) => document.getElementById(id).getBoundingClientRect();
-          // Stuck: the header has scrolled away and the bar sits under the chrome, as it does in the app.
           const bar = r("bar"), list = r("list"), col = bar, fhBar = document.querySelector(".fh-bar").getBoundingClientRect();
           // Every shadowed box in the chrome: no ancestor that clips it (overflow ≠ visible, or a clip-path with no room).
           const clipped = [...document.querySelectorAll(".chrome *")].filter((e) => getComputedStyle(e).boxShadow !== "none").filter((e) => {
@@ -161,17 +156,6 @@ test("D92 · THE SEAM TEST — no hard step where no boundary is intended: 4 the
         const down = await profile({ x, y: 80, width: 4, height: Math.min(size.height - 80, Math.ceil(g.listTop + 30) - 80) }, true);
         const [w, wy] = worstAt(down);
         if (w > THRESHOLD) failures.push(`${tag}: a hard step of ${w.toFixed(1)} down the page at x=${x}, y≈${80 + wy} (bar ${Math.round(g.barTop)}–${Math.round(g.barBottom)}, list ${Math.round(g.listTop)})`);
-        if (stuck === "true") {
-          // Across the stuck bar's left edge, at its middle: the frost must feather in, not start at a line.
-          // ⭐ D156 (3) (changed on purpose): never across the dock's rail or its own soft shadow (44 px blur, AppNav.css) — the
-          // rail sits at the window's left edge, always visible, an intended surface. On a phone the rail covers the frost's
-          // left fringe, so what is left to sample there is the bar's own start.
-          const from = Math.max(0, Math.floor(g.colLeft) - 60, g.dockRight ? Math.ceil(g.dockRight) + 44 : 0);
-          const across = await profile({ x: from, y: Math.floor(g.barMid), width: Math.min(110, size.width - from), height: 4 }, false);
-          // …up to the bar's own edge, short of its shadow (12px): the bar itself is intended.
-          const wa = worst(across.slice(0, Math.max(5, Math.floor(g.fhBarLeft) - 12 - from)));
-          if (wa > THRESHOLD) failures.push(`${tag}: the stuck frost starts at a hard edge (${wa.toFixed(1)}) — rule 4`);
-        }
       }
   } finally { await browser.close(); }
   assert.deepEqual(failures, [], failures.join("\n"));

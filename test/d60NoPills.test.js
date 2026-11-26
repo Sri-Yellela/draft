@@ -150,7 +150,8 @@ test("D60 · the named offenders are gone: the nav tabs, résumé ready, the ban
   assert.match(plate, /\.pl-dock__item\[aria-current="page"\], \.plate a\.pl-dock__item\[aria-current="page"\] \{ background: var\(--pl-card\); border: var\(--pl-border\); box-shadow: var\(--pl-s3\); \}/, "the current one, the white tile");
   assert.doesNotMatch(nav + css, /text-transform: uppercase|textTransform: "uppercase"/);
   // ⭐ D152 (7b), changed on purpose: never a capsule, and no chip either — a word with a 6px success dot.
-  assert.match(read("client/src/components/JobBubble.css"), /\.jb__ready \{[^}]*border-radius: 0;[^}]*background: radial-gradient\(circle at 3px 50%, var\(--c-success\) 3px/);
+  // 47j A248 (changed on purpose): the card's "résumé ready" word (.jb__ready) is deleted with JobBubble's card
+  assert.doesNotMatch(read("client/src/components/JobBubble.css"), /\.jb__ready/);
   // ⭐ D152 (7b), changed on purpose: the posting's tag is a plain word — no chip, no bar, never a capsule.
   assert.match(read("client/src/components/PostingPanel.css"), /\.posting__pill \{[^}]*padding: 0; border-radius: 0;[^}]*background: none;/);
   // ⭐ D152 (7b), changed on purpose: The Table's status is a word with a 6px dot in its tone — no chip.

@@ -22,7 +22,8 @@ const jd = read("client/src/components/JobDetailPanel.jsx");
 const jdCss = read("client/src/components/JobDetailPanel.css");
 const jobs = read("client/src/panels/JobsPanel.jsx");
 const deck = read("client/src/panels/DeckView.jsx");
-const bubble = read("client/src/components/JobBubble.jsx");
+// 47j A248 (changed on purpose): the board's row is the Index's (JobBubble's card is deleted) — its company, Star and Draft
+const bubble = read("client/src/plate/MarketIndex.jsx");
 const topBar = read("client/src/components/TopBar.jsx");
 const customise = read("client/src/panels/CustomisePanel.jsx");
 const actionsDoc = read("docs/D164_ACTIONS.md");
@@ -103,7 +104,7 @@ test("d164NoActionLost · every action the posting and the deck card had before 
     ["Deck open the posting", deck, "data-deck-full-posting"], ["Deck ATS report", deck, "onSignal={() => openMatchInPosting("],
     ["Deck full report / the posting", deck, "Full report on the board →"], ["Deck drafted today", deck, 'aria-label="Drafted today"'],
     ["Deck keyboard shortcuts", deck, 'aria-label="Keyboard shortcuts"'], ["Deck order", customise, "DECK_ORDERS"],
-    ["Bubble company profile", bubble, "jb__logo"], ["Bubble save", bubble, "jb__sq--save"], ["Bubble draft", bubble, 'draft.action === "draft" ? onDraft'],
+    ["Bubble company profile", bubble, "<CompanyStackPopover company={r.company}"], ["Bubble save", bubble, 'data-bubble-action="star"'], ["Bubble draft", bubble, 'draft.action === "draft" ? onDraft'],
     ["Job-profile switcher (whole board)", topBar, "<ProfileSelectorDropdown"],
   ];
   const lost = CHECKLIST.filter(([, src, anchor]) => !src.includes(anchor)).map(([name]) => name);

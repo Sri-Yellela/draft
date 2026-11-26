@@ -20,9 +20,8 @@ const css = read("client/src/components/JobBubble.css");
 const panel = read("client/src/panels/JobsPanel.jsx");
 
 test("D46(a) · the card's text block has a MIN-height and its lines never shrink — no glyph can be clipped", () => {
-  assert.match(css, /\.jb__text \{[^}]*min-height: 52px;/);
-  assert.doesNotMatch(css, /\.jb__text \{[^}]*[^-]height: 52px/, "a fixed height cuts a fourth line in half");
-  assert.match(css, /\.jb__company, \.jb__title, \.jb__meta \{[^}]*flex-shrink: 0; line-height: 1\.25;/);
+  // 47j A248 (changed on purpose): the card's text block (.jb__text) is deleted with JobBubble's card; what remains here keeps the rule
+  assert.doesNotMatch(css, /\.jb__text/, "the deleted card's text block");
   for (const m of css.matchAll(/line-height:\s*([\d.]+)/g)) {
     if (Number(m[1]) !== 1) assert.ok(Number(m[1]) >= 1.2, `a text line-height below 1.2: ${m[0]}`);
   }

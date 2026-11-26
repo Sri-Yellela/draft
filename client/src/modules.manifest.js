@@ -227,7 +227,7 @@ export const SHARED = Object.freeze({
   "components/DealBackdrop.jsx":        { what: "the dealt cards behind the login form", module: "auth" },
   "components/CardBack.jsx":            { what: "a deck card's back (the tinted logo — owner-decided O34)", module: "deck" },
   "components/DeckGeometryControl.jsx": { what: "the deck's layout control (D149: on the Customise page)", module: "customise" },
-  "components/JobBubble.jsx":           { what: "the board's card (D1)", module: "board" },
+  "components/JobBubble.jsx":           { what: "the board's column (JobBoardColumns; 47j A248: D1's card is deleted)", module: "board" },
   "components/WarmPathsBlock.jsx":      { what: "D138 — people the user knows at a posting's company, beside the posting panel", module: "board" },
   "components/JobBubble.css":           { what: "its look", owner: "components/JobBubble.jsx" },
   "components/JobDetailPanel.jsx":      { what: "the board's posting panel (D48)", module: "board" },

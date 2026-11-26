@@ -130,7 +130,7 @@ test("d152NoSeparateBestBetsList: no separate best-bets list; the count line (th
 // markStyle) and the four own copies (résumé ready, a posting's tag, The Table's status, Customise's tag).
 test("d152NoLabelChipComponent / d152StateAsWordOrDotWord: no label chip anywhere; a state is a word with a 6px dot", () => {
   const RULES = [
-    ["client/src/components/DepthButton.css", ".mark {"], ["client/src/components/JobBubble.css", ".jb__ready {"],
+    ["client/src/components/DepthButton.css", ".mark {"],   // 47j A248: JobBubble.css's .jb__ready left with the card
     ["client/src/components/PostingPanel.css", ".posting__pill {"], ["client/src/components/ApplicationHistory.css", ".ah__status {"],
     ["client/src/components/Customise.css", ".cz-opt__tag {"],
   ];

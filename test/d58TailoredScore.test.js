@@ -101,7 +101,8 @@ test("D58 · a null score renders no digit — never a 0 — and is stored as NU
   const r = db.prepare("SELECT ats_score, base_ats_score FROM resumes").get();
   assert.deepEqual([r.ats_score, r.base_ats_score], [null, null]);
   assert.match(read("client/src/components/AtsNumberBox.jsx"), /const has = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/);   // A93: the one box
-  assert.match(read("client/src/components/JobBubble.jsx"), /const showNumber = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/);
+  // 47j A248 (changed on purpose): the board's row is the Index's — a declined score is "—", never a 0
+  assert.match(read("client/src/plate/MarketIndex.jsx"), /match: Number\.isFinite\(score\) \? `\$\{Math\.round\(score\)\}%` : "—",/);
 });
 
 test("D58 · nothing the user did not claim raises the score: base and tailored are scored with the same claims", () => {

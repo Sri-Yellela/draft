@@ -23,8 +23,8 @@ test("D45 · the empty copy does not render while the current view's request is 
   // 47j R2 (changed on purpose): the classic bubble skeletons are deleted — the Gazetteer's skeleton rows are the only ones
   assert.match(panel, /\{boardLoading \? \(\s*\/\/ D45[^\n]*\n\s*<MarketIndexTable state="loading"\/>\s*\) : shouldShowEmptyState \? \(/);
   assert.equal((panel.match(/boardLoading=\{boardLoading\}/g) || []).length, 2, "both JobsColumn call sites");
-  const bubble = fs.readFileSync("client/src/components/JobBubble.jsx", "utf8");
-  assert.match(bubble, /<div className="jb jb--skeleton" data-skeleton="" aria-hidden="true">/, "the skeleton is the card's own geometry");
+  // 47j A248 (changed on purpose): the bubble skeleton (JobBubbleSkeleton) is deleted with the card — the Gazetteer's skeleton rows above are the only ones
+  assert.doesNotMatch(fs.readFileSync("client/src/components/JobBubble.jsx", "utf8"), /JobBubbleSkeleton|jb--skeleton/);
 });
 
 test("D45 · a second visit renders from the cache BEFORE the network answers", () => {

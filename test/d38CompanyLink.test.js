@@ -52,7 +52,8 @@ test("D38(c) · ONE company link: no surface builds its own", () => {
     if (/company[\w.?|\s"]*\}\s*↗/.test(src)) offenders.push(`${f}: a company name with an arrow`);
   }
   assert.deepEqual(offenders, []);
-  for (const f of ["client/src/components/JobBubble.jsx", "client/src/components/JobCard.jsx",
+  // 47j A248 (changed on purpose): JobBubble's card is deleted — the Index row's company answers through CompanyStackPopover (a149)
+  for (const f of ["client/src/components/JobCard.jsx",
                    "client/src/components/JobDetailPanel.jsx"]) {
     assert.match(read(f), /<CompanyLink /, `${f} no longer uses the one company link`);
   }

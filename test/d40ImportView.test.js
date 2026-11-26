@@ -65,8 +65,9 @@ test("D40 · the + head: Import jobs → /extension; a CONNECTED extension is ne
 });
 
 test("D40 · each imported card adds ONE line: captured <date> · from <host>", () => {
-  const bubble = read("client/src/components/JobBubble.jsx");
-  assert.match(bubble, /\{job\.captured && <div className="jb__meta" data-captured="">\{capturedLine\(job\.captured\)\}<\/div>\}/);
+  // 47j A248 (changed on purpose): the card's "captured … · from …" line (capturedLine) is deleted with JobBubble's card; the server still
+  // sends `captured` on the + view. ⚠ The Index row draws no captured line — logged with A248 in the WORKLOG (47j).
+  assert.doesNotMatch(read("client/src/components/JobBubble.jsx"), /capturedLine/);
   assert.match(server, /\.\.\.\(importedTab \? \{ captured: captureMeta\(capturedBy\.get\(j\.job_id\)\) \} : \{\}\)/);
   // Read after the list, so the list statement interpolates exactly what the count does.
   assert.match(server, /const capturedBy = new Map\(\);\s+if \(importedTab && rows\.length\)/);

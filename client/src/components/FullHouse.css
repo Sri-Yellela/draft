@@ -235,40 +235,9 @@
   .fh-op:hover, .fh-op:focus-visible { transform: none; }
 }
 
-/* D49 · the board's bar row, in <main> under the header: the same centred column (.fh), no top padding
-   (the bar's own 16px margin keeps D35's distance from the sentence), a little room when stuck. */
-.fh.fh--bar-row { padding-top: 0; padding-bottom: 10px; }
-/* ⭐ D92 · STUCK, THE BAR BLENDS IN (rule 4): StickyBar's stuck surface (a hard-edged frosted band with a
-   hairline and a shadow) is replaced, for the board's bar, by a frost on the bar's OWN COLUMN whose edges
-   feather into the page — no line, no band. The mask reads alpha only; ink is opaque. */
-.fh.fh--bar-row[data-stuck="true"] {
-  background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; border-bottom: 0;
-}
-.fh.fh--bar-row[data-stuck="true"]::before {
-  /* ⭐ 46q FULL WIDTH: the column fills the window now, so the frost stays inside it (was -28px fringes each side) —
-     the mask still feathers its edges; a fringe would widen the page (1468 in a 1440 window, measured by d92). */
-  content: ""; position: absolute; inset: -8px 0 -12px; z-index: -1; pointer-events: none;
-  background: color-mix(in srgb, var(--c-surface-solid) 70%, transparent);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  -webkit-mask-image: linear-gradient(to right, transparent, var(--c-ink) 6%, var(--c-ink) 94%, transparent), linear-gradient(to bottom, var(--c-ink) 72%, transparent);
-  mask-image: linear-gradient(to right, transparent, var(--c-ink) 6%, var(--c-ink) 94%, transparent), linear-gradient(to bottom, var(--c-ink) 72%, transparent);
-  -webkit-mask-composite: source-in; mask-composite: intersect;
-}
-/* Where the column fills the window (804px + the two 28px fringes), the fringes would widen the PAGE — a sideways
-   scroll on a phone (measured: 418px in a 390px window). There the frost spans the window and feathers inside it. */
-@media (max-width: 860px) {
-  .fh.fh--bar-row[data-stuck="true"]::before { left: 0; right: 0; }
-}
-/* ⭐ A131 · ON HOME THE RIGHT FRINGE STOPS AT THE PAGE'S EDGE. The board's column ends one page gutter (.home's
-   --home-gutter, 24 px at 1280) from the window's right, so the 28 px fringe stuck out 4 px and the page scrolled
-   sideways (measured 1284 in a 1280 window, the bar stuck: scripts/a131OverflowProbe.mjs). The fringe is never wider
-   than the gutter; from 861 to 980 Home's gutter is 16 (its one-column padding). */
-@media (min-width: 981px) {
-  .home__board .fh.fh--bar-row[data-stuck="true"]::before { right: calc(-1 * min(28px, var(--home-gutter, 28px))); }
-}
-@media (min-width: 861px) and (max-width: 980px) {
-  .home__board .fh.fh--bar-row[data-stuck="true"]::before { right: -16px; }
-}
+/* ⛔ 47j A248: the board's sticky bar row (D49's bar row), its stuck frost (D92 rule 4) and A131's fringe rule are
+   DELETED with the classic market's bar (R2); the search sits in the plate cartouche now. `.fh-bar` / `.fh-srch` stay —
+   BoardSearch and Customise's preview still wear them. */
 
 /* ── ⭐ D147 (owner 11-03, fullhouse-declutter.html) · FULL HOUSE, RESTYLED ─────────────────────────────────────────
  * The title + the ONE Sort / view word · the sentence in the serif at ≈ 30px, its words underlined in the accent ·
@@ -281,7 +250,6 @@
 /* ⭐ D156 (5): D147's "Sort / view" word (.fh-sortw), the views inside its panel (.fh-show) and the "Full House" title row
    (.fh-title) are gone — the sort is an icon in the search field, the views a row under it (the Home block below). */
 /* The bar is the search alone. */
-.fh--bar-row .fh-bar { margin-top: 4px; }
 /* The minimal counts. */
 .fh.fh-counts { display: flex; gap: 28px; flex-wrap: wrap; padding-top: 10px; padding-bottom: 14px; }
 .fh-count b { display: block; font: 500 calc(28px * var(--type-scale, 1))/1.1 var(--font-body); letter-spacing: -.03em; color: var(--c-ink); }
@@ -295,12 +263,11 @@
  * no edge, no glyph · `.fsent` 400 30px/1.35 serif in --body, 18px above / 14 below, 30ch; its words ink, underlined
  * 1.5px in the accent · `.sbar` the field alone: the card, corner 14, padding 12 16, 16px, 620 wide, no edge, no shadow
  * · `.cnt` 30px 500 (-.03em) over 13px muted, 28px apart, 22px under the search, 14px above the list. */
-.fh[data-fh-d147], .fh.fh--bar-row, .fh.fh-counts { max-width: none; padding-left: var(--page-gutter); padding-right: var(--page-gutter); } /* 46q FULL WIDTH */
+.fh[data-fh-d147], .fh.fh-counts { max-width: none; padding-left: var(--page-gutter); padding-right: var(--page-gutter); } /* 46q FULL WIDTH */
 .fh[data-fh-d147] { padding-top: 10px; font-family: var(--shape-font-ui, var(--font-body)); }
 /* ⭐ D156 (1d): the sentence's size is the original's (above), not the sketch's 30px at every width. */
 .fh[data-fh-d147] .bh { margin: 18px 0 14px; max-width: 30ch; color: var(--c-ink-muted); }
-.fh.fh--bar-row { padding-bottom: 18px; }
-.fh--bar-row .fh-bar, .fh-bar {
+.fh-bar {
   max-width: 620px; margin-top: 0; padding: 0; border: 0; border-radius: 14px; background: var(--c-surface-solid); box-shadow: none;
 }
 .fh-bar .fh-srch { padding: 0; border-radius: 14px; border-top: 0; }
@@ -314,7 +281,7 @@
 .fh-count b { font: 500 calc(30px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body)); letter-spacing: -.03em; }
 .fh-count span { display: inline; font-size: calc(13px * var(--type-scale, 1)); line-height: 1.55; color: var(--c-ink-faint); }
 @media (max-width: 600px) {
-  .fh[data-fh-d147], .fh.fh--bar-row, .fh.fh-counts { padding-left: 20px; padding-right: 20px; }
+  .fh[data-fh-d147], .fh.fh-counts { padding-left: 20px; padding-right: 20px; }
   .fh.fh-counts { gap: 28px; }
   .fh-count b { font-size: calc(30px * var(--type-scale, 1)); }
   .fh-bar .fh-srch { border-top: 0; border-radius: 14px; }
@@ -354,7 +321,7 @@
    sketch's 44 px from the top of the screen, not 44 under an empty strip. The Menu keeps its button there, and the strip. */
 :root .home__deck { top: 28px; }
 .home__board { min-width: 0; }
-.home__board .fh[data-fh-d147], .home__board .fh.fh--bar-row, .home__board .fh.fh-counts, .home__board .fh.fh-viewrow { max-width: none; padding-left: 0; padding-right: 0; }
+.home__board .fh[data-fh-d147], .home__board .fh.fh-counts, .home__board .fh.fh-viewrow { max-width: none; padding-left: 0; padding-right: 0; }
 .home__board .fh[data-fh-d147] { padding-top: 0; }
 .home__board .fh[data-fh-d147] .bh { margin-top: 0; max-width: 34ch; }
 .home__board { position: relative; }

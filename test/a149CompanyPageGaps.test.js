@@ -21,6 +21,9 @@ test("A149 · the header carries the logo and industry · HQ; the stack says wha
 test("A149 · a board row's company reaches its page through the hiring-data view (D147's logo, unchanged)", () => {
   const modal = fs.readFileSync("client/src/components/CompanyViewModal.jsx", "utf8");
   assert.match(modal, /data-open-company-page=""\s+onClick=\{\(\) => \{ onClose\(\); navigate\(companyPath\(company\)\); \}\}/);
-  assert.match(fs.readFileSync("client/src/components/JobBubble.jsx", "utf8"), /<CompanyViewModal company=\{job\.company\}/,
-    "the row's logo still opens the hiring data");
+  // 47j A248 (changed on purpose): the board's row is the Index's now (JobBubble's card is deleted) — its company opens the
+  // company answer (D200 Rule 2, CompanyStackPopover), which links the company's own page
+  const idx = fs.readFileSync("client/src/plate/MarketIndex.jsx", "utf8");
+  assert.match(idx, /<CompanyStackPopover company=\{r\.company\}/, "the row's company still answers");
+  assert.match(fs.readFileSync("client/src/plate/MarkPopover.jsx", "utf8"), /const href = company \? companyPath\(company\) : null;/, "and reaches its page");
 });

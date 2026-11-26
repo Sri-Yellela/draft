@@ -197,7 +197,8 @@ test("D51 · a refused Draft says why — never the success toast with an Undo",
 });
 
 test("D51 · every Draft control takes its state from the one function, and the board moves without a reload", () => {
-  const bubble = read("client/src/components/JobBubble.jsx");
+  // 47j A248 (changed on purpose): the board's Draft is the Index row's (RowBubble) — the same one function
+  const bubble = read("client/src/plate/MarketIndex.jsx");
   assert.match(bubble, /const draft = draftButtonState\(\{ drafted, drafting, block: draftBlocked, canView: !!onViewDraft, slots: draftSlots \}\);/);
   assert.doesNotMatch(bubble, /disabled=\{drafted \|\| drafting\}/, "the grey dead end is gone");
   const buttons = read("client/src/components/DecisionButtons.jsx");
@@ -207,8 +208,8 @@ test("D51 · every Draft control takes its state from the one function, and the 
   assert.match(decide, /if \(r\.slots\) setDraftSlots\(r\.slots\);\n\s+setFacetsNonce\(n => n \+ 1\);/, "the quota and the /d count move");
   assert.match(panel, /onView: \(\) => navigate\("\/app\/auto-apply"\)/, "Drafted ✓ opens Home");
   assert.match(read("client/src/panels/DatabasePanel.jsx"), /onOpenDraftHouse=\{\(\) => navigate\("\/app\/auto-apply"\)\}/);
-  // A drafted bubble is done, not greyed out.
-  assert.doesNotMatch(read("client/src/components/JobBubble.css"), /\.jb__sq--draft\[data-done="true"\] \{ opacity: \.55; \}/);
+  // A drafted row is done, not greyed out: it says "Drafted" (RowBubble's word), never a disabled grey square.
+  assert.match(bubble, /\{draft\.kind === "drafted" \? "Drafted" :/);
 });
 
 test("D51 · The Table labels a Draft — and only a Draft — as in Draft House", () => {
