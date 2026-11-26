@@ -2,7 +2,8 @@
 // Get started in ink where the page has its own clay point, the phone with its Menu open) and the public footer — shown
 // around the heads of the three server-rendered pages it will wear (a posting, a gazetteer sheet, the roadmap). M1: docs/
 // revamp/public.md §2–§5b. Served at /dev/plate?page=public-chrome (&w=390). Example data only.
-import { PublicNav, UnchartedPlate } from "../../../plate/PublicPages.jsx";
+import { PublicNav } from "../../../plate/PublicPages.jsx";
+import { DrawingToCome } from "../../../plate/Drawings.jsx";
 import { Kickers, Stamp, StackChip } from "../../../plate/Marks.jsx";
 import { PageTitle, StatsStrip, LegHeader } from "../../../plate/Plates.jsx";
 import { Gazetteer, RouteLine } from "../../../plate/Lists.jsx";
@@ -70,7 +71,7 @@ export default function PublicChromeMock({ width }) {
           <Kickers parts={["ROUTE", "VOL. I", "DATA ENGINEERING"]}/>
           <PageTitle id="pc-rm">Data engineering roadmap 2027</PageTitle>
           <StatsStrip label="The route" cells={[{ value: 11, label: "STATIONS" }, { value: 21, label: "SHORT LESSONS" }]}/>
-          <UnchartedPlate label="the route across the terrain" aspect="640 / 300" caption="DRAWING TO COME · THE ROUTE, DRAWN"/>
+          <DrawingToCome what="the route across the terrain" aspect="640 / 300" note="DRAWING TO COME · THE ROUTE, DRAWN"/>
           <RouteLine label="The stations, in order" stops={STATIONS}/>
           <div className="pl-tickets">
             <Ticket tone="clay-tint" kicker="START HERE · 3 POINTS, THEN SIGN UP" title="Sign up to keep learning" line="Your progress lives on each station — it counts on every route through it." go="Sign up →" href="#register"/>

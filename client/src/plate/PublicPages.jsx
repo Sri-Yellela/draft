@@ -1,10 +1,7 @@
-// ⭐ D197 Wave 2 · #16 / #22 (47j, lane w2-public) · the signed-out chrome and the plate for a drawing not yet drawn.
+// ⭐ D197 Wave 2 · #16 / #22 (47j, lane w2-public) · the signed-out chrome (the plate for a drawing not yet drawn is Drawings.jsx's DrawingToCome).
 //   PublicNav      — the public nav: the /draft wordmark, the public links, Sign in, Get started (the page's one clay point),
 //                    the 12 px ruler; signed in, Open draft / Admin / Sign out; on a phone, the /d tile + a Menu drop. It
 //                    replaces components/NavBar.jsx at M5 (docs/revamp/public.md §5b) — every item there has a home here.
-//   UnchartedPlate — a labelled placeholder plate where a page's drawing is still to come (role="img", "drawing to come: …"):
-//                    paper, a faint grid, contours that stop at a dashed edge. Never a finished drawing — M4 / the owner
-//                    replaces it with a ported or new one.
 // Built only from the library's classes (plate.css: the area nav, buttons, menu, plate hero frame) — no new look.
 import { useEffect, useRef, useState } from "react";
 import { PlateLogo, Wordmark, Ruler } from "./Shell.jsx";
@@ -79,41 +76,5 @@ export function PublicNav({ home = { href: "/", label: "draft — home" }, links
       </div>
       <Ruler/>
     </header>
-  );
-}
-
-/**
- * A plate whose drawing is still to come: the frame at its fixed aspect (nothing shifts when the drawing lands), a faint
- * grid with A–G / 1–5 references, contours that stop at a dashed edge, and the words DRAWING TO COME + what it will show.
- * `label` = what the drawing will show (it becomes the aria-label "drawing to come: <label>"); `caption` = the strip under it.
- */
-export function UnchartedPlate({ label = "a drawing", aspect = "640 / 360", caption, ...s }) {
-  const gate = plateState(s, { height: 240, radius: "hero", label: "Loading the plate" });
-  if (gate) return gate;
-  const ink = { stroke: "var(--pl-muted)" };
-  return (
-    <figure className="pl-platehero" data-uncharted="" style={{ margin: 0 }}>
-      <div className="pl-platehero__frame" style={{ "--pl-aspect": aspect }}>
-        <svg role="img" aria-label={`drawing to come: ${label}`} viewBox="0 0 640 360" preserveAspectRatio="xMidYMid slice">
-          <g fill="none" strokeWidth=".5" opacity=".35" style={ink}>
-            {[1, 2, 3, 4, 5, 6].map((i) => <line key={`v${i}`} x1={i * 91} y1="0" x2={i * 91} y2="360"/>)}
-            {[1, 2, 3, 4].map((i) => <line key={`h${i}`} x1="0" y1={i * 72} x2="640" y2={i * 72}/>)}
-          </g>
-          <g fontFamily="var(--pl-mono)" fontSize="10" opacity=".6" style={{ fill: "var(--pl-muted)" }}>
-            {"ABCDEFG".split("").map((c, i) => <text key={c} x={i * 91 + 40} y="14">{c}</text>)}
-            {[1, 2, 3, 4, 5].map((n) => <text key={n} x="6" y={n * 72 - 30}>{n}</text>)}
-          </g>
-          <g fill="none" strokeWidth="1.2" style={ink}>
-            <path d="M0 250 C90 220 160 270 250 236 C300 218 330 230 360 224"/>
-            <path d="M0 290 C100 262 170 306 262 270 C310 252 340 262 360 258"/>
-            <path d="M40 200 C110 168 190 214 270 186 C310 172 340 180 360 176"/>
-          </g>
-          <line x1="360" y1="20" x2="360" y2="340" strokeWidth="1.6" strokeDasharray="6 6" style={{ stroke: "var(--pl-ink)" }}/>
-          <text x="384" y="170" fontFamily="var(--pl-mono)" fontSize="12" fontWeight="700" letterSpacing="2" style={{ fill: "var(--pl-ink)" }}>DRAWING TO COME</text>
-          <text x="384" y="196" fontFamily="var(--pl-serif)" fontStyle="italic" fontSize="17" style={{ fill: "var(--pl-ink-soft)" }}>{String(label).slice(0, 34)}</text>
-        </svg>
-      </div>
-      {caption ? <figcaption className="pl-platehero__cap">{caption}</figcaption> : null}
-    </figure>
   );
 }

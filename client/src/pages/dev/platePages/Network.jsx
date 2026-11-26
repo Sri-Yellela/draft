@@ -10,7 +10,7 @@ import { LegHeader } from "../../../plate/Plates.jsx";
 import { Gazetteer } from "../../../plate/Lists.jsx";
 import { Ticket } from "../../../plate/Tickets.jsx";
 import { CorrespondenceLetter } from "../../../plate/Correspondence.jsx";
-import { UnchartedPlate } from "../../../plate/PublicPages.jsx";
+import { DrawingToCome } from "../../../plate/Drawings.jsx";
 import { isPhone } from "./publicFixtures.jsx";
 
 const VIEWS = [
@@ -46,7 +46,7 @@ function People() {
       <section aria-labelledby="nw-req">
         <LegHeader n={1} id="nw-req" meta="A REQUEST STAYS A REQUEST UNTIL YOU ACCEPT · THEY AREN'T TOLD IF YOU DECLINE" title="Waiting on you"/>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 22, marginTop: 16, alignItems: "flex-start" }}>
-          <div style={{ flex: "1 1 260px", minWidth: 0 }}><UnchartedPlate label="a sealed letter on a doorstep" aspect="640 / 420" caption="DRAWING TO COME"/></div>
+          <div style={{ flex: "1 1 260px", minWidth: 0 }}><DrawingToCome what="a sealed letter on a doorstep" aspect="640 / 420" note="DRAWING TO COME"/></div>
           <div style={{ flex: "999 1 520px", minWidth: 0 }}>
             <Gazetteer label="Requests" cols={[{ key: "title", label: "NAME", render: name }, { key: "who", label: "WHO" }, { key: "note", label: "THEIR NOTE" }, { key: "s", label: "", render: () => <StatusTag>WAITING ON YOU</StatusTag> }, { key: "a", label: "", render: acts("Accept", "Decline", "Block") }]}
               rows={[{ id: "l", title: "Lena Park", href: "#in-lena", who: "Frontend Engineer · Northwind Analytics", note: "“We met at the Boston React meetup.”" }]}/>
@@ -154,7 +154,7 @@ export default function NetworkMock({ width }) {
             <p className="pl-mk-hero__line">People you know on draft. A request stays a request until they accept; you can block anyone, any time.</p>
             <p className="pl-label pl-muted" role="status" aria-live="polite">CONNECTED.</p>
           </div>
-          <div style={{ flex: "1 1 300px", minWidth: 0 }}><UnchartedPlate label="a dispatch rider's route between camps" aspect="640 / 360" caption="HERO · DRAWING TO COME"/></div>
+          <div style={{ flex: "1 1 300px", minWidth: 0 }}><DrawingToCome what="a dispatch rider's route between camps" aspect="640 / 360" note="HERO · DRAWING TO COME"/></div>
         </section>
         {view === "people" ? <People/> : view === "dispatches" ? <Dispatches phone={phone}/> : <Letters phone={phone}/>}
         <section aria-label="Where to go next" className="pl-tickets">

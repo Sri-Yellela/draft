@@ -7,7 +7,8 @@ import { Kickers } from "../../../plate/Marks.jsx";
 import { PageTitle, LegHeader } from "../../../plate/Plates.jsx";
 import { Ticket } from "../../../plate/Tickets.jsx";
 import { Drawer, ErrorLine, NoData, Skeleton } from "../../../plate/PlateState.jsx";
-import { PublicNav, UnchartedPlate } from "../../../plate/PublicPages.jsx";
+import { PublicNav } from "../../../plate/PublicPages.jsx";
+import { DrawingToCome } from "../../../plate/Drawings.jsx";
 import { PUBLIC_LINKS, isPhone } from "./publicFixtures.jsx";
 
 const VARIANTS = {
@@ -40,7 +41,7 @@ export default function OffTheMapMock({ width }) {
             </div>
           </div>
           <div style={{ flex: "1 1 320px", minWidth: 0 }}>
-            <UnchartedPlate label="the edge of the known map" aspect="640 / 420" caption="PLATE · OFF THE MAP · DRAWING TO COME"/>
+            <DrawingToCome what="the edge of the known map" aspect="640 / 420" note="PLATE · OFF THE MAP · DRAWING TO COME"/>
           </div>
         </section>
         <section aria-label="Other roads" className="pl-tickets">

@@ -9,7 +9,7 @@ import { Gazetteer } from "../../../plate/Lists.jsx";
 import { NavSearch } from "../../../plate/Shell.jsx";
 import { MarketMap } from "../../../plate/MarketMap.jsx";
 import MarketPager from "../../../plate/MarketPager.jsx";
-import { UnchartedPlate } from "../../../plate/PublicPages.jsx";
+import { DrawingToCome } from "../../../plate/Drawings.jsx";
 import { PublicFrame, SECTORS, POSTINGS, isPhone } from "./publicFixtures.jsx";
 
 const TOTAL = 12480;
@@ -101,7 +101,7 @@ export default function PublicJobsMock({ width }) {
         <section aria-labelledby="pj-gz">
           <LegHeader n={3} id="pj-gz" meta="THE GAZETTEER · EACH ROLE HAS ITS OWN PAGE" title="Popular roles, technologies and companies"/>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 22, marginTop: 16, alignItems: "flex-start" }}>
-            <div style={{ flex: "1 1 300px", minWidth: 0 }}><UnchartedPlate label="a gazetteer page, grid-lettered" aspect="640 / 420" caption="DRAWING TO COME · THE GAZETTEER"/></div>
+            <div style={{ flex: "1 1 300px", minWidth: 0 }}><DrawingToCome what="a gazetteer page, grid-lettered" aspect="640 / 420" note="DRAWING TO COME · THE GAZETTEER"/></div>
             <div style={{ flex: "999 1 520px", minWidth: 0, display: "flex", flexDirection: "column", gap: 18 }}>
               <Gazetteer label="Popular roles" cols={[{ key: "n", label: "#", kind: "num" }, { key: "title", label: "ROLE", kind: "title" }, { key: "company", label: "SECTOR" }, { key: "count", label: "OPEN", kind: "mono" }]} rows={ROLES}/>
               <FilterChips label="Hiring by technology" chips={TECH} onToggle={() => {}}/>

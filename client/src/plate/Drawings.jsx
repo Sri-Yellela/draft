@@ -78,14 +78,14 @@ export function ElevationProfile({ label, ...s }) {
  * aria-label: "drawing to come: …"), `aspect` keeps the frame's shape so nothing shifts when the real drawing lands,
  * `note` = one line under it (where the drawing comes from — "from the design doc", "re-ink PlaceElevationProfile in VI").
  */
-export function DrawingToCome({ what = "", aspect = "16 / 9", note, ...s }) {
+export function DrawingToCome({ what = "", aspect = "16 / 9", note, kicker = "DRAWING TO COME", ...s }) {
   const gate = plateState(s, { height: 220, radius: "plate", label: "Loading the drawing" });
   if (gate) return gate;
   return (
     <div className="pl-tocome" role="img" aria-label={`drawing to come: ${what}`} style={{ "--pl-aspect": aspect }} data-drawing-to-come="">
       <span className="pl-tocome__grid" aria-hidden="true">{"ABCDEFG".split("").map((l) => <span key={l}>{l}</span>)}</span>
       <span className="pl-tocome__body" aria-hidden="true">
-        <span className="pl-label">DRAWING TO COME</span>
+        <span className="pl-label">{kicker}</span>
         <span className="pl-tocome__what">{what}</span>
         {note ? <span className="pl-label pl-muted">{note}</span> : null}
       </span>

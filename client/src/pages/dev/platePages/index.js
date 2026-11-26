@@ -18,4 +18,8 @@ export const PLATE_PAGES = {
   logbook: { title: "Atlas → Your map's Logbook (Your run, League, Challenges)", wave2: "#11", load: () => import("./Logbook.jsx") },
   "todays-question": { title: "Atlas → Your map's Today card (Today's question)", wave2: "#11", load: () => import("./TodaysQuestion.jsx") },
   "ask-draft": { title: "Ask draft", wave2: "#12", load: () => import("./AskDraft.jsx") },
+  profile: { title: "Your passport (Profile)", wave2: "#9", load: () => import("./Profile.jsx") },   // 47j w2-person
+  onboarding: { title: "Setting out (onboarding)", wave2: "#15", load: () => import("./Onboarding.jsx") },   // 47j w2-person
+  settings: { title: "Settings: Appearance, Notifications, Privacy, Account", wave2: "#17", load: () => import("./Settings.jsx") },   // 47j w2-person
+  signin: { title: "Sign in / sign up", wave2: "#17", load: () => import("./SignIn.jsx") },   // 47j w2-person
 };
