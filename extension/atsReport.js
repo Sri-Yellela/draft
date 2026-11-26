@@ -839,6 +839,11 @@ const asTerms = (list, kind) => (Array.isArray(list) ? list : []).filter(t => ty
  * Generic language is in NEITHER: it is not a gap, so it is not in the denominator either; the bar
  * draws it as its own third segment so the reader sees it was read and set aside.
  */
+/** ⭐ D202 (47h) · THE CARD'S COUNT AND NUMBER, worded once — the report element (the extension / web report) and the FitCard
+ *  model (shared/fitCardModel.js fitWords) both read these, so the two faces of the ATS card can never word them apart. */
+const askCountWords = (n, of) => `${n} of ${of} things this posting asks for`;
+const NUMBER_SENTENCE_TAIL = "The score is still being tuned, so read it with the count.";
+
 function reportAsks(report) {
   const onResume = [
     ...(report?.tier1_matched || []).map(term => ({ term, kind: "skill" })),
@@ -941,7 +946,7 @@ function cleanReport(report) {
   out.improvements = words(report.improvements, SENTENCE_MAX);
   return out;
 }
-return { reportBand, fromDeckReport, fromStandaloneResult, TERM_KINDS, reportAsks, atlasTerms, evidencedKeys, EXPERIENCE_STATES, experienceState, EXPERIENCE_MARK, REPORT_LISTS, cleanReport };
+return { reportBand, fromDeckReport, fromStandaloneResult, TERM_KINDS, askCountWords, NUMBER_SENTENCE_TAIL, reportAsks, atlasTerms, evidencedKeys, EXPERIENCE_STATES, experienceState, EXPERIENCE_MARK, REPORT_LISTS, cleanReport };
 })();
 
 // ── shared/atsReportStyles.js ──────────────────────────────────────────────────────────────────────────────────
@@ -1145,7 +1150,7 @@ __m["atsReportElement.js"] = (() => {
 // client/src/components/AtsReport.jsx; the comments below keep the load-bearing ones.
 const { atsBandLabel, atsBandFor, ATS_BAND, ATS_NUMBER_SHOWN, ATS_NUMBER_NOTE } = __m["atsBands.js"];
 const { profileSignalKey } = __m["profileSignals.js"];
-const { reportBand, reportAsks, evidencedKeys, experienceState, EXPERIENCE_MARK, TERM_KINDS, cleanReport } = __m["atsReportModel.js"];
+const { reportBand, reportAsks, evidencedKeys, experienceState, EXPERIENCE_MARK, TERM_KINDS, cleanReport, askCountWords, NUMBER_SENTENCE_TAIL } = __m["atsReportModel.js"];
 const { ATS_REPORT_SHADOW_CSS } = __m["atsReportStyles.js"];
 
 const ATS_REPORT_TAG = "draft-ats-report";
@@ -1209,11 +1214,11 @@ function buildBandCard(doc, report, { band: knownBand = null, compact = false, e
     ? h(doc, "p", { class: "ats-sum__sub", "data-ats-unknown": true }, "Not enough signal to judge this posting — no judgement.")
     : showNumber
       ? h(doc, "p", { class: "ats-sum__sub", "data-ats-number-note": true, title: ATS_NUMBER_NOTE },
-          "A ", h(doc, "span", { "data-ats-score": true }, `${Math.round(report.score)}%`), " match. The score is still being tuned, so read it with the count.")
+          "A ", h(doc, "span", { "data-ats-score": true }, `${Math.round(report.score)}%`), ` match. ${NUMBER_SENTENCE_TAIL}`)
       : h(doc, "p", { class: "ats-sum__sub", "data-ats-band-words": true }, `${meta.label} — read it with the count.`);
   return h(doc, "div", { "data-ats-band-card": true, "data-ats-band": band, class: "ats-sum ink-pair", "data-compact": compact ? "true" : "false" },
     total > 0 && h(doc, "h3", { "data-ats-count": true, class: "ats-sum__count" },
-      `${matched} of ${total} things this posting asks for`),
+      askCountWords(matched, total)),
     sub,
     hasNotes && h(doc, "div", { class: "ats-sum__notes" },
       declineReasons.length > 0 && h(doc, "ul", { class: "ats-notes" }, declineReasons.map(r => h(doc, "li", null, r))),

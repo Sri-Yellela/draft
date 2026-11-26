@@ -36,7 +36,7 @@
 // client/src/components/AtsReport.jsx; the comments below keep the load-bearing ones.
 import { atsBandLabel, atsBandFor, ATS_BAND, ATS_NUMBER_SHOWN, ATS_NUMBER_NOTE } from "./atsBands.js";
 import { profileSignalKey } from "./profileSignals.js";
-import { reportBand, reportAsks, evidencedKeys, experienceState, EXPERIENCE_MARK, TERM_KINDS, cleanReport } from "./atsReportModel.js";
+import { reportBand, reportAsks, evidencedKeys, experienceState, EXPERIENCE_MARK, TERM_KINDS, cleanReport, askCountWords, NUMBER_SENTENCE_TAIL } from "./atsReportModel.js";
 import { ATS_REPORT_SHADOW_CSS } from "./atsReportStyles.js";
 
 export const ATS_REPORT_TAG = "draft-ats-report";
@@ -100,11 +100,11 @@ export function buildBandCard(doc, report, { band: knownBand = null, compact = f
     ? h(doc, "p", { class: "ats-sum__sub", "data-ats-unknown": true }, "Not enough signal to judge this posting — no judgement.")
     : showNumber
       ? h(doc, "p", { class: "ats-sum__sub", "data-ats-number-note": true, title: ATS_NUMBER_NOTE },
-          "A ", h(doc, "span", { "data-ats-score": true }, `${Math.round(report.score)}%`), " match. The score is still being tuned, so read it with the count.")
+          "A ", h(doc, "span", { "data-ats-score": true }, `${Math.round(report.score)}%`), ` match. ${NUMBER_SENTENCE_TAIL}`)
       : h(doc, "p", { class: "ats-sum__sub", "data-ats-band-words": true }, `${meta.label} — read it with the count.`);
   return h(doc, "div", { "data-ats-band-card": true, "data-ats-band": band, class: "ats-sum ink-pair", "data-compact": compact ? "true" : "false" },
     total > 0 && h(doc, "h3", { "data-ats-count": true, class: "ats-sum__count" },
-      `${matched} of ${total} things this posting asks for`),
+      askCountWords(matched, total)),
     sub,
     hasNotes && h(doc, "div", { class: "ats-sum__notes" },
       declineReasons.length > 0 && h(doc, "ul", { class: "ats-notes" }, declineReasons.map(r => h(doc, "li", null, r))),

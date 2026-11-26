@@ -425,16 +425,26 @@ function BoardBar() {
 // ⭐ D156 (4) · UNDER THE SEARCH: All jobs · Starred · Imported, each with its count (facets' views — a count the answer
 // does not hold is not drawn), and "Import a job" — the inline box (BoardBar.jsx ImportJobBox; the existing import route).
 // A job imported lands under Imported: the view switches there and the board is asked again.
+// ⭐ D199 (47h, step 6): on the plate market the views live in the shell's area nav (as the Market board draws them) and
+// "Import a job" is its More menu's item — it opens this same box (IMPORT_JOB_EVENT); the segment here is the classic's.
+const IMPORT_JOB_EVENT = "draft:import-job";
 function BoardViews({ onImported }) {
   const { setBoardTab } = useJobBoard();
+  const plate = useMarketPlate();
   const [importing, setImporting] = useState(false);
+  useEffect(() => {
+    const open = () => setImporting(true);
+    window.addEventListener(IMPORT_JOB_EVENT, open);
+    return () => window.removeEventListener(IMPORT_JOB_EVENT, open);
+  }, []);
+  if (plate && !importing) return null;
   return (
     <div className="fh fh-viewrow" data-board-views="">
-      <div className="fh-viewrow__line">
+      {plate ? null : <div className="fh-viewrow__line">
         <BoardTabs />
         <button type="button" className="fh-importb" data-import-open="" aria-expanded={importing}
           onClick={() => setImporting(v => !v)}>Import a job</button>
-      </div>
+      </div>}
       {importing && (
         <ImportJobBox onClose={() => setImporting(false)}
           onImported={() => { setBoardTab?.("imported"); onImported?.(); }} />
@@ -461,7 +471,7 @@ const MARKET_AREA_VIEWS = [
 const pressOpeningsTab = (id) => { const b = document.getElementById(`mk-tab-${id}`); if (b && b.getAttribute("aria-selected") !== "true") b.click(); return !!b; };
 function AppAreaNavSlot({ activeTab, marketPlate, onHome }) {
   const navigate = useNavigate();
-  const { boardTab, setBoardTab } = useJobBoard();
+  const { boardTab, setBoardTab, boardHeadline } = useJobBoard();
   const market = activeTab === "today" || activeTab === "console";
   const [deckShown, setDeckShown] = useState(true);
   // follow the openings' own tabs (a press on Deck / Index there moves the nav's current)
@@ -477,8 +487,13 @@ function AppAreaNavSlot({ activeTab, marketPlate, onHome }) {
   useEffect(() => { if (market) api("/api/draft/slots").then(setSlots).catch(() => {}); }, [market]);
   if (!market) return <ShellAreaNav area={AREA_NAMES[activeTab] || "draft"} onHome={onHome} />;
   const current = marketPlate && deckShown ? "picks" : boardTab;
-  const views = marketPlate ? MARKET_AREA_VIEWS : MARKET_AREA_VIEWS.slice(1);
+  // the views' counts (the facets answer's, as the classic segment showed them) ride on the nav's words — never a 0 guessed
+  const counts = viewCounts(boardHeadline?.facets);
+  const views = (marketPlate ? MARKET_AREA_VIEWS : MARKET_AREA_VIEWS.slice(1)).map((v) => (marketPlate && Number.isFinite(counts[v.id]) && v.id !== "picks"
+    ? { ...v, label: `${v.label} · ${counts[v.id].toLocaleString("en-US")}` } : v));
   const onGo = (id) => {
+    if (id === "import") { pressOpeningsTab("index"); window.dispatchEvent(new Event(IMPORT_JOB_EVENT));
+      requestAnimationFrame(() => document.querySelector("[data-import-box] textarea")?.focus?.()); return; }
     if (id === "picks") { pressOpeningsTab("deck"); }
     else { setBoardTab?.(id); if (marketPlate) pressOpeningsTab("index"); }
     if (marketPlate) requestAnimationFrame(() => document.getElementById("openings")?.scrollIntoView?.({ block: "start", behavior: "smooth" }));
@@ -490,6 +505,7 @@ function AppAreaNavSlot({ activeTab, marketPlate, onHome }) {
     label: `New drafts in the last 24 hours: ${Math.max(0, limit - remaining)} of ${limit} used, ${Math.max(0, remaining)} left. Re-runs are free`,
     onGo: (href) => navigate(href) } : null;
   return <ShellAreaNav area="The market" views={views} current={current} onGo={onGo} chip={chip}
+    more={marketPlate ? [{ id: "import", label: "Import a job", href: "/app/jobs#import" }] : []}
     placeholder="Company, role, tech…" onHome={onHome} />;
 }
 // the area's name for its nav's label (assistive tech) — the places the dock names

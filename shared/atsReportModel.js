@@ -73,6 +73,11 @@ const asTerms = (list, kind) => (Array.isArray(list) ? list : []).filter(t => ty
  * Generic language is in NEITHER: it is not a gap, so it is not in the denominator either; the bar
  * draws it as its own third segment so the reader sees it was read and set aside.
  */
+/** ⭐ D202 (47h) · THE CARD'S COUNT AND NUMBER, worded once — the report element (the extension / web report) and the FitCard
+ *  model (shared/fitCardModel.js fitWords) both read these, so the two faces of the ATS card can never word them apart. */
+export const askCountWords = (n, of) => `${n} of ${of} things this posting asks for`;
+export const NUMBER_SENTENCE_TAIL = "The score is still being tuned, so read it with the count.";
+
 export function reportAsks(report) {
   const onResume = [
     ...(report?.tier1_matched || []).map(term => ({ term, kind: "skill" })),

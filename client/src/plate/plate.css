@@ -313,7 +313,7 @@
 .pl-gazetteer td[data-kind="mono"] { font-family: var(--pl-mono); font-size: var(--pl-t-mono-num); }
 .pl-gazetteer td[data-kind="num"] { font-family: var(--pl-mono); font-size: var(--pl-t-mono-num); font-weight: 700; }
 .pl-gazetteer td[data-kind="serif"] { font-family: var(--pl-serif); font-size: var(--pl-t-letter-sm); }
-.pl-gazetteer .pl-status { height: 26px; padding: 0 9px; }   /* the market board's index tags (26 px, 9 px) */
+.pl-gazetteer .pl-status, .pl-ixrow .pl-status { height: 26px; padding: 0 9px; }   /* the market board's index tags (26 px, 9 px) — the C8 rows too */
 /* ── D196 FIX-7 · the market's Index (plate/MarketIndex.jsx): the title bold, the company its survey sheet's link ── */
 .pl-marketindex .pl-gz__title, .plate .pl-marketindex a.pl-gz__title { color: var(--pl-ink); font-weight: 700; text-decoration: none; }
 .pl-marketindex .pl-gz__title:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -1024,7 +1024,7 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
 .pl-ixc--h1b { flex: 0 0 56px; font-family: var(--pl-mono); font-size: var(--pl-t-mono-num); }
 .pl-ixc--status { flex: 0 0 88px; }
 .pl-ixrow--head .pl-ixc { font-family: var(--pl-mono); font-size: var(--pl-t-mono); }
-.pl-ixrow--head .pl-ixc--title { white-space: normal; min-width: auto; }   /* the header's word wraps on a phone, never vanishes */
+.pl-ixrow--head .pl-ixc--title { white-space: normal; min-width: auto; overflow: visible; text-overflow: clip; }   /* the header's word wraps on a phone, never vanishes */
 .pl-ixc--act { flex: 0 0 auto; display: flex; justify-content: flex-end; }
 .pl-ixrow--head .pl-ixc--act { flex: 0 0 44px; }
 .pl-ixrow .pl-gz__title, .plate .pl-ixrow a.pl-gz__title { color: var(--pl-ink); font-weight: 700; font-size: var(--pl-t-ui); text-decoration: none; }
@@ -1062,10 +1062,8 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
 /* A201 (390): on a phone the row's actions are always open, so the row makes room — the star is its icon (its name stays the
    button's label), the # column folds, the status takes its own width; nothing reaches past the screen */
 @media (max-width: 600px) {
-  .pl-ixrow { gap: 8px; }
-  .pl-ixc--n { display: none; }
-  .pl-ixc--status { flex: 0 0 auto; }
   .pl-ixrow__star { width: 44px; padding: 0; justify-content: center; }
   .pl-ixrow__star > span { display: none; }
-  .pl-ixrow__co { display: none; }   /* the squeezed title cell can't hold the company's button; the posting and the deck's logo still open it */
+  .pl-ixrow__co { display: none; }
+  .pl-ixc--title > a { visibility: hidden; }   /* the board's phone row squeezes the title to nothing; a link drawn 0 px wide is out of reach (A201) — the row itself opens it */   /* the squeezed title cell can't hold the company's button; the posting and the deck's logo still open it */
 }

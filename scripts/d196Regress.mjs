@@ -91,7 +91,10 @@ export const PAIRS = {
     // CardBack, the owner's keep), the stamp's "· FY25" (no filing year on a card), and the position line — the owner's
     // 11-25 answer words it for the board's whole list ("1 OF 11,247 · PAGE 1"), after the board was drawn; and ‹ on the first
     // card (disabled — honest; the board's wraps round)
-    masks: [[0, 0, 560, 22], [538, 0, 22, 425], [316, 286, 206, 62], [56, 438, 290, 22], [460, 426, 56, 48]] },
+    masks: [[0, 0, 560, 22], [538, 0, 22, 425], [316, 286, 206, 62], [56, 438, 290, 22], [460, 426, 56, 48]],
+    // the same five at 390 (the ticket 226 wide, the position line on two lines, the stamp: the board's over the last chip, the
+    // build's on the tear line — the deck's own placement, kept from market-face's 390 masks)
+    masksAt: { 390: [[0, 0, 244, 14], [226, 0, 18, 845], [0, 578, 244, 92], [0, 842, 244, 32], [0, 876, 50, 49]] } },
   "final-market-pager": { source: "final", board: "Market", fixture: "MarketSectionFinal", boardSel: 'nav[aria-label="Pages"]', buildSel: 'nav[aria-label="Pages"]', pad: 4, subpixel: true, reduced: true,
     // the page line and the last tile: the board's 24 per page (469 pages) vs the owner's "use 50" (225) — the only change;
     // at 1280 they differ by under 2 % unmasked, at 390 (two lines of the line, the tiles wrapped) they're masked
@@ -102,7 +105,7 @@ export const PAIRS = {
   // overflows LEFT, under the STATUS tag: A201's probe read "Draft" over "NEW" at 768); the build draws the ⋯ the board's markup
   // has there and keeps Star / Draft out of the layout until hover / focus
   "final-market-index": { source: "final", board: "Market", fixture: "MarketSectionFinal", boardTab: "Index", buildHash: "tab=index", boardSel: "section:nth-of-type(2) .at-in", buildSel: ".pl-tabpanel:not([hidden])", pad: 0, subpixel: true, reduced: true,
-    masks: [[1074, 74, 60, 368]] },
+    masks: [[1074, 74, 60, 368]], masksAt: { 390: [[196, 86, 48, 368]] } },
   // ⭐ D198 E1 (47h) · THE EXPLAINER, BEAT BY BEAT — v4's *Explainer · Big O, acted out* (the board scales its 405 × 720 inner
   // frame by 1.12 into its column; the run takes the scale off, so both sides are the frame at its own size). Each side's
   // beat is pressed in its own list; on your turn the build's right answer is pressed (the board draws it answered).

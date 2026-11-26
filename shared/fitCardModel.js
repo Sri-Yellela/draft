@@ -24,7 +24,7 @@
 import { reportAsks } from "./atsReportModel.js";
 import { profileSignalKey } from "./profileSignals.js";
 import { technologiesIn, TECHNOLOGIES } from "./techVocabulary.js";
-import { experienceState, EXPERIENCE_MARK } from "./atsReportModel.js";
+import { experienceState, EXPERIENCE_MARK, askCountWords, NUMBER_SENTENCE_TAIL } from "./atsReportModel.js";   // D202 (47h): the count's words, one place
 
 /** The five groups of the board's Every word tab, in its order. */
 export const FIT_GROUPS = Object.freeze([
@@ -128,8 +128,8 @@ export function fitCardModel({ report = null, where = {}, claimed = null } = {})
 export function fitWords(model) {
   const n = model ? model.on + model.claimed : 0, of = model ? model.total : 0;
   return {
-    count: `${n} of ${of} things`, countLong: `${n} of ${of} things this posting asks for`,
-    sentence: model?.pct != null ? `A ${model.pct} % match. The score is still being tuned, so read it with the count.` : "Not enough signal for a number yet, so read the count.",
+    count: `${n} of ${of} things`, countLong: askCountWords(n, of),
+    sentence: model?.pct != null ? `A ${model.pct} % match. ${NUMBER_SENTENCE_TAIL}` : "Not enough signal for a number yet, so read the count.",
     tabs: [["words", `Every word · ${of}`], ["context", "Context"], ["claim", `You could claim · ${model ? model.missing : 0}`], ["hist", "History"]],
   };
 }

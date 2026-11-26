@@ -301,7 +301,24 @@ export function MarketHeroFinal() {
  *  the pager — the build's own components with the board's data. */
 export function MarketSectionFinal() {
   const tab = q().get("tab") || "deck";
-  const { marginLeft, marginTop } = subpixel();
+  const { marginLeft: ml0, marginTop: mt0 } = subpixel();
+  // 47h (D199, F5 at 390): on the phone layout the compared element (#sel) is placed at the board element's own sub-pixel
+  // fraction AFTER layout, as ExplainerBoard / useShellAt do — the margins alone carry the fraction of the section, and the
+  // section's parts above it (fractional heights) move it off; at 1280 the margins stay as they were
+  const [fix, setFix] = useState({ x: 0, y: 0 });
+  const tries = useRef(0);
+  const [, setFontsIn] = useState(0);   // the fonts arrive after the first layout and move it: measure again then
+  useLayoutEffect(() => { let live = true; globalThis.document?.fonts?.ready?.then(() => { if (live) { tries.current = 0; setFontsIn((n) => n + 1); } }); return () => { live = false; }; }, []);
+  useLayoutEffect(() => {
+    const qq = q(), sel = qq.get("sel");
+    if (!sel || (globalThis.innerWidth || 1280) >= 980 || tries.current >= 4) return;
+    const el = document.querySelector(sel); if (!el) return;
+    const r = el.getBoundingClientRect(), fr = (v) => v - Math.floor(v);
+    const up = (v) => (v < 0 ? v + 1 : v);   // only ever forward: a padding can't be negative
+    const dx = up(fr(Number(qq.get("ox")) || 0) - fr(r.left + scrollX)), dy = up(fr(Number(qq.get("oy")) || 0) - fr(r.top + scrollY));
+    if ((dx > 0.001 && dx < 0.999) || (dy > 0.001 && dy < 0.999)) { tries.current += 1; setFix((p) => ({ x: p.x + dx, y: p.y + dy })); }
+  });
+  const marginLeft = ml0 + fix.x, marginTop = mt0 + fix.y;
   const card = { ...BOARD_CARD, job: { ...BOARD_CARD.job, checkedAt: Math.floor(Date.now() / 1000) - 600 } };   // the board's LIVE · CHECKED TODAY
   const rows = INDEX_JOBS.map(([title, company, score, n, yours, h1b, status], i) => indexRow(
     { jobId: `ix-${i}`, title, company, url: "#", skills: Array.from({ length: n }, (_, k) => `s${k}`), isH1bSponsor: h1b ? true : null }, i,

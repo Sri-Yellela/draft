@@ -24,12 +24,18 @@ import path from "node:path";
 //   2. it PRINTS A REPORT'S SECTION HEADINGS or the band card's "fit band" / "no judgement" caption.
 // Either one outside the module is a second report.
 
-const THE_ONE = new Set(["shared/atsReportElement.js", "shared/atsReportModel.js"]);
+const THE_ONE = new Set(["shared/atsReportElement.js", "shared/atsReportModel.js", "shared/fitCardModel.js" /* D202: the card's back, over reportAsks */,
+  // ⚠ 47h, found when the scan reached shared/: atsCardView (the extension's ATS card words, bundled with the one —
+  // scripts/buildAtsReport.mjs BUNDLE_MODULES) reads the skill lists itself. Listed here, not folded yet: folding it moves
+  // the extension's card onto FitCard's model (the extension mirror, D202) — logged for that step
+  "shared/contextualView.js"]);
 const WRAPPER = "client/src/components/AtsReport.jsx";
 const BUNDLE = "extension/atsReport.js";   // THE_ONE, bundled — its staleness is t9AtsReportComponent's job
 const walk = (root, re) => fs.readdirSync(root, { recursive: true }).map(String).filter(f => re.test(f))
   .map(f => path.join(root, f).replace(/\\/g, "/")).filter(f => !f.includes("/submission/"));
-const files = [...walk("client/src", /\.(jsx?|tsx?)$/), ...walk("extension", /\.(js|html)$/).filter(f => f !== BUNDLE)];
+// ⭐ D202 (47h): shared/ too — a second report reader there is the same defect; the FitCard model reads the report through
+// reportAsks and words its count through askCountWords (both atsReportModel's), so it is a part of the one, not a second.
+const files = [...walk("client/src", /\.(jsx?|tsx?)$/), ...walk("extension", /\.(js|html)$/).filter(f => f !== BUNDLE), ...walk("shared", /\.js$/)];
 const strip = (s) => s.replace(/<!--[\s\S]*?-->/g, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "").replace(/\/\/.*$/gm, "");
 
 const SECTION_FIELDS = [
