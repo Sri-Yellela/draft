@@ -95,7 +95,8 @@ export const MODULES = Object.freeze({
       // the kit every admin panel is drawn from (plate tokens, pl-label), and the disk banner's ticket
       "components/AdminLayout.jsx", "panels/AdminPanel.jsx", "panels/adminKit.jsx", "panels/adminOps.jsx",
       // ⭐ D197 Wave 2 #13 / #11 (47m, lane practice, M5): the Proving ground (Interview) and Your map's Logbook + Today card
-      "pages/interview/ProvingGround.jsx", "pages/atlas/Logbook.jsx", "pages/atlas/TodayCard.jsx"] },
+      "pages/interview/ProvingGround.jsx", "pages/atlas/Logbook.jsx", "pages/atlas/TodayCard.jsx",
+      "plate/AskRouteMap.jsx" /* 47m D197 #12: Ask draft's answer as a route (the board AskRoute); folds into lane gaz's RouteMap after the merge */] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminGateway.jsx", "panels/adminFlags.jsx","panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "panels/adminReports.jsx", "panels/adminCompanyRecords.jsx", "panels/adminNetwork.jsx", "panels/adminRuns.jsx", "panels/adminPhase1.jsx", "panels/adminDiagnostics.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.

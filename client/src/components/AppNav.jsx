@@ -28,6 +28,10 @@ import { api } from "../lib/api.js";   // D180 P1: the network switch
 import PlateRoot from "../plate/PlateRoot.jsx";   // ⭐ D197 #1: the dock and the area nav are the plate's (plate tokens, the theme's palette)
 import { Dock, AreaNav, useSearchShortcut } from "../plate/Shell.jsx";
 import { Icon, notifIcon } from "../plate/icons.jsx";   // ⭐ 47m: the peek's per-type notification icons
+import { AskDraftCard } from "../plate/Cards.jsx";   // ⭐ D197 #12 (47m, M5): Tiny's card is the plate's
+import { AskRouteCard, askRouteKind } from "../plate/AskRouteMap.jsx";   // the answer as a route (the board AskRoute)
+// an answer naming more than three entries points to an existing route — the course, whose circle is its overview (D201 (2))
+const ROUTE_FOR_BIGGER = "/app/atlas/library/silicon-to-software?view=circle";
 import UsbSuggest from "./UsbSuggest.jsx";
 import { requestBoardSearch } from "../lib/boardSearch.js";
 import { useAccountAvatar } from "../lib/accountAvatar.js";
@@ -456,84 +460,61 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
     try { const r = await api("/api/assistant/settings", { method: "PUT", body: JSON.stringify({ improveAtlas: !status.improveAtlas }) }); setStatus(s => ({ ...s, ...r })); }
     catch { /* unchanged */ }
   };
+  // ⭐ D197 Wave 2 #12 · M5 (47m, lane practice; the owner 11-27: the mock and the board AskRoute approved) · THE CARD IS THE
+  // PLATE'S AskDraftCard (plate/Cards.jsx) — only the look and the route card change; the engine above is untouched (D190:
+  // act first, ask a model last). An answer naming 2–3 Atlas entries draws as a route (plate/AskRouteMap.jsx); one stays a
+  // link; more than three point to an existing route (the course's circle). Saved → POST /api/atlas/question-routes.
+  const [routeSaves, setRouteSaves] = useState({});   // turn index → "saving" | "saved" | an error sentence
+  const questionFor = (i) => { for (let k = i - 1; k >= 0; k--) if (turns[k]?.who === "you" || turns[k]?.who === "question") return turns[k].text; return ""; };
+  const stopsOf = (t) => (t.lessons || []).map((l) => ({ slug: l.slug, name: l.name, href: `/app/atlas/${encodeURIComponent(l.slug)}`, lit: !!(l.lit || l.done) }));
+  const saveRoute = async (i, t) => {
+    setRouteSaves((x) => ({ ...x, [i]: "saving" }));
+    try {
+      await api("/api/atlas/question-routes", { method: "POST", body: JSON.stringify({ question: questionFor(i) || t.text, stops: stopsOf(t).map(({ slug, name }) => ({ slug, name })) }) });
+      setRouteSaves((x) => ({ ...x, [i]: "saved" }));
+    } catch (err) { setRouteSaves((x) => ({ ...x, [i]: err.message || "That route was not saved." })); }
+  };
+  const cardTurns = turns.map((t) => {
+    const kind = t.who === "draft" ? askRouteKind(t.lessons) : null;
+    return { ...t, text: t.answer || t.text, undo: !!t.undoFn, confirm: !!(t.confirm && t.live), routeKind: kind,
+      lessons: kind === "route" || kind === "bigger" ? [] : t.lessons };
+  });
+  const renderTurn = (t, i) => {
+    if (t.routeKind === "route") {
+      const st = routeSaves[i];
+      return <AskRouteCard stops={stopsOf(turns[i])} saved={st === "saved"} saving={st === "saving"} message={st && st !== "saved" && st !== "saving" ? st : null}
+        onSave={() => saveRoute(i, turns[i])} onGo={(href) => navigate(href)} />;
+    }
+    if (t.routeKind === "bigger") {
+      return <p className="pl-askroute__line" data-ask-route-bigger="">This is a bigger topic — walk it as a route: <a href={ROUTE_FOR_BIGGER}
+        onClick={(e) => { e.preventDefault(); navigate(ROUTE_FOR_BIGGER); }}>From silicon to software</a> covers it, one stop at a time.</p>;
+    }
+    return null;
+  };
   return (
     <aside id="appnav-ask" ref={panelRef} className="appnav-ask" role="dialog" aria-label={TINY_NAME} data-ask-draft="" data-tiny-card="" data-open={open ? "true" : "false"}
       {...(open ? null : { inert: "", "aria-hidden": true })}>
-      <header className="appnav-ask__head">
-        <span className="appnav-ask__face" aria-hidden="true" dangerouslySetInnerHTML={TINY_FACE_SMALL} />
-        <div className="appnav-ask__who"><h2>{TINY_NAME}</h2><span>draft's helper — no AI for anything draft already holds</span></div>
-        <button type="button" className="appnav-close appnav-ask__close" data-ask-close="" aria-label={`Close ${TINY_NAME}`} onClick={onClose}>Close</button>
-      </header>
-      <div className="appnav-ask__body" ref={bodyRef}>
-
-      {thread && (
-        <AskDraftThread key={`${thread.jobId}:${thread.runKey ?? ""}`} thread={thread} onClose={() => setThread(null)}
-          onSaved={() => { loadApplyRuns?.(); loadApplyPending?.(); window.dispatchEvent(new CustomEvent("draft:answers-saved", { detail: { jobId: thread.jobId } })); }} />
-      )}
-      {app && (
-        <p className="appnav-ask__say" data-ask-app-question="">
-          Answering <b>{app.question}</b> — tell {TINY_NAME} about it in your own words and it writes the answer.{" "}
-          <button type="button" className="appnav-ask__btn" data-ask-app-done="" onClick={() => setApp(null)}>Done</button>
-        </p>
-      )}
-      {<>
-        {!app && !turns.length && <p className="appnav-ask__say" data-ask-intro="">Tell me what to do — “show me senior remote jobs in Boston”, “find data analyst jobs”, “draft this job”, “open my profile”, “how many need me?” — or ask about a skill, a role or how draft works. Anything draft already holds is done without AI.</p>}
-        <div className="appnav-ask__turns" data-ask-turns="" aria-live="polite">
-          {turns.map((t, i) => (
-            <div key={i} className="appnav-ask__turn" data-ask-turn={t.who} data-ask-tier={t.tier || undefined} data-ask-intent={t.intent || undefined}>
-              {t.label && <span className="appnav-ask__kind" data-ask-label={t.tier}>{t.label}</span>}
-              <p className="appnav-ask__text">{t.who === "you" ? <b>You: </b> : t.who === "question" ? <b>Question: </b> : null}{t.answer || t.text}</p>
-              {t.usable && (t.used
-                ? <span className="appnav-ask__kind" data-ask-used="">In your answer — edit it there.</span>
-                : <button type="button" className="appnav-ask__btn" data-ask-use-answer="" onClick={() => useAnswer(t)}>Use as my answer</button>)}
-              {t.lessons?.length > 0 && (
-                <ul className="appnav-ask__lessons" data-ask-lessons="">
-                  {t.lessons.map(l => <li key={l.slug}><a href={l.href} data-ask-lesson={l.slug}>{l.name}</a> <span className="appnav-ask__kind">{l.kind}</span></li>)}
-                </ul>
-              )}
-              {t.links?.length > 0 && (
-                <ul className="appnav-ask__lessons" data-ask-links="">
-                  {t.links.map(l => <li key={l.href}><a href={l.href} data-ask-link="">{l.title}</a></li>)}
-                </ul>
-              )}
-              {t.next && <p className="appnav-ask__next" data-ask-next=""><b>Next: </b>{t.next}</p>}
-              {t.undoFn && !t.undone && <button type="button" className="appnav-ask__btn" data-ask-undo="" disabled={!!t.undoing} onClick={() => undoTurn(i, t)}>Undo</button>}
-              {t.undone && <span className="appnav-ask__kind" data-ask-undone="">{t.undone}</span>}
-              {t.confirm && t.live && (
-                <div className="appnav-ask__action" data-ask-confirm-row="">
-                  <button type="button" className="appnav-ask__btn" data-ask-yes="" onClick={() => answerConfirm(i, true)}>Yes</button>
-                  <button type="button" className="appnav-ask__btn" data-ask-no="" onClick={() => answerConfirm(i, false)}>No</button>
-                </div>
-              )}
-              {t.action && (
-                <div className="appnav-ask__action" data-ask-action={t.action.tool}>
-                  <span>{t.action.summary}?</span>
-                  {t.decided ? <span className="appnav-ask__kind">{t.decided}</span> : <>
-                    <button type="button" className="appnav-ask__btn" data-ask-confirm="" onClick={() => decide(i, t.action, true)}>Confirm</button>
-                    <button type="button" className="appnav-ask__btn" data-ask-cancel="" onClick={() => decide(i, t.action, false)}>Cancel</button>
-                  </>}
-                </div>
-              )}
-            </div>
-          ))}
-          {busy && <p className="appnav-ask__kind" data-ask-busy="">Thinking…</p>}
-        </div>
-      </>}
-      </div>
-      {<>
-        <form className="appnav-ask__form" onSubmit={send}>
-          <textarea className="appnav-ask__input" aria-label={`Ask ${TINY_NAME}`} rows={2} maxLength={600} value={q}
-            onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(e); }}
-            placeholder={app ? "e.g. I set up Splunk alerts for the payments team…" : `Ask ${TINY_NAME} — e.g. find data analyst jobs · how many need me?`} data-ask-input="" />
-          {canSpeak && <button type="button" className="appnav-ask__btn" data-ask-mic="" aria-pressed={voice.on} aria-label="Speak a command" title="Speak a command" onClick={toggleVoice}>{voice.on ? "Stop" : "Speak"}</button>}
-          <button type="submit" className="appnav-ask__btn" disabled={busy || !q.trim()} data-ask-send="">Ask</button>
-        </form>
-        {voice.note && <p className="appnav-ask__kind" data-ask-voice-note="" aria-live="polite">{voice.note}</p>}
-        {status?.available && <label className="appnav-ask__opt" data-ask-improve="">
-          <input type="checkbox" checked={!!status.improveAtlas} onChange={toggleImprove} />
-          Use my questions to improve Atlas (stored without your name or contact details)
-        </label>}
-      </>}
+      <PlateRoot className="pl-askwrap">
+        <AskDraftCard name={TINY_NAME} face={<span className="appnav-ask__face" dangerouslySetInnerHTML={TINY_FACE_SMALL} />}
+          intro={app ? null : "Tell me what to do — “show me senior remote jobs in Boston”, “find data analyst jobs”, “draft this job”, “open my profile”, “how many need me?” — or ask about a skill, a role or how draft works. Anything draft already holds is done without AI."}
+          turns={cardTurns} busy={busy} bodyRef={bodyRef} value={q} onChange={setQ} onSend={() => send()}
+          placeholder={app ? "e.g. I set up Splunk alerts for the payments team…" : `Ask ${TINY_NAME} — e.g. find data analyst jobs · how many need me?`}
+          canSpeak={canSpeak} listening={voice.on} onSpeak={toggleVoice} voiceNote={voice.note || null}
+          improve={status?.available ? { on: !!status.improveAtlas, onToggle: toggleImprove } : null}
+          onClose={onClose} onUndo={(i) => undoTurn(i, turns[i])} onAnswerBack={(i, yes) => answerConfirm(i, yes)}
+          onDecide={(i, ok) => decide(i, turns[i].action, ok)} onUseAnswer={(i) => useAnswer(turns[i])} renderTurn={renderTurn}>
+          {thread && (
+            <AskDraftThread key={`${thread.jobId}:${thread.runKey ?? ""}`} thread={thread} onClose={() => setThread(null)}
+              onSaved={() => { loadApplyRuns?.(); loadApplyPending?.(); window.dispatchEvent(new CustomEvent("draft:answers-saved", { detail: { jobId: thread.jobId } })); }} />
+          )}
+          {app && (
+            <p className="pl-ask__intro" data-ask-app-question="">
+              Answering <b>{app.question}</b> — tell {TINY_NAME} about it in your own words and it writes the answer.{" "}
+              <button type="button" className="pl-btn" data-ask-app-done="" onClick={() => setApp(null)}>Done</button>
+            </p>
+          )}
+        </AskDraftCard>
+      </PlateRoot>
     </aside>
   );
 }

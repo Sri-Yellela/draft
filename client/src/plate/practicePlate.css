@@ -46,3 +46,24 @@
 .pl-lb__select { width: auto; min-height: 36px; }
 .pl-lb__why { display: flex; flex-direction: column; gap: 10px; }
 .pl-lb__why p { margin: 0; }
+
+/* ── Ask draft's route card (the board AskRoute) ── */
+.pl-askroute { border: var(--pl-line) solid var(--pl-ink); border-radius: var(--pl-r-input); overflow: hidden; background: var(--pl-card); }
+.pl-askroute__strip { padding: 6px 10px; border-bottom: var(--pl-line) solid var(--pl-ink); background: var(--pl-paper-warm); display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+.pl-askroute__foot { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 8px; }
+.pl-askroute__way { display: flex; align-items: stretch; text-decoration: none; color: var(--pl-ink); border: var(--pl-line) solid var(--pl-ink); border-radius: var(--pl-r-btn); background: var(--pl-card); overflow: hidden; }
+.plate .pl-askroute__way { color: var(--pl-ink); }
+.pl-askroute__waytext { flex: 1 1 auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; font-size: var(--pl-t-meta); line-height: 1.4; min-width: 0; }
+.pl-askroute__waykick { color: var(--pl-clay-text); }
+.pl-askroute__tear { flex: 0 0 auto; width: 0; border-left: 2px dashed var(--pl-ink); margin: 6px 0; }
+.pl-askroute__go { flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; }
+.pl-askroute__line { margin: 0; font-size: var(--pl-t-small); line-height: 1.45; }
+
+/* ── Ask draft's card in the shell (components/AppNav.jsx): the fixed placement stays AppNav.css's; the card fills it ── */
+.pl-askwrap { display: flex; flex: 1 1 auto; min-height: 0; height: 100%; }
+.pl-askwrap > .pl-ask { max-height: none; height: 100%; }
+.pl-ask__face { flex: none; width: 36px; height: 36px; display: grid; place-items: center; line-height: 0; }
+.pl-ask__head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+@media (max-width: 600px) {   /* D190: the phone's bottom sheet — the card's top corners round, it meets the screen's edge */
+  .pl-askwrap > .pl-ask { border-radius: var(--pl-r-card) var(--pl-r-card) 0 0; border-bottom: 0; }
+}

@@ -67,7 +67,10 @@ const ASK_TIER = { T1: "T1 • ACTION", T2: "T2 • FROM YOUR DATA", T3: "T3 •
  */
 export function AskDraftCard({ name = "Ask draft", sub = "draft’s helper — no AI for anything draft already holds", intro, turns = [], busy = false,
   value = "", onChange, onSend, placeholder, canSpeak = false, listening = false, onSpeak, voiceNote, improve = null,
-  onClose, onUndo, onAnswerBack, onDecide, onUseAnswer, children = null, bodyRef, ...s }) {
+  onClose, onUndo, onAnswerBack, onDecide, onUseAnswer, children = null, bodyRef, face = null, renderTurn, ...s }) {
+  // ⭐ 47m (D197 #12 M5 — the live panel, components/AppNav.jsx AskDraftPanel, draws THIS card): `face` = Tiny's face before
+  // the name (U2: kept, as a logo is kept); `renderTurn(t, i)` = a turn's own extra under its words (the answer's route card,
+  // plate/AskRouteMap.jsx); the data-ask-* hooks the walks and probes read ride on the same elements as before.
   const inputId = useId();   // the gallery draws several cards on one page — no shared id
   const gate = plateState(s, { height: 420, radius: "plate", label: `Loading ${name}`, lines: 5 });
   if (gate) return gate;
@@ -75,52 +78,57 @@ export function AskDraftCard({ name = "Ask draft", sub = "draft’s helper — n
   return (
     <aside className="pl-card pl-ask" aria-label={name} data-ask-card="">
       <div className="pl-card__strip pl-ask__strip">
-        <span className="pl-ask__who"><b className="pl-ask__name">{name}</b><span className="pl-label pl-muted">{sub}</span></span>
-        {onClose ? <button type="button" className="pl-btn" onClick={onClose} aria-label={`Close ${name}`}>Close</button> : null}
+        <span className="pl-ask__head">
+          {face ? <span className="pl-ask__face" aria-hidden="true">{face}</span> : null}
+          <span className="pl-ask__who"><b className="pl-ask__name">{name}</b><span className="pl-label pl-muted">{sub}</span></span>
+        </span>
+        {onClose ? <button type="button" className="pl-btn" onClick={onClose} aria-label={`Close ${name}`} data-ask-close="">Close</button> : null}
       </div>
       <div className="pl-ask__body" ref={bodyRef}>
         {children}
-        {!turns.length && intro ? <p className="pl-ask__intro">{intro}</p> : null}
-        <ol className="pl-ask__turns" aria-live="polite">
+        {!turns.length && intro ? <p className="pl-ask__intro" data-ask-intro="">{intro}</p> : null}
+        <ol className="pl-ask__turns" aria-live="polite" data-ask-turns="">
           {turns.map((t, i) => (
-            <li key={i} className="pl-ask__turn" data-who={t.who} data-tier={t.tier || undefined} data-failed={t.failed ? "" : undefined}>
-              {t.who === "draft" && ASK_TIER[t.tier] ? <span className="pl-label pl-ask__tier" data-tier={t.tier}>{ASK_TIER[t.tier]}</span> : null}
+            <li key={i} className="pl-ask__turn" data-who={t.who} data-tier={t.tier || undefined} data-failed={t.failed ? "" : undefined}
+              data-ask-turn={t.who} data-ask-tier={t.tier || undefined} data-ask-intent={t.intent || undefined}>
+              {t.who === "draft" && (ASK_TIER[t.tier] || t.label) ? <span className="pl-label pl-ask__tier" data-tier={t.tier} data-ask-label={t.tier || ""}>{ASK_TIER[t.tier] || String(t.label).toUpperCase()}</span> : null}
               <p className="pl-ask__text">{t.who === "you" ? <b>You: </b> : t.who === "question" ? <b>Question: </b> : null}{t.text}</p>
               {t.lessons?.length ? (
-                <ul className="pl-ask__links" aria-label="Lessons">
-                  {t.lessons.map((l) => <li key={l.href}><a href={l.href}>{l.name}</a>{l.kind ? <span className="pl-label pl-muted"> {l.kind}</span> : null}</li>)}
+                <ul className="pl-ask__links" aria-label="Lessons" data-ask-lessons="">
+                  {t.lessons.map((l) => <li key={l.href}><a href={l.href} data-ask-lesson={l.slug}>{l.name}</a>{l.kind ? <span className="pl-label pl-muted"> {l.kind}</span> : null}</li>)}
                 </ul>
               ) : null}
-              {t.links?.length ? <ul className="pl-ask__links" aria-label="Links">{t.links.map((l) => <li key={l.href}><a href={l.href}>{l.title}</a></li>)}</ul> : null}
-              {t.next ? <p className="pl-ask__next"><b>Next: </b>{t.next}</p> : null}
+              {t.links?.length ? <ul className="pl-ask__links" aria-label="Links" data-ask-links="">{t.links.map((l) => <li key={l.href}><a href={l.href} data-ask-link="">{l.title}</a></li>)}</ul> : null}
+              {renderTurn ? renderTurn(t, i) : null}
+              {t.next ? <p className="pl-ask__next" data-ask-next=""><b>Next: </b>{t.next}</p> : null}
               <div className="pl-ask__acts">
-                {t.usable ? (t.used ? <span className="pl-label pl-muted">IN YOUR ANSWER — EDIT IT THERE</span>
-                  : <button type="button" className="pl-btn" onClick={() => onUseAnswer?.(i)}>Use as my answer</button>) : null}
-                {t.undo && !t.undone ? <button type="button" className="pl-btn" onClick={() => onUndo?.(i)}>Undo</button> : null}
-                {t.undone ? <span className="pl-label pl-muted">{t.undone}</span> : null}
-                {t.confirm ? <><button type="button" className="pl-btn" onClick={() => onAnswerBack?.(i, true)}>Yes</button>
-                  <button type="button" className="pl-btn pl-btn--dashed" onClick={() => onAnswerBack?.(i, false)}>No</button></> : null}
-                {t.action ? (t.decided ? <span className="pl-label pl-muted">{t.decided}</span> : <>
+                {t.usable ? (t.used ? <span className="pl-label pl-muted" data-ask-used="">IN YOUR ANSWER — EDIT IT THERE</span>
+                  : <button type="button" className="pl-btn" onClick={() => onUseAnswer?.(i)} data-ask-use-answer="">Use as my answer</button>) : null}
+                {t.undo && !t.undone ? <button type="button" className="pl-btn" onClick={() => onUndo?.(i)} disabled={!!t.undoing} data-ask-undo="">Undo</button> : null}
+                {t.undone ? <span className="pl-label pl-muted" data-ask-undone="">{t.undone}</span> : null}
+                {t.confirm ? <><button type="button" className="pl-btn" onClick={() => onAnswerBack?.(i, true)} data-ask-yes="">Yes</button>
+                  <button type="button" className="pl-btn pl-btn--dashed" onClick={() => onAnswerBack?.(i, false)} data-ask-no="">No</button></> : null}
+                {t.action ? (t.decided ? <span className="pl-label pl-muted">{t.decided}</span> : <span className="pl-ask__acts" data-ask-action={t.action.tool || ""}>
                   <span className="pl-ask__summary">{t.action.summary}?</span>
-                  <button type="button" className="pl-btn pl-btn--ink" onClick={() => onDecide?.(i, true)}>Confirm</button>
-                  <button type="button" className="pl-btn pl-btn--dashed" onClick={() => onDecide?.(i, false)}>Cancel</button></>) : null}
+                  <button type="button" className="pl-btn pl-btn--ink" onClick={() => onDecide?.(i, true)} data-ask-confirm="">Confirm</button>
+                  <button type="button" className="pl-btn pl-btn--dashed" onClick={() => onDecide?.(i, false)} data-ask-cancel="">Cancel</button></span>) : null}
               </div>
             </li>
           ))}
         </ol>
-        {busy ? <p className="pl-label pl-muted" role="status">THINKING…</p> : null}
+        {busy ? <p className="pl-label pl-muted" role="status" data-ask-busy="">THINKING…</p> : null}
       </div>
       <form className="pl-ask__form" onSubmit={send}>
         <label className="pl-sr" htmlFor={inputId}>{`Ask ${name}`}</label>
-        <textarea id={inputId} className="pl-textarea pl-ask__input" rows={2} maxLength={600} value={value} readOnly={!onChange} placeholder={placeholder || `Ask ${name}`}
+        <textarea id={inputId} className="pl-textarea pl-ask__input" rows={2} maxLength={600} value={value} readOnly={!onChange} placeholder={placeholder || `Ask ${name}`} data-ask-input=""
           onChange={(e) => onChange?.(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) send(e); }}/>
         <div className="pl-ask__formacts">
-          {canSpeak ? <button type="button" className="pl-btn" aria-pressed={!!listening} aria-label="Speak a command" onClick={onSpeak}>{listening ? "Stop" : "Speak"}</button> : null}
-          <button type="submit" className="pl-btn pl-btn--primary" disabled={busy || !value.trim()}>Ask</button>
+          {canSpeak ? <button type="button" className="pl-btn" aria-pressed={!!listening} aria-label="Speak a command" title="Speak a command" onClick={onSpeak} data-ask-mic="">{listening ? "Stop" : "Speak"}</button> : null}
+          <button type="submit" className="pl-btn pl-btn--primary" disabled={busy || !value.trim()} data-ask-send="">Ask</button>
         </div>
-        {voiceNote ? <p className="pl-label pl-muted" aria-live="polite">{voiceNote}</p> : null}
+        {voiceNote ? <p className="pl-label pl-muted" aria-live="polite" data-ask-voice-note="">{voiceNote}</p> : null}
         {improve ? (
-          <label className="pl-ask__opt"><input type="checkbox" className="pl-check" checked={!!improve.on} onChange={improve.onToggle}/>
+          <label className="pl-ask__opt" data-ask-improve=""><input type="checkbox" className="pl-check" checked={!!improve.on} onChange={improve.onToggle}/>
             Use my questions to improve Atlas (stored without your name or contact details)</label>
         ) : null}
       </form>

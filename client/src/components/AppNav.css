@@ -159,10 +159,10 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 .appnav-ask {
   position: fixed; right: 20px; bottom: 92px; width: var(--appnav-ask-w); height: min(560px, calc(100vh - 120px)); box-sizing: border-box;
   z-index: 256; /* above Z.NAV and the peek, below the modal tiers */
-  display: flex; flex-direction: column; overflow: hidden;
-  /* the menu surface over the solid one: a chat card stays readable over whatever page it floats on */
-  background: linear-gradient(var(--c-surface-menu), var(--c-surface-menu)), var(--c-surface-solid);
-  border: 1px solid var(--c-border); border-radius: 16px; box-shadow: var(--c-shadow-lg);
+  display: flex; flex-direction: column; overflow: visible;
+  /* ⭐ D197 #12 (47m): the card itself is the plate's AskDraftCard (its own paper, ink border and hard shadow) — this box only
+     places it (floating bottom-right, the phone's bottom sheet) and fades it in. */
+  background: none; border: 0;
   transform-origin: bottom right; opacity: 0; transform: translateY(8px) scale(.97); visibility: hidden; pointer-events: none;
   transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
 }
@@ -224,7 +224,7 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 @media (max-width: 600px) {   /* D190: a bottom sheet on phones; the bubble steps aside while it is open */
   .appnav-tiny { right: 12px; bottom: 12px; }
   .appnav-tiny[data-open="true"] { display: none; }
-  .appnav-ask { --appnav-ask-w: 100vw; right: 0; bottom: 0; height: 72vh; border-radius: 18px 18px 0 0; border-bottom: 0; }
+  .appnav-ask { --appnav-ask-w: 100vw; right: 0; bottom: 0; height: 72vh; }
 }
 
 /* Reduced motion: every one of these is instant (the rail, the mark's slide and clip, the names, the peek, Tiny). */
