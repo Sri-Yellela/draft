@@ -5,7 +5,6 @@ import { glass } from "../styles/glass.js";
 import { C } from "../styles/colorTokens.js";
 import ResumeList, { RESUME_ICONS } from "../components/ResumeList.jsx";
 import SettingsSection from "../components/SettingsSection.jsx";
-import NotificationSettings from "../components/NotificationSettings.jsx";
 import WarmPathsSettings from "../components/WarmPathsSettings.jsx";
 import PlanSettings from "../components/PlanSettings.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
@@ -157,7 +156,6 @@ export function AccountPanel({ onSignedOut, only = null }) {
         {has("plan") && <PlanSettings say={say} />}
 
         {/* ⭐ D112 item 8: which events also reach the person by push (this browser) and email — per event, per channel. */}
-        {has("notifications") && <NotificationSettings say={say} />}
 
         {/* ⭐ D138: the user's own contacts, for "people you know at this company" on a posting. */}
         {has("warmpaths") && <WarmPathsSettings say={say} />}

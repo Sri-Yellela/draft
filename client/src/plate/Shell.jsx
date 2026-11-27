@@ -92,6 +92,14 @@ export function Dock({ home = { href: "/app/jobs", label: "draft — the market"
 /** One chip: today's new drafts as 10 squares ("3 left"), or the run (days with a send this week). */
 export function NavChip({ kind = "drafts", used = 0, of = 10, days = [], href, label, onGo }) {
   const click = onGo ? (e) => { if (plainClick(e)) { e.preventDefault(); onGo(href); } } : undefined;
+  // ⭐ 47m (D197 #9, the Passport board's chip): the passport's stamps — one lit square and the count ("3 STAMPS")
+  if (kind === "stamps") {
+    return (
+      <a className="pl-chip" href={href} onClick={click} data-nav-chip="stamps" aria-label={label || `${used} skill${used === 1 ? "" : "s"} proven — your stamps`}>
+        <span className="pl-sq" data-s="lit"/><span className="pl-chip__text">{used} STAMP{used === 1 ? "" : "S"}</span>
+      </a>
+    );
+  }
   if (kind === "run") {
     const lit = days.filter((d) => d === "lit").length;
     return (

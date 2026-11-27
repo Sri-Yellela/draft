@@ -29,7 +29,7 @@ import { JobProfilesPanel }      from "./panels/JobProfilesPanel.jsx";
 // ⭐ D167 · Profile and Interview, each with its own navigation (pages/profile, pages/interview). Profile mounts the old
 // settings pages (Profile, Saved answers, Integrations, Account, Customise) as its panels, so App no longer does.
 import ProfilePage               from "./pages/profile/ProfilePage.jsx";
-import { profilePanelFor, profilePath, LEGACY_PROFILE_ROUTES } from "./pages/profile/profilePanels.js";
+import { profilePanelFor, profilePath, LEGACY_PROFILE_ROUTES, PASSPORT_VIEWS, passportMore, PASSPORT_STAMPS_EVENT } from "./pages/profile/profilePanels.js";
 import ProvingGround, { useInterviewAreaNav } from "./pages/interview/ProvingGround.jsx";   // ⭐ D197 Wave 2 #13 (47m): Interview as the Proving ground
 import CompanyPage               from "./pages/companies/CompanyPage.jsx";   // D179 P4b
 import NetworkPage               from "./pages/network/NetworkPage.jsx";      // D180 P1 (45o): behind the network switch
@@ -38,7 +38,6 @@ import MessagesPage              from "./pages/network/MessagesPage.jsx";     //
 import PublicBoardPage           from "./pages/jobs/PublicBoardPage.jsx";    // D179 P3
 import AuditPage                 from "./pages/audit/AuditPage.jsx";         // D150 T05–T08
 import { interviewPanelFor, interviewPath } from "./pages/interview/interviewModel.js";
-import { PlansPanel }            from "./panels/PlansPanel.jsx";
 import DeckView                  from "./panels/DeckView.jsx";
 import { routeCommitted, transitionTo } from "./lib/viewTransitions.js";
 import { RecruiterPanel }        from "./panels/RecruiterPanel.jsx";
@@ -409,6 +408,7 @@ function AppAreaNavSlot({ activeTab, onHome }) {
   if (!market && activeTab === "auto-apply") return <LedgerAreaNav onHome={onHome} />;   // the ledger (⛔ 47j R3: always — the ?plate= switch is retired)
   if (activeTab === "atlas") return <AtlasAreaNav onHome={onHome} />;
   if (activeTab === "interview") return <InterviewAreaNav onHome={onHome} />;
+  if (activeTab === "profile" || activeTab === "plans") return <PassportAreaNav onHome={onHome} />;   // ⭐ 47m: D197 #9 Your passport
   if (!market) return <ShellAreaNav area={AREA_NAMES[activeTab] || "draft"} onHome={onHome} />;
   const current = deckShown ? "picks" : boardTab;
   // the views' counts (the facets answer's, as the classic segment showed them) ride on the nav's words — never a 0 guessed
@@ -439,6 +439,29 @@ function InterviewAreaNav({ onHome }) {
   const panel = interviewPanelFor(location.pathname.replace(/^\/app\/?/, ""), location.hash) || "upcoming";
   const nav = useInterviewAreaNav(panel);
   return <ShellAreaNav area={nav.area} views={nav.views} current={nav.current} placeholder={nav.placeholder} onGo={nav.onGo} onHome={onHome} />;
+}
+// ⭐ D197 Wave 2 #9 (47m, lane person) · YOUR PASSPORT'S AREA NAV (the Passport board): Your passport · Saved answers ·
+// Auto-apply · Connections, More = Appearance · Notifications · Privacy and your data · Account (+ Your plan, lever on),
+// "Search your passport…", the stamps chip (the page tells it the count — PASSPORT_STAMPS_EVENT; the last one is kept).
+let passportStampsSeen = null;
+function PassportAreaNav({ onHome }) {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const monetisationEnabled = useMonetisationEnabled();
+  const [stamps, setStamps] = useState(passportStampsSeen);
+  useEffect(() => {
+    const on = (e) => { passportStampsSeen = Number(e.detail); setStamps(passportStampsSeen); };
+    window.addEventListener(PASSPORT_STAMPS_EVENT, on);
+    return () => window.removeEventListener(PASSPORT_STAMPS_EVENT, on);
+  }, []);
+  const more = passportMore({ plans: monetisationEnabled });
+  const here = pathname.startsWith("/app/plans") ? "plans" : (profilePanelFor(pathname.replace(/^\/app\//, "")) || "about");
+  const chip = Number.isFinite(stamps) ? { kind: "stamps", used: stamps, href: "/app/profile/about#pp-stamps", onGo: () => {
+    navigate("/app/profile/about");
+    requestAnimationFrame(() => document.getElementById("pp-stamps")?.scrollIntoView?.({ block: "start", behavior: "smooth" }));
+  } } : null;
+  return <ShellAreaNav area="Your passport" views={PASSPORT_VIEWS} current={here} more={more} chip={chip}
+    placeholder="Search your passport…" onGo={(id, href) => navigate(href)} onHome={onHome} />;
 }
 // ⭐ D197 Wave 1 #5 (47h, lane atlas) · ATLAS'S AREA NAV (the Shell board's figure C): the VOL. I pill (its panel = the
 // volumes and the eight regions), Your survey · Library · Today's question · League (with its switch), More (every other
@@ -832,7 +855,7 @@ function AppDashboard({ authUser, setAuthUser }) {
                 says where jobs from elsewhere come from until the extension is connected. */}
             {activeTab === "auto-apply"   && <AreaErrorBoundary area="auto-apply" {...areaGuard}><AutoApplyPanel user={authUser}/></AreaErrorBoundary>}
             {activeTab === "job" && jobRoute && <AreaErrorBoundary area="job" {...areaGuard}><JobWorkspacePanel {...(jobByJobId ? { jobId: decodeURIComponent(jobRoute[1]) } : { applicationId: jobRoute[1] })}/></AreaErrorBoundary>}
-            {activeTab === "plans" && monetisationEnabled && <AreaErrorBoundary area="plans" {...areaGuard}><PlansPanel user={authUser} onUserChange={setAuthUser}/></AreaErrorBoundary>}
+            {activeTab === "plans" && monetisationEnabled && <AreaErrorBoundary area="plans" {...areaGuard}><ProfilePage panel="plans" user={authUser} onUserChange={setAuthUser} onSignedOut={() => { setAuthContext(""); setAuthUser(null); }}/></AreaErrorBoundary>}
             {/* ⭐ D167 · Profile (its own navigation, nine panels) and Interview (Coming up · Prepare · Practise · After). */}
             {activeTab === "profile" && profilePanel && <AreaErrorBoundary area="profile" {...areaGuard}><ProfilePage panel={profilePanel} user={authUser} onSignedOut={() => { setAuthContext(""); setAuthUser(null); }}/></AreaErrorBoundary>}
             {activeTab === "interview" && interviewPanel && <AreaErrorBoundary area="interview" {...areaGuard}><ProvingGround panel={interviewPanel}/></AreaErrorBoundary>}

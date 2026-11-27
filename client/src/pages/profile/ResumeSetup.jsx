@@ -3,43 +3,50 @@
 // and the choice a résumé from ANOTHER family offers (D186-3). Automatic by default; every value stays the person's to change.
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
+import { QuestionTicket } from "../../plate/Tickets.jsx";   // 47m: the four things, one at a time
 import "./ResumeSetup.css";
 
-/** D186-2 · asked once, each skippable; never inferred. Hidden when nothing is left to ask. */
-export function FourThingsCard({ onChanged = null }) {
+/**
+ * D186-2 · asked once, each skippable; never inferred. Hidden when nothing is left to ask.
+ * ⭐ 47m (D197 #9 / #15 M5): ONE THING AT A TIME — the plate's QuestionTicket (the ledger's Needs-you face), the items as
+ * progress squares (answered or skipped = lit, this one = today), Next saves it (PUT /api/profile/four-things { key, value }),
+ * "Skip this one" in the foot ({ key, skip: true }). `onOpen(open)` tells the page whether it is showing (the one clay point
+ * moves here while it is); `clay` = draw it as that point. Used by Your passport and by Setting out's leg 03.
+ */
+export function FourThingsTicket({ onChanged = null, onOpen = null, clay = true }) {
   const [s, setS] = useState(null);
-  const [vals, setVals] = useState({});
+  const [val, setVal] = useState("");
   const [msg, setMsg] = useState("");
   useEffect(() => { api("/api/profile/four-things").then(setS).catch(() => setS(null)); }, []);
-  if (!s?.open) return null;
-  const save = async (key, body) => {
+  const left = s?.open ? s.items.filter(i => !i.set && !i.skipped) : [];
+  const open = left.length > 0;
+  useEffect(() => { onOpen?.(open); }, [open, onOpen]);
+  if (!open) return null;
+  const item = left[0];
+  const save = async (body) => {
     setMsg("");
-    try { setS({ ...s, ...(await api("/api/profile/four-things", { method: "PUT", body: JSON.stringify({ key, ...body }) })) }); onChanged?.(); }
+    try { setS({ ...s, ...(await api("/api/profile/four-things", { method: "PUT", body: JSON.stringify({ key: item.key, ...body }) })) }); setVal(""); onChanged?.(); }
     catch (e) { setMsg(e.message || "Could not save that."); }
   };
-  const left = s.items.filter(i => !i.set && !i.skipped);
+  const choices = Array.isArray(item.choices) && item.choices.length ? item.choices
+    : item.key === "willing_to_relocate" ? [{ value: "yes", label: "Yes" }, { value: "no", label: "No" }] : null;
+  const byLabel = (label) => choices?.find(c => c.label === label)?.value ?? "";
+  const shownLabel = choices?.find(c => c.value === val)?.label ?? "";
+  const progress = s.items.map(i => (i.set || i.skipped ? "lit" : i.key === item.key ? "today" : "none"));
+  const isDate = item.key === "available_start_date";
   return (
-    <section className="rs-four" data-four-things={left.length} aria-label="What your résumé can't tell us">
-      <h2 className="rs-four__h">{left.length === 1 ? "One thing your résumé can't tell us" : `${left.length} things your résumé can't tell us`}</h2>
-      <p className="rs-four__lead">Everything else came from your résumé. These stay unset until you answer — skip any of them.</p>
-      <ul className="rs-four__list">
-        {left.map(i => (
-          <li key={i.key} data-four-thing={i.key}>
-            <label className="rs-four__label">{i.label}{i.why ? <span className="rs-four__why"> — {i.why}</span> : null}
-              {Array.isArray(i.choices) && i.choices.length
-                ? <select value={vals[i.key] ?? ""} onChange={(e) => setVals({ ...vals, [i.key]: e.target.value })} data-four-choices={i.key}>
-                    <option value="">Choose…</option>{i.choices.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}</select>
-                : i.key === "willing_to_relocate"
-                ? <select value={vals[i.key] ?? ""} onChange={(e) => setVals({ ...vals, [i.key]: e.target.value })}><option value="">Choose…</option><option value="yes">Yes</option><option value="no">No</option></select>
-                : <input value={vals[i.key] ?? ""} onChange={(e) => setVals({ ...vals, [i.key]: e.target.value })} maxLength={120}
-                    type={i.key === "available_start_date" ? "date" : "text"} placeholder={i.key === "desired_salary" ? "e.g. 140000" : ""} />}
-            </label>
-            <button type="button" className="rs-btn" onClick={() => save(i.key, { value: vals[i.key] })} disabled={!String(vals[i.key] ?? "").trim()}>Save</button>
-            <button type="button" className="rs-btn rs-btn--quiet" onClick={() => save(i.key, { skip: true })} data-four-skip={i.key}>Skip</button>
-          </li>
-        ))}
-      </ul>
-      {msg && <p className="rs-four__why" role="alert">{msg}</p>}
+    <section className="pl-pp-four" data-four-things={left.length} data-tone={clay ? "clay" : undefined} aria-label="What your résumé can't tell us">
+      <QuestionTicket kicker={left.length === 1 ? "ONE THING YOUR RÉSUMÉ CAN'T TELL US" : `${left.length} THINGS YOUR RÉSUMÉ CAN'T TELL US`}
+        n="Everything else came from your résumé. These stay unset until you answer — skip any of them."
+        text={item.why ? `${item.label} — ${item.why}` : item.label} progress={progress} saveLabel={null}
+        kind={choices ? "choice" : "text"} options={choices ? choices.map(c => c.label) : undefined}
+        value={choices ? shownLabel : val} onChange={(v) => setVal(choices ? byLabel(v) : String(v).slice(0, 120))}
+        canNext={!!String(val ?? "").trim()} onNext={() => save({ value: val })} nextLabel="Save and next"
+        rootProps={{ "data-four-thing": item.key }}
+        more={<button type="button" className="pl-btn pl-btn--flat" onClick={() => save({ skip: true })} data-four-skip={item.key}>Skip this one</button>}>
+        {isDate ? <span className="pl-muted">As a date — for example 2027-01-15.</span> : item.key === "desired_salary" ? <span className="pl-muted">A yearly figure — for example 140000.</span> : null}
+        {msg ? <span className="pl-muted" role="alert">{msg}</span> : null}
+      </QuestionTicket>
     </section>
   );
 }

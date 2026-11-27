@@ -1,69 +1,63 @@
-// ⭐ D167 (owner 11-06: PROFILE APPROVED — docs/sketches/Profile.html) · PROFILE, WITH ITS OWN NAVIGATION.
+// ⭐ D197 Wave 2 #9 / #17 · M5 (47m, lane person) · PROFILE → YOUR PASSPORT, in the plate system (Region V).
 //
-// The same pattern as Atlas (components/PlaceNav.jsx): a nav card beside the dock, three groups, nine panels, each at
-// /app/profile/<id> (pages/profile/profilePanels.js). Every panel is the EXISTING page or card that held it before D167,
-// mounted whole or by its own part — nothing re-implemented, nothing dropped:
-//   About you      ProfilePanel "about" (contact, address, visa, the D101 sections — ⛔ "Your experience", the work history
-//                  with company logos filled from the résumé, RETAINED as it is — Application defaults incl. work
-//                  authorisation, the extras) + the line "Your skills now live in Atlas" → /app/atlas/your-skills (D169)
-//   Your résumés   ProfilePanel "resumes" (job profiles → the full manager at /app/job-profiles; the active profile's base
-//                  résumé, upload, enhance, signals) + Account's "How your résumés are tailored"
-//   Saved answers  ProfilePanel "answers" (custom answers) + SavedAnswersPanel (the bank, D55 f / D165 R2 — its own API)
-//   Auto-apply     Draft House's settings drawer drawn in the page (Ask me first / Apply for me + D148's folds)
-//   Connections    the extension, the Android app, Gmail (D112), Managed portals (D100 / D158), then Integrations whole
-//                  (connected apps, LinkedIn import, job feed, form learning) and Account's warm-paths contacts (D138)
-//   Appearance     ⛔ the Customise screen (D93), RETAINED exactly as it is — mounted alone, no head, no wrapper style
-//   Notifications  Account's Product news + Notifications cards
-//   Privacy        Account's Your data (download, base-résumé-only, generated résumés) + Delete account
-//   Account        Account's profile photo and name, email, sign-in and security, sessions, merge, plan, help, Sign out
-//                  (+ 47j: the plan line and View plans → /app/plans while monetisation is on — ProfilePlanLine)
+// The classic place card (D167's PlaceNav) is retired: the passport's area nav runs across the shell's column (App's
+// PassportAreaNav — Your passport · Saved answers · Auto-apply · Connections, More = Appearance · Notifications · Privacy and
+// your data · Account · Your plan), and every panel is a plate page under one PlateRoot. The addresses are unchanged
+// (pages/profile/profilePanels.js — /app/profile/<id>, the legacy forwards, the #hash). Every panel keeps every row it had
+// (D200 Rule 1 — docs/revamp/profile.md §1–§6 and settings.md §2–§5 say where each row lives now):
+//   about          Your passport (YourProfile.jsx) — the hero, 01 who can see it … 08 the sealed pages; the sealed pages
+//                  hold ProfilePanel's contact fields and résumés part and Account's "How your résumés are tailored"
+//   answers        Answers on file: ProfilePanel "answers" (custom answers, company overrides) + SavedAnswersPanel (the bank,
+//                  Test a question, import / export) + Credit draft
+//   autoapply      Standing orders: the tracker's ONE settings drawer drawn in the page (AutoSettingsDrawer `inline`)
+//   connections    the extension · the Android app · Gmail as plate rows; Managed portals; Integrations whole; warm paths
+//   appearance     ⛔ the Customise screen, RETAINED exactly (owner 11-06) — it now also offers Plate pages: Paper · Night
+//   notifications  the plate table (PassportSettings.jsx) + Account's Product news
+//   privacy        Account's Your data + Delete account, Ask draft's log (plate)
+//   account        the plan line + View plans (lever on), Account's profile / email / plan / security / sessions / merge /
+//                  allowance / help / sign out
+//   plans          Your plan (D197 #17′: /app/plans folded into Settings) — App renders this panel at /app/plans
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import PlaceNav, { PlaceHead } from "../../components/PlaceNav.jsx";
+import { useNavigate } from "react-router-dom";
 import { useAutoApply } from "../../contexts/AutoApplyContext.jsx";
-import { useTheme } from "../../styles/theme.jsx";
 import { autoToggle } from "../../lib/draftHouseExceptions.js";
 import { setPicksSwitch } from "../../lib/draftHouseRuns.js";
-import { ACTIVE_THEME } from "../../themes/index.js";
 import { useExtensionStatus } from "../../components/ExtensionPrompt.jsx";
 import AutoSettingsDrawer, { PortalAccounts } from "../../components/AutoSettingsDrawer.jsx";
 import { GmailConnection } from "../../components/ApplicationInbox.jsx";
+import { useTheme } from "../../styles/theme.jsx";
 import { ProfilePanel } from "../../panels/ProfilePanel.jsx";
 import { SavedAnswersPanel } from "../../panels/SavedAnswersPanel.jsx";
 import { IntegrationsPanel } from "../../panels/IntegrationsPanel.jsx";
 import { AccountPanel } from "../../panels/AccountPanel.jsx";
 import CustomisePanel from "../../panels/CustomisePanel.jsx";
 import YourProfile from "./YourProfile.jsx";
+import { PassportNotifications, PassportPlan, AssistantPrivacy, CreditDraftChoice } from "./PassportSettings.jsx";
 import { EXTENSION_PAGE } from "../../../../shared/extension.js";
-import { PROFILE_GROUPS, profilePath } from "./profilePanels.js";
-import { api } from "../../lib/api.js";
 import { useMonetisationEnabled } from "../../lib/monetisation.jsx";
-import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
-import "./ProfilePage.css";
+import PlateRoot from "../../plate/PlateRoot.jsx";
+import { Kickers } from "../../plate/Marks.jsx";
+import { RegionEmblem } from "../../plate/Drawings.jsx";
+import { SettingsSheet } from "../../plate/Person.jsx";
+import "../../plate/personPages.css";
 
 /** The cards of Account each panel draws (AccountPanel `only`). */
 export const ACCOUNT_CARDS = Object.freeze({
-  about: ["tailoring"],   // A140: "How your résumés are tailored" — in the merged About you
+  about: ["tailoring"],   // A140: "How your résumés are tailored" — in the passport's sealed pages
   connections: ["warmpaths"],
-  notifications: ["news", "notifications"],
+  notifications: ["news"],   // 47m: the per-event table is the plate's own (PassportSettings.jsx), Product news stays Account's
   privacy: ["data", "delete"],
   account: ["profile", "email", "plan", "security", "sessions", "merge", "allowance", "help", "signout"],   // A167: "plan" — the plan, phone, lead sharing, extension
 });
 
-// ⭐ D185-7 (45q): the person's own choice — when an application asks how they heard about the job, answer "draft", and only
-// for jobs they found on draft (a job they brought in themselves is never credited). Off until they turn it on.
-function CreditDraftChoice() {
-  const [on, setOn] = useState(null);
-  useEffect(() => { api("/api/profile/credit-draft").then(r => setOn(!!r.on)).catch(() => setOn(null)); }, []);
-  if (on === null) return null;
-  const set = async (v) => { try { setOn((await api("/api/profile/credit-draft", { method: "PUT", body: JSON.stringify({ on: v }) })).on); } catch { /* left as it was */ } };
+/** A working page's head (D200 Rule 3): the mono kicker and one plain serif line, a lead under it. */
+function WorkingHead({ kicker, title, lead = null }) {
   return (
-    <label className="pp-credit" data-credit-draft={on ? "on" : "off"} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 16, fontSize: ts(13) }}>
-      <input type="checkbox" role="switch" checked={on} aria-checked={on} onChange={e => set(e.target.checked)} />
-      <span>When an application asks <i>How did you hear about us?</i>, answer <b>draft</b>
-        <span style={{ display: "block", color: "var(--color-text-muted)", fontSize: ts(12) }}>Only for jobs you found on draft — never for a job you brought in yourself. Your own saved answer to that question always wins.</span>
-      </span>
-    </label>
+    <header className="pl-page pl-pp-head">
+      <Kickers parts={["YOUR PASSPORT", kicker]} />
+      <h1 className="pl-pp-working">{title}</h1>
+      {lead ? <p className="pl-lead pl-lead--body">{lead}</p> : null}
+    </header>
   );
 }
 
@@ -78,179 +72,157 @@ function ProfileAutoApply() {
   const chooseAsk = async () => {
     if (fullAuto) await setApplyMode?.("semi");
     await setPicksSwitch(true);
-    setRound(r => r + 1);
+    setRound((r) => r + 1);
   };
   return (
     <>
-      <PlaceHead eyebrow="Auto-apply" title="How draft applies for you"
-        lead="The same settings as the tracker's Settings — every change is saved as you make it." />
-      <div ref={setHost} data-profile-autoapply="" />
-      {host && (
-        <AutoSettingsDrawer key={round} open inline={host} onClose={() => {}} runBar={runBar}
-          mode={{ fullAuto, selectable: mode.selectable, reason: mode.reason }} onAsk={runBar ? chooseAsk : null}
-          onAuto={mode.selectable ? () => setApplyMode?.("auto") : null} modeBusy={holdBusy} held={held} onPauseNow={setStopEverything} />
-      )}
+      <WorkingHead kicker={`AUTO-APPLY · ${fullAuto ? "APPLY FOR ME" : "ASK ME FIRST"}`} title="How draft applies for you"
+        lead="The same settings as the ledger's Settings — every change is saved as you make it." />
+      <div className="pl-page pl-pp-body">
+        <SettingsSheet kicker="STANDING ORDERS" title="Your standing orders" lead="When, how many, which jobs, before sending, salary, what you're told, pausing, accounts, the view.">
+          <div ref={setHost} data-profile-autoapply="" />
+        </SettingsSheet>
+        {host && (
+          <AutoSettingsDrawer key={round} open inline={host} onClose={() => {}} runBar={runBar}
+            mode={{ fullAuto, selectable: mode.selectable, reason: mode.reason }} onAsk={runBar ? chooseAsk : null}
+            onAuto={mode.selectable ? () => setApplyMode?.("auto") : null} modeBusy={holdBusy} held={held} onPauseNow={setStopEverything} />
+        )}
+      </div>
     </>
   );
 }
 
 const EXTENSION_WORDS = { connected: "Connected on this computer", not_connected: "Installed, not signed in", not_installed: "Not installed" };
 
-function ProfileConnections() {
+function ProfileConnections({ go }) {
   const { theme } = useTheme();
   const ext = useExtensionStatus();
   return (
     <>
-      <PlaceHead eyebrow="Connections" title="What draft is connected to"
-        lead="Each one says what draft does with it, and you can remove it any time." />
-      <div className="pf__card" data-profile-connections="">
-        <div className="pf__kv" data-connection="extension">
-          <span>Browser extension</span>
-          <b>{ext ? (EXTENSION_WORDS[ext.state] || EXTENSION_WORDS.not_installed) : "Checking…"}</b>
-          <Link className="pf__quiet" to={EXTENSION_PAGE}>{ext?.connected ? "About it" : "Get it"}</Link>
-        </div>
-        <div className="pf__kv" data-connection="android">
-          <span>Android app</span>
-          <b>Sites you connect from the draft app show under Managed portals below.</b>
-          <span />
-        </div>
-        <div className="pf__kv pf__kv--wide" data-connection="gmail">
-          <span>Gmail</span>
-          <div><GmailConnection theme={theme} /></div>
-        </div>
+      <WorkingHead kicker="CONNECTIONS" title="What draft is connected to" lead="Each one says what draft does with it, and you can remove it any time." />
+      <div className="pl-page pl-pp-body" data-profile-connections="">
+        <SettingsSheet kicker="CONNECTIONS · WHAT EACH ONE DOES" title="Connected" drawing={<RegionEmblem kind="net" region="V" size={72} label="Network emblem: what your passport is linked to" />}
+          rows={[
+            { label: "Browser extension", note: "Reads and fills application forms on this computer.",
+              control: <span data-connection="extension"><b>{ext ? (EXTENSION_WORDS[ext.state] || EXTENSION_WORDS.not_installed) : "Checking…"}</b>{" "}
+                <a className="pl-btn" href={EXTENSION_PAGE} onClick={(e) => go(e, EXTENSION_PAGE)}>{ext?.connected ? "About it" : "Get it"}</a></span> },
+            { label: "Android app", note: "Sites you connect from the draft app show under Managed portals below.", control: <span data-connection="android" className="pl-pp-note">See Managed portals</span> },
+          ]}>
+          <div className="pl-pp-classic" data-connection="gmail">
+            <b>Gmail</b>
+            <GmailConnection theme={theme} />
+          </div>
+        </SettingsSheet>
+        <SettingsSheet kicker="MANAGED PORTALS" title="Job sites draft applies on for you"
+          lead="The sessions you connected (sealed — draft cannot read them) and the accounts draft made.">
+          <div className="pl-pp-classic"><PortalAccounts /></div>
+        </SettingsSheet>
+        <div className="pl-pp-classic"><IntegrationsPanel embedded /></div>
+        <div className="pl-pp-classic"><AccountPanel only={ACCOUNT_CARDS.connections} /></div>
       </div>
-      <div className="pf__card">
-        <h3 className="pf__h4">Managed portals</h3>
-        <p className="pf__p">Job sites draft applies on for you: the sessions you connected (sealed — draft cannot read them) and the accounts draft made.</p>
-        <PortalAccounts />
-      </div>
-      <IntegrationsPanel embedded />
-      <AccountPanel only={ACCOUNT_CARDS.connections} />
     </>
   );
 }
 
-// ⭐ T5 (docs/ASSISTANT.md §1): every action Ask draft took — or proposed and you cancelled — and the "improve Atlas"
-// switch. The person's own rows only (GET /api/assistant/actions).
-function AssistantPrivacy() {
-  const [log, setLog] = useState(null);
-  const [improve, setImprove] = useState(null);
-  useEffect(() => {
-    api("/api/assistant/actions").then(r => setLog(r.actions || [])).catch(() => setLog([]));
-    api("/api/assistant/status").then(r => setImprove(!!r.improveAtlas)).catch(() => setImprove(null));
-  }, []);
-  const flip = async () => { try { const r = await api("/api/assistant/settings", { method: "PUT", body: JSON.stringify({ improveAtlas: !improve }) }); setImprove(r.improveAtlas); } catch { /* unchanged */ } };
-  return (
-    <section className="pf__card" data-assistant-privacy="">
-      <h3>Ask draft</h3>
-      {improve !== null && (
-        <label style={{ display: "flex", gap: 8, alignItems: "flex-start" }} data-assistant-improve="">
-          <input type="checkbox" checked={improve} onChange={flip} />
-          Use my questions to improve Atlas. They are stored without your name or contact details, and never linked to you.
-        </label>
-      )}
-      <p>What Ask draft did for you (each one only after you pressed Confirm):</p>
-      {log?.length === 0 && <p data-assistant-log-empty="">Nothing yet.</p>}
-      {log?.length > 0 && (
-        <ul data-assistant-log="">
-          {log.map(a => <li key={a.id}>{a.summary || a.tool} — {a.status} · {new Date((a.decided_at || a.proposed_at) * 1000).toLocaleString()}</li>)}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-// ⭐ 47j w1-shell (D200 Rule 1): the plan line and "View plans" — the tier's words and the one way into /app/plans, both
-// from the retired account panel (TopBar's ProfileMenuPanel, which nothing opened after D197 #1). Only while the
-// monetisation lever is on, as there: off, the tier claims go and /app/plans bounces to the board (App's NAVIGABLE_TABS).
+// ⭐ 47j w1-shell (D200 Rule 1): the plan line and "View plans" — only while the monetisation lever is on.
 const PLAN_LABELS = Object.freeze({ PRO: ["Pro", "Generate + A+ Resume"], PLUS: ["Plus", "Generate"], BASIC: ["Basic", "Your jobs and today's picks"] });
-function ProfilePlanLine({ planTier }) {
+function ProfilePlanLine({ planTier, go }) {
   const [label, tool] = PLAN_LABELS[planTier] || PLAN_LABELS.BASIC;
   return (
-    <div className="pf__card" data-profile-plan="">
-      <div className="pf__kv">
-        <span>Plan</span>
-        <b>{label} — {tool}</b>
-        <Link className="pf__quiet" to="/app/plans" data-view-plans="">View plans</Link>
-      </div>
+    <div data-profile-plan="">
+      <SettingsSheet kicker="YOUR PLAN" title={label} lead={tool}
+        actions={<a className="pl-btn" href="/app/plans" data-view-plans="" onClick={(e) => go(e, "/app/plans")}>View plans</a>} />
     </div>
   );
 }
 
-export default function ProfilePage({ panel = "about", onSignedOut, user = null }) {
+const plain = (e) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
+
+export default function ProfilePage({ panel = "about", onSignedOut, user = null, onUserChange = null }) {
   const navigate = useNavigate();
   const monetisationEnabled = useMonetisationEnabled();
-  const { runBar = null } = useAutoApply() || {};
-  const metas = {
-    autoapply: runBar ? (runBar?.mode?.current === "auto" ? "Apply for me" : "Ask me first") : null,
-    appearance: ACTIVE_THEME?.label || null,
-  };
-  const groups = PROFILE_GROUPS.map(g => ({ ...g, items: g.items.map(i => ({ ...i, meta: metas[i.id] ?? null })) }));
   useEffect(() => { window.scrollTo?.({ top: 0 }); }, [panel]);
+  // a plain press on an in-app link inside a plate piece (they draw plain <a href>) goes through the router
+  const go = (e, href) => { if (plain(e)) { e.preventDefault(); navigate(href); } };
+  const onClick = (e) => {
+    const a = e.target.closest?.("a[href]");
+    if (!a || e.defaultPrevented || !plain(e) || a.target || a.hasAttribute("download")) return;
+    const href = a.getAttribute("href");
+    if (!/^\/(app|atlas|companies)\b/.test(href || "")) return;
+    e.preventDefault(); navigate(href);
+  };
 
   let body = null;
-  // ⭐ A140 (owner 11-08: "merge about you and your resume section … make sure all fields are accounted for"): ONE panel.
-  // Everything the two drew is here: About you's résumé view (summary, experience with logos and the skills / keywords
-  // bold in it, projects, proof page, education, skills, links, application defaults), its contact / address / visa
-  // fields and extras; Your résumés' job profiles, the base résumé (upload, text, enhance), its extracted titles / years /
-  // search terms / structured facts / ATS suggestions (the skills and keywords editors folded), and Account's "How your
-  // résumés are tailored". /app/profile/resumes lands here (profilePanels.profilePanelFor).
-  // ⭐ D183 P1 (owner 11-08, TOP PRIORITY): About you becomes YOUR PROFILE — one page from the résumé, private by default
-  // (pages/profile/YourProfile.jsx). Everything A140's panel held is still here: the résumé view's sections are the page's
-  // sections (the same editors), and the private machinery — contact fields, the job profiles, the base résumé and its
-  // signals, How your résumés are tailored — sits folded under "Behind your profile" (ProfilePanel without its résumé view).
-  // The old "Your skills now live in Atlas" line is the Skills section's own link now.
+  // ⭐ D183 P1 → D197 #9 M5: Your passport — the page from the résumé, private by default; the private machinery sits in the
+  // sealed pages (ProfilePanel without its résumé view, Account's tailoring card).
   if (panel === "about") body = (
-    <>
-      <PlaceHead eyebrow="Your profile" title="Your page, from your résumé"
-        lead="Only you can see it until you choose otherwise. Each section has its own eye." />
-      {/* ⭐ A153 (45o): Behind your profile is folded rows (YourProfile's BehindRow) — the private parts by key. */}
-      <YourProfile behind={{
-        contact: <ProfilePanel section="about" resumeView={false} onOpenJobProfiles={() => navigate("/app/job-profiles")} />,
-        resumes: <ProfilePanel section="resumes" resumeView={false} onOpenJobProfiles={() => navigate("/app/job-profiles")} />,
-        tailoring: <AccountPanel only={ACCOUNT_CARDS.about} />,
-      }} />
-    </>
+    <YourProfile behind={{
+      contact: <div className="pl-pp-classic"><ProfilePanel section="about" resumeView={false} onOpenJobProfiles={() => navigate("/app/job-profiles")} /></div>,
+      resumes: <div className="pl-pp-classic"><ProfilePanel section="resumes" resumeView={false} onOpenJobProfiles={() => navigate("/app/job-profiles")} /></div>,
+      tailoring: <div className="pl-pp-classic"><AccountPanel only={ACCOUNT_CARDS.about} /></div>,
+    }} />
   );
   else if (panel === "answers") body = (
     <>
-      <PlaceHead eyebrow="Saved answers" title="Answered once, used every time"
-        lead="The answers you gave during applications. draft reuses them; it never makes up salary, eligibility or legal answers." />
-      <ProfilePanel section="answers" onOpenJobProfiles={() => navigate("/app/job-profiles")} />
-      <SavedAnswersPanel />
-      <CreditDraftChoice />
+      <WorkingHead kicker="SAVED ANSWERS" title="Answers on file"
+        lead="Answered once, used every time. draft reuses them; it never makes up salary, eligibility or legal answers." />
+      <div className="pl-page pl-pp-body">
+        <SettingsSheet kicker="YOUR ANSWERS · COMPANY OVERRIDES" title="Custom answers">
+          <div className="pl-pp-classic"><ProfilePanel section="answers" onOpenJobProfiles={() => navigate("/app/job-profiles")} /></div>
+        </SettingsSheet>
+        <SettingsSheet kicker="REMEMBERED ON PAGES · TEST A QUESTION · IMPORT · EXPORT" title="The bank">
+          <div className="pl-pp-classic"><SavedAnswersPanel /></div>
+        </SettingsSheet>
+        <SettingsSheet kicker="CREDIT DRAFT" title="How did you hear about us?"><div className="pl-settings__rows"><CreditDraftChoice /></div></SettingsSheet>
+      </div>
     </>
   );
   else if (panel === "autoapply") body = <ProfileAutoApply />;
-  else if (panel === "connections") body = <ProfileConnections />;
+  else if (panel === "connections") body = <ProfileConnections go={go} />;
   // ⛔ RETAINED EXACTLY (owner 11-06: "customise screen design is very good right now"): the Customise screen, alone.
   else if (panel === "appearance") body = <CustomisePanel />;
   else if (panel === "notifications") body = (
     <>
-      <PlaceHead eyebrow="Notifications" title="When we tell you things" />
-      <AccountPanel only={ACCOUNT_CARDS.notifications} />
+      <WorkingHead kicker="NOTIFICATIONS" title="When we tell you things" />
+      <div className="pl-page pl-pp-body">
+        <PassportNotifications />
+        <div className="pl-pp-classic"><AccountPanel only={ACCOUNT_CARDS.notifications} /></div>
+      </div>
     </>
   );
   else if (panel === "privacy") body = (
     <>
-      <PlaceHead eyebrow="Privacy and your data" title="What we keep, and for how long"
+      <WorkingHead kicker="PRIVACY AND YOUR DATA" title="What we keep, and for how long"
         lead="Application emails in your Inbox are deleted after 6 months. Download everything draft keeps for you, or delete it all." />
-      <AccountPanel only={ACCOUNT_CARDS.privacy} onSignedOut={onSignedOut} />
-      <AssistantPrivacy />
+      <div className="pl-page pl-pp-body">
+        <SettingsSheet kicker="YOUR DATA · DELETE ACCOUNT" title="Your data" drawing={<RegionEmblem kind="lock" region="V" size={72} label="Security emblem: a lock — your data" />}>
+          <div className="pl-pp-classic"><AccountPanel only={ACCOUNT_CARDS.privacy} onSignedOut={onSignedOut} /></div>
+        </SettingsSheet>
+        <AssistantPrivacy />
+      </div>
     </>
   );
   else if (panel === "account") body = (
     <>
-      <PlaceHead eyebrow="Account" title="Signing in and your plan" />
-      {monetisationEnabled && <ProfilePlanLine planTier={user?.planTier} />}
-      <AccountPanel only={ACCOUNT_CARDS.account} onSignedOut={onSignedOut} />
+      <WorkingHead kicker="ACCOUNT" title="Signing in and your plan" />
+      <div className="pl-page pl-pp-body">
+        {monetisationEnabled ? <ProfilePlanLine planTier={user?.planTier} go={go} /> : null}
+        <SettingsSheet kicker="ACCOUNT · SIGN-IN · SESSIONS · HELP" title="Your account" drawing={<RegionEmblem kind="lock" region="V" size={72} label="Security emblem: a lock — signing in" />}>
+          <div className="pl-pp-classic"><AccountPanel only={ACCOUNT_CARDS.account} onSignedOut={onSignedOut} /></div>
+        </SettingsSheet>
+      </div>
+    </>
+  );
+  else if (panel === "plans") body = (
+    <>
+      <WorkingHead kicker="YOUR PLAN" title="Plans" />
+      <div className="pl-page pl-pp-body"><PassportPlan user={user} onUserChange={onUserChange} /></div>
     </>
   );
 
   return (
-    <PlaceNav place="profile" name="Profile" eyebrow="You and your résumé" title="Profile" groups={groups} current={panel}
-      hrefFor={profilePath}>
-      <div className="pf" data-profile-page={panel}>{body}</div>
-    </PlaceNav>
+    <PlateRoot region="V" className="pl-pp-page" data-profile-page={panel} onClick={onClick}>
+      {body}
+    </PlateRoot>
   );
 }

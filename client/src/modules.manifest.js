@@ -60,7 +60,7 @@ export const MODULES = Object.freeze({
   // ⭐ D196 (owner 11-24) · THE PLATE SYSTEM — one component library (plate/) built from the design report and ported from the
   // canvas export; its pages are composed only from these. The gallery (/dev/plate) shows every component in every state.
   // plate/plate.css is the library's look, worn by the library's files and the gallery only; P1–P5's pages join as members.
-  plate: { why: "D196's plate component library and its gallery (F3 / F4)", css: ["plate/plate.css", "plate/sheets.css" /* 47h: the ledger + the survey sheet */, "plate/atlasPlate.css" /* 47h: Atlas */, "plate/person.css" /* 47j (w2-person): the person's pieces */, "plate/practicePlate.css" /* 47m (lane practice): the Proving ground, the Logbook, the Today card, Ask draft's route */, "plate/gazetteer.css" /* 47m (gaz): the Gazetteer + routes */],
+  plate: { why: "D196's plate component library and its gallery (F3 / F4)", css: ["plate/plate.css", "plate/sheets.css" /* 47h: the ledger + the survey sheet */, "plate/atlasPlate.css" /* 47h: Atlas */, "plate/person.css" /* 47j (w2-person): the person's pieces */, "plate/practicePlate.css" /* 47m (lane practice): the Proving ground, the Logbook, the Today card, Ask draft's route */, "plate/gazetteer.css" /* 47m (gaz): the Gazetteer + routes */, "plate/personPages.css" /* 47m (lane person): the person's pages — passport, settings, setting out, sign-in, bearings, voyage */],
     members: ["App.jsx", "main.jsx" /* 47k: the root error boundary, the last net under every page */, "plate/PlateRoot.jsx", "plate/PlateState.jsx", "plate/AreaErrorBoundary.jsx", "plate/areaFault.js" /* 47k: each area's error boundary in the shell + its pure chunk-error / reload guard */, "plate/Shell.jsx", "plate/Marks.jsx", "plate/Plates.jsx", "plate/Tickets.jsx",
       "plate/Cards.jsx", "plate/Lists.jsx", "plate/Drawings.jsx", "plate/icons.jsx", "plate/motion.js", "plate/registry.js", "plate/fonts.js",
       "plate/drawings/index.js", "plate/fixtures.jsx", "pages/dev/PlateGallery.jsx",
@@ -99,7 +99,9 @@ export const MODULES = Object.freeze({
       "plate/practiceFixtures.jsx" /* 47m: the F5 build pages for the practice boards */, "plate/AskRouteMap.jsx" /* 47m D197 #12: Ask draft's answer as a route (the board AskRoute); folds into lane gaz's RouteMap after the merge */,
       // ⭐ D197 Wave 1 #8 (47m, lane gaz): the Gazetteer (D201) — the entry, the index, the routes — and THE route drawing
       // (RouteMap: shared, the practice lane's AskRoute / Logbook reuse it)
-      "plate/RouteMap.jsx", "plate/Gazetteer.jsx", "pages/atlas/AtlasGazetteer.jsx", "pages/atlas/gazetteerModel.js"] },
+      "plate/RouteMap.jsx", "plate/Gazetteer.jsx", "pages/atlas/AtlasGazetteer.jsx", "pages/atlas/gazetteerModel.js",
+      // ⭐ D197 Wave 2 #9 / #15 / #17 · M5 (47m, lane person): Your passport and its settings, the four things, in the plate system
+      "pages/profile/ProfilePage.jsx", "pages/profile/YourProfile.jsx", "pages/profile/PassportSettings.jsx", "pages/profile/ResumeSetup.jsx"] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminGateway.jsx", "panels/adminFlags.jsx","panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "panels/adminReports.jsx", "panels/adminCompanyRecords.jsx", "panels/adminNetwork.jsx", "panels/adminRuns.jsx", "panels/adminPhase1.jsx", "panels/adminDiagnostics.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.
@@ -128,8 +130,8 @@ export const MODULES = Object.freeze({
   // ⭐ D167 (owner 11-06) · Profile and Interview, each a place with its own navigation (components/PlaceNav.jsx), like Atlas.
   profile: { why: "Profile (D167) — About you, résumés, saved answers, auto-apply, connections, appearance, notifications, privacy, account",
     // ⭐ D183 P1: Your profile — the page from the résumé, its visibility, Behind your profile.
-    css: ["pages/profile/ProfilePage.css", "pages/profile/YourProfile.css", "pages/profile/ResumeSetup.css"], members: ["App.jsx", "pages/profile/ProfilePage.jsx", "pages/profile/profilePanels.js",
-      "pages/profile/YourProfile.jsx", "pages/profile/ResumeSetup.jsx"] },
+    css: ["pages/profile/ResumeSetup.css"], members: ["App.jsx", "pages/profile/ProfilePage.jsx", "pages/profile/profilePanels.js",
+      "pages/profile/YourProfile.jsx", "pages/profile/ResumeSetup.jsx", "pages/profile/PassportSettings.jsx" /* 47m: the plate notifications, plan, Ask draft, credit draft */] },
   interview: { why: "Interview (D167) — Coming up, Prepare, Practise, After; D110's prep, bank and debriefs",
     members: ["App.jsx", "pages/interview/ProvingGround.jsx" /* 47m: D197 Wave 2 #13 M5 — the Proving ground (the classic InterviewPage is deleted) */, "pages/interview/interviewModel.js"] },
   audit: { why: "D150 T05–T08 — the 3-minute audit, /audit", css: ["pages/audit/AuditPage.css"], members: ["App.jsx", "pages/audit/AuditPage.jsx"] },
@@ -206,7 +208,6 @@ export const SHARED = Object.freeze({
   "components/PlaceNav.css":            { what: "its look", owner: "components/PlaceNav.jsx" },
   "components/SettingsSection.jsx":     { what: "THE settings card — Account and Integrations (A93)" },
   "components/WarmPathsSettings.jsx":   { what: "Account's Warm paths card — import / delete the user's own LinkedIn export or alumni list (D138)" },
-  "components/NotificationSettings.jsx": { what: "Account's Notifications card — push to this browser and email, a switch per event per channel (D112 item 8)" },
   "components/PlanSettings.jsx":         { what: "Account's phase-1 cards — the plan + the trial of 10 drafts, the phone (one-time code), the lead-sharing consent, the extension (A167)" },
   "components/ExtensionPanel.jsx":       { what: "the extension's pop-up panel — store / direct-download links from /api/config and how it helps; the posting and Settings (A167 (h))" },
   "components/OtpVerify.jsx":            { what: "THE one-time code control — send, enter, confirm → a proof; sign-up's email + phone and Settings' phone (A167 (d))" },

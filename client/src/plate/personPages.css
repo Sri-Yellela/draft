@@ -1,0 +1,96 @@
+/* ⭐ D197 Wave 2 · M5 (47m, lane person) · THE PERSON'S PAGES in the plate system — Your passport (#9, pages/profile/),
+   its settings (#17), Setting out (#15), sign-in (#17), Your bearings (job profiles) and The voyage (the job workspace).
+   Layout only: the pieces are the library's (plate.css, person.css). Plate tokens only (styles/plate.css); 1.5 px ink,
+   hard shadows, no blur, no capsules (D60). */
+
+/* ── the page frame ── */
+.pl-pp-page { min-height: 100%; padding-bottom: 72px; line-height: 1.5; font-size: var(--pl-t-ui-lg); }
+.pl-pp-page a { color: var(--pl-ink); }
+.pl-pp-head { padding-top: 28px; display: flex; flex-direction: column; gap: 10px; }
+.pl-pp-working { margin: 0; font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-working); line-height: 1.05; overflow-wrap: anywhere; }
+.pl-pp-body { margin-top: 22px; display: flex; flex-direction: column; gap: 22px; }
+.pl-pp-note { font-size: var(--pl-t-tiny); line-height: 1.5; color: var(--pl-muted); overflow-wrap: anywhere; }
+.pl-pp-err { margin: 12px 0 0; font-size: var(--pl-t-small); font-weight: 700; }
+.pl-pp-err::before { content: "✕ "; }
+.pl-pp-stack { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.pl-pp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: var(--pl-t-small); }
+.pl-pp-list > li { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; padding-bottom: 8px; border-bottom: var(--pl-border-rule); overflow-wrap: anywhere; }
+.pl-pp-mark { font-family: var(--pl-mono); font-weight: 700; }
+.pl-pp-check { display: flex; gap: 10px; align-items: center; min-height: var(--pl-target); font-size: var(--pl-t-small); }
+.pl-pp-form { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.pl-pp-inline { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.pl-pp-inline > .pl-field { flex: 1 1 200px; }
+/* a classic editor kept whole inside a plate page (the D101 editors, ProfilePanel, Account's cards) — on a plate card */
+.pl-pp-classic { min-width: 0; background: var(--pl-card); color: var(--pl-ink); border: var(--pl-border); border-radius: var(--pl-r-card); padding: 14px 16px; box-sizing: border-box; overflow-wrap: anywhere; }
+.pl-settings .pl-pp-classic { border-style: dashed; box-shadow: none; }
+
+/* ── the passport's hero ── */
+.pl-pp-hero { align-items: center; }
+.pl-pp-hero__plate { flex: 1 1 480px; min-width: 0; max-width: 640px; }
+.pl-pp-next { max-width: 480px; }
+.pl-pp-top { margin-top: 18px; display: flex; flex-direction: column; gap: 14px; }
+.pl-pp-source { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 10px 14px; border: var(--pl-border); border-radius: var(--pl-r-small);
+  background: var(--pl-paper-warm); }
+.pl-pp-changed { box-shadow: var(--pl-s6-clay); }
+.pl-pp-four[data-tone="clay"] .pl-question { box-shadow: var(--pl-s6-clay); }
+.pl-pp-loading { padding-top: 36px; }
+
+/* ── a numbered leg: the main column and its drawing ── */
+.pl-pp-row { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; margin-top: 18px; }
+.pl-pp-main { flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.pl-pp-side { flex: 1 1 240px; min-width: 0; max-width: 420px; }
+
+/* ── 01 the visa page ── */
+.pl-pp-visa { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-card); box-shadow: var(--pl-s5-region); }
+.pl-pp-visa__row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; padding: 8px 0; border-top: var(--pl-border-rule); font-size: var(--pl-t-small); font-weight: 700; }
+.pl-pp-visa__row:first-child { border-top: 0; }
+.pl-pp-identity__more { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+.pl-pp-photo { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pl-pp-link { display: inline-flex; gap: 8px; align-items: center; min-height: var(--pl-target); font-size: var(--pl-t-small); font-weight: 700; color: var(--pl-ink); }
+
+/* ── 08 the sealed pages: one folded row at a time ── */
+.pl-pp-sealed { background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-input); }
+.pl-pp-sealed + .pl-pp-sealed { margin-top: 10px; }
+.pl-pp-sealed > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; min-height: var(--pl-target); padding: 10px 14px; box-sizing: border-box; font-size: var(--pl-t-small); }
+.pl-pp-sealed > summary::-webkit-details-marker { display: none; }
+.pl-pp-sealed > summary::before { content: "▸"; font-family: var(--pl-mono); }
+.pl-pp-sealed[open] > summary::before { content: "▾"; }
+.pl-pp-sealed[open] > summary { border-bottom: var(--pl-border-rule); }
+.pl-pp-sealed__body { padding: 12px 14px; }
+
+/* ── settings: the plate switch, the table, the callout, the plans ── */
+.pl-pp-switch { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; width: 44px; height: 26px; padding: 2px; border: var(--pl-border); border-radius: var(--pl-r-status);
+  background: var(--pl-card); justify-content: flex-start; align-items: center; }
+.pl-pp-switch > span { width: 18px; height: 18px; border-radius: var(--pl-r-sq-lg); background: var(--pl-ink); }
+.pl-pp-switch[data-on] { background: var(--pl-region); justify-content: flex-end; }
+.pl-pp-switch[data-on] > span { background: var(--pl-card); }
+.pl-pp-switch[disabled] { cursor: default; border-style: dashed; }
+.pl-pp-switch:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 3px; }
+.pl-pp-table { width: 100%; border-collapse: collapse; font-size: var(--pl-t-small); }
+.pl-pp-table caption { text-align: left; padding-bottom: 6px; font-size: var(--pl-t-meta); color: var(--pl-ink-soft); }
+.pl-pp-table thead th { text-align: left; padding: 6px 0; font-family: var(--pl-mono); font-size: var(--pl-t-mono); letter-spacing: var(--pl-track-mono); border-bottom: var(--pl-border); }
+.pl-pp-table thead th + th, .pl-pp-table td { text-align: center; width: 72px; }
+.pl-pp-table tbody th { text-align: left; font-weight: 600; padding: 9px 0; border-bottom: var(--pl-border-rule); display: flex; flex-direction: column; gap: 2px; }
+.pl-pp-table td { border-bottom: var(--pl-border-rule); }
+.pl-pp-callout { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px 12px; border: var(--pl-border); border-radius: var(--pl-r-input); background: var(--pl-clay-tint); font-size: var(--pl-t-small); }
+.pl-pp-callout > span { flex: 1 1 240px; }
+.pl-pp-lamp { display: block; width: 44px; }
+.pl-pp-plans { display: flex; flex-wrap: wrap; gap: 18px; }
+.pl-pp-plans > .pl-settings { flex: 1 1 240px; min-width: 0; }
+
+/* ── Setting out (#15) ── */
+.pl-so-legs { display: flex; flex-direction: column; }
+.pl-so-done { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+/* ── sign in (#17): the market plate, faint, as the paper behind the form ── */
+.pl-si { max-width: var(--pl-page); margin: 0 auto; padding: 36px var(--pl-gutter) 72px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; }
+.pl-si__intro { flex: 999 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.pl-si__form { flex: 1 1 380px; min-width: 0; max-width: 520px; position: relative; }
+.pl-si__paper { position: absolute; inset: -18px; z-index: 0; opacity: .35; pointer-events: none; overflow: hidden; border-radius: var(--pl-r-hero); }
+.pl-si__card { position: relative; z-index: 1; }
+
+/* ── Your bearings (job profiles) and The voyage (the job workspace) ── */
+.pl-bg-cards { display: flex; flex-wrap: wrap; gap: 20px; }
+.pl-bg-cards > * { flex: 1 1 340px; min-width: 0; }
+.pl-bg-card[data-active] { box-shadow: var(--pl-s5-region); }
+.pl-vy-ticket { flex: 1 1 420px; min-width: 0; max-width: 620px; }

@@ -56,3 +56,25 @@ export function profilePanelFor(routeKey, hash = "") {
   const h = String(hash || "").replace(/^#/, "");
   return PROFILE_PANEL_IDS.includes(h) ? h : PROFILE_DEFAULT;
 }
+
+// ⭐ D197 Wave 2 #9 / #17 · M5 (47m) · YOUR PASSPORT'S AREA NAV (docs/revamp/profile.md P1–P4, the approved Passport board):
+// the four views, and More = the four settings panels in plain names (+ Your plan while the monetisation lever is on —
+// /app/plans, D197 #17' "In-app Plans into Settings"). App's shell slot draws it (ShellAreaNav); the hrefs are the same
+// addresses the nav card wrote (routing unchanged, P5 / P6).
+export const PASSPORT_VIEWS = Object.freeze([
+  { id: "about", label: "Your passport", href: "/app/profile/about", icon: "starred" },
+  { id: "answers", label: "Saved answers", href: "/app/profile/answers", icon: "list" },
+  { id: "autoapply", label: "Auto-apply", href: "/app/profile/autoapply", icon: "progress" },
+  { id: "connections", label: "Connections", href: "/app/profile/connections", icon: "network" },
+]);
+export function passportMore({ plans = false } = {}) {
+  return [
+    { id: "appearance", label: "Appearance", href: "/app/profile/appearance" },
+    { id: "notifications", label: "Notifications", href: "/app/profile/notifications" },
+    { id: "privacy", label: "Privacy and your data", href: "/app/profile/privacy" },
+    { id: "account", label: "Account", href: "/app/profile/account" },
+    ...(plans ? [{ id: "plans", label: "Your plan", href: "/app/plans" }] : []),
+  ];
+}
+/** Your passport tells the area nav its stamp count (the chip, "3 STAMPS") — a window event, so no second read of the page. */
+export const PASSPORT_STAMPS_EVENT = "draft:passport-stamps";
