@@ -65,7 +65,8 @@ export function Opening({ opening = {}, actions, as: Root = "article", company, 
         </div>
         {o.stack?.length ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }} data-works-with="">
-            <span className="pl-label pl-muted">WORKS WITH · ✓ ON YOUR RÉSUMÉ</span>
+            {/* 47m (public.md §7): signed out there is no résumé — the label says only what is true for a visitor */}
+            <span className="pl-label pl-muted">{o.signedOut ? "WORKS WITH" : "WORKS WITH · ✓ ON YOUR RÉSUMÉ"}</span>
             <div className="pl-stackchips">{o.stack.map((t) => (chip ? <span key={t.name} style={{ display: "contents" }}>{chip(t, <StackChip name={t.name} yours={t.yours}/>)}</span> : <StackChip key={t.name} name={t.name} yours={t.yours}/>))}</div>
           </div>
         ) : s.state === "partial" ? <NoData>STACK · NO DATA YET</NoData> : null}

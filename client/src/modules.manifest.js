@@ -56,7 +56,7 @@ export const MODULES = Object.freeze({
       // Profile → Connections its portals (PortalAccounts) and the Inbox's Gmail control — a decided reuse: the same
       // settings in two places must be one implementation, not a copy.
       "pages/profile/ProfilePage.jsx"] },
-  landing: { why: "the landing page (46v: A's hero, the shelf, C)", members: ["pages/LandingPage.jsx"] },
+  landing: { why: "the landing page (47m: the plate front door — the hero deck of Opening tickets, the region plates, the figures and promises)", members: ["pages/LandingPage.jsx"] },
   // ⭐ D196 (owner 11-24) · THE PLATE SYSTEM — one component library (plate/) built from the design report and ported from the
   // canvas export; its pages are composed only from these. The gallery (/dev/plate) shows every component in every state.
   // plate/plate.css is the library's look, worn by the library's files and the gallery only; P1–P5's pages join as members.
@@ -102,7 +102,10 @@ export const MODULES = Object.freeze({
       "plate/RouteMap.jsx", "plate/Gazetteer.jsx", "pages/atlas/AtlasGazetteer.jsx", "pages/atlas/gazetteerModel.js",
       // ⭐ D197 Wave 2 #9 / #15 / #17 · M5 (47m, lane person): Your passport and its settings, the four things, in the plate system
       "pages/profile/ProfilePage.jsx", "pages/profile/YourProfile.jsx", "pages/profile/PassportSettings.jsx", "pages/profile/ResumeSetup.jsx",
-      "panels/JobProfilesPanel.jsx" /* Your bearings */, "panels/JobWorkspacePanel.jsx" /* The voyage */, "pages/settingout/SettingOutPage.jsx" /* Setting out */, "components/AuthScreen.jsx" /* sign in */] },
+      "panels/JobProfilesPanel.jsx" /* Your bearings */, "panels/JobWorkspacePanel.jsx" /* The voyage */, "pages/settingout/SettingOutPage.jsx" /* Setting out */, "components/AuthScreen.jsx" /* sign in */,
+      // ⭐ D197 Wave 2 #16 / #14 / #22 + marketing.md (47m, lane public, M5): the signed-out chrome, the public pages, the
+      // marketing pages' frame, Off the map and Correspondence — built on the plate from the approved mocks
+      "components/PublicChrome.jsx", "components/Footer.jsx", "components/MarketingFrame.jsx", "pages/LandingPage.jsx", "pages/NotFoundPage.jsx"] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminGateway.jsx", "panels/adminFlags.jsx","panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "panels/adminReports.jsx", "panels/adminCompanyRecords.jsx", "panels/adminNetwork.jsx", "panels/adminRuns.jsx", "panels/adminPhase1.jsx", "panels/adminDiagnostics.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.
@@ -384,7 +387,7 @@ export const COMPOSITIONS = Object.freeze([
   { from: "consoles/PlanConsoles.jsx", to: "panels/JobsPanel.jsx", why: "each plan console renders the board" },
   { from: "panels/AutoApplyPanel.jsx", to: "panels/JobWorkspacePanel.jsx", why: "D102 P5: on a wide screen Draft House shows an opened application beside its list" },
   { from: "panels/DatabasePanel.jsx", to: "panels/JobWorkspacePanel.jsx", why: "D102 P5: on a wide screen The Table shows an opened application beside History" },
-  { from: "pages/LandingPage.jsx", to: "panels/DeckView.jsx", why: "46v (owner 11-18: \"use the same card as we use inside the site\"): the landing's hero deals the deck's own home card (HomeCardStill) and its buttons, no decisions" },
+
   { from: "pages/jobs/PublicBoardPage.jsx", to: "panels/DeckView.jsx", why: "D179 (f): the signed-out /jobs draws the deck's own card (CardFace), no decisions" },
   { from: "pages/profile/ProfilePage.jsx", to: "panels/ProfilePanel.jsx", why: "D167: About you / Your résumés / Saved answers are the Profile page's own parts (`section`)" },
   { from: "pages/profile/YourProfile.jsx", to: "panels/ProfilePanel.jsx", why: "D183 P2: Your profile listens for the base-résumé save / upload that ProfilePanel fires (RESUME_REPLACED_EVENT) to show What changed" },

@@ -6,6 +6,10 @@
 import { useEffect, useRef, useState } from "react";
 import { PlateLogo, Wordmark, Ruler } from "./Shell.jsx";
 import { plateState } from "./PlateState.jsx";
+import { Kickers } from "./Marks.jsx";
+import { PageTitle } from "./Plates.jsx";
+import { Ticket } from "./Tickets.jsx";
+import OffTheMapEdge from "./drawings/OffTheMapEdge.jsx";
 
 const plainClick = (e) => !(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0);
 
@@ -79,5 +83,40 @@ export function PublicNav({ home = { href: "/", label: "draft — home" }, links
       </div>
       <Ruler/>
     </header>
+  );
+}
+
+// ⭐ D197 Wave 2 #22 · M5 (47m, lane public) · OFF THE MAP — the approved mock `off-the-map` as a library piece: the reader
+// has walked past the edge of the known map. The edge (the ported drawing OffTheMapEdge, from the final Drawings sheet),
+// the kicker that keeps the status in words, the serif title, one lead, THE ONE WAY BACK (the page's one clay point, a clay
+// ticket) and the other roads (quiet tickets). Three variants share it: missing (404), broke (a fault), busy (503, "being
+// redrawn"); the words are the caller's. No region (the reader is outside every region) — the caller's PlateRoot sets I for
+// the clay. `onGo(href)` takes a plain click inside the app (the router); without it the tickets are plain links.
+export function OffTheMap({ kicker = [], title = "Off the map", stop = true, lead, back, roads = [], onGo, titleId = "otm-title" }) {
+  const click = (href) => (onGo && href ? (e) => { if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); onGo(href); } : undefined);
+  return (
+    <main className="pl-page" style={{ display: "flex", flexDirection: "column", gap: 40, paddingTop: 28, paddingBottom: 24 }} data-off-the-map="">
+      <section style={{ display: "flex", flexWrap: "wrap", gap: 32, alignItems: "center" }} aria-labelledby={titleId}>
+        <div style={{ flex: "999 1 420px", minWidth: 0, display: "flex", flexDirection: "column", gap: 14 }}>
+          {kicker.length ? <Kickers parts={kicker}/> : null}
+          <PageTitle id={titleId} stop={stop}>{title}</PageTitle>
+          {lead ? <p className="pl-lead">{lead}</p> : null}
+          {back ? (
+            <div className="pl-tickets" style={{ marginTop: 6 }}>
+              <Ticket tone="clay" kicker={back.kicker || "THE ONE WAY BACK"} title={back.title} line={back.line} go={back.go} href={back.href}
+                onClick={back.onClick || click(back.href)}/>
+            </div>
+          ) : null}
+        </div>
+        <div style={{ flex: "1 1 320px", minWidth: 0 }} className="pl-platehero">
+          <div className="pl-platehero__frame" style={{ "--pl-aspect": "360 / 220" }}><OffTheMapEdge/></div>
+        </div>
+      </section>
+      {roads.length ? (
+        <section aria-label="Other roads" className="pl-tickets">
+          {roads.map((r) => <Ticket key={r.href} kicker={r.kicker} title={r.title} line={r.line} go={r.go} href={r.href} onClick={click(r.href)}/>)}
+        </section>
+      ) : null}
+    </main>
   );
 }

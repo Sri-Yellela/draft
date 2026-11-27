@@ -57,6 +57,17 @@ export function PublicHeader({ clay = true }) {
   );
 }
 
+/** The client router's way to a public href: server-rendered pages (/learn/…, /jobs/role|tech|sponsor-h1b/…, /<company>/<id>)
+ *  are a full load; everything else is a client route. Used as `onGo` by the plate pieces on the public pages. */
+const SERVER_PAGE = /^\/(learn\/|jobs\/(role|tech|sponsor-h1b)\/|[a-z0-9][a-z0-9-]*\/\d+$)/;
+export function usePublicGo() {
+  const navigate = useNavigate();
+  return (href) => {
+    if (!href || /^(https?:)?\/\//.test(href) || href.startsWith("#")) { window.location.assign(href); return; }
+    if (SERVER_PAGE.test(href)) window.location.assign(href); else navigate(href);
+  };
+}
+
 /** A signed-out page: paper (the region's palette), the public nav, the page, the public footer. */
 export function PublicPage({ region = "IV", clay = true, children, className = "", ...data }) {
   return (
