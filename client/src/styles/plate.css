@@ -56,6 +56,7 @@
   --pl-coin: #B8913A; --pl-coin-hi: #E3BE62;                                  /* the lock emblem's coins */
   --pl-lit-deep: #2F5446; --pl-lit-soft: #9FD3BE;                             /* the isometric tile's queue (proven, deep / soft) */
   --pl-road: #C9BFB6;                                                         /* the isometric tile's road */
+  --pl-wood-pale: #E8C9A0;                                                    /* 47m: a pencil's bare wood, the schoolhouse bell (DrawingsAtlas 05 / 07) */
   --pl-r4-plate: #C9D2DF; --pl-contour-1: #CDBFB3; --pl-contour-2: #D9CBBE;   /* Home's volume plate: IV's ground, paper contours */
 
   /* ── Region IV's hypsometric ramp, light → deep (report). Every other sector palette gets its 10 steps

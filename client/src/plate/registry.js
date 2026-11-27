@@ -308,7 +308,10 @@ export const PORTED_DRAWINGS = ["MarketSurveyPlate", "MarketBoardOrder", "Market
   "EmblemFound", "EmblemBits", "EmblemTree", "EmblemNet", "EmblemLock", "EmblemCode", "EmblemWorld", "EmblemMind", "AtlasVolumePlate",
   "PlaceElevationProfile", "PlaceSignpost", "PlaceIsometricTile", "PlaceHazardSeal", "PlaceHazardTimeout", "PlaceHazardDuplicate",
   // 47m (D197 #13 / #11): the row-4 boards ProvingGround and DrawingsAtlas 1-4, read from docs/sketches/final/project/
-  "ProvingGroundHill", "ProvingGroundChair", "LogbookDaysLeg", "LogbookSummitCairn", "TodaySquareInset", "LogbookTierStamp"];
+  "ProvingGroundHill", "ProvingGroundChair", "LogbookDaysLeg", "LogbookSummitCairn", "TodaySquareInset", "LogbookTierStamp",
+  // 47m (lane person): the final canvas's Passport board and the Drawings sheets' person / jobs / sign-in plates
+  "PassportIdentityPage", "PassportRoad", "NotificationsLamp", "ProfileFieldBook", "ProfileSpecimenDrawer", "ProfileSchoolhouse", "SettingOutCounter",
+  "BearingsCompassRose", "VoyageClipboard", "VoyagePostRack", "SignInMarketBehind"];
 
 /** The states every entry with data must have (R1). */
 export const REQUIRED_STATES = Object.freeze(["ready", "loading", "empty", "error"]);

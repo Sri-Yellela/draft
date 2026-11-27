@@ -47,8 +47,18 @@ export const BOARDS = [
   { dc: "ProvingGround", title: "Proving ground · Region VI", drawings: ["ProvingGroundHill", "ProvingGroundChair"] },
   { dc: "DrawingsAtlas", title: "Drawings I · Atlas, the passport, setting out", pick: [0, 1, 2, 3],
     drawings: ["LogbookDaysLeg", "LogbookSummitCairn", "TodaySquareInset", "LogbookTierStamp"] },
+  // ⭐ 47m (lane person) · the FINAL canvas's row-4 boards, read straight from docs/sketches/final/project/<file> (each board is
+  // its own file; its generator is scripts/sketches47l/). `null` = a drawing on the board that belongs to another page — left
+  // for that page's port (the svgs still count, so the order is checked). Passport: the hero (the passport open at its
+  // identity page), the road so far, the notifications lamp. The three Drawings sheets: only Your passport's, Setting out's,
+  // Your bearings', The voyage's and Sign in's.
+  { file: "Passport.dc.html", title: "Your passport · Region V", drawings: ["PassportIdentityPage", "PassportRoad", "NotificationsLamp"] },
+  { file: "DrawingsAtlas.dc.html", title: "Drawings · Atlas, the passport, setting out", drawings: [null, null, null, null, "ProfileFieldBook", "ProfileSpecimenDrawer", "ProfileSchoolhouse", "SettingOutCounter"] },
+  { file: "DrawingsJobs.dc.html", title: "Drawings · jobs and the network", drawings: ["BearingsCompassRose", "VoyageClipboard", "VoyagePostRack", null, null, null, null] },
+  { file: "DrawingsPublic.dc.html", title: "Drawings · public pages", drawings: [null, null, null, null, "SignInMarketBehind", null, null, null, null, null] },
 ];
 export const DC_DIR = path.join(ROOT, "docs", "sketches", "final", "project");
+const FINAL_DIR = DC_DIR;
 
 // ⭐ A drawing's TEMPLATE BINDINGS ({{ name }} on the canvas — the live detail a page drives) become props, each with the
 // value it takes at rest. A binding with no default here stops the port. Colour values are plate tokens.
@@ -123,6 +133,31 @@ export const LIVE = {
     props: 'tier = "LEAGUE · TIER II", name = "Foothills", foot = "WEEK 48 · 214 SQUARES"',
     subs: [['{"LEAGUE · TIER II"}', "{tier}"], ['{"Foothills"}', "{name}"], ['{"WEEK 48 · 214 SQUARES"}', "{foot}"]],
   },
+};
+
+// ⭐ 47m (lane person) · the passport's two drawings carry the person's own data — the board's example values are the
+// defaults (with no props the drawing is the board's). PassportIdentityPage: the printed fields, the two machine-readable
+// lines, up to three proven stamps + one "not yet" (a missing stamp is hidden, never invented) and who sees the page.
+// PassportRoad: up to three employers — the first, the one before now, and now (a missing stop is hidden).
+const txt = (s) => `{${JSON.stringify(s)}}`;
+const PASSPORT_STAMPS = [["translate(400 112) rotate(-8)", "SQL", "11-12 · 3 SQUARES"], ["translate(520 150) rotate(6)", "Python", "10-30 · 3 SQUARES"], ["translate(420 226) rotate(4)", "HTTP", "11-18 · 3 SQUARES"]];
+LIVE.PassportIdentityPage = {
+  props: 'name = "CHEN, MAYA", handle = "@mayachen", fits = "BACKEND · DATA", place = "BOSTON & REMOTE", years = "4", openTo = "FULL-TIME", mrz = ["P<DRAFT<CHEN<<MAYA<<<<<<<", "3PROVEN<<14LISTED<<<<<<<"], stamps = [{ name: "SQL", sub: "11-12 · 3 SQUARES" }, { name: "Python", sub: "10-30 · 3 SQUARES" }, { name: "HTTP", sub: "11-18 · 3 SQUARES" }], notYet = "TypeScript", seenBy = "your connections"',
+  pre: "const st = (i) => stamps[i] || null;",
+  subs: [
+    [txt("CHEN, MAYA"), "{name}"], [txt("@mayachen"), "{handle}"], [txt("BACKEND · DATA"), "{fits}"], [txt("BOSTON & REMOTE"), "{place}"],
+    [txt("4"), "{years}"], [txt("FULL-TIME"), "{openTo}"], [txt("P<DRAFT<CHEN<<MAYA<<<<<<<"), "{mrz[0]}"], [txt("3PROVEN<<14LISTED<<<<<<<"), "{mrz[1]}"],
+    ...PASSPORT_STAMPS.flatMap(([t, n, sub], i) => [[`<g transform="${t}">`, `<g transform="${t}" visibility={st(${i}) ? undefined : "hidden"}>`], [txt(n), `{st(${i})?.name}`], [txt(sub), `{st(${i})?.sub}`]]),
+    ['<g transform="translate(520 300) rotate(-5)">', '<g transform="translate(520 300) rotate(-5)" visibility={notYet ? undefined : "hidden"}>'], [txt("TypeScript"), "{notYet}"],
+    [txt("your connections"), "{seenBy}"],
+  ],
+};
+LIVE.PassportRoad = {
+  props: 'stops = [{ name: "Larkspur Analytics", when: "2021–22" }, { name: "Fennel Health", when: "2022–24" }, { name: "Halcyon Data", when: "2024 → now" }]',
+  pre: "const at = (i) => stops[i] || null;",
+  subs: [["40", "Larkspur Analytics", "2021–22", 11], ["240", "Fennel Health", "2022–24", 11], ["480", "Halcyon Data", "2024 → now", 15]].flatMap(([x, n, w, r], i) => [
+    [`<circle cx="${x}" cy="64" r="${r}"`, `<circle visibility={at(${i}) ? undefined : "hidden"} cx="${x}" cy="64" r="${r}"`],
+    [txt(n), `{at(${i})?.name}`], [txt(w), `{at(${i})?.when}`]]),
 };
 
 export function applyLive(name, jsx) {
@@ -256,7 +291,7 @@ export function portSvg(svg, map, where) {
       }
       if (/\{\{/.test(v)) throw new Error(`a template expression the port can't read in ${where}: "${v}"`);
       if (t.tag === "svg" && k === "aria-label") { label = v; props.push("aria-label={label}"); continue; }
-      if (t.tag === "svg" && (k === "sc-camel-view-box" || k === "viewBox")) viewBox = v;
+      if (t.tag === "svg" && (k === "sc-camel-view-box" || k === "viewBox")) viewBox = v;   // 47m: the final boards write viewBox plainly
       if (k === "style") {
         for (const [sk, sv] of Object.entries(parseStyle(v))) {
           if (sk === "font-family") style.fontFamily = fontToken(sv);
@@ -334,15 +369,22 @@ export function boardDrawings(indexes) {
       svgs.forEach((svg, i) => out.push({ name: b.drawings[i], board: b.title, svg, src: name }));
       continue;
     }
-    const src = SOURCES[b.source || "v3"];
-    const index = indexes[b.source || "v3"];
-    const row = index.find((r) => r.title === b.title);
-    if (!row) throw new Error(`the export ${src.name} has no board "${b.title}"`);
-    const tpl = fs.readFileSync(path.join(src.out, row.id, "template.html"), "utf8");
+    let tpl, srcName;
+    if (b.file) {
+      srcName = `docs/sketches/final/project/${b.file}`;
+      tpl = fs.readFileSync(path.join(FINAL_DIR, b.file), "utf8");
+    } else {
+      const src = SOURCES[b.source || "v3"];
+      const index = indexes[b.source || "v3"];
+      const row = index.find((r) => r.title === b.title);
+      if (!row) throw new Error(`the export ${src.name} has no board "${b.title}"`);
+      tpl = fs.readFileSync(path.join(src.out, row.id, "template.html"), "utf8");
+      srcName = src.name;
+    }
     const body = tpl.slice(tpl.indexOf("<x-dc>"));
     const svgs = [...body.matchAll(/<svg[^>]*role="img"[\s\S]*?<\/svg>/g)].map((m) => m[0]);
     if (svgs.length !== b.drawings.length) throw new Error(`"${b.title}" has ${svgs.length} drawings, the port expects ${b.drawings.length}`);
-    svgs.forEach((svg, i) => out.push({ name: b.drawings[i], board: b.title, svg, src: src.name }));
+    svgs.forEach((svg, i) => { if (b.drawings[i]) out.push({ name: b.drawings[i], board: b.title, svg, src: srcName }); });
   }
   return out;
 }

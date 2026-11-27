@@ -28,5 +28,16 @@ import LogbookDaysLeg from "./LogbookDaysLeg.jsx";
 import LogbookSummitCairn from "./LogbookSummitCairn.jsx";
 import TodaySquareInset from "./TodaySquareInset.jsx";
 import LogbookTierStamp from "./LogbookTierStamp.jsx";
+import PassportIdentityPage from "./PassportIdentityPage.jsx";
+import PassportRoad from "./PassportRoad.jsx";
+import NotificationsLamp from "./NotificationsLamp.jsx";
+import ProfileFieldBook from "./ProfileFieldBook.jsx";
+import ProfileSpecimenDrawer from "./ProfileSpecimenDrawer.jsx";
+import ProfileSchoolhouse from "./ProfileSchoolhouse.jsx";
+import SettingOutCounter from "./SettingOutCounter.jsx";
+import BearingsCompassRose from "./BearingsCompassRose.jsx";
+import VoyageClipboard from "./VoyageClipboard.jsx";
+import VoyagePostRack from "./VoyagePostRack.jsx";
+import SignInMarketBehind from "./SignInMarketBehind.jsx";
 
-export const DRAWINGS = { MarketSurveyPlate, MarketBoardOrder, MarketTerrain, LedgerRunRoute, SurveyTeamDiorama, SurveyHiringProfile, SurveyRoleLine, SurveyMatchDial, EmblemFound, EmblemBits, EmblemTree, EmblemNet, EmblemLock, EmblemCode, EmblemWorld, EmblemMind, AtlasVolumePlate, PlaceElevationProfile, PlaceSignpost, PlaceIsometricTile, PlaceHazardSeal, PlaceHazardTimeout, PlaceHazardDuplicate, ProvingGroundHill, ProvingGroundChair, LogbookDaysLeg, LogbookSummitCairn, TodaySquareInset, LogbookTierStamp };
+export const DRAWINGS = { MarketSurveyPlate, MarketBoardOrder, MarketTerrain, LedgerRunRoute, SurveyTeamDiorama, SurveyHiringProfile, SurveyRoleLine, SurveyMatchDial, EmblemFound, EmblemBits, EmblemTree, EmblemNet, EmblemLock, EmblemCode, EmblemWorld, EmblemMind, AtlasVolumePlate, PlaceElevationProfile, PlaceSignpost, PlaceIsometricTile, PlaceHazardSeal, PlaceHazardTimeout, PlaceHazardDuplicate, ProvingGroundHill, ProvingGroundChair, LogbookDaysLeg, LogbookSummitCairn, TodaySquareInset, LogbookTierStamp, PassportIdentityPage, PassportRoad, NotificationsLamp, ProfileFieldBook, ProfileSpecimenDrawer, ProfileSchoolhouse, SettingOutCounter, BearingsCompassRose, VoyageClipboard, VoyagePostRack, SignInMarketBehind };
