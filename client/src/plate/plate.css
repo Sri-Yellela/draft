@@ -368,7 +368,7 @@
    end it fell under the open Ask draft card (fixed right: 20px, 380 px wide, so it covers x ≥ 100vw − 400 px; at 1440 × 900, x ≥ 1040),
    which the full-width ticket reaches whenever the ledger draws no "filled for you" column beside it. Here it is ~200 px past
    the ticket's left edge: clear of the card at every width where the card floats (on a phone it is a bottom sheet). */
-.pl-question__top { display: flex; flex-wrap: wrap; justify-content: flex-start; align-items: center; gap: 4px 16px; }
+.pl-question__top { display: flex; flex-wrap: wrap; justify-content: flex-start; align-items: center; gap: 4px 8px; }   /* 47m: flex-start (the held thread's link no longer pushed to the far edge); the board's 8 px keeps it on one line at 390 */
 .pl-question__top > .pl-q-link { line-height: 1; }   /* the line keeps the kicker's height */
 .pl-answers { display: flex; flex-wrap: wrap; gap: 14px; }
 .pl-answer { all: unset; cursor: pointer; box-sizing: border-box; flex: 1 1 180px; min-height: 76px; border-radius: var(--pl-r-q); border: var(--pl-border); background: var(--pl-card); box-shadow: var(--pl-s5-region);
