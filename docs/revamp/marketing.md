@@ -166,3 +166,12 @@ Route-only (no dock item — D5: no recruiter role exists; `App.jsx:578-596, 839
 The whole of this file (no Wave 2 row) · the landing's hero plate (Atlas's volume plate vs the market's political map) ·
 the shelf (kept as books vs region plates) · `/products` and `/blog` ("coming soon" pages — strike?) · `/tools/apply`
 (public tool that needs sign-in) · Recruiter (strike vs Admin) · Plans (Settings) · whether `/survey` stays public.
+
+## M5 · What was built (47m, lane public — the 47n record)
+
+- **The landing** (`pages/LandingPage.jsx`) rebuilt from the approved mock: the Opening deck, region plates, figures +
+  promises; `LandingPage.css` deleted; Opening's signed-out stack label.
+- **The marketing pages** (About, Contact, Extension, Features, How it works, Pricing) — their notes and promises on the
+  plate (`MkNote` / `MkPromises` in `MarketingFrame`); Features' shelf → the route *find / fit / apply*.
+
+**Verified:** the 47m runs on the merged tree — fast tier 6,334 (6,333 / 0 + 1 skip), browser tier 277 / 0, pushed `fdc1adb2` (production + staging). **Unknown:** not walked signed in on production (the owner's walk).

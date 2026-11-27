@@ -224,3 +224,14 @@ the stamps, the road so far, where you fit, the sealed pages (folded rows), and 
 - **P4 the four settings panels under More** — D197 puts them in #17 with plain names; the owner may prefer them as their
   own area (a gear) rather than inside the passport's nav.
 - **C3 Android app** has no state of its own (a sentence) — keep the row or fold it into Managed portals?
+
+## M5 · What was built (47m, lane person + the coordinator — the 47n record)
+
+- **D197 #9 Your passport** (`pages/profile/YourProfile.jsx`, `ProfilePage.jsx`, `plate/personPages.css`): the hero with
+  the ported passport drawing (`PassportIdentityPage` / `PassportRoad` take the person's data as props), the four answering
+  stats, your next stamp, 01 the visa page with every section's eye, 02–08 with their drawings, the proof page folded into
+  the stamps; the passport's area nav in the shell (the stamps chip). The kicker reads *HOW DRAFT APPLIES* (D6).
+- **Retired:** `PlaceNav`, `ProfilePage.css`, `YourProfile.css`.
+- ⭐ Agent's pick — the page keeps the plate's centred measure (named in d163).
+
+**Verified:** the 47m runs on the merged tree — fast tier 6,334 (6,333 / 0 + 1 skip), browser tier 277 / 0, pushed `fdc1adb2` (production + staging). **Unknown:** not walked signed in on production (the owner's walk).

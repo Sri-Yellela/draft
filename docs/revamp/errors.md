@@ -249,3 +249,11 @@ caught by these words (a custom empty sentence) belongs to its page's M1 — thi
 | `plate/PlateState.jsx:38` | {onRetry ? <button type="button" className="pl-btn" onClick={onRetry}>Try again</button> : null} | the library (already plate — PlateState) |
 | `plate/PlateState.jsx:55` | if (state === "empty") return <Drawer text={s.emptyText // frame.emptyText // "Nothing here yet."} action={s.e… | the library (already plate — PlateState) |
 | `plate/sheetFixtures.jsx:130` | filled={{ kicker: "FILLED FOR YOU · 22 OF 24", label: "What draft filled for you", foot: "From your résumé and… | the library (already plate — PlateState) |
+
+## M5 · What was built (47m, lane public — the 47n record)
+
+- **#22 Off the map** — `plate/PublicPages.jsx` `OffTheMap` draws the 404 page (`pages/NotFoundPage.jsx`) and, through
+  `services/publicChrome.js`, the server's not-found pages (a 404 stays a 404 with `noindex`).
+- The per-area error boundary (`plate/AreaErrorBoundary.jsx`, 47k) is unchanged.
+
+**Verified:** the 47m runs on the merged tree — fast tier 6,334 (6,333 / 0 + 1 skip), browser tier 277 / 0, pushed `fdc1adb2` (production + staging). **Unknown:** not walked signed in on production (the owner's walk).

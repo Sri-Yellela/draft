@@ -60,3 +60,10 @@ keep, which one you are travelling on (*active*), and what you follow along the 
 - **J9 *Include a summary section*** is a tailoring rule; the passport's sealed pages also hold *How your résumés are
   tailored* (`profile.md` A43). One home or both?
 - **J12–J15 Trackers** could live on the market (*Following*) rather than here.
+
+## M5 · What was built (47m, lane person — the 47n record)
+
+- **Job profiles → *Your bearings*** (`panels/JobProfilesPanel.jsx`) in the plate system, as the proposed M2: bearing cards
+  as cartouches, the compass rose, the stats, 02 *What you follow*. `components/ui/TileCard.jsx` retired.
+
+**Verified:** the 47m runs on the merged tree — fast tier 6,334 (6,333 / 0 + 1 skip), browser tier 277 / 0, pushed `fdc1adb2` (production + staging). **Unknown:** not walked signed in on production (the owner's walk).

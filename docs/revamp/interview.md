@@ -158,3 +158,21 @@ Stamp, LitSquares) and `--pl-*` tokens; synthetic people and companies (Maya Che
 New library piece it needed: **`DrawingToCome`** (`plate/Drawings.jsx`, registry entry) — every drawing marked *drawing
 needed* above is that placeholder. All four views are in the mock (the area nav switches them; `&panel=` picks one for a
 screenshot). Defend is operable (ask → out loud / type → harder → next line).
+
+## M5 · What was built (47m, lane practice + the coordinator — the 47n record)
+
+- **Interview is the Proving ground** (`pages/interview/ProvingGround.jsx`, `interviewModel.js`, `plate/practicePlate.css`),
+  Region VI, from the approved mock and the `ProvingGround` board. The shell's area nav carries Coming up / Prepare /
+  Practise / After (`useInterviewAreaNav`); the nine old panel ids open their view scrolled to their section
+  (`INTERVIEW_HOMES`).
+- **Every M1 row kept:** the tickets per interview (the soonest = the one clay point — `ComingTicket`: the when, company ·
+  round, the tear, Prepare), the rounds as a route + the bank gazetteer, the story bank + *Start from my experience*,
+  D203 (9) the company guides → the survey sheet's *Interviewing here*, Defend (the operable model, the chair drawing,
+  this-session squares), Drills, the mock + coach drawers, the debrief one question at a time (same fields, same POST),
+  the debriefs gazetteer, Past sessions. The classic `InterviewPage(.jsx/.css)` is deleted.
+- **The hero is the board's** (the hill card first at 1 1 520, the column beside it, the 1180 measure). ⭐ Agent's pick — the
+  hill lights no bench and no "you" until a round is proved; the page keeps the plate's centred measure (named in d163).
+- **Drawings ported** (`scripts/d196PortDrawings.mjs` reads the boards directly): the hill, the interviewer's chair.
+- **F5:** `pg-hero` 0.67 %, `pg-coming` 1.09 %, `pg-hill`, `pg-chair` — no LOOK.
+
+**Verified:** the 47m runs on the merged tree — fast tier 6,334 (6,333 / 0 + 1 skip), browser tier 277 / 0, pushed `fdc1adb2` (production + staging). **Unknown:** not walked signed in on production (the owner's walk).

@@ -169,3 +169,21 @@ Also still classic and already homed in `atlas-interview-m1.md` (Wave 1 lanes ow
 (`/atlas/your-skills`, `/atlas/check` → Your survey, A3 / A3a), *Your route* / the navigator / the track board (→ Routes,
 A1d / A1e), family pages (`/atlas/family/<key>` → the Region page, D203 (5)), the signed-out Overview (→ Atlas home's
 *Get started*, D203 (4)).
+
+## M5 · What was built (47m, lanes practice + gaz + the coordinator — the 47n record)
+
+- **Your run → the Logbook** (`pages/atlas/Logbook.jsx`), a section of Your map: the level as a compass dial, the streak
+  strip, the lit days (`LogbookDays`, weekdays only), waypoints (the day's leg + a ticket per quest, the first undone in
+  clay), stamps for finished modules (D203 (7)), practice by skill (D203 (11)), Standings behind Compete (join, the tier as a
+  stamp, the summit cairn, the rows, the gap, the pod's proof, Leave), Runs, Onward.
+- **Today's question → the Today card** (`pages/atlas/TodayCard.jsx`): the pick as a question ticket, match / order via
+  `BankAnswers`, the why, today's square inset; answering lights the Logbook's day. Stack exposure → Your survey.
+- **Forwards:** `/atlas/your-run`, `/todays-question`, `/league` → `your-map#logbook` / `#today` / `#standings`.
+  Deleted: `YourRun.jsx/.css`, `TodaysQuestionPanel`, `LeaguePanel`.
+- **The Gazetteer (Wave 1 #8, D201)** replaces the node page, glossary, library shelf and lesson deck — see
+  `docs/revamp/atlas.md` § *The Gazetteer*. The node page's panes a Gazetteer entry had dropped (a role's board: skills with
+  shares, levels, pay, companies; its map; the next level; every sponsor; roles / pay of a skill; the typed related lists;
+  the few-postings line) are back as the entry's *More about it* (`pages/atlas/EntryMore.jsx`, D200 Rule 1).
+- **F5:** `lb-leg`, `lb-cairn`, `lb-today`, `lb-tier` (the ported DrawingsAtlas 1–4).
+
+**Verified:** the 47m runs on the merged tree — fast tier 6,334 (6,333 / 0 + 1 skip), browser tier 277 / 0, pushed `fdc1adb2` (production + staging). **Unknown:** not walked signed in on production (the owner's walk).

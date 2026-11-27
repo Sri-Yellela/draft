@@ -73,3 +73,29 @@ Each word opens one panel. Options show live counts; a zero is dimmed, never hid
 | `loadMore` | `JobsPanel.jsx:3963-3971` | Fetches `currentPage + 1` and appends (cursor plan), one load at a time |
 | The Index table | `JobsPanel.jsx:4629, 4749-4760`; `plate/MarketIndex.jsx:105-126` | Draws the same `jobs`; past 200 rows only windowed (`INDEX_WINDOW_AFTER`) |
 | The Deck | `DeckView.jsx:931, 977-1000` | No paging: the daily deal (`GET /api/draft/today`), re-fetched on `board_scored` / `deck_reshuffled`; `EndOfDeck` at its end. ⚠ **C3's "the Deck pages through the same order (25 of 11,247 · page 2)" means the deck reads the board's list, not the daily deal: a real change of what the deck is**, to settle with the owner before C3 |
+
+## M5 · What was built (47m, lane market + the coordinator — the 47n record)
+
+- **MATCH → the sheet's 02.** The deck's MATCH opens the opening sheet at `/app/jobs/<id>#fit`; the sheet scrolls its
+  overlay to the hash once drawn. `OPEN_MATCH_EVENT` / `openMatchInPosting` and JobsPanel's listener are deleted.
+- **The dead search-intent chain deleted** — the live search tick (nothing passed `live` since D26), `handleSearch` /
+  `handleSetRole` / `ensureSearchProfileAlignment` / `activateProfileForSearch`, the intent guard tables,
+  `SearchIntentDialog` and JobsPanel's `DomainProfileWizard` mount (the wizard file stays — three other importers).
+- **UsbSuggest is a plate card** (`.pl-suggest`, inside a `PlateRoot` in its portal): one list for /jobs, the market's
+  search and the dock search; the classic `.usb__suggest-*` / `.usb__scope*` rows deleted.
+- **The peek's notifications** carry a plate line icon per type (`plate/icons.jsx` `NOTIF_ICON` / `notifIcon`; an unknown
+  type is the bell).
+- **A250 Send on the Index rows** (`RowBubble onSend`: network on → the one `SendJobPicker`, off → the public link shared or
+  copied). ⭐ Agent's pick — owner may reverse: **Send hides at ≤ 600 px** (A201: at 390 Draft fell off the row); it stays
+  on the deck card and the sheet.
+- **The posting's one home is the sheet.** 06 *Your application* (`plate/SheetResume.jsx`: the résumé for this job, the
+  sandbox's live view, History, More, the notices, ManualSubmitted); 04's description is fetched on open; the sheet tells
+  the board which job is open (`boardOpenSheet` / `boardCloseSheet`) so the sandbox and Ask draft's `currentJob` follow it.
+  `?job=<id>` redirects to `/app/jobs/<id>` (and since 47n every server writer emits the new address).
+- **Deleted:** DeckView's long post + swap (D156 1c / D168), MarketOpenings' A240 listener, `JobDetailPanel(.jsx/.css)`,
+  `SandboxPanel`, `ATSPanel` (the sheet draws FitCard itself), the mobile bottom nav, the URL sync; in 47n
+  `components/PanelShell.jsx` (it rendered nowhere) — its two drawer insets live in `lib/panelGeometry.js`.
+- **The ledger (47j leftovers):** the measure is a named d163 exception (agent's pick); the held questions keep their way
+  (asks in place; Ask draft's thread only from its link, placed so the open card cannot cover it at 1440 × 900).
+
+**Verified:** the 47m runs on the merged tree — fast tier 6,334 (6,333 / 0 + 1 skip), browser tier 277 / 0, pushed `fdc1adb2` (production + staging). **Unknown:** not walked signed in on production (the owner's walk).

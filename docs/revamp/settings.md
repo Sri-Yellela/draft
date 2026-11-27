@@ -160,3 +160,17 @@ data*, *Account*, *Sign in*, *Create your account*. They live in **Your passport
 - **AC7 the extension card** appears in both Account and Connections — keep both rows or only Connections?
 - **SI3 the deal backdrop** — the card backs are the classic deck's art; the brief replaces it with the market plate
   (drawing to come). Confirm.
+
+## M5 · What was built (47m, lane person + the coordinator — the 47n record)
+
+- **D197 #17 the settings pages** as plate pages (`pages/profile/PassportSettings.jsx`): the notifications table, *Your
+  plan* folded in from `/app/plans` (`PlansPanel` retired), Ask draft, credit draft. `NotificationSettings` retired.
+- **The plate at night** — the approved `DarkPlate` board's token table in `styles/plate.css` under
+  `[data-plate-face=night]` (ramps deep → mid, region marks at step 4, the edged hard shadow); Appearance → *Plate pages:
+  Paper / Night* (`shared/appearance.js`, `themes/layoutOptions.js`). The night face sets no `color-scheme` (one decider:
+  `themes/index.js`).
+- **SI3 sign in / sign up** (`components/AuthScreen.jsx`) from the approved mock: Region IV, binder tabs *Sign in /
+  Create account*, the market plate behind (`SignInMarketBehind`); every handler unchanged; the deal backdrop retired.
+  ⭐ Agent's pick — the *Try it first* ticket opens the real `SignupAtsHook` in place (the D141 carry kept).
+
+**Verified:** the 47m runs on the merged tree — fast tier 6,334 (6,333 / 0 + 1 skip), browser tier 277 / 0, pushed `fdc1adb2` (production + staging). **Unknown:** not walked signed in on production (the owner's walk).

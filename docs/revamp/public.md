@@ -235,3 +235,18 @@ catalogue cards could carry them, with their call numbers). Nothing is built.
   footer is the same footer (A93: built once).
 - ⚠ **`Opening` signed out:** its stack label reads *WORKS WITH · ✓ ON YOUR RÉSUMÉ* (`Tickets.jsx`) — false for a visitor.
   The mock passes no stack; M5 adds a `signedOut` wording (*WORKS WITH*) to the library piece.
+
+## M5 · What was built (47m, lane public — the 47n record)
+
+- **The public chrome** (`components/PublicChrome.jsx`: PublicNav + auth + the sign-in popover, PublicPage), the public
+  footer and `MarketingFrame` on the plate; `NavBar` + `ProductsPage` deleted (⭐ agent's pick: `/products` → `/features`).
+- **/jobs** (`pages/jobs/PublicBoardPage.jsx`) from the approved mock *public-jobs* (Region IV): the header + counted stats,
+  NavSearch around UsbSuggest, the cartouche + role picker, the political map signed out, Deck / Index binder tabs,
+  MarketPager, the gazetteer + its drawing, onward tickets. `PublicBoardPage.css` deleted.
+- **Server pages:** `services/publicChrome.js` (the plate chrome + Off the map) for the posting page
+  (`services/jobs/publicJobPage.js` — a 404 stays 404 + noindex), the landing pages (`landingPages.js`) and the roadmap.
+- **Legal / tools / survey / audit / blog** under the plate public frame — the legal words unchanged; PolicyProse and
+  `AuditPage.css` on plate tokens; the apply tool's sign-in gate kept as a plate drawer.
+- **Drawings:** the final public + Correspondence drawings ported and in the register.
+
+**Verified:** the 47m runs on the merged tree — fast tier 6,334 (6,333 / 0 + 1 skip), browser tier 277 / 0, pushed `fdc1adb2` (production + staging). **Unknown:** not walked signed in on production (the owner's walk).

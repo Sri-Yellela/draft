@@ -73,3 +73,12 @@ ledger's row opened to its own page (the ledger is the log of every voyage; this
   ticket). Keep the hand-off, or answer in place?
 - **W19 / W20 the story bank and debriefs** are Interview's (D197 #13); drawn here they would be the same component twice —
   the owner's call whether Prep links to Proving ground instead.
+
+## M5 · What was built (47m, lane person — the 47n record)
+
+- **The job workspace → *The voyage*** (`panels/JobWorkspacePanel.jsx`) in the plate system, as the proposed M2: the
+  breadcrumb, the opening's head with status and the countdown stamp, the run as a route, binder tabs, the held lines +
+  every filled value with its source in words, *Approve & send* as the clay point, the clipboard and post-rack plates,
+  Prep in plate sheets.
+
+**Verified:** the 47m runs on the merged tree — fast tier 6,334 (6,333 / 0 + 1 skip), browser tier 277 / 0, pushed `fdc1adb2` (production + staging). **Unknown:** not walked signed in on production (the owner's walk).

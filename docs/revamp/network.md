@@ -150,3 +150,12 @@ existing / this lane's).
 
 **Rows whose home is unclear:** the dock — one *Correspondence* item vs today's three (D167 says the dock's items stay) ·
 Feed's *Your people* side sentence · whether *Older posts* becomes a pager.
+
+## M5 · What was built (47m, lane public — the 47n record)
+
+- **Network → Correspondence** (D197 #14) from the approved mock: the shared frame (`pages/network/CorrespondenceFrame.jsx`,
+  Region VI, the dispatch rider's route); People as gazetteers + Send tickets; Dispatches as `CorrespondenceLetter` cards +
+  ReportBlock + the notice board; Letters as gazetteers + the open correspondence + the post rack
+  (`plate/Correspondence.jsx`); the shell's Correspondence area nav. `NetworkPage.css` deleted. The Home link says Home (D6).
+
+**Verified:** the 47m runs on the merged tree — fast tier 6,334 (6,333 / 0 + 1 skip), browser tier 277 / 0, pushed `fdc1adb2` (production + staging). **Unknown:** not walked signed in on production (the owner's walk).

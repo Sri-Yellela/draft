@@ -105,3 +105,18 @@ a T2 learning answer with lessons, *Next:* and the route placeholder, a T3 with 
 with *Use as my answer*; Speak + the voice note, the opt-in. The fox bubble itself is not drawn (no plate piece yet — at M5 it is a round `pl-btn--icon` with Tiny's face; the dock's *Ask draft* item is Wave 1's). Typing a line runs a tiny scripted matcher (three phrases) so the
 model is operable. Library piece added: **`AskDraftCard`** (`plate/Cards.jsx`, registry entry with four states + ask-back
 and T3 variants + extremes); the placeholder is **`DrawingToCome`**.
+
+## M5 · What was built (47m, lane practice + the coordinator — the 47n record)
+
+- **The card:** AppNav's `AskDraftPanel` draws `plate/Cards.jsx` `AskDraftCard` inside the same `#appnav-ask` box — the
+  fixed placement, open / close, `inert` and the phone's bottom sheet unchanged; `AppNav.css` only places it. The engine is
+  untouched (D190: act first, a model last). The card gains `face` (Tiny's, U2 kept as a logo), `renderTurn`, the
+  `data-ask-*` hooks the walks read, and `AskNote` (the card's own note line, so AppNav wears no card classes).
+- **The answer as a route** (board `AskRoute`): an answer with 2–3 entries → the route card in `plate/RouteMap.jsx`
+  (`askRouteWaypoint`: the first unlit stop with a practice step; start flag, stops, the waypoint ticket, the board's curve
+  handles and plate mark; `AskRouteBigger`); one entry → its link; more than three → the course's route.
+- **Save to my routes:** migration **283** `atlas_question_routes` (both runners, byte-identical) + `routes/atlasQuestionRoutes.js`
+  — `GET / POST / DELETE /api/atlas/question-routes`, `requireAuth`, `req.user.id` only, no model; in MERGE_PLAN and the export.
+- **F5:** `askroute-card` 0.002 % against the board (was declared LOOK by the lane; built to the board in 47m).
+
+**Verified:** the 47m runs on the merged tree — fast tier 6,334 (6,333 / 0 + 1 skip), browser tier 277 / 0, pushed `fdc1adb2` (production + staging). **Unknown:** not walked signed in on production (the owner's walk).

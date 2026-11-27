@@ -110,3 +110,15 @@ read*), the drop (`SettingOutDrop`, new), the cartouche bearing on the market pl
   confirm the plate market still offers it (R2 retired the classic market's arms).
 - **Leg order** — D197 says *upload → bearing → 4 things*; today the four things sit on Your profile, not in a flow. The mock
   puts them in the flow AND keeps them on the passport.
+
+## M5 · What was built (47m, lane person — the 47n record)
+
+- **D197 #15 Setting out** at `/app/setting-out` (`pages/settingout/SettingOutPage.jsx`): the drop, the bearing cartouche
+  opening the wizard, the four things one at a time, by hand, the counter drawing; `lib/bearing.js` builds the bearing
+  sentence once.
+- **D190:** the wizard's *more suggestions* read the résumé + the taxonomy registry (`services/chipSuggestions.js`);
+  `POST /api/domain-profiles/generate-chips` makes no model call; task `profile.domain_chips` retired; the button says
+  *Suggest more from your resume*. The privacy policy's Anthropic paragraph now lists two features (effective
+  November 27, 2026).
+
+**Verified:** the 47m runs on the merged tree — fast tier 6,334 (6,333 / 0 + 1 skip), browser tier 277 / 0, pushed `fdc1adb2` (production + staging). **Unknown:** not walked signed in on production (the owner's walk).

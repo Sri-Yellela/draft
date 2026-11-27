@@ -64,3 +64,20 @@ the run chip (this week's lit days, → Your run).
 7. **Region II's name** — the board's is a placeholder; the module's own title (*The physical machine*) is used.
 8. **Stages** — a region's lessons in order, split in quarters (Start · Build · Deepen · Master); the content has no
    per-lesson level.
+
+## The Gazetteer — Wave 1 #8 / D201 (47m, lane gaz + the coordinator — the 47n record)
+
+| Page | Address | Board | Code |
+|---|---|---|---|
+| **The index** — Look anything up, Show / Browse, A–Z, the rail | `/atlas/gazetteer` | `GazetteerIndex` | `pages/atlas/AtlasGazetteer.jsx` · `plate/Gazetteer.jsx` + `gazetteer.css` |
+| **An entry** — a term or a place: meaning + cross-references, Watch it, Why it works (checkpoints in your own words + the build link), Where it runs, Read more, practice on one scale, the compass, its routes, *More about it* | `/atlas/<slug>`, `/atlas/gazetteer/<lesson>` | `Gazetteer` | the same + `pages/atlas/EntryMore.jsx`, `LearnChecks.jsx` (Explain / BuildLink, shared with LearnCircle) |
+| **Routes / one route** — RouteMap, the stops, copy / join / leave, the stamp, challenges behind Compete, crossings | `/atlas/routes`, `/atlas/routes/<id>` | `Route` | `plate/RouteMap.jsx` (RouteMap, RouteLegend, ProjectRoute, `routePoints` / `regionRuns`) |
+
+- The pure model is `pages/atlas/gazetteerModel.js` (entries from the glossary + the two courses, search, A–Z, routes,
+  guided routes, pathways, guides and build briefs, stop states, the compass, the practice ladder).
+- **Atlas's nav is D201's five** — Your map, Gazetteer, Routes, Library, Your survey — + the run chip; More keeps the rest.
+- **The retired addresses forward** (`forwardOf`): `?q=`, glossary, roles-and-skills, how-it-works, learn, library/shelf,
+  the two course pages. `learnStepHref` points at the entry. Deleted: AtlasGraph, LessonDeck, LibraryPanel, PathwayArt.
+- Tokens added for the Gazetteer's raw values: `--pl-line-bar` (3 px), `--pl-page-gz` (1180 px).
+
+**Verified:** the 47m runs on the merged tree — fast tier 6,334 (6,333 / 0 + 1 skip), browser tier 277 / 0, pushed `fdc1adb2` (production + staging). **Unknown:** not walked signed in on production (the owner's walk).
