@@ -18,7 +18,8 @@ export function questHref(base, q) {
   if (q.id === "explain") return `${base}/learn#step-${encodeURIComponent(q.stepId)}`;
   if (q.id === "prove") return `${base}/your-skills?prove=${encodeURIComponent(q.skill)}`;
   // ⭐ A154 (45o): the daily question and one deck.
-  if (q.id === "today") return `${base}/todays-question`;
+  // ⭐ 47m (D203 (3)): today's question is the Today card on Your map now (/todays-question forwards there)
+  if (q.id === "today") return `${base}/your-map#today`;
   if (q.id === "deck") return `${base}/library/${encodeURIComponent(q.deckId)}`;
   return base;
 }

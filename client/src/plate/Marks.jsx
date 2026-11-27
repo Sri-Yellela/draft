@@ -28,7 +28,8 @@ const DAY_WORD = { lit: "proof that day", today: "today", rest: "the week’s re
  * signal: each square carries its word as a title, and the key spells the four.
  */
 // `onPick(i)` (optional) makes each day a button that says what lit it (the Logbook's operable model); `picked` = the open one.
-export function LogbookDays({ days = [], label, showKey = true, onPick, picked = null, ...s }) {
+// `offset` (47m, the live Logbook) = blank cells before the first day, so a run that starts mid-week sits under its weekday.
+export function LogbookDays({ days = [], label, showKey = true, onPick, picked = null, offset = 0, ...s }) {
   const gate = plateState(s, { height: 150, radius: "card", lines: 4, label: "Loading your days" });
   if (gate) return gate;
   const lit = days.filter((d) => d.s === "lit").length;
@@ -36,6 +37,7 @@ export function LogbookDays({ days = [], label, showKey = true, onPick, picked =
     <div className="pl-logdays">
       <div className="pl-logdays__grid" role="img" aria-label={label || `${lit} of ${days.length} days lit`}>
         {["M", "T", "W", "T", "F", "S", "S"].map((w, i) => <span key={`h${i}`} className="pl-logdays__wd" aria-hidden="true">{w}</span>)}
+        {Array.from({ length: Math.max(0, Math.min(6, offset)) }, (_, i) => <span key={`o${i}`} aria-hidden="true"/>)}
         {days.map((d, i) => {
           const word = `${d.day}${DAY_WORD[d.s] ? ` · ${DAY_WORD[d.s]}` : ""}`;
           return onPick

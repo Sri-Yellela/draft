@@ -60,7 +60,7 @@ export const MODULES = Object.freeze({
   // ⭐ D196 (owner 11-24) · THE PLATE SYSTEM — one component library (plate/) built from the design report and ported from the
   // canvas export; its pages are composed only from these. The gallery (/dev/plate) shows every component in every state.
   // plate/plate.css is the library's look, worn by the library's files and the gallery only; P1–P5's pages join as members.
-  plate: { why: "D196's plate component library and its gallery (F3 / F4)", css: ["plate/plate.css", "plate/sheets.css" /* 47h: the ledger + the survey sheet */, "plate/atlasPlate.css" /* 47h: Atlas */, "plate/person.css" /* 47j (w2-person): the person's pieces */],
+  plate: { why: "D196's plate component library and its gallery (F3 / F4)", css: ["plate/plate.css", "plate/sheets.css" /* 47h: the ledger + the survey sheet */, "plate/atlasPlate.css" /* 47h: Atlas */, "plate/person.css" /* 47j (w2-person): the person's pieces */, "plate/practicePlate.css" /* 47m (lane practice): the Proving ground, the Logbook, the Today card, Ask draft's route */],
     members: ["App.jsx", "main.jsx" /* 47k: the root error boundary, the last net under every page */, "plate/PlateRoot.jsx", "plate/PlateState.jsx", "plate/AreaErrorBoundary.jsx", "plate/areaFault.js" /* 47k: each area's error boundary in the shell + its pure chunk-error / reload guard */, "plate/Shell.jsx", "plate/Marks.jsx", "plate/Plates.jsx", "plate/Tickets.jsx",
       "plate/Cards.jsx", "plate/Lists.jsx", "plate/Drawings.jsx", "plate/icons.jsx", "plate/motion.js", "plate/registry.js", "plate/fonts.js",
       "plate/drawings/index.js", "plate/fixtures.jsx", "pages/dev/PlateGallery.jsx",
@@ -93,7 +93,9 @@ export const MODULES = Object.freeze({
       "plate/AtlasHome.jsx", "plate/AtlasRegion.jsx", "plate/AtlasLibrary.jsx", "pages/atlas/AtlasVolume.jsx", "pages/atlas/AtlasPage.jsx",
       // ⭐ D197 Wave 2 #21 M5 (47m, lane outside): Admin in the plate — the frame (a plate root, the area nav, the binder tabs),
       // the kit every admin panel is drawn from (plate tokens, pl-label), and the disk banner's ticket
-      "components/AdminLayout.jsx", "panels/AdminPanel.jsx", "panels/adminKit.jsx", "panels/adminOps.jsx"] },
+      "components/AdminLayout.jsx", "panels/AdminPanel.jsx", "panels/adminKit.jsx", "panels/adminOps.jsx",
+      // ⭐ D197 Wave 2 #13 / #11 (47m, lane practice, M5): the Proving ground (Interview) and Your map's Logbook + Today card
+      "pages/interview/ProvingGround.jsx", "pages/atlas/Logbook.jsx", "pages/atlas/TodayCard.jsx"] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminGateway.jsx", "panels/adminFlags.jsx","panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "panels/adminReports.jsx", "panels/adminCompanyRecords.jsx", "panels/adminNetwork.jsx", "panels/adminRuns.jsx", "panels/adminPhase1.jsx", "panels/adminDiagnostics.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.
@@ -104,8 +106,8 @@ export const MODULES = Object.freeze({
   // ⭐ D167 · Atlas's own navigation: components/PlaceNav.jsx (the card of panels — the one implementation, A136), AtlasPanels.jsx
   // (the panels), atlasPanels.js (which panel an address belongs to; docs/D167_ATLAS_MAP.md maps every older surface to its
   // panel); AtlasPanels.css is the panels' look.
-  atlas: { why: "the Atlas pages (D105) — search, one node's page, its neighbourhood graph; Learn, the owner's path (D115); Your map, the tree (D116); its own navigation of panels (D167)", css: ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/LearnCircle.css", "pages/atlas/AtlasTree.css", "pages/atlas/AtlasPanels.css", "pages/atlas/LibraryPanel.css", "pages/atlas/YourRun.css", "pages/atlas/TrackBoard.css", "pages/atlas/CompetePanels.css", "pages/atlas/SkillMap.css"],
-    members: ["App.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/atlasModel.js", "pages/atlas/LearnView.jsx", "pages/atlas/learnModel.js", "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/LibraryPanel.jsx", "pages/atlas/PathwayArt.jsx", "pages/atlas/libraryModel.js", "pages/atlas/YourRun.jsx", "pages/atlas/yourRunModel.js", "pages/atlas/TrackBoard.jsx", "pages/atlas/trackModel.js", "pages/atlas/LibraryGuides.jsx", "pages/atlas/LessonDeck.jsx", "pages/atlas/DeckPlay.jsx", "pages/atlas/deckPlay.js",
+  atlas: { why: "the Atlas pages (D105) — search, one node's page, its neighbourhood graph; Learn, the owner's path (D115); Your map, the tree (D116); its own navigation of panels (D167)", css: ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/LearnCircle.css", "pages/atlas/AtlasTree.css", "pages/atlas/AtlasPanels.css", "pages/atlas/LibraryPanel.css", "pages/atlas/TrackBoard.css", "pages/atlas/CompetePanels.css", "pages/atlas/SkillMap.css"],
+    members: ["App.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/atlasModel.js", "pages/atlas/LearnView.jsx", "pages/atlas/learnModel.js", "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/LibraryPanel.jsx", "pages/atlas/PathwayArt.jsx", "pages/atlas/libraryModel.js", "pages/atlas/Logbook.jsx", "pages/atlas/TodayCard.jsx" /* 47m: Your run → the Logbook, Today's question → the Today card */, "pages/atlas/yourRunModel.js", "pages/atlas/TrackBoard.jsx", "pages/atlas/trackModel.js", "pages/atlas/LibraryGuides.jsx", "pages/atlas/LessonDeck.jsx", "pages/atlas/DeckPlay.jsx", "pages/atlas/deckPlay.js",
       // ⚠ D194 P4 (47c): the feed plays a shared deck with the Library's own player — a decided reuse, so FeedDeck is a member here too.
       "pages/network/FeedDeck.jsx",
       "pages/atlas/AtlasTree.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js", "pages/atlas/YourMap.jsx",
@@ -125,7 +127,7 @@ export const MODULES = Object.freeze({
     css: ["pages/profile/ProfilePage.css", "pages/profile/YourProfile.css", "pages/profile/ResumeSetup.css"], members: ["App.jsx", "pages/profile/ProfilePage.jsx", "pages/profile/profilePanels.js",
       "pages/profile/YourProfile.jsx", "pages/profile/ResumeSetup.jsx"] },
   interview: { why: "Interview (D167) — Coming up, Prepare, Practise, After; D110's prep, bank and debriefs",
-    css: ["pages/interview/InterviewPage.css"], members: ["App.jsx", "pages/interview/InterviewPage.jsx", "pages/interview/interviewModel.js"] },
+    members: ["App.jsx", "pages/interview/ProvingGround.jsx" /* 47m: D197 Wave 2 #13 M5 — the Proving ground (the classic InterviewPage is deleted) */, "pages/interview/interviewModel.js"] },
   audit: { why: "D150 T05–T08 — the 3-minute audit, /audit", css: ["pages/audit/AuditPage.css"], members: ["App.jsx", "pages/audit/AuditPage.jsx"] },
   publicBoard: { why: "D179 P3 — the open board, /jobs signed out", css: ["pages/jobs/PublicBoardPage.css"],
     members: ["App.jsx", "pages/jobs/PublicBoardPage.jsx"] },

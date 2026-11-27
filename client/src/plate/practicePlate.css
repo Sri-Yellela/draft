@@ -21,3 +21,28 @@
 .pl-iv__frame { border: var(--pl-line) solid var(--pl-ink); border-radius: var(--pl-r-small); overflow: hidden; }
 .pl-iv__pair { display: flex; flex-wrap: wrap; gap: 20px; }
 .pl-iv__pair > * { flex: 1 1 300px; min-width: 0; }
+
+/* ── the Logbook and the Today card (Your map, Region IV) ── */
+.pl-lb { display: block; }
+.pl-lb__row { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; }
+.pl-lb__days { margin-top: 26px; align-items: flex-start; gap: 28px; }
+.pl-lb__col { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.pl-lb__col--fit { flex: 0 1 auto; gap: 12px; }
+.pl-lb__col > p, .pl-lb__col > .pl-lead { margin: 0; }
+.pl-lb__meta { margin: 0; font-size: var(--pl-t-meta); }
+.pl-lb__check { display: inline-flex; flex-wrap: wrap; gap: 10px; align-items: center; min-height: 44px; }
+.pl-lb__leg { flex: 1 1 300px; min-width: 0; max-width: 420px; border: var(--pl-line) solid var(--pl-ink); border-radius: var(--pl-r-small); overflow: hidden; }
+.pl-lb__stamps { display: flex; flex-wrap: wrap; gap: 28px; align-items: center; }
+.pl-lb__nextstamp { display: flex; flex-direction: column; gap: 6px; }
+.pl-lb__split { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.pl-lb__main { flex: 999 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.pl-lb__main > p { margin: 0; }
+.pl-lb__side { flex: 1 1 240px; min-width: 0; max-width: 340px; display: flex; flex-direction: column; gap: 14px; }
+.pl-lb__feed { margin: 0; padding-left: 18px; }
+.pl-lb__field { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
+.pl-lb__proven { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+.pl-lb__proven p { margin: 0; }
+.pl-lb__remind { margin-top: 22px; display: flex; flex-direction: column; gap: 6px; }
+.pl-lb__select { width: auto; min-height: 36px; }
+.pl-lb__why { display: flex; flex-direction: column; gap: 10px; }
+.pl-lb__why p { margin: 0; }

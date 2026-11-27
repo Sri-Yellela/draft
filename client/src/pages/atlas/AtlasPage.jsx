@@ -23,13 +23,16 @@ import AtlasGraph from "./AtlasGraph.jsx";
 import { RoleMap, FamilyMap } from "./YourMap.jsx";
 import SkillMap from "./SkillMap.jsx";   // ⭐ A228: Your map
 import PlaceNav from "../../components/PlaceNav.jsx";
-import { OverviewPanel, YourSkillsSlot, YourRoutePanel, TodaysQuestionPanel, HowItWorksPanel, AuditPanel, RolesPanel, AtlasMarketPanel, GlossaryPanel,
+import { OverviewPanel, YourSkillsSlot, YourRoutePanel, HowItWorksPanel, AuditPanel, RolesPanel, AtlasMarketPanel, GlossaryPanel,
   PanelHead } from "./AtlasPanels.jsx";
 import { panelFor, isPanelSlug, PANEL_LABEL, navGroups, panelHref, courseIdOf } from "./atlasPanels.js";
-import { LeaguePanel, ChallengesPanel, SharedBar } from "./CompetePanels.jsx";   // A154 / D172 (4) (45s): behind their switches
+import { ChallengesPanel, SharedBar } from "./CompetePanels.jsx";   // A154 / D172 (4) (45s): behind their switches (47m: the league is the Logbook's Standings)
 import { LibraryShelf, CoursePage, PatternCoursePage, COURSES, courseKind } from "./LibraryPanel.jsx";
 import { LibraryItem } from "./LibraryGuides.jsx";
-import YourRun from "./YourRun.jsx";
+// ⭐ D197 Wave 2 #11 (47m, M5): Your run → the Logbook, Today's question → the Today card, both on Your map (D203 (1) (3));
+// stack exposure → Your survey (D203 (11)). The classic Your run / Today's question / League pages are retired (they forward).
+import Logbook, { StackOnTheBoard } from "./Logbook.jsx";
+import TodayCard from "./TodayCard.jsx";
 import TrackBoard from "./TrackBoard.jsx";
 import {
   KIND_LABEL, relatedGroups, resolveSearch, loadNode, payLine, computedLine, orderedResources, resourceMeta, FEW_POSTINGS_LINE,
@@ -475,10 +478,15 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
               <section className="atl__section" data-atlas-route-in-map=""><YourRoutePanel base={base} signedIn={signedIn} /></section>
             </details>
           )} />
+          <PlateRoot region="IV" className="pl-yourmap" data-your-map-parts="">
+            {signedIn ? <StackOnTheBoard /> : null}
+            <TodayCard base={base} signedIn={signedIn} />
+            <Logbook base={base} signedIn={signedIn} compete={compete} />
+          </PlateRoot>
         </div>
       )}
       {panel === "your-skills" && <YourSkillsSlot signedIn={signedIn} base={base} />}
-      {panel === "todays-question" && <TodaysQuestionPanel base={base} />}
+      {panel === "todays-question" && <Navigate replace to={`${base}/your-map#today`} />}
       {panel === "how-it-works" && <HowItWorksPanel base={base} />}
       {panel === "the-audit" && <AuditPanel base={base} />}
       {panel === "roles-and-skills" && panelOnly && (
@@ -487,9 +495,9 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
       {panel === "this-weeks-market" && <AtlasMarketPanel base={base} />}
       {panel === "glossary" && <GlossaryPanel base={base} />}
       {familyKey && <FamilyMap base={base} familyKey={familyKey} />}
-      {panel === "your-run" && <YourRun base={base} signedIn={signedIn} />}
+      {panel === "your-run" && <Navigate replace to={`${base}/your-map#logbook`} />}
       {/* ⭐ A154 / D172 (4): Compete — drawn only with its switch on; off, the address says so (the server 404s too). */}
-      {panel === "league" && (compete?.league ? <LeaguePanel base={base} /> : <p className="atl__quiet" role="status" data-compete-off="league">{compete ? "This isn't available yet." : signedIn ? "Opening…" : "Sign in to see this week's league."}</p>)}
+      {panel === "league" && (compete?.league ? <Navigate replace to={`${base}/your-map#standings`} /> : <p className="atl__quiet" role="status" data-compete-off="league">{compete ? "This isn't available yet." : signedIn ? "Opening…" : "Sign in to see this week's league."}</p>)}
       {panel === "challenges" && (compete?.challenges ? <ChallengesPanel base={base} /> : <p className="atl__quiet" role="status" data-compete-off="challenges">{compete ? "This isn't available yet." : signedIn ? "Opening…" : "Sign in to see the challenges."}</p>)}
       {barCode && <SharedBar base={base} code={barCode} />}
       {/* ⭐ D197 #7 (47h): the shelf of draft's own courses, guides and pathways — the Library is outside resources now */}

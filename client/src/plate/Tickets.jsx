@@ -136,7 +136,7 @@ export function QuestionTicket({ kicker, n, text, kind = "yesno", draft, onAnswe
                   onKeyDown={(e) => { if (e.key === "Enter" && canNext) onNext?.(); }}/>}
             {save}
           </>
-        ) : (
+        ) : kind === "custom" ? null /* 47m: the answer is the caller's own (children) — the Today card's match / order */ : (
           <>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <span className="pl-label pl-muted">DRAFTED FROM YOUR PROFILE AND THE POSTING · EDIT ANYTHING</span>

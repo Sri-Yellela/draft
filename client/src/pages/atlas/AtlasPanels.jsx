@@ -21,10 +21,7 @@ import YourSkillsPanel from "./YourSkillsPanel.jsx";   // D169
 import { ExploreByRole, Recent, directionLine, useAtlasMe } from "./YourMap.jsx";
 import { KIND_LABEL } from "./atlasModel.js";
 import { overviewStats, panelHref, learnStepHref } from "./atlasPanels.js";
-import CardPile from "../../components/CardPile.jsx";   // ⭐ 46u: the question on draft's card
-import { pastelVar } from "../../../../shared/pastel.js";
 import "./AtlasPanels.css";
-import { localDay, MatchAnswer, OrderAnswer } from "./BankAnswers.jsx";   // ⭐ T14 (46y): one implementation
 import { NoteCard } from "../../components/TextBlocks.jsx";   // A233
 import { loginHref } from "../../lib/signInReturn.js";   // A138: back to this page after sign-in
 
@@ -154,143 +151,8 @@ export function YourRoutePanel({ base, signedIn }) {
   );
 }
 
-// ── Grow · Today's question ──────────────────────────────────────────────────────────────────────
-
-// ⭐ D154 P1 / P3 (45l): one question a day, picked from the person's own gaps (services/learn/dailyQuestion.js) — the why
-// after the answer, then "Go to lesson" (the item's Learn pieces), and a quiet streak. Their LOCAL day is sent.
-// ⭐ T14 (46y): localDay, MatchAnswer and OrderAnswer moved to BankAnswers.jsx — Learn's piece questions answer with them too.
-// ⭐ D154 P1 (45m) · the gentle reminder — OFF until the person turns it on; their own hour (local), push or email.
-const HOURS = Array.from({ length: 24 }, (_, h) => h);
-const hourWord = (h) => new Date(2000, 0, 1, h).toLocaleTimeString([], { hour: "numeric" });
-function DailyReminderRow() {
-  const [r, setR] = useState(null);
-  const [msg, setMsg] = useState("");
-  useEffect(() => { api("/api/learn/today/reminder").then(setR).catch(() => setR(null)); }, []);
-  if (!r) return null;
-  const save = async (body) => {
-    setMsg("");
-    try { setR(await api("/api/learn/today/reminder", { method: "PUT", body: JSON.stringify(body) })); }
-    catch (e) { setMsg(e.message || "Not saved."); }
-  };
-  const on = (patch = {}) => save({ on: true, hour: r.hour, tzOffsetMin: new Date().getTimezoneOffset(), channel: r.email && !r.push ? "email" : "push", ...patch });
-  return (
-    <div className="atl-dq__remind" data-daily-reminder={r.on ? "on" : "off"}>
-      <label className="atl__quiet">
-        <input type="checkbox" checked={r.on} onChange={e => (e.target.checked ? on() : save({ on: false }))} /> Remind me each day at{" "}
-        <select value={r.hour} aria-label="Reminder time" onChange={e => (r.on ? on({ hour: Number(e.target.value) }) : setR({ ...r, hour: Number(e.target.value) }))}>
-          {HOURS.map(h => <option key={h} value={h}>{hourWord(h)}</option>)}
-        </select>{" "}by{" "}
-        <select value={r.email && !r.push ? "email" : "push"} aria-label="Reminder by" onChange={e => (r.on ? save({ on: false }).then(() => on({ channel: e.target.value })) : setR({ ...r, push: e.target.value === "push", email: e.target.value === "email" }))}>
-          <option value="push">notification</option>
-          <option value="email">email</option>
-        </select>
-      </label>
-      <span className="atl__quiet"> · only on days you haven't answered.</span>
-      {msg && <span className="atl__quiet" role="alert"> {msg}</span>}
-    </div>
-  );
-}
-
-// ⭐ D154 P6 + P7 (45n) · the quiet progress card (services/learn/practiceProgress.js): the level read from PROOF (checked
-// or built skills — answering more never raises it), the share right per skill (3+ answers, the last 20), no curve.
-function PracticeProgressCard({ day, refresh }) {
-  const [p, setP] = useState(null);
-  useEffect(() => { api(`/api/learn/practice-progress?day=${day}`).then(setP).catch(() => setP(null)); }, [day, refresh]);
-  // ⭐ 46q: never draw an answer of another shape (a shadowed route once handed this card {marks} and blanked the Atlas)
-  if (!p?.level || !p.accuracy || !p.streak) return null;
-  return (
-    <details className="atl-dq__progress" data-practice-progress="">
-      <summary className="atl__quiet"><b>{p.level.level}</b> · {p.level.line}{p.level.next ? ` · ${p.level.next.more} more for “${p.level.next.word}”` : ""}</summary>
-      {p.streak.rests > 0 && <p className="atl__quiet">Your streak counts {p.streak.rests} rest day{p.streak.rests === 1 ? "" : "s"} — one missed day in any seven doesn't break it.</p>}
-      {p.accuracy.skills.length === 0
-        ? <p className="atl__quiet">Answer three questions on a skill to see how you're doing on it.</p>
-        : <ul className="atl-dq__acc">{p.accuracy.skills.slice(0, 12).map(s => (
-            <li key={s.skill} data-skill-accuracy={s.skill}><span>{String(s.skill).replace(/-/g, " ")}</span> <span className="atl__quiet">{s.right} of {s.answered} right</span></li>))}</ul>}
-      <p className="atl__quiet">Your level rises when you prove a skill with a quick check or something you built.</p>
-    </details>
-  );
-}
-
-// ⭐ D154 P9 (45n) · how exposed is my stack — honestly, from our own open postings (services/learn/stackExposure.js).
-function StackExposureCard() {
-  const [s, setS] = useState(null);
-  useEffect(() => { api("/api/learn/stack-exposure").then(setS).catch(() => setS(null)); }, []);
-  if (!s) return null;
-  return (
-    <details className="atl-dq__progress" data-stack-exposure="">
-      <summary className="atl__quiet"><b>Your stack on the board</b> · {s.scope}</summary>
-      {s.unmatched ? <p className="atl__quiet">{s.unmatched}</p>
-        : <ul className="atl-dq__acc">{s.stack.map(t => (
-            <li key={t.tech} data-stack-tech={t.tech} data-trend={t.trend}><span>{t.tech}</span>
-              <span className="atl__quiet">{t.open.toLocaleString()} open ({t.share}%) · {t.words}</span></li>))}</ul>}
-      <p className="atl__quiet">From the jobs draft has read, not the whole market: the last {s.windowDays} days against the {s.windowDays} before.</p>
-    </details>
-  );
-}
-
-export function TodaysQuestionPanel({ base }) {
-  const [t, setT] = useState(null);
-  const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
-  const day = localDay();
-  useEffect(() => { api(`/api/learn/today?day=${day}`).then(setT).catch(e => setErr(e?.status === 401 ? "Sign in to get a question a day, picked from your own gaps." : (e.message || "Today's question couldn't load."))); }, [day]);
-  const answer = async (i, response = null) => {
-    if (busy || t?.result) return;
-    setBusy(true);
-    try { const r = await api("/api/learn/today/answer", { method: "POST", body: JSON.stringify(response ? { day, response } : { day, chosen: i }) }); setT({ ...t, result: r, streak: r.streak, atlasStreak: r.atlasStreak }); }
-    catch (e) { setErr(e.message || "That answer didn't save."); } finally { setBusy(false); }
-  };
-  const q = t?.question, r = t?.result;
-  return (
-    <div className="atl-pan" data-atlas-panel-body="todays-question">
-      <PanelHead eyebrow={t?.reasonWords ? `Picked for you · ${t.reasonWords}` : null} title="One question a day"
-        // ⭐ A155 (45o): ONE streak — answering lights the day on Your run; this says that streak (the old per-question count only when the run's is absent).
-        lead={(t?.atlasStreak ?? t?.streak) ? `Your Atlas streak: ${t.atlasStreak ?? t.streak} day${(t.atlasStreak ?? t.streak) === 1 ? "" : "s"} — answering counts for today.` : "About two minutes. A review comes back when you miss one."} />
-      {err && <p className="atl__quiet" role="alert">{err}</p>}
-      {!t && !err && <p className="atl__quiet" role="status">Picking today's question…</p>}
-      {t && !q && <NotYet>No question to ask yet — there's nothing new for you today.</NotYet>}
-      {t && <DailyReminderRow />}
-      {t && <PracticeProgressCard day={day} refresh={r ? 1 : 0} />}
-      {t && <StackExposureCard />}
-      {/* ⭐ 46u (owner 11-17: "use our card design for … trivia"): the question is draft's card in its skill's pastel, two more
-          behind it; answering flips it to the answer and why. */}
-      {q && (
-        <CardPile className="atl-dq-pile" color={pastelVar(q.skills?.[0] || q.id)} backColors={[pastelVar(`${q.id}:next`), pastelVar(`${q.id}:after`)]}
-          flipKey={r ? "answered" : null} renderFace={() => (
-            <div className="atl-dq" data-daily-question={q.id}>
-              <p className="atl__quiet">{(q.skills || []).map(s => String(s).replace(/-/g, " ")).join(" · ")}</p>
-              <h3 className="atl__h2">{q.stem}</h3>
-              {q.type === "match" && <MatchAnswer q={q} r={r} busy={busy} onAnswer={(resp) => answer(null, resp)} />}
-              {q.type === "order" && <OrderAnswer q={q} r={r} busy={busy} onAnswer={(resp) => answer(null, resp)} />}
-              {Array.isArray(q.choices) && <div className="atl-dq__choices" role="group" aria-label="Choices">
-                {q.choices.map((c, i) => (
-                  <button key={i} type="button" className="atl-dq__choice" disabled={!!r || busy} onClick={() => answer(i)}
-                    data-state={r ? (i === r.correctIndex ? "right" : i === r.chosen ? "wrong" : "") : ""}>{c}</button>
-                ))}
-              </div>}
-              {r && Array.isArray(q.choices) && (
-                <div className="atl-dq__why" data-daily-why="" role="status">
-                  <p><b>{r.correct ? "Right." : "Not quite."}</b> {r.why.chosen}</p>
-                  {!r.correct && r.why.right && <p><b>The stronger move:</b> {r.why.rightChoice} — {r.why.right}</p>}
-                  {r.lessons?.length > 0 && <p>Go to lesson: {r.lessons.map((l, i) => <span key={l.path}>{i ? " · " : ""}<Link className="atl__link" to={learnStepHref(base, l.stepId)}>{l.label}</Link></span>)}</p>}
-                  {r.decks?.length > 0 && <p data-daily-decks="">Mini-lesson: {r.decks.map((d, i) => <span key={d.id}>{i ? " · " : ""}<Link className="atl__link" to={`${base}/library/${d.id}`}>{d.title}</Link></span>)}</p>}
-                  <p className="atl__quiet">Come back tomorrow for the next one.</p>
-                </div>
-              )}
-              {r && !Array.isArray(q.choices) && (
-                <div className="atl-dq__why" data-daily-why="" role="status">
-                  <p><b>{r.correct ? "Right." : `${(r.parts || []).filter(Boolean).length} of ${(r.parts || []).length} in place.`}</b>{typeof r.why === "string" ? ` ${r.why}` : ""}</p>
-                  {r.lessons?.length > 0 && <p>Go to lesson: {r.lessons.map((l, i) => <span key={l.path}>{i ? " · " : ""}<Link className="atl__link" to={learnStepHref(base, l.stepId)}>{l.label}</Link></span>)}</p>}
-                  {r.decks?.length > 0 && <p data-daily-decks="">Mini-lesson: {r.decks.map((d, i) => <span key={d.id}>{i ? " · " : ""}<Link className="atl__link" to={`${base}/library/${d.id}`}>{d.title}</Link></span>)}</p>}
-                  <p className="atl__quiet">Come back tomorrow for the next one.</p>
-                </div>
-              )}
-            </div>
-        )} />
-      )}
-    </div>
-  );
-}
+// ⭐ 47m (D197 Wave 2 #11, M5): Today's question left this file — it is the Today card on Your map (TodayCard.jsx); its
+// practice progress is the Logbook's (Logbook.jsx) and its stack exposure Your survey's (Logbook.jsx StackOnTheBoard).
 
 // ── Grow · The audit ─────────────────────────────────────────────────────────────────────────────
 
