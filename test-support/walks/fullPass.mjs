@@ -43,7 +43,7 @@ async function prepareAndRead(h, { dismiss = true } = {}) {
   }
   return { reply, panel, pending: !!r?.pending };
 }
-import { C_LIGHT, C_DARK } from '../../extension/tokens.js';
+import { C_LIGHT, C_DARK, C_PLATE } from '../../extension/tokens.js';
 
 // The plain control form lives on the fake ATS's own localhost origin; its port is fixed up front so the seed can
 // put that form's job on Ada's board (a plain form names no employer, so it cannot be captured — it is starred).
@@ -206,7 +206,8 @@ export default async function run(h, { check, observe, section }) {
   check('Address Line 1 needs you', row(panel, 'Address Line 1')?.band === 'need');
   // ⭐ T26: the dock's frame is the ONE surface — the review panel paints none of its own
   const rv = norm(await page.evaluate(bgOf, 'rm-draft-dock', '.fr'));
-  check(`the review panel sits on the dock's ${theme} surface (SURFACE_MENU)`, rv === norm(C.SURFACE_MENU), `${rv} vs ${C.SURFACE_MENU}`);
+  // ⭐ D197 #19 (47m, agent's pick — owner may reverse): the dock is a plate — its frame is paper in every scheme
+  check(`the review panel sits on the dock's plate paper (${theme})`, rv === norm(C_PLATE.PAPER), `${rv} vs ${C_PLATE.PAPER}`);
   const rvOwn = norm(await page.evaluate(bgOf, 'rm-gate-review-overlay', '#rm-gate-review-overlay'));
   check('…and paints no surface of its own', rvOwn === norm('rgba(0, 0, 0, 0)'), rvOwn);
   await sweepCapsules();

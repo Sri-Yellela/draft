@@ -27,7 +27,7 @@ import { fileURLToPath } from 'node:url';
 import { waitUntil, sleep, defaultSeed, BUSY_MS } from '../extensionBrowser.mjs';
 import { mountExtensionResume, seedBaseResume } from '../extensionResumeStub.mjs';
 import { prepareAndRead, fresh } from './panelLifecycle.mjs';
-import { C_LIGHT, C_DARK } from '../../extension/tokens.js';
+import { C_LIGHT, C_DARK, C_PLATE } from '../../extension/tokens.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -101,9 +101,10 @@ export default async function run(h, { check, observe, section }) {
   check('…"No résumé has been made for this job yet."', /No résumé has been made for this job yet\./.test(p1?.text || ''), p1?.text);
   // ⭐ 47a E2 (owner 11-21, moved on purpose): ONE start in the tab — Tailor — and never Regenerate; opening it starts nothing
   check('47a E2: the one start is "Tailor my résumé for this job" (no Regenerate)', JSON.stringify(p1?.actions) === JSON.stringify(['Tailor my résumé for this job']) && !(await h.readShadow(HOST, (root) => !!root.querySelector('[data-role="regenerate"]'))), JSON.stringify(p1?.actions));
-  const menu = (theme === 'dark' ? C_DARK : C_LIGHT).SURFACE_MENU;
+  // ⭐ D197 #19 (47m, agent's pick — owner may reverse): the panel is a plate — paper in every scheme
+  const menu = C_PLATE.PAPER;   // was (theme === 'dark' ? C_DARK : C_LIGHT).SURFACE_MENU
   const flat = (c) => String(c || '').replace(/\s+/g, '').toLowerCase();
-  check(`painted from the ${theme} tokens`, /^#/.test(menu) ? hex(p1?.bg) === menu.toUpperCase().slice(0, 7) : flat(p1?.bg) === flat(menu), `${p1?.bg} vs ${menu}`);
+  check(`painted from the plate's paper (${theme})`, /^#/.test(menu) ? hex(p1?.bg) === menu.toUpperCase().slice(0, 7) : flat(p1?.bg) === flat(menu), `${p1?.bg} vs ${menu}`);
   check('opening the tab started nothing', CTL.generations().length === 0 && starts(h) === 0);
 
   section('2 · a generation is started from the page\'s tab (as T24\'s Draft / T18\'s "Generate and attach" will) → the tab shows Generating');
