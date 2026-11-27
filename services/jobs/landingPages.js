@@ -7,7 +7,8 @@
 // under MIN_JOBS (a crawler reads a thin page's 200 as a soft 404), an ItemList JSON-LD, canonical, the sitemap
 // (/sitemap-landing.xml, in the jobs sitemap index). The page's links go to the postings' own pages (D128) and to /jobs
 // with the same filter, where the rest is browsable.
-import { PUBLIC_OPEN_SQL, jobPath, esc, STYLE } from "./publicJobPage.js";
+import { PUBLIC_OPEN_SQL, jobPath, esc, STYLE, PLATE_HEAD, plateNav, plateFooter } from "./publicJobPage.js";
+import { offTheMapPage, OTHER_ROADS } from "../publicChrome.js";   // ⭐ 47m (D197 #22): the thin page's 404 is Off the map
 import { ogUrl, ogImageMeta } from "../ogImage.js";
 import { taxonomy } from "./taxonomyClassify.js";
 import { TECHNOLOGIES } from "../../shared/techVocabulary.js";
@@ -101,7 +102,10 @@ export function landingData(db, kind, key) {
 export function renderLandingPage(db, kind, key, { base }) {
   let d = null; try { d = landingData(db, kind, key); } catch { d = null; }
   if (!d || d.total < MIN_JOBS) {
-    return { status: 404, html: `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Not enough jobs here yet | draft</title><meta name="robots" content="noindex"><style>${STYLE}</style></head><body><div class="wrap"><header class="site"><a class="brand" href="/">/draft</a><a href="/login">Sign in</a></header><main><h1>Not enough open jobs here yet.</h1><p><a href="/jobs">Browse every open job</a></p></main></div></body></html>` };
+    // a real 404 + noindex (D179 (7): no thin pages), drawn as Off the map with its one way back
+    return offTheMapPage({ status: 404, docTitle: "Not enough jobs here yet", kicker: ["404", "GAZETTEER", "NOT ENOUGH OPEN JOBS"], title: "Not enough open jobs here yet",
+      lead: "This corner of the market has too few openings for a page of its own.",
+      back: { title: "Browse every open job", go: "Open jobs →", href: "/jobs" }, roads: [OTHER_ROADS[1]] });
   }
   const canonical = `${base}${d.path}`;
   const desc = `${d.total.toLocaleString("en-US")} open ${d.title.toLowerCase()} — the newest first, each linked to its employer's posting. Draft tailors your résumé to each.`;
@@ -115,18 +119,18 @@ export function renderLandingPage(db, kind, key, { base }) {
 <link rel="canonical" href="${esc(canonical)}">
 <meta property="og:title" content="${esc(d.title)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:type" content="website">
 ${ogImageMeta(ogUrl(new URL(canonical).origin, { eyebrow: "Jobs", title: d.title, line: `${d.total.toLocaleString("en-US")} open · the newest first` }), d.title)}
-<style>${STYLE}</style>
+${PLATE_HEAD}<style>${STYLE}</style>
 <script type="application/ld+json">${JSON.stringify(itemList).replace(/</g, "\\u003c")}</script>
-</head><body><div class="wrap">
-<header class="site"><a class="brand" href="/" aria-label="draft — home">/draft</a><a href="/login">Sign in</a></header>
-<main>
+</head><body>${plateNav()}<div class="wrap">
+<main data-gazetteer-sheet="">
+<p class="kicker">Gazetteer · ${esc(d.title)}</p>
 <h1>${esc(d.heading)}</h1>
 <p class="facts">${esc(d.total.toLocaleString("en-US"))} open · ${esc(d.lead)}</p>
 <p><a class="cta" href="${esc(d.boardHref)}">Browse and filter all ${esc(d.total.toLocaleString("en-US"))}</a></p>
 <section class="card"><h2>The newest</h2>
 <ul>${d.rows.map(r => `<li><a href="${esc(jobPath(r))}">${esc(r.title)}</a> <span class="small">· ${esc(r.company)}${r.location ? ` · ${esc(r.location)}` : ""}</span></li>`).join("\n")}</ul>
 </section>${d.sponsor ? sponsorHistoryHtml(d.history) : ""}
-</main></div></body></html>`;
+</main></div>${plateFooter()}</body></html>`;
   return { status: 200, html };
 }
 

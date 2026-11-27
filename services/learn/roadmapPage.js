@@ -9,7 +9,8 @@
 //
 // ⭐ D194 P4 (the landing-page embed): the page's preview plays the first deck's first three points one at a time — CSS only
 // (no script, no sound: nothing here can speak), instant under prefers-reduced-motion — then "Sign up to keep learning".
-import { STYLE, esc } from "../jobs/publicJobPage.js";
+import { STYLE, esc, PLATE_HEAD, plateNav, plateFooter } from "../jobs/publicJobPage.js";   // ⭐ 47m (D197 #16): the plate chrome
+import { ROADMAP_ROUTE_SVG } from "../publicChrome.js";
 import { ogUrl, ogImageMeta } from "../ogImage.js";
 import { approvedDecks } from "./learnDecks.js";
 
@@ -44,9 +45,9 @@ export function roadmapData(decks = approvedDecks()) {
 }
 
 const PREVIEW_STYLE = `
-.station{display:grid;grid-template-columns:2.2em 1fr;gap:4px 10px;padding:10px 0;border-top:1px solid var(--line)}
+.station{display:grid;grid-template-columns:2.2em 1fr;gap:4px 10px;padding:10px 0;border-top:1px solid var(--pl-rule)}
 .station:first-child{border-top:0}
-.station .n{font-weight:800;color:var(--muted)}
+.station .n{font-family:var(--pl-serif);font-size:24px;line-height:1;color:var(--pl-ink)}
 .station h3{margin:0;font-size:17px}
 .station p{margin:2px 0 0}
 .preview{position:relative;min-height:7.5em}
@@ -75,12 +76,13 @@ export function renderRoadmapPage({ base, decks } = {}) {
 <link rel="canonical" href="${esc(canonical)}">
 <meta property="og:title" content="${esc(ROADMAP_TITLE)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:type" content="article">
 ${ogImageMeta(ogUrl(new URL(canonical).origin, { eyebrow: "Learn", title: ROADMAP_TITLE, line: `${stations.length} stations · ${deckCount} lessons` }), ROADMAP_TITLE)}
-<style>${STYLE}${PREVIEW_STYLE}</style>
+${PLATE_HEAD}<style>${STYLE}${PREVIEW_STYLE}</style>
 <script type="application/ld+json">${JSON.stringify(itemList).replace(/</g, "\\u003c")}</script>
-</head><body><div class="wrap">
-<header class="site"><a class="brand" href="/" aria-label="draft — home">/draft</a><a href="/login">Sign in</a></header>
+</head><body>${plateNav({ clay: !preview })}<div class="wrap">
 <main data-roadmap="data-engineering">
+<p class="kicker">Route · Vol. I · Data engineering</p>
 <h1>${esc(ROADMAP_TITLE)}</h1>
+<div class="card" style="padding:0;overflow:hidden;max-width:640px" data-roadmap-route-plate="">${ROADMAP_ROUTE_SVG}</div>
 <p class="facts">${esc(stations.length)} stations, in the order to learn them · ${esc(deckCount)} short lessons</p>
 ${preview ? `<section class="card" data-roadmap-preview="${esc(preview.id)}" aria-label="A preview of the first lesson">
 <h2>Start here: ${esc(preview.title)}</h2>
@@ -90,7 +92,7 @@ ${preview ? `<section class="card" data-roadmap-preview="${esc(preview.id)}" ari
 <section class="card" aria-label="The stations"><h2>The route</h2>
 <ol style="list-style:none;padding:0;margin:0">${stations.map(s => `<li class="station" data-station="${esc(s.n)}"><span class="n">${esc(s.n)}</span><div><h3>${esc(s.name)}</h3><p>${esc(s.line)}</p>${deckLinks(s)}</div></li>`).join("\n")}</ol>
 </section>
-<p><a class="cta" href="/login">Follow this route in draft</a></p>
-</main></div></body></html>`;
+<p><a class="btn ink" href="/login">Follow this route in draft</a></p>
+</main></div>${plateFooter()}</body></html>`;
   return { status: 200, html };
 }
