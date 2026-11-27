@@ -7,7 +7,7 @@ import { usePlateMotion } from "../motion.js";
 export const PassportIdentityPageLabel = "The passport, open at its identity page: Maya Chen's photo square and printed fields on the left; on the facing visa page three green stamps for proven skills, one dashed stamp not yet earned, and a beacon saying connections can see this page";
 
 /** The passport, open at its identity page: Maya Chen's photo square and printed fields on the left; on the facing visa page three green stamps for proven skills, one dashed stamp not yet earned, and a beacon saying connections can see this page */
-export default function PassportIdentityPage({ label = PassportIdentityPageLabel, className, name = "CHEN, MAYA", handle = "@mayachen", fits = "BACKEND · DATA", place = "BOSTON & REMOTE", years = "4", openTo = "FULL-TIME", mrz = ["P<DRAFT<CHEN<<MAYA<<<<<<<", "3PROVEN<<14LISTED<<<<<<<"], stamps = [{ name: "SQL", sub: "11-12 · 3 SQUARES" }, { name: "Python", sub: "10-30 · 3 SQUARES" }, { name: "HTTP", sub: "11-18 · 3 SQUARES" }], notYet = "TypeScript", seenBy = "your connections" }) {
+export default function PassportIdentityPage({ label = PassportIdentityPageLabel, className, name = "CHEN, MAYA", handle = "@mayachen", fits = "BACKEND · DATA", place = "BOSTON & REMOTE", years = "4", openTo = "FULL-TIME", mrz = ["P\u003CDRAFT\u003CCHEN\u003C\u003CMAYA\u003C\u003C\u003C\u003C\u003C\u003C\u003C", "3PROVEN\u003C\u003C14LISTED\u003C\u003C\u003C\u003C\u003C\u003C\u003C"], stamps = [{ name: "SQL", sub: "11-12 · 3 SQUARES" }, { name: "Python", sub: "10-30 · 3 SQUARES" }, { name: "HTTP", sub: "11-18 · 3 SQUARES" }], notYet = "TypeScript", seenBy = "your connections" }) {
   const uid = useId().replace(/:/g, "");
   const motion = usePlateMotion();
   void uid; void motion;

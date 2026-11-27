@@ -42,7 +42,9 @@ test("no server-side reader resolves a registry under data/", () => {
     assert.doesNotMatch(code, /["']data["']\s*,\s*["'](ROLE_ALIAS_MAP|QUALIFICATION_ROLE_MAP|DOMAIN_METADATA_REGISTRY|DOMAIN_TOOL_REGISTRY)\.json/,
       `${f} reads a registry from data/`);
   }
-  assert.match(lf("client/src/panels/JobsPanel.jsx"), /from "\.\.\/\.\.\/\.\.\/registry\/ROLE_ALIAS_MAP\.json"/);
+  // 47m: the board's search-intent chain (the only client reader of ROLE_ALIAS_MAP.json) is deleted — no client file
+  // bundles a registry now; one that does must read it from registry/, never data/.
+  for (const f of ["client/src/panels/JobsPanel.jsx"]) assert.doesNotMatch(lf(f), /["']data\/(ROLE_ALIAS_MAP|QUALIFICATION_ROLE_MAP)\.json/);
 });
 
 test("the image ships registry/ before the client build, and nothing re-includes data/", () => {

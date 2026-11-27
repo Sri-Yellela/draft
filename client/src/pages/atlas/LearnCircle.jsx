@@ -24,10 +24,10 @@ import LearnWheel from "./LearnWheel.jsx";
 import PieceQuestions from "./PieceQuestions.jsx";   // ⭐ D150 T14 (46y)
 import {
   stepState, checkpointId, circleState, circleLayout, pointAt, chordPath, routePath, arcPath, GEO, circleViewBox, partLabelLines, LABEL, needsMap, goBackTo, routeStart, routeClosure,
-  routesFor, pieceForConcept, whereLine, pieceOf, barLine, pasteVerdict, wordCount, EXPLAIN_MIN_WORDS,
+  routesFor, pieceForConcept, whereLine, pieceOf, barLine,
 } from "./learnModel.js";
-import { pastelVar } from "../../../../shared/pastel.js";   // ⭐ 46u: a checkpoint is a card in its own pastel
 import "./LearnCircle.css";
+import { Explain, BuildLink } from "./LearnChecks.jsx";   // 47m: the Gazetteer's, one copy (A93)
 
 export const KIND_ORDER = ["Video", "Playlist", "Article", "Guide", "Book", "Course", "Build", "Project", "Sandbox", "Lab", "Practice", "Exercise", "Game", "Atlas"];
 const reducedMotion = () => {
@@ -110,63 +110,6 @@ function wrapTitle(t, n = 22) {
   return lines.slice(0, 3);
 }
 
-/** C8 (2) · one checkpoint's box: the user's own words, ≥ 25, never a paste of 25+. */
-function Explain({ id, question, saved, signedIn, onExplain }) {
-  const [text, setText] = useState(saved?.text || "");
-  const [pasted, setPasted] = useState(0);
-  const [say, setSay] = useState("");
-  const words = wordCount(text);
-  const tone = { "--book-c": pastelVar(id) };
-  if (!signedIn) return <li className="lrc__ck" data-learn-checkpoint={id} style={tone}><span>{question}</span></li>;
-  return (
-    <li className="lrc__ck" data-learn-checkpoint={id} style={tone}>
-      <label className="lrc__ck-q" htmlFor={`exp-${id}`}>{question}</label>
-      <textarea id={`exp-${id}`} className="lrc__ck-box" rows={3} value={text} data-learn-explain={id}
-        placeholder="Explain it in your own words, as if teaching a friend (25 words or more)"
-        onChange={(e) => { setText(e.target.value); setSay(""); }}
-        onPaste={(e) => {
-          const v = pasteVerdict(e.clipboardData?.getData("text") || "");
-          if (v.refused) { e.preventDefault(); setSay(v.message); } else setPasted(p => Math.max(p, v.words));
-        }} />
-      <div className="lrc__ck-foot">
-        <span className="atl__quiet" aria-live="polite">
-          {say || (saved ? `Explained ${new Date(saved.updated * 1000).toLocaleDateString()} · ${words} words` : `${words} of ${EXPLAIN_MIN_WORDS} words`)}
-        </span>
-        <DepthButton size="compact" disabled={words < EXPLAIN_MIN_WORDS || text === saved?.text} data-learn-save={id}
-          onClick={async () => { const r = await onExplain(id, text, pasted); setSay(r?.ok ? "Saved." : r?.message || "Could not save it just now."); if (r?.ok) setPasted(0); }}>
-          {saved ? "Save my changes" : "Save my explanation"}
-        </DepthButton>
-      </div>
-    </li>
-  );
-}
-
-/** C8 (3) · the link to what was built — D109's proof link rule on the server. */
-function BuildLink({ piece, saved, signedIn, onBuild }) {
-  const [url, setUrl] = useState(saved?.url || "");
-  const [kind, setKind] = useState(saved?.kind || "repository");
-  const [say, setSay] = useState("");
-  return (
-    <div className="lrc__box" data-learn-build={piece.id}>
-      <h3 className="lrc__box-h">What you built</h3>
-      <p className="atl__quiet">This lesson asks you to build something. Link it (a repository or a live demo) to finish the lesson.</p>
-      {signedIn ? (
-        <div className="lrc__build">
-          <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="What the link is" className="lrc__input">
-            <option value="repository">Repository</option><option value="demo">Live demo</option>
-          </select>
-          <input type="url" className="lrc__input lrc__input--url" value={url} onChange={(e) => { setUrl(e.target.value); setSay(""); }}
-            placeholder="https://github.com/you/your-project" aria-label="The link to what you built" />
-          <DepthButton size="compact" disabled={!url.trim() || url === saved?.url} data-learn-build-save=""
-            onClick={async () => { const r = await onBuild(piece.id, url.trim(), kind); setSay(r?.ok ? "Linked." : r?.message || "Could not save it just now."); }}>
-            Save the link
-          </DepthButton>
-        </div>
-      ) : null}
-      {say && <p className="atl__quiet" aria-live="polite">{say}</p>}
-    </div>
-  );
-}
 
 /** C4 · the piece — readable alone. */
 export function PieceBody({ piece, pieces, states, marks = {}, explanations = {}, builds = {}, signedIn = false, onSelect, onOpen, onExplain, onBuild, compact = false }) {
@@ -247,7 +190,7 @@ export function PieceBody({ piece, pieces, states, marks = {}, explanations = {}
       )}
       {/* ⭐ D150 T14 (46y): the piece's approved bank questions and its checked state (nothing when it has none). */}
       <PieceQuestions pieceId={piece.id} signedIn={signedIn} />
-      {st.build && <BuildLink piece={piece} saved={builds[piece.id]} signedIn={signedIn} onBuild={onBuild} />}
+      {st.build && <BuildLink step={piece.id} saved={builds[piece.id]} signedIn={signedIn} onBuild={onBuild} />}
       {!signedIn && <p className="atl__quiet" data-learn-signin="">Sign in and the bar fills as you open, explain and build.</p>}
       {!compact && (
         <div className="lrc__box" data-learn-unlocks={st.complete ? "done" : "todo"}>

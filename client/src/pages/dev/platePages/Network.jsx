@@ -23,7 +23,7 @@ const name = (r) => <span style={{ display: "inline-flex", gap: 10, alignItems: 
 const acts = (...labels) => () => <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>{labels.map((l, i) => <button key={l} type="button" className={`pl-btn ${i === 0 && l === "Accept" ? "pl-btn--ink" : "pl-btn--paper"}`}>{l}</button>)}</span>;
 
 /** The Send ticket: every composer (a letter, a dispatch, a request's note) — write, tear, send. */
-function SendTicket({ kicker, to, placeholder, send = "Send", note }) {
+function MockSendTicket({ kicker, to, placeholder, send = "Send", note }) {
   return (
     <div className="pl-ticket" style={{ flex: "none" }}>
       <div className="pl-ticket__head">
@@ -76,7 +76,7 @@ function Dispatches({ phone }) {
       <LegHeader n={3} id="nw-disp" meta="NEWEST FIRST · NEVER RANKED · NO AI READS IT" title="Dispatches"/>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 22, marginTop: 16, alignItems: "flex-start" }}>
         <div style={{ flex: "999 1 520px", minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
-          <SendTicket kicker="A DISPATCH · TO YOUR CONNECTIONS" placeholder="Something worth knowing — a tip, a win, a question" send="Post"
+          <MockSendTicket kicker="A DISPATCH · TO YOUR CONNECTIONS" placeholder="Something worth knowing — a tip, a win, a question" send="Post"
             note="Only your connections see it, newest first. No AI reads it."/>
           <CorrespondenceLetter kind="dispatch" from={who("Diego Alvarez", "diego")} when="NOV 23 · 18:02" proof={{ label: "PASSED · WEBHOOKS" }}
             text="Finally get why retries need idempotency keys." link="https://example.com/notes/idempotency"
@@ -121,7 +121,7 @@ function Letters({ phone }) {
         job={{ title: "Frontend Engineer II, Checkout", company: "Kestrel Payments", place: "Boston, MA", href: "#opening" }}
         actions={<><button type="button" className="pl-btn pl-btn--paper">Delete for me</button><button type="button" className="pl-btn pl-btn--paper">Report</button></>}/>
       <CorrespondenceLetter mine when="NOV 24 · 9:40" text="Yes please — thank you!" actions={<button type="button" className="pl-btn pl-btn--paper">Delete for me</button>}/>
-      <SendTicket kicker="A LETTER · TO PRIYA RAMAN" placeholder="Write a message" note="Ctrl + Enter sends."/>
+      <MockSendTicket kicker="A LETTER · TO PRIYA RAMAN" placeholder="Write a message" note="Ctrl + Enter sends."/>
     </div>
   );
   return (

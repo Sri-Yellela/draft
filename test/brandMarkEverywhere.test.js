@@ -26,6 +26,8 @@ test("the five surfaces that drew text now render the shared mark", () => {
   for (const f of ["components/AuthScreen.jsx", "components/Footer.jsx",   // A93: MarketingNav.jsx deleted — nothing rendered it
                    "components/AdminLayout.jsx", "pages/AdminLoginPage.jsx"]) {
     // ⭐ 47m (D197 #21, changed on purpose): the admin frame is a plate root and draws the plate's /d tile (PlateLogo)
-    assert.match(strip(fs.readFileSync(`${ROOT}/${f}`, "utf8")), f.endsWith("AdminLayout.jsx") ? /<PlateLogo\b/ : /<StampLogo\b/, f);
+    // ⭐ 47m (D197 #17, changed on purpose): sign in is a signed-out plate page and draws the plate's /draft wordmark (the mock's)
+    const mark = f.endsWith("AdminLayout.jsx") ? /<PlateLogo\b/ : f.endsWith("AuthScreen.jsx") ? /<Wordmark\b/ : /<StampLogo\b/;
+    assert.match(strip(fs.readFileSync(`${ROOT}/${f}`, "utf8")), mark, f);
   }
 });

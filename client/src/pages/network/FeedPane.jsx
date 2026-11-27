@@ -2,7 +2,7 @@
 // Helpful and comments; report (someone else's) or delete (your own). "What you share" lists every proof-moment kind,
 // each OFF until the person turns it on. Links are drawn as plain words (never fetched, never a preview).
 // ⭐ D197 Wave 2 #14 · M5 (47m, lane public — the approved mock `network`, Dispatches): each post is a plate
-// CorrespondenceLetter kind="dispatch" (its strip DISPATCH · <NAME> + the date; a proof moment as the lit stamp — the one
+// CorrespondenceLetter kind="dispatch" (its strip DISPATCH · [the name] + the date; a proof moment as the lit stamp — the one
 // green on the page; the link as words; a shared job as its ticket / THIS JOB IS NO LONGER OPEN); the ⋯ menu's Delete /
 // Report are the card's foot actions; the report is the plate ReportBlock (the five reasons); comments are a ruled list
 // with a small composer; the composer is the Send ticket; What you share is a plate card of checks, all off to start.

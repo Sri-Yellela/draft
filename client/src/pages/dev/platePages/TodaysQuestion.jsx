@@ -23,7 +23,7 @@ const Q = {
 };
 const stateFromAddress = () => (typeof window === "undefined" ? "ready" : new URLSearchParams(window.location.search).get("state") || "ready");
 
-function TodayCard() {
+function MockTodayCard() {
   const [chosen, setChosen] = useState(null);
   const answered = chosen != null;
   const right = chosen === Q.right;
@@ -77,7 +77,7 @@ export default function TodaysQuestionMock({ width = 1280 }) {
       <section className="pl-section" aria-labelledby="tq-1" id="today">
         <LegHeader n={1} meta="THE PRACTICE ENGINE · ONE ENTRY DUE FOR REVIEW" title="Today" id="tq-1"/>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 24, alignItems: "flex-start" }}>
-          <div style={{ flex: "999 1 520px", minWidth: 0 }}><TodayCard/></div>
+          <div style={{ flex: "999 1 520px", minWidth: 0 }}><MockTodayCard/></div>
           <div style={{ flex: "1 1 260px", minWidth: 0, maxWidth: 360, display: "flex", flexDirection: "column", gap: 12 }}>
             <DrawingToCome what="Today's square on the map: the entry's region inset, today's beacon on Webhooks" aspect="4 / 3" note="REGION IV'S RAMP · FROM THE DESIGN DOC"/>
             <span className="pl-label">THIS WEEK · IN THE LOGBOOK</span>

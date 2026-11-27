@@ -289,7 +289,7 @@ export default function SheetResume({ job, meta }) {
         {quota ? <p className="pl-op__quiet" data-draft-slots="" data-empty={noSlots ? "true" : "false"}>{quota}</p> : null}
         {companyNotice ? <p className="pl-op__quiet" data-company-notice="">{companyNotice.replace(" Draft this one too?", "")}</p> : null}
         {eligibilityNotice ? <p className="pl-op__quiet" data-eligibility-notice="">{eligibilityNotice}</p> : null}
-        {draft.kind === "drafted" && meta.onViewDraft ? <p className="pl-op__quiet">Drafted — <button type="button" className="pl-q-link" onClick={meta.onViewDraft}>see it in Draft House</button>.</p> : null}
+        {draft.kind === "drafted" && meta.onViewDraft ? <p className="pl-op__quiet">Drafted — <button type="button" className="pl-q-link" onClick={meta.onViewDraft}>see it in Applications</button>.</p> : null}
         <LiveView entry={meta.sandbox || null} onSave={meta.onSandboxSave} onExport={meta.onSandboxExport} onDismiss={meta.onSandboxDismiss} onEdit={meta.onOpenEditor}/>
       </div>
 

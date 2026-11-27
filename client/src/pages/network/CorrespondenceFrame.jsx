@@ -1,6 +1,6 @@
 // ⭐ D197 Wave 2 #14 · M5 (47m, lane public) · CORRESPONDENCE — the frame the three network pages share (the approved mock
 // `network`, docs/revamp/network.md §6): Region VI (Languages & media — the region of language and messages), the one-line
-// header ("Your correspondence" under CORRESPONDENCE · <VIEW>, the page's own sentence kept, the status line as the plate's
+// header ("Your correspondence" under CORRESPONDENCE · [the view], the page's own sentence kept, the status line as the plate's
 // caption, aria-live), the hero plate (the dispatch rider's route between camps — ported from the approved Drawings sheet),
 // the page, and the onward tickets (Send a job from the market · Who works where you're applying). The area nav (People ·
 // Dispatches · Letters) is the shell's (App.jsx CorrespondenceAreaNav); the three addresses are unchanged.

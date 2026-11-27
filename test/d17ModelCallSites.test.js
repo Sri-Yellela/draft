@@ -40,7 +40,7 @@ const ALLOWED = new Set([
 const KNOWN_VIOLATIONS = new Map([
   // V4 closed 10-05: enrich_job's call was deleted from enrichJob.js once A76 landed (pinned below).
   // V6 closed 10-05: /api/smart-search and services/classifier.js deleted — no UI had called it (pinned below).
-  ["domain_chips",   "A80 V3 — /api/domain-profiles/generate-chips"],
+  // V3 closed 11-27 (47m, D190): /api/domain-profiles/generate-chips reads the résumé + the taxonomy (services/chipSuggestions.js).
 ]);
 
 function productionFiles() {

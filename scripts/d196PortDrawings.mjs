@@ -147,7 +147,7 @@ export const LIVE = {
 const txt = (s) => `{${JSON.stringify(s)}}`;
 const PASSPORT_STAMPS = [["translate(400 112) rotate(-8)", "SQL", "11-12 · 3 SQUARES"], ["translate(520 150) rotate(6)", "Python", "10-30 · 3 SQUARES"], ["translate(420 226) rotate(4)", "HTTP", "11-18 · 3 SQUARES"]];
 LIVE.PassportIdentityPage = {
-  props: 'name = "CHEN, MAYA", handle = "@mayachen", fits = "BACKEND · DATA", place = "BOSTON & REMOTE", years = "4", openTo = "FULL-TIME", mrz = ["P<DRAFT<CHEN<<MAYA<<<<<<<", "3PROVEN<<14LISTED<<<<<<<"], stamps = [{ name: "SQL", sub: "11-12 · 3 SQUARES" }, { name: "Python", sub: "10-30 · 3 SQUARES" }, { name: "HTTP", sub: "11-18 · 3 SQUARES" }], notYet = "TypeScript", seenBy = "your connections"',
+  props: 'name = "CHEN, MAYA", handle = "@mayachen", fits = "BACKEND · DATA", place = "BOSTON & REMOTE", years = "4", openTo = "FULL-TIME", mrz = ["P\\u003CDRAFT\\u003CCHEN\\u003C\\u003CMAYA\\u003C\\u003C\\u003C\\u003C\\u003C\\u003C\\u003C", "3PROVEN\\u003C\\u003C14LISTED\\u003C\\u003C\\u003C\\u003C\\u003C\\u003C\\u003C"], stamps = [{ name: "SQL", sub: "11-12 · 3 SQUARES" }, { name: "Python", sub: "10-30 · 3 SQUARES" }, { name: "HTTP", sub: "11-18 · 3 SQUARES" }], notYet = "TypeScript", seenBy = "your connections"',
   pre: "const st = (i) => stamps[i] || null;",
   subs: [
     [txt("CHEN, MAYA"), "{name}"], [txt("@mayachen"), "{handle}"], [txt("BACKEND · DATA"), "{fits}"], [txt("BOSTON & REMOTE"), "{place}"],

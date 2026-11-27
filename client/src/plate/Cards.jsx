@@ -191,3 +191,8 @@ export function FieldNoteCard({ code, kicker, duration, text, highlight, progres
     </Tag>
   );
 }
+
+/** A line in Ask draft's card above the input (e.g. the application question being answered); `data-*` pass through. */
+export function AskNote({ children, ...data }) {
+  return <p className="pl-ask__intro" {...data}>{children}</p>;
+}

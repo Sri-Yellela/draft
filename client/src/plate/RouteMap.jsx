@@ -305,3 +305,11 @@ export function AskRouteCard({ stops = [], saved = false, saving = false, messag
     </div>
   );
 }
+
+/** More than three entries: the answer points to an existing route instead of drawing one (the board AskRoute). */
+export function AskRouteBigger({ href, title, onGo }) {
+  return (
+    <p className="pl-askroute__line" data-ask-route-bigger="">This is a bigger topic — walk it as a route: <a href={href}
+      onClick={(e) => { if (onGo) { e.preventDefault(); onGo(href); } }}>{title}</a> covers it, one stop at a time.</p>
+  );
+}

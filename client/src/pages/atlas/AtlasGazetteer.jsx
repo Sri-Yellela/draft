@@ -21,11 +21,12 @@ import { entriesOf, showCounts, showFilter, searchEntries, matchedPart, byLetter
   leaveRoute, copyRoute, dropStop, myCopies, practiceLadder, crossRefs, neighbours, deckFor, flowFor, compassOf, entryHref, routeHref, SHOW,
   BROWSE, KIND_WORD, lessonsOf } from "./gazetteerModel.js";
 import { STAGES } from "./volumeModel.js";
-import { routesFor, pasteVerdict } from "./learnModel.js";
+import { routesFor } from "./learnModel.js";
 import { coursePieces, lessonState } from "./libraryModel.js";
 import { loadNode, resolveSearch, payLine, computedLine, orderedResources, WIKI_LICENCE } from "./atlasModel.js";
 import { localDay, MatchAnswer, OrderAnswer } from "./BankAnswers.jsx";
-import { checkpointId, buildId, wordCount, EXPLAIN_MIN_WORDS } from "../../../../shared/learnStepState.js";
+import { Explain, BuildLink } from "./LearnChecks.jsx";   // 47m: one checkpoint box + one build link, the entry's and the circle's
+import { checkpointId, buildId } from "../../../../shared/learnStepState.js";
 import LearnView from "./LearnView.jsx";   // the circle (D203 (8): a route's overview view), until a plate ring is drawn
 
 const COURSE = "silicon-to-software", PATTERNS = "coding-interview-patterns";
@@ -249,45 +250,6 @@ function metaLine(e, routes) {
 }
 
 // ══ AN ENTRY ═══════════════════════════════════════════════════════════════════════════════════════════════════════
-/** One checkpoint, explained in the reader's own words (≥ 25 words, never a paste of 25+) — the circle's rule, kept. */
-function Explain({ id, question, saved, signedIn, onExplain }) {
-  const [text, setText] = useState(saved?.text || "");
-  const [pasted, setPasted] = useState(0);
-  const [say, setSay] = useState("");
-  const words = wordCount(text);
-  if (!signedIn) return <li className="pl-gz-check" data-learn-checkpoint={id}><span className="pl-gz-check__q">{question}</span></li>;
-  return (
-    <li className="pl-gz-check" data-learn-checkpoint={id} data-done={saved ? "" : undefined}>
-      <label className="pl-gz-check__q" htmlFor={`gz-exp-${id}`}>{question}</label>
-      <textarea id={`gz-exp-${id}`} className="pl-gz-check__box" value={text} data-learn-explain={id} placeholder="Explain it in your own words, as if teaching a friend (25 words or more)"
-        onChange={(e) => { setText(e.target.value); setSay(""); }}
-        onPaste={(e) => { const v = pasteVerdict(e.clipboardData?.getData("text") || ""); if (v.refused) { e.preventDefault(); setSay(v.message); } else setPasted((p) => Math.max(p, v.words)); }}/>
-      <div className="pl-gz-check__foot">
-        <span aria-live="polite">{say || (saved ? `Explained · ${words} words` : `${words} of ${EXPLAIN_MIN_WORDS} words`)}</span>
-        <button type="button" className="pl-btn" disabled={words < EXPLAIN_MIN_WORDS || text === saved?.text} data-learn-save={id}
-          onClick={async () => { const r = await onExplain(id, text, pasted); setSay(r?.ok ? "Saved. The square lights when every checkpoint is explained." : r?.message || "Could not save it just now."); if (r?.ok) setPasted(0); }}>
-          {saved ? "Save my changes" : "Save my explanation"}</button>
-      </div>
-    </li>
-  );
-}
-function BuildLink({ step, saved, onBuild }) {
-  const [url, setUrl] = useState(saved?.url || "");
-  const [kind, setKind] = useState(saved?.kind || "repository");
-  const [say, setSay] = useState("");
-  return (
-    <div data-learn-build={step}>
-      <p className="pl-gz-empty">This entry asks you to build something. Link it (a repository or a live demo) to light it.</p>
-      <div className="pl-gz-build">
-        <select className="pl-gz-input" value={kind} onChange={(e) => setKind(e.target.value)} aria-label="What the link is"><option value="repository">Repository</option><option value="demo">Live demo</option></select>
-        <input type="url" className="pl-gz-input pl-gz-input--grow" value={url} onChange={(e) => { setUrl(e.target.value); setSay(""); }} placeholder="https://github.com/you/your-project" aria-label="The link to what you built"/>
-        <button type="button" className="pl-btn" disabled={!url.trim() || url === saved?.url} data-learn-build-save="" onClick={async () => { const r = await onBuild(step, url.trim(), kind); setSay(r?.ok ? "Linked." : r?.message || "Could not save it just now."); }}>Save the link</button>
-      </div>
-      {say ? <p className="pl-gz-foot" aria-live="polite">{say}</p> : null}
-    </div>
-  );
-}
-
 /** The entry's practice: the piece's bank questions on the one scale; Try it opens one in place, judged on the server. */
 function EntryPractice({ pieceId, signedIn, deckCheck, deckId, asked }) {
   const [d, setD] = useState(null);

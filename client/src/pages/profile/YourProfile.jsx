@@ -100,7 +100,7 @@ export const PUBLIC_CONSENT_ITEMS = {
 };
 
 /** A numbered section of the passport: the leg header, the main column and the drawing beside it. */
-function Leg({ n, id, meta, title, side = null, children, data }) {
+function PassportLeg({ n, id, meta, title, side = null, children, data }) {
   return (
     <section className="pl-section pl-pp-leg" aria-labelledby={`${id}-t`} id={id} {...data}>
       <LegHeader n={n} meta={meta} title={<span id={`${id}-t`}>{title}</span>} />
@@ -415,48 +415,48 @@ function ReplaceWhatChanged({ r, onKeep, onUndo, busy, onPage }) {
 function PublicPreview({ view, avatarUrl }) {
   if (!view) return <div className="pl-page"><Skeleton label="Loading the public view" height={260} lines={4} /></div>;
   if (view.private) return (
-    <Leg n={1} id="pp-public" meta="WHAT A VISITOR SEES" title="This profile is private" data={{ "data-public-preview": "private" }}>
+    <PassportLeg n={1} id="pp-public" meta="WHAT A VISITOR SEES" title="This profile is private" data={{ "data-public-preview": "private" }}>
       <p className="pl-body">A visitor sees only this line. Choose Connections or Public on the visa page to show it.</p>
-    </Leg>
+    </PassportLeg>
   );
   const h = view.header, s = view.sections;
   const sec = (k) => s[k] != null;
   return (
     <div data-public-preview="">
-      <Leg n={1} id="pp-public" meta="WHAT A VISITOR SEES · THE SERVER'S OWN ANSWER" title={h.name}>
+      <PassportLeg n={1} id="pp-public" meta="WHAT A VISITOR SEES · THE SERVER'S OWN ANSWER" title={h.name}>
         <PassportIdentity name={h.name} headline={h.headline} photo={h.avatar && avatarUrl ? avatarUrl : null} region="V" level="public"
           fields={[{ label: "LOCATION", value: h.location || null }]}
           open={[h.openToWork ? "Open to work" : null, h.openToWork ? h.area : null, h.referrals ? "referrals welcome" : null].filter(Boolean).join(" · ") || null} />
-      </Leg>
-      {s.about?.summary ? <Leg n={2} id="pp-pub-about" meta="ABOUT" title="About"><p className="pl-body">{s.about.summary}</p></Leg> : null}
+      </PassportLeg>
+      {s.about?.summary ? <PassportLeg n={2} id="pp-pub-about" meta="ABOUT" title="About"><p className="pl-body">{s.about.summary}</p></PassportLeg> : null}
       {s.experience?.items?.length > 0 ? (
-        <Leg n={3} id="pp-pub-road" meta="EXPERIENCE" title="The road so far">
+        <PassportLeg n={3} id="pp-pub-road" meta="EXPERIENCE" title="The road so far">
           {s.experience.items.map((x) => <FactSheet key={x.id} kicker={`${String(x.company || "").toUpperCase()} · ${String(x.title || "").toUpperCase()}`} rows={(x.bullets || []).map((b, i) => ({ label: b, value: i + 1 }))} />)}
-        </Leg>
+        </PassportLeg>
       ) : null}
       {sec("skills") ? (
-        <Leg n={4} id="pp-pub-stamps" meta="PROVEN ON DRAFT · NOT A CERTIFICATION" title="Stamps">
+        <PassportLeg n={4} id="pp-pub-stamps" meta="PROVEN ON DRAFT · NOT A CERTIFICATION" title="Stamps">
           <PassportStamps proven={s.skills.proven.map((x) => ({ name: x.name }))} listed={s.skills.fromResume.map((x) => ({ name: x.name }))} />
           <p className="pl-pp-note">“Proven on draft” means a check passed or a build linked, with its date — not a certification.</p>
-        </Leg>
+        </PassportLeg>
       ) : null}
-      {s.fit ? <Leg n={5} id="pp-pub-fit" meta="WHERE THEY FIT" title="Where you fit"><p className="pl-body">{s.fit.line}</p></Leg> : null}
+      {s.fit ? <PassportLeg n={5} id="pp-pub-fit" meta="WHERE THEY FIT" title="Where you fit"><p className="pl-body">{s.fit.line}</p></PassportLeg> : null}
       {s.projects?.items?.length > 0 || s.achievements?.items?.length > 0 || s.links?.items?.length > 0 ? (
-        <Leg n={6} id="pp-pub-work" meta="PROJECTS · ACHIEVEMENTS · LINKS" title="Work you can show">
+        <PassportLeg n={6} id="pp-pub-work" meta="PROJECTS · ACHIEVEMENTS · LINKS" title="Work you can show">
           {s.projects?.items?.length > 0 ? <FactSheet kicker={`PROJECTS · ${s.projects.items.length}`} rows={s.projects.items.map((x) => ({ label: x.name, value: x.description || "" }))} /> : null}
           {s.achievements?.items?.length > 0 ? <FactSheet kicker={`ACHIEVEMENTS · ${s.achievements.items.length}`} rows={s.achievements.items.map((a, i) => ({ label: a.title, value: a.year || "" , key: i }))} /> : null}
           {s.links?.items?.length > 0 ? <div className="pl-actions">{s.links.items.map((l) => <LinkMark key={l.url} url={l.url} name={h.name} />)}</div> : null}
-        </Leg>
+        </PassportLeg>
       ) : null}
       {s.education?.items?.length > 0 ? (
-        <Leg n={7} id="pp-pub-school" meta="EDUCATION" title="Schooling">
+        <PassportLeg n={7} id="pp-pub-school" meta="EDUCATION" title="Schooling">
           {s.education.items.map((x) => <FactSheet key={x.id} kicker={String(x.school || "").toUpperCase()} rows={[{ label: [x.degree, x.field].filter(Boolean).join(", ") || "—", value: x.end || "" }]} />)}
-        </Leg>
+        </PassportLeg>
       ) : null}
-      <Leg n={8} id="pp-pub-sealed" meta="NEVER SHOWN TO THE PUBLIC" title="The sealed pages" data={{ "data-not-shown": "" }}
+      <PassportLeg n={8} id="pp-pub-sealed" meta="NEVER SHOWN TO THE PUBLIC" title="The sealed pages" data={{ "data-not-shown": "" }}
         side={<RegionEmblem kind="lock" region="V" size={96} label="Security emblem: a lock — the sealed pages" />}>
         <p className="pl-body">Contact details, application defaults, job profiles and saved answers{view.hidden.length ? `, and: ${view.hidden.join(", ")}` : ""}.</p>
-      </Leg>
+      </PassportLeg>
     </div>
   );
 }
@@ -491,7 +491,7 @@ function passportDrawing(page, seenBy) {
     place: h.location ? up(h.location) : "NOT SET",
     years: h.years != null ? String(h.years) : "—",
     openTo: [h.openToWork ? "WORK" : null, h.referrals ? "REFERRALS" : null].filter(Boolean).join(" · ") || "NOT SAID",
-    mrz: [`P<DRAFT<${mrzWord(last)}<<${mrzWord(first)}`.padEnd(25, "<").slice(0, 25), `${sk.counts.proven}PROVEN<<${sk.counts.fromResume}LISTED`.padEnd(25, "<").slice(0, 25)],
+    mrz: [["P", "DRAFT", mrzWord(last), "", mrzWord(first)].join("<").padEnd(25, "<").slice(0, 25), `${sk.counts.proven}PROVEN<<${sk.counts.fromResume}LISTED`.padEnd(25, "<").slice(0, 25)],
     stamps: sk.proven.slice(0, 3).map((x) => ({ name: x.name, sub: up([day(x.at), HOW[x.how]].filter(Boolean).join(" · ")) })),
     notYet: sk.fromResume[0]?.name || "",
     seenBy,
@@ -675,19 +675,19 @@ export default function YourProfile({ behind = null }) {
             {page.activeProfileId ? <FourThingsTicket onChanged={load} onOpen={setFourOpen} clay={!replaced} /> : null}
           </div>
 
-          <Leg n={1} id="pp-visa" meta="THE VISA PAGE · ONLY YOU BY DEFAULT · EACH PAGE'S EYE NARROWS IT" title="Who can see it"
+          <PassportLeg n={1} id="pp-visa" meta="THE VISA PAGE · ONLY YOU BY DEFAULT · EACH PAGE'S EYE NARROWS IT" title="Who can see it"
             side={<PlateHero aspect="240 / 140" caption={<span className="pl-label">THE SEALED DOOR · VISITORS WAIT OUTSIDE</span>}>
               <PlaceHazardSeal label="Your passport behind a sealed door: only you inside; connections and the public wait outside until you open it" /></PlateHero>}>
             <VisaPage vis={vis} onSet={set} />
             <IdentityPage page={page} avatarUrl={avatarUrl} editing={editing} onSet={set} onPage={setPage} />
-          </Leg>
+          </PassportLeg>
 
-          <Leg n={2} id="pp-about" meta="ABOUT · FROM YOUR RÉSUMÉ · EDITED BY YOU" title="About"
+          <PassportLeg n={2} id="pp-about" meta="ABOUT · FROM YOUR RÉSUMÉ · EDITED BY YOU" title="About"
             side={<PlateHero aspect="360 / 220"><ProfileFieldBook label="A ruled field-book page: your summary, pencilled" {...fieldBookLines(s.about.summary)} /></PlateHero>}>
             <ProfileSections key={`about-${round}`} theme={theme} highlight={page.highlight || []} onChanged={load} parts={["status", "summary"]} titles={{ summary: "About" }} />
-          </Leg>
+          </PassportLeg>
 
-          <Leg n={3} id="pp-road" meta="EXPERIENCE · LOGOS FROM YOUR RÉSUMÉ · YOUR SKILLS IN BOLD" title="The road so far">
+          <PassportLeg n={3} id="pp-road" meta="EXPERIENCE · LOGOS FROM YOUR RÉSUMÉ · YOUR SKILLS IN BOLD" title="The road so far">
             {s.experience.items.length ? (
               <PlateHero aspect="520 / 120" caption={<span className="pl-label">EMPLOYERS AS STOPS ON ONE ROUTE · THE CURRENT ONE IS THE FILLED STOP</span>}>
                 <PassportRoad {...roadOf(s.experience.items)} />
@@ -697,9 +697,9 @@ export default function YourProfile({ behind = null }) {
               <RouteLine label="Every employer on your résumé" stops={[...s.experience.items].reverse().map((x, i, a) => ({ name: `${x.company || x.title}`, state: i === a.length - 1 ? "next" : "lit", stage: "build" }))} />
             ) : null}
             <ProfileSections key={`road-${round}`} theme={theme} highlight={page.highlight || []} onChanged={load} parts={["experience"]} titles={{ experience: "Experience" }} />
-          </Leg>
+          </PassportLeg>
 
-          <Leg n={4} id="pp-stamps" meta="SKILLS · GREEN = PROVEN IN ATLAS · DASHED = NOT YET" title="Stamps" data={{ "data-section": "skills" }}>
+          <PassportLeg n={4} id="pp-stamps" meta="SKILLS · GREEN = PROVEN IN ATLAS · DASHED = NOT YET" title="Stamps" data={{ "data-section": "skills" }}>
             <PassportStamps proven={s.skills.proven.map((x) => ({ name: x.name, how: HOW[x.how], at: day(x.at), href: x.url || undefined }))}
               listed={s.skills.fromResume.map((x) => ({ name: x.name, href: proveHref(x.name) }))} />
             <p className="pl-pp-note">Green only for proven skills. A dashed tile is a skill your résumé claims; proving it in Atlas stamps it. <a href="/app/atlas/your-skills">Your skills map in Atlas</a></p>
@@ -707,28 +707,28 @@ export default function YourProfile({ behind = null }) {
             <SettingsSheet kicker="YOUR STAMPS ON THEIR OWN PAGE" title="Proof page" lead="What you've proven in Atlas, at your passport's handle — on or off.">
               <ProfileSections key={`proof-${round}`} theme={theme} parts={["proofpage"]} onChanged={load} />
             </SettingsSheet>
-          </Leg>
+          </PassportLeg>
 
-          <Leg n={5} id="pp-fit" meta={`YOUR BEARING ON THE MARKET${s.fit?.ready != null && !s.fit.thin ? ` · ${s.fit.ready} % READY` : ""}`} title="Where you fit"
+          <PassportLeg n={5} id="pp-fit" meta={`YOUR BEARING ON THE MARKET${s.fit?.ready != null && !s.fit.thin ? ` · ${s.fit.ready} % READY` : ""}`} title="Where you fit"
             side={<PlateHero aspect="640 / 520"><MarketSurveyPlate best={null} label={s.fit?.placement ? `The market as a survey plate: you marked in ${s.fit.placement.categoryName}, ${s.fit.placement.subName}` : "The market as a survey plate — your mark lands once your résumé places you"} /></PlateHero>}>
             <WhereYouFit fit={s.fit} />
-          </Leg>
+          </PassportLeg>
 
-          <Leg n={6} id="pp-work" meta="PROJECTS · ACHIEVEMENTS · LINKS" title="Work you can show"
+          <PassportLeg n={6} id="pp-work" meta="PROJECTS · ACHIEVEMENTS · LINKS" title="Work you can show"
             side={<PlateHero aspect="360 / 220"><ProfileSpecimenDrawer label="A pulled-out specimen drawer, one compartment per project" {...drawerOf(s.projects.items)} /></PlateHero>}>
             <ProfileSections key={`work-${round}`} theme={theme} highlight={page.highlight || []} onChanged={load} parts={["projects", "links"]}
               renderLink={(x) => <LinkMark url={x.url} name={h.name} />}
               slots={{ afterProjects: <Achievements items={s.achievements.items}
                 onAdd={async (b) => setPage(await api("/api/profile/page/achievements", { method: "POST", body: JSON.stringify(b) }))}
                 onRemove={async (id) => { try { setPage(await api(`/api/profile/page/achievements/${id}`, { method: "DELETE" })); } catch (e) { setErr(e.message); } }} /> }} />
-          </Leg>
+          </PassportLeg>
 
-          <Leg n={7} id="pp-school" meta="EDUCATION · HIGHEST DEGREE FROM THE SECTION" title="Schooling"
+          <PassportLeg n={7} id="pp-school" meta="EDUCATION · HIGHEST DEGREE FROM THE SECTION" title="Schooling"
             side={<PlateHero aspect="360 / 220"><ProfileSchoolhouse label="A small schoolhouse on the ruler-marked ground strip" caption={schoolOf(s.education.items)} /></PlateHero>}>
             <ProfileSections key={`school-${round}`} theme={theme} onChanged={load} parts={["education"]} />
-          </Leg>
+          </PassportLeg>
 
-          <Leg n={8} id="pp-sealed" meta="ONLY YOU · USED TO APPLY AND TO RANK YOUR JOBS · NEVER PUBLIC" title="The sealed pages" data={{ "data-profile-behind": "" }}
+          <PassportLeg n={8} id="pp-sealed" meta="ONLY YOU · USED TO APPLY AND TO RANK YOUR JOBS · NEVER PUBLIC" title="The sealed pages" data={{ "data-profile-behind": "" }}
             side={<RegionEmblem kind="lock" region="V" size={120} label="Security emblem: a lock — the sealed pages" />}>
             {/* ⭐ A153 (45o): one folded row per part, each with its one-line summary — a row mounts its editor only when opened. */}
             <SealedRow id="contact" title="Contact details for application forms" summary="Name, email, phone, address, work authorisation — filled into forms, never shown on your page"
@@ -743,7 +743,7 @@ export default function YourProfile({ behind = null }) {
               <RankingTerms profileId={page.activeProfileId} /></SealedRow>
             <SealedRow id="tailoring" title="How your résumés are tailored" summary="The rules a tailored résumé follows for you"
               open={behindRow} onOpen={setBehindRow}>{behind?.tailoring || null}</SealedRow>
-          </Leg>
+          </PassportLeg>
 
           <section className="pl-section pl-section--last" aria-labelledby="pp-onward-t">
             <LegHeader n={9} meta="ONWARD · FROM YOUR PASSPORT" title={<span id="pp-onward-t">Tickets out</span>} />

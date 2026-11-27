@@ -40,9 +40,12 @@ test("plans entry lives in profile menu, not main app tabs", () => {
   // ⛔ 47j w1-shell (changed on purpose): the profile menu (TopBar's ProfileMenuPanel) is gone — nothing opened it since
   // D197 #1 — so View plans lives on Profile → Account, under the same monetisation lever.
   assert.doesNotMatch(topBar, /onTabChange\?\.\("plans"\)/);
-  const profile = fs.readFileSync("client/src/pages/profile/ProfilePage.jsx", "utf8");
-  assert.match(profile, /\{monetisationEnabled && <ProfilePlanLine planTier=\{user\?\.planTier\} \/>\}/);
-  assert.match(profile, /<Link className="pf__quiet" to="\/app\/plans" data-view-plans="">View plans<\/Link>/);
+  // ⛔ 47m (D197 #17′, changed on purpose): Your plan is a page of the passport's settings (PassportSettings PassportPlan) and
+  // an item of the passport's More — still only under the monetisation lever.
+  const panels = fs.readFileSync("client/src/pages/profile/profilePanels.js", "utf8");
+  assert.match(panels, /\.\.\.\(plans \? \[\{ id: "plans", label: "Your plan", href: "\/app\/plans" \}\] : \[\]\)/);
+  assert.match(app, /passportMore\(\{ plans: monetisationEnabled \}\)/);
+  assert.match(fs.readFileSync("client/src/pages/profile/PassportSettings.jsx", "utf8"), /export function PassportPlan\(/);
 });
 
 test("top-right account controls are consolidated into avatar menu", () => {

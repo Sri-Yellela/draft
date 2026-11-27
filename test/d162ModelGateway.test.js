@@ -98,7 +98,9 @@ test("D162 G1: behaviour is unchanged by default — the defaults are today's mo
 test("D162 G1: today's call sites name a task, and the tools-service client names its tasks", () => {
   const server = fs.readFileSync("server.js", "utf8");
   assert.equal((server.match(/callTask\(\{\s*task: "cover_letter\.write"/g) || []).length, 2);
-  assert.match(fs.readFileSync("routes/domainProfiles.js", "utf8"), /callTask\(\{\s*task: "profile\.domain_chips"/);
+  // ⭐ D190 (47m): the wizard's "more suggestions" reads the résumé + the taxonomy (services/chipSuggestions.js) — the task is retired.
+  assert.doesNotMatch(fs.readFileSync("routes/domainProfiles.js", "utf8"), /callTask\(\{\s*task: "profile\.domain_chips"/);
+  assert.equal(TASKS["profile.domain_chips"].status, "retired");
   for (const t of Object.values(TOOLS_SERVICE_TASKS)) assert.equal(TASKS[t]?.runsIn, "tools-service", t);
 });
 

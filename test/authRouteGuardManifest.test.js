@@ -782,6 +782,7 @@ function collect() {
     ...directRoutes(fs.readFileSync("routes/picksConfirm.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/survey.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/atsCalibration.js", "utf8")),
+    ...directRoutes(fs.readFileSync("routes/atlasQuestionRoutes.js", "utf8")),   // 47m D197 #12
     // account.js is mounted with app.use(createAccountRouter({...})) at the ROOT, so its routes
     // already carry their full /api path and their own per-route guard.
     ...routerRoutes(fs.readFileSync("routes/account.js", "utf8"), ""),

@@ -28,8 +28,7 @@ export const MODULES = Object.freeze({
     // 47m: DealBackdrop (the deal behind the login form) is retired — the sign-in page draws the market plate (D197 #17).
     members: ["panels/DeckView.jsx", "components/CardBack.jsx"] },
   board: { why: "Full House — the board, its cards and its posting panel",
-    members: ["panels/JobsPanel.jsx", "components/JobBubble.jsx", "components/CoverLetterModal.jsx", "components/ByomResumeChoice.jsx",
-      "components/WarmPathsBlock.jsx"] },
+    members: ["panels/JobsPanel.jsx", "components/JobBubble.jsx",  /* 47m: CoverLetterModal, ByomResumeChoice, WarmPathsBlock moved to the opening sheet (plate) */] },
   fullHouseHeader: { why: "the Full House header — the sentence, its words, the sort, the bar",
     css: ["components/FullHouse.css"],
     // ⚠ D93: the Customise preview draws the sentence and the bar with this module's classes — a decided reuse
@@ -83,7 +82,7 @@ export const MODULES = Object.freeze({
       "components/DecisionToast.jsx" /* 47j w1-market round 2: the toast is a plate card on both its mounts (deck, Index) */,
       "components/UsbSuggest.jsx" /* 47m: the search suggest is a plate card (.pl-suggest) on /jobs, the market and the dock */,
       "plate/explainer/Explainer.jsx", "plate/explainer/explainerModel.js" /* D198 E1: the explainer engine */,
-      "plate/FitCard.jsx" /* D202: the field card ⇄ the ATS card, one card on the market and the sheet */, "plate/OpeningSheet.jsx" /* D199 C7: the opening sheet, /app/jobs/<id> */,
+      "plate/FitCard.jsx" /* D202: the field card ⇄ the ATS card, one card on the market and the sheet */, "plate/OpeningSheet.jsx" /* D199 C7: the opening sheet, /app/jobs/<id> */, "plate/SheetResume.jsx" /* 47m: the sheet's 06 Your application */, "components/CoverLetterModal.jsx", "components/ByomResumeChoice.jsx", "components/WarmPathsBlock.jsx" /* 47m: the sheet's, from the deleted posting panel */,
       "plate/TeamDiorama.jsx" /* D199 C7: the sheet's hero plate — the survey diorama with its words as props */, "plate/fitCardFixtures.jsx" /* the card lane's F5 fixtures */,
       // ⭐ D197 Wave 1 #3 / #4 (47h): the ledger (Home) and the survey sheet (the company page), and the pages that mount them
       "plate/Ledger.jsx", "plate/ledgerModel.js", "plate/SurveySheet.jsx", "plate/surveySheet.js", "plate/surveyDrawings.jsx", "plate/sheetFixtures.jsx",
@@ -98,7 +97,7 @@ export const MODULES = Object.freeze({
       "plate/practiceFixtures.jsx" /* 47m: the F5 build pages for the practice boards */,
       // ⭐ D197 Wave 1 #8 (47m, lane gaz): the Gazetteer (D201) — the entry, the index, the routes — and THE route drawing
       // (RouteMap: shared, the practice lane's AskRoute / Logbook reuse it)
-      "plate/RouteMap.jsx", "plate/Gazetteer.jsx", "pages/atlas/AtlasGazetteer.jsx", "pages/atlas/gazetteerModel.js",
+      "plate/RouteMap.jsx", "plate/Gazetteer.jsx", "pages/atlas/AtlasGazetteer.jsx", "pages/atlas/LearnChecks.jsx" /* 47m: the checkpoint box + build link, the entry's and the circle's */, "pages/atlas/gazetteerModel.js",
       // ⭐ D197 Wave 2 #9 / #15 / #17 · M5 (47m, lane person): Your passport and its settings, the four things, in the plate system
       "pages/profile/ProfilePage.jsx", "pages/profile/YourProfile.jsx", "pages/profile/PassportSettings.jsx", "pages/profile/ResumeSetup.jsx",
       "panels/JobProfilesPanel.jsx" /* Your bearings */, "panels/JobWorkspacePanel.jsx" /* The voyage */, "pages/settingout/SettingOutPage.jsx" /* Setting out */, "components/AuthScreen.jsx" /* sign in */,
@@ -255,10 +254,10 @@ export const SHARED = Object.freeze({
   "components/CardBack.jsx":            { what: "a deck card's back (the tinted logo — owner-decided O34)", module: "deck" },
   "components/DeckGeometryControl.jsx": { what: "the deck's layout control (D149: on the Customise page)", module: "customise" },
   "components/JobBubble.jsx":           { what: "the board's column (JobBoardColumns; 47j A248: D1's card is deleted)", module: "board" },
-  "components/WarmPathsBlock.jsx":      { what: "D138 — people the user knows at a posting's company, beside the posting panel", module: "board" },
+  "components/WarmPathsBlock.jsx":      { what: "D138 — people the user knows at a posting's company, on its opening sheet (47m)", module: "plate" },
   "components/JobBubble.css":           { what: "its look", owner: "components/JobBubble.jsx" },
-  "components/CoverLetterModal.jsx":    { what: "the posting panel's cover letter", module: "board" },
-  "components/ByomResumeChoice.jsx":    { what: "the posting panel's Résumé choice — draft, or the user's own ChatGPT / Claude (D86)", module: "board" },
+  "components/CoverLetterModal.jsx":    { what: "the opening sheet's cover letter (47m)", module: "plate" },
+  "components/ByomResumeChoice.jsx":    { what: "the opening sheet's Résumé choice — draft, or the user's own ChatGPT / Claude (D86)", module: "plate" },
   "components/ByomResumeChoice.css":    { what: "its look", owner: "components/ByomResumeChoice.jsx" },
   "components/ExtensionPanel.css":      { what: "its look", owner: "components/ExtensionPanel.jsx" },
   // D90 P3: shared — the posting panel (board), Draft House's review line and The Table's What we sent all open it.
@@ -300,8 +299,6 @@ export const SHARED = Object.freeze({
   "hooks/useDeckGeometry.js":           { what: "the deck's geometry" },
   "hooks/useInactivityLogout.js":       { what: "sign-out on inactivity" },
   "hooks/useJobFacets.js":              { what: "the board's facets" },
-  "hooks/useLogoSize.js":               { what: "the mark's size" },
-  "hooks/usePanelHost.js":              { what: "the panel dock's host" },
   "hooks/useScrollCollapsed.js":        { what: "collapse on scroll" },
   "hooks/useSyncEvents.js":             { what: "THE one server-event connection" },
   "hooks/useViewport.js":               { what: "the viewport mode" },
@@ -390,7 +387,6 @@ export const COMPOSITIONS = Object.freeze([
   { from: "panels/AutoApplyPanel.jsx", to: "panels/JobWorkspacePanel.jsx", why: "D102 P5: on a wide screen Draft House shows an opened application beside its list" },
   { from: "panels/DatabasePanel.jsx", to: "panels/JobWorkspacePanel.jsx", why: "D102 P5: on a wide screen The Table shows an opened application beside History" },
 
-  { from: "pages/jobs/PublicBoardPage.jsx", to: "panels/DeckView.jsx", why: "D179 (f): the signed-out /jobs draws the deck's own card (CardFace), no decisions" },
   { from: "pages/profile/ProfilePage.jsx", to: "panels/ProfilePanel.jsx", why: "D167: About you / Your résumés / Saved answers are the Profile page's own parts (`section`)" },
   { from: "pages/profile/YourProfile.jsx", to: "panels/ProfilePanel.jsx", why: "D183 P2: Your profile listens for the base-résumé save / upload that ProfilePanel fires (RESUME_REPLACED_EVENT) to show What changed" },
   { from: "pages/profile/ProfilePage.jsx", to: "panels/SavedAnswersPanel.jsx", why: "D167: Profile → Saved answers is the saved-answer bank, whole (its own API)" },

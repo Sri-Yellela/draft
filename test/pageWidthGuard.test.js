@@ -24,16 +24,15 @@ const MIN_PX = 640;
 /** file → [{ key: a substring of the offending rule / style object, why }] */
 export const ALLOW = {
   // prose-only pages: the column IS the reading measure (BRAND § FULL WIDTH, "a prose-only page")
-  "client/src/pages/marketing/PrivacyPage.jsx": [{ key: "maxWidth: 720", why: "prose page — the reading measure" }],
-  "client/src/pages/marketing/TermsPage.jsx": [{ key: "maxWidth: 720", why: "prose page — the reading measure" }],
-  "client/src/pages/marketing/ConnectorDocsPage.jsx": [{ key: "maxWidth: 820", why: "prose page (docs) — the reading measure" }],
+  "client/src/pages/marketing/PrivacyPage.jsx": [{ key: "maxWidth: 760", why: "prose page — the reading measure" }],
+  "client/src/pages/marketing/TermsPage.jsx": [{ key: "maxWidth: 760", why: "prose page — the reading measure" }],
+  "client/src/pages/marketing/ConnectorDocsPage.jsx": [{ key: "maxWidth: 840", why: "prose page (docs) — the reading measure" }],
   "client/src/pages/tools/ApplyToolPage.jsx": [{ key: "maxWidth: 720", why: "a one-column tool form read top to bottom" }],
   "client/src/pages/tools/ATSToolPage.jsx": [{ key: "maxWidth: 720", why: "a one-column tool form read top to bottom" }],
   "client/src/pages/tools/GenerateToolPage.jsx": [{ key: "maxWidth: 720", why: "a one-column tool form read top to bottom" }],
   "client/src/pages/tools/HonestyToolPage.jsx": [{ key: "maxWidth: 760", why: "a one-column tool form read top to bottom" }],
   "client/src/pages/audit/AuditPage.css": [{ key: ".au", why: "the résumé audit — a one-column report read top to bottom" }],
   // ⛔ 47j w1-market (changed on purpose): ExtensionPrompt's banner (maxWidth 920) is the plate's drawer now — its entry is dropped
-  "client/src/components/Footer.jsx": [{ key: "maxWidth: 960", why: "the footer's link rows" }],
   "client/src/pages/atlas/LibraryPanel.css": [{ key: ".lib-half__svg", why: "an illustration drawn at its own size, not a container" }],
   "client/src/panels/ProfilePanel.jsx": [{ key: "maxWidth:680", why: "the sign-in-required notice card, not a page" }],
 };

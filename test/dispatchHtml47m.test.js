@@ -72,7 +72,7 @@ test("the account mail sends both parts; the text is today's", async () => {
   const env = { RESEND_API_KEY: "test" };
   await sendPasswordResetEmail({ to: "a@example.com", resetUrl: `${APP}/login?resetToken=t`, otp: "123456", expiresAt: 1800000000 }, { fetchImpl, env });
   await sendVerificationCodeEmail({ to: "a@example.com", code: "654321" }, { fetchImpl, env });
-  assert.match(sent[0].text, /^Use this one-time link to reset your draft password:\n/);
+  assert.match(sent[0].text, /^Use this one-time link to reset your Draft password:\n/);
   assert.match(sent[0].html, /123456/);
   assert.match(sent[0].html, /Reset your password →/);
   assert.equal(sent[1].text.split("\n")[2], "654321");

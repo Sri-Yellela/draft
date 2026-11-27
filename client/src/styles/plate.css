@@ -186,6 +186,7 @@
   --pl-line: 1.5px;
   --pl-line-thin: 1px;
   --pl-line-mark: 2px;
+  --pl-line-bar: 3px;   /* 47m: the selected suggestion's left bar (the Gazetteer's look-up list) */
   --pl-border: var(--pl-line) solid var(--pl-ink);
   --pl-border-dashed: var(--pl-line) dashed var(--pl-ink);   /* "not yet" */
   --pl-border-rule: var(--pl-line-thin) solid var(--pl-rule);
@@ -235,6 +236,7 @@
 
   /* ── Space and layout (report § Layout) ── */
   --pl-page: 1280px;
+  --pl-page-gz: 1180px;   /* 47m: the Gazetteer's pages, drawn at the GazetteerIndex / Route boards' width */
   --pl-page-bar: 1180px;   /* D199 C7: the opening sheet's sticky action bar row (Opening board) */
   --pl-nav-width: 1180px;
   --pl-gutter: 24px;

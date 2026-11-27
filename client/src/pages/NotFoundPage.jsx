@@ -1,5 +1,5 @@
 // ⭐ D197 Wave 2 #22 · M5 (47m, lane public) · THE 404 — "Off the map" (the approved mock `off-the-map`, docs/revamp/
-// errors.md §1 + §5): the public nav, the edge of the known map, the status kept in words (404 · NO PAGE AT <PATH>), ONE
+// errors.md §1 + §5): the public nav, the edge of the known map, the status kept in words (404 · NO PAGE AT [the path]), ONE
 // way back as the page's clay point (Back to the front door → /), and two other roads (Open jobs, Atlas). Every mount keeps
 // its meaning: the catch-all signed out, /pricing with the lever off ("off means absent" — it answers as any unknown path),
 // a bad / reserved /<company>, a non-numeric /<company>/<id>. (A client-drawn page is a soft 404 for crawlers; the server's

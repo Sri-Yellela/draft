@@ -28,8 +28,8 @@ import { api } from "../lib/api.js";   // D180 P1: the network switch
 import PlateRoot from "../plate/PlateRoot.jsx";   // ⭐ D197 #1: the dock and the area nav are the plate's (plate tokens, the theme's palette)
 import { Dock, AreaNav, useSearchShortcut } from "../plate/Shell.jsx";
 import { Icon, notifIcon } from "../plate/icons.jsx";   // ⭐ 47m: the peek's per-type notification icons
-import { AskDraftCard } from "../plate/Cards.jsx";   // ⭐ D197 #12 (47m, M5): Tiny's card is the plate's
-import { AskRouteCard, askRouteKind } from "../plate/RouteMap.jsx";   // the answer as a route (the board AskRoute)
+import { AskDraftCard, AskNote } from "../plate/Cards.jsx";   // ⭐ D197 #12 (47m, M5): Tiny's card is the plate's
+import { AskRouteCard, AskRouteBigger, askRouteKind } from "../plate/RouteMap.jsx";   // the answer as a route (the board AskRoute)
 // an answer naming more than three entries points to an existing route — the course, whose circle is its overview (D201 (2))
 const ROUTE_FOR_BIGGER = "/app/atlas/library/silicon-to-software?view=circle";
 import UsbSuggest from "./UsbSuggest.jsx";
@@ -486,8 +486,7 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
         onSave={() => saveRoute(i, turns[i])} onGo={(href) => navigate(href)} />;
     }
     if (t.routeKind === "bigger") {
-      return <p className="pl-askroute__line" data-ask-route-bigger="">This is a bigger topic — walk it as a route: <a href={ROUTE_FOR_BIGGER}
-        onClick={(e) => { e.preventDefault(); navigate(ROUTE_FOR_BIGGER); }}>From silicon to software</a> covers it, one stop at a time.</p>;
+      return <AskRouteBigger href={ROUTE_FOR_BIGGER} title="From silicon to software" onGo={(href) => navigate(href)} />;
     }
     return null;
   };
@@ -508,10 +507,10 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
               onSaved={() => { loadApplyRuns?.(); loadApplyPending?.(); window.dispatchEvent(new CustomEvent("draft:answers-saved", { detail: { jobId: thread.jobId } })); }} />
           )}
           {app && (
-            <p className="pl-ask__intro" data-ask-app-question="">
+            <AskNote data-ask-app-question="">
               Answering <b>{app.question}</b> — tell {TINY_NAME} about it in your own words and it writes the answer.{" "}
               <button type="button" className="pl-btn" data-ask-app-done="" onClick={() => setApp(null)}>Done</button>
-            </p>
+            </AskNote>
           )}
         </AskDraftCard>
       </PlateRoot>

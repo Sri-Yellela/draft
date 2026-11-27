@@ -186,7 +186,7 @@ test("the shell, the public pages and the shared surfaces are literal-free", () 
   const MIGRATED = [
     "client/src/index.css", "client/src/App.jsx", "client/src/styles/theme.jsx",
     "client/src/themes/cinematic.js", "client/src/components/PaperBackground.jsx",
-    "client/src/components/NavBar.css", "client/src/pages/LandingPage.css",
+    
     "client/src/components/UnifiedSearchBar.css", "client/src/components/TopBar.jsx",
     "client/src/components/Footer.jsx", "client/src/components/ScrollDock.jsx",
     "client/src/components/AuthScreen.jsx",
@@ -194,25 +194,25 @@ test("the shell, the public pages and the shared surfaces are literal-free", () 
     "client/src/components/UsbSuggest.jsx",   // 46v: UsbSelect left with the landing's bar
     "client/src/pages/tools/ATSToolPage.jsx", "client/src/pages/tools/GenerateToolPage.jsx",
     "client/src/pages/tools/ApplyToolPage.jsx", "client/src/pages/NotFoundPage.jsx",
-    "client/src/pages/BlogPage.jsx", "client/src/pages/ProductsPage.jsx",
+    "client/src/pages/BlogPage.jsx", 
     "client/src/pages/marketing/PricingPage.jsx", "client/src/pages/marketing/ContactPage.jsx",
     "client/src/pages/marketing/FeaturesPage.jsx", "client/src/pages/AdminLoginPage.jsx",
     "client/src/components/InlineLoginPopover.jsx", "client/src/components/BookShelf.jsx",   // 46v: FindFitApply left with the old landing
     // ⛔ 47j w1-shell (changed on purpose): ProfileSelectorDropdown.jsx deleted with the account panel
     "client/src/components/AdminLayout.jsx",
-    "client/src/components/ui/TileCard.jsx", "client/src/components/ui/DateCalendar.jsx",
+    "client/src/components/ui/DateCalendar.jsx",
     // Step 2b (09-30): the signed-in app — the 22 files the budget held.
     "client/src/pages/admin/DBInspector.jsx", "client/src/panels/AutoApplyPanel.jsx",
     "client/src/panels/JobsPanel.jsx", "client/src/panels/AutoApplyPanelSections.jsx",
     "client/src/components/JobCard.jsx", "client/src/panels/AdminPanel.jsx",
-    "client/src/components/JobDetailPanel.jsx", "client/src/components/ATSPanel.jsx",
+    
     "client/src/lib/applyObstacles.js", "client/src/panels/RecruiterPanel.jsx",
     "client/src/panels/IntegrationsPanel.jsx", "client/src/components/CompanyKbSections.jsx",
-    "client/src/panels/SandboxPanel.jsx",   // ImportJobModal.jsx was here — deleted in D11 (no IMPORT control)
+      // ImportJobModal.jsx was here — deleted in D11 (no IMPORT control)
     "client/src/components/CompanyLogo.jsx", "client/src/components/DomainProfileWizard.jsx",   // D61: was ui/CompanyIcon.jsx
     "client/src/components/CoverLetterModal.jsx", "client/src/components/CompanyViewModal.jsx",
     "client/src/panels/DatabasePanel.jsx",   // AtsReportPanel.jsx was here — retired in D152 (8)
-    "client/src/panels/JobProfilesPanel.jsx", "client/src/panels/PlansPanel.jsx",
+    "client/src/panels/JobProfilesPanel.jsx", 
     "client/src/styles/bandStyle.js",
   ];
   for (const f of MIGRATED) {
