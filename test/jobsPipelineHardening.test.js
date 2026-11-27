@@ -308,11 +308,11 @@ test("7-day expiry cron is extracted into runExpiredJobsCleanup and called at st
   assert.match(listenBlock, /runExpiredJobsCleanup\(\)/, "startup must call runExpiredJobsCleanup");
 });
 
+// ⛔ 47k sweep (changed on purpose): the "Will search as" preview (showPreview) and the searchCommitted state that hid it
+// were drawn only by JobsPanel's dead `{false && …}` ATS role-search row — deleted with the row. A deletion pin now.
 test("search suggestion panel clears after Enter/submit via searchCommitted state", () => {
-  assert.match(jobsPanel, /searchCommitted.*useState\(false\)|useState\(false\).*searchCommitted/, "searchCommitted state must exist");
-  assert.match(jobsPanel, /setSearchCommitted\(true\)/, "must set searchCommitted on submit");
-  assert.match(jobsPanel, /setSearchCommitted\(false\)/, "must reset searchCommitted on input change");
-  assert.match(jobsPanel, /!searchCommitted.*showPreview|showPreview.*searchCommitted/, "showPreview must respect searchCommitted");
+  assert.doesNotMatch(jobsPanel, /searchCommitted|showPreview|normalisedPreview/, "the dead role-search row's preview is back");
+  assert.doesNotMatch(jobsPanel, /Will search as:/);
 });
 
 test("simple_apply_profiles stores and exposes yearsExperience from base resume", () => {

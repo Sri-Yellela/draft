@@ -62,7 +62,6 @@ import { FIT_BANDS } from "../../../shared/filterSentence.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { markStyle, bandMarkStyle } from "../styles/mark.js";
 import { C } from "../styles/colorTokens.js";
-import { glass } from "../styles/glass.js";
 import { atsScorePair } from "../../../shared/resumeScores.js";
 import { openPosting } from "../lib/openPosting.js";
 import { rememberBoardFilters } from "../lib/boardFilterMemory.js";
@@ -1554,9 +1553,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
 
   // Scrape trigger input
   const [searchInput, setSearchInput] = useState("");
-  // Tracks whether the user has committed the current search input via Enter/button.
-  // Used to dismiss the normalised-preview tooltip after submission.
-  const [searchCommitted, setSearchCommitted] = useState(false);
 
   // Filters
   const [roleFilter,    setRoleFilter]    = useState("");
@@ -3249,7 +3245,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     const roleQ = q.toLowerCase();
     setRoleFilter(roleQ);
     setSearchInput(q);
-    setSearchCommitted(true);
     await fetchJobs(1, false, { overrides: { role: roleQ } });
     return true;
   }, [activeDomainProfile, resumeText, searchInput, ensureSearchProfileAlignment, fetchJobs]);
@@ -3272,7 +3267,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       if (!aligned) return;
     }
     setScrapeError("");
-    setSearchCommitted(true);
     const immediateRoleQ = q.toLowerCase();
     setRoleFilter(immediateRoleQ);
     // Fetch from aggregator — results come back directly, no scraping needed

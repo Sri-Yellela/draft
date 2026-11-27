@@ -163,7 +163,8 @@ test("search toolbar removes redundant label and checking-jobs icon is a spinner
   const jobsPanel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
 
   assert.doesNotMatch(jobsPanel, />Search<\/span>\s*<input value=\{searchInput\}/);
-  assert.match(jobsPanel, /placeholder="ATS search role/);
+  // ⛔ 47k sweep (changed on purpose): the ATS role-search input sat in JobsPanel's dead `{false && …}` row — deleted
+  assert.doesNotMatch(jobsPanel, /placeholder="ATS search role/);
   // A74 (owner, 10-03): the "CHECK FOR NEW JOBS" strip and its "Checking…" twin are removed.
   assert.doesNotMatch(jobsPanel, /Check for new jobs|Checking…/);
 });

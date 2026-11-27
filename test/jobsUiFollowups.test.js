@@ -40,11 +40,12 @@ test("ATS missing rows stay visible and read-only — no claim state anywhere (4
 test("jobs search button uses two-step local then scrape flow and pagination supports direct page jumps", () => {
   const jobsPanel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
 
-  assert.match(jobsPanel, /const \[searchPhase, setSearchPhase\] = useState\("idle"\)/);
-  assert.match(jobsPanel, /const runSearchButton = useCallback/);
-  assert.match(jobsPanel, /await handleSetRole\(q\)/);
-  assert.match(jobsPanel, /await handlePullRefresh\(\)/);
-  assert.match(jobsPanel, /searchPhase === "local" && roleIsSet \? "Search New" : "Set Role"/);
+  // ⛔ 47k sweep (changed on purpose): the two-step Set Role / Search New button lived only in JobsPanel's dead
+  // `{false && …}` ATS role-search row (its LucyBtn), drawn nowhere since the plate search replaced it — the row, the
+  // button's runSearchButton handler and its label are deleted. A deletion pin now: they do not come back.
+  assert.doesNotMatch(jobsPanel, /const runSearchButton = useCallback|function LucyBtn|<LucyBtn\b/);
+  assert.doesNotMatch(jobsPanel, /"Search New" : "Set Role"/);
+  assert.doesNotMatch(jobsPanel, /\{false && \(/, "a dead {false && …} row is back in JobsPanel");
   // ⭐ D147 (owner 11-03) changed this on purpose: page numbers → scrolling (the next page appends at the list's end).
   assert.doesNotMatch(jobsPanel, /buildVisiblePageItems|Go to page/);
   // 47j R2 (changed on purpose): D147's endless scroll (BoardMore) is deleted — D199 C3 pages (the pager reads setBoardPager)
