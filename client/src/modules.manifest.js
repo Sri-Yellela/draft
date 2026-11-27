@@ -203,7 +203,6 @@ export const SHARED = Object.freeze({
   "components/ApplicationQuestions.css": { what: "the application questions box's look", owner: "components/ApplicationQuestions.jsx" },
   "components/DepthButton.css":         { what: "the depth box, the .dbx-depth skin and the .mark (D60) — loaded app-wide by main.jsx", owner: "components/DepthButton.jsx", alsoBy: ["main.jsx"] },
   "components/DockPortal.jsx":          { what: "the portalled dropdown surface" },
-  "components/PanelShell.jsx":          { what: "the overlay panel frame — every peer panel in the board's dock" },
   "components/TopBar.css":              { what: "the top bar's mark group (the tab row it styled went with D145)", owner: "components/TopBar.jsx" },
   // ⭐ D145 Step 3 · the Dock / the Menu. The Customise preview draws them with these classes — a decided reuse (the
   // preview must be the real look, as with the sentence, D93).
@@ -342,7 +341,7 @@ export const SHARED = Object.freeze({
   "lib/jobUrl.js":                      { what: "a job's address" },
   "lib/monetisation.jsx":               { what: "the monetisation switch" },
   "lib/pairLink.js":                    { what: "the posting ↔ report term link (D32)" },
-  "lib/panelGeometry.js":               { what: "panel geometry" },
+  "lib/panelGeometry.js":               { what: "the drawer insets below the fixed chrome (the market's filters drawer)" },
   "lib/profileSuggestions.js":          { what: "profile claims" },
   "lib/signupCarry.js":                 { what: "what sign-up carries into the app" },
   "lib/utils.js":                       { what: "cn() for the toast primitives" },

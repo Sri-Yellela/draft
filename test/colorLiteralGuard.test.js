@@ -190,7 +190,7 @@ test("the shell, the public pages and the shared surfaces are literal-free", () 
     "client/src/components/UnifiedSearchBar.css", "client/src/components/TopBar.jsx",
     "client/src/components/Footer.jsx", "client/src/components/ScrollDock.jsx",
     "client/src/components/AuthScreen.jsx",
-    "client/src/components/PanelShell.jsx", "client/src/components/ui/PanelControls.jsx",
+    "client/src/components/ui/PanelControls.jsx",   // 47n: PanelShell.jsx deleted
     "client/src/components/UsbSuggest.jsx",   // 46v: UsbSelect left with the landing's bar
     "client/src/pages/tools/ATSToolPage.jsx", "client/src/pages/tools/GenerateToolPage.jsx",
     "client/src/pages/tools/ApplyToolPage.jsx", "client/src/pages/NotFoundPage.jsx",

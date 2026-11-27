@@ -28,7 +28,7 @@ import { viewKey, viewCacheGet, viewCacheSet } from "../lib/boardViewCache.js";
 import { SavedEmptyState, useExtensionStatus } from "../components/ExtensionPrompt.jsx";
 import { EXTENSION_PAGE, EXTENSION_STORE_URL } from "../../../shared/extension.js";
 import SendJobPicker from "../components/SendJobPicker.jsx";   // (11) 45q: D180's Send on the list rows
-import { PANEL_TOP_INSET, PANEL_BOTTOM_INSET } from "../components/PanelShell.jsx";
+import { PANEL_TOP_INSET, PANEL_BOTTOM_INSET } from "../lib/panelGeometry.js";   // 47n: PanelShell deleted — its two insets live here
 import { useBoardLock } from "../hooks/useBoardLock.js";
 import { useSyncEvents } from "../hooks/useSyncEvents.js";
 import { useAppScroll } from "../contexts/AppScrollContext.jsx";

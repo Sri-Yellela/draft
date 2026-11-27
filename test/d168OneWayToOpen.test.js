@@ -21,7 +21,7 @@ const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const DECK = read("client/src/panels/DeckView.jsx");
 const BOARD = read("client/src/panels/JobsPanel.jsx");
 const URL_ = read("client/src/lib/jobUrl.js");
-const SHELL = read("client/src/components/PanelShell.jsx");
+// 47n: PanelShell.jsx deleted (it rendered nowhere after 47m) — nothing here read it
 const JD = "" /* 47m: JobDetailPanel.jsx deleted */;
 const SIZES = ["wide", "desktop"];
 

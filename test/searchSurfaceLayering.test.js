@@ -202,20 +202,8 @@ test("no surface on the scale carries a literal any more", () => {
   assert.match(zLayers, /installZLayerVars/);
   assert.match(usbCss, /z-index: var\(--z-search, 400\);/);
   assert.ok(!/z-index: 50;/.test(usbCss), "the app search bar is back below panel content");
-  // The drawer's tiers moved into PanelShell when JD, PDF and ATS were unified onto it — one
-  // primitive means one place that decides the tier, which is the whole point of extracting it.
-  const shell = read("client/src/components/PanelShell.jsx");
-  assert.match(shell, /zIndex: Z\.MODAL_SCRIM/);
-  // The modal tier is carried by the DOCK — the one fixed overlay surface the panels tile inside —
-  // rather than by each panel. That is what made tiling internal, and it also means the tier is
-  // declared once for the group instead of once per peer. Ordering BETWEEN peers is then a local
-  // z-index within the dock's stacking context, which is a 0/1 by construction and not a scale
-  // value competing with the app's.
-  assert.match(shell, /zIndex: Z\.MODAL,/);
-  assert.match(shell, /export function PanelDock/);
-  assert.match(shell, /zIndex: focused \? 1 : 0,/);
-  assert.ok(!/zIndex:30,/.test(shell) && !/zIndex:40,/.test(shell),
-    "a drawer is back under the search surface");
+  // ⛔ 47n (changed on purpose): "the drawer's tiers live in PanelShell (MODAL_SCRIM / MODAL, PanelDock's 0/1)" retired —
+  // PanelShell.jsx is deleted (47m removed the deck-slot posting and its PDF / ATS / JD panels; a posting opens as its sheet)
   // And JD must not have grown its own drawer chrome back.
   assert.ok(!/position:"fixed", inset:0, zIndex:/.test(jdPanel),
     "JobDetailPanel is hand-rolling its own scrim again instead of using the shared primitive");
@@ -238,7 +226,7 @@ test("no surface on the scale carries a literal any more", () => {
   // And no surface on the scale may carry a raw number that collides with a tier.
   const NUMS = new Set([250, 300, 400, 500, 600, 650, 800, 850]);
   for (const f of ["client/src/panels/JobsPanel.jsx", "client/src/panels/AutoApplyPanel.jsx",
-                   "client/src/panels/DatabasePanel.jsx", "client/src/components/PanelShell.jsx"]) {
+                   "client/src/panels/DatabasePanel.jsx"]) {   // 47n: PanelShell.jsx deleted
     for (const m of code(f).matchAll(/zIndex:\s*(\d+)/g)) {
       assert.ok(!NUMS.has(Number(m[1])),
         `${f} carries the raw z-index ${m[1]}, which collides with a named tier`);
