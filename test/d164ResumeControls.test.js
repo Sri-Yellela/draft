@@ -101,7 +101,7 @@ test("d164NoActionLost · every action the posting and the deck card had before 
     ["Close", jd, "data-posting-close"], ["Pending · record it", jd, "data-pending-tag"], ["Retry the description", jd, "setRetry(r => r + 1)"],
     // 47j R2 (changed on purpose): the deck's Pass · Save · Draft are the ticket's own (TicketActions, plate/MarketCardFace.jsx)
     ["Deck Pass · Save · Draft", fs.readFileSync("client/src/plate/MarketCardFace.jsx", "utf8"), 'data-deck-action="draft"'], ["Deck previous / next", deck, "<FlipButton dir={1}"],
-    ["Deck open the posting", deck, "data-deck-full-posting"], ["Deck ATS report", deck, "onSignal={() => openMatchInPosting("],
+    ["Deck open the posting", deck, "data-deck-full-posting"], ["Deck ATS report", deck, "onSignal={() => navigate(matchSheetHref("] /* 47m (changed on purpose): the MATCH opens the opening sheet's 02 */,
     ["Deck full report / the posting", deck, "Full report on the board →"], ["Deck drafted today", deck, 'aria-label="Drafted today"'],
     ["Deck keyboard shortcuts", deck, 'aria-label="Keyboard shortcuts"'], ["Deck order", customise, "DECK_ORDERS"],
     ["Bubble company profile", bubble, "<CompanyStackPopover company={r.company}"], ["Bubble save", bubble, 'data-bubble-action="star"'], ["Bubble draft", bubble, 'draft.action === "draft" ? onDraft'],

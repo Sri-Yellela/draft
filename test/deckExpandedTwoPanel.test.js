@@ -82,7 +82,9 @@ test("⛔ D152 (8) (b): the report beside the card and the phone's sheet are DEL
     assert.ok(!(gone in fanGeometry), `lib/fanGeometry.js still exports ${gone}`);
   }
   assert.doesNotMatch(deckSrc, /aria-controls="deck-ats"/, "a control pointing at a report that is not on the page");
-  assert.match(deckSrc, /onSignal=\{\(\) => openMatchInPosting\(e\.card\.job\.id\)\}/);
+  // 47m (changed on purpose, D199 C7): the MATCH opens the opening sheet at section 02 (/app/jobs/<id>#fit), not the board's posting
+  assert.match(deckSrc, /onSignal=\{\(\) => navigate\(matchSheetHref\(e\.card\.job\.id\)\)\}/);
+  assert.match(deckSrc, /const matchSheetHref = \(jobId\) => \(jobId \? `\$\{openingSheetHref\(jobId\)\}#fit` : null\);/);
   assert.match(deckSrc, /if \(k === "Escape"\) \{ setExpanded\(false\); setWhy\(false\); setLegend\(false\); \}/);
   for (const name of ["PanelShell", "AtsReportPanel", "JobDetailPanel", "PanelDock", "PanelScrim"]) {
     assert.doesNotMatch(deckSrc, new RegExp(`\\b${name}\\b`), `the deck reaches the old overlay surface through ${name}`);

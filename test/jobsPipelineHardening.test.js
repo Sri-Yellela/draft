@@ -198,7 +198,9 @@ test("poll completion triggers re-fetch via fetchJobsRef for correct sort order"
 test("manual search reads the stored board and never triggers an outbound scrape", () => {
   assert.doesNotMatch(jobsPanel, /api\("\/api\/scrape"/,
     "the client must not call the retired scrape endpoint");
-  assert.match(jobsPanel, /const handleSetRole/, "search entry point must still exist");
+  // 47m (changed on purpose): handleSetRole / handleSearch were unreachable (nothing bumped the live tick since D26) and are
+  // deleted; the board's one way to look for more is Check for new jobs.
+  assert.match(jobsPanel, /const handlePullRefresh/, "search entry point must still exist");
   // The scrape-request builder that lingered here with zero callers is now removed (§5.12), so
   // this is asserted rather than merely noted. Comments are stripped first: the removal's own
   // explanatory note in JobsPanel names the outbound path it forbids.
@@ -226,7 +228,7 @@ test("polling includes same-second inserts and refreshes through local board fil
   assert.match(pollBlock, /sj\.scraped_at >= \?/, "poll query must include same-second rows");
 
   const loopStart = jobsPanel.indexOf("const startPollLoop");
-  const loopEnd = jobsPanel.indexOf("const activateProfileForSearch", loopStart);
+  const loopEnd = jobsPanel.indexOf("const saveTrackedSearch", loopStart);   // 47m: activateProfileForSearch deleted
   const loopBlock = jobsPanel.slice(loopStart, loopEnd);
   assert.match(loopBlock, /fetchJobsRef\.current\?\.\(1\)/, "progressive poll updates must re-read filtered board state");
   assert.doesNotMatch(loopBlock, /\[\.\.\.toAdd, \.\.\.prev\]/, "poll must not blindly prepend unfiltered rows");

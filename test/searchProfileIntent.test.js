@@ -22,44 +22,27 @@ test("external scraping stays retired", () => {
     "provenance of each key, which is what makes derived values rank instead of exclude");
 });
 
-test("frontend detects strong cross-profile search intent before scrape", () => {
+// 47m (changed on purpose): the cross-profile search-intent guard (SEARCH_PROFILE_INTENTS, detectSearchProfileIntent,
+// SearchIntentDialog, the board's DomainProfileWizard mount) is DELETED — it sat behind the live search, which nothing could
+// start since A74 / D26. The two tests that pinned it are replaced by this one: it stays gone. The wizard itself lives on
+// (Job profiles, Refine, the profile panel).
+test("the board's dead search-intent guard and its wizard mount stay deleted", () => {
   const jobsPanel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
-
-  assert.match(jobsPanel, /SEARCH_PROFILE_INTENTS/);
-  assert.match(jobsPanel, /ROLE_ALIAS_MAP/);
-  assert.match(jobsPanel, /mergeIntentTerms\(BASE_SEARCH_PROFILE_INTENTS\)/);
-  assert.match(jobsPanel, /engineering_embedded_firmware/);
-  assert.match(jobsPanel, /"firmware"/);
-  assert.match(jobsPanel, /intentDomainForAlias/);
-  assert.match(jobsPanel, /detectSearchProfileIntent\(query, domainProfiles, activeDomainProfile\)/);
-  assert.match(jobsPanel, /This search looks like \$\{intent\.label\}/);
-  assert.match(jobsPanel, /Switch to "\$\{intent\.existingProfile\.profile_name\}" for this search/);
-  assert.match(jobsPanel, /Add that profile before searching/);
-  assert.match(jobsPanel, /SearchIntentDialog/);
-  assert.doesNotMatch(jobsPanel, /confirm\(\s*`This search/);
-});
-
-test("confirmed profile-intent switch runs search after activation and declined prompts block wrong-profile search", () => {
-  const jobsPanel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
-  const wizard = fs.readFileSync("client/src/components/DomainProfileWizard.jsx", "utf8");
-  const topBar = fs.readFileSync("client/src/components/TopBar.jsx", "utf8");
-
-  assert.match(jobsPanel, /await activateProfileForSearch\(intent\.existingProfile\.id\)/);
-  // handleSearch was renamed handleSetRole. This assertion was stale, NOT scraping-era — the
-  // confirmed-switch-then-search behaviour it guards is live, so the name is corrected rather
-  // than the test retired.
-  assert.match(jobsPanel, /handleSetRole\(pendingQuery, \{ skipProfileIntent: true \}\)/);
-  assert.match(jobsPanel, /Search canceled/);
-  assert.match(jobsPanel, /profileWizardIntent\?\.domainKey/);
-  assert.match(wizard, /initialDomainKey = null/);
-  assert.match(wizard, /if \(initialDomainKey && !domainKey\) setDomainKey\(initialDomainKey\)/);
-  assert.match(topBar, /profile_switched: \(\{ profileId \}\) =>/);
+  const code = jobsPanel.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  for (const gone of ["SEARCH_PROFILE_INTENTS", "detectSearchProfileIntent", "SearchIntentDialog", "askSearchIntent", "ensureSearchProfileAlignment",
+    "activateProfileForSearch", "handleSetRole", "profileWizardOpen", "DomainProfileWizard"]) {
+    assert.ok(!code.includes(gone), `JobsPanel still carries ${gone}`);
+  }
+  for (const f of ["client/src/panels/JobProfilesPanel.jsx", "client/src/components/RefineJobProfile.jsx", "client/src/panels/ProfilePanel.jsx"]) {
+    assert.match(fs.readFileSync(f, "utf8"), /import DomainProfileWizard from/, `${f} still opens the wizard`);
+  }
 });
 
 test("jobs search blocks missing setup states before running search", () => {
   const jobsPanel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
 
-  assert.match(jobsPanel, /Create a job search profile before searching jobs/);
-  assert.match(jobsPanel, /Upload the active profile's base resume before searching jobs/);
+  // 47m (changed on purpose): the guards live on Check for new jobs (handleSearch, with its copy, is deleted)
+  assert.match(jobsPanel, /Create a job search profile before checking for jobs/);
+  assert.match(jobsPanel, /Upload the active profile's base resume before checking for jobs/);
   assert.match(jobsPanel, /SetupGateNotice/);
 });

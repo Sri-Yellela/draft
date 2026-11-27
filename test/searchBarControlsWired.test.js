@@ -42,7 +42,7 @@ test("the bar's handlers are real functions that reach the board's one channel",
   assert.doesNotMatch(app, /applyBarFilters\(params, \{ live: true \}\)/);
   // ...and that channel actually exists on the context both sides share.
   assert.match(context, /const applyBarFilters = useCallback/);
-  assert.match(context, /barFilters, applyBarFilters, liveSearchTick,/);
+  assert.match(context, /barFilters, applyBarFilters,/);
 });
 
 test("the bar's wrapper sits inside JobBoardProvider, not above it", () => {
@@ -66,14 +66,13 @@ test("the bar's wrapper sits inside JobBoardProvider, not above it", () => {
   );
 });
 
-test("the live half of the double-click is keyed on a counter, not a boolean or the params", () => {
-  // Two live searches for the same terms must both run. A boolean latches; keying on barFilters
-  // would make an unchanged query a no-op the second time.
-  assert.match(context, /const \[liveSearchTick, setLiveSearchTick\] = useState\(0\)/);
-  assert.match(context, /if \(live\) setLiveSearchTick\(t => t \+ 1\)/);
-  assert.match(panel, /\}, \[liveSearchTick\]\);/);
-  // And it must not fire on mount — an aggregator search nobody asked for, on every board load.
-  assert.match(panel, /if \(!liveSearchReady\.current\) \{ liveSearchReady\.current = true; return; \}/);
+// 47m (changed on purpose): the live half of the double-click is DELETED — A74 made it one click, one search, and no caller
+// passed `live` after that, so the counter never moved and the live search (and its profile-intent dialog) never ran.
+test("the live half of the double-click stays deleted", () => {
+  const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");   // the deletion's own note names it
+  assert.doesNotMatch(code(context), /liveSearchTick/);
+  assert.doesNotMatch(code(context), /\{ live = false/);
+  assert.doesNotMatch(code(panel), /liveSearchTick|liveSearchReady/);
 });
 
 test("Status fans out to three separate dimensions, each reset when it is not selected", () => {
