@@ -508,12 +508,12 @@ export function LimitsModal({ userId, username, initialLimits, onSave, onClose, 
           </div>
         </div>
         <div style={{ display:"flex", gap:8, marginTop:20 }}>
-          <button className="dbx-depth" onClick={onClose}
+          <button className="pl-btn" onClick={onClose}
             style={{ flex:1, padding:"10px 0", border:`1px solid ${theme.border}`,
                      background:"transparent", color:theme.text, fontWeight:700, fontSize:ts(13), cursor:"pointer" }}>
             Cancel
           </button>
-          <button className="dbx-depth" disabled={saving} onClick={async () => {
+          <button className="pl-btn" disabled={saving} onClick={async () => {
             setSaving(true);
             await onSave({
               monthly_resumes: numOrNull(limits.monthly_resumes),

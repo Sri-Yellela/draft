@@ -74,7 +74,7 @@ function DateRange({ from, to, onFromChange, onToChange }) {
         const pFrom = Math.floor(Date.now()/1000) - p.days * 86400;
         const active = Math.abs(from - pFrom) < 86401;
         return (
-          <button className="dbx-depth" key={p.label} onClick={() => { onFromChange(pFrom); onToChange(Math.floor(Date.now()/1000) + 86400); }}
+          <button className="pl-btn" key={p.label} onClick={() => { onFromChange(pFrom); onToChange(Math.floor(Date.now()/1000) + 86400); }}
             style={{
               padding:"4px 12px", border:`1px solid ${active ? theme.accent : theme.border}`,
               background: active ? theme.accent : "transparent", color: active ? C.ON_ACCENT : theme.text,
@@ -397,7 +397,7 @@ function ContactMessagesSection({ theme }) {
               onChange={e => setUnreadOnly(e.target.checked)}/>
             Unread only
           </label>
-          <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={loadMessages}>
+          <button className="pl-btn" onClick={loadMessages}>
             ↻ Refresh
           </button>
         </div>
@@ -456,7 +456,7 @@ function ContactMessagesSection({ theme }) {
                     </td>
                     <td style={{ padding: "10px 14px" }}>
                       {!m.read && (
-                        <button className="rm-btn rm-btn-ghost rm-btn-sm"
+                        <button className="pl-btn"
                           onClick={e => { e.stopPropagation(); markRead(m.id); }}
                           style={{ whiteSpace: "nowrap" }}>
                           Mark read
@@ -543,12 +543,12 @@ function DeleteUserDialog({ preview, onCancel, onDeleted }) {
         </label>
         {err && <div style={{ marginTop:8, fontSize:ts(12), color:theme.danger }}>{err}</div>}
         <div style={{ display:"flex", gap:8, marginTop:16 }}>
-          <button className="dbx-depth" onClick={onCancel} disabled={busy}
+          <button className="pl-btn" onClick={onCancel} disabled={busy}
             style={{ flex:1, padding:"9px 0", border:`1px solid ${theme.border}`,
                      background:"transparent", color:theme.text, fontWeight:700, fontSize:ts(13), cursor:"pointer" }}>
             Cancel
           </button>
-          <button className="dbx-depth" onClick={doDelete} disabled={!armed}
+          <button className="pl-btn" onClick={doDelete} disabled={!armed}
             style={{ flex:2, padding:"9px 0", border:"none", background:theme.danger,
                      color:C.ON_ACCENT, fontWeight:800, fontSize:ts(13), cursor:armed ? "pointer" : "not-allowed",
                      opacity:armed ? 1 : 0.45 }}>
@@ -719,7 +719,7 @@ export function AdminPanel() {
           <div style={{ fontSize:ts(13), color:theme.textMuted, marginBottom:12 }}>
             Pipeline health, the schema, any table's rows, one posting's path, a user's pool and a read-only query — on their own page.
           </div>
-          <a href="/admin/db" className="rm-btn rm-btn-ghost rm-btn-sm">Open the database inspector →</a>
+          <a href="/admin/db" className="pl-btn">Open the database inspector →</a>
         </div>
       )}
 
@@ -750,7 +750,7 @@ export function AdminPanel() {
                           <span style={{ flex:1, fontSize:ts(12) }}>
                             <strong>{r.username}</strong> requests {r.requested_tier}
                           </span>
-                          <button className="rm-btn rm-btn-primary rm-btn-sm"
+                          <button className="pl-btn pl-btn--primary"
                             onClick={() => grantUpgradeRequest(r.id)}>
                             Grant
                           </button>
@@ -781,11 +781,11 @@ export function AdminPanel() {
                             )}
                             {r.notes ? <span> - note: {r.notes}</span> : null}
                           </span>
-                          <button className="rm-btn rm-btn-ghost rm-btn-sm"
+                          <button className="pl-btn"
                             onClick={() => updateProfileRequestStatus(r.id, "reviewing")}>
                             Review
                           </button>
-                          <button className="rm-btn rm-btn-primary rm-btn-sm"
+                          <button className="pl-btn pl-btn--primary"
                             onClick={() => updateProfileRequestStatus(r.id, "resolved")}>
                             Resolve
                           </button>
@@ -810,7 +810,7 @@ export function AdminPanel() {
                       onChange={e => setNewU(u => ({ ...u, password:e.target.value }))}
                       placeholder="Password (min 8 chars)"/>
                     <div style={{ display:"flex", gap:10, alignItems:"center", marginTop:4 }}>
-                      <button type="submit" className="rm-btn rm-btn-primary rm-btn-sm">
+                      <button type="submit" className="pl-btn pl-btn--primary">
                         Create
                       </button>
                       {status && (

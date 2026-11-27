@@ -1061,7 +1061,7 @@ export function JobDataSection({ theme }) {
         [batches[0] ? ago(batches[0].created_at) : "never", "the last import"]]}>
       {dialog}
       <div style={{ ...row, marginBottom: 12 }}>
-        <a className="dbx-depth" href={exportHref()} style={{ fontSize: ts(12), fontWeight: 700, color: theme.text, padding: "6px 12px", textDecoration: "none" }}>Export the active board (NDJSON) ↓</a>
+        <a className="pl-btn" href={exportHref()} style={{ fontSize: ts(12), fontWeight: 700, color: theme.text, padding: "6px 12px", textDecoration: "none" }}>Export the active board (NDJSON) ↓</a>
       </div>
       <Step n={1} state={text.trim() ? "done" : "active"} title="Paste postings — one JSON object per line">
         <div style={quiet}>title, company and url are required; source is one of the known sources (default: import).</div>
@@ -1491,14 +1491,14 @@ export function SlugHarvestSection({ theme }) {
       </Step>
       <Step n={3} state={stepState(3)} title="Export the pool and mark each board add or skip">
         <div style={row}>
-          <a className="dbx-depth" href={`/api/admin/slug-harvest/export${authContextQuery() ? `?${authContextQuery()}` : ""}`}
+          <a className="pl-btn" href={`/api/admin/slug-harvest/export${authContextQuery() ? `?${authContextQuery()}` : ""}`}
             style={{ fontSize: ts(12), fontWeight: 700, color: theme.text, padding: "6px 12px", textDecoration: "none" }}>Export for review (JSONL)</a>
           <span style={quiet}>{num(toReview)} boards to review. Set each line's decision to "add" or "skip" in the file.</span>
         </div>
       </Step>
       <Step n={4} state={stepState(4)} title="Import your decisions — checked first, applied on your confirm">
         <div style={row}>
-          <label className="dbx-depth" style={{ fontSize: ts(12), fontWeight: 700, cursor: "pointer", padding: "6px 12px" }}>
+          <label className="pl-btn" style={{ fontSize: ts(12), fontWeight: 700, cursor: "pointer", padding: "6px 12px" }}>
             {busy === "import" ? "Checking the file…" : "Choose the file…"}
             <input type="file" accept=".jsonl,.ndjson,.txt" onChange={pickFile} style={{ display: "none" }}/>
           </label>
