@@ -12,7 +12,7 @@ const plainClick = (e) => !(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || 
 /**
  * The public nav. `links` = [{ id, label, href }] (the caller decides — Pricing only while monetisation is on); `current` =
  * the id that is aria-current; `user` = null signed out, or { admin } signed in; `signIn` = { href, onPress } (onPress opens
- * the inline sign-in popover); `getStarted` = { href, label }; `clay` = false turns Get started ink (a page whose own clay
+ * the inline sign-in popover; `wrap(button)` returns the button wrapped — the live popover); `getStarted` = { href, label }; `clay` = false turns Get started ink (a page whose own clay
  * point is elsewhere — the survey sheet); `phone` = the phone's top bar with a Menu drop; `menuOpen` = the drop's first state.
  */
 export function PublicNav({ home = { href: "/", label: "draft — home" }, links = [], current, user = null, signIn = { href: "/login" },
@@ -31,7 +31,10 @@ export function PublicNav({ home = { href: "/", label: "draft — home" }, links
   if (gate) return gate;
   const go = (e, href) => { setOpen(false); if (!onGo || !plainClick(e)) return; e.preventDefault(); onGo(href); };
   const start = <a className={`pl-btn ${clay ? "pl-btn--primary" : "pl-btn--ink"}`} href={getStarted.href} data-public-start="" onClick={(e) => go(e, getStarted.href)}>{getStarted.label}</a>;
-  const signInEl = signIn.onPress
+  // 47m (M5): `signIn.wrap` — the live page's inline sign-in popover wraps the button (components/InlineLoginPopover's trigger)
+  const signInBtn = signIn.onPress || signIn.wrap
+    ? <button type="button" className="pl-btn pl-btn--paper" data-public-signin="" onClick={signIn.onPress}>Sign in</button> : null;
+  const signInEl = signIn.wrap ? signIn.wrap(signInBtn) : signIn.onPress
     ? <button type="button" className="pl-btn pl-btn--paper" data-public-signin="" onClick={signIn.onPress}>Sign in</button>
     : <a className="pl-btn pl-btn--paper" href={signIn.href} data-public-signin="" onClick={(e) => go(e, signIn.href)}>Sign in</a>;
   const account = user ? (

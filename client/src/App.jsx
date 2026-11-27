@@ -65,8 +65,7 @@ import { ApplyToolPage }         from "./pages/tools/ApplyToolPage.jsx";
 import { HonestyToolPage }       from "./pages/tools/HonestyToolPage.jsx";
 
 import LandingPage    from "./pages/LandingPage.jsx";
-import NavBar         from "./components/NavBar.jsx";
-import ProductsPage   from "./pages/ProductsPage.jsx";
+import { PublicAuthProvider, PublicPage } from "./components/PublicChrome.jsx";   // 47m: the plate public nav + footer (NavBar is deleted)
 import BlogPage       from "./pages/BlogPage.jsx";
 import NotFoundPage   from "./pages/NotFoundPage.jsx";
 import { isReserved as isReservedPath } from "../../shared/companyPaths.js";   // A157 (45q)
@@ -934,11 +933,12 @@ function PublicCompanyRoute() {
 }
 
 /** A157 · /<company> — the company page under the marketing nav; a reserved word or a bad slug is the 404 page. */
-function PublicCompanyAtRoot({ navBar }) {
+function PublicCompanyAtRoot() {
   const { companySlug: s } = useParams();
   const slug = String(s || "").toLowerCase();
-  if (!/^[a-z0-9][a-z0-9-]{0,119}$/.test(slug) || isReservedPath(slug)) return <>{navBar}<NotFoundPage/></>;
-  return <>{navBar}<CompanyPage slug={slug} base=""/></>;
+  if (!/^[a-z0-9][a-z0-9-]{0,119}$/.test(slug) || isReservedPath(slug)) return <NotFoundPage/>;
+  // 47m: the survey sheet keeps its own clay point, so the nav's Get started is ink there (public.md §6)
+  return <PublicPage clay={false} data-public-company=""><CompanyPage slug={slug} base=""/></PublicPage>;
 }
 /** A157 · /<company> signed in — the same page inside the shell (the dock stays). */
 function CompanyInApp() {
@@ -949,9 +949,9 @@ function CompanyInApp() {
   return <Navigate to={`/app/companies/${slug}${search}`} replace/>;
 }
 /** A157 · /<company>/<id> — a posting under its company: the server renders it (a full load); anything else is a 404. */
-function CompanyJobRoute({ navBar }) {
+function CompanyJobRoute() {
   const { jobId } = useParams();
-  if (!/^\d{1,12}$/.test(String(jobId || ""))) return <>{navBar}<NotFoundPage/></>;
+  if (!/^\d{1,12}$/.test(String(jobId || ""))) return <NotFoundPage/>;
   return <FromServer/>;
 }
 
@@ -1058,14 +1058,15 @@ function AppRouter() {
     </div>
   );
 
-  // NavBar helper — renders the shared public nav with current auth state
-  const navBar = (
-    <NavBar user={authUser} onLogout={handlePublicLogout}
-      onLogin={(user) => { setAuthUser(user); setAuthStatus("authenticated"); }}/>
-  );
+  // 47m: the public chrome's auth state (components/PublicChrome.jsx) — every signed-out page's nav reads it
+  const publicAuth = {
+    user: authUser, onLogout: handlePublicLogout,
+    onLogin: (user) => { setAuthUser(user); setAuthStatus("authenticated"); },
+  };
 
   return (
     <AppShell>
+     <PublicAuthProvider value={publicAuth}>
       {/* D91 P5: when the system asks for more contrast, a one-line OFFER of the Contrast pair — never a switch. */}
       <ContrastOffer />
       <Routes>
@@ -1103,7 +1104,7 @@ function AppRouter() {
         {/* OFF MEANS ABSENT. Not a disabled page, not a "pricing coming soon" placeholder — with
             the lever off the URL is simply not part of this product, and answers exactly as any
             other unknown path does. */}
-        <Route path="/pricing"      element={monetisationEnabled ? <PricingPage/> : <>{navBar}<NotFoundPage/></>}/>
+        <Route path="/pricing"      element={monetisationEnabled ? <PricingPage/> : <NotFoundPage/>}/>
         <Route path="/about"        element={<AboutPage/>}/>
         <Route path="/contact"      element={<ContactPage/>}/>
         <Route path="/faq"          element={<FAQPage/>}/>
@@ -1126,37 +1127,38 @@ function AppRouter() {
         <Route path="/jobs" element={
           authStatus === "authenticated" && authUser && !authUser.isAdmin
             ? <Navigate to="/app/jobs" replace/>
-            : <>{navBar}<PublicBoardPage/></>
+            : <PublicBoardPage/>
         }/>
         <Route path="/jobs/:slug" element={<FromServer/>}/>
         {/* ⭐ D150 T05–T08 · the 3-minute audit — public; a signed-in reader keeps the result at once. */}
-        <Route path="/audit" element={<>{navBar}<AuditPage signedIn={authStatus === "authenticated" && !!authUser && !authUser.isAdmin}/></>}/>
+        <Route path="/audit" element={<AuditPage signedIn={authStatus === "authenticated" && !!authUser && !authUser.isAdmin}/>}/>
 
         {/* ⭐ D179 P4b · a page for every company — PUBLIC (no sign-in); a signed-in reader gets it inside the app. */}
         <Route path="/companies/:slug" element={
           authStatus === "authenticated" && authUser && !authUser.isAdmin
             ? <SamePageInApp/>
-            : <>{navBar}<PublicCompanyRoute/></>
+            : <PublicPage clay={false} data-public-company=""><PublicCompanyRoute/></PublicPage>
         }/>
         {/* ⭐ A157 (45q, owner 11-09) · a company's OWN address, /<company>, and its postings under it, /<company>/<id> (the
             server renders the posting). Every route of draft's own above wins; a reserved word is never a company. */}
         <Route path="/:companySlug" element={
           authStatus === "authenticated" && authUser && !authUser.isAdmin
             ? <CompanyInApp/>
-            : <PublicCompanyAtRoot navBar={navBar}/>
+            : <PublicCompanyAtRoot/>
         }/>
-        <Route path="/:companySlug/:jobId" element={<CompanyJobRoute navBar={navBar}/>}/>
+        <Route path="/:companySlug/:jobId" element={<CompanyJobRoute/>}/>
 
         {/* ⭐ D167 · /profile/<panel> and /interview/<panel> without /app — the in-app place, for a signed-in reader. */}
         <Route path="/profile/*" element={<ToApp/>}/>
         <Route path="/draft/resume/:jobId" element={<EditorAddress signedIn={authStatus === "authenticated" && !!authUser && !authUser.isAdmin}/>}/>
         <Route path="/interview/*" element={<ToApp/>}/>
 
-        {/* New public pages with NavBar */}
-        <Route path="/products" element={<>{navBar}<ProductsPage/></>}/>
+        {/* ⚠ 47m agent's pick (owner may reverse): /products was a "coming soon" page with nothing on it — its address now goes
+            to /features, which lists every tool (marketing.md 16q: "strike it, or fold into /features"). */}
+        <Route path="/products" element={<Navigate to="/features" replace/>}/>
         {/* 11-07: the D124 trial is removed — /try (its old link) goes to the front door (server.js redirects it too). */}
         <Route path="/try" element={<Navigate to="/" replace/>}/>
-        <Route path="/blog"     element={<>{navBar}<BlogPage/></>}/>
+        <Route path="/blog"     element={<BlogPage/>}/>
 
         {/* Admin login — redirect if already authenticated */}
         <Route path="/admin/login" element={
@@ -1227,16 +1229,17 @@ function AppRouter() {
           authStatus === "unknown" ? null
           : authStatus === "authenticated" && authUser
             ? (authUser.isAdmin ? <Navigate to="/admin" replace/> : <Navigate to="/app" replace/>)
-            : <>{navBar}<LandingPage authUser={null}/></>
+            : <LandingPage authUser={null}/>
         }/>
 
         {/* 404 — authenticated users redirect, logged-out users see NotFoundPage */}
         <Route path="*" element={
           authStatus === "authenticated" && authUser
             ? (authUser.isAdmin ? <Navigate to="/admin" replace/> : <Navigate to="/app" replace/>)
-            : <>{navBar}<NotFoundPage/></>
+            : <NotFoundPage/>
         }/>
       </Routes>
+     </PublicAuthProvider>
     </AppShell>
   );
 }

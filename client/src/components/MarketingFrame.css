@@ -1,59 +1,51 @@
-/* client/src/components/MarketingFrame.css — the marketing pages' frame (components/MarketingFrame.jsx), 46v. Theme tokens
-   only; no capsules (D60). Full width (46q): the measure is on text, never on the page. */
-.mk-page { min-height: 100vh; display: flex; flex-direction: column; background: transparent; color: var(--c-ink); font-family: var(--font-body); }
-.mk { flex: 1; box-sizing: border-box; width: 100%;
-  padding: 56px max(16px, 5vw, env(safe-area-inset-right, 0px)) 80px max(16px, 5vw, env(safe-area-inset-left, 0px));
-  display: grid; grid-template-columns: minmax(0, 1fr); gap: 56px; align-content: start; }
-.mk-head { display: grid; gap: 16px; min-width: 0; }
-.mk-eyebrow { margin: 0; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--c-ink-muted); }
-.mk-h1 { margin: 0; font: 400 clamp(36px, 5vw, 60px)/1.04 var(--font-display); letter-spacing: -0.012em; max-width: 22ch; text-wrap: balance; }
-.mk-lede { margin: 0; font-size: 17px; line-height: 1.6; color: var(--c-ink-muted); max-width: 60ch; }
-.mk-ctas { display: flex; gap: 10px; flex-wrap: wrap; }
+/* client/src/components/MarketingFrame.css — the marketing pages' frame (components/MarketingFrame.jsx). ⭐ 47m (D197, M5):
+   PLATE tokens only (styles/plate.css — the page renders inside PlateRoot); no capsules (D60). The measure is on text,
+   never on the page (46q FULL WIDTH) — the page is the plate's 1280 px column with its 24 px gutter. */
+.mk { flex: 1; width: 100%; padding-top: 32px; padding-bottom: 24px;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 56px; align-content: start; color: var(--pl-ink); font-family: var(--pl-sans); }
+.mk-head { display: grid; gap: 14px; min-width: 0; }
+.mk-eyebrow { margin: 0; }
+.mk-h1 { max-width: 26ch; text-wrap: balance; }
+.mk-lede { max-width: 62ch; line-height: 1.55; }
 .mk-sec { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
-.mk-sec--rule { border-top: 1px solid var(--c-border); padding-top: 48px; }
-.mk-h2 { margin: 0; font: 400 clamp(26px, 3.2vw, 38px)/1.1 var(--font-display); max-width: 28ch; text-wrap: balance; }
-.mk-quiet { margin: 0; color: var(--c-ink-muted); font-size: 15px; line-height: 1.6; max-width: 62ch; }
-.mk-measure { max-width: 680px; }
-.mk-stack { display: grid; gap: 12px; max-width: 680px; }
-.mk-btn { display: inline-flex; align-items: center; min-height: 46px; padding: 0 18px; border-radius: 12px; text-decoration: none; border: none; cursor: pointer;
-  font: 600 15px/1 var(--font-body); color: var(--c-ink); background: var(--c-surface-2); box-shadow: var(--c-depth-rest); }
-.mk-btn:hover { box-shadow: var(--c-depth-hover); }
-.mk-btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 3px; }
-.mk-btn--primary { background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent); }
-.mk-btn[disabled] { opacity: .6; cursor: default; }
+.mk-sec--rule { border-top: var(--pl-border); padding-top: 40px; }
+.mk-h2 { margin: 0; font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-section); line-height: 1; color: var(--pl-ink); max-width: 28ch; text-wrap: balance; }
+.mk-quiet { margin: 0; color: var(--pl-ink-soft); font-size: var(--pl-t-body); line-height: 1.55; max-width: 62ch; }
+.mk-measure { max-width: 720px; }
+.mk-stack { display: grid; gap: 12px; max-width: 720px; }
 
-/* a numbered sequence (How it works, the extension's setup): the number in the serif, the step as a note card */
-.mk-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; max-width: 760px; counter-reset: mk-step; }
-.mk-step { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 14px; align-items: start; }
-.mk-step__n { font: 400 40px/1 var(--font-display); color: var(--c-ink-muted); text-align: right; padding-top: 10px; font-variant-numeric: tabular-nums; }
+/* a numbered sequence (How it works, the extension's setup): a plate route — the stop's number in the serif, ruled */
+.mk-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; max-width: 800px; border-top: var(--pl-border); }
+.mk-step { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px; align-items: start; padding: 16px 0; border-bottom: var(--pl-border-rule); }
+.mk-step__n { font-family: var(--pl-serif); font-size: var(--pl-t-card-xl); line-height: 1; color: var(--pl-ink); text-align: right; padding-top: 4px; font-variant-numeric: tabular-nums; }
 
-/* the FAQ: a fold per question, in groups */
-.mk-faq { display: grid; gap: 8px; max-width: 760px; }
-.mk-faq details { border-radius: 14px; background: var(--c-surface-2); box-shadow: var(--c-depth-rest); }
-.mk-faq summary { cursor: pointer; list-style: none; padding: 16px 18px; font-weight: 600; font-size: 15px; display: flex; justify-content: space-between; gap: 12px; }
+/* the FAQ: a fold per question, in groups — each a plate card with its ruled answer */
+.mk-faq { display: grid; gap: 10px; max-width: 820px; }
+.mk-faq details { border: var(--pl-border); border-radius: var(--pl-r-small); background: var(--pl-card); box-shadow: var(--pl-s3); }
+.mk-faq summary { cursor: pointer; list-style: none; padding: 14px 16px; font-weight: 700; font-size: var(--pl-t-ui-lg); display: flex; justify-content: space-between; gap: 12px; color: var(--pl-ink); }
 .mk-faq summary::-webkit-details-marker { display: none; }
-.mk-faq summary::after { content: "+"; color: var(--c-ink-muted); font-weight: 400; font-size: 20px; line-height: 1; }
+.mk-faq summary::after { content: "+"; font-family: var(--pl-mono); color: var(--pl-ink-soft); font-weight: 700; }
 .mk-faq details[open] summary::after { content: "–"; }
-.mk-faq summary:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; border-radius: 14px; }
-.mk-faq details p { margin: 0; padding: 0 18px 18px; color: var(--c-ink-muted); line-height: 1.65; font-size: 14.5px; }
+.mk-faq summary:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 3px; border-radius: var(--pl-r-small); }
+.mk-faq details p { margin: 0; padding: 12px 16px 16px; border-top: var(--pl-border-rule); color: var(--pl-ink-soft); line-height: 1.6; font-size: var(--pl-t-body); }
 
-/* plans: three cards in a row, one column on a phone */
-.mk-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; max-width: 980px; }
-.mk-plan { display: grid; gap: 12px; align-content: start; padding: 22px; border-radius: 22px; background: var(--c-surface-2); box-shadow: var(--c-depth-rest); }
-.mk-plan[data-recommended="true"] { box-shadow: var(--c-depth-accent); }
-.mk-plan__name { margin: 0; font: 400 28px/1.1 var(--font-display); }
-.mk-plan__price { margin: 0; font-size: 15px; color: var(--c-ink-muted); }
+/* plans: three tickets side by side (perforated plans — a ticket you take), one column on a phone */
+.mk-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; max-width: 1000px; }
+.mk-plan { display: grid; gap: 12px; align-content: start; padding: 20px; }
+.mk-plan[data-recommended="true"] { background: var(--pl-clay-tint); }
+.mk-plan__name { margin: 0; font-family: var(--pl-serif); font-weight: 400; font-size: var(--pl-t-card); line-height: 1.1; color: var(--pl-ink); }
+.mk-plan__price { margin: 0; font-family: var(--pl-mono); font-size: var(--pl-t-mono-lg); font-weight: 700; letter-spacing: .06em; color: var(--pl-ink-soft); }
 
-/* forms (Contact) */
-.mk-form { display: grid; gap: 12px; max-width: 560px; }
-.mk-field { width: 100%; box-sizing: border-box; padding: 11px 14px; border-radius: 12px; border: 1px solid var(--c-border-control); background: var(--c-surface-input);
-  color: var(--c-ink); font: 400 15px/1.5 var(--font-body); }
-.mk-field:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
+/* forms (Contact): a send ticket's fields */
+.mk-form { display: grid; gap: 12px; max-width: 600px; }
+.mk-field { width: 100%; box-sizing: border-box; padding: 11px 14px; border-radius: var(--pl-r-input); border: var(--pl-border); background: var(--pl-card);
+  color: var(--pl-ink); font: 400 var(--pl-t-ui-lg)/1.5 var(--pl-sans); }
+.mk-field:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 2px; }
 textarea.mk-field { min-height: 160px; resize: vertical; }
-.mk-error { margin: 0; color: var(--c-danger); font-size: 14px; }
+.mk-error { margin: 0; color: var(--pl-clay-text); font-size: var(--pl-t-small); font-weight: 700; }
 
 @media (max-width: 640px) {
-  .mk { gap: 44px; padding-top: 32px; }
-  .mk-step { grid-template-columns: 34px minmax(0, 1fr); gap: 10px; }
-  .mk-step__n { font-size: 30px; }
+  .mk { gap: 40px; padding-top: 24px; }
+  .mk-step { grid-template-columns: 40px minmax(0, 1fr); gap: 10px; }
+  .mk-h2 { font-size: var(--pl-t-card-xl); }
 }

@@ -56,6 +56,11 @@ export const BOARDS = [
   { file: "DrawingsAtlas.dc.html", title: "Drawings · Atlas, the passport, setting out", drawings: [null, null, null, null, "ProfileFieldBook", "ProfileSpecimenDrawer", "ProfileSchoolhouse", "SettingOutCounter"] },
   { file: "DrawingsJobs.dc.html", title: "Drawings · jobs and the network", drawings: ["BearingsCompassRose", "VoyageClipboard", "VoyagePostRack", null, null, null, null] },
   { file: "DrawingsPublic.dc.html", title: "Drawings · public pages", drawings: [null, null, null, null, "SignInMarketBehind", null, null, null, null, null] },
+  // ⭐ 47m (lane public, D197 Wave 2 M5): the approved Drawings sheets' drawings for the public pages, Off the map and
+  // Correspondence. `null` = a drawing on the sheet that another page's lane ports (the sign-in plate, the résumé tool's desk,
+  // the email plates; the jobs lane's compass and clipboard) — skipped here, in place, so the order stays the sheet's.
+  { file: "DrawingsPublic.dc.html", title: "Drawings · public pages (lane public)", drawings: ["RoadmapRoute", "GazetteerGridPage", "SurveyChartExplain", "OffTheMapEdge", null, null, "AtlasTitlePage", null, null, null] },
+  { file: "DrawingsJobs.dc.html", title: "Drawings · jobs and the network (lane public)", drawings: [null, null, "LettersPostRack", "DispatchRiderRoute", "SealedLetterDoorstep", "CampsGazetteer", "NoticeBoardReports"] },
 ];
 export const DC_DIR = path.join(ROOT, "docs", "sketches", "final", "project");
 const FINAL_DIR = DC_DIR;
@@ -406,7 +411,7 @@ export function boardDrawings(indexes) {
 }
 
 export function generate() {
-  const indexes = Object.fromEntries(Object.entries(SOURCES).map(([k, v]) => [k, unpackCanvas(v.file, v.out)]));
+  const indexes = Object.fromEntries(Object.entries(SOURCES).filter(([, v]) => !v.sheet).map(([k, v]) => [k, unpackCanvas(v.file, v.out)]));
   const map = tokenMap();
   const files = boardDrawings(indexes).map((d) => ({ ...d, source: render(d.name, d.board, portSvg(d.svg, map, `${d.board} / ${d.name}`), d.src) }));
   const names = files.map((f) => f.name);

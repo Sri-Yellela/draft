@@ -39,5 +39,15 @@ import BearingsCompassRose from "./BearingsCompassRose.jsx";
 import VoyageClipboard from "./VoyageClipboard.jsx";
 import VoyagePostRack from "./VoyagePostRack.jsx";
 import SignInMarketBehind from "./SignInMarketBehind.jsx";
+import RoadmapRoute from "./RoadmapRoute.jsx";
+import GazetteerGridPage from "./GazetteerGridPage.jsx";
+import SurveyChartExplain from "./SurveyChartExplain.jsx";
+import OffTheMapEdge from "./OffTheMapEdge.jsx";
+import AtlasTitlePage from "./AtlasTitlePage.jsx";
+import LettersPostRack from "./LettersPostRack.jsx";
+import DispatchRiderRoute from "./DispatchRiderRoute.jsx";
+import SealedLetterDoorstep from "./SealedLetterDoorstep.jsx";
+import CampsGazetteer from "./CampsGazetteer.jsx";
+import NoticeBoardReports from "./NoticeBoardReports.jsx";
 
-export const DRAWINGS = { MarketSurveyPlate, MarketBoardOrder, MarketTerrain, LedgerRunRoute, SurveyTeamDiorama, SurveyHiringProfile, SurveyRoleLine, SurveyMatchDial, EmblemFound, EmblemBits, EmblemTree, EmblemNet, EmblemLock, EmblemCode, EmblemWorld, EmblemMind, AtlasVolumePlate, PlaceElevationProfile, PlaceSignpost, PlaceIsometricTile, PlaceHazardSeal, PlaceHazardTimeout, PlaceHazardDuplicate, ProvingGroundHill, ProvingGroundChair, LogbookDaysLeg, LogbookSummitCairn, TodaySquareInset, LogbookTierStamp, PassportIdentityPage, PassportRoad, NotificationsLamp, ProfileFieldBook, ProfileSpecimenDrawer, ProfileSchoolhouse, SettingOutCounter, BearingsCompassRose, VoyageClipboard, VoyagePostRack, SignInMarketBehind };
+export const DRAWINGS = { MarketSurveyPlate, MarketBoardOrder, MarketTerrain, LedgerRunRoute, SurveyTeamDiorama, SurveyHiringProfile, SurveyRoleLine, SurveyMatchDial, EmblemFound, EmblemBits, EmblemTree, EmblemNet, EmblemLock, EmblemCode, EmblemWorld, EmblemMind, AtlasVolumePlate, PlaceElevationProfile, PlaceSignpost, PlaceIsometricTile, PlaceHazardSeal, PlaceHazardTimeout, PlaceHazardDuplicate, ProvingGroundHill, ProvingGroundChair, LogbookDaysLeg, LogbookSummitCairn, TodaySquareInset, LogbookTierStamp, PassportIdentityPage, PassportRoad, NotificationsLamp, ProfileFieldBook, ProfileSpecimenDrawer, ProfileSchoolhouse, SettingOutCounter, BearingsCompassRose, VoyageClipboard, VoyagePostRack, SignInMarketBehind, RoadmapRoute, GazetteerGridPage, SurveyChartExplain, OffTheMapEdge, AtlasTitlePage, LettersPostRack, DispatchRiderRoute, SealedLetterDoorstep, CampsGazetteer, NoticeBoardReports };

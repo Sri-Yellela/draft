@@ -58,6 +58,7 @@
   --pl-road: #C9BFB6;                                                         /* the isometric tile's road */
   --pl-wood-pale: #E8C9A0;                                                    /* 47m: a pencil's bare wood, the schoolhouse bell (DrawingsAtlas 05 / 07) */
   --pl-r4-plate: #C9D2DF; --pl-contour-1: #CDBFB3; --pl-contour-2: #D9CBBE;   /* Home's volume plate: IV's ground, paper contours */
+  --pl-brass: #E8C9A0; --pl-cork: #E8D9C2;                                    /* 47m (final Drawings sheets): a door's knob / a pencil's wood; the notice board's cork */
 
   /* ── Region IV's hypsometric ramp, light → deep (report). Every other sector palette gets its 10 steps
      here BEFORE its page is built (D196 F1); a sector with no ramp falls back to IV's (R2). ── */

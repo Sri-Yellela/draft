@@ -22,7 +22,7 @@
 // ── MODULES: a page and the files that are its parts. A part (`module:` below) may be used ONLY by members.
 export const MODULES = Object.freeze({
   shell: { why: "the app's chrome — App mounts it", members: ["App.jsx", "components/AppShell.jsx", "components/TopBar.jsx", "components/AppNav.jsx", "components/dockPlace.js", "components/AskDraftThread.jsx",
-    "components/NavBar.jsx", "components/InlineLoginPopover.jsx", "components/AdminLayout.jsx", "consoles/PlanConsoles.jsx"] },
+    "components/PublicChrome.jsx" /* 47m: the public nav replaced NavBar.jsx (deleted) */, "components/InlineLoginPopover.jsx", "components/AdminLayout.jsx", "consoles/PlanConsoles.jsx"] },
   auth: { why: "sign-in and sign-up", members: ["App.jsx", "components/AuthScreen.jsx", "components/SignupAtsHook.jsx", "components/DealBackdrop.jsx"] },
   deck: { why: "the Daily Deck",
     // ⚠ DealBackdrop (behind the login form) deals the deck's OWN card backs — a decided reuse (queue 30; the
@@ -239,8 +239,7 @@ export const SHARED = Object.freeze({
   "components/TopBar.jsx":              { what: "the top bar", module: "shell" },
   "components/AppNav.jsx":              { what: "the app's navigation — the dock (the plate Dock as the left rail / the phone's bottom bar), the area nav with the dock's search, the peek, Tiny (D145 → D197 #1)", module: "shell" },
   "components/dockPlace.js":           { what: "where the dock goes — the left rail from 980 px, the bottom bar below (D167 → D197 #1, A237)", module: "shell" },
-  "components/NavBar.jsx":              { what: "the marketing nav", module: "shell" },
-  "components/NavBar.css":              { what: "its look", owner: "components/NavBar.jsx" },
+  "components/PublicChrome.jsx":        { what: "47m (D197 #16 M5) · the signed-out chrome, live — the plate public nav (auth state, the sign-in popover, the lever's links) and PublicPage, the frame every public page wears (it replaced NavBar.jsx)" },
   "components/InlineLoginPopover.jsx":  { what: "the nav's sign-in popover", module: "shell" },
   "components/SignInProviders.jsx":    { what: "A138 — THE sign-in provider block (Continue with Google first) on every sign-in surface: the nav popover and /login" },
   "components/AdminLayout.jsx":         { what: "the admin frame", module: "shell" },
