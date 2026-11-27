@@ -94,7 +94,7 @@ function Header({ kicker, title, lead, cells, next }) {
 }
 
 // ── Coming up ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-function ComingUp({ up, reload, counts, onView }) {
+export function ComingUp({ up, reload, counts, onView }) {   // exported for the F5 fixture (plate/practiceFixtures.jsx)
   const go = useGo();
   const items = up.data?.interviews || [];
   const ahead = items.filter((i) => !isPast(i)), past = items.filter(isPast);
