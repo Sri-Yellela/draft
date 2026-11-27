@@ -23,7 +23,7 @@ test("app routes users into one shared jobs console", () => {
 test("plan updates refresh console state without mode switching", () => {
   const app = fs.readFileSync("client/src/App.jsx", "utf8");
   const topBar = fs.readFileSync("client/src/components/TopBar.jsx", "utf8");
-  const plans = fs.readFileSync("client/src/panels/PlansPanel.jsx", "utf8");
+  const plans = (fs.readFileSync("client/src/pages/profile/PassportSettings.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: PlansPanel.jsx deleted — its home now */;
   const server = fs.readFileSync("server.js", "utf8");
   const accountRoute = fs.readFileSync("routes/account.js", "utf8");
 

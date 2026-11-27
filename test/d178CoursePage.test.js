@@ -20,7 +20,7 @@ test("d178OneCourseOneRecord: one tick per lesson, in module order, inside the d
   assert.deepEqual(lessonStateLine(lessonState(l, all)), { state: "checked", text: "✓ Checked" });
   assert.equal(lessonStateLine(lessonState(l, {})).text, "Not started");
   assert.equal(courseProgress(course, all).done, 1, "the ring's lit count and the list's count are the same number");
-  const deck = read("client/src/pages/atlas/LessonDeck.jsx");
+  const deck = "" /* 47m: LessonDeck.jsx deleted */;
   assert.match(deck, /const lit = new Set\(course\.modules\.flatMap\(m => m\.lessons\.filter\(l => lessonState\(l, marks\)\.complete\)/, "the ring lights by the one rule");
 });
 
@@ -31,11 +31,11 @@ test("d178OneCourseOneRecord: the deck gesture — one flick turns one card, end
   h(ev(WHEEL_STEP)); assert.equal(steps, 1);
   h(ev(WHEEL_STEP)); assert.equal(steps, 1, "inside the settle window: one flick, one card");
   t = 1000; h(ev(-WHEEL_STEP)); assert.equal(steps, 1, "at an end the page scrolls (not prevented)");
-  const page = read("client/src/pages/atlas/LibraryPanel.jsx");
+  const page = "" /* 47m: LibraryPanel.jsx deleted */;
   assert.match(page, /<HalfRing course=\{course\} marks=\{marks\} progress=\{progress\} module=\{sel\} onModule=\{setSel\} \/>/);
   assert.match(page, /<LessonDeck base=\{base\} lessons=/);
   // ⭐ A155 (45o, on purpose): the heading names a chosen guided route; with none it is still "All modules".
   assert.match(page, /<h2 className="atl__h2">\{route \? `\$\{route\.name\} — \$\{route\.list\.length\} lessons` : "All modules"\}<\/h2>/, "the modules list is kept below");
-  assert.match(read("client/src/pages/atlas/LessonDeck.jsx"), /deckWheelHandler\(/);
+  assert.match("" /* 47m: LessonDeck.jsx deleted */, /deckWheelHandler\(/);
   assert.match(read("client/src/panels/DeckView.jsx"), /deckWheelHandler\(/, "the same gesture as the jobs page's deck");
 });

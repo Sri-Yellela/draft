@@ -38,7 +38,7 @@ test("D38(a) · no underline and no arrow at rest — and a NON-COLOUR cue on ho
   assert.match(css, /a\.company-link:hover, a\.company-link:focus-visible \{ text-decoration: underline; \}/);
   assert.match(css, /font-style: italic; font-weight: 800;/, "the logo face");
   assert.doesNotMatch(read("client/src/components/CompanyLink.jsx"), /↗/);
-  const panel = read("client/src/components/JobDetailPanel.jsx");
+  const panel = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
   assert.match(panel, /<CompanyLink company=\{selectedJob\.company\} jobId=\{jobId\} size="panel" \/>/);
   assert.doesNotMatch(panel, /\{selectedJob\.company\} ↗/, "the posting panel's name is underlined with an arrow again");
 });
@@ -53,8 +53,7 @@ test("D38(c) · ONE company link: no surface builds its own", () => {
   }
   assert.deepEqual(offenders, []);
   // 47j A248 (changed on purpose): JobBubble's card is deleted — the Index row's company answers through CompanyStackPopover (a149)
-  for (const f of ["client/src/components/JobCard.jsx",
-                   "client/src/components/JobDetailPanel.jsx"]) {
+  for (const f of ["client/src/components/JobCard.jsx"]) {
     assert.match(read(f), /<CompanyLink /, `${f} no longer uses the one company link`);
   }
   // ⭐ A157 (45q): the Pending list re-opens the employer's form — the ONE apply link, from the same file.

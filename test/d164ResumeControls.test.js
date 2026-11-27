@@ -18,8 +18,8 @@ import { pathToFileURL } from "node:url";
 import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
-const jd = read("client/src/components/JobDetailPanel.jsx");
-const jdCss = read("client/src/components/JobDetailPanel.css");
+const jd = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
+const jdCss = "" /* 47m: JobDetailPanel.css deleted */;
 const jobs = read("client/src/panels/JobsPanel.jsx");
 const deck = read("client/src/panels/DeckView.jsx");
 // 47j A248 (changed on purpose): the board's row is the Index's (JobBubble's card is deleted) — its company, Star and Draft

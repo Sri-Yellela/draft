@@ -14,20 +14,19 @@ test("A204: draft's own editing toolbar and commands are gone — the editor is 
   assert.equal(fs.existsSync("client/src/lib/docFormat.js"), false);
   const manifest = read("client/src/modules.manifest.js");
   assert.doesNotMatch(manifest, /DocToolbar|docFormat/);
-  for (const f of ["client/src/panels/SandboxPanel.jsx", "client/src/panels/JobsPanel.jsx", "client/src/components/JobDetailPanel.jsx"]) {
+  for (const f of ["client/src/plate/SheetResume.jsx", "client/src/panels/JobsPanel.jsx"]) {   // 47m: the posting panel and SandboxPanel are deleted — the sheet is their home
     assert.doesNotMatch(read(f), /execCommand|DocToolbar|docFormat/, `${f} edits nothing itself`);
   }
 });
 
 test("A204: the panel's pages are a read-only preview; 'Edit in the editor' hands the résumé to resume-master's editor", () => {
-  const sb = read("client/src/panels/SandboxPanel.jsx");
-  assert.doesNotMatch(sb, /contentEditable = "true"/, "the page frames are not editable");
-  assert.match(sb, /import \{ openResumeEditor \} from "\.\.\/lib\/resumeEditor\.js";/);
-  assert.match(sb, /const editInEditor = \(\) => \{\n    const html = getCurrentHtml\(\);\n    openResumeEditor\(\{ html,/);
-  assert.match(sb, /data-edit-in-editor="">Edit in the editor<\/button>/);
+  // ⭐ 47m (D199 C7): SandboxPanel's live view is the opening sheet's 06 (plate/SheetResume.jsx LiveView)
+  const sb = read("client/src/plate/SheetResume.jsx");
+  assert.doesNotMatch(sb, /contentEditable|contenteditable="true"/, "the preview is not editable");
+  assert.match(sb, /onClick=\{\(\) => onEdit\?\.\(active\)\} data-edit-in-editor="">Edit in the editor<\/button>/);
   // the company KB's fix is still applied on Accept and saved (a draft feature, not the editor's)
-  assert.match(sb, /const applyFinding = \(f\) => \{/);
-  assert.match(sb, /if \(n && doc\) doc\.dispatchEvent\(new Event\("input"\)\);/);
+  assert.match(sb, /const \[html, n\] = applyFindingToHtml\(active\.html, f\);/);
+  assert.match(sb, /await onSave\?\.\(html, active\)/);
   // a ready résumé opens in the editor; the panel is for what the editor does not do
   const jp = read("client/src/panels/JobsPanel.jsx");
   assert.match(jp, /openResumeEditor\(\{\n      html: cleanDocHtml\(active\.html\)/);

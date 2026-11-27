@@ -19,8 +19,9 @@ const recon = fs.readFileSync("extension/submission/PRIVACY_RECONCILIATION.md", 
 test("D112 · one EFFECTIVE_DATE, the push day, with its change-log entry", () => {
   assert.equal((src.match(/const EFFECTIVE_DATE = /g) || []).length, 1);
   // Moved on purpose 11-08 (45n push, owner decision (5)) — the D112 entry below stays in the change log.
-  assert.match(src, /const EFFECTIVE_DATE = 'November 26, 2026';/);   // moved on purpose 11-26 (47i: D141's The Free Tools; was 11-19, 46x's D191 text)
-  assert.match(src, /\/\/ November 26, 2026 \(owner, 11-26 — 47i, D141/, "47i's change-log entry");
+  assert.match(src, /const EFFECTIVE_DATE = 'November 27, 2026';/);   // moved on purpose 11-27 (47m: D190 — the wizard's suggestions call no model; was 11-26, 47i's D141)
+  assert.match(src, /\/\/ November 27, 2026 \(47m, D190/, "47m's change-log entry");
+  assert.match(src, /\/\/ November 26, 2026 \(owner, 11-26 — 47i, D141/, "47i's change-log entry is kept");
   assert.match(src, /\/\/ November 8, 2026 \(owner, 11-08 — 45n/, "the newest change-log comment");
   assert.match(src, /\/\/ October 31, 2026 \(owner, 10-30 — D112 item 3/, "the change-log comment the file's convention uses");
 });

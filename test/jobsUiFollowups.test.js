@@ -25,7 +25,7 @@ test("profile suggestion additions use shared normalized helpers on both server 
 // which is what made the decision permanent. A claimed chip must stay clickable, because that click
 // is how the candidate takes the claim back.
 test("ATS missing rows stay visible and read-only — no claim state anywhere (46x, owner 11-19: \"ditch the whole prove it and claim it gimmick\", \"do the clean up\")", () => {
-  const atsPanel = fs.readFileSync("client/src/components/ATSPanel.jsx", "utf8");
+  const atsPanel = (fs.readFileSync("client/src/plate/FitCard.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: ATSPanel.jsx deleted — its home now */;
   const chips = fs.readFileSync("shared/atsReportElement.js", "utf8").replace(/^\s*(\/\/|\*).*$/gm, "");
   const css = fs.readFileSync("shared/atsReportStyles.js", "utf8");
   // the posting's panel keeps no claim state and listens for no claim events — it draws the ATS card

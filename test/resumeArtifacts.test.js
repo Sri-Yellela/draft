@@ -5,9 +5,10 @@ import fs from "node:fs";
 
 test("Generate and A+ artifacts are tracked independently in the sandbox", () => {
   const jobsPanel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
-  const sandbox = fs.readFileSync("client/src/panels/SandboxPanel.jsx", "utf8");
+  // ⭐ 47m (D199 C7): SandboxPanel and the posting panel are deleted — the opening sheet's 06 holds both (plate/SheetResume.jsx)
+  const sandbox = fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8");
   const jobCard = fs.readFileSync("client/src/components/JobCard.jsx", "utf8");
-  const detail = fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8");
+  const detail = sandbox;
 
   // The tool constants moved to client/src/lib/applyTools.js so AutoApplyContext could build the
   // same apply-run request from the same values instead of keeping a second copy of them (W5).
@@ -17,8 +18,8 @@ test("Generate and A+ artifacts are tracked independently in the sandbox", () =>
   assert.match(jobsPanel, /import \{ GENERATE_TOOL, A_PLUS_TOOL, TOOL_LABELS, normalizeTool \} from "\.\.\/lib\/applyTools\.js"/);
   assert.match(jobsPanel, /function mergeArtifact/);
   assert.match(jobsPanel, /variants\[tool\]/);
-  assert.match(sandbox, /variantKeys\.length > 1/);
-  assert.match(sandbox, /setSelectedTool\(tool\)/);
+  assert.match(sandbox, /keys\.length > 1 \?/);
+  assert.match(sandbox, /onClick=\{\(\) => setTool\(k\)\}/);
   assert.match(jobCard, /const generateLoading = st === "generate"/);
   // The companion `aPlusLoading` assertion is gone with the dead local it pinned (§5.14). A+ is
   // not a JobCard button — it lives in JobDetailPanel — so the card never read that flag. The
@@ -26,7 +27,7 @@ test("Generate and A+ artifacts are tracked independently in the sandbox", () =>
   // the card only needs its own flag for the button it does own.
   // ⚠ D48: this matched only a COMMENT once the action bar's button gained `|| noSlots` (A63). It pins the code now:
   // the résumé button is disabled while any tool is in flight, whichever it is.
-  assert.match(detail, /disabled=\{!!st \|\| noSlots\}/);
+  assert.match(detail, /disabled=\{!!st \|\| noSlots\}/);   // the sheet's résumé buttons
 });
 
 test("download/export marks the selected artifact as kept for downstream use", () => {
@@ -73,7 +74,7 @@ test("admin job review remains narrow to classification reassignment", () => {
 
 test("resume sandbox distinguishes idle, error, and missing artifact states", () => {
   const jobsPanel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
-  const sandbox = fs.readFileSync("client/src/panels/SandboxPanel.jsx", "utf8");
+  const sandbox = fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8");   // 47m: the sheet's live view
   const server = fs.readFileSync("server.js", "utf8");
 
   assert.match(jobsPanel, /No generated artifact yet\. Keep the pre-generation state neutral\./);
@@ -81,29 +82,10 @@ test("resume sandbox distinguishes idle, error, and missing artifact states", ()
   assert.match(jobsPanel, /status:"loading"/);
   assert.match(jobsPanel, /status:"error"/);
   assert.match(jobsPanel, /status:"missing", missing:true/);
-  assert.match(sandbox, /Resume artifact missing/);
-  assert.match(sandbox, /activeEntry\?\.error && !activeEntry\?\.missing/);
+  assert.match(sandbox, /THE RÉSUMÉ COULDN’T BE LOADED/);
+  assert.match(sandbox, /data-sheet-failed=\{entry\.missing \? "missing" : "error"\}/);
   // A91: /d's membership is one shared predicate (PENDING_MEMBERSHIP_SQL), reading the résumé itself.
   assert.match(server, /uj\.resume_generated = 1\s+AND EXISTS \(SELECT 1 FROM resumes pr WHERE pr\.user_id = uj\.user_id AND pr\.job_id = sj\.job_id AND pr\.html IS NOT NULL\)/);
 });
 
-test("resume sandbox layout keeps scroll ownership inside the preview pane", () => {
-  const jobsPanel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
-  const sandbox = fs.readFileSync("client/src/panels/SandboxPanel.jsx", "utf8");
-
-  // Still about SCROLL OWNERSHIP — the sandbox must never hand its scrollbar to the page — but the
-  // owner moved. The sandbox used to be a fixed-height react-resizable-panels column that scrolled
-  // itself; it is a popup panel now, and PanelShell's body is the single scroll container shared by
-  // all three panel types. So these assertions moved with the mechanism.
-  const shell = fs.readFileSync("client/src/components/PanelShell.jsx", "utf8");
-  assert.match(shell, /flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden",/);
-  // overscrollBehavior is the part the old inline pane never had: without it, reaching the end of
-  // the preview starts scrolling the app behind the panel.
-  assert.match(shell, /overscrollBehavior: "contain"/);
-  // And the sandbox must NOT nest a second scroller inside that body.
-  assert.match(sandbox, /overflowY: "visible"/);
-  assert.ok(!/overflowY: "auto"/.test(sandbox),
-    "the sandbox is scrolling itself again — that puts a second scrollbar inside PanelShell's body");
-  // The board keeps the only column; the panels overlay it rather than taking space from it.
-  assert.match(jobsPanel, /PanelGroup orientation="horizontal" style=\{\{ flex: 1, minHeight:0, minWidth:0, overflow: "hidden" \}\}/);
-});
+// ⛔ 47m (changed on purpose): "resume sandbox layout keeps scroll ownership inside the preview pane…" retired — the sandbox was a PanelShell panel; its live view is a section of the opening sheet (plate/SheetResume.jsx), which scrolls with the sheet

@@ -48,9 +48,9 @@ test("O72b·3 — Anthropic is not described as doing ATS analysis", () => {
 test("O72b·4 — the Anthropic paragraph names cover letters (direct) and the wizard's suggestions", () => {
   assert.match(prose, /Cover letters: .*?sent from our server directly to Anthropic, not through the tools service/i,
     "cover-letter material reaches Anthropic from draft directly, and the policy must say so");
-  assert.match(prose, /Load more AI suggestions/);
-  assert.match(prose, /the domain and role family you picked, and the keywords, action verbs and tools you have already chosen/i,
-    "the policy must say what the suggestions call sends: domain, role family and the chips already chosen");
+  // ⭐ 47m (D190, changed on purpose): the wizard's suggestions call no model now — the disclosure went with the call (O72a's rule, below)
+  assert.doesNotMatch(prose, /Load more AI suggestions/);
+  assert.match(prose, /the job-profile setup's suggestions are read from your résumé\s+and our own list of roles and skills/);
 });
 
 test("O72b·4 — the suggestions disclosure stands or falls with the feature (O72a)", () => {
@@ -81,7 +81,8 @@ test("O72b·5 — the effective-date comment no longer says PDF reading lives in
   // ⭐ 45n (11-08): + November 8 — D183's profile, Google sign-in, crawl sources, people search.
   // ⭐ 46x (11-19): + November 19 — D191 sketch 2's extension text (the panel on the six boards, install-time access).
   // ⭐ 47i (11-26): + November 26 — D141's The Free Tools.
-  assert.match(policy, /const EFFECTIVE_DATE = '(October (5|7|8|9|13|14|15|25|31)|November (8|19|26)), 2026'/,
+  // ⭐ 47m (11-27): + November 27 — D190: the wizard's suggestions no longer go to Anthropic.
+  assert.match(policy, /const EFFECTIVE_DATE = '(October (5|7|8|9|13|14|15|25|31)|November (8|19|26|27)), 2026'/,
     "five user-visible corrections need the effective date moved with them");
 });
 

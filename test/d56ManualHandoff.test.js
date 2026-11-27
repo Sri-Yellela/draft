@@ -300,7 +300,7 @@ test("D56 · 'I submitted' on the manual route → job_applications with the TAI
   } finally { t.stop(); }
   // The posting panel carries it (through A63's record route — evidence still decides), and so does the
   // overlay (⭐ T31: the retired popup's "I submitted it" went with it — the Fill view's is the extension's one).
-  const panel = read("client/src/components/JobDetailPanel.jsx");
+  const panel = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
   // A105 finding 3 (10-30) on purpose: on every posting, not only after a résumé was generated.
   assert.match(panel, /\{job\?\.jobId && <ManualSubmitted jobId=\{job\.jobId\} \/>\}/);
   assert.match(panel, /api\(`\/api\/applications\/pending\/\$\{encodeURIComponent\(jobId\)\}\/record`/);

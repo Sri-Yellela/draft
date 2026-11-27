@@ -78,15 +78,7 @@ test("A105 (7) · History marks every unanswered application 'Still nothing' in 
 });
 
 // A105 finding 9 — sandbox edits could be lost (manual Save only) and the KB findings' Accept did nothing.
-test("A105 (9) · the sandbox saves itself after an edit, guards a closing tab, and Accept applies a suggestion's fix", () => {
-  const sb = fs.readFileSync("client/src/panels/SandboxPanel.jsx", "utf8");
-  assert.match(sb, /const AUTOSAVE_MS = 3000;/);
-  assert.match(sb, /autoSaveTimer\.current = setTimeout\(\(\) => saveRef\.current\?\.\(\), AUTOSAVE_MS\);/);
-  assert.match(sb, /window\.addEventListener\("beforeunload", warn\)/);
-  assert.match(sb, /const from = f\?\.diff\?\.from, to = f\?\.diff\?\.to;/);
-  assert.match(sb, /t\.nodeValue = t\.nodeValue\.split\(from\)\.join\(to\)/, "the fix replaces the text on the page");
-  assert.match(sb, /applyFinding\(f\) \? "accepted" : "not found in the résumé"/, "an Accept that changed nothing says so");
-});
+// ⛔ 47m (changed on purpose): "A105 (9) · the sandbox saves itself…" retired — SandboxPanel is deleted (D199 C7): its live view is the opening sheet's 06 (plate/SheetResume.jsx, pinned in a204DraftHostsTheSandbox); editing is resume-master's editor (A204); the sheet's Accept is pinned in a204
 
 // A105 finding 5 — Profile's one Save was below Job profiles and Résumé & Signals, far from what was edited.
 test("A105 (5) · Profile's Save follows the page and says when something is unsaved", () => {
@@ -98,10 +90,11 @@ test("A105 (5) · Profile's Save follows the page and says when something is uns
 
 // A105 finding 11 — triaging the board was hover-and-press per job; the open posting now takes the deck's letters.
 test("A105 (11) · the board's open posting: S save, D draft, P pass — never while typing, never with a modifier", () => {
-  const p = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
-  assert.match(p, /\{ s: DECISIONS\.SAVED, d: DECISIONS\.DRAFTED, p: DECISIONS\.PASSED \}\[e\.key\.toLowerCase\(\)\]/);
-  assert.match(p, /closest\?\.\("input, textarea, select, \[contenteditable=''\], \[contenteditable='true'\]"\)/);
-  assert.match(p, /!e\.ctrlKey && !e\.metaKey && !e\.altKey/);
-  assert.match(p, /decideJobRef\.current = \(\.\.\.args\) => decideJob\(\.\.\.args\);/, "the handler reaches the current decideJob, not a stale one");
-  assert.doesNotMatch(p.slice(at(p, "const decision = { s:"), at(p, "const decision = { s:") + 300), /approve|decidePending/i);
+  // ⭐ 47m (D199 C7): the open posting is the opening sheet — its S · D · P are the sheet's own (plate/OpeningSheet.jsx)
+  const p = fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8");
+  assert.match(p, /const d = \{ s: "saved", d: "drafted", p: "passed" \}\[String\(e\.key\)\.toLowerCase\(\)\];/);
+  const keys = p.slice(at(p, "const d = { s:") - 600, at(p, "const d = { s:") + 400);
+  assert.match(keys, /ctrlKey|metaKey|altKey/, "never with a modifier");
+  assert.match(keys, /input|textarea|isContentEditable|contenteditable/i, "never while typing");
+  assert.doesNotMatch(keys, /approve|decidePending/i);
 });

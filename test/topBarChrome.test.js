@@ -158,7 +158,7 @@ test("⛔ THERE IS ONE MARK, AND EVERY SURFACE CALLS IT", () => {
 
   for (const f of ["client/src/components/TopBar.jsx",
                    "client/src/components/ScrollDock.jsx",
-                   "client/src/components/NavBar.jsx",
+                   
                    "client/src/pages/LandingPage.jsx"]) {
     const src = stripComments(read(f));
     assert.match(src, /<StampLogo\b/, `${f} must render the shared mark`);

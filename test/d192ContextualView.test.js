@@ -47,7 +47,7 @@ test("no band word, no claim, no term lists beyond one line; a declined score is
 });
 
 test("the panel draws ONE card: no claims, no quick check, no old report, no In context section", () => {
-  const panel = read("client/src/components/ATSPanel.jsx").replace(/^\s*\/\/.*$/gm, "");
+  const panel = (fs.readFileSync("client/src/plate/FitCard.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: ATSPanel.jsx deleted — its home now */.replace(/^\s*\/\/.*$/gm, "");
   // D202 (47h, the owner's yes — moved on purpose): the classic ATS card (components/AtsCard.jsx) is retired; the match panel draws FitCard
   assert.match(panel, /<FitCard key=\{`\$\{jobId\}\|\$\{activeProfileId \?\? ""\}`\} jobId=\{given \? null : jobId\} data=\{given\} history=\{history\}\/>/);
   assert.doesNotMatch(panel, /SkillCheck|toggleClaim|setProfileClaim|buildProfileClaimLookup|claims|<AtsReport|ContextualFit/);

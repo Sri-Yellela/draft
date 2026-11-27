@@ -64,5 +64,5 @@ test("Wiring: the questions route reads the cache only and uses the manual packe
   assert.match(ui, /\/api\/saved-answers\/remember", \{ method: "POST", body: JSON\.stringify\(\{ question, answer: state\.text, company, scope: "company" \}\)/,
     "the person's edited text, saved by the person, for this employer");
   assert.match(ui, /if \(!r\?\.known \|\| !r\.count\) return null;/);
-  assert.match(read("client/src/components/JobDetailPanel.jsx"), /<ApplicationQuestions jobId=\{selectedJob\.id \?\? selectedJob\.jobId\} company=\{selectedJob\.company\} \/>/);
+  assert.match((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */, /<ApplicationQuestions jobId=\{selectedJob\.id \?\? selectedJob\.jobId\} company=\{selectedJob\.company\} \/>/);
 });

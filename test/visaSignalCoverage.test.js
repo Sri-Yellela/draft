@@ -33,7 +33,7 @@ const read = (p) => fs.readFileSync(p, "utf8");
 const card = read("client/src/components/JobCard.jsx");
 // D48 (10-07): the posting panel's header chips are gone — the visa badge with them — so JobCard holds the one
 // copy. The panel is pinned to carry NO copy, so a second one cannot come back and drift from the first.
-const detail = read("client/src/components/JobDetailPanel.jsx");
+const detail = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
 
 /** Both copies of the badge, sliced from their own function. */
 const badgeOf = (src) => {

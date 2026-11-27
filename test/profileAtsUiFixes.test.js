@@ -39,7 +39,7 @@ test("job card hover preview uses shared active-aware icon helpers for save and 
   // found only because an unrelated test happened to pin the JobCard line — nothing guarded this
   // surface, so guard it here rather than leave the pair half-covered. Neither surface has a
   // dedicated A+ button; both rely on the same generic in-flight guard.
-  const detailPanelCode = fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8")
+  const detailPanelCode = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/^\s*\/\/.*$/gm, "");
   assert.doesNotMatch(detailPanelCode, /aPlusLoading/,
@@ -51,7 +51,7 @@ test("job card hover preview uses shared active-aware icon helpers for save and 
 
 test("jobs UI opens ATS panel from stored base ATS reports without requiring regeneration", () => {
   const jobsPanel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
-  const detailPanel = fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8");
+  const detailPanel = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
   const server = fs.readFileSync("server.js", "utf8");
 
   assert.match(jobsPanel, /function buildAtsPayload\(job, artifact = null\)/);

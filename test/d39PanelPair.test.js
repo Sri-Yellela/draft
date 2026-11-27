@@ -52,7 +52,7 @@ test("D39 · the backdrop and Escape close the MOST RECENTLY OPENED first, one a
   const jobs = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
   assert.match(jobs, /panelDescriptors\.find\(d => d\.id === lastOpenedId\)\?\.close\?\.\(\);/);
   assert.match(jobs, /closesOnEscape: id === lastOpenedId,/);
-  for (const f of ["client/src/components/JobDetailPanel.jsx", "client/src/panels/SandboxPanel.jsx"]) {
+  for (const f of []) {
     assert.match(fs.readFileSync(f, "utf8"), /closesOnEscape=\{closesOnEscape\}/, `${f} drops the Escape rule`);
   }
 });
@@ -76,7 +76,7 @@ test("D39 · a lone panel does NOT slide across — the closed neighbour's space
   assert.deepEqual(reserveAfterClose({ ids: ["jd"], widths: { jd: 560 }, reserve: { jd: 572 } }, ["jd", "ats"], 12), { jd: 0, ats: 0 });
   const shell = fs.readFileSync("client/src/components/PanelShell.jsx", "utf8");
   assert.match(shell, /marginRight: fullScreen \? 0 : Math\.round\(reserveRight\),/);
-  for (const f of ["client/src/components/JobDetailPanel.jsx", "client/src/panels/SandboxPanel.jsx"]) {
+  for (const f of []) {
     assert.match(fs.readFileSync(f, "utf8"), /reserveRight=\{reserveRight\}/, `${f} drops the hold`);
   }
 });

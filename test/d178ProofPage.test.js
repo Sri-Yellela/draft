@@ -113,7 +113,7 @@ test("d178ProofPageLearning: the Profile asks separately; Your run points to the
   const ui = read("client/src/components/ProfileSections.jsx");
   assert.match(ui, /\{s\.enabled && \(\n\s*<label [^>]*data-proof-page-learning=\{s\.showLearning \? "on" : "off"\}>\n\s*<input type="checkbox" checked=\{!!s\.showLearning\} onChange=\{e => send\(true, \{ showLearning: e\.target\.checked \}\)\} \/>/);
   assert.doesNotMatch(ui.slice(at(ui, "function ProofPageSetting"), at(ui, "const ymLabel")).replace(/^\s*\/\/.*$/gm, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, ""), CERTIFY);
-  const run = read("client/src/pages/atlas/YourRun.jsx");
+  const run = (fs.readFileSync("client/src/pages/atlas/Logbook.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: YourRun.jsx deleted — its home now */;
   assert.match(run, /api\("\/api\/profile\/proof-page"\)\.then\(r => live && setProofPage\(r\)\)/);
   // ⭐ A153 (45o, on purpose): D183 P3 made /in/<handle> the page; Your run links it and the profile's own place.
   assert.match(run, /href=\{`\/in\/\$\{proofPage\.handle\}`\}/);

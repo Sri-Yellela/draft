@@ -16,7 +16,7 @@ import { at } from "../test-support/sourceAnchors.js";
 // file → what it sends. "untrusted" files must import the fence; "own" files send only the person's own input.
 const MODEL_CALLERS = {
   "server.js": { carries: "untrusted", what: "the job description in both cover letters", fence: /buildCoverLetterRequest/ },
-  "routes/domainProfiles.js": { carries: "own", what: "the domain, role family and the person's own chip lists (generate-chips)" },
+  // 47m (D190): routes/domainProfiles.js calls no model — the wizard's suggestions read the résumé + the taxonomy
   // 46f: listed (46e's own callers, pushed before the suite ran): both carry untrusted text and both fence it.
   "services/applicationAnswerDraft.js": { carries: "untrusted", what: "the employer's question and the role's title (D185-1 / A182's run drafts)", fence: /fenceUntrusted\("posting", untrusted\)/ },
   "services/assistant/assistant.js": { carries: "untrusted", what: "the asker's question and the retrieved Atlas lessons / help (T5)", fence: /fenceUntrusted\(/ },

@@ -274,7 +274,7 @@ test("⛔ D59 · the notice at Draft — the row's own sentence; it says what th
     { citizenship: true, clearance: false });
   assert.deepEqual(statedEligibility({ custom_answers: "{}", clearance_level: null }), { citizenship: false, clearance: false });
   // The panel shows it beside Draft, and Draft asks before it acts.
-  assert.match(read("client/src/components/JobDetailPanel.jsx"), /data-eligibility-notice=""/);
+  assert.match((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */, /data-eligibility-notice=""/);
   // Owner 10-07 (38): "only in panel" — the notice is the panel's line beside Draft, never a confirm at the click.
   const jp = read("client/src/panels/JobsPanel.jsx");
   assert.match(jp, /eligibilityNotice: isJobDrafted\(selectedJob\.jobId\) \? null : eligibilityNoticeFor\(selectedJob\)/, "the panel line");
@@ -423,7 +423,7 @@ test("D59 · one normaliser for every source: the panel's formatter, the capture
   // 44p (changed on purpose): 500 a pass, the first slice only — the stale scan over the whole board is the cost (≈ 4 s at 81k).
   assert.match(read("server.js"), /backfillDescriptionText\(db, \{ dryRun: false, limit: 500, ceiling: 500 \}\)/, "the boot / interval pass runs it");
   // ⛔ no source renders posting HTML as HTML.
-  for (const f of ["client/src/components/PostingPanel.jsx", "client/src/components/JobDetailPanel.jsx", "client/src/views/DeckView.jsx"]) {
+  for (const f of ["client/src/components/PostingPanel.jsx", "client/src/views/DeckView.jsx"]) {
     if (fs.existsSync(f)) assert.doesNotMatch(read(f), /dangerouslySetInnerHTML/, `${f} injects HTML`);
   }
   assert.equal(formatPosting(normalizePosting(RTX_HTML).text)[0].type, "h");

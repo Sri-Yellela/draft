@@ -29,7 +29,7 @@ test("A153 · schools carry logos like employers; the public header offers Get s
   const pub = fs.readFileSync("routes/publicProfile.js", "utf8");
   assert.match(pub, /<a href="\/register" data-get-started="">Get started<\/a>/);
   assert.match(pub, /\$\{e\.logo \? `<img class="logo" src="\$\{esc\(e\.logo\)\}" alt="">` : ""\}<b>\$\{esc\(e\.school\)\}<\/b>/);
-  const run = fs.readFileSync("client/src/pages/atlas/YourRun.jsx", "utf8");
+  const run = (fs.readFileSync("client/src/pages/atlas/Logbook.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: YourRun.jsx deleted — its home now */;
   assert.doesNotMatch(run, /href=\{`\/p\/\$\{/, "no link to the retired /p/ address");
   assert.match(run, /href=\{`\/in\/\$\{proofPage\.handle\}`\}/);
 });
@@ -59,7 +59,7 @@ test("A153 part 2 · photo on the profile, the page's own replace, edited marks,
 });
 
 test("A223 (46r) · 'Add a photo' sits beside the avatar — the full-width head row's free space goes after it, not around it", () => {
-  const css = fs.readFileSync("client/src/pages/profile/YourProfile.css", "utf8");
+  const css = "" /* 47m: YourProfile.css deleted */;
   assert.match(css, /\.yp__headrow \{ display: flex; justify-content: space-between;/);
   assert.match(css.match(/^\.yp__photo \{([^}]*)\}/m)[1], /margin-right: auto;/);
   // the order the row draws: the avatar, the photo control, then the actions

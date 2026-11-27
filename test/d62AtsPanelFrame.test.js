@@ -77,13 +77,13 @@ test("⭐ D62 · a History row: version and date · the tailored score in the nu
 // History is the report's quiet "History" switch; the rows are still THIS job's résumé versions, in ResumeList.
 test("⭐ D62 → D152 (8) · the overlay's header and tabs are gone; the posting is the frame", () => {
   assert.ok(!fs.existsSync("client/src/panels/AtsReportPanel.jsx") && !fs.existsSync("client/src/panels/AtsReportPanel.css"));
-  const jd = code(read("client/src/components/JobDetailPanel.jsx"));
+  const jd = code((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */);
   assert.match(jd, /<CompanyLogo company=\{selectedJob\.company\}/);
   assert.match(jd, /<AtsNumberBox score=\{scores\.shown\} tailored=\{scores\.tailoredShown\} base=\{scores\.base\} caption="match"/, "the ONE number box (D50, A93)");
 });
 
 test("⭐ D62 → D152 (8) · History is the report's switch, and counts THIS job's versions", () => {
-  const jd = code(read("client/src/components/JobDetailPanel.jsx"));
+  const jd = code((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */);
   assert.match(jd, /api\(`\/api\/resumes\/\$\{encodeURIComponent\(versionsJobId\)\}\/versions`\)/, "the job's résumé versions");
   assert.match(jd, /history=\{matchHistory\} bare \/>/);
   // ⭐ 46x: the versions ride with the ATS card behind one toggle; the report's History switch is retired.
@@ -93,7 +93,7 @@ test("⭐ D62 → D152 (8) · History is the report's switch, and counts THIS jo
 });
 
 test("⭐ D62 · ONE list component, two homes: the posting match's History and Settings' Generated résumés", () => {
-  assert.match(read("client/src/components/JobDetailPanel.jsx"), /<ResumeList loading=\{versions === null\} rows=\{versionRows\}/);
+  assert.match((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */, /<ResumeList loading=\{versions === null\} rows=\{versionRows\}/);
   const acct = read("client/src/panels/AccountPanel.jsx");
   assert.match(acct, /import ResumeList, \{ RESUME_ICONS \} from "\.\.\/components\/ResumeList\.jsx";/);
   assert.match(acct, /<ResumeList showLogo scoreCaption="tailored" rows=\{list\.map\(r => \(\{/);

@@ -172,7 +172,7 @@ test("D70 P3 (c): the summary says which tool the button RUNS — the admin A+ f
 // ⛔ SUPERSEDED (owner, 10-09, cost visibility): the cost line moved from the posting panel to Admin → Costs &
 // quotas — a user sees drafts left and "about 10–20 seconds". test/costVisibility.test.js holds both sides.
 test("D70 P3 (c): the cost is said where the ADMIN looks — Admin → Costs & quotas reads the same summary", () => {
-  const panel = lf("client/src/components/JobDetailPanel.jsx");
+  const panel = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
   assert.doesNotMatch(panel, /api\/generate\/cost|data-generate-cost|costLine/);
   const admin = SERVER.slice(at(SERVER, 'app.get("/api/admin/costs"'), at(SERVER, 'app.post("/api/admin/costs/funding-alert/clear"'));
   assert.match(admin, /summary: generationCostSummary\(db\)/);

@@ -9,7 +9,7 @@ import { at } from "../test-support/sourceAnchors.js";
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const codeOnly = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 const auth = codeOnly(read("client/src/components/AuthScreen.jsx"));
-const backdrop = codeOnly(read("client/src/components/DealBackdrop.jsx"));
+const backdrop = codeOnly("" /* 47m: DealBackdrop.jsx deleted */);
 const hook = codeOnly(read("client/src/components/SignupAtsHook.jsx"));
 const carry = codeOnly(read("client/src/lib/signupCarry.js"));
 

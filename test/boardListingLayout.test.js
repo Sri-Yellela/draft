@@ -14,8 +14,8 @@ import { at } from "../test-support/sourceAnchors.js";
 
 const jobCard   = fs.readFileSync("client/src/components/JobCard.jsx", "utf8");
 const jobsPanel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
-const detail    = fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8");
-const tile      = fs.readFileSync("client/src/components/ui/TileCard.jsx", "utf8");
+const detail    = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
+const tile      = "" /* 47m: TileCard.jsx deleted */;
 const icon      = fs.readFileSync("client/src/components/CompanyLogo.jsx", "utf8");   // D61: was ui/CompanyIcon.jsx
 
 // ── One CompanyIcon ──────────────────────────────────────────────────────────
@@ -27,7 +27,7 @@ test("THE DEFECT THAT HID AE5's LOGO FIX: the company mark exists exactly ONCE (
   // copies of a component is not a tidiness complaint, it is a class of silent no-op.
   const defs = [];
   for (const f of [
-    "client/src/components/JobCard.jsx", "client/src/components/JobDetailPanel.jsx",
+    "client/src/components/JobCard.jsx", 
     "client/src/panels/JobsPanel.jsx", "client/src/components/CompanyLogo.jsx", "client/src/panels/DeckView.jsx",
     "client/src/components/JobBubble.jsx",
   ]) {

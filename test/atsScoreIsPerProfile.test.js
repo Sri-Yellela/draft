@@ -34,7 +34,7 @@ const SERVER = fs.readFileSync("server.js", "utf8");
 const JOB_CARD = fs.readFileSync("client/src/components/JobCard.jsx", "utf8");
 const JOBS_PANEL = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
 // ⭐ D152 (8): the ATS overlay (AtsReportPanel) is retired — the match is drawn inside the posting (JobDetailPanel).
-const JOB_DETAIL = fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8");
+const JOB_DETAIL = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
 const APPLY = fs.readFileSync("routes/apply.js", "utf8");
 
 // ⛔ EVERY ASSERTION BELOW THAT A STATEMENT IS GONE HAS TO IGNORE THE COMMENTS QUOTING IT.
@@ -174,8 +174,8 @@ test("an unscored row still offers a way into its ATS report", () => {
   // D152 (8) (44t): the opener also names the job, so the match opens inside that posting (option A), not over the page.
   assert.match(JOBS_PANEL, /onAts: \(\) => openAtsPanel\(buildAtsPayload\(selectedJob, g2\), selectedJob\),/);
   // ⭐ D152 (8): the match box opens the report IN the posting — ATSPanel, which fetches it on demand when handed none.
-  assert.match(fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8"), /onOpen=\{\(\) => \{ setMatchMounted\(true\); setMatchOpen\(o => !o\); \}\}/);
-  assert.match(fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8"), /<ATSPanel report=\{selectedJobMeta\?\.atsPayload\?\.report\}/);
+  assert.match((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */, /onOpen=\{\(\) => \{ setMatchMounted\(true\); setMatchOpen\(o => !o\); \}\}/);
+  assert.match((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */, /<ATSPanel report=\{selectedJobMeta\?\.atsPayload\?\.report\}/);
   noLiveMatch(JOBS_PANEL, /if \(g\?\.atsReport \|\| g\?\.atsScore != null/,
     "the handler may not require the report it exists to go and fetch");
   assert.equal((JOB_CARD.match(/<AtsSlot score=/g) || []).length, 2);

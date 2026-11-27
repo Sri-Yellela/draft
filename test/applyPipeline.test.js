@@ -18,7 +18,7 @@ const jobsPanel = [
   "client/src/panels/AutoApplyPanel.jsx",
   "client/src/contexts/AutoApplyContext.jsx",
 ].map(f => fs.readFileSync(f, "utf8")).join("\n");
-const detailPanel = fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8");
+const detailPanel = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
 const adminDb = fs.readFileSync("routes/adminDb.js", "utf8");
 
 test("apply pipeline has DB-backed runs, jobs, and structured logs", () => {

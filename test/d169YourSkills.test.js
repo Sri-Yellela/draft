@@ -254,7 +254,7 @@ test("D169 · d169NoQuestionsProofOrBuild — no questions: a proof link or a bu
 test("D169 · the quick check lives in Atlas's Your skills only — the posting's ATS panel no longer claims or opens a check (46x)", async () => {
   // ⭐ 46x (owner 11-19: "ditch the whole prove it and claim it gimmick and definitely ditch it from the jd panel"): moved on
   // purpose — d169AtsClaimOpensCheck pinned the claim → check in the posting's panel; the panel draws the ATS card now.
-  const src = read("client/src/components/ATSPanel.jsx").replace(/^\s*\/\/.*$/gm, "");
+  const src = (fs.readFileSync("client/src/plate/FitCard.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: ATSPanel.jsx deleted — its home now */.replace(/^\s*\/\/.*$/gm, "");
   assert.doesNotMatch(src, /SkillCheck|setProving|setProfileClaim/);
   // The Atlas list opens the SAME component (A93: built once).
   assert.match(read("client/src/pages/atlas/YourSkillsPanel.jsx"), /import SkillCheck from "\.\.\/\.\.\/components\/SkillCheck\.jsx";/);

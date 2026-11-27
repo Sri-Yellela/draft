@@ -64,7 +64,7 @@ test("cost (c): no non-admin client file shows cents, a model's name, or fetches
     if (/¢|\bSonnet\b|\bHaiku\b|\bOpus\b|api\/generate\/cost|api\/admin\/costs|cost_usd|costUsd/.test(code)) offenders.push(f);
   }
   assert.deepEqual(offenders, []);
-  const panel = lf("client/src/components/JobDetailPanel.jsx");
+  const panel = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
   assert.match(panel, /data-generate-expect="">Takes about 10–20 seconds\.</);
   assert.match(panel, /You've used your drafts for now — the next one frees up/);
   assert.doesNotMatch(panel, /\(A\+\)|one model call/);
@@ -141,7 +141,7 @@ test("cost (g): the mobile contract carries no cost, token, tool or cache field 
 // ── (h) the layout ──────────────────────────────────────────────────────────────────────────────
 
 test("cost (h): the new line is an ordinary quota line — the panel's own class, theme colours, no pill", () => {
-  const panel = lf("client/src/components/JobDetailPanel.jsx");
+  const panel = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
   const line = panel.slice(at(panel, "data-generate-expect"), at(panel, "data-generate-expect") + 120);
   assert.ok(panel.lastIndexOf('className="pp__quota"', at(panel, "data-generate-expect")) > at(panel, "data-generate-expect") - 40);
   assert.doesNotMatch(line, /style=|999px|rounded-full|#[0-9a-f]{3,6}/i);

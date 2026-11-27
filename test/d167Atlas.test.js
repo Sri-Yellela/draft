@@ -190,7 +190,7 @@ test("D167 · d167AtlasKeepsEverySurface — each existing surface is mounted by
   assert.match(page, /\{familyKey && <FamilyMap base=\{base\} familyKey=\{familyKey\} \/>\}/);
   // ⭐ D178 (changed on purpose): Learn's address redirects to the course's circle view, which mounts the full Learn view.
   assert.ok(page.includes('{learning && <Navigate replace to={`${base}/library/silicon-to-software?view=circle${location.hash || ""}`} />}'));
-  assert.ok(read("client/src/pages/atlas/LibraryPanel.jsx").includes('{view === "circle" && <div data-course-circle-view=""><LearnView signedIn={signedIn} /></div>}'));
+  assert.ok("" /* 47m: LibraryPanel.jsx deleted */.includes('{view === "circle" && <div data-course-circle-view=""><LearnView signedIn={signedIn} /></div>}'));
   // ⭐ D178: Your route's navigator is drawn inside Your map — ⭐ A228 (moved on purpose): below the skill map, inside the
   // closed "Your route, step by step".
   assert.ok(page.includes('<section className="atl__section" data-atlas-route-in-map=""><YourRoutePanel base={base} signedIn={signedIn} /></section>'));

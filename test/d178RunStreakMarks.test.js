@@ -45,7 +45,7 @@ test("d178MarksOnlyForWholes: a mark for a whole module, dated by its last proof
   const whole = Object.fromEntries(all.map((id, i) => [id, 100 + i]));
   assert.deepEqual(marksFrom(doc, whole).earned, [{ module: 6, title: "Languages and media", at: 100 + all.length - 1 }]);
   assert.ok(marksFrom(doc, half).next.some(n => n.module === 6 && n.pct > 0), "progress toward the next mark");
-  const ui = read("client/src/pages/atlas/YourRun.jsx");
+  const ui = (fs.readFileSync("client/src/pages/atlas/Logbook.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: YourRun.jsx deleted — its home now */;
   assert.match(ui, /data-run-month=""/); assert.match(ui, /data-run-marks=""/); assert.match(ui, /data-run-proven=""/);
   assert.doesNotMatch(ui.replace(/\/\/[^\n]*|\{\/\*[\s\S]*?\*\/\}/g, ""), /🔥|flame|streak repair|shop|coins/i, "no flames, no shop, no currency (D178)");
 });

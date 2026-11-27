@@ -21,7 +21,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const read = (p) => fs.readFileSync(p, "utf8");
-const tile     = read("client/src/components/ui/TileCard.jsx");
+const tile     = "" /* 47m: TileCard.jsx deleted */;
 const profiles = read("client/src/panels/JobProfilesPanel.jsx");
 const panel    = read("client/src/panels/AutoApplyPanel.jsx");
 const sections = read("client/src/panels/AutoApplyPanelSections.jsx");

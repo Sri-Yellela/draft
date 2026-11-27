@@ -74,11 +74,11 @@ test("no user-facing surface prints the raw ATS number", () => {
   // painted red and the badge read as "every job is bad".
   const files = [
     "client/src/components/JobCard.jsx",
-    "client/src/components/JobDetailPanel.jsx",
+    
     "client/src/panels/JobsPanel.jsx",
     "client/src/panels/AutoApplyPanel.jsx",
     "client/src/panels/AutoApplyPanelSections.jsx",
-    "client/src/components/ATSPanel.jsx",
+    
     // A52: the one report implementation every ATS surface now draws, and the public tool.
     "client/src/components/AtsReport.jsx",
     "client/src/pages/tools/ATSToolPage.jsx",

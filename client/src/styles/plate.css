@@ -355,7 +355,7 @@
 [data-plate-face="paper"] { --pl-face: paper; }
 [data-plate-face="night"] { --pl-face: night; }
 :root[data-plate-face="night"] .plate, :root [data-plate-face="night"] .plate, :root .plate[data-plate-face="night"] {
-  color-scheme: dark;
+  /* no color-scheme here: themes/index.js is the one decider (inkPairD32); plate controls are drawn in tokens */
   --pl-paper: #161412; --pl-paper-deep: #1B1816; --pl-paper-warm: #1F1C19; --pl-paper-hover: #2B2724; --pl-tab-off: #24201D;
   --pl-card: #262220; --pl-card-veil: color-mix(in srgb, #262220 85%, transparent);
   --pl-ink: #EFE8E0; --pl-ink-soft: #CFC6BC; --pl-muted: #A39A90; --pl-muted-2: #8F867D; --pl-rule: #3A3430; --pl-rule-2: #3A3430;

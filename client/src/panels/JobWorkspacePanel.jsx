@@ -168,7 +168,7 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded
                 {held > 0 ? (
                   <SettingsSheet kicker={`NEEDS YOU · ${held}`} title="Held for you"
                     rows={[...open.map((q) => ({ label: q, control: <span className="pl-pp-note">question</span> })), ...needs.map((f) => ({ label: f.name || "A field", control: <span className="pl-pp-note">field</span> }))]}
-                    actions={<a className={approvable ? "pl-btn" : "pl-btn pl-btn--primary"} href="/app/auto-apply">Answer these in Home</a>}
+                    actions={<a className={approvable ? "pl-btn" : "pl-btn pl-btn--primary"} href={"/app/auto-apply"}>Answer these in Home</a>}
                     lead="What you answer is saved for next time." />
                 ) : null}
                 {filled.length === 0 ? <Drawer text="No values filled yet." /> : (

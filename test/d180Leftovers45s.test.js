@@ -85,5 +85,5 @@ test("Works here: ONE component — the company page, the posting panel and the 
   const co = read("client/src/pages/companies/CompanyPage.jsx");
   assert.match(co, /import WorksHere from "\.\.\/\.\.\/components\/WorksHere\.jsx"/);
   assert.doesNotMatch(co, /function WorksHere\(/, "not built twice");
-  assert.match(read("client/src/components/JobDetailPanel.jsx"), /<WorksHere company=\{selectedJob\.company\} job=\{\{ id: selectedJob\.id \?\? selectedJob\.jobId \}\} \/>/);
+  assert.match((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */, /<WorksHere company=\{selectedJob\.company\} job=\{\{ id: selectedJob\.id \?\? selectedJob\.jobId \}\} \/>/);
 });

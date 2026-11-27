@@ -102,6 +102,10 @@ import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follo
 // before the extension ships it). (2) The last capture's result is no longer stored (nothing reads it any more).
 // (3) The popup's places — the account and Disconnect, automatic reading's one-time offer, "Always read here", the Copy
 // sheet, Report this form — are named where they are now: the settings page and draft's panel on the page.
+// November 27, 2026 (47m, D190 "nothing within draft's own data or functions calls a model"): the job-profile setup's
+// suggestions ("Load more AI suggestions", now "Suggest more from your résumé") no longer call Anthropic — they are read from
+// the résumé and the taxonomy on our server (services/chipSuggestions.js) — so Anthropic is behind two features, not three.
+// Not material (less leaves, nothing new is collected). Effective the day the push carrying it goes live.
 // November 26, 2026 (owner, 11-26 — 47i, D141 "yes, name them"): The Free Tools names the four public tools and what each
 // does with what it's given, as the code does it. Not material (no new collection or use; it says what already happens).
 // ⚠ Effective the day it goes live — move the date to that push's day if it isn't 11-26.
@@ -157,7 +161,7 @@ import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follo
 // that push (the owner's word), not before — it is still the 10-31 date until then.
 // ⭐ 45n push (owner 11-08, decision (5)): the push carrying D183's profile lines, the Google sign-in and crawl-sources
 // lines, and people search (a public profile findable by name) — effective the day it goes live.
-const EFFECTIVE_DATE = 'November 26, 2026';
+const EFFECTIVE_DATE = 'November 27, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
 export function PrivacyPage() {
@@ -955,14 +959,13 @@ export function PrivacyPage() {
               and the PDF is not sent anywhere.
             </LI>
             <LI>
-              <Strong>Anthropic</Strong> — the AI model behind three features, and only these.
+              <Strong>Anthropic</Strong> — the AI model behind two features, and only these.
               Résumé generation and enhancement: your résumé, the profile details it draws on and
               the job description, through our résumé tools service above. Cover letters: the
               text of your résumé, the job title and company, the job description and the tone you
-              pick, sent from our server directly to Anthropic, not through the tools service. "Load more AI
-              suggestions" in the job-profile setup: the domain and role family you picked, and the
-              keywords, action verbs and tools you have already chosen, so the suggestions don't
-              repeat them. Nothing else is sent to Anthropic. ATS scoring runs on our own server. Anthropic does
+              pick, sent from our server directly to Anthropic, not through the tools service. Nothing
+              else is sent to Anthropic: the job-profile setup's suggestions are read from your résumé
+              and our own list of roles and skills, on our server. ATS scoring runs on our own server. Anthropic does
               not use API inputs to train models.
             </LI>
             <LI>

@@ -76,7 +76,7 @@ function ProfileAutoApply() {
   };
   return (
     <>
-      <WorkingHead kicker={`AUTO-APPLY · ${fullAuto ? "APPLY FOR ME" : "ASK ME FIRST"}`} title="How draft applies for you"
+      <WorkingHead kicker={`HOW DRAFT APPLIES · ${fullAuto ? "APPLY FOR ME" : "ASK ME FIRST"}`} title="How draft applies for you"
         lead="The same settings as the ledger's Settings — every change is saved as you make it." />
       <div className="pl-page pl-pp-body">
         <SettingsSheet kicker="STANDING ORDERS" title="Your standing orders" lead="When, how many, which jobs, before sending, salary, what you're told, pausing, accounts, the view.">

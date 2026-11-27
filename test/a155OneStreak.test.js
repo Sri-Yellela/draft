@@ -47,7 +47,7 @@ test("A155 · the migration, the route, Today's question shows the one streak, t
   assert.match(fs.readFileSync("routes/atlas.js", "utf8"), /router\.put\("\/prefs", \(req, res\) => \{/);
   assert.match(fs.readFileSync("services/learn/dailyQuestion.js", "utf8"), /atlasStreak: oneStreak\(db, userId\)/);
   assert.match(fs.readFileSync("client/src/pages/atlas/AtlasPanels.jsx", "utf8"), /`Your Atlas streak: \$\{t\.atlasStreak \?\? t\.streak\}/);
-  const run = fs.readFileSync("client/src/pages/atlas/YourRun.jsx", "utf8");
+  const run = (fs.readFileSync("client/src/pages/atlas/Logbook.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: YourRun.jsx deleted — its home now */;
   assert.match(run, /Weekdays only — weekends never break it/);
   assert.match(run, /api\("\/api\/profile\/sections\/skills", \{ method: "PUT", body: JSON\.stringify\(\{ items: \[\.\.\.items, \.\.\.more\] \}\) \}\)/);
   assert.match(fs.readFileSync("services/accountService.js", "utf8"), /atlas_prefs: "drop",/, "the merge has a plan for it");

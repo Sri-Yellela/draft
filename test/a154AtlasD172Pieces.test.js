@@ -26,7 +26,7 @@ test("A154 · Your run's three quests — the daily question and a deck earn no 
   assert.match(pts, /quests\.push\(\{ id: "deck", title: "Read one deck", detail: deck\.title, deckId: deck\.id, points: null/);
   assert.equal(questHref("/app/atlas", { id: "today" }), "/app/atlas/todays-question");
   assert.equal(questHref("/app/atlas", { id: "deck", deckId: "sw-f-01" }), "/app/atlas/library/sw-f-01");
-  assert.match(fs.readFileSync("client/src/pages/atlas/YourRun.jsx", "utf8"), /q\.points != null \? `\+\$\{q\.points\} points` : `about \$\{q\.minutes\} min`/);
+  assert.match((fs.readFileSync("client/src/pages/atlas/Logbook.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: YourRun.jsx deleted — its home now */, /q\.points != null \? `\+\$\{q\.points\} points` : `about \$\{q\.minutes\} min`/);
 });
 
 test("A154 · the map's stop cards say proven / next · N decks, 1 lesson; the You pill has the years", () => {

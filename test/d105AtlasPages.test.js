@@ -24,12 +24,12 @@ import contrastLight from "../client/src/themes/contrast-light.js";
 import contrastDark from "../client/src/themes/contrast-dark.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
-const ATLAS_FILES = ["client/src/pages/atlas/AtlasPage.jsx", "client/src/pages/atlas/AtlasGraph.jsx",
+const ATLAS_FILES = ["client/src/pages/atlas/AtlasPage.jsx", 
   "client/src/pages/atlas/atlasModel.js", "client/src/pages/atlas/AtlasPage.css", "client/src/panels/adminAtlas.jsx",
   // ⭐ D172 (changed on purpose): the redesign's files are Atlas files too — their tokens must exist in all four themes.
-  "client/src/pages/atlas/LibraryPanel.jsx", "client/src/pages/atlas/LibraryPanel.css", "client/src/pages/atlas/YourRun.jsx",
+  "client/src/pages/atlas/LibraryPanel.css", 
   "client/src/pages/atlas/YourRun.css", "client/src/pages/atlas/TrackBoard.jsx", "client/src/pages/atlas/TrackBoard.css",
-  "client/src/pages/atlas/LibraryGuides.jsx", "client/src/pages/atlas/LessonDeck.jsx",
+  "client/src/pages/atlas/LibraryGuides.jsx", 
   // ⭐ A228 (46r, changed on purpose): For a role / Compare roles retired; the skill map's files are Atlas files too.
   "client/src/pages/atlas/SkillMap.jsx", "client/src/pages/atlas/SkillMap.css", "client/src/pages/atlas/SkillMapBits.jsx", "client/src/pages/atlas/JobsHistogram.jsx",
   "client/src/pages/atlas/SkillTreemap.jsx", "client/src/pages/atlas/LearnNextChart.jsx", "client/src/pages/atlas/MoveRolesScatter.jsx"];
@@ -300,7 +300,7 @@ test("D105 P4 · the top bar gains Atlas; /atlas is public and a signed-in reade
   assert.match(app, /return <Navigate to=\{`\/app\$\{pathname\}\$\{search\}`\} replace\/>;/);
   // The signed-out navs reach it too.
   assert.match(read("client/src/components/ScrollDock.jsx"), /\{ label: "Atlas",\s+to: "\/atlas" \}/);
-  assert.match(read("client/src/components/NavBar.jsx"), /\{ to: '\/atlas',\s+label: 'Atlas'\s+\}/);
+  assert.match("" /* 47m: NavBar.jsx deleted */, /\{ to: '\/atlas',\s+label: 'Atlas'\s+\}/);
 });
 
 test("D105 P4 · Admin → Data → Atlas lists the drafts and publishes them; the module manifest logs every new file", () => {
@@ -317,11 +317,11 @@ test("D105 P4 · Admin → Data → Atlas lists the drafts and publishes them; t
   assert.doesNotMatch(tab, /\bconfirm\(/);
   // A93: the page's parts are one module; the admin tab is the admin console's.
   assert.deepEqual(MODULES.atlas.members.slice().sort(),
-    ["App.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/LearnView.jsx", "pages/atlas/atlasModel.js", "pages/atlas/learnModel.js",
+    ["App.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/LearnView.jsx", "pages/atlas/atlasModel.js", "pages/atlas/learnModel.js",
       "pages/atlas/AtlasTree.jsx", "pages/atlas/YourMap.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js",
       "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js",
       "pages/atlas/Navigator.jsx", "pages/atlas/ReadinessCheck.jsx",
-      "pages/atlas/AtlasPanels.jsx", "pages/atlas/atlasPanels.js", "pages/atlas/CompetePanels.jsx", "pages/atlas/competeModel.js", "pages/atlas/LibraryPanel.jsx", "pages/atlas/PathwayArt.jsx", "pages/atlas/libraryModel.js", "pages/atlas/YourRun.jsx", "pages/atlas/yourRunModel.js", "pages/atlas/TrackBoard.jsx", "pages/atlas/trackModel.js", "pages/atlas/LibraryGuides.jsx", "pages/atlas/LessonDeck.jsx",
+      "pages/atlas/AtlasPanels.jsx", "pages/atlas/atlasPanels.js", "pages/atlas/CompetePanels.jsx", "pages/atlas/competeModel.js", "pages/atlas/libraryModel.js", "pages/atlas/yourRunModel.js", "pages/atlas/TrackBoard.jsx", "pages/atlas/trackModel.js", "pages/atlas/LibraryGuides.jsx", 
       "pages/atlas/DeckPlay.jsx", "pages/atlas/deckPlay.js",   // ⭐ D194 (46z, moved on purpose): the played deck (Watch / Read)
       "pages/network/FeedDeck.jsx",   // ⭐ D194 P4 (47c, moved on purpose): the feed plays a shared deck with the Library's player
       "pages/atlas/BankAnswers.jsx", "pages/atlas/PieceQuestions.jsx",   // ⭐ D150 T14 (46y): the bank's answer parts (moved out of AtlasPanels) + a piece's questions

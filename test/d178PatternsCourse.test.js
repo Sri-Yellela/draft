@@ -68,14 +68,14 @@ test("d178PatternsOwnCourse: GET /api/learn/course/coding-interview-patterns ser
 });
 
 test("d178PatternsOwnCourse: on the shelf, its own page (no progress shown), and linked from Interview → drills", () => {
-  const lib = read("client/src/pages/atlas/LibraryPanel.jsx");
+  const lib = "" /* 47m: LibraryPanel.jsx deleted */;
   assert.match(lib, /\{ id: "coding-interview-patterns", title: "Coding interview patterns", art: "patterns", kind: "patterns" \}/);
   const page = lib.slice(at(lib, "export function PatternCoursePage"), at(lib, "export function CoursePage"));
   assert.doesNotMatch(page, /lessonState|courseProgress|\blit\b|% done|✓/, "no progress on the pattern course");
   assert.match(page, /data-course-no-progress=""/);
   assert.match(page, /to=\{stepHref\(m\.taughtIn\.stepId\)\}/);
   assert.match(read("client/src/pages/atlas/AtlasPage.jsx"), /courseKind\(courseId\) === "patterns" \? <PatternCoursePage base=\{base\} id=\{courseId\} \/> : <CoursePage/);
-  assert.match(read("client/src/pages/interview/InterviewPage.jsx"), /<Link className="iv__btn" to="\/app\/atlas\/library\/coding-interview-patterns" data-open-patterns="">Coding interview patterns<\/Link>/);
+  assert.match((fs.readFileSync("client/src/pages/interview/ProvingGround.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: InterviewPage.jsx deleted — its home now */, /<Link className="iv__btn" to="\/app\/atlas\/library\/coding-interview-patterns" data-open-patterns="">Coding interview patterns<\/Link>/);
   const css = read("client/src/pages/atlas/LibraryPanel.css");
   assert.doesNotMatch(css, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i, "tokens only");
 });

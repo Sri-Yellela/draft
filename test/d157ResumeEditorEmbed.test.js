@@ -109,12 +109,12 @@ test("d157OpensFullScreenAndReturns: one host in the app shell; Back, Esc and th
 
 test("d157PostingOpensTheEditor: a ready résumé opens in the editor; the panel keeps generating / failed / missing / KB findings / variants, and is the fallback", () => {
   const jp = read("client/src/panels/JobsPanel.jsx");
-  const open = jp.slice(at(jp, "const openSandbox = useCallback"), at(jp, "const closeSandbox"));
+  const open = jp.slice(at(jp, "const openSandbox = useCallback"), at(jp, "const openSandbox = useCallback") + 1400);   // 47m: closeSandbox went with SandboxPanel
   assert.match(open, /!active\?\.html \|\| entry\?\.generating \|\| entry\?\.error \|\| entry\?\.missing/);
   assert.match(open, /kbFindings\?\.length > 0/);
   assert.match(open, /Object\.keys\(entry\?\.variants \|\| \{\}\)\.length > 1/);
   assert.match(open, /openResumeEditor\(\{/);
-  assert.match(open, /fallback: \(\) => setSandboxOpen\(true\)/);
+  assert.match(open, /fallback: \(\) => \{ setSandbox\(e => \(e \? \{ \.\.\.e, fallback: true \} : e\)\); setSandboxOpen\(true\); \}/);   // 47m: the sheet says why it is a preview
   assert.match(jp, /sandboxSaveRef\.current = saveSandboxHtml;/, "the editor saves through the same call as the panel");
   assert.match(jp, /sandboxExportRef\.current = exportAndTrack;/, "and exports through the same call");
 });

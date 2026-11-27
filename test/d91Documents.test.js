@@ -28,7 +28,7 @@ test("the cover letter as shown, and the résumé frames, sit on the document su
   assert.match(table, /background:C\.DOC_PAPER \}\}/, "The Table's résumé frame has a themed backdrop");
   assert.match(table, /color:\$\{C\.DOC_INK\}'>No resume HTML stored\./);
   // No résumé frame is given a themed background behind the document.
-  for (const f of ["client/src/pages/tools/GenerateToolPage.jsx", "client/src/panels/SandboxPanel.jsx", "client/src/panels/DatabasePanel.jsx"]) {
+  for (const f of ["client/src/pages/tools/GenerateToolPage.jsx", "client/src/plate/SheetResume.jsx" /* 47m: SandboxPanel's preview */, "client/src/panels/DatabasePanel.jsx"]) {
     for (const m of read(f).matchAll(/<iframe[\s\S]*?\/>/g)) {
       assert.doesNotMatch(m[0], /background:\s*(theme\.|C\.(?!DOC_PAPER))/, `${f}: a résumé frame on a themed ground`);
     }

@@ -15,8 +15,8 @@ import path from "node:path";
 import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
-const jd = read("client/src/components/JobDetailPanel.jsx");
-const jdCss = read("client/src/components/JobDetailPanel.css");
+const jd = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
+const jdCss = "" /* 47m: JobDetailPanel.css deleted */;
 
 // ⭐ D147 (owner 11-03) changed this on purpose: the header is logo · company link (over the location) · Close — the
 // ATS number box moved to the END OF THE FACTS BOX (test/d147FullHousePosting.test.js holds it there).

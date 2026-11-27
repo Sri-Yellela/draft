@@ -110,7 +110,7 @@ test("d142DefendRoute · GET /api/interview/defend reads the caller's own base r
 test("d142DefendNoModel · D190: the service and the panel call no model and send nothing", () => {
   const svc = read("services/defendResume.js");
   assert.doesNotMatch(svc, /anthropic|callTask|modelClient|fetch\(|INSERT|UPDATE /i);
-  const page = read("client/src/pages/interview/InterviewPage.jsx");
+  const page = (fs.readFileSync("client/src/pages/interview/ProvingGround.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: InterviewPage.jsx deleted — its home now */;
   const panel = page.slice(at(page, "function Defend()"), at(page, "function Debrief()"));
   assert.match(panel, /useRead\("\/api\/interview\/defend"\)/);
   assert.doesNotMatch(panel, /method: "POST"|getUserMedia|SpeechRecognition/, "typed answers stay in the tab; nothing listens");

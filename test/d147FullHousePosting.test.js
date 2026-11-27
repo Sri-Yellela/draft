@@ -20,8 +20,8 @@ import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const app = read("client/src/App.jsx");
-const jd = read("client/src/components/JobDetailPanel.jsx");
-const jdCss = read("client/src/components/JobDetailPanel.css");
+const jd = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
+const jdCss = "" /* 47m: JobDetailPanel.css deleted */;
 const posting = read("client/src/components/PostingPanel.jsx");
 const postingCss = read("client/src/components/PostingPanel.css");
 const fhCss = read("client/src/components/FullHouse.css");

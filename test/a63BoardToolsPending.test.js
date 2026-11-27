@@ -244,7 +244,7 @@ test("the export routes tag Pending: no route but a verified record writes job_a
 // ── (1) Apply is the company name ────────────────────────────────────────────────────────────
 
 test("the board: the company name is the apply link; no Apply button; slots said before pressing", () => {
-  const panel = fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8");
+  const panel = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
   // D38: the panel's company name is the ONE CompanyLink — to the posting, tagging Pending on open, and
   // (A78's treatment) no ↗.
   assert.match(panel, /<CompanyLink company=\{selectedJob\.company\} jobId=\{jobId\} size="panel" \/>/);

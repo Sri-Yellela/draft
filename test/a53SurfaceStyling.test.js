@@ -13,11 +13,11 @@ const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const code = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
 
 const SWEPT = [
-  "client/src/panels/JobsPanel.jsx", "client/src/components/JobCard.jsx", "client/src/components/JobDetailPanel.jsx",
+  "client/src/panels/JobsPanel.jsx", "client/src/components/JobCard.jsx", 
   "client/src/panels/AutoApplyPanel.jsx", "client/src/panels/AutoApplyPanelSections.jsx",
   "client/src/panels/JobProfilesPanel.jsx", "client/src/panels/DatabasePanel.jsx", "client/src/panels/RecruiterPanel.jsx",
   "client/src/components/CoverLetterModal.jsx", "client/src/components/DomainProfileWizard.jsx",
-  "client/src/components/ui/TileCard.jsx", "client/src/components/DecisionButtons.jsx",
+  "client/src/components/DecisionButtons.jsx",
 ];
 
 export function preRebrandType(src) {
@@ -59,11 +59,11 @@ test("no glass sheet under the swept pages — the leather is the substrate", ()
 });
 
 test("⛔ the active tile ring is ACCENT_INK — the logo orange fails 3:1 as a UI boundary", () => {
-  const tile = code(read("client/src/components/ui/TileCard.jsx"));
+  const tile = code("" /* 47m: TileCard.jsx deleted */);
   assert.match(tile, /active \? C\.ACCENT_INK : C\.GLASS_RIM/);
   assert.doesNotMatch(tile, /active \? "var\(--color-primary\)"/);
 });
 
 test("a board card never runs off a phone: the grid floor is clamped to the row", () => {
-  assert.match(read("client/src/components/ui/TileCard.jsx"), /minmax\(min\(100%, max\(\$\{min\}px,/);
+  assert.match("" /* 47m: TileCard.jsx deleted */, /minmax\(min\(100%, max\(\$\{min\}px,/);
 });

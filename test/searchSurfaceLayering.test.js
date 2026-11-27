@@ -53,7 +53,7 @@ const app        = read("client/src/App.jsx");
 const topbar     = read("client/src/components/TopBar.jsx");
 const zLayers    = read("client/src/styles/zLayers.js");
 const usbCss     = read("client/src/components/UnifiedSearchBar.css");
-const jdPanel    = read("client/src/components/JobDetailPanel.jsx");
+const jdPanel    = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
 const dockPortal = read("client/src/components/DockPortal.jsx");
 const dbPanel    = read("client/src/panels/DatabasePanel.jsx");
 

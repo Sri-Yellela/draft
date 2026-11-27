@@ -150,7 +150,7 @@ test("D57 · deleting frees the button: the delete answers, the board hears resu
   const jobs = read("client/src/panels/JobsPanel.jsx");
   assert.match(jobs, /resume_deleted: \(\{ jobId \}\) => \{[\s\S]{0,200}?delete n\[jobId\]/);
   assert.match(read("server.js"), /emitToUser\(req\.user\.id, \{ type: "resume_deleted", jobId: String\(req\.params\.jobId\) \}\)/);
-  const jd = read("client/src/components/JobDetailPanel.jsx");
+  const jd = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
   // D86: two renderings of the same control — the plain button, or the split while bring-your-own-model is on.
   // Both stay gated on !hasArtifact, which is what this pins.
   assert.match(jd, /\{canGen && onGenerate && !hasArtifact && !byom\.available && \(/, "no résumé → the Résumé button");
@@ -219,7 +219,7 @@ test("D57 · after a reload the stored résumé reads 'Résumé ready · 2h ago'
   assert.match(jobs, /const d = await api\(`\/api\/resumes\/\$\{encodeURIComponent\(selectedJob\.jobId\)\}`\);/);
   // ⭐ D164 (11-05) changed this on purpose: Regenerate carries the posting's "Which résumé" (generateFrom → generate).
   assert.match(jobs, /onRegenerate: \(opts\) => generateFrom\(selectedJob, true, opts\),/);
-  const jd = read("client/src/components/JobDetailPanel.jsx");
+  const jd = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
   const acts = jd.slice(at(jd, "function PostingActions("), at(jd, "export default function JobDetailPanel("));
   assert.match(acts, /const hasArtifact = done && !!g\?\.html;/, "a stored résumé counts — it used to be hidden behind Regenerate");
   assert.match(acts, /\{ago \? `Résumé ready · \$\{ago\}` : "Résumé ready"\}/);

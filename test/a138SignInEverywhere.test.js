@@ -57,6 +57,6 @@ test("a138GoogleReturnsToOrigin: the gate sends returnTo, /login honours it, a f
   // The server's own same-origin rule still applies to whatever comes back (oauthReturnUrl).
   assert.match(server, /if \(sameOrigin && rawPath\.startsWith\("\/"\) && !rawPath\.startsWith\("\/\/"\)\)/);
   for (const rel of ["client/src/pages/atlas/AtlasPanels.jsx", "client/src/pages/tools/ApplyToolPage.jsx",
-    "client/src/pages/tools/ATSToolPage.jsx", "client/src/pages/tools/GenerateToolPage.jsx", "client/src/components/NavBar.jsx"])
+    "client/src/pages/tools/ATSToolPage.jsx", "client/src/pages/tools/GenerateToolPage.jsx"])
     assert.doesNotMatch(read(rel), /to="\/login"/, `${rel}: Sign in links carry the return path`);
 });

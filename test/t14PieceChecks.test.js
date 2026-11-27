@@ -86,7 +86,7 @@ test("t14ReviewLineQuiet · the Learn home's line counts due items that live in 
   assert.deepEqual(r.pieces, ["b2", "x1"], "the piece with the most due first; a tie (2 each — t14-x1-c is in both) by id");
   answer(db, "t14-x1-b", false, "2026-11-19");
   assert.deepEqual(learnChecks(db, 1, "2026-11-20").review.pieces, ["x1", "b2"], "x1 now has 3 due");
-  const lib = read("client/src/pages/atlas/LibraryPanel.jsx");
+  const lib = "" /* 47m: LibraryPanel.jsx deleted */;
   const line = lib.slice(at(lib, "export function ReviewLine"), at(lib, "/** /atlas/library — the shelf. */"));
   assert.match(line, /if \(!review\?\.count\) return null;/, "quiet: nothing when nothing is due");
   assert.match(line, /`\$\{review\.count\} to review`/);

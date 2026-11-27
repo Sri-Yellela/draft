@@ -19,11 +19,11 @@ import { SORT_PANEL } from "../shared/filterSentence.js";   // ⭐ A232 R6 (46y,
 const read = (p) => fs.readFileSync(p, "utf8");
 const shell   = read("client/src/components/PanelShell.jsx");
 const host    = read("client/src/hooks/usePanelHost.js");
-const jd      = read("client/src/components/JobDetailPanel.jsx");
-const sandbox = read("client/src/panels/SandboxPanel.jsx");
+const jd      = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
+const sandbox = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: SandboxPanel.jsx deleted — its home now */;
 // ⭐ D152 (8) (b), changed on purpose: the ATS panel drawn over the page (AtsReportPanel) is RETIRED — the match opens
 // inside the posting (ats-options.html option A). The PDF and the posting are the peers now; the ATS checks below say so.
-const atsBody = read("client/src/components/ATSPanel.jsx");
+const atsBody = (fs.readFileSync("client/src/plate/FitCard.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: ATSPanel.jsx deleted — its home now */;
 const jobs    = read("client/src/panels/JobsPanel.jsx");
 const app     = read("client/src/App.jsx");
 

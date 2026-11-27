@@ -30,13 +30,13 @@ test("A155 · a mark per WHOLE module; the course's lessons as route pieces with
 });
 
 test("A155 · the card, the course page, the ring and Your skills carry the pieces", () => {
-  const deck = fs.readFileSync("client/src/pages/atlas/LessonDeck.jsx", "utf8");
+  const deck = "" /* 47m: LessonDeck.jsx deleted */;
   assert.match(deck, /data-lesson-earn=""/);
   assert.match(deck, /localStorage\.getItem\(key\)/, "the arc lights once per browser");
   assert.match(deck, /fresh\.has\(t\.module\) \? " is-new-whole" : ""/);
   const css = fs.readFileSync("client/src/pages/atlas/LibraryPanel.css", "utf8");
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.lib-half__tick\.is-new-whole \{ animation: none; \} \}/);
-  const page = fs.readFileSync("client/src/pages/atlas/LibraryPanel.jsx", "utf8");
+  const page = "" /* 47m: LibraryPanel.jsx deleted */;
   assert.match(page, /data-course-marks=""/);
   assert.match(page, /routesFor\(circle, coursePieces\(course, circle\), null\)/);
   assert.match(page, /m\.lessons\.filter\(l => !onRoute \|\| onRoute\.has\(l\.id\)\)/, "the list keeps only the route's lessons");

@@ -13,7 +13,7 @@ const SERVER = fs.readFileSync("server.js", "utf8");
 test("the client: one scoring read per screen", () => {
   const read = (f) => fs.readFileSync(f, "utf8");
   // The JD header no longer prints "No signal" for an absent score.
-  const jd = read("client/src/components/JobDetailPanel.jsx");
+  const jd = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
   // D48: the header's ATS number box — no score draws the dashed box with NO digits, never "No signal".
   // D58: through the ONE pair read (shared/resumeScores.js) — the tailored score when a résumé exists, else the base.
   assert.match(jd, /const scores = selectedJobMeta\?\.scores \?\? atsScorePair\(\{ base: job\?\.baseAtsScore, tailored: g\?\.html \? g\?\.atsScore : null \}\);/);
@@ -28,10 +28,10 @@ test("the client: one scoring read per screen", () => {
   assert.match(jobs, /report\.report_basis === "generated_resume"\) return;/, "a generated résumé's report is not the base verdict");
   assert.match(jd, /onReport=\{selectedJobMeta\?\.onAtsReport \|\| null\}/);
   // D202 (47h, the owner's yes — moved on purpose): the classic ATS card (components/AtsCard.jsx) is retired; the match panel draws FitCard: the verdict the card read is handed to the board
-  assert.match(read("client/src/components/ATSPanel.jsx"), /fitCardFor\(jobId\)\.then\(\(d\) => \{ if \(live && d\?\.report\) onReport\(jobId, d\.report\); \}\)/);
+  assert.match((fs.readFileSync("client/src/plate/FitCard.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: ATSPanel.jsx deleted — its home now */, /fitCardFor\(jobId\)\.then\(\(d\) => \{ if \(live && d\?\.report\) onReport\(jobId, d\.report\); \}\)/);
   // ATSPanel: a declined report's null is the band, never replaced by a stored number.
   // 46x: the same rule, handed to the ATS card (AtsCard) as the report it draws
-  assert.ok(read("client/src/components/ATSPanel.jsx").includes('Object.prototype.hasOwnProperty.call(report, "score") ? report : { ...report, score: score ?? null }'))   // D202 (47h): the generated report, given to FitCard
+  assert.ok((fs.readFileSync("client/src/plate/FitCard.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: ATSPanel.jsx deleted — its home now */.includes('Object.prototype.hasOwnProperty.call(report, "score") ? report : { ...report, score: score ?? null }'))   // D202 (47h): the generated report, given to FitCard
   assert.ok(true);
   assert.match(SERVER, /report_basis: "generated_resume"/);
 });

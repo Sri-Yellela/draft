@@ -23,7 +23,7 @@ import { INTERVIEW_GROUPS, INTERVIEW_PANEL_IDS, interviewPanelFor, whenWords, up
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const APP = read("client/src/App.jsx");
 const PAGE = read("client/src/pages/profile/ProfilePage.jsx");
-const IV = read("client/src/pages/interview/InterviewPage.jsx");
+const IV = (fs.readFileSync("client/src/pages/interview/ProvingGround.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: InterviewPage.jsx deleted — its home now */;
 const T = (iso) => Math.floor(Date.parse(iso) / 1000);
 
 // ── the pages, rendered ─────────────────────────────────────────────────────────────────────────────

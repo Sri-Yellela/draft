@@ -280,7 +280,7 @@ test("AG1: an unrecognised posting yields a short report rather than an invented
 // pinned is deliberately gone. What still matters is pinned below.
 test("AG2: the ATS chips claim through the reversible route, not the one-way add", () => {
   const routes = fs.readFileSync("routes/domainProfiles.js", "utf8");
-  const panel = fs.readFileSync("client/src/components/ATSPanel.jsx", "utf8");
+  const panel = (fs.readFileSync("client/src/plate/FitCard.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: ATSPanel.jsx deleted — its home now */;
   const suggestionsLib = fs.readFileSync("client/src/lib/profileSuggestions.js", "utf8");
 
   assert.match(routes, /router\.post\("\/:id\/claims"/, "the claim route must exist");

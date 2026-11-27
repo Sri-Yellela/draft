@@ -56,7 +56,7 @@ test("D58 · ONE READ, EVERY SURFACE — the card badge, the posting header and 
   assert.match(payload, /const pair = scoresFor\(job, artifact\);/, "the ATS card");
   assert.doesNotMatch(jobs, /openAtsPanel\(\{ score: ?d\.atsScore|openAtsPanel\(\{ score: d\.ats_score|openAtsPanel\(\{ score:existingArtifact/,
     "an ATS card opened from a generation builds its own score — a second read");
-  const jd = read("client/src/components/JobDetailPanel.jsx");
+  const jd = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
   assert.match(jd, /<AtsNumberBox score=\{scores\.shown\} tailored=\{scores\.tailoredShown\} base=\{scores\.base\}/);
   assert.match(read("client/src/components/AtsNumberBox.jsx"), /<small>\{caption \|\| \(tailored \? "tailored" : "ATS"\)\}<\/small>/, "the box marks a tailored score");
   assert.doesNotMatch(jd, /const atsScore = g\?\.atsScore \?\? job\?\.baseAtsScore/);
@@ -71,7 +71,7 @@ test("D58 · a tailored score BELOW the base is shown — and said", () => {
   assert.equal(p.shown, 52, "the score of the résumé that would be sent, even when it is lower");
   assert.equal(p.lower, true);
   assert.equal(p.line, "Base 58 → tailored 52 — lower than your base résumé");
-  const card = read("client/src/components/JobDetailPanel.jsx");
+  const card = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
   // D62 → ⭐ D152 (8), changed on purpose: the ATS panel's header is retired; the pair moved into the posting's match,
   // under its eyebrow — and "lower" is still SAID.
   assert.match(card, /<p className="pp__matchpair" data-ats-pair="" data-lower=\{scores\.lower \? "true" : undefined\} title=\{scores\.line \|\| undefined\}>/,

@@ -85,7 +85,7 @@ test("D54 · drafting a second role at a company SHOWS THE NOTICE — never sile
   assert.doesNotMatch(decide, /window\.confirm/);
   assert.match(panel, /onConfirmNotice=\{\(t\) => decideJob\(t\.job, t\.decision, \{ companyOk: true \}\)\}/);
   assert.match(read("client/src/components/DecisionToast.jsx"), />Draft anyway</);
-  assert.match(read("client/src/components/JobDetailPanel.jsx"), /data-company-notice=""/, "the panel says it before the click");
+  assert.match((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */, /data-company-notice=""/, "the panel says it before the click");
 });
 
 test("D54 · the By-company counts equal the List view's rows, grouped", () => {
