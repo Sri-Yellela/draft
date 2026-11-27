@@ -198,11 +198,16 @@ export function callNumber(item, i) {
 /** Atlas's place list for the footer and More — every panel, so none is lost. `compete` = the switches. */
 export function atlasPlaces(base, compete = null) {
   const p = (id, label) => ({ id, label, href: panelHref(base, id) });
+  // ⭐ D201 (47m, lane gaz): the Gazetteer (with its A–Z, its browse by role and the entries' Why it works) is where Roles and
+  // skills, the Glossary and How it works live now; Routes is where the courses, guides and pathways live (their old addresses
+  // forward there — AtlasPage). Every other place keeps its own address.
   const groups = [
     { label: "You", links: [p("your-run", "Your run"), p("your-map", "Your survey"), p("your-skills", "Your skills")] },
-    { label: "Grow", links: [p("library", "Library"), { id: "shelf", label: "Courses and guides", href: `${base}/library/shelf` }, p("todays-question", "Today’s question"), p("the-audit", "The audit"), p("how-it-works", "How it works")] },
+    { label: "Grow", links: [{ id: "gazetteer", label: "Gazetteer", href: `${base}/gazetteer` }, { id: "routes", label: "Routes", href: `${base}/routes` }, p("library", "Library"),
+      p("todays-question", "Today’s question"), p("the-audit", "The audit")] },
     { label: "Compete", links: [...(compete?.league ? [p("league", "League")] : []), ...(compete?.challenges ? [p("challenges", "Challenges")] : [])] },
-    { label: "Explore", links: [p("roles-and-skills", "Roles and skills"), p("this-weeks-market", "This week’s market"), p("glossary", "Glossary"),
+    { label: "Explore", links: [{ id: "roles", label: "Roles in the Gazetteer", href: `${base}/gazetteer?by=role` }, p("this-weeks-market", "This week’s market"),
+      { id: "az", label: "The A–Z", href: `${base}/gazetteer` },
       // the old overview's address is /atlas/overview now (panelHref sends "overview" to the mount, which is Volume I since 47h)
       { id: "overview", label: "Overview", href: `${base}/overview` }] },
   ];

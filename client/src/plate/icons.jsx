@@ -22,6 +22,10 @@ export const ICON_PATHS = Object.freeze({
   replies: "M4 5h16v11H9l-5 4z",
   map: "M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14",
   library: "M4 4h5v16H4z M10 4h4v16h-4z M15.5 5l3.8-1 2.7 15.5-3.8 1z",
+  // ⭐ D201 (47m): Atlas's five — the Gazetteer's book, Routes' line, Your survey's plots (the Gazetteer board's shell)
+  gazetteer: "M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z M9 8h6 M9 12h6",
+  route: "M5 18c4 0 4-12 8-12s4 12 6 12 M5 18h.01 M19 18h.01",
+  plots: "M4 4h7v7H4z M13 4h7v4h-7z M13 10h7v10h-7z M4 13h7v7H4z",
   question: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14 M12 17.5v.01",
   league: "M7 4h10v4a5 5 0 0 1-10 0z M5 5H3v1a4 4 0 0 0 4 4 M19 5h2v1a4 4 0 0 1-4 4 M12 13v4 M8 20h8",
   // D197 #1: the two places the board doesn't draw (46f's own pages, under the network switch) — today's dock drawings,

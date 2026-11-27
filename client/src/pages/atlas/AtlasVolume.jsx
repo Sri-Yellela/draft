@@ -114,15 +114,23 @@ export function useAtlasAreaNav({ base = "/app/atlas", signedIn = true, compete 
   const go = routerGo(navigate);
   const slug = decodeURIComponent(location.pathname.slice(base.length).replace(/^\/+|\/+$/g, ""));
   const vol = v.course ? volumeOf(v.course, v.marks) : null;
+  // ⭐ D201 (6) (47m, lane gaz): Atlas's nav shrinks to the five — Your map (Volume I, the physical map) · Gazetteer · Routes ·
+  // Library · Your survey (+ the run chip). Every other place stays in More (D200 Rule 1: nothing lost).
   const views = [
-    { id: "survey", label: "Your survey", href: panelHref(base, "your-map"), icon: "map" },
+    { id: "map", label: "Your map", href: base, icon: "map" },
+    { id: "gazetteer", label: "Gazetteer", href: `${base}/gazetteer`, icon: "gazetteer" },
+    { id: "routes", label: "Routes", href: `${base}/routes`, icon: "route" },
     { id: "library", label: "Library", href: panelHref(base, "library"), icon: "library" },
-    { id: "question", label: "Today’s question", href: panelHref(base, "todays-question"), icon: "question" },
-    ...(compete?.league ? [{ id: "league", label: "League", href: panelHref(base, "league"), icon: "league" }] : []),
+    { id: "survey", label: "Your survey", href: panelHref(base, "your-map"), icon: "plots" },
   ];
-  const current = slug === "your-map" || slug === "your-route" || slug.startsWith("family/") ? "survey"
-    : slug === "library" ? "library" : slug === "todays-question" ? "question" : slug === "league" ? "league" : undefined;
-  const inViews = new Set(["your-map", "library", "todays-question", "league"]);
+  const current = !slug || slug.startsWith("region/") ? "map"
+    : slug === "gazetteer" || slug.startsWith("gazetteer/") ? "gazetteer"
+    : slug === "routes" || slug.startsWith("routes/") ? "routes"
+    : slug === "your-map" || slug === "your-route" || slug.startsWith("family/") ? "survey"
+    : slug === "library" ? "library"
+    : /^(your-run|your-skills|todays-question|the-audit|this-weeks-market|league|challenges|overview|check|library\/.+|bar\/.+)$/.test(slug) ? undefined
+    : "gazetteer";   // a term's entry, /atlas/<slug>, is the Gazetteer's
+  const inViews = new Set(["your-map", "library"]);
   const more = atlasPlaces(base, compete).flatMap((g) => g.links).filter((l) => !inViews.has(l.id));
   const week = runWeek(v.run);
   return {

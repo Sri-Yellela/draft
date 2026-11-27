@@ -53,7 +53,7 @@ export const PANEL_LABEL = Object.freeze(Object.fromEntries([...ATLAS_NAV, COMPE
 // opens Your map. Overview is Atlas's signed-OUT front page (signed in, the mount opens Your map — 46u; Your run before); Learn's address
 // redirects to the course's circle view (AtlasPage). Both stay reserved slugs, so no node can take them.
 export const PANEL_ALIASES = Object.freeze({ check: "your-skills", "your-route": "your-map" });
-export const RESERVED_PANELS = Object.freeze(["overview", "learn"]);
+export const RESERVED_PANELS = Object.freeze(["overview", "learn", "gazetteer", "routes"]);   // ⭐ D201 (47m): + the Gazetteer, Routes
 
 /** The panel an Atlas address belongs to. `slug` is the path after the mount ("" for the mount itself). */
 export function panelFor(slug, q = "") {
@@ -74,8 +74,12 @@ export function panelFor(slug, q = "") {
 /** Is this address a panel itself (not a node, a family or a search inside one)? */
 export const isPanelSlug = (slug) => PANEL_IDS.includes(String(slug || "")) || COMPETE_PANEL_IDS.includes(String(slug || "")) ||!!PANEL_ALIASES[String(slug || "")] || RESERVED_PANELS.includes(String(slug || ""));
 
-/** ⭐ D178 · a Learn piece's address: the course's circle view with that piece selected (Learn's one home now). */
-export const learnStepHref = (base, stepId) => `${base}/library/silicon-to-software?view=circle#step-${encodeURIComponent(stepId)}`;
+/** ⭐ D178 · a Learn piece's address. ⭐ D201 (47m, lane gaz): a piece is a GAZETTEER ENTRY now — its own page, where its links
+ *  are opened, its checkpoints explained and its build linked (the circle stays a route's overview: /atlas/routes/<course>?view=circle). */
+export const learnStepHref = (base, stepId) => `${base}/gazetteer/${encodeURIComponent(stepId)}`;
+/** ⭐ D201 (47m): the Gazetteer's and Routes' own addresses (reserved: no node can take "gazetteer" or "routes"). */
+export const GAZETTEER_SLUGS = Object.freeze(["gazetteer", "routes"]);
+export const gazetteerOf = (slug) => { const s = String(slug || ""); const m = /^(gazetteer|routes)(?:\/(.+))?$/.exec(s); return m ? { page: m[1], id: m[2] || null } : null; };
 
 /** A panel's address under a mount. Overview is the mount itself (/atlas/overview works too). */
 export const panelHref = (base, id) => (id === "overview" ? base : `${base}/${id}`);
