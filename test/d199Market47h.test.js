@@ -276,7 +276,7 @@ test("D199 C8 · d199IndexBubblePushesLeft — the actions cell grows in the row
   const c = css();
   assert.match(c, /\.pl-ixc--title \{ flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; \}/);
   // at rest Star / Draft are out of the layout and undrawn (opacity 0, still focusable); on hover / focus they join the flow
-  assert.match(c, /\.pl-ixrow:not\(:hover\):not\(:focus-within\) \.pl-ixrow__star, \.pl-ixrow:not\(:hover\):not\(:focus-within\) \.pl-ixrow__draft \{[^}]*position: absolute; right: 0; top: 0; opacity: 0; pointer-events: none; \}/);
+  assert.match(c, /\.pl-ixrow:not\(:hover\):not\(:focus-within\) \.pl-ixrow__star, \.pl-ixrow:not\(:hover\):not\(:focus-within\) \.pl-ixrow__draft(?:, \.pl-ixrow:not\(:hover\):not\(:focus-within\) \.pl-ixrow__send)? \{[^}]*position: absolute; right: 0; top: 0; opacity: 0; pointer-events: none; \}/);
   assert.match(c, /\.pl-ixrow:hover \.pl-ixrow__star, \.pl-ixrow:hover \.pl-ixrow__draft, [^{]*\{ animation: pl-ix-in \.25s/);
   const act = c.match(/\.pl-ixrow__act \{([^}]*)\}/)[1];
   assert.ok(!/position:\s*absolute|overflow:\s*hidden/.test(act), "never an overlay, never a clipping box");
