@@ -407,4 +407,9 @@ export const MIRRORS = Object.freeze([
   { of: "styles/mark.js", file: "extension/ui.css", selector: ".mkr", why: "the popup's marks (D60/D63)" },
   { of: "styles/mark.js", file: "extension/review-overlay.js", selector: ".rm-pill", why: "the review overlay's provenance marks" },
   { of: "components/DepthButton.jsx", file: "extension/ui.css", selector: ".btn", why: "the popup's depth boxes (D23)" },
+  // ⭐ D197 #19 M5 (47m): the extension's one panel (D191) and its /d square are the plate's FloatingPanel / ReopenTab, re-drawn
+  // in the extension's shadow roots from tokens.js C_PLATE; the ATS / Résumé tab's card is the plate's FitCard (D202, was a comment).
+  { of: "plate/Panels.jsx", file: "extension/jobPanel.js", selector: ".job", why: "FloatingPanel ⇄ the panel's home tab (D191, D197 #19)" },
+  { of: "plate/Panels.jsx", file: "extension/dock.js", selector: ".launch", why: "ReopenTab ⇄ the dock's /d square (D197 #19)" },
+  { of: "plate/FitCard.jsx", file: "extension/resumePanel.js", selector: ".fc-bar", why: "THE fit card's faces in the Résumé tab (D202)" },
 ]);

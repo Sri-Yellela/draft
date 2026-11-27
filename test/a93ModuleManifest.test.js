@@ -80,7 +80,8 @@ test("⛔ A93 · a stylesheet's classes are worn only by its owner or its module
 
 test("A93 · every extension MIRROR of a client module is still where the manifest says", () => {
   for (const m of MIRRORS) {
-    assert.ok(SHARED[m.of], `${m.of} is not a logged module`);
+    // ⭐ 47m (D197 #19): a mirror may be of a shared file OR of a module's member (the plate library's Panels / FitCard)
+    assert.ok(SHARED[m.of] || Object.values(MODULES).some((mod) => (mod.members || []).includes(m.of)), `${m.of} is not a logged module`);
     const src = fs.readFileSync(m.file, "utf8");
     assert.ok(src.includes(m.selector), `${m.file} no longer carries ${m.selector} — the mirror of ${m.of} moved; update the manifest`);
   }

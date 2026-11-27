@@ -18,7 +18,7 @@
 // own token from draft's own server (GET /api/settings/appearance — the same answer the web app reads).
 import { authedFetch } from './auth.js';
 import { bindingForTab } from './tabBinding.js';
-import { C_LIGHT, C_DARK, EXT_THEMES } from './tokens.js';
+import { C_LIGHT, C_DARK, EXT_THEMES, C_PLATE } from './tokens.js';
 
 let SERVER_URL = null;
 /** The router's server URL (draft's own) — set once by background.js. */
@@ -89,7 +89,10 @@ export async function overlayTheme() {
     } catch { /* fallback face */ }
   }
   const pair = themePair((await accountAppearance())?.theme);
-  return { light: pair.light, dark: pair.dark, logoFont: LOGO || null };
+  // ⭐ D197 #19 M5 (47m, agent's pick — owner may reverse): the dock is a PLATE on the page — paper in every scheme, as plate
+  // pages are, until a dark plate exists (the theme-leak rule, docs/revamp/extension.md §5). So every view in it is handed
+  // the account's LIGHT palette for both schemes, and the plate palette (C_PLATE) for the panel, the frame and the /d square.
+  return { light: pair.light, dark: pair.light, plate: C_PLATE, logoFont: LOGO || null };
 }
 
 // ── where the dock sits, per site ────────────────────────────────────────────────────────────────────────────────

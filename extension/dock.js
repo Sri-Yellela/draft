@@ -241,6 +241,8 @@
     return { w, h };
   };
   const varsOf = (pal) => Object.entries(pal || {}).map(([k, v]) => `--c-${k.toLowerCase().replace(/_/g, '-')}: ${v};`).join(' ');
+  // ⭐ D197 #19 M5 (47m): the plate palette (tokens.js C_PLATE, handed in as theme.plate) as --pl-* — one set, no dark one
+  const plVarsOf = (pal) => Object.entries(pal || {}).map(([k, v]) => `--pl-${k.toLowerCase().replace(/_/g, '-')}: ${v};`).join(' ');
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const send = (msg) => new Promise((resolve) => {
     try { chrome.runtime.sendMessage(msg, (reply) => { void chrome.runtime.lastError; resolve(reply ?? null); }); } catch { resolve(null); }
@@ -270,21 +272,28 @@
   };
 
   const FRAME_CSS = (theme, logo) => `
-    :host { all: initial; ${varsOf(theme?.light)} }
+    :host { all: initial; ${varsOf(theme?.light)} ${plVarsOf(theme?.plate)} }
     @media (prefers-color-scheme: dark) { :host { ${varsOf(theme?.dark)} } }
     * { box-sizing: border-box; }
+    /* ⭐ D197 #19 M5 (47m) · THE PANEL IS A PLATE ON THE PAGE (client/src/plate/Panels.jsx FloatingPanel — the MIRRORS row):
+       paper ground, a 1.5 px ink edge, a hard 5 px ink shadow, square-ish corners (radius 14, never a capsule — D60). The
+       --c-* fallbacks hold only for a service worker older than the plate palette. */
     .fr { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden;
-      font: 13px/1.45 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--c-ink); text-align: left;
-      background: var(--c-surface-menu); backdrop-filter: blur(12px); border: 1px solid var(--c-glass-edge); border-radius: 10px;
-      box-shadow: var(--c-shadow-lg); }
+      font: 13px/1.45 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--pl-ink, var(--c-ink)); text-align: left;
+      background: var(--pl-paper, var(--c-surface-menu)); border: 1.5px solid var(--pl-ink, var(--c-glass-edge)); border-radius: 14px;
+      box-shadow: 5px 5px 0 var(--pl-ink, var(--c-ink)); }
     /* ⭐ T26 · LINE BUDGET: the header's rule is the dock's ONE divider — the tabs, the panes and the views below it are
        separated by spacing, never by another border. */
-    .hd { display: flex; align-items: center; gap: 2px; padding: 8px 6px 8px 12px; border-bottom: 1px solid var(--c-border);
+    /* ⭐ D197 #19: the masthead — card-white, the plate's 1.5 px ink rule and, under it, the 6 px ruler (a tick every 16 px) */
+    .hd { position: relative; display: flex; align-items: center; gap: 2px; padding: 8px 6px 8px 12px; margin-bottom: 6px;
+      background: var(--pl-card, transparent); border-bottom: 1.5px solid var(--pl-ink, var(--c-border));
       cursor: grab; user-select: none; touch-action: none; flex: none; }
+    .hd::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 6px; pointer-events: none;
+      background: repeating-linear-gradient(90deg, var(--pl-ink, var(--c-border)) 0 1px, transparent 1px 16px); }
     .hd.dragging { cursor: grabbing; }
     .mk { font-family: ${logo}; font-style: italic; font-weight: 800; font-size: 18px; letter-spacing: -.02em; line-height: 1;
-      color: var(--c-logo-word); forced-color-adjust: none; }
-    .mk .sl { color: var(--c-logo-slash); }
+      color: var(--pl-ink, var(--c-logo-word)); forced-color-adjust: none; }
+    .mk .sl { color: var(--pl-clay, var(--c-logo-slash)); }
     .ttl { font-size: 12px; font-weight: 700; color: var(--c-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     .sp { flex: 1; min-width: 4px; }
     /* ⛔ D60: rectangles — a 28px control at radius 8; the tab is a box with a 3px bar, never a capsule.
@@ -349,12 +358,18 @@
     /* ⭐ T28 · the launcher: the board's /d square — the orange, its depth, the mark; a dot when something needs you
        (a perfect circle — D60 keeps those round). No frame around it. */
     :host([data-draft-dock="dock"][data-collapsed="true"]) .fr { background: transparent; border: 0; box-shadow: none; backdrop-filter: none; overflow: visible; }
-    .launch { position: relative; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 13px; display: grid; place-items: center;
-      background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent); cursor: pointer; touch-action: none; user-select: none; }
-    .launch .mk, .launch .mk .sl { color: var(--c-on-accent); font-size: 19px; }
-    .launch:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 3px; }
+    /* ⭐ D197 #19 M5 (47m) · the /d square in the plate (client/src/plate/Panels.jsx ReopenTab — the MIRRORS row): a 52 px
+       card-white tile, a 1.5 px ink edge, a 4 px hard ink shadow, radius 12 (a square tile, never a capsule — D60), the ink d
+       with the clay slash; the need dot is a clay perfect circle with an ink edge on the tile's corner. */
+    .launch { position: relative; width: 100%; height: 100%; padding: 0; border: 1.5px solid var(--pl-ink, var(--c-ink)); border-radius: 12px;
+      display: grid; place-items: center; background: var(--pl-card, var(--c-accent)); color: var(--pl-ink, var(--c-on-accent));
+      box-shadow: 4px 4px 0 var(--pl-ink, var(--c-ink)); cursor: pointer; touch-action: none; user-select: none; }
+    .launch .mk { color: var(--pl-ink, var(--c-on-accent)); font-size: 19px; }
+    .launch .mk .sl { color: var(--pl-clay, var(--c-on-accent)); }
+    .launch:focus-visible { outline: 2px solid var(--pl-clay-text, var(--c-accent-ink)); outline-offset: 3px; }
     .launch.dragging { cursor: grabbing; }
-    .dot { position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--c-on-accent); box-shadow: 0 0 0 2px var(--c-accent); }
+    .dot { position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; border-radius: 50%; background: var(--pl-clay, var(--c-on-accent));
+      border: 1.5px solid var(--pl-ink, var(--c-accent)); }
     .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .shield { position: fixed; inset: 0; z-index: 5; background: transparent; touch-action: none; }
     @media (prefers-reduced-motion: no-preference) { :host([data-settle]) { transition: left .16s ease, top .16s ease, width .16s ease, height .16s ease; } }

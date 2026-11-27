@@ -33,62 +33,80 @@ export function renderJobPanel(model, theme, dockMeta) {
     const k = t.indexOf(m);
     return `${esc(t.slice(0, k))}<span class="m" data-band="${esc(st.band || '')}">${esc(m)}</span>${esc(t.slice(k + m.length))}`; };
 
+  // ⭐ D197 #19 M5 (47m) · THE PANEL IN THE PLATE (client/src/plate/Panels.jsx FloatingPanel + the mock
+  // client/src/pages/dev/platePages/ExtensionPanel.jsx — the MIRRORS row): paper ground, a mono status kicker, the opening on
+  // a card-white tile (the letter tile in region IV, the serif title), THE button the one clay point (an ink edge, a hard
+  // shadow — never a capsule, D60), How I apply as plate toggles under a 1.5 px ink rule, the foot on card. Every colour is
+  // a token: the plate palette (`p`, tokens.js C_PLATE — paper in every scheme), the band colours from the account's palette
+  // (`c`). An older service worker without the plate palette falls back to `c`.
+  const p = theme?.plate || {};
+  const P = (k, fb) => p[k] || c[fb] || '';
+  const SERIF = `'Instrument Serif', Georgia, 'Times New Roman', serif`;
+  const SANS = `'Inter Tight', 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif`;
+  const MONO = `'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace`;
   const css = `
     :host { all: initial; display: block; height: 100%; }
-    .p { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
-         color: ${c.INK}; }
-    .st { display: flex; align-items: center; gap: 7px; padding: 8px 16px 0; font-size: 12px; color: ${c.INK_MUTED}; }
-    .st::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none; background: ${c.INK_FAINT}; }
-    .st[data-tone="ok"]::before { background: ${c.SUCCESS}; }
-    .st[data-tone="busy"]::before { background: ${c.ACCENT}; }
+    .p { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; font: 13px/1.45 ${SANS};
+         color: ${P('INK', 'INK')}; background: ${P('PAPER', 'SURFACE_SOLID')}; }
+    .st { display: flex; align-items: center; gap: 8px; padding: 10px 16px 0; font: 700 10.5px/1.4 ${MONO}; letter-spacing: .12em;
+          text-transform: uppercase; color: ${P('INK_SOFT', 'INK_MUTED')}; }
+    .st::before { content: ""; width: 6px; height: 6px; border-radius: 50%; flex: none; background: ${P('MUTED_2', 'INK_FAINT')}; }
+    .st[data-tone="ok"]::before { background: ${P('LIT', 'SUCCESS')}; }
+    .st[data-tone="busy"]::before { background: ${P('CLAY', 'ACCENT')}; }
     /* ⭐ 46x: the ATS number's colour is its band — no word (owner 11-19) */
     .st .m { font-weight: 700; }
     .st .m[data-band="strong"] { color: ${c.BAND_STRONG}; } .st .m[data-band="moderate"] { color: ${c.BAND_MODERATE}; } .st .m[data-band="weak"] { color: ${c.BAND_WEAK}; }
-    .job { display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: center; padding: 14px 16px 14px; }
-    .lg { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; overflow: hidden; font-weight: 700; font-size: 16px;
-          background: ${c.TILE_SLATE}; color: ${c.ON_TILE}; }
-    .lg img { width: 100%; height: 100%; object-fit: contain; background: ${c.SURFACE_SOLID}; }
-    .jt { font-size: 16px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
-    .js { color: ${c.INK_MUTED}; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .job { display: grid; grid-template-columns: 38px 1fr; gap: 12px; align-items: center; margin: 12px 16px 12px; padding: 12px;
+           background: ${P('CARD', 'SURFACE_SOLID')}; border: 1.5px solid ${P('INK', 'BORDER')}; border-radius: 12px; }
+    .job:empty { display: none; }
+    .lg { width: 38px; height: 38px; box-sizing: border-box; border-radius: 8px; display: grid; place-items: center; overflow: hidden;
+          font: 400 20px/1 ${SERIF}; background: ${P('R4_TINT', 'TILE_SLATE')}; color: ${P('R4', 'ON_TILE')}; border: 1.5px solid ${P('R4', 'BORDER')}; }
+    .lg img { width: 100%; height: 100%; object-fit: contain; background: ${P('CARD', 'SURFACE_SOLID')}; }
+    .jt { font: 400 19px/1.15 ${SERIF}; color: ${P('INK', 'INK')}; overflow-wrap: anywhere; }
+    .js { color: ${P('MUTED', 'INK_MUTED')}; font-size: 12.5px; font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tx { min-width: 0; }
-    /* ⛔ D60: the ONE button is a depth box (radius 10), never a capsule */
-    .go { margin: 0 16px; font: 600 15px system-ui, -apple-system, "Segoe UI", sans-serif; padding: 12px; border-radius: 10px; border: 0; cursor: pointer;
-          background: ${c.ACCENT}; color: ${c.ON_ACCENT}; box-shadow: ${c.DEPTH_ACCENT || 'none'}; }
-    .go:disabled { cursor: default; background: ${c.SURFACE_SOLID}; color: ${c.INK_MUTED}; box-shadow: ${c.DEPTH_REST || 'none'}; }
-    .go:focus-visible, .opt:focus-visible, .ln:focus-visible { outline: 2px solid ${c.ACCENT_INK}; outline-offset: 2px; }
-    .nt { margin: 8px 16px 0; font-size: 12px; color: ${c.INK_MUTED}; text-align: center; }
-    .ln { font: inherit; font-weight: 600; color: ${c.ACCENT_INK}; background: none; border: 0; padding: 0; cursor: pointer; }
-    .said { margin: 8px 16px 0; font-size: 12px; color: ${c.WARNING}; text-align: center; }
+    /* ⛔ D60: the ONE button is the plate's primary box (radius 12, an ink edge, a hard shadow), never a capsule — the one clay point */
+    .go { margin: 0 16px; font: 800 15px ${SANS}; padding: 12px; min-height: 44px; border-radius: 12px; border: 1.5px solid ${P('INK', 'ACCENT')}; cursor: pointer;
+          background: ${P('CLAY', 'ACCENT')}; color: ${P('ON_CLAY', 'ON_ACCENT')}; box-shadow: 3px 3px 0 ${P('INK', 'INK')}; }
+    .go:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 1px 1px 0 ${P('INK', 'INK')}; }
+    .go:disabled { cursor: default; background: ${P('CARD', 'SURFACE_SOLID')}; color: ${P('MUTED', 'INK_MUTED')}; border-style: dashed; box-shadow: none; }
+    .go:focus-visible, .opt:focus-visible, .ln:focus-visible { outline: 2px solid ${P('CLAY_TEXT', 'ACCENT_INK')}; outline-offset: 2px; }
+    .nt { margin: 8px 16px 0; font-size: 12px; color: ${P('MUTED', 'INK_MUTED')}; text-align: center; }
+    .ln { font: inherit; font-weight: 700; color: ${P('INK', 'ACCENT_INK')}; text-decoration: underline; text-underline-offset: 2px; background: none; border: 0; padding: 0; cursor: pointer; }
+    .said { margin: 8px 16px 0; font-size: 12px; color: ${P('CLAY_TEXT', 'WARNING')}; text-align: center; }
     .said:empty { display: none; }
     .mid { flex: 1; min-height: 12px; }   /* stretches only when the person made the dock taller than the panel */
-    .how { border-top: 1px solid ${c.BORDER}; padding: 12px 16px 12px; display: grid; gap: 8px; }
-    .hh { display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
-          text-transform: uppercase; color: ${c.INK_FAINT}; }
-    .hh .ln { text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 500; color: ${c.INK_MUTED}; }
-    .opt { justify-self: start; font: 500 12.5px system-ui, -apple-system, "Segoe UI", sans-serif; padding: 6px 10px; border-radius: 8px;
-           border: 1px solid ${c.BORDER}; background: ${c.SURFACE_SOLID}; color: ${c.INK}; box-shadow: ${c.DEPTH_REST || 'none'}; cursor: pointer; }
-    .opt[aria-checked="true"] { background: ${c.SUCCESS_QUIET}; color: ${c.SUCCESS}; border-color: transparent; }
-    .ft { border-top: 1px solid ${c.BORDER}; padding: 10px 16px; }
-    .ft .ln { color: ${c.INK}; }
-    /* ⭐ B3 · any other page: the day (three counts, each opens draft) and ONE box — search jobs, or ask draft */
-    .day { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 14px 16px 4px; }
-    .tile { font: 500 11px system-ui, -apple-system, "Segoe UI", sans-serif; color: ${c.INK_MUTED}; text-align: center; padding: 8px 4px;
-            border: 1px solid ${c.BORDER}; border-radius: 8px; background: ${c.SURFACE_SOLID}; box-shadow: ${c.DEPTH_REST || 'none'}; cursor: pointer; }
-    .tile b { display: block; font-size: 18px; font-weight: 700; color: ${c.INK}; font-variant-numeric: tabular-nums; }
+    .how { border-top: 1.5px solid ${P('INK', 'BORDER')}; padding: 12px 16px 12px; display: grid; gap: 8px; }
+    .hh { display: flex; justify-content: space-between; align-items: center; font: 700 10.5px/1.4 ${MONO}; letter-spacing: .12em;
+          text-transform: uppercase; color: ${P('MUTED', 'INK_FAINT')}; }
+    .hh .ln { font: 700 12px ${SANS}; text-transform: none; letter-spacing: 0; color: ${P('INK', 'INK_MUTED')}; }
+    .opt { justify-self: start; font: 700 12.5px ${SANS}; padding: 8px 12px; min-height: 36px; border-radius: 10px;
+           border: 1.5px solid ${P('INK', 'BORDER')}; background: ${P('CARD', 'SURFACE_SOLID')}; color: ${P('INK', 'INK')}; box-shadow: 2px 2px 0 ${P('INK', 'INK')}; cursor: pointer; }
+    .opt[aria-checked="false"] { background: ${P('PAPER_WARM', 'SURFACE_SOLID')}; color: ${P('MUTED', 'INK_MUTED')}; box-shadow: none; }
+    .opt[data-role="resume"] { background: ${P('PAPER', 'SURFACE_SOLID')}; }
+    .ft { border-top: 1.5px solid ${P('INK', 'BORDER')}; padding: 10px 16px; background: ${P('CARD', 'SURFACE_SOLID')}; }
+    .ft .ln { color: ${P('INK', 'INK')}; }
+    /* ⭐ B3 · any other page: the day (three counts, each opens draft — a stats strip, D200 Rule 2) and ONE box — search jobs, or ask draft */
+    .day { display: grid; grid-template-columns: repeat(3, 1fr); margin: 12px 16px 4px; border: 1.5px solid ${P('INK', 'BORDER')}; border-radius: 14px;
+           overflow: hidden; background: ${P('CARD', 'SURFACE_SOLID')}; }
+    .tile { font: 700 10px/1.3 ${MONO}; letter-spacing: .1em; text-transform: uppercase; color: ${P('MUTED', 'INK_MUTED')}; text-align: left; padding: 10px 10px;
+            border: 0; border-left: 1.5px solid ${P('INK', 'BORDER')}; background: transparent; cursor: pointer; }
+    .tile:first-child { border-left: 0; }
+    .tile b { display: block; font: 400 26px/1 ${SERIF}; color: ${P('INK', 'INK')}; margin-bottom: 6px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
     .ask { display: flex; gap: 6px; padding: 12px 16px 0; }
-    .ask input { flex: 1; min-width: 0; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; padding: 9px 10px; border-radius: 8px;
-                 border: 1px solid ${c.BORDER_CONTROL || c.BORDER}; background: ${c.SURFACE_INPUT || c.SURFACE_SOLID}; color: ${c.INK}; }
-    .ask input:focus-visible, .tile:focus-visible { outline: 2px solid ${c.ACCENT_INK}; outline-offset: 2px; }
-    .reply { margin: 10px 16px 0; font-size: 12.5px; color: ${c.INK}; }
+    .ask input { flex: 1; min-width: 0; font: 13px ${SANS}; padding: 9px 10px; border-radius: 10px;
+                 border: 1.5px solid ${P('INK', 'BORDER_CONTROL')}; background: ${P('CARD', 'SURFACE_SOLID')}; color: ${P('INK', 'INK')}; }
+    .ask input:focus-visible, .tile:focus-visible { outline: 2px solid ${P('CLAY_TEXT', 'ACCENT_INK')}; outline-offset: 2px; }
+    .reply { margin: 10px 16px 0; font-size: 12.5px; color: ${P('INK', 'INK')}; }
     .reply:empty { display: none; }
-    .reply .lb { display: block; font-size: 10.5px; color: ${c.INK_FAINT}; margin-bottom: 2px; }
+    .reply .lb { display: block; font: 700 10px/1.4 ${MONO}; letter-spacing: .12em; text-transform: uppercase; color: ${P('MUTED', 'INK_FAINT')}; margin-bottom: 2px; }
     .reply .yn { display: flex; gap: 6px; margin-top: 6px; }
     /* ⭐ B4 · Résumé ▾ — the job profiles, one press switches the active one (as the site's own switcher does) */
     .pick { display: grid; gap: 4px; padding: 2px 0 2px 8px; }
     .pick[hidden] { display: none; }
-    .pick button { justify-self: start; font: 500 12.5px system-ui, -apple-system, "Segoe UI", sans-serif; color: ${c.INK}; background: none; border: 0; padding: 3px 0; cursor: pointer; }
-    .pick button[aria-current="true"] { color: ${c.ACCENT_INK}; font-weight: 700; }
-    .pick button:focus-visible { outline: 2px solid ${c.ACCENT_INK}; outline-offset: 2px; }
+    .pick button { justify-self: start; font: 600 12.5px ${SANS}; color: ${P('INK', 'INK')}; background: none; border: 0; padding: 3px 0; cursor: pointer; }
+    .pick button[aria-current="true"] { color: ${P('CLAY_TEXT', 'ACCENT_INK')}; font-weight: 800; }
+    .pick button:focus-visible { outline: 2px solid ${P('CLAY_TEXT', 'ACCENT_INK')}; outline-offset: 2px; }
   `;
   const m = model;
   const job = m.job ? `<div class="job"><div class="lg" aria-hidden="true">${m.job.logo ? `<img alt="" src="${esc(m.job.logo)}" referrerpolicy="no-referrer">` : esc(m.job.letter)}</div>

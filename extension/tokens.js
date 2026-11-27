@@ -908,6 +908,26 @@ export const C_PLAIN_DARK = Object.freeze({
   PASTEL_8: "#403C5F",
 });
 
+// ⭐ D197 #19: the plate palette (client/src/styles/plate.css), for the panel, the dock's frame and the /d square —
+// one palette: the plate is paper in every scheme until a dark plate exists (docs/revamp/extension.md).
+export const C_PLATE = Object.freeze({
+  PAPER: "#F4EFE9",
+  PAPER_WARM: "#FBF8F4",
+  CARD: "#FFFFFF",
+  INK: "#1B1B1B",
+  INK_SOFT: "#3F3A36",
+  MUTED: "#55504C",
+  MUTED_2: "#6F6964",
+  RULE: "#E6DED8",
+  CLAY: "#C2593A",
+  CLAY_TEXT: "#8A3A22",
+  CLAY_TINT: "#FBEFEA",
+  ON_CLAY: "#FFFFFF",
+  LIT: "#3E6B5A",
+  R4: "#1F3A63",
+  R4_TINT: "#EDF1F7",
+});
+
 /** Every theme of the registry, by id: its scheme and its palette. */
 export const EXT_THEMES = Object.freeze({
   "paper-light": Object.freeze({ scheme: "light", tokens: C_LIGHT }),

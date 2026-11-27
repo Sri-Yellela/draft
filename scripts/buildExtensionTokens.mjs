@@ -71,6 +71,26 @@ function fontFace(family, style, weight, file, range) {
          `  font-display: swap;\n  src: url(${file}) format('woff2');\n  unicode-range: ${range};\n}\n`;
 }
 
+/**
+ * ⭐ D197 #19 M5 (47m): the plate's literal colours, read from client/src/styles/plate.css (the first definition of each
+ * name — the `.plate` block's light paper values; the later themed block re-maps them for the app's other themes).
+ * KEY → the --pl-* name. Throws on a name with no #hex literal, so a plate.css rename fails the build, not the look.
+ */
+export const PLATE_KEYS = Object.freeze({
+  PAPER: "--pl-paper", PAPER_WARM: "--pl-paper-warm", CARD: "--pl-card", INK: "--pl-ink", INK_SOFT: "--pl-ink-soft",
+  MUTED: "--pl-muted", MUTED_2: "--pl-muted-2", RULE: "--pl-rule", CLAY: "--pl-clay", CLAY_TEXT: "--pl-clay-text",
+  CLAY_TINT: "--pl-clay-tint", ON_CLAY: "--pl-on-clay", LIT: "--pl-lit", R4: "--pl-r4", R4_TINT: "--pl-r4-tint",
+});
+export function plateTokens(css = fs.readFileSync(path.join(ROOT, "client/src/styles/plate.css"), "utf8")) {
+  const out = {};
+  for (const [k, name] of Object.entries(PLATE_KEYS)) {
+    const m = css.match(new RegExp(`${name}:\\s*(#[0-9A-Fa-f]{6})\\s*;`));
+    if (!m) throw new Error(`plate.css: no literal value for ${name}`);
+    out[k] = m[1].toUpperCase();
+  }
+  return out;
+}
+
 /** The two generated text files, as strings (LF). */
 export async function renderExtensionTokens() {
   const mod = await import(pathToFileURL(path.join(ROOT, "client/src/styles/colorTokens.js")).href);
@@ -140,6 +160,10 @@ export async function renderExtensionTokens() {
     // D181 (45l): the Plain pair — constOf named them but nothing emitted them (C_PLAIN_LIGHT is not defined).
     `export const C_PLAIN_LIGHT = ${obj(byId["plain-light"].tokens)};\n\n` +
     `export const C_PLAIN_DARK = ${obj(byId["plain-dark"].tokens)};\n\n` +
+    // ⭐ D197 #19 M5 (47m): the PLATE palette (client/src/styles/plate.css) — the panel, the dock's frame, the /d square.
+    `// ⭐ D197 #19: the plate palette (client/src/styles/plate.css), for the panel, the dock's frame and the /d square —\n` +
+    `// one palette: the plate is paper in every scheme until a dark plate exists (docs/revamp/extension.md).\n` +
+    `export const C_PLATE = Object.freeze({\n${Object.entries(plateTokens()).map(([k, v]) => `  ${k}: ${JSON.stringify(v)},`).join("\n")}\n});\n\n` +
     `/** Every theme of the registry, by id: its scheme and its palette. */\n` +
     `export const EXT_THEMES = Object.freeze({\n` +
     THEME_LIST.map((t) => `  ${JSON.stringify(t.id)}: Object.freeze({ scheme: ${JSON.stringify(t.scheme)}, tokens: ${constOf[t.id]} }),`).join("\n") +
