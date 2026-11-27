@@ -132,6 +132,8 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 .appnav-peek__notif time { display: block; font-family: var(--pl-mono); font-size: var(--pl-t-mono-xs); color: var(--pl-muted); margin-top: 2px; }
 .appnav-peek__dot { flex: none; width: 8px; height: 8px; aspect-ratio: 1; border-radius: 50%; margin-top: 6px; background: var(--pl-clay); }
 .appnav-peek__dot[data-read="true"] { background: transparent; }
+/* 47m: the type's line icon (plate/icons.jsx NOTIF_ICON) between the unread dot and the words, in the ink. */
+.appnav-peek__ico { flex: none; display: inline-flex; margin-top: 1px; color: var(--pl-ink); }
 .appnav-peek__none { margin: 0; padding: 6px 4px; font-size: var(--pl-t-13); color: var(--pl-muted); }
 .appnav-peek__notifs .appnav-peek__acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: space-between; padding-top: 4px; }
 .appnav-peek__notifs .appnav-peek__acts a, .appnav-peek__notifs .appnav-peek__acts button { width: auto; padding: 4px 8px; font-size: var(--pl-t-12); font-weight: 700; }

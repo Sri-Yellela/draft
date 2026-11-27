@@ -33,7 +33,21 @@ export const ICON_PATHS = Object.freeze({
   close: "M6 6l12 12 M18 6L6 18",
   external: "M14 4h6v6 M20 4l-9 9 M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5",
   messages: "M6 5.5h12a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 16V8A2.5 2.5 0 0 1 6 5.5z M4 7l8 6 8-6",
+  // 47m: the peek's notifications (a type with no drawing of its own): a bell, a written page (a résumé), a check
+  bell: "M6 16v-5a6 6 0 0 1 12 0v5l1.5 2.5h-15z M10 20.5h4",
+  page: "M7 3h7l4 4v14H7z M14 3v4h4 M10 12h5 M10 16h5",
+  check: "M5 12.5l4.5 4.5L19 7",
 });
+
+// ⭐ 47m (the 47j owner question, agent's pick — owner may reverse): THE PEEK'S NOTIFICATIONS, one line icon per type
+// (services/notify.js NOTIFY_EVENTS + the server's own inserts) — the plate's paths, never an emoji; an unknown type is the bell.
+export const NOTIF_ICON = Object.freeze({
+  needs_you: "needs", quick_check: "question", pick_question: "question", switched_to_extension: "external",
+  inbox_reply: "replies", apply_complete: "sent", picks: "picks", picks_summary: "list", daily_question: "atlas",
+  new_match: "search", messages_unread: "messages", resume_generated: "page", enhance_ready: "check", pipeline_alert: "needs",
+});
+/** The icon name for a notification type (the bell when the type has none). */
+export const notifIcon = (type) => NOTIF_ICON[type] || "bell";
 
 /** A line icon. size 16 in an area nav, 20 in the dock (the report: 16–18 px, 1.7–2 stroke). */
 export function Icon({ name, size = 16, stroke = 1.8 }) {

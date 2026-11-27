@@ -27,6 +27,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";   // D180 P1: the network switch
 import PlateRoot from "../plate/PlateRoot.jsx";   // ⭐ D197 #1: the dock and the area nav are the plate's (plate tokens, the theme's palette)
 import { Dock, AreaNav, useSearchShortcut } from "../plate/Shell.jsx";
+import { Icon, notifIcon } from "../plate/icons.jsx";   // ⭐ 47m: the peek's per-type notification icons
 import UsbSuggest from "./UsbSuggest.jsx";
 import { requestBoardSearch } from "../lib/boardSearch.js";
 import { useAccountAvatar } from "../lib/accountAvatar.js";
@@ -267,8 +268,9 @@ export function ProfilePeek({ open, profile, pos = { top: 0, left: 80 }, onGo, o
           {notifs.length === 0
             ? <p className="appnav-peek__none">No notifications yet.</p>
             : <ul>{notifs.slice(0, 20).map((n, i) => (
-              <li key={n.id ?? i} className="appnav-peek__notif" data-peek-notif={n.read ? "read" : "unread"}>
+              <li key={n.id ?? i} className="appnav-peek__notif" data-peek-notif={n.read ? "read" : "unread"} data-peek-notif-type={n.type || undefined}>
                 <span className="appnav-peek__dot" data-read={n.read ? "true" : "false"} aria-hidden="true" />
+                <span className="appnav-peek__ico" data-peek-notif-icon={notifIcon(n.type)}><Icon name={notifIcon(n.type)} size={16}/></span>
                 <span>{n.message}{!n.read && <span className="pl-sr"> (unread)</span>}<time>{notifTimeAgo(n.created_at)}</time></span>
               </li>))}</ul>}
           <div className="appnav-peek__acts">
