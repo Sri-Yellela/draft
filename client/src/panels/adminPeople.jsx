@@ -11,8 +11,8 @@ import { useState, useEffect, useCallback } from "react";
 import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
-import { Panel, Help, Dialog, useConfirm, h2, row, quiet, field, callout } from "./adminKit.jsx";
-import { Btn, Table, Err, KV, ago, stamp, usd, num, UserApplications } from "./adminOps.jsx";
+import { Btn, Panel, Help, Dialog, useConfirm, h2, row, quiet, field, callout } from "./adminKit.jsx";
+import { Table, Err, KV, ago, stamp, usd, num, UserApplications } from "./adminOps.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const STATUS_TONE = { active: C.SUCCESS, suspended: C.DANGER };

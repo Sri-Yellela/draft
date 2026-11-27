@@ -3,8 +3,7 @@
 // skills say where the content is needed first ("start with CHECK for the 10 most-claimed skills").
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
-import DepthButton from "../components/DepthButton.jsx";
-import { Panel, row, quiet, sub } from "./adminKit.jsx";
+import { Btn, Panel, row, quiet, sub } from "./adminKit.jsx";
 
 export function ReadinessTab() {
   const [status, setStatus] = useState("draft");
@@ -29,7 +28,7 @@ export function ReadinessTab() {
       )}
       <div style={{ ...row, margin: "10px 0" }}>
         {["draft", "live", "retired"].map(s => (
-          <DepthButton key={s} onClick={() => setStatus(s)} aria-pressed={status === s}>{s === "draft" ? "Waiting for review" : s === "live" ? "Live" : "Retired"}</DepthButton>
+          <Btn key={s} onClick={() => setStatus(s)} aria-pressed={status === s}>{s === "draft" ? "Waiting for review" : s === "live" ? "Live" : "Retired"}</Btn>
         ))}
         {said && <span style={quiet}>{said}</span>}
       </div>
@@ -43,9 +42,9 @@ export function ReadinessTab() {
           </ol>
           {q.explanation && <div style={quiet}>{q.explanation}</div>}
           <div style={{ ...row, marginTop: 6 }}>
-            {q.status !== "live" && <DepthButton onClick={() => review(q.id, "approve")}>Approve — make it live</DepthButton>}
-            {q.status !== "draft" && <DepthButton onClick={() => review(q.id, "draft")}>Back to draft</DepthButton>}
-            {q.status !== "retired" && <DepthButton onClick={() => review(q.id, "retire")}>Retire</DepthButton>}
+            {q.status !== "live" && <Btn onClick={() => review(q.id, "approve")}>Approve — make it live</Btn>}
+            {q.status !== "draft" && <Btn onClick={() => review(q.id, "draft")}>Back to draft</Btn>}
+            {q.status !== "retired" && <Btn onClick={() => review(q.id, "retire")}>Retire</Btn>}
           </div>
         </div>
       ))}

@@ -5,8 +5,7 @@
 // email and what they wrote, so their questions can be answered (services/testerContacts.js). Admin only.
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
-import DepthButton from "../components/DepthButton.jsx";
-import { Panel, row, quiet, sub, field } from "./adminKit.jsx";
+import { Btn, Panel, row, quiet, sub, field } from "./adminKit.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const LABELS = {
@@ -90,8 +89,8 @@ function SurveySources() {
         <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <input type="checkbox" checked={contact} onChange={(e) => setContact(e.target.checked)} data-survey-contact=""/> Include name and email
         </label>
-        <DepthButton onClick={() => { window.location.href = `/api/admin/survey/export.csv${contact ? "?contact=1" : ""}`; }}>Download the standalone answers (CSV)</DepthButton>
-        <DepthButton onClick={load}>Refresh</DepthButton>
+        <Btn onClick={() => { window.location.href = `/api/admin/survey/export.csv${contact ? "?contact=1" : ""}`; }}>Download the standalone answers (CSV)</Btn>
+        <Btn onClick={load}>Refresh</Btn>
       </div>
     </Panel>
   );
@@ -134,7 +133,7 @@ function PeopleAndQuestions() {
       <div style={row}>
         <input aria-label="Search names, emails and messages" placeholder="Search names, emails, messages" value={q} onChange={(e) => setQ(e.target.value)} style={{ ...field, minWidth: 240 }}/>
         <label style={{ ...row, gap: 6 }}><input type="checkbox" checked={onlyAsked} onChange={(e) => setOnlyAsked(e.target.checked)}/> Only people who wrote something</label>
-        <DepthButton onClick={() => { window.location.href = "/api/admin/testers/people.csv"; }}>Download (CSV, with names and emails)</DepthButton>
+        <Btn onClick={() => { window.location.href = "/api/admin/testers/people.csv"; }}>Download (CSV, with names and emails)</Btn>
       </div>
       <div style={{ marginTop: 12 }}>
         {shown.length ? shown.map((p, i) => (

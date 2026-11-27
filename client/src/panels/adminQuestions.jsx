@@ -5,8 +5,7 @@
 // too hard, a choice nobody picks, answered too fast) once it has enough answers.
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
-import DepthButton from "../components/DepthButton.jsx";
-import { Panel, Mark, row, quiet, sub } from "./adminKit.jsx";
+import { Btn, Panel, Mark, row, quiet, sub } from "./adminKit.jsx";
 import { C } from "../styles/colorTokens.js";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
@@ -41,8 +40,8 @@ function Editor({ q, onSave, onCancel }) {
       <label style={quiet}>Skills (Atlas slugs, comma-separated)<input style={fieldBox} value={skills} onChange={e => setSkills(e.target.value)} /></label>
       <label style={quiet}>Learn pieces (step ids, comma-separated)<input style={fieldBox} value={pieces} onChange={e => setPieces(e.target.value)} /></label>
       <div style={row}>
-        <DepthButton onClick={() => onSave({ stem, choices, why, correct, skills: list(skills), pieces: list(pieces) })}>Save the edit</DepthButton>
-        <DepthButton onClick={onCancel}>Cancel</DepthButton>
+        <Btn onClick={() => onSave({ stem, choices, why, correct, skills: list(skills), pieces: list(pieces) })}>Save the edit</Btn>
+        <Btn onClick={onCancel}>Cancel</Btn>
         {q.status === "live" && <span style={quiet}>Saving sends a live question back to review.</span>}
       </div>
     </div>
@@ -131,9 +130,9 @@ export function QuestionBankTab() {
                 {q.stats.medianMs != null ? ` · median ${(q.stats.medianMs / 1000).toFixed(1)} s` : ""}
                 {q.reviewedBy ? ` · last reviewed by ${q.reviewedBy}` : ""}</div>
               <div style={{ ...row, marginTop: 8 }}>
-                {q.status !== "live" && <DepthButton onClick={() => review(q.id, "approve")}>Approve — make it live</DepthButton>}
-                {Array.isArray(q.choices) && <DepthButton onClick={() => setEditing(true)}>Edit</DepthButton>}
-                {q.status !== "retired" && <DepthButton onClick={() => review(q.id, "retire")}>Retire</DepthButton>}
+                {q.status !== "live" && <Btn onClick={() => review(q.id, "approve")}>Approve — make it live</Btn>}
+                {Array.isArray(q.choices) && <Btn onClick={() => setEditing(true)}>Edit</Btn>}
+                {q.status !== "retired" && <Btn onClick={() => review(q.id, "retire")}>Retire</Btn>}
               </div>
             </div>
           )}

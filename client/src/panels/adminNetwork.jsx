@@ -2,8 +2,7 @@
 // only after counsel has answered the user-content questions (the owner's list D (19)); the switch is audited.
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
-import DepthButton from "../components/DepthButton.jsx";
-import { Panel, row, quiet, sub, field } from "./adminKit.jsx";
+import { Btn, Panel, row, quiet, sub, field } from "./adminKit.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const STATUS = [["open", "Open"], ["actioned", "Actioned"], ["dismissed", "Dismissed"]];
@@ -42,10 +41,10 @@ function ReportsQueue() {
           <div style={{ ...row, marginTop: 8 }}>
             <input style={{ ...field, flex: "1 1 220px" }} placeholder="Note — what you did (optional)" aria-label={`Note for report ${r.id}`}
               value={notes[r.id] || ""} onChange={e => setNotes(n => ({ ...n, [r.id]: e.target.value }))} />
-            {r.kind === "message" && !r.target?.removed && r.status !== "actioned" && <DepthButton onClick={() => resolve(r.id, "actioned", true)}>Remove the message</DepthButton>}
-            {r.status !== "actioned" && <DepthButton onClick={() => resolve(r.id, "actioned")}>Actioned</DepthButton>}
-            {r.status !== "dismissed" && <DepthButton onClick={() => resolve(r.id, "dismissed")}>Dismiss</DepthButton>}
-            {r.status !== "open" && <DepthButton onClick={() => resolve(r.id, "open")}>Re-open</DepthButton>}
+            {r.kind === "message" && !r.target?.removed && r.status !== "actioned" && <Btn onClick={() => resolve(r.id, "actioned", true)}>Remove the message</Btn>}
+            {r.status !== "actioned" && <Btn onClick={() => resolve(r.id, "actioned")}>Actioned</Btn>}
+            {r.status !== "dismissed" && <Btn onClick={() => resolve(r.id, "dismissed")}>Dismiss</Btn>}
+            {r.status !== "open" && <Btn onClick={() => resolve(r.id, "open")}>Re-open</Btn>}
           </div>
         </div>
       ))}
@@ -68,7 +67,7 @@ export function NetworkTab() {
       purpose="Connections between people (D180 P1). OFF until you turn it on — while off nobody sees Network, Connect or a connection's view of a profile.">
       <div style={{ ...row, margin: "6px 0 12px", gap: 16 }}>
         <span data-network-state={d?.enabled ? "on" : "off"}><b>{d ? (d.enabled ? "On" : "Off") : "…"}</b></span>
-        {d && <DepthButton primary={!d.enabled} onClick={() => flip(!d.enabled)}>{d.enabled ? "Turn off" : "Turn on"}</DepthButton>}
+        {d && <Btn primary={!d.enabled} onClick={() => flip(!d.enabled)}>{d.enabled ? "Turn off" : "Turn on"}</Btn>}
         {said && <span style={quiet} role="status">{said}</span>}
       </div>
       {d?.counts && <div style={quiet}>{d.counts.connections ?? "—"} connections · {d.counts.pending ?? "—"} requests waiting · {d.counts.blocks ?? "—"} blocks · {d.counts.threads ?? "—"} conversations · {d.counts.reportsOpen ?? "—"} open reports</div>}

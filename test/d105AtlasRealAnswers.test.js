@@ -93,7 +93,7 @@ test("D105 BUG 10-31 · d105ClassificationCounts — every asked node lands in e
   assert.ok(at(route, `router.get("/wiki/probe"`) < at(route, `router.post("/:slug/status"`));
   const panel = read("client/src/panels/adminAtlas.jsx");
   assert.match(panel, /<AtlasWikiAnswers reloadKey=\{said\} say=\{setSaid\} \/>/);
-  assert.match(panel, /data-atlas-probe="">Show a real answer<\/DepthButton>/);
+  assert.match(panel, /data-atlas-probe="">Show a real answer<\/Btn>/);
 });
 
 test("D105 BUG 10-31 · d105ResultLineShowsNotSoftware — the line carries items, not-software, the unmatched classes and any non-200 answers", () => {

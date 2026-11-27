@@ -5,8 +5,8 @@
 // account `test` or `internal` in People to leave it out. Built in the admin's tokens until D133's Studio theme lands.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api.js";
-import DepthButton from "../components/DepthButton.jsx";
 import { C } from "../styles/colorTokens.js";
+import { Btn } from "./adminKit.jsx";   // D197 #21 (47n): the plate button
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const LIVE_MS = 30_000;
@@ -171,9 +171,9 @@ export function TestersTab() {
           <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: ts(13.5), color: C.INK_MUTED }}>
             <input type="checkbox" checked={opts.exclude} onChange={e => setOpts(o => ({ ...o, exclude: e.target.checked }))}/> Leave out my own and test accounts
           </label>
-          <DepthButton onClick={copy} disabled={!d.copyText}>Copy the YC numbers</DepthButton>
-          <DepthButton onClick={() => { window.location.href = `/api/admin/testers/export.csv?${qs}`; }}>Export without names or emails</DepthButton>
-          <DepthButton onClick={() => { window.location.href = `/api/admin/testers/export.csv?${qs}&contact=1`; }}>Export with names and emails</DepthButton>
+          <Btn onClick={copy} disabled={!d.copyText}>Copy the YC numbers</Btn>
+          <Btn onClick={() => { window.location.href = `/api/admin/testers/export.csv?${qs}`; }}>Export without names or emails</Btn>
+          <Btn onClick={() => { window.location.href = `/api/admin/testers/export.csv?${qs}&contact=1`; }}>Export with names and emails</Btn>
         </div>
       </div>
       <p style={{ color: C.INK_MUTED, margin: "2px 0 8px" }}>

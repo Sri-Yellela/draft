@@ -5,8 +5,7 @@
 // Nothing merges by itself.
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
-import DepthButton from "../components/DepthButton.jsx";
-import { Panel, row, quiet, sub } from "./adminKit.jsx";
+import { Btn, Panel, row, quiet, sub } from "./adminKit.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const n = (v) => (v == null ? "—" : Number(v).toLocaleString());
@@ -70,9 +69,9 @@ export function CompanyRecordsTab() {
             <span style={quiet}> — {r.reason}</span>
           </div>
           <div style={{ ...row, marginTop: 6 }}>
-            <DepthButton onClick={() => decide(r.id, "merge")}>Merge the second into the first</DepthButton>
-            <DepthButton onClick={() => decide(r.id, "apart")}>Keep apart</DepthButton>
-            <DepthButton onClick={() => decide(r.id, "parent")}>Second is a subsidiary</DepthButton>
+            <Btn onClick={() => decide(r.id, "merge")}>Merge the second into the first</Btn>
+            <Btn onClick={() => decide(r.id, "apart")}>Keep apart</Btn>
+            <Btn onClick={() => decide(r.id, "parent")}>Second is a subsidiary</Btn>
           </div>
         </div>
       ))}

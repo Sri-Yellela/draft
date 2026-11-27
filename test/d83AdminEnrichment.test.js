@@ -90,7 +90,7 @@ test("Apply unlocks only for the exact file of a clean dry run, and re-locks whe
   assert.equal(applyGate({ forText: "A", plan: { ...clean, wouldWrite: 0 } }, "A").unlocked, false, "nothing to write → locked");
   // The page wires the button to the gate, and a new file voids the dry run.
   assert.match(PAGE, /const gate = applyGate\(dry, importText\);/);
-  assert.match(PAGE, /<DepthButton primary disabled=\{!gate\.unlocked \|\| !!applied\} onClick=\{\(\) => setConfirm\(true\)\}>Apply the import…/);
+  assert.match(PAGE, /<Btn primary disabled=\{!gate\.unlocked \|\| !!applied\} onClick=\{\(\) => setConfirm\(true\)\}>Apply the import…/);
   const setFile = PAGE.slice(at(PAGE, "const setFile = "), at(PAGE, "// ── step 2"));
   assert.match(setFile, /setDry\(null\)/);
   assert.match(setFile, /setOverwrite\(false\); setAllowStale\(false\)/, "the expert switches reset with the file");
@@ -111,7 +111,7 @@ test("the confirm states exactly how many postings it writes, and that it can be
 
 test("every past import has an Undo that runs the revert's dry run, confirms, applies the quoted count and reloads", () => {
   assert.match(PAGE, /batches\?source=import&kind=enrichment/);
-  assert.match(PAGE, /<DepthButton size="compact" disabled=\{busy === "undo-plan"\} onClick=\{\(\) => askUndo\(b\)\}>Undo<\/DepthButton>/);
+  assert.match(PAGE, /<Btn size="compact" disabled=\{busy === "undo-plan"\} onClick=\{\(\) => askUndo\(b\)\}>Undo<\/Btn>/);
   assert.match(PAGE, /api\(`\/api\/admin\/enrichment\/batches\/\$\{b\.id\}\/revert`, \{ method: "POST", body: "\{\}" \}\)/);
   const doUndo = PAGE.slice(at(PAGE, "const doUndo"), at(PAGE, "// ── where the path stands"));
   assert.match(doUndo, /apply: true, expectRestorable: undoPlan\.restorable/);
@@ -151,7 +151,7 @@ test("no project code (D17, D72, A76…) appears outside a ? tooltip", () => {
 
 test("every action is a <button> (DepthButton or button) — no clickable div besides the dialog's scrim", () => {
   const notButtons = (src) => [...stripComments(src).matchAll(/<(\w+)[^<>]*?\bonClick=/g)].map((m) => m[1])
-    .filter((t) => t !== "DepthButton" && t !== "button");
+    .filter((t) => t !== "DepthButton" && t !== "Btn" && t !== "button");
   assert.deepEqual(notButtons(PAGE), [], "the page itself has no clickable div");
   // D83 map (39d): the dialog moved to the shared admin kit with the page's other parts.
   const KIT = fs.readFileSync("client/src/panels/adminKit.jsx", "utf8");

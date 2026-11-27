@@ -4,8 +4,7 @@
 // summary email, and the request id to search both services' logs by. Read-only.
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
-import DepthButton from "../components/DepthButton.jsx";
-import { Panel, row, quiet, sub } from "./adminKit.jsx";
+import { Btn, Panel, row, quiet, sub } from "./adminKit.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const when = (s) => (s ? new Date(s * 1000).toLocaleString() : "—");
@@ -24,15 +23,15 @@ function JobTrace({ j }) {
       </div>
       <div style={{ fontSize: ts(13) }} data-run-trace-sent="">Sent: {j.sent.submittedBy ? `${j.sent.submittedBy}${j.sent.verified === true ? " · verified" : j.sent.verified === false ? " · not verified" : ""}` : "nothing"}</div>
       <div style={quiet}>Request id: <code>{j.requestId}</code></div>
-      <DepthButton onClick={() => setOpen(o => !o)}>{open ? "Hide" : `Answers (${j.answers.length}) and events (${j.events.length})`}</DepthButton>
+      <Btn onClick={() => setOpen(o => !o)}>{open ? "Hide" : `Answers (${j.answers.length}) and events (${j.events.length})`}</Btn>
       {open && (
         <>
-          <table style={{ width: "100%", fontSize: ts(12.5), borderCollapse: "collapse", margin: "8px 0" }} data-run-trace-answers="">
+          <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width: "100%", fontSize: ts(12.5), borderCollapse: "collapse", margin: "8px 0" }} data-run-trace-answers="">
             <thead><tr><th align="left">Field</th><th align="left">Answer</th><th align="left">Source</th></tr></thead>
             <tbody>{j.answers.map((a, i) => (
               <tr key={i}><td>{a.field}</td><td>{a.value == null ? "—" : String(a.value).slice(0, 120)}</td><td>{a.source}{a.confidence != null ? ` · ${a.confidence}` : ""}</td></tr>
             ))}</tbody>
-          </table>
+          </table></div>
           <ol style={{ fontSize: ts(12), margin: 0, paddingLeft: 18 }} data-run-trace-events="">
             {j.events.map((e, i) => <li key={i}>{when(e.at)} · {e.event}{e.message ? ` — ${e.message}` : ""}</li>)}
           </ol>
@@ -54,21 +53,21 @@ export function RunsTab() {
       purpose="Every application run, traced from what the run itself recorded: the picks, each résumé, every answer and where it came from, what stopped and why, what was sent, and the summary email.">
       {said && <div style={quiet} role="status">{said}</div>}
       {!trace && (
-        <table style={{ width: "100%", fontSize: ts(13), borderCollapse: "collapse" }} data-admin-runs-list="">
+        <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width: "100%", fontSize: ts(13), borderCollapse: "collapse" }} data-admin-runs-list="">
           <thead><tr><th align="left">Run</th><th align="left">Who</th><th align="left">Mode</th><th align="left">Status</th><th align="left">Jobs</th><th align="left">When</th><th /></tr></thead>
           <tbody>{(runs || []).map(r => (
             <tr key={r.id}>
               <td>#{r.id}</td><td>{r.user.username}{r.testAccount ? " (canary)" : ""}</td><td>{r.mode}</td><td>{r.status}</td>
               <td>{r.total} · {r.submitted} sent · {r.held} held · {r.failed} failed</td><td>{when(r.createdAt)}</td>
-              <td><DepthButton onClick={() => pick(r.id)}>Trace</DepthButton></td>
+              <td><Btn onClick={() => pick(r.id)}>Trace</Btn></td>
             </tr>
           ))}</tbody>
-        </table>
+        </table></div>
       )}
       {trace && (
         <div data-admin-run-trace={trace.run.id}>
           <div style={{ ...row, margin: "6px 0 10px" }}>
-            <DepthButton onClick={() => setTrace(null)}>‹ All runs</DepthButton>
+            <Btn onClick={() => setTrace(null)}>‹ All runs</Btn>
             <b>Run #{trace.run.id}</b><span style={quiet}>{trace.run.user.username} · {trace.run.mode} · {trace.run.status} · {when(trace.run.createdAt)}</span>
           </div>
           <div style={{ fontSize: ts(13), marginBottom: 8 }}>

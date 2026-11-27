@@ -11,8 +11,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
-import DepthButton from "../components/DepthButton.jsx";
-import { row, quiet, sub, callout } from "./adminKit.jsx";
+import { Btn, row, quiet, sub, callout } from "./adminKit.jsx";
 import { learnFileFromUpload } from "./adminLearnSandbox.js";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
@@ -94,8 +93,8 @@ export function AtlasImportContent({ say }) {
           <span style={{ fontSize: ts(12), color: C.INK }}>{picked?.name}: {preview.counts.steps} steps · {preview.counts.items} items · {preview.counts.patterns} patterns · {preview.counts.concepts} concepts</span>
           <DiffView diff={preview.diff} progress={preview.progress} />
           <div style={row}>
-            <DepthButton size="compact" primary disabled={busy || preview.diff.same} onClick={apply} data-learn-apply="">Apply</DepthButton>
-            <DepthButton size="compact" disabled={busy} onClick={() => { setPreview(null); setPicked(null); }} data-learn-cancel="">Cancel</DepthButton>
+            <Btn size="compact" primary disabled={busy || preview.diff.same} onClick={apply} data-learn-apply="">Apply</Btn>
+            <Btn size="compact" disabled={busy} onClick={() => { setPreview(null); setPicked(null); }} data-learn-cancel="">Cancel</Btn>
           </div>
         </div>
       )}

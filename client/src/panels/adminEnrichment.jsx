@@ -20,8 +20,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { api, authHeaders, authContextQuery, downloadBlob } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import { markStyle, LOGO_FACE } from "../styles/mark.js";
-import DepthButton from "../components/DepthButton.jsx";
-import { Help, Mark, NumberBox, Step, Dialog, panel, h2, what, row, quiet, sub, callout, field } from "./adminKit.jsx";
+import { Btn, Help, Mark, NumberBox, Step, Dialog, panel, h2, what, row, quiet, sub, callout, field } from "./adminKit.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 import {
   enrichmentPrompt, buildPieces, checkPiece, redoPiece, mergeFilled, applyGate, refusalCounts, withoutRefused,
@@ -286,7 +285,7 @@ export function EnrichmentTab() {
               <p style={{ fontSize: ts(12.5), color: C.INK_MUTED, margin: 0 }}>
                 Saved as <b>{exp.name}</b> in your <b>Downloads folder</b> — {num(exp.rows)} postings, full text, cleaned.
               </p>
-              <DepthButton size="compact" onClick={() => { setExp(null); setFile("", ""); setRedo(""); setMatchNote(null); }}>Start a different batch</DepthButton>
+              <Btn size="compact" onClick={() => { setExp(null); setFile("", ""); setRedo(""); setMatchNote(null); }}>Start a different batch</Btn>
             </div>
             {(exp.meta?.heldForFullText > 0 || exp.truncatedRows > 0) && (
               <p style={{ ...quiet, margin: 0 }}>
@@ -314,13 +313,13 @@ export function EnrichmentTab() {
                 <option value="">Any source</option>
                 {(ov?.sources || []).map((s) => <option key={s.value} value={s.value}>{s.value} ({num(s.count)})</option>)}
               </select>
-              <DepthButton primary disabled={busy === "export" || !ov} onClick={doExport}>
+              <Btn primary disabled={busy === "export" || !ov} onClick={doExport}>
                 {busy === "export" ? "Exporting…" : `Export ${num(rows)} postings`}
-              </DepthButton>
+              </Btn>
             </div>
             <div style={row}>
               <span style={quiet}>Already have a filled import file?</span>
-              <DepthButton size="compact" onClick={() => fileInput.current?.click()}>Choose it and go to the dry run</DepthButton>
+              <Btn size="compact" onClick={() => fileInput.current?.click()}>Choose it and go to the dry run</Btn>
             </div>
           </>
         )}
@@ -347,7 +346,7 @@ export function EnrichmentTab() {
                 padding: "10px 12px", font: "500 11.5px/1.55 ui-monospace, monospace", color: C.INK_MUTED, maxHeight: 160, overflow: "auto",
                 whiteSpace: "pre-wrap", margin: "6px 0" }}>{prompt}</pre>
               <div style={row}>
-                <DepthButton size="compact" onClick={copyPrompt}>{copied ? "Copied" : "Copy the instructions"}</DepthButton>
+                <Btn size="compact" onClick={copyPrompt}>{copied ? "Copied" : "Copy the instructions"}</Btn>
                 <span style={{ fontSize: ts(11.5), color: C.INK_FAINT }}>They include every allowed value — read from the importer, so they cannot go out of date.</span>
               </div>
             </div>
@@ -356,16 +355,17 @@ export function EnrichmentTab() {
                 Your pieces — {exp.pieces.filter((p) => p.check?.checked).length} of {exp.pieces.length} checked
               </h5>
               <div style={{ ...row, marginBottom: 8 }}>
-                <DepthButton size="compact" onClick={downloadAll}>Download all pieces (.zip)</DepthButton>
+                <Btn size="compact" onClick={downloadAll}>Download all pieces (.zip)</Btn>
                 <input type="file" multiple accept=".jsonl,.ndjson,.json,.txt,text/plain" hidden ref={repliesInput}
                   onChange={(e) => { uploadReplies(e.target.files); e.target.value = ""; }}/>
-                <DepthButton size="compact" primary={!allChecked} onClick={() => repliesInput.current?.click()}>Upload all the replies</DepthButton>
+                <Btn size="compact" primary={!allChecked} onClick={() => repliesInput.current?.click()}>Upload all the replies</Btn>
                 <span style={quiet}>or drop the reply files on the squares below.</span>
               </div>
               <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); uploadReplies(e.dataTransfer.files); }}
                 aria-label="The pieces — drop reply files here"
-                style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(46px, 1fr))", gap: 6, padding: 8,
-                  border: `1px dashed ${C.BORDER_STRONG}`, borderRadius: 10 }}>
+                data-admin-drop=""
+                style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(46px, 1fr))", gap: 6, padding: 10,
+                  border: "var(--pl-border-dashed)", borderRadius: "var(--pl-r-card)", background: "var(--pl-paper-warm)" }}>
                 {exp.pieces.map((p) => {
                   const tone = !p.check ? C.INK_FAINT : p.check.checked ? C.SUCCESS : C.WARNING;
                   const status = !p.check ? "waiting for its reply" : p.check.checked ? `checked — ${p.check.valid} of ${p.check.total} rows valid`
@@ -395,7 +395,7 @@ export function EnrichmentTab() {
                     {p.check.problems.length > 8 && <li>… and {p.check.problems.length - 8} more</li>}
                   </ul>
                   <div style={row}>
-                    <DepthButton size="compact" onClick={() => downloadRedoRows(p)}>Download just these rows</DepthButton>
+                    <Btn size="compact" onClick={() => downloadRedoRows(p)}>Download just these rows</Btn>
                     <span>Fill them the same way and upload the reply with the piece number in its name — the valid rows are kept.</span>
                   </div>
                 </div>
@@ -407,7 +407,7 @@ export function EnrichmentTab() {
                 <h5 style={{ font: `800 italic 13px ${LOGO_FACE}`, color: C.INK, margin: "0 0 4px" }}>Things the model flagged — {notes.length}</h5>
                 <div style={{ ...row, marginBottom: 6 }}>
                   {NOTE_CODES.filter((c) => noteCounts[c]).map((c) => <Mark key={c} tone={C.INFO}>{c} · {noteCounts[c]}</Mark>)}
-                  <DepthButton size="compact" onClick={() => downloadBlob(new Blob([notesCsv(notes)], { type: "text/csv" }), `model-notes-${fileStamp()}.csv`)}>Download as CSV</DepthButton>
+                  <Btn size="compact" onClick={() => downloadBlob(new Blob([notesCsv(notes)], { type: "text/csv" }), `model-notes-${fileStamp()}.csv`)}>Download as CSV</Btn>
                 </div>
                 <ul style={{ listStyle: "disc", margin: 0, paddingLeft: 20, fontSize: ts(12), color: C.INK_MUTED }}>
                   {notes.slice(0, 12).map((n, k) => <li key={k}><code>{n.jobId}</code> {n.code}{n.text ? ` — ${n.text}` : ""}</li>)}
@@ -416,7 +416,7 @@ export function EnrichmentTab() {
               </div>
             )}
             <div style={row}>
-              <DepthButton primary={!importText} disabled={!allChecked} onClick={join}>Join the pieces</DepthButton>
+              <Btn primary={!importText} disabled={!allChecked} onClick={join}>Join the pieces</Btn>
               {!allChecked && <span style={quiet}>Unlocks when every piece shows Checked.</span>}
               {importText && <span style={quiet}>Joined into <b>{importName}</b> and ready for the dry run.</span>}
             </div>
@@ -432,8 +432,8 @@ export function EnrichmentTab() {
         <div style={row}>
           <label style={quiet}>File</label>
           <b style={{ fontSize: ts(12.5) }}>{importName || "—"}</b>
-          <DepthButton size="compact" onClick={() => fileInput.current?.click()}>Or choose an import file you already have</DepthButton>
-          {importText && <DepthButton size="compact" onClick={() => downloadBlob(new Blob([importText], { type: "application/x-ndjson" }), importName)}>Save a copy</DepthButton>}
+          <Btn size="compact" onClick={() => fileInput.current?.click()}>Or choose an import file you already have</Btn>
+          {importText && <Btn size="compact" onClick={() => downloadBlob(new Blob([importText], { type: "application/x-ndjson" }), importName)}>Save a copy</Btn>}
         </div>
         <div style={row}>
           {!overwrite && !allowStale
@@ -450,14 +450,14 @@ export function EnrichmentTab() {
           </div>
         </details>
         <div style={row}>
-          <DepthButton primary={!plan} disabled={!importText || busy === "dry"} onClick={runDry}>
+          <Btn primary={!plan} disabled={!importText || busy === "dry"} onClick={runDry}>
             {busy === "dry" ? "Rehearsing…" : "Run the rehearsal (dry run)"}
-          </DepthButton>
+          </Btn>
           <span style={quiet}>Nothing is written.</span>
         </div>
         {plan && (
           <>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ts(12) }}>
+            <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width: "100%", borderCollapse: "collapse", fontSize: ts(12) }}>
               <thead><tr><th style={th}>What the rehearsal found</th><th style={{ ...th, textAlign: "right" }}>Rows</th></tr></thead>
               <tbody>
                 <tr><td style={td}>Matched to postings on the board</td><td style={tdn}>{num(plan.matched)}</td></tr>
@@ -467,10 +467,10 @@ export function EnrichmentTab() {
                   <tr key={r.kind}><td style={td}>Refused — {r.words}</td><td style={{ ...tdn, color: C.WARNING }}>{num(r.count)}</td></tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             {plan.columns && (
               // D84 F5: "Would be written 20" hid that three columns wrote 0 and three wrote 10 — so, per column.
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ts(12) }} aria-label="Per column">
+              <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width: "100%", borderCollapse: "collapse", fontSize: ts(12) }} aria-label="Per column">
                 <thead><tr>
                   <th style={th}>Column</th><th style={{ ...th, textAlign: "right" }}>Already filled</th>
                   <th style={{ ...th, textAlign: "right" }}>In the file</th><th style={{ ...th, textAlign: "right" }}>Would be written</th>
@@ -487,7 +487,7 @@ export function EnrichmentTab() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
             {(plan.skillsAliased > 0 || plan.unknownSkills?.length > 0) && (
               // D84 F6: canonical names, and the skills the vocabulary does not hold yet (for its review).
@@ -498,8 +498,8 @@ export function EnrichmentTab() {
                     <b>{num(plan.unknownSkills.length)} skill(s) are not in the vocabulary yet</b> — they are written as given and listed here for review:{" "}
                     {plan.unknownSkills.slice(0, 15).map((u) => `${u.skill} (${u.count})`).join(", ")}{plan.unknownSkills.length > 15 ? "…" : ""}
                     <div style={{ marginTop: 6 }}>
-                      <DepthButton size="compact" onClick={() => downloadBlob(new Blob(["skill,count\n" + plan.unknownSkills.map((u) => `"${u.skill.replace(/"/g, '""')}",${u.count}`).join("\n") + "\n"],
-                        { type: "text/csv" }), `unknown-skills-${fileStamp()}.csv`)}>Download the list (CSV)</DepthButton>
+                      <Btn size="compact" onClick={() => downloadBlob(new Blob(["skill,count\n" + plan.unknownSkills.map((u) => `"${u.skill.replace(/"/g, '""')}",${u.count}`).join("\n") + "\n"],
+                        { type: "text/csv" }), `unknown-skills-${fileStamp()}.csv`)}>Download the list (CSV)</Btn>
                     </div>
                   </>
                 )}
@@ -515,7 +515,7 @@ export function EnrichmentTab() {
               <div style={callout(C.WARNING)}>
                 <div style={row}>
                   <span>The importer takes a file whole or not at all, so <b>Apply stays locked</b> while any row is refused.</span>
-                  <DepthButton size="compact" primary onClick={takeOutRefused}>Take out the {plan.rejected.length} refused rows and rehearse again</DepthButton>
+                  <Btn size="compact" primary onClick={takeOutRefused}>Take out the {plan.rejected.length} refused rows and rehearse again</Btn>
                 </div>
               </div>
             )}
@@ -524,7 +524,7 @@ export function EnrichmentTab() {
         {redo && (
           <div style={row}>
             <span style={quiet}>{redo.trim().split("\n").length} posting(s) to fill again later — nothing is lost.</span>
-            <DepthButton size="compact" onClick={() => downloadBlob(new Blob([redo], { type: "application/x-ndjson" }), `redo-${fileStamp()}.jsonl`)}>Download the redo file</DepthButton>
+            <Btn size="compact" onClick={() => downloadBlob(new Blob([redo], { type: "application/x-ndjson" }), `redo-${fileStamp()}.jsonl`)}>Download the redo file</Btn>
           </div>
         )}
       </Step>
@@ -534,7 +534,7 @@ export function EnrichmentTab() {
           Writes <b>{num(plan?.wouldWrite)} postings</b>, all or nothing. You can undo it afterwards.
         </p>
         <div style={row}>
-          <DepthButton primary disabled={!gate.unlocked || !!applied} onClick={() => setConfirm(true)}>Apply the import…</DepthButton>
+          <Btn primary disabled={!gate.unlocked || !!applied} onClick={() => setConfirm(true)}>Apply the import…</Btn>
           <span style={quiet}>{gate.why}</span>
         </div>
       </Step>
@@ -559,7 +559,7 @@ export function EnrichmentTab() {
             <b style={{ font: `800 italic 13px ${LOGO_FACE}`, color: C.INK }}>#{b.id}</b>
             <span>{day(b.started_at)} — {num(b.rows_written)} postings written{b.reverted_at ? ` · undone ${day(b.reverted_at)}` : ""}</span>
             {b.reverted_at ? <Mark tone={C.INK_FAINT}>Undone</Mark>
-              : <DepthButton size="compact" disabled={busy === "undo-plan"} onClick={() => askUndo(b)}>Undo</DepthButton>}
+              : <Btn size="compact" disabled={busy === "undo-plan"} onClick={() => askUndo(b)}>Undo</Btn>}
           </div>
         ))}
       </div>
@@ -584,7 +584,9 @@ export function EnrichmentTab() {
   );
 }
 
-const th = { fontWeight: 800, fontSize: ts(11), letterSpacing: "0.08em", textTransform: "uppercase", color: C.INK_FAINT, textAlign: "left",
-  padding: "5px 8px", borderBottom: `1px solid ${C.BORDER}` };
-const td = { padding: "6px 8px", borderBottom: `1px dashed ${C.BORDER}`, color: C.INK_MUTED };
-const tdn = { ...td, font: "600 12px ui-monospace, monospace", color: C.INK, textAlign: "right" };
+// D197 #21 (47n): the tables are the plate dense Gazetteer (the ink head, mono labels, ruled rows) — a cell says only its
+// alignment and its face; the colours and rules are the Gazetteer ones. The reply drop target (data-admin-drop) is the
+// plate dashed drawer (docs/revamp/admin.md, unclear home b).
+const th = { textAlign: "left" };
+const td = { color: "var(--pl-ink-soft)" };
+const tdn = { fontFamily: "var(--pl-mono)", fontWeight: 700, color: "var(--pl-ink)", textAlign: "right" };

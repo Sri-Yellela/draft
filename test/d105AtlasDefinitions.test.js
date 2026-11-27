@@ -131,8 +131,8 @@ test("D105 P11 · d105NoModelCall — draft drafts nothing itself: no model clie
   }
   const panel = read("client/src/panels/adminAtlas.jsx");
   assert.match(panel, /1\. Copy this into a Claude chat\. 2\. Paste its JSON answer below\. Definitions that pass the rules publish at once; unpublish any from the list below\./);
-  assert.match(panel, /data-atlas-def-unpublish=\{d\.slug\}>Unpublish<\/DepthButton>/);
-  assert.match(panel, /data-atlas-def-accept-all="">Accept all as written<\/DepthButton>/);
+  assert.match(panel, /data-atlas-def-unpublish=\{d\.slug\}>Unpublish<\/Btn>/);
+  assert.match(panel, /data-atlas-def-accept-all="">Accept all as written<\/Btn>/);
   const route = read("routes/atlas.js");
   assert.match(route, /router\.post\("\/definitions\/import", \(req, res\) => \{/);
   assert.ok(route.indexOf(`router.post("/definitions/accept-all"`) < route.indexOf(`router.post("/definitions/:slug/accept"`), "accept-all is not read as a slug");

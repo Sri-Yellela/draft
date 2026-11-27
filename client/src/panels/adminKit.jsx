@@ -9,7 +9,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
-import DepthButton from "../components/DepthButton.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // ── the parts ──────────────────────────────────────────────────────────────────────────────────
@@ -30,6 +29,21 @@ export function Help({ tip }) {
           borderRadius: "var(--pl-r-stamp)", zIndex: 9, textAlign: "left" }}>{tip}</span>
       )}
     </span>
+  );
+}
+
+// ⭐ D197 Wave 2 #21 (47n) · THE ADMIN'S BUTTON — the plate's (docs/revamp/admin.md: a read is paper, THE one write of a
+// panel is clay). It took DepthButton's place inside Admin with the same props, so no call site changed meaning: primary →
+// clay, size="compact" → the dense plate button (Admin's trimmed rows), pressed → aria-pressed, disabled → the plate's
+// dashed disabled; the click never bubbles to a row (DepthButton's rule kept). adminOps.jsx's own classic Btn (theme / danger,
+// used by Ops and People) is folded in here (A93: one button): danger → the guarded write, the plate's secondary (admin.md: a
+// destructive write is a secondary that opens the confirm); "theme" is accepted and unused — the plate carries the palette.
+export function Btn({ children, primary = false, danger = false, pressed = false, disabled = false, size, title, onClick, theme, className = "", ...rest }) {
+  const cls = ["pl-btn", primary ? "pl-btn--primary" : danger ? "pl-btn--secondary pl-btn--dense" : "pl-btn--paper",
+    size === "compact" ? "pl-btn--dense" : "", className].filter(Boolean).join(" ");
+  return (
+    <button type="button" className={cls} title={title} aria-pressed={pressed || undefined} disabled={disabled}
+      onClick={(e) => { e.stopPropagation(); onClick?.(e); }} {...rest}>{children}</button>
   );
 }
 
@@ -92,8 +106,8 @@ export function Dialog({ title, children, onCancel, confirmLabel, onConfirm, bus
         <h4 style={{ fontFamily: "var(--pl-serif)", fontWeight: 400, fontSize: "var(--pl-t-card)", lineHeight: 1.1, color: "var(--pl-ink)", margin: "6px 0 8px" }}>{title}</h4>
         <div style={{ fontSize: ts(12.5), color: "var(--pl-ink-soft)" }}>{children}</div>
         <div style={{ ...row, marginTop: 14 }}>
-          <DepthButton onClick={onCancel}>Go back</DepthButton>
-          <DepthButton primary disabled={busy || disabled} onClick={onConfirm} autoFocus>{busy ? "Working…" : confirmLabel}</DepthButton>
+          <Btn onClick={onCancel}>Go back</Btn>
+          <Btn primary disabled={busy || disabled} onClick={onConfirm} autoFocus>{busy ? "Working…" : confirmLabel}</Btn>
         </div>
       </div>
     </div>

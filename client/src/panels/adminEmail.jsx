@@ -8,8 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
-import DepthButton from "../components/DepthButton.jsx";
-import { Panel, Mark, row, quiet, sub, callout, field } from "./adminKit.jsx";
+import { Btn, Panel, Mark, row, quiet, sub, callout, field } from "./adminKit.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const when = (s) => (s ? new Date(s * 1000).toLocaleString() : "never");
@@ -75,8 +74,8 @@ export function EmailHealthTab() {
 
       <div style={{ ...sub, marginBottom: 14 }}>
         <div style={row}>
-          <DepthButton primary disabled={busy || !h.sendingConfigured} onClick={() => test("bounce")} data-email-test="bounce">Send a test to bounced@resend.dev</DepthButton>
-          <DepthButton disabled={busy || !h.sendingConfigured} onClick={() => test("complaint")} data-email-test="complaint">…or to complained@resend.dev</DepthButton>
+          <Btn primary disabled={busy || !h.sendingConfigured} onClick={() => test("bounce")} data-email-test="bounce">Send a test to bounced@resend.dev</Btn>
+          <Btn disabled={busy || !h.sendingConfigured} onClick={() => test("complaint")} data-email-test="complaint">…or to complained@resend.dev</Btn>
         </div>
         <p style={{ ...quiet, margin: "8px 0 0" }}>Resend's own test addresses: the send answers with a bounce (or a complaint), the signed hook records it, and the address appears on the list below — the whole loop, proved.{!h.sendingConfigured ? " Sending is not configured here (no RESEND_API_KEY)." : ""}</p>
         {said && <div role="status" style={{ ...callout(said.ok ? C.SUCCESS : C.DANGER), marginTop: 8 }}>{said.text}</div>}
@@ -88,7 +87,7 @@ export function EmailHealthTab() {
       {undo && (
         <div role="status" style={{ ...callout(C.INFO), marginBottom: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <span>{undo.email} was removed — it may be sent to again. The removal is in the audit log.</span>
-          <DepthButton size="compact" onClick={doUndo} data-email-undo="">Undo</DepthButton>
+          <Btn size="compact" onClick={doUndo} data-email-undo="">Undo</Btn>
         </div>
       )}
       {err && <div style={{ ...callout(C.DANGER), marginBottom: 10 }}>{err}</div>}
@@ -103,11 +102,11 @@ export function EmailHealthTab() {
                 <span style={{ ...row, flexBasis: "100%" }}>
                   <input aria-label={`Why may ${r.email} be sent to again?`} placeholder="Why may it be sent to again? (required)" autoFocus
                     value={removing.reason} onChange={(e) => setRemoving({ ...removing, reason: e.target.value })} style={{ ...field, flex: "1 1 240px" }} />
-                  <DepthButton size="compact" primary disabled={removing.reason.trim().length < 3} onClick={remove}>Remove</DepthButton>
-                  <DepthButton size="compact" onClick={() => setRemoving(null)}>Cancel</DepthButton>
+                  <Btn size="compact" primary disabled={removing.reason.trim().length < 3} onClick={remove}>Remove</Btn>
+                  <Btn size="compact" onClick={() => setRemoving(null)}>Cancel</Btn>
                 </span>
               ) : (
-                <DepthButton size="compact" onClick={() => setRemoving({ email: r.email, reason: "" })}>Remove…</DepthButton>
+                <Btn size="compact" onClick={() => setRemoving({ email: r.email, reason: "" })}>Remove…</Btn>
               )}
             </div>
           ))}

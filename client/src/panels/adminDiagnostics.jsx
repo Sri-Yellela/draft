@@ -3,8 +3,7 @@
 // and WAL size, the crawler's last runs, the growth alarm. "Issue a 24-hour token" hands out this one read, nothing else.
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
-import DepthButton from "../components/DepthButton.jsx";
-import { Panel, row, quiet, sub } from "./adminKit.jsx";
+import { Btn, Panel, row, quiet, sub } from "./adminKit.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const mb = (b) => (b == null ? "—" : `${(b / 1024 / 1024).toFixed(1)} MB`);
@@ -23,8 +22,8 @@ export function DiagnosticsTab() {
       purpose="How the server is doing, without shell access to production. Event-loop p99 over 100 ms for five minutes, or a day's runaway growth, also raises an alert on At a glance.">
       {err && <div style={quiet} role="alert">{err}</div>}
       <div style={{ ...row, marginBottom: 8 }}>
-        <DepthButton onClick={load}>Refresh</DepthButton>
-        <DepthButton onClick={issue}>Issue a 24-hour read token</DepthButton>
+        <Btn onClick={load}>Refresh</Btn>
+        <Btn onClick={issue}>Issue a 24-hour read token</Btn>
         {tok && <span style={quiet}>Token (shown once): <code>{tok.url}</code> · {tok.note}</span>}
       </div>
       {d && <>
@@ -36,8 +35,8 @@ export function DiagnosticsTab() {
         <div style={{ ...sub, marginTop: 8 }}>
           <b>Slowest endpoints, last hour</b>
           {d.slowest.lastHour.length === 0 ? <div style={quiet}>No requests timed yet.</div>
-            : <table style={{ width: "100%", fontSize: ts(12) }}><thead><tr><th align="left">Endpoint</th><th>Calls</th><th>p50</th><th>p95</th><th>p99</th></tr></thead>
-              <tbody>{d.slowest.lastHour.map(e => <tr key={e.endpoint}><td>{e.endpoint}</td><td align="center">{e.calls}</td><td align="center">{e.p50}</td><td align="center">{e.p95}</td><td align="center">{e.p99}</td></tr>)}</tbody></table>}
+            : <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width: "100%", fontSize: ts(12) }}><thead><tr><th align="left">Endpoint</th><th>Calls</th><th>p50</th><th>p95</th><th>p99</th></tr></thead>
+              <tbody>{d.slowest.lastHour.map(e => <tr key={e.endpoint}><td>{e.endpoint}</td><td align="center">{e.calls}</td><td align="center">{e.p50}</td><td align="center">{e.p95}</td><td align="center">{e.p99}</td></tr>)}</tbody></table></div>}
         </div>
         <div style={{ ...sub, marginTop: 8 }}>
           <b>Board and database</b>
@@ -66,12 +65,12 @@ export function BackgroundJobsSection() {
     <Panel title="Background jobs" data-admin-bg-jobs=""
       purpose="The one job system: each kind runs in slices of at most 200 ms, one job per kind and key, retried with backoff and marked failed after 5 tries.">
       {err && <div style={quiet} role="alert">{err}</div>}
-      <div style={{ ...row, marginBottom: 8 }}><DepthButton onClick={load}>Refresh</DepthButton></div>
+      <div style={{ ...row, marginBottom: 8 }}><Btn onClick={load}>Refresh</Btn></div>
       {kinds && (kinds.length === 0 ? <div style={quiet}>No jobs have run yet.</div>
-        : <table style={{ width: "100%", fontSize: ts(12) }}><thead><tr><th align="left">Kind</th><th>Waiting</th><th>Running</th><th>Failed today</th><th>Oldest waiting</th><th>Slowest</th></tr></thead>
+        : <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width: "100%", fontSize: ts(12) }}><thead><tr><th align="left">Kind</th><th>Waiting</th><th>Running</th><th>Failed today</th><th>Oldest waiting</th><th>Slowest</th></tr></thead>
           <tbody>{kinds.map(k => <tr key={k.kind} data-bg-kind={k.kind}><td>{k.kind}</td><td align="center">{k.waiting ?? 0}</td><td align="center">{k.running ?? 0}</td>
             <td align="center">{k.failedDay ? <span role="alert">{k.failedDay}</span> : 0}</td><td align="center">{waited(k.oldestWaiting)}</td>
-            <td align="center">{k.slowestMs == null ? "—" : `${k.slowestMs} ms`}</td></tr>)}</tbody></table>)}
+            <td align="center">{k.slowestMs == null ? "—" : `${k.slowestMs} ms`}</td></tr>)}</tbody></table></div>)}
     </Panel>
   );
 }
@@ -89,7 +88,7 @@ export function PostingArchiveSection() {
       {err && <div style={quiet} role="alert">{err}</div>}
       {s && <div style={row} data-archive-state={s.enabled ? "on" : "off"}>
         <b>{s.enabled ? "On" : "Off"}</b>
-        <DepthButton primary={!s.enabled} onClick={flip}>{s.enabled ? "Turn off" : "Turn on"}</DepthButton>
+        <Btn primary={!s.enabled} onClick={flip}>{s.enabled ? "Turn off" : "Turn on"}</Btn>
         <span style={quiet}>{s.archived} archived so far{s.lastRun ? ` · last run ${s.lastRun.status}, ${s.lastRun.slices || 0} slices, ${s.lastRun.duration_ms || 0} ms, ${when(s.lastRun.finished_at)}` : ""}</span>
       </div>}
     </Panel>
@@ -128,20 +127,20 @@ export function HirebaseSection() {
             <input aria-label="Month cap (jobs)" style={{ width: 90, margin: "0 6px" }} value={caps.month} onChange={e => setCaps({ ...caps, month: e.target.value })}/>
             · today <b>{s.used.day}</b> of
             <input aria-label="Day cap (jobs)" style={{ width: 70, margin: "0 6px" }} value={caps.day} onChange={e => setCaps({ ...caps, day: e.target.value })}/></span>
-          <DepthButton onClick={saveCaps}>Save caps</DepthButton>
+          <Btn onClick={saveCaps}>Save caps</Btn>
           <span style={quiet}>{s.used.fromHeaders ? "from Hirebase's own count" : "draft's count (no usage header yet)"}</span>
         </div>
         <div style={{ ...row, marginTop: 8 }}>
-          <DepthButton disabled={!!busy} onClick={() => run("sizing")}>{busy === "sizing" ? "Sizing…" : "Run sizing (free)"}</DepthButton>
-          <DepthButton disabled={!!busy} onClick={() => run("sample")}>{busy === "sample" ? "Sampling…" : "Run sample (up to 100 jobs)"}</DepthButton>
-          <DepthButton onClick={load}>Refresh</DepthButton>
+          <Btn disabled={!!busy} onClick={() => run("sizing")}>{busy === "sizing" ? "Sizing…" : "Run sizing (free)"}</Btn>
+          <Btn disabled={!!busy} onClick={() => run("sample")}>{busy === "sample" ? "Sampling…" : "Run sample (up to 100 jobs)"}</Btn>
+          <Btn onClick={load}>Refresh</Btn>
         </div>
         {s.lastError && <div style={quiet} role="alert">Last error: {s.lastError}</div>}
         {s.runs.length === 0 ? <div style={{ ...quiet, marginTop: 8 }}>No runs yet.</div>
-          : <table style={{ width: "100%", fontSize: ts(12), marginTop: 8 }}><thead><tr><th align="left">Run</th><th>Status</th><th>Units</th><th>New</th><th>Merged</th><th>Held</th><th>Dropped</th><th>When</th></tr></thead>
+          : <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width: "100%", fontSize: ts(12), marginTop: 8 }}><thead><tr><th align="left">Run</th><th>Status</th><th>Units</th><th>New</th><th>Merged</th><th>Held</th><th>Dropped</th><th>When</th></tr></thead>
             <tbody>{s.runs.map(r => <tr key={r.id} data-hirebase-run={r.kind}><td>{r.kind}{r.dry_run ? " (dry)" : ""}</td><td align="center">{r.status}</td>
               <td align="center">{r.units_used}</td><td align="center">{r.counts?.new ?? "—"}</td><td align="center">{r.counts?.merged ?? "—"}</td>
-              <td align="center">{r.counts?.held ?? "—"}</td><td align="center">{r.counts?.dropped ?? "—"}</td><td>{when(r.started_at)}</td></tr>)}</tbody></table>}
+              <td align="center">{r.counts?.held ?? "—"}</td><td align="center">{r.counts?.dropped ?? "—"}</td><td>{when(r.started_at)}</td></tr>)}</tbody></table></div>}
         {s.runs.find(r => r.kind === "estimate" && r.counts?.estimates) && (
           <div style={{ ...sub, marginTop: 8 }} data-hirebase-sizing="">
             <b>Latest sizing</b>
@@ -176,25 +175,25 @@ export function HirebaseFeedSection() {
       {s && <>
         <div style={row} data-hirebase-feed={s.switches.on ? (s.switches.paused ? "paused" : "on") : "off"}>
           <b>{!s.switches.on ? "Off" : s.switches.paused ? "Paused" : "On"}</b>
-          <DepthButton primary={!s.switches.on} onClick={() => put({ on: !s.switches.on })}>{s.switches.on ? "Turn feed off" : "Turn feed on"}</DepthButton>
-          {s.switches.on && <DepthButton onClick={() => put({ paused: !s.switches.paused })}>{s.switches.paused ? "Resume" : "Pause feed"}</DepthButton>}
+          <Btn primary={!s.switches.on} onClick={() => put({ on: !s.switches.on })}>{s.switches.on ? "Turn feed off" : "Turn feed on"}</Btn>
+          {s.switches.on && <Btn onClick={() => put({ paused: !s.switches.paused })}>{s.switches.paused ? "Resume" : "Pause feed"}</Btn>}
           <span style={quiet}>Plan {s.plan.name} {s.plan.monthJobs.toLocaleString()} · the month cap above must match</span>
         </div>
         <div style={{ ...sub, marginTop: 8 }}>
           <b>Today</b> <span style={quiet}>budget {b.today} · used {b.usedToday} · left {b.leftToday} · this hour {b.hour} · next window {s.window.after.slice(11, 16)}–{s.window.before.slice(11, 16)} UTC</span>
           <div style={quiet}>Month: used {b.usedMonth.toLocaleString()} of {b.usable.toLocaleString()} usable (reserve {b.reserve.toLocaleString()}) · on track would be {b.onTrackBy.toLocaleString()} · {b.daysLeft} days left</div>
         </div>
-        <table style={{ width: "100%", fontSize: ts(12), marginTop: 8 }}>
+        <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width: "100%", fontSize: ts(12), marginTop: 8 }}>
           <thead><tr><th align="left">Family</th><th>Share %</th><th>Today's slice</th><th>Pulled</th><th>New</th><th>Merged</th><th>Held</th><th>Visa</th></tr></thead>
           <tbody>{s.families.map(f => <tr key={f.key} data-feed-family={f.key}><td>{f.label}</td>
             <td align="center"><input aria-label={`${f.label} share`} style={{ width: 44 }} value={edit[f.key] ?? ""} onChange={e => setEdit({ ...edit, [f.key]: e.target.value })}/></td>
             <td align="center">{f.todaySlice}</td><td align="center">{f.pulled}</td><td align="center">{f.new}</td><td align="center">{f.merged}</td><td align="center">{f.held}</td><td align="center">{f.visa}</td></tr>)}</tbody>
-        </table>
+        </table></div>
         <div style={{ ...row, marginTop: 8 }}>
-          <DepthButton disabled={total !== 100} onClick={saveShares}>Save shares</DepthButton>
+          <Btn disabled={total !== 100} onClick={saveShares}>Save shares</Btn>
           <span style={quiet}>{total === 100 ? "Totals 100 %" : `Totals ${total} % — must be 100 %`}</span>
-          <DepthButton onClick={load}>Refresh</DepthButton>
-          <DepthButton onClick={report}>Sample report</DepthButton>
+          <Btn onClick={load}>Refresh</Btn>
+          <Btn onClick={report}>Sample report</Btn>
         </div>
         {rep && <div style={{ ...sub, marginTop: 8 }} data-hirebase-sample-report="">
           {!rep.run ? <div style={quiet}>{rep.note}</div> : <>

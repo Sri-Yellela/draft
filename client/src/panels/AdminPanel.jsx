@@ -414,13 +414,11 @@ function ContactMessagesSection({ theme }) {
             No messages yet.
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: theme.surfaceHigh, borderBottom: `1px solid ${theme.border}` }}>
+              <tr>
                 {["Name", "Email", "Subject", "Preview", "Date", ""].map(h => (
-                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: ts(11),
-                                        fontWeight: 700, color: theme.textMuted,
-                                        textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  <th key={h}>
                     {h}
                   </th>
                 ))}
@@ -477,7 +475,7 @@ function ContactMessagesSection({ theme }) {
                 </>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
     </div>
@@ -521,7 +519,7 @@ function DeleteUserDialog({ preview, onCancel, onDeleted }) {
           their screenshots and picture, and signs out every session. It cannot be undone.
         </div>
         {rows.length > 0 ? (
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(12), marginBottom:14 }}>
+          <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(12), marginBottom:14 }}>
             <tbody>
               {rows.map(([t, n]) => (
                 <tr key={t} style={{ borderBottom:`1px solid ${theme.border}` }}>
@@ -530,7 +528,7 @@ function DeleteUserDialog({ preview, onCancel, onDeleted }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         ) : (
           <div style={{ fontSize:ts(12), color:theme.textMuted, marginBottom:14 }}>No rows outside the account itself.</div>
         )}
@@ -623,14 +621,6 @@ export function AdminPanel() {
       body:JSON.stringify({ status }),
     });
     loadProfileRequests();
-  };
-
-  const thStyle = {
-    padding:"10px 14px", textAlign:"left", fontSize:ts(10),
-    fontWeight:700, color:theme.textDim,
-    textTransform:"uppercase", letterSpacing:"0.08em",
-    borderBottom:`1px solid ${theme.border}`,
-    whiteSpace:"nowrap",
   };
 
   return (

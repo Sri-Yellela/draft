@@ -27,6 +27,6 @@ test("d162G4GatewayCard: a change needs a reason; a task run in the tools servic
   assert.match(CARD, /disabled=\{busy \|\| !form\.reason\.trim\(\) \|\| \(op === "shadow" && !form\.model\.trim\(\)\)\}>Apply now/);
   assert.match(CARD, /if \(!reason \|\| !reason\.trim\(\)\) return;/, "roll back asks why");
   assert.match(CARD, /const routed = task\.runsIn === "draft";/);
-  assert.match(CARD, /\{routed && <DepthButton onClick=\{\(\) => setOpen\(o => !o\)\}/);
+  assert.match(CARD, /\{routed && <Btn onClick=\{\(\) => setOpen\(o => !o\)\}/);
   assert.doesNotMatch(CARD, /callModel|anthropic\.|999px/);
 });

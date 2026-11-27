@@ -6,8 +6,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
-import DepthButton from "../components/DepthButton.jsx";
-import { Panel, Mark, row, quiet, sub, callout, field } from "./adminKit.jsx";
+import { Btn, Panel, Mark, row, quiet, sub, callout, field } from "./adminKit.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const usd = (n) => `$${(Number(n) || 0).toFixed(4)}`;
@@ -75,7 +74,7 @@ function TaskCard({ task, telemetry, providers, onChanged }) {
               {t.overBudget && (t.overBudget.cost || t.overBudget.p50 || t.overBudget.p95) ? <> · <Mark tone={C.WARNING}>over budget</Mark></> : null}
             </div>
           ))}
-          {routed && <DepthButton onClick={() => setOpen(o => !o)} aria-expanded={open}>{open ? "Close" : "Switch or roll back"}</DepthButton>}
+          {routed && <Btn onClick={() => setOpen(o => !o)} aria-expanded={open}>{open ? "Close" : "Switch or roll back"}</Btn>}
         </div>
       </div>
       {open && routed && (
@@ -92,8 +91,8 @@ function TaskCard({ task, telemetry, providers, onChanged }) {
             </>}
             {op === "cohort" && <input aria-label="Percent" style={{ ...field, width: 80 }} type="number" min="1" max="99" value={form.percent} onChange={e => setForm(f => ({ ...f, percent: e.target.value }))} />}
             <input aria-label="Why" style={{ ...field, flex: "1 1 220px" }} placeholder="Why (kept in the history)" value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} />
-            <DepthButton primary onClick={change} disabled={busy || !form.reason.trim() || (op === "shadow" && !form.model.trim())}>Apply now</DepthButton>
-            <DepthButton onClick={rollback} disabled={busy}>Roll back the newest change</DepthButton>
+            <Btn primary onClick={change} disabled={busy || !form.reason.trim() || (op === "shadow" && !form.model.trim())}>Apply now</Btn>
+            <Btn onClick={rollback} disabled={busy}>Roll back the newest change</Btn>
           </div>
           {said && <div role="status" style={{ ...callout(said.ok ? C.SUCCESS : C.DANGER), marginTop: 8 }}>{said.text}</div>}
           <div style={{ marginTop: 10 }}>

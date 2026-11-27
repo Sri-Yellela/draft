@@ -6,9 +6,8 @@
 // default). A theme is data in the registry — nothing here draws its own colours.
 import { useEffect, useState } from "react";
 import { api } from "../lib/api.js";
-import DepthButton from "../components/DepthButton.jsx";
 import { ACTIVE_THEME, adminSurfaceTheme, setAdminSurfaceTheme } from "../themes/index.js";
-import { Panel, row, quiet } from "./adminKit.jsx";
+import { Btn, Panel, row, quiet } from "./adminKit.jsx";
 
 export function AppearanceTab() {
   const mine = adminSurfaceTheme();
@@ -37,7 +36,7 @@ export function AppearanceTab() {
           purpose={`On this browser only, Admin still wears an old look of its own (${ACTIVE_THEME.label}). Admin is now drawn in the plate and follows the app's palette; the per-surface switch is retired. Choosing reloads the page.`}
           code="themes/index.js setAdminSurfaceTheme(null) — clears the stored appearance's ;admin=<pref> flag">
           <div style={row}>
-            <DepthButton primary onClick={() => setAdminSurfaceTheme(null)}>Follow the app (the same look as the rest of draft)</DepthButton>
+            <Btn primary onClick={() => setAdminSurfaceTheme(null)}>Follow the app (the same look as the rest of draft)</Btn>
           </div>
         </Panel>
       ) : null}
@@ -45,8 +44,8 @@ export function AppearanceTab() {
         purpose="When on, Studio Light and Studio Dark appear in every user's Settings → Appearance beside the other themes. Off by default; nobody is switched to it."
         code="GET/POST /api/admin/appearance — app_settings studio_for_users · GET /api/config studioForUsers">
         <div style={row}>
-          <DepthButton primary={users === true} pressed={users === true} disabled={users == null} onClick={() => offer(true)}>Offer it</DepthButton>
-          <DepthButton pressed={users === false} disabled={users == null} onClick={() => offer(false)}>Don't offer it</DepthButton>
+          <Btn primary={users === true} pressed={users === true} disabled={users == null} onClick={() => offer(true)}>Offer it</Btn>
+          <Btn pressed={users === false} disabled={users == null} onClick={() => offer(false)}>Don't offer it</Btn>
           <span style={quiet}>{users == null ? "Loading…" : users ? "Offered to users." : "Not offered to users."}</span>
         </div>
         {said && <p role="status" style={quiet}>{said}</p>}
@@ -55,8 +54,8 @@ export function AppearanceTab() {
         purpose="When on, Dusk Light and Dusk Dark appear in every user's Settings → Appearance. Dusk is warm charcoal with a peach accent, larger corners and the Inter Tight face. Off by default; nobody is switched to it."
         code="GET/POST /api/admin/appearance — app_settings dusk_for_users · GET /api/config duskForUsers">
         <div style={row}>
-          <DepthButton primary={dusk === true} pressed={dusk === true} disabled={dusk == null} onClick={() => offerDusk(true)}>Offer it</DepthButton>
-          <DepthButton pressed={dusk === false} disabled={dusk == null} onClick={() => offerDusk(false)}>Don't offer it</DepthButton>
+          <Btn primary={dusk === true} pressed={dusk === true} disabled={dusk == null} onClick={() => offerDusk(true)}>Offer it</Btn>
+          <Btn pressed={dusk === false} disabled={dusk == null} onClick={() => offerDusk(false)}>Don't offer it</Btn>
           <span style={quiet}>{dusk == null ? "Loading…" : dusk ? "Offered to users." : "Not offered to users."}</span>
         </div>
       </Panel>

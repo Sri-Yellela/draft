@@ -9,8 +9,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
-import DepthButton from "../components/DepthButton.jsx";
-import { Mark, row, quiet, sub, field, panel, h2, what } from "./adminKit.jsx";
+import { Btn, Mark, row, quiet, sub, field, panel, h2, what } from "./adminKit.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const TONE = { drafted: C.WARNING, accepted: C.SUCCESS, rejected: C.DANGER };
@@ -24,9 +23,9 @@ function PieceRow({ p, act, busy }) {
     <div style={{ ...sub, display: "grid", gap: 6 }} data-review-piece={p.id}>
       <div style={row}>
         <span style={{ flex: "1 1 220px", fontSize: ts(13), color: C.INK }}><b>{p.n}. {p.title}</b> <span style={quiet}>{p.id} · {p.part}</span></span>
-        <DepthButton size="compact" disabled={busy || !drafted} onClick={() => act(`/api/admin/learn/circle/needs/${encodeURIComponent(p.id)}`, "POST", { action: "accept" })} data-review-accept={p.id}>Accept</DepthButton>
-        <DepthButton size="compact" onClick={() => { setEditing(e => !e); setText(live.map(n => n.id).join(", ")); }} data-review-edit={p.id}>Edit</DepthButton>
-        <DepthButton size="compact" disabled={busy || !live.length} onClick={() => act(`/api/admin/learn/circle/needs/${encodeURIComponent(p.id)}`, "POST", { action: "reject" })} data-review-reject={p.id}>Reject</DepthButton>
+        <Btn size="compact" disabled={busy || !drafted} onClick={() => act(`/api/admin/learn/circle/needs/${encodeURIComponent(p.id)}`, "POST", { action: "accept" })} data-review-accept={p.id}>Accept</Btn>
+        <Btn size="compact" onClick={() => { setEditing(e => !e); setText(live.map(n => n.id).join(", ")); }} data-review-edit={p.id}>Edit</Btn>
+        <Btn size="compact" disabled={busy || !live.length} onClick={() => act(`/api/admin/learn/circle/needs/${encodeURIComponent(p.id)}`, "POST", { action: "reject" })} data-review-reject={p.id}>Reject</Btn>
       </div>
       <div style={{ ...row, gap: 6 }}>
         {p.needs.length ? p.needs.map(n => <Mark key={n.id} tone={TONE[n.status]}>{n.title} · {n.status}</Mark>) : <span style={quiet}>Builds on nothing.</span>}
@@ -34,8 +33,8 @@ function PieceRow({ p, act, busy }) {
       {editing && (
         <div style={row}>
           <input style={{ ...field, flex: "1 1 260px" }} value={text} onChange={e => setText(e.target.value)} aria-label={`Before this for ${p.title}: piece ids, comma-separated`} />
-          <DepthButton size="compact" primary disabled={busy} data-review-save={p.id}
-            onClick={async () => { if (await act(`/api/admin/learn/circle/needs/${encodeURIComponent(p.id)}`, "PUT", { needs: text.split(/[\s,]+/).filter(Boolean) })) setEditing(false); }}>Save</DepthButton>
+          <Btn size="compact" primary disabled={busy} data-review-save={p.id}
+            onClick={async () => { if (await act(`/api/admin/learn/circle/needs/${encodeURIComponent(p.id)}`, "PUT", { needs: text.split(/[\s,]+/).filter(Boolean) })) setEditing(false); }}>Save</Btn>
         </div>
       )}
     </div>
@@ -71,7 +70,7 @@ export function LearnBeforeThisReview() {
       <div style={{ ...row, marginBottom: 8 }}>
         <label style={{ fontSize: ts(13), color: C.INK }}><input type="checkbox" checked={only} onChange={e => setOnly(e.target.checked)} /> Only pieces with drafted links</label>
         <label style={{ fontSize: ts(13), color: C.INK }}><input type="checkbox" checked={read} onChange={e => setRead(e.target.checked)} data-review-read="" /> I have read them</label>
-        <DepthButton size="compact" primary disabled={busy || !read || !data.counts.drafted} onClick={() => act("/api/admin/learn/circle/accept-all", "POST")} data-review-accept-all="">Accept all</DepthButton>
+        <Btn size="compact" primary disabled={busy || !read || !data.counts.drafted} onClick={() => act("/api/admin/learn/circle/accept-all", "POST")} data-review-accept-all="">Accept all</Btn>
         <label style={{ fontSize: ts(13), color: C.INK }}>Import the D117 data file <input type="file" accept=".json,application/json" onChange={e => importFile(e.target.files?.[0])} /></label>
       </div>
       {say && <p role="status" style={{ ...quiet, color: say.ok ? C.SUCCESS : C.DANGER }}>{say.text}</p>}
@@ -82,7 +81,7 @@ export function LearnBeforeThisReview() {
       <h4 style={{ margin: "14px 0 6px", color: C.INK }}>D115 P5 links held back by the link check ({held.length})</h4>
       <div style={row}>
         {held.map(x => <Mark key={x.id} tone={x.status === "held" ? C.DANGER : C.INK_FAINT}>{x.t} · {x.status}{x.note ? ` · ${x.note}` : ""}</Mark>)}
-        <DepthButton size="compact" disabled={busy} onClick={() => act("/api/admin/learn/circle/links/check", "POST")}>Check links now</DepthButton>
+        <Btn size="compact" disabled={busy} onClick={() => act("/api/admin/learn/circle/links/check", "POST")}>Check links now</Btn>
       </div>
       <h4 style={{ margin: "14px 0 6px", color: C.INK }}>Taught terms no Atlas node answers ({data.unresolved.length})</h4>
       <p style={quiet}>{data.unresolved.map(u => `${u.term} (${u.step})`).join(" · ") || "None."}</p>
@@ -91,15 +90,15 @@ export function LearnBeforeThisReview() {
         {data.routes.map(r => (
           <div key={r.id} style={row} data-review-route={r.id}>
             <span style={{ flex: "1 1 260px", fontSize: ts(13), color: C.INK }}><b>{r.name}</b> <span style={quiet}>{r.targets === "*" ? "the whole circle" : r.targets.join(", ")}</span></span>
-            <DepthButton size="compact" disabled={busy} onClick={() => act(`/api/admin/learn/circle/routes/${encodeURIComponent(r.id)}`, "DELETE")}>Remove</DepthButton>
+            <Btn size="compact" disabled={busy} onClick={() => act(`/api/admin/learn/circle/routes/${encodeURIComponent(r.id)}`, "DELETE")}>Remove</Btn>
           </div>
         ))}
         <div style={row}>
           <input style={{ ...field, width: 120 }} placeholder="id" value={route.id} onChange={e => setRoute({ ...route, id: e.target.value })} aria-label="Route id" />
           <input style={{ ...field, flex: "1 1 180px" }} placeholder="Name, e.g. Data engineer → senior" value={route.name} onChange={e => setRoute({ ...route, name: e.target.value })} aria-label="Route name" />
           <input style={{ ...field, flex: "1 1 180px" }} placeholder="Target pieces, e.g. b2, d3" value={route.targets} onChange={e => setRoute({ ...route, targets: e.target.value })} aria-label="Target pieces" />
-          <DepthButton size="compact" disabled={busy || !route.id || !route.name} onClick={() => act(`/api/admin/learn/circle/routes/${encodeURIComponent(route.id)}`, "PUT",
-            { name: route.name, targets: route.targets.trim() === "*" ? "*" : route.targets.split(/[\s,]+/).filter(Boolean) })}>Add route</DepthButton>
+          <Btn size="compact" disabled={busy || !route.id || !route.name} onClick={() => act(`/api/admin/learn/circle/routes/${encodeURIComponent(route.id)}`, "PUT",
+            { name: route.name, targets: route.targets.trim() === "*" ? "*" : route.targets.split(/[\s,]+/).filter(Boolean) })}>Add route</Btn>
         </div>
       </div>
     </div>
@@ -115,7 +114,7 @@ function PinRow({ r, act, busy }) {
     <div style={row} data-thumb-pin={r.id || r.u}>
       <span style={{ flex: "1 1 260px", fontSize: ts(13), color: C.INK }}>{r.t} <span style={quiet}>{r.thumb?.note || "search link"}</span></span>
       <input style={{ ...field, flex: "1 1 240px" }} placeholder="https://www.youtube.com/watch?v=…" value={watch} onChange={e => setWatch(e.target.value)} aria-label={`A watch link for ${r.t}`} />
-      <DepthButton size="compact" disabled={busy || !watch.trim()} onClick={() => act("/api/admin/thumbs/pin", "POST", { url: r.u, watchUrl: watch.trim() })}>Pin a video</DepthButton>
+      <Btn size="compact" disabled={busy || !watch.trim()} onClick={() => act("/api/admin/thumbs/pin", "POST", { url: r.u, watchUrl: watch.trim() })}>Pin a video</Btn>
     </div>
   );
 }
@@ -140,7 +139,7 @@ export function LearnThumbnails() {
     <div style={panel} data-learn-thumbs="">
       <h3 style={h2}>Learn · thumbnails</h3>
       <p style={what}>Every resource shows a picture of what it is — stored here, never hot-linked. {c.youtubeSearch} YouTube search links (no single video, so no picture until you pin one) · {c.youtubeWatch} watch links · {c.book} books (Open Library covers) · {c.site} sites (their share image) · {c.stored} pictures stored · {c.hidden} hidden.</p>
-      <div style={row}><DepthButton size="compact" disabled={busy} onClick={() => act("/api/admin/thumbs/refresh", "POST")}>Refresh now</DepthButton></div>
+      <div style={row}><Btn size="compact" disabled={busy} onClick={() => act("/api/admin/thumbs/refresh", "POST")}>Refresh now</Btn></div>
       {say && <p role="status" style={{ ...quiet, color: say.ok ? C.SUCCESS : C.DANGER }}>{say.text}</p>}
       <h4 style={{ margin: "14px 0 6px", color: C.INK }}>Pin a video ({search.length} search links)</h4>
       <div style={{ display: "grid", gap: 4, maxHeight: 360, overflow: "auto" }}>
@@ -151,7 +150,7 @@ export function LearnThumbnails() {
         {stored.map(r => (
           <div key={r.u} style={row} data-thumb-stored={r.id || r.u}>
             <span style={{ flex: "1 1 260px", fontSize: ts(13), color: C.INK }}>{r.t} <span style={quiet}>{r.thumb.attribution || r.plan}{r.thumb.hidden ? " · hidden" : ""}</span></span>
-            <DepthButton size="compact" disabled={busy} onClick={() => act("/api/admin/thumbs/hide", "POST", { url: r.u, hidden: !r.thumb.hidden })}>{r.thumb.hidden ? "Show again" : "Hide"}</DepthButton>
+            <Btn size="compact" disabled={busy} onClick={() => act("/api/admin/thumbs/hide", "POST", { url: r.u, hidden: !r.thumb.hidden })}>{r.thumb.hidden ? "Show again" : "Hide"}</Btn>
           </div>
         ))}
       </div>

@@ -86,7 +86,7 @@ test("D105 P10 · d105UseAnywayTool — a tool that is 'not software' on Wikidat
   const panel = read("client/src/panels/adminAtlas.jsx");
   assert.match(panel, /\{c\.useAnyway \? "Use it anyway" : "Use this"\}/);
   assert.match(panel, /<span style=\{quiet\}>From Wikipedia<\/span>/, "the sentence is shown as Wikipedia's");
-  assert.match(panel, /data-atlas-redirect-accept="">Accept all \{ready\.length\}<\/DepthButton>/);
+  assert.match(panel, /data-atlas-redirect-accept="">Accept all \{ready\.length\}<\/Btn>/);
 });
 
 test("D105 P10 · d105FindStoresWikidataId — a pick stores the title AND the Wikidata ID, by the curator; the old summary goes; the matcher never overwrites it", async () => {

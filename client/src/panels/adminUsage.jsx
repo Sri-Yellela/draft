@@ -8,8 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
-import DepthButton from "../components/DepthButton.jsx";
-import { Panel, Mark, row, quiet, sub, callout, field } from "./adminKit.jsx";
+import { Btn, Panel, Mark, row, quiet, sub, callout, field } from "./adminKit.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const usd = (n) => `$${(Number(n) || 0).toFixed(n >= 1 ? 2 : 4)}`;
@@ -58,17 +57,17 @@ export function ModelUsageTab() {
       )}
       <div style={{ ...row, marginBottom: 12 }}>
         {RANGES.map(([h, label]) => (
-          <DepthButton key={h} size="compact" primary={h === hours} onClick={() => setHours(h)} data-usage-range={h}>{label}</DepthButton>
+          <Btn key={h} size="compact" primary={h === hours} onClick={() => setHours(h)} data-usage-range={h}>{label}</Btn>
         ))}
       </div>
       {err && <div style={{ ...callout(C.DANGER), marginBottom: 10 }}>{err}</div>}
       {u.rows.length === 0 ? <p style={quiet}>No model call recorded in the last {hours} hours.</p> : (
         <div style={{ overflowX: "auto", marginBottom: 14 }}>
-          <table data-usage-table="" style={{ borderCollapse: "collapse", fontSize: ts(12), color: C.INK, minWidth: 720, width: "100%" }}>
+          <div className="pl-gazetteer pl-gazetteer--dense"><table data-usage-table="" style={{ borderCollapse: "collapse", fontSize: ts(12), minWidth: 720, width: "100%" }}>
             <thead>
-              <tr style={{ textAlign: "left", color: C.INK_MUTED }}>
+              <tr style={{ textAlign: "left" }}>
                 {["Hour (UTC)", "Event", "Model", "Service", "Key", "Started by", "Calls", "Tokens", "Cost"].map((h) => (
-                  <th key={h} style={{ padding: "6px 8px", borderBottom: `1px solid ${C.BORDER}`, fontWeight: 700 }}>{h}</th>
+                  <th key={h}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -87,7 +86,7 @@ export function ModelUsageTab() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
       <div style={sub}>
@@ -97,7 +96,7 @@ export function ModelUsageTab() {
             value={alarm.usd} onChange={(e) => setAlarm({ ...alarm, usd: e.target.value })} style={{ ...field, width: 200 }} />
           <input aria-label="Why" placeholder="Why (kept in the audit log)" value={alarm.reason}
             onChange={(e) => setAlarm({ ...alarm, reason: e.target.value })} style={{ ...field, flex: "1 1 220px" }} />
-          <DepthButton primary disabled={alarm.reason.trim().length < 3} onClick={saveAlarm} data-cost-alarm-save="">Set the alarm</DepthButton>
+          <Btn primary disabled={alarm.reason.trim().length < 3} onClick={saveAlarm} data-cost-alarm-save="">Set the alarm</Btn>
         </div>
         {said && <div role="status" style={{ ...callout(said.ok ? C.SUCCESS : C.DANGER), marginTop: 8 }}>{said.text}</div>}
       </div>

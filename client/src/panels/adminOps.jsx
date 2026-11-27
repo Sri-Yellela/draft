@@ -12,7 +12,7 @@ import { api, authContextQuery } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
 import IngestFunnel from "../components/IngestFunnel.jsx";
-import { Panel, Step, Help, Dialog, useConfirm, h2, what, row, quiet, field, callout } from "./adminKit.jsx";
+import { Btn, Panel, Step, Help, Dialog, useConfirm, h2, what, row, quiet, field, callout } from "./adminKit.jsx";
 // The second product is named by the one constant that holds its name (shared/brand.js).
 import { LEGACY_BRAND } from "../../../shared/brand.js";
 import { isAlarm } from "../../../shared/deployEvents.js";
@@ -61,18 +61,7 @@ export function KV({ theme, rows }) {
   );
 }
 
-export function Btn({ theme, onClick, disabled, danger, primary, children, title }) {
-  const bg = disabled ? "transparent" : danger ? C.DANGER : primary ? C.ACCENT : theme.surfaceHigh;
-  const fg = disabled ? theme.textMuted : danger ? C.SURFACE_SOLID : primary ? C.ON_ACCENT : theme.text;
-  return (
-    <button type="button" onClick={onClick} disabled={disabled} title={title}
-      style={{ padding: "6px 14px", borderRadius: 8, fontSize: ts(12), fontWeight: 700,
-               border: `1px solid ${danger && !disabled ? C.DANGER : theme.border}`,
-               background: bg, color: fg, cursor: disabled ? "not-allowed" : "pointer" }}>
-      {children}
-    </button>
-  );
-}
+// D197 #21 (47n): the classic Btn that lived here is the kit's plate button now (adminKit.jsx Btn — A93, one button).
 
 export function Err({ msg }) {
   if (!msg) return null;
@@ -82,19 +71,18 @@ export function Err({ msg }) {
 export function Table({ theme, cols, rows, empty = "Nothing recorded." }) {
   if (!rows?.length) return <div style={{ fontSize: ts(12), color: theme.textMuted }}>{empty}</div>;
   return (
-    <div style={{ overflowX: "auto", border: `1px solid ${theme.border}`, borderRadius: 8 }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ts(11) }}>
+    <div>
+      <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width: "100%", borderCollapse: "collapse", fontSize: ts(11) }}>
         <thead>
-          <tr style={{ background: theme.surfaceHigh }}>
+          <tr>
             {cols.map(c => (
-              <th key={c.key} style={{ padding: "6px 10px", textAlign: c.right ? "right" : "left",
-                                       color: theme.textMuted, whiteSpace: "nowrap", fontWeight: 700 }}>{c.label}</th>
+              <th key={c.key} style={{ textAlign: c.right ? "right" : "left", whiteSpace: "nowrap" }}>{c.label}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i} style={{ borderTop: `1px solid ${theme.border}` }}>
+            <tr key={i}>
               {cols.map(c => (
                 <td key={c.key} style={{ padding: "6px 10px", textAlign: c.right ? "right" : "left",
                                          color: (c.color && c.color(r)) || theme.text, whiteSpace: "nowrap" }}>
@@ -104,7 +92,7 @@ export function Table({ theme, cols, rows, empty = "Nothing recorded." }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

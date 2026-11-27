@@ -11,10 +11,9 @@
 //               fixes they point to (one press queues each for the agent), and the baseline the gate holds the scorer to.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../lib/api.js";
-import DepthButton from "../components/DepthButton.jsx";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
-import { Panel, row, quiet, sub, field } from "./adminKit.jsx";
+import { Btn, Panel, row, quiet, sub, field } from "./adminKit.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const BASE = "/api/admin/ats-calibration";
@@ -57,7 +56,7 @@ function AddTerms({ label, list, onChange }) {
       <div style={row}>
         <input value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} style={{ ...field, flex: 1, minWidth: 160 }}
           placeholder="type a term draft missed, Enter to add" aria-label={label}/>
-        <DepthButton onClick={add}>Add</DepthButton>
+        <Btn onClick={add}>Add</Btn>
       </div>
       <div style={{ ...row, gap: 6, marginTop: 6 }}>
         {list.map(t => (
@@ -118,14 +117,14 @@ function Posting({ id, onOpen, onBack }) {
     <div data-cal-posting={v.id}>
       <div style={{ ...row, justifyContent: "space-between", marginBottom: 10 }}>
         <div style={row}>
-          <DepthButton onClick={onBack}>← The set</DepthButton>
+          <Btn onClick={onBack}>← The set</Btn>
           <span style={quiet}>Posting {v.position} of {v.of} · set v{v.version} · {saved}</span>
         </div>
         <div style={row}>
-          {v.prev && <DepthButton onClick={() => onOpen(v.prev)}>Previous</DepthButton>}
-          <DepthButton primary data-cal-done="" onClick={async () => { await save({ ...r, done: true }, true); if (v.next) onOpen(v.next); else onBack(); }}>
+          {v.prev && <Btn onClick={() => onOpen(v.prev)}>Previous</Btn>}
+          <Btn primary data-cal-done="" onClick={async () => { await save({ ...r, done: true }, true); if (v.next) onOpen(v.next); else onBack(); }}>
             {r.done ? "Done ✓ — next" : "Done — next"}
-          </DepthButton>
+          </Btn>
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 14 }}>
@@ -197,10 +196,10 @@ function Assist({ items, onImported }) {
     .catch(e => setMsg(e.message));
   return (
     <Panel title="Optional: a second opinion" purpose="Copy the next 10 unreviewed postings for a Claude chat you run yourself; paste its answer back. It arrives as suggestions — nothing counts until you accept it.">
-      <div style={row}><DepthButton onClick={copy} data-cal-assist-copy="">Copy this batch for a Claude chat</DepthButton></div>
+      <div style={row}><Btn onClick={copy} data-cal-assist-copy="">Copy this batch for a Claude chat</Btn></div>
       <textarea value={answer} onChange={(e) => setAnswer(e.target.value)} rows={4} placeholder='Paste the chat&apos;s JSON answer ({"items": [...]})'
         style={{ ...field, width: "100%", boxSizing: "border-box", marginTop: 8 }} aria-label="The chat's answer"/>
-      <div style={{ ...row, marginTop: 6 }}><DepthButton onClick={load} disabled={!answer.trim()}>Import as suggestions</DepthButton><span style={quiet}>{msg}</span></div>
+      <div style={{ ...row, marginTop: 6 }}><Btn onClick={load} disabled={!answer.trim()}>Import as suggestions</Btn><span style={quiet}>{msg}</span></div>
     </Panel>
   );
 }
@@ -235,7 +234,7 @@ function Results() {
       {d.fixes.length ? d.fixes.map(fx => (
         <div key={`${fx.kind}:${fx.term}`} style={{ ...row, margin: "3px 0" }} data-cal-fix={fx.kind}>
           <span style={markStyle(C.INFO)}>{fx.kind}</span><b style={{ fontSize: ts(13) }}>{fx.term}</b><span style={{ fontSize: ts(12), color: C.INK_MUTED }}>{fx.why}</span>
-          <DepthButton onClick={() => send("/fix", "POST", fx).then(load)}>Queue for the agent</DepthButton>
+          <Btn onClick={() => send("/fix", "POST", fx).then(load)}>Queue for the agent</Btn>
         </div>
       )) : <div style={quiet}>None yet.</div>}
       <h3 style={{ fontSize: ts(14), margin: "14px 0 6px" }}>The gate</h3>
@@ -243,7 +242,7 @@ function Results() {
         {d.baseline ? (d.gate?.ok ? "Nothing has fallen below the baseline." : `Below the baseline: ${d.gate.drops.map(x => `${x.metric} ${f3(x.was)} → ${f3(x.is)}`).join("; ")}`)
           : "No baseline yet. Record one once enough postings are reviewed; scripts/d125GoldGate.mjs then fails any change that lowers these numbers."}
       </div>
-      <DepthButton onClick={() => send("/baseline", "POST").then(load)} data-cal-baseline="">Record today's numbers as the baseline</DepthButton>
+      <Btn onClick={() => send("/baseline", "POST").then(load)} data-cal-baseline="">Record today's numbers as the baseline</Btn>
     </Panel>
   );
 }
@@ -276,7 +275,7 @@ export function CalibrateTab() {
           ? `Set v${d.version}: ${d.done} of ${d.items.length} postings reviewed. Each posting is frozen as it was when the set was made, so every later change to the scorer is measured on the same pairs. About 2 minutes a posting.`
           : "No set yet. Make one: 20 computing and 20 other-field postings, entry to senior, each frozen with draft's reading."}>
           <div style={row}>
-            <DepthButton primary onClick={build} disabled={busy} data-cal-build="">{busy ? "Making the set…" : d.version ? `Make a new set (v${d.version + 1})` : "Make the set"}</DepthButton>
+            <Btn primary onClick={build} disabled={busy} data-cal-build="">{busy ? "Making the set…" : d.version ? `Make a new set (v${d.version + 1})` : "Make the set"}</Btn>
             {d.version && <span style={quiet}>A new version starts a fresh review; earlier versions are kept.</span>}
           </div>
           <div style={{ marginTop: 12 }}>
@@ -296,13 +295,13 @@ export function CalibrateTab() {
           {d.resumes.map(r => <div key={r.id} style={{ fontSize: ts(13) }}>{r.label} <span style={quiet}>· {r.source.split(":")[0]}</span></div>)}
           <div style={{ ...row, marginTop: 10 }}>
             <input value={who} onChange={(e) => setWho(e.target.value)} placeholder="Your username or email" style={{ ...field, minWidth: 220 }} aria-label="Your account"/>
-            <DepthButton disabled={!who.trim()} data-cal-copy-own="" onClick={() => send("/resume", "POST", { who }).then(() => { setWho(""); setNote("Copied."); load(); }).catch(e => setNote(e.message))}>Copy my résumé</DepthButton>
+            <Btn disabled={!who.trim()} data-cal-copy-own="" onClick={() => send("/resume", "POST", { who }).then(() => { setWho(""); setNote("Copied."); load(); }).catch(e => setNote(e.message))}>Copy my résumé</Btn>
             <span style={quiet}>{note}</span>
           </div>
           <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
             <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label, e.g. 'Mechanical, senior'" style={field} aria-label="Résumé label"/>
             <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} placeholder="Paste the résumé's text" style={field} aria-label="Résumé text"/>
-            <div><DepthButton disabled={text.trim().length < 200} onClick={() => send("/resume", "POST", { label, text }).then(() => { setLabel(""); setText(""); load(); }).catch(e => setErr(e.message))}>Add this résumé</DepthButton></div>
+            <div><Btn disabled={text.trim().length < 200} onClick={() => send("/resume", "POST", { label, text }).then(() => { setLabel(""); setText(""); load(); }).catch(e => setErr(e.message))}>Add this résumé</Btn></div>
           </div>
         </Panel>
         {d.version && <Assist items={d.items} onImported={load}/>}

@@ -8,8 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
-import DepthButton from "../components/DepthButton.jsx";
-import { Panel, Mark, row, quiet, sub, callout, field } from "./adminKit.jsx";
+import { Btn, Panel, Mark, row, quiet, sub, callout, field } from "./adminKit.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const when = (s) => (s ? new Date(s * 1000).toLocaleString() : "never");
@@ -80,7 +79,7 @@ export function AdminsTab() {
               <input type="checkbox" checked={owner} onChange={(e) => setOwner(e.target.checked)} /> owner (can manage admins)
             </label>
           )}
-          <DepthButton primary disabled={busy || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())} onClick={add} data-admin-add="">Add and send a sign-in link</DepthButton>
+          <Btn primary disabled={busy || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())} onClick={add} data-admin-add="">Add and send a sign-in link</Btn>
         </div>
         <p style={{ ...quiet, margin: "8px 0 0" }}>The link works once, for 30 minutes, and sets that admin's own password. No password is ever shown here.</p>
         {said && <div role="status" style={{ ...callout(said.ok ? C.SUCCESS : C.DANGER), marginTop: 8 }}>{said.text}</div>}
@@ -103,25 +102,25 @@ export function AdminsTab() {
                     value={setting.a} onChange={(e) => setSetting({ ...setting, a: e.target.value })} style={{ ...field, flex: "1 1 200px" }} />
                   <input type="password" autoComplete="new-password" aria-label="The same again" placeholder="The same again"
                     value={setting.b} onChange={(e) => setSetting({ ...setting, b: e.target.value })} style={{ ...field, flex: "1 1 160px" }} />
-                  <DepthButton size="compact" primary disabled={setting.a.length < 12 || setting.a !== setting.b}
-                    onClick={() => act(a.publicId, "password", { password: setting.a })}>Set the password</DepthButton>
-                  <DepthButton size="compact" onClick={() => setSetting(null)}>Cancel</DepthButton>
+                  <Btn size="compact" primary disabled={setting.a.length < 12 || setting.a !== setting.b}
+                    onClick={() => act(a.publicId, "password", { password: setting.a })}>Set the password</Btn>
+                  <Btn size="compact" onClick={() => setSetting(null)}>Cancel</Btn>
                 </span>
               ) : disabling?.publicId === a.publicId ? (
                 <span style={{ ...row, flexBasis: "100%" }}>
                   <input aria-label={`Why ${disabling.action} ${a.email}?`} placeholder="Why? (required — it is in the audit log)" autoFocus value={disabling.reason}
                     onChange={(e) => setDisabling({ ...disabling, reason: e.target.value })} style={{ ...field, flex: "1 1 240px" }} />
-                  <DepthButton size="compact" primary disabled={disabling.reason.trim().length < 3}
-                    onClick={() => act(a.publicId, disabling.action, { reason: disabling.reason })}>{disabling.action === "disable" ? "Disable — ends every session" : "Enable"}</DepthButton>
-                  <DepthButton size="compact" onClick={() => setDisabling(null)}>Cancel</DepthButton>
+                  <Btn size="compact" primary disabled={disabling.reason.trim().length < 3}
+                    onClick={() => act(a.publicId, disabling.action, { reason: disabling.reason })}>{disabling.action === "disable" ? "Disable — ends every session" : "Enable"}</Btn>
+                  <Btn size="compact" onClick={() => setDisabling(null)}>Cancel</Btn>
                 </span>
               ) : a.disabledAt ? (
-                <DepthButton size="compact" onClick={() => setDisabling({ publicId: a.publicId, action: "enable", reason: "" })}>Enable…</DepthButton>
+                <Btn size="compact" onClick={() => setDisabling({ publicId: a.publicId, action: "enable", reason: "" })}>Enable…</Btn>
               ) : (
                 <>
-                  {d.settingUp && !a.passwordSet && <DepthButton size="compact" primary onClick={() => setSetting({ publicId: a.publicId, a: "", b: "" })}>Set the password…</DepthButton>}
-                  <DepthButton size="compact" onClick={() => act(a.publicId, "link")}>Send a sign-in link</DepthButton>
-                  {d.you !== a.publicId && <DepthButton size="compact" onClick={() => setDisabling({ publicId: a.publicId, action: "disable", reason: "" })}>Disable…</DepthButton>}
+                  {d.settingUp && !a.passwordSet && <Btn size="compact" primary onClick={() => setSetting({ publicId: a.publicId, a: "", b: "" })}>Set the password…</Btn>}
+                  <Btn size="compact" onClick={() => act(a.publicId, "link")}>Send a sign-in link</Btn>
+                  {d.you !== a.publicId && <Btn size="compact" onClick={() => setDisabling({ publicId: a.publicId, action: "disable", reason: "" })}>Disable…</Btn>}
                 </>
               )}
             </div>

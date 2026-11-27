@@ -3,8 +3,7 @@
 // dismissed, actioned (with a note: what was done) or re-opened. The reporter is never shown — only a salted hash is kept.
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
-import DepthButton from "../components/DepthButton.jsx";
-import { Panel, row, quiet, sub, field } from "./adminKit.jsx";
+import { Btn, Panel, row, quiet, sub, field } from "./adminKit.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const STATUS = [["open", "Open"], ["actioned", "Actioned"], ["dismissed", "Dismissed"]];
@@ -50,9 +49,9 @@ export function ProfileReportsTab() {
           <div style={{ ...row, marginTop: 8 }}>
             <input style={{ ...field, flex: "1 1 240px" }} placeholder="Note — what you did (optional)" aria-label={`Note for report ${r.id}`}
               value={notes[r.id] || ""} onChange={e => setNotes(n => ({ ...n, [r.id]: e.target.value }))} />
-            {r.status !== "actioned" && <DepthButton onClick={() => resolve(r.id, "actioned")}>Actioned</DepthButton>}
-            {r.status !== "dismissed" && <DepthButton onClick={() => resolve(r.id, "dismissed")}>Dismiss</DepthButton>}
-            {r.status !== "open" && <DepthButton onClick={() => resolve(r.id, "open")}>Re-open</DepthButton>}
+            {r.status !== "actioned" && <Btn onClick={() => resolve(r.id, "actioned")}>Actioned</Btn>}
+            {r.status !== "dismissed" && <Btn onClick={() => resolve(r.id, "dismissed")}>Dismiss</Btn>}
+            {r.status !== "open" && <Btn onClick={() => resolve(r.id, "open")}>Re-open</Btn>}
           </div>
         </div>
       ))}

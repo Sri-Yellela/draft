@@ -77,6 +77,15 @@
 .pl-btn--icon { width: var(--pl-target); height: var(--pl-target); padding: 0; box-shadow: var(--pl-s3); }
 .pl-btn[disabled], .pl-btn[aria-disabled="true"] { cursor: not-allowed; border-style: dashed; color: var(--pl-muted); box-shadow: none; }
 .pl-btn--primary:hover { background: var(--pl-clay-hover); color: var(--pl-on-clay); }
+/* D197 #21 (47n) · the dense button — Admin's compact actions (a row's Undo, Open, Trace); a clay write may be dense too */
+.pl-btn--dense, .pl-btn--primary.pl-btn--dense { min-height: 32px; padding: 0 10px; font-size: var(--pl-t-small); box-shadow: none; }
+.pl-btn--primary.pl-btn--dense { box-shadow: var(--pl-s3); }
+.pl-btn[aria-pressed="true"]:not(.pl-btn--primary) { background: var(--pl-region-tint); }
+/* Admin's own fields (admin.md unclear home (c): the plate textarea) — the kit's field style for any field drawn without it */
+[data-plate-admin] textarea, [data-plate-admin] select, [data-plate-admin] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+  font-family: var(--pl-sans); color: var(--pl-ink); background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-input); }
+[data-plate-admin] textarea { font-family: var(--pl-mono); font-size: var(--pl-t-mono-num); line-height: 1.45; padding: 8px 10px; box-sizing: border-box; }
+[data-plate-admin] input[type="checkbox"], [data-plate-admin] input[type="radio"] { accent-color: var(--pl-clay); }
 
 /* ── Ruler: under every nav, 12 px; leg headers 6 px ── */
 .pl-ruler { height: 12px; border-top: var(--pl-border); background-image: var(--pl-ruler); background-size: 100% 12px, 100% 5px; background-repeat: no-repeat; }
@@ -328,6 +337,13 @@
 .pl-marketindex tbody tr[data-row-opens]:hover { background: var(--pl-paper-warm); }
 .pl-gazetteer table[data-fixed] { table-layout: fixed; }
 .pl-gazetteer td.pl-gz__last { position: relative; }
+/* D197 #21 (47n) · the DENSE Gazetteer — Admin's tables (docs/revamp/admin.md M2: "the gazetteer's row height trimmed to 36 px,
+   a dense variant — the one library addition this page wants"). The head stays ink; the rows are ruled; no minimum width (an
+   admin table scrolls inside its own box at 390 instead). */
+.pl-gazetteer--dense { box-shadow: var(--pl-s3); margin: 8px 0; }
+.pl-gazetteer--dense table { min-width: 0; }
+.pl-gazetteer--dense th { padding: 7px 10px; white-space: nowrap; }
+.pl-gazetteer--dense td { padding: 7px 10px; }
 /* the board's own columns (fixed): at 1280 its 1132 px table; below 860 px its 390 artboard's 760 px table */
 .pl-gzc--n { width: 4.15%; } .pl-gzc--title { width: 35.58%; } .pl-gzc--co { width: 17.6%; } .pl-gzc--match { width: 7.55%; }
 .pl-gzc--stack { width: 14.34%; } .pl-gzc--h1b { width: 7.55%; } .pl-gzc--status { width: 13.24%; }

@@ -140,7 +140,7 @@ test("D105 BUG 10-31 · d105AskAgainClearsChecked — 'Ask Wikipedia again' clea
   const route = read("routes/atlas.js");
   assert.match(route, /router\.post\("\/wiki\/ask-again", \(_req, res\) => res\.json\(\{ ok: true, \.\.\.askWikipediaAgain\(db\) \}\)\)/);
   assert.ok(at(route, `router.post("/wiki/ask-again"`) < at(route, `router.post("/:slug/status"`));
-  assert.match(read("client/src/panels/adminAtlas.jsx"), /data-atlas-ask-again="">Ask Wikipedia again<\/DepthButton>/);
+  assert.match(read("client/src/panels/adminAtlas.jsx"), /data-atlas-ask-again="">Ask Wikipedia again<\/Btn>/);
 });
 
 test("D105 BUG 10-31 · d105RegistrySeedHasTerm — every node the registry seed creates has a term the matcher can ask", () => {
