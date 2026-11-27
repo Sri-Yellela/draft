@@ -1250,3 +1250,16 @@ button.pl-logdays__day[aria-pressed="true"] { outline: var(--pl-line) solid var(
 .pl-suggest__item { padding: 7px 10px; border-radius: var(--pl-r-tag); font-size: var(--pl-t-small); color: var(--pl-ink-soft); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pl-suggest__item[data-active] { background: var(--pl-paper-hover); color: var(--pl-ink); }
 .pl-suggest__sub { color: var(--pl-muted); font-size: var(--pl-t-13); }
+/* ⭐ D197 Wave 1 #8 (47m, lane gaz) · the ROUTE MAP (plate/RouteMap.jsx — the one route drawing, D201 (c)) and its key */
+.pl-routemap { display: block; min-width: 760px; }
+.pl-routemap a { cursor: pointer; }
+.pl-routemap a:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 3px; }
+.pl-routemap[data-route-map="small"] { min-width: 520px; }
+.pl-routekey { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 10px 16px 14px; align-items: center; font-size: var(--pl-t-13); }
+.pl-routekey__i { display: inline-flex; gap: 6px; align-items: center; }
+.pl-routekey__dot { box-sizing: border-box; width: 14px; height: 14px; border-radius: 50%; border: var(--pl-border); background: var(--pl-card); }
+.pl-routekey__dot[data-s="walked"], .pl-routekey__dot[data-s="elsewhere"] { background: var(--pl-lit); }
+.pl-routekey__dot[data-s="elsewhere"] { outline: var(--pl-line) dashed var(--pl-lit); outline-offset: 2px; }
+.pl-routekey__dot[data-s="here"] { background: var(--pl-clay); }
+.pl-routekey__dot[data-s="round"] { border-radius: var(--pl-r-sq-lg); }
+.pl-routekey__note { font-size: var(--pl-t-tiny); color: var(--pl-muted); }

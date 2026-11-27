@@ -60,7 +60,7 @@ export const MODULES = Object.freeze({
   // ⭐ D196 (owner 11-24) · THE PLATE SYSTEM — one component library (plate/) built from the design report and ported from the
   // canvas export; its pages are composed only from these. The gallery (/dev/plate) shows every component in every state.
   // plate/plate.css is the library's look, worn by the library's files and the gallery only; P1–P5's pages join as members.
-  plate: { why: "D196's plate component library and its gallery (F3 / F4)", css: ["plate/plate.css", "plate/sheets.css" /* 47h: the ledger + the survey sheet */, "plate/atlasPlate.css" /* 47h: Atlas */, "plate/person.css" /* 47j (w2-person): the person's pieces */, "plate/practicePlate.css" /* 47m (lane practice): the Proving ground, the Logbook, the Today card, Ask draft's route */],
+  plate: { why: "D196's plate component library and its gallery (F3 / F4)", css: ["plate/plate.css", "plate/sheets.css" /* 47h: the ledger + the survey sheet */, "plate/atlasPlate.css" /* 47h: Atlas */, "plate/person.css" /* 47j (w2-person): the person's pieces */, "plate/practicePlate.css" /* 47m (lane practice): the Proving ground, the Logbook, the Today card, Ask draft's route */, "plate/gazetteer.css" /* 47m (gaz): the Gazetteer + routes */],
     members: ["App.jsx", "main.jsx" /* 47k: the root error boundary, the last net under every page */, "plate/PlateRoot.jsx", "plate/PlateState.jsx", "plate/AreaErrorBoundary.jsx", "plate/areaFault.js" /* 47k: each area's error boundary in the shell + its pure chunk-error / reload guard */, "plate/Shell.jsx", "plate/Marks.jsx", "plate/Plates.jsx", "plate/Tickets.jsx",
       "plate/Cards.jsx", "plate/Lists.jsx", "plate/Drawings.jsx", "plate/icons.jsx", "plate/motion.js", "plate/registry.js", "plate/fonts.js",
       "plate/drawings/index.js", "plate/fixtures.jsx", "pages/dev/PlateGallery.jsx",
@@ -96,7 +96,10 @@ export const MODULES = Object.freeze({
       "components/AdminLayout.jsx", "panels/AdminPanel.jsx", "panels/adminKit.jsx", "panels/adminOps.jsx",
       // ⭐ D197 Wave 2 #13 / #11 (47m, lane practice, M5): the Proving ground (Interview) and Your map's Logbook + Today card
       "pages/interview/ProvingGround.jsx", "pages/atlas/Logbook.jsx", "pages/atlas/TodayCard.jsx",
-      "plate/practiceFixtures.jsx" /* 47m: the F5 build pages for the practice boards */, "plate/AskRouteMap.jsx" /* 47m D197 #12: Ask draft's answer as a route (the board AskRoute); folds into lane gaz's RouteMap after the merge */] },
+      "plate/practiceFixtures.jsx" /* 47m: the F5 build pages for the practice boards */, "plate/AskRouteMap.jsx" /* 47m D197 #12: Ask draft's answer as a route (the board AskRoute); folds into lane gaz's RouteMap after the merge */,
+      // ⭐ D197 Wave 1 #8 (47m, lane gaz): the Gazetteer (D201) — the entry, the index, the routes — and THE route drawing
+      // (RouteMap: shared, the practice lane's AskRoute / Logbook reuse it)
+      "plate/RouteMap.jsx", "plate/Gazetteer.jsx", "pages/atlas/AtlasGazetteer.jsx", "pages/atlas/gazetteerModel.js"] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminGateway.jsx", "panels/adminFlags.jsx","panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "panels/adminReports.jsx", "panels/adminCompanyRecords.jsx", "panels/adminNetwork.jsx", "panels/adminRuns.jsx", "panels/adminPhase1.jsx", "panels/adminDiagnostics.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.
