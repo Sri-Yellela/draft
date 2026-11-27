@@ -41,7 +41,14 @@ export const BOARDS = [
   { source: "v2", title: "Region emblem", drawings: ["EmblemFound", "EmblemBits", "EmblemTree", "EmblemNet", "EmblemLock", "EmblemCode", "EmblemWorld", "EmblemMind"] },
   { source: "v2", title: "Atlas home: Volume I, Computing", drawings: ["AtlasVolumePlate"] },
   { source: "v2", title: "Atlas place: Webhooks, Region IV grid D3", drawings: ["PlaceElevationProfile", "PlaceSignpost", "PlaceIsometricTile", "PlaceHazardSeal", "PlaceHazardTimeout", "PlaceHazardDuplicate"] },
+  // ⭐ 47m (lane practice, D197 Wave 2 #11 / #13): the approved row-4 boards read straight from the canvas's own files
+  // (`dc` = docs/sketches/final/project/<dc>.dc.html, A244). `pick` = which of the board's drawings (in order) this entry
+  // ports — a board shared between pages names only its own (DrawingsAtlas 5–8 are Profile's / Setting out's).
+  { dc: "ProvingGround", title: "Proving ground · Region VI", drawings: ["ProvingGroundHill", "ProvingGroundChair"] },
+  { dc: "DrawingsAtlas", title: "Drawings I · Atlas, the passport, setting out", pick: [0, 1, 2, 3],
+    drawings: ["LogbookDaysLeg", "LogbookSummitCairn", "TodaySquareInset", "LogbookTierStamp"] },
 ];
+export const DC_DIR = path.join(ROOT, "docs", "sketches", "final", "project");
 
 // ⭐ A drawing's TEMPLATE BINDINGS ({{ name }} on the canvas — the live detail a page drives) become props, each with the
 // value it takes at rest. A binding with no default here stops the port. Colour values are plate tokens.
@@ -67,6 +74,54 @@ export const LIVE = {
       ['<g transform="translate(352 102)">', '<g transform={`translate(${(best || you)[0]} ${(best || you)[1]})`} visibility={best ? undefined : "hidden"}>'],
       ['<g transform="translate(192 166)">', '<g transform={`translate(${you[0]} ${you[1]})`}>'],
     ],
+  },
+  // ⭐ 47m (D197 #13) · the proving ground's hill: `names` = the five rounds (the benches' words); `lit` = how many benches
+  // are proven (green), from the foot; `you` = the bench you're preparing for (the beacon, and the green trail up to it), or
+  // null (no beacon); `flag` = [line 1, line 2] of the next interview's flag, or null (no flag). Defaults = the board.
+  ProvingGroundHill: {
+    props: 'names = ["Recruiter screen", "Hiring manager", "Coding", "System design", "AI-enabled coding"], lit = 2, you = 2, flag = ["KESTREL · CODING", "FRI · 2:00 PM"]',
+    pre: 'const BENCH = [[70, 382], [175, 322], [282, 262], [390, 208], [498, 160]]; const SEG = ["C 120 382, 130 322, 175 322", "C 225 322, 240 262, 282 262", "C 330 262, 345 208, 390 208", "C 440 208, 455 160, 498 160"]; const upTo = you != null ? you : lit - 1; const greenD = upTo > 0 ? `M70 382 ${SEG.slice(0, upTo).join(" ")}` : null; const at = you != null ? BENCH[Math.max(0, Math.min(4, you))] : BENCH[2]; const benchFill = (k) => (lit > k ? "var(--pl-lit)" : "var(--pl-card)"); const flagVis = flag ? undefined : "hidden";',
+    subs: [
+      ['<path d="M70 382 C 120 382, 130 322, 175 322 C 225 322, 240 262, 282 262" fill="none" strokeWidth="4"', '<path d={greenD || undefined} visibility={greenD ? undefined : "hidden"} fill="none" strokeWidth="4"'],
+      ['<rect x="44" y="375" width="52" height="9" rx="2" strokeWidth="1.6" style={{"fill":"var(--pl-lit)"', '<rect x="44" y="375" width="52" height="9" rx="2" strokeWidth="1.6" style={{"fill":benchFill(0)'],
+      ['<rect x="149" y="315" width="52" height="9" rx="2" strokeWidth="1.6" style={{"fill":"var(--pl-lit)"', '<rect x="149" y="315" width="52" height="9" rx="2" strokeWidth="1.6" style={{"fill":benchFill(1)'],
+      ['<rect x="256" y="255" width="52" height="9" rx="2" strokeWidth="1.6" style={{"fill":"var(--pl-card)"', '<rect x="256" y="255" width="52" height="9" rx="2" strokeWidth="1.6" style={{"fill":benchFill(2)'],
+      ['<rect x="364" y="201" width="52" height="9" rx="2" strokeWidth="1.6" style={{"fill":"var(--pl-card)"', '<rect x="364" y="201" width="52" height="9" rx="2" strokeWidth="1.6" style={{"fill":benchFill(3)'],
+      ['<rect x="472" y="153" width="52" height="9" rx="2" strokeWidth="1.6" style={{"fill":"var(--pl-card)"', '<rect x="472" y="153" width="52" height="9" rx="2" strokeWidth="1.6" style={{"fill":benchFill(4)'],
+      ['{"Recruiter screen"}', "{names[0]}"], ['{"Hiring manager"}', "{names[1]}"], ['{"Coding"}', "{names[2]}"], ['{"System design"}', "{names[3]}"], ['{"AI-enabled coding"}', "{names[4]}"],
+      ['<g className="at-bob1">', '<g transform={`translate(${at[0] - 282} ${at[1] - 262})`} visibility={you != null ? undefined : "hidden"}><g className="at-bob1">'],
+      ['{"YOU · PREPARING"}\n        </text>\n      </g>', '{"YOU · PREPARING"}\n        </text>\n      </g></g>'],
+      ['<path d="M300 262 L300 180"', '<path visibility={flagVis} d="M300 262 L300 180"'],
+      ['<path d="M300 180 L346 192 L300 204 Z"', '<path visibility={flagVis} d="M300 180 L346 192 L300 204 Z"'],
+      ['<rect x="352" y="170"', '<rect visibility={flagVis} x="352" y="170"'],
+      ['{"KESTREL · CODING"}', '{flag ? flag[0] : ""}'], ['{"FRI · 2:00 PM"}', '{flag ? flag[1] : ""}'],
+    ],
+  },
+  // ⭐ 47m (D197 #11) · the Logbook's and the Today card's drawings (DrawingsAtlas 1–4): their words become props, each
+  // defaulting to the board's.
+  //   LogbookDaysLeg — `stops` = today's three waypoints (the trail's words); `kicker`; `firstDone` = the first stop lit.
+  LogbookDaysLeg: {
+    props: 'stops = ["one review", "a Build question", "watch 58 s"], kicker = "TODAY · 1 OF 3", firstDone = true',
+    subs: [
+      ['<path d="M40 170 C 100 170, 110 120, 170 120" fill="none" strokeWidth="7"', '<path visibility={firstDone ? undefined : "hidden"} d="M40 170 C 100 170, 110 120, 170 120" fill="none" strokeWidth="7"'],
+      ['<circle cx="40" cy="170" r="11" strokeWidth="2" style={{"fill":"var(--pl-lit)"', '<circle cx="40" cy="170" r="11" strokeWidth="2" style={{"fill":firstDone ? "var(--pl-lit)" : "var(--pl-card)"'],
+      ['{"one review"}', "{stops[0] || \"\"}"], ['{"a Build question"}', "{stops[1] || \"\"}"], ['{"watch 58 s"}', "{stops[2] || \"\"}"], ['{"TODAY · 1 OF 3"}', "{kicker}"],
+    ],
+  },
+  //   LogbookSummitCairn — `initials` = the pod's four on the cairn; `kicker` = the line under it.
+  LogbookSummitCairn: {
+    props: 'initials = ["AK", "MC", "JR", "LS"], kicker = "POD · WEEK 48 · YOU ARE 2ND"',
+    subs: [['{"AK"}', "{initials[0] || \"\"}"], ['{"MC"}', "{initials[1] || \"\"}"], ['{"JR"}', "{initials[2] || \"\"}"], ['{"LS"}', "{initials[3] || \"\"}"], ['{"POD · WEEK 48 · YOU ARE 2ND"}', "{kicker}"]],
+  },
+  //   TodaySquareInset — `entry` = the entry today's pick came from; `plate` = its region's plate tag; `mark` = the square's word.
+  TodaySquareInset: {
+    props: 'entry = "hash map", plate = "PL. III", mark = "?"',
+    subs: [['{"hash map"}', "{entry}"], ['{"PL. III"}', "{plate}"], ['{"?"}', "{mark}"]],
+  },
+  //   LogbookTierStamp — the league tier as a stamp (U5): `tier`, `name`, `foot`.
+  LogbookTierStamp: {
+    props: 'tier = "LEAGUE · TIER II", name = "Foothills", foot = "WEEK 48 · 214 SQUARES"',
+    subs: [['{"LEAGUE · TIER II"}', "{tier}"], ['{"Foothills"}', "{name}"], ['{"WEEK 48 · 214 SQUARES"}', "{foot}"]],
   },
 };
 
@@ -201,7 +256,7 @@ export function portSvg(svg, map, where) {
       }
       if (/\{\{/.test(v)) throw new Error(`a template expression the port can't read in ${where}: "${v}"`);
       if (t.tag === "svg" && k === "aria-label") { label = v; props.push("aria-label={label}"); continue; }
-      if (t.tag === "svg" && k === "sc-camel-view-box") viewBox = v;
+      if (t.tag === "svg" && (k === "sc-camel-view-box" || k === "viewBox")) viewBox = v;
       if (k === "style") {
         for (const [sk, sv] of Object.entries(parseStyle(v))) {
           if (sk === "font-family") style.fontFamily = fontToken(sv);
@@ -269,6 +324,16 @@ ${applyLive(name, ported.jsx)}
 export function boardDrawings(indexes) {
   const out = [];
   for (const b of BOARDS) {
+    if (b.dc) {
+      const name = `docs/sketches/final/project/${b.dc}.dc.html`;
+      const html = fs.readFileSync(path.join(DC_DIR, `${b.dc}.dc.html`), "utf8");
+      const body = html.slice(html.indexOf("<x-dc>"));
+      const all = [...body.matchAll(/<svg[^>]*role="img"[\s\S]*?<\/svg>/g)].map((m) => m[0]);
+      const svgs = b.pick ? b.pick.map((i) => all[i]) : all;
+      if (svgs.some((s) => !s) || svgs.length !== b.drawings.length) throw new Error(`"${b.title}" has ${all.length} drawings, the port expects ${b.drawings.length}${b.pick ? ` (picked ${b.pick.join(", ")})` : ""}`);
+      svgs.forEach((svg, i) => out.push({ name: b.drawings[i], board: b.title, svg, src: name }));
+      continue;
+    }
     const src = SOURCES[b.source || "v3"];
     const index = indexes[b.source || "v3"];
     const row = index.find((r) => r.title === b.title);

@@ -22,5 +22,11 @@ import PlaceIsometricTile from "./PlaceIsometricTile.jsx";
 import PlaceHazardSeal from "./PlaceHazardSeal.jsx";
 import PlaceHazardTimeout from "./PlaceHazardTimeout.jsx";
 import PlaceHazardDuplicate from "./PlaceHazardDuplicate.jsx";
+import ProvingGroundHill from "./ProvingGroundHill.jsx";
+import ProvingGroundChair from "./ProvingGroundChair.jsx";
+import LogbookDaysLeg from "./LogbookDaysLeg.jsx";
+import LogbookSummitCairn from "./LogbookSummitCairn.jsx";
+import TodaySquareInset from "./TodaySquareInset.jsx";
+import LogbookTierStamp from "./LogbookTierStamp.jsx";
 
-export const DRAWINGS = { MarketSurveyPlate, MarketBoardOrder, MarketTerrain, LedgerRunRoute, SurveyTeamDiorama, SurveyHiringProfile, SurveyRoleLine, SurveyMatchDial, EmblemFound, EmblemBits, EmblemTree, EmblemNet, EmblemLock, EmblemCode, EmblemWorld, EmblemMind, AtlasVolumePlate, PlaceElevationProfile, PlaceSignpost, PlaceIsometricTile, PlaceHazardSeal, PlaceHazardTimeout, PlaceHazardDuplicate };
+export const DRAWINGS = { MarketSurveyPlate, MarketBoardOrder, MarketTerrain, LedgerRunRoute, SurveyTeamDiorama, SurveyHiringProfile, SurveyRoleLine, SurveyMatchDial, EmblemFound, EmblemBits, EmblemTree, EmblemNet, EmblemLock, EmblemCode, EmblemWorld, EmblemMind, AtlasVolumePlate, PlaceElevationProfile, PlaceSignpost, PlaceIsometricTile, PlaceHazardSeal, PlaceHazardTimeout, PlaceHazardDuplicate, ProvingGroundHill, ProvingGroundChair, LogbookDaysLeg, LogbookSummitCairn, TodaySquareInset, LogbookTierStamp };

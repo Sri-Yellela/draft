@@ -306,7 +306,9 @@ export const PLATE_REGISTRY = [
  *  eight region emblems, Home's volume plate and the Place page's six. */
 export const PORTED_DRAWINGS = ["MarketSurveyPlate", "MarketBoardOrder", "MarketTerrain", "LedgerRunRoute", "SurveyTeamDiorama", "SurveyHiringProfile", "SurveyRoleLine", "SurveyMatchDial",
   "EmblemFound", "EmblemBits", "EmblemTree", "EmblemNet", "EmblemLock", "EmblemCode", "EmblemWorld", "EmblemMind", "AtlasVolumePlate",
-  "PlaceElevationProfile", "PlaceSignpost", "PlaceIsometricTile", "PlaceHazardSeal", "PlaceHazardTimeout", "PlaceHazardDuplicate"];
+  "PlaceElevationProfile", "PlaceSignpost", "PlaceIsometricTile", "PlaceHazardSeal", "PlaceHazardTimeout", "PlaceHazardDuplicate",
+  // 47m (D197 #13 / #11): the row-4 boards ProvingGround and DrawingsAtlas 1-4, read from docs/sketches/final/project/
+  "ProvingGroundHill", "ProvingGroundChair", "LogbookDaysLeg", "LogbookSummitCairn", "TodaySquareInset", "LogbookTierStamp"];
 
 /** The states every entry with data must have (R1). */
 export const REQUIRED_STATES = Object.freeze(["ready", "loading", "empty", "error"]);
