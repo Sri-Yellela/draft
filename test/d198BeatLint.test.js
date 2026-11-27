@@ -5,7 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { scriptProblems, beatProblems, keywordInLine, estimatedSeconds, wordsOf, MAX_WORDS, BEATS_FORMAT_A, COST_COLOURS, RAMPS }
+import { scriptProblems, beatProblems, keywordInLine, estimatedSeconds, wordsOf, MAX_WORDS, BEATS_FORMAT_A, COST_COLOURS, EXPLAINER_RAMPS }
   from "../services/learn/explainerScript.js";
 
 const DIR = "content/explainers";
@@ -70,7 +70,7 @@ test("d198BeatLint: formats B–D are refused until sketched; a region without a
   const n = pilot(); n.beats.pop();
   assert.ok(scriptProblems(n).some(p => new RegExp(`format A has ${BEATS_FORMAT_A} beats`).test(p)));
   // The cost scale is Region III's ramp, three steps of it.
-  assert.deepEqual(Object.values(COST_COLOURS.III).map(c => RAMPS.III.includes(c)), [true, true, true]);
+  assert.deepEqual(Object.values(COST_COLOURS.III).map(c => EXPLAINER_RAMPS.III.includes(c)), [true, true, true]);
 });
 
 test("d198BeatLint: publishing needs factChecked; nothing may name reels_output; the pilot runs ≈ 58 s at the voice's pace", () => {

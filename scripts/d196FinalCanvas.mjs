@@ -22,10 +22,20 @@ export function finalIndex() {
   return JSON.parse(fs.readFileSync(path.join(FINAL_DIR, "canvas.json"), "utf8"));
 }
 
-/** The boards on the approved page (retired ones — no `page` in the index — left out), in the canvas's order. */
+/** 47l · boards drawn on the canvas but NOT yet approved (row 4, "awaiting the owner's look"). They are never an oracle:
+ *  finalBoards() leaves them out, so no F5 pair can gate against them. Move a stem out of this list when the owner approves it. */
+export const PENDING_LOOK = Object.freeze(["GazetteerIndex", "Route", "AskRoute", "Passport", "ProvingGround", "DarkPlate", "DrawingsAtlas", "DrawingsJobs", "DrawingsPublic"]);
+
+const onPage = (ix) => ix.order.filter((f) => ix.boards[f]?.page).map((f) => ({ file: f, stem: f.replace(/\.dc\.html$/, ""), ...ix.boards[f] }));
+
+/** The APPROVED boards (retired ones — no `page` in the index — and PENDING_LOOK ones left out), in the canvas's order. */
 export function finalBoards() {
-  const ix = finalIndex();
-  return ix.order.filter((f) => ix.boards[f]?.page).map((f) => ({ file: f, stem: f.replace(/\.dc\.html$/, ""), ...ix.boards[f] }));
+  return onPage(finalIndex()).filter((b) => !PENDING_LOOK.includes(b.stem));
+}
+
+/** The boards awaiting the owner's look, in the canvas's order. */
+export function pendingBoards() {
+  return onPage(finalIndex()).filter((b) => PENDING_LOOK.includes(b.stem));
 }
 
 let shared = null;

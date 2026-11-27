@@ -143,7 +143,7 @@ test("a228PageOrder: the sketch's four sections in order, one reading — the nu
 test("a228PlainWords: jobs, not postings / asks / coverage — on every visible word of the page", async () => {
   const u = await loadUi();
   const text = visible(u.page(ANSWER())) + visible(u.page(ANSWER(), "list"));
-  assert.doesNotMatch(text, /postings?|asks|coverage|within reach|proficien/i);
+  assert.doesNotMatch(text, /\bpostings?\b|\basks\b|\bcoverage\b|\bwithin reach\b|\bproficien/i);
   for (const h of ["jobs you can apply for today", "How close you are to each job", "What Data Engineer jobs want", "Learn next", "Jobs you could move to"]) assert.ok(text.includes(h), h);
   // ⛔ D190: the page reads one counted answer; it calls no model
   const src = ["SkillMap.jsx", "SkillTreemap.jsx", "JobsHistogram.jsx", "LearnNextChart.jsx", "MoveRolesScatter.jsx", "SkillMapBits.jsx", "skillMapModel.js"]

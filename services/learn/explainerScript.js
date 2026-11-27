@@ -25,8 +25,9 @@ export const WORDS_PER_SECOND = 2.5;
 /** Format A shows ten progress squares (past ink, now clay, ahead empty). */
 export const BEATS_FORMAT_A = 10;
 export const COST_LEVELS = Object.freeze(["light", "mid", "deep"]);
-/** Region ramps (light → deep). Only Region III's is built (for the explainer); every other region builds its ramp first. */
-export const RAMPS = Object.freeze({
+/** The regions an explainer can be set in, each with the ramp its cost scale reads (light → deep). Every region has a 10-step
+ *  ramp in client/src/styles/plate.css since 47k; a region joins this list when its first explainer is scripted. */
+export const EXPLAINER_RAMPS = Object.freeze({
   III: Object.freeze(["#FBF1EA", "#F5E2D6", "#EFD0BE", "#E6BA9F", "#D99C78", "#C97F55", "#B4532A", "#8F4122", "#6B3119", "#4A2211"]),
 });
 /** The three cost steps on each built ramp. */
@@ -98,7 +99,7 @@ export function scriptProblems(script, { publish = false } = {}) {
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(String(script.id || ""))) out.push("id must be kebab-case");
   if (Object.hasOwn(NOT_YET_FORMATS, script.format)) out.push(`format ${script.format} (${NOT_YET_FORMATS[script.format]}) is not built yet — it is sketched and approved first (D198 E6)`);
   else if (!Object.hasOwn(FORMATS, script.format)) out.push(`format must be one of ${Object.keys(FORMATS).join(", ")}`);
-  if (!Object.hasOwn(RAMPS, script.region)) out.push(`region ${script.region}: no ramp built yet (built: ${Object.keys(RAMPS).join(", ")}) — build the region's ramp first`);
+  if (!Object.hasOwn(EXPLAINER_RAMPS, script.region)) out.push(`region ${script.region}: no ramp built yet (built: ${Object.keys(EXPLAINER_RAMPS).join(", ")}) — build the region's ramp first`);
   if (!String(script.title?.text || "").trim() || !String(script.title?.tape || "").trim()) out.push("title needs text and its label tape");
   const beats = Array.isArray(script.beats) ? script.beats : [];
   if (script.format === "A" && beats.length !== BEATS_FORMAT_A) out.push(`format A has ${BEATS_FORMAT_A} beats (got ${beats.length})`);

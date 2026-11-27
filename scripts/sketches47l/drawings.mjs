@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import { head, mono, MONO, SERIF } from "./common.mjs";
 import { RAMP } from "./common2.mjs";
+import { LEGACY_BRAND } from "../../shared/brand.js";   // the résumé tool’s product name (brand guard)
 const DIR = process.argv[2];
 const IV = ["#E9EEF4", "#DCE4EE", "#CDD8E7", "#B9C8DC", "#9FB3CE", "#7F96B6", "#5D79A3", "#1F3A63", "#16294A", "#0F1E36"];
 const V = RAMP.V, VI = RAMP.VI;
@@ -97,7 +98,7 @@ ${[["Maya C.", "A1", 1], ["Noor H.", "D5"], ["Sam T.", "G3"], ["Wen Y.", "H6"]].
 B.push(plate(15, "A notice board of field reports", "NETWORK · FEED · network.md", "REGION VI", svg("A cork notice board with pinned field reports: a stamp earned, an offer, a question", `<rect x="20" y="16" width="320" height="190" rx="8" fill="${VI[2]}" stroke="${INK}" stroke-width="1.8"></rect><rect x="30" y="26" width="300" height="170" rx="4" fill="#E8D9C2" stroke="${INK}" stroke-width="1.2"></rect>
 ${[[44, 40, -4, "FIELD REPORT", "Ana proved SQL", GREEN], [146, 50, 3, "FIELD REPORT", "Jordan got an offer", CLAY], [240, 38, -2, "QUESTION", "Anyone at Kestrel?", VI[7]], [86, 122, 2, "FIELD REPORT", "Lee lit 7 days", GREEN], [200, 124, -3, "", "", ""]].map(([x, y, r, k, t, c]) => `<g transform="translate(${x} ${y}) rotate(${r})"><rect width="86" height="60" fill="${t ? "#FFFFFF" : "none"}" stroke="${INK}" stroke-width="1.3" ${t ? "" : 'stroke-dasharray="4 4"'}></rect>${t ? `<circle cx="43" cy="4" r="4" fill="${c}" stroke="${INK}" stroke-width="1"></circle><text x="8" y="22" font-family="JetBrains Mono, monospace" font-size="6.5" font-weight="700" fill="${c}">${k}</text><text x="8" y="40" font-family="Instrument Serif, Georgia, serif" font-size="12.5" fill="${INK}">${t}</text>` : ""}</g>`).join("")}`)));
 
-// ───────── Sheet III · public pages, errors, sign-in, Resume Master, marketing, emails ─────────
+// ───────── Sheet III · public pages, errors, sign-in, the résumé tool, marketing, emails ─────────
 const C = [];
 C.push(plate(16, "The route drawn across the terrain", "PUBLIC · THE DATA-ENGINEERING ROADMAP · public.md", "REGION IV", svg("The data-engineering roadmap as a route climbing across terrain from SQL in the lowlands to streaming at the summit", `<rect width="360" height="220" fill="${IV[0]}"></rect>${[0, 1, 2, 3, 4].map((k) => `<path d="M0 ${220 - k * 30} C 90 ${200 - k * 36}, 200 ${214 - k * 34}, 360 ${150 - k * 30} L360 220 L0 220 Z" fill="${IV[k + 1]}" stroke="${INK}" stroke-opacity=".3"></path>`).join("")}
 <path d="M30 196 C 80 190, 90 150, 140 146 S 210 104, 250 96 S 300 50, 330 40" fill="none" stroke="${INK}" stroke-width="10" stroke-linecap="round"></path><path d="M30 196 C 80 190, 90 150, 140 146 S 210 104, 250 96 S 300 50, 330 40" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"></path>
@@ -120,7 +121,7 @@ C.push(plate(20, "The market plate, faint, behind the sign-in form", "SIGN IN ·
 <rect x="100" y="34" width="160" height="152" rx="12" fill="#FFFFFF" stroke="${INK}" stroke-width="1.8"></rect>${T(116, 64, "Sign in", { size: 22, anchor: "start" })}
 ${[86, 118].map((y, i) => `${T(116, y, i ? "PASSWORD" : "EMAIL", { size: 7, anchor: "start", mono: true })}<rect x="116" y="${y + 4}" width="128" height="18" rx="4" fill="#FFFFFF" stroke="${INK}" stroke-width="1.4"></rect>`).join("")}
 <rect x="116" y="150" width="128" height="24" rx="6" fill="${CLAY}" stroke="${INK}" stroke-width="1.5"></rect>${T(180, 166, "SIGN IN →", { size: 8.5, mono: true, fill: "#FFFFFF" })}`)));
-C.push(plate(21, "An isometric desk tile", "RESUME MASTER · DOCUMENTS HOME · resume-master.md", "REGION VI", svg("An isometric desk tile holding a page, a pen and a stamp", `<rect width="360" height="220" fill="${VI[0]}"></rect>
+C.push(plate(21, "An isometric desk tile", `${LEGACY_BRAND.toUpperCase()} · DOCUMENTS HOME · resume-master.md`, "REGION VI", svg("An isometric desk tile holding a page, a pen and a stamp", `<rect width="360" height="220" fill="${VI[0]}"></rect>
 <path d="M180 40 L320 110 L180 180 L40 110 Z" fill="${VI[3]}" stroke="${INK}" stroke-width="1.8"></path><path d="M40 110 L40 126 L180 196 L180 180 Z" fill="${VI[5]}" stroke="${INK}" stroke-width="1.8"></path><path d="M320 110 L320 126 L180 196 L180 180 Z" fill="${VI[6]}" stroke="${INK}" stroke-width="1.8"></path>
 <path d="M150 74 L228 113 L176 139 L98 100 Z" fill="#FFFFFF" stroke="${INK}" stroke-width="1.5"></path>${[0, 1, 2, 3].map((k) => `<path d="M${126 + k * 8} ${96 + k * 4} L${180 + k * 8} ${123 + k * 4}" stroke="${VI[4]}" stroke-width="2" stroke-linecap="round"></path>`).join("")}
 <path d="M236 92 L270 75 L274 79 L240 96 Z" fill="${INK}"></path><path d="M270 75 L280 71 L276 80Z" fill="#E8C9A0" stroke="${INK}" stroke-width="1"></path>
@@ -157,4 +158,4 @@ class Component extends DCLogic {
 }
 sheet("DrawingsAtlas.dc.html", "Drawings I · Atlas, the passport, setting out", "D197 · DRAWINGS STILL NEEDED · SHEET I OF III", A, 1500);
 sheet("DrawingsJobs.dc.html", "Drawings II · job pages and the network", "D197 · DRAWINGS STILL NEEDED · SHEET II OF III", B, 1500);
-sheet("DrawingsPublic.dc.html", "Drawings III · public pages, errors, sign-in, Resume Master, emails", "D197 · DRAWINGS STILL NEEDED · SHEET III OF III", C, 1750);
+sheet("DrawingsPublic.dc.html", `Drawings III · public pages, errors, sign-in, ${LEGACY_BRAND}, emails`, "D197 · DRAWINGS STILL NEEDED · SHEET III OF III", C, 1750);

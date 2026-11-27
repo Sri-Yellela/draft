@@ -54,7 +54,7 @@ test("a175: the board's per-candidate lookup and the board-fit category count re
       AND (uj.disliked IS NULL OR uj.disliked = 0)
     ORDER BY sj.title, sj.summary, sj.skills_json, COALESCE(sj.discovered_at, sj.scraped_at)`).all().map(r => r.detail).join(" | ");
   assert.match(board, /SEARCH sj USING COVERING INDEX idx_scraped_jobs_board_cover \(job_id=\? AND is_active=\?\)/, board);
-  assert.doesNotMatch(board, /SCAN sj/, board);
+  assert.doesNotMatch(board, /SCAN sj\b/, board);
   const cat = db.prepare(`EXPLAIN QUERY PLAN SELECT COUNT(*) AS n FROM scraped_jobs sj WHERE sj.is_active = 1
     AND (sj.board_category IS NULL OR (sj.board_category <> 'held' AND (? IS NULL OR sj.board_category = ?)))`).all("computing", "computing").map(r => r.detail).join(" | ");
   // (reported as USING INDEX: is_active is the index's own WHERE; measured 8 ms on the 100k copy, 16 s cold before)

@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import http from "node:http";
-import { finalBoards, finalIndex, serveFinal, FINAL_DIR } from "../scripts/d196FinalCanvas.mjs";
+import { finalBoards, pendingBoards, PENDING_LOOK, finalIndex, serveFinal, FINAL_DIR } from "../scripts/d196FinalCanvas.mjs";
 
 const APPROVED = ["Shell", "Market", "Opening", "Ledger", "Survey", "ATSCard", "Home", "Map", "Gazetteer", "YourSurvey", "Library", "Emblem", "Maps", "Explainer", "Storyboard"];
 
@@ -17,6 +17,15 @@ test("A244: every approved board's source is in the snapshot, in the canvas's or
   assert.ok(!stems.includes("Lesson") && !stems.includes("Shelves"), "the retired boards stay out");
   assert.ok(fs.existsSync(path.join(FINAL_DIR, "support.js")), "the runtime each board loads as ./support.js");
   assert.equal(finalIndex().pages[0].id, "final");
+});
+
+test("47l: boards awaiting the owner's look are on the canvas and in the snapshot, but never in the oracle", () => {
+  const pending = pendingBoards().map((b) => b.stem);
+  assert.deepEqual([...pending].sort(), [...PENDING_LOOK].sort(), "every pending stem is a board on the canvas");
+  for (const s of pending) {
+    assert.ok(fs.existsSync(path.join(FINAL_DIR, `${s}.dc.html`)), `${s}.dc.html`);
+    assert.ok(!finalBoards().some((b) => b.stem === s), `${s} is not an oracle until approved`);
+  }
 });
 
 test("A244: the board server serves a board and refuses a path outside the snapshot", async () => {
