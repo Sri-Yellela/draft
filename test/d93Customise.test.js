@@ -41,18 +41,18 @@ test("D93 · the registry is complete: the ids are shared/'s, exactly one defaul
   assert.deepEqual(layoutDefaults(), LAYOUT_DEFAULTS);
   // 45n D145 / D152 decision (10) (ffd57262): the Menu is RETIRED and `navigation` left the layout options — an
   // off-default round trip now uses the text size; a stored navigation=menu reads as nothing (pins moved on purpose).
-  assert.deepEqual(LAYOUT_DEFAULTS, { sentence: "marked", learning: "quiet", text: "default" }, "the recommendations are the defaults (D92)");
+  assert.deepEqual(LAYOUT_DEFAULTS, { sentence: "marked", learning: "quiet", plate: "paper", text: "default" }, "the recommendations are the defaults (D92)");
 });
 
 test("D93 · the stored value: flags only off the default, every pre-D93 value reads as the defaults, junk refused", () => {
   // 45n D145 / D152 decision (10) (ffd57262): the Menu is RETIRED and `navigation` left the layout options — an
   // off-default round trip now uses the text size; a stored navigation=menu reads as nothing (pins moved on purpose).
-  assert.equal(formatStoredAppearance({ theme: "system", cues: false, sentence: "marked", learning: "quiet", text: "default" }), "system");
-  assert.equal(formatStoredAppearance({ theme: "contrast-dark", cues: true, sentence: "calm", learning: "quiet", text: "largest" }), "contrast-dark;cues;sentence=calm;text=largest");
-  assert.deepEqual(parseStoredAppearance("contrast-dark;cues;sentence=calm;text=largest"), { theme: "contrast-dark", cues: true, sentence: "calm", learning: "quiet", text: "largest" });
-  assert.deepEqual(parseStoredAppearance("light;cues"), { theme: "light", cues: true, sentence: "marked", learning: "quiet", text: "default" });
-  assert.deepEqual(parseStoredAppearance(null), { theme: null, cues: false, sentence: "marked", learning: "quiet", text: "default" });
-  assert.deepEqual(parseStoredAppearance("dark;text=boxed;sentence=boxes"), { theme: "dark", cues: false, sentence: "marked", learning: "quiet", text: "default" }, "an unknown stored value reads as the default");
+  assert.equal(formatStoredAppearance({ theme: "system", cues: false, sentence: "marked", learning: "quiet", plate: "paper", text: "default" }), "system");
+  assert.equal(formatStoredAppearance({ theme: "contrast-dark", cues: true, sentence: "calm", learning: "quiet", plate: "paper", text: "largest" }), "contrast-dark;cues;sentence=calm;text=largest");
+  assert.deepEqual(parseStoredAppearance("contrast-dark;cues;sentence=calm;text=largest"), { theme: "contrast-dark", cues: true, sentence: "calm", learning: "quiet", plate: "paper", text: "largest" });
+  assert.deepEqual(parseStoredAppearance("light;cues"), { theme: "light", cues: true, sentence: "marked", learning: "quiet", plate: "paper", text: "default" });
+  assert.deepEqual(parseStoredAppearance(null), { theme: null, cues: false, sentence: "marked", learning: "quiet", plate: "paper", text: "default" });
+  assert.deepEqual(parseStoredAppearance("dark;text=boxed;sentence=boxes"), { theme: "dark", cues: false, sentence: "marked", learning: "quiet", plate: "paper", text: "default" }, "an unknown stored value reads as the default");
   assert.equal(formatStoredAppearance({ theme: "dark", text: "boxed" }), null, "an unknown value is never stored");
   assert.deepEqual(parseStoredAppearance("dark;navigation=menu"), parseStoredAppearance("dark"), "a stored Menu choice reads as nothing (the dock)");
   // ⭐ D145: `nav` (the tab row's ghost / track) is RETIRED with the row — a stored flag reads as nothing, never an error.
@@ -84,7 +84,7 @@ test("D93 · the server: refuses an unknown value · round-trips · a second dev
   const s = await server();
   try {
     // A new account: the defaults.
-    assert.deepEqual((await s.call("GET", "/api/settings/appearance", null, 2)).json, { theme: null, cues: false, sentence: "marked", learning: "quiet", text: "default" });
+    assert.deepEqual((await s.call("GET", "/api/settings/appearance", null, 2)).json, { theme: null, cues: false, sentence: "marked", learning: "quiet", plate: "paper", text: "default" });
     // 45n D145 / D152 decision (10) (ffd57262): the Menu is RETIRED and `navigation` left the layout options — an
     // off-default round trip now uses the text size; a stored navigation=menu reads as nothing (pins moved on purpose).
     // Unknown values are refused, and nothing is stored.
@@ -92,18 +92,18 @@ test("D93 · the server: refuses an unknown value · round-trips · a second dev
     assert.equal((await s.call("PUT", "/api/settings/appearance", { theme: "system", sentence: "boxes" })).status, 400);
     assert.equal(s.db.prepare("SELECT theme_preference FROM users WHERE id=1").get().theme_preference, null);
     // Set → read back (a second device is just another GET for the same account).
-    const put = await s.call("PUT", "/api/settings/appearance", { theme: "contrast-dark", cues: true, sentence: "calm", learning: "quiet", text: "largest" });
+    const put = await s.call("PUT", "/api/settings/appearance", { theme: "contrast-dark", cues: true, sentence: "calm", learning: "quiet", plate: "paper", text: "largest" });
     assert.equal(put.status, 200);
-    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "contrast-dark", cues: true, sentence: "calm", learning: "quiet", text: "largest" });
+    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "contrast-dark", cues: true, sentence: "calm", learning: "quiet", plate: "paper", text: "largest" });
     // A layout-only PUT (the Customise page) keeps the theme and cues.
     await s.call("PUT", "/api/settings/appearance", { sentence: "marked", learning: "quiet" });
-    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "contrast-dark", cues: true, sentence: "marked", learning: "quiet", text: "largest" });
+    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "contrast-dark", cues: true, sentence: "marked", learning: "quiet", plate: "paper", text: "largest" });
     // An older client's PUT ({ theme, cues } only) keeps the layout.
     await s.call("PUT", "/api/settings/appearance", { theme: "paper-light", cues: false });
-    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "paper-light", cues: false, sentence: "marked", learning: "quiet", text: "largest" });
+    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "paper-light", cues: false, sentence: "marked", learning: "quiet", plate: "paper", text: "largest" });
     // …and so does the pre-D91 theme route.
     assert.equal((await s.call("PUT", "/api/settings/theme", { preference: "dark" })).status, 200);
-    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "dark", cues: false, sentence: "marked", learning: "quiet", text: "largest" });
+    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "dark", cues: false, sentence: "marked", learning: "quiet", plate: "paper", text: "largest" });
     assert.deepEqual((await s.call("GET", "/api/settings/theme")).json, { preference: "dark" });
     // The other account is untouched.
     assert.equal(s.db.prepare("SELECT theme_preference FROM users WHERE id=2").get().theme_preference, null);
@@ -120,20 +120,20 @@ test("D93 · the device: a layout applies LIVE (no reload); the account's layout
     // off-default round trip now uses the text size; a stored navigation=menu reads as nothing (pins moved on purpose).
     REG.setLayout({ text: "largest" }, { doc });
     assert.equal(store.get("draft-theme"), "contrast-dark;cues;no-offer;text=largest", "the other flags survive");
-    assert.deepEqual(attrs, { "data-sentence": "marked", "data-learning-links": "quiet", "data-text-size": "largest" });   // D145: navigation + text size; nav retired
+    assert.deepEqual(attrs, { "data-sentence": "marked", "data-learning-links": "quiet", "data-plate-face": "paper", "data-text-size": "largest" });   // D145: navigation + text size; nav retired
     // apply:false (the Customise page) stores but leaves <html> alone.
     const before = { ...attrs };
     REG.setLayout({ sentence: "calm" }, { apply: false, doc });
     assert.deepEqual(attrs, before, "the page changed while the preview was being chosen");
-    assert.deepEqual(REG.layout(), { sentence: "calm", learning: "quiet", text: "largest" });
+    assert.deepEqual(REG.layout(), { sentence: "calm", learning: "quiet", plate: "paper", text: "largest" });
     // A theme change keeps the layout.
     REG.setAppearance({ pref: "paper-light", cues: false }, { reload() {} });
-    assert.deepEqual(REG.layout(), { sentence: "calm", learning: "quiet", text: "largest" });
+    assert.deepEqual(REG.layout(), { sentence: "calm", learning: "quiet", plate: "paper", text: "largest" });
     // The account's appearance, differing only in layout: adopted, NO reload.
     let reloads = 0;
-    assert.equal(REG.adoptAccountTheme({ theme: "paper-light", cues: false, sentence: "marked", learning: "quiet", text: "default" }, { reload: () => reloads++ }), false);
+    assert.equal(REG.adoptAccountTheme({ theme: "paper-light", cues: false, sentence: "marked", learning: "quiet", plate: "paper", text: "default" }, { reload: () => reloads++ }), false);
     assert.equal(reloads, 0);
-    assert.deepEqual(REG.layout(), { sentence: "marked", learning: "quiet", text: "default" });
+    assert.deepEqual(REG.layout(), { sentence: "marked", learning: "quiet", plate: "paper", text: "default" });
   } finally { delete globalThis.localStorage; }
 });
 

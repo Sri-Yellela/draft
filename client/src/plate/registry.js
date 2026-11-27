@@ -207,6 +207,19 @@ export const PLATE_REGISTRY = [
         t3: { turns: [{ who: "you", text: "write a cover letter opening for this job" }, { who: "draft", tier: "T3", text: "A first line, from your résumé — edit it before you use it.", action: { summary: "Save it to this job’s notes" } }] } }),
     extremes: { turns: [{ who: "you", text: LONG }, { who: "draft", tier: "T2", text: LONG, lessons: [{ name: LONG, href: "#x", kind: "PLACE" }], next: LONG }, { who: "draft", tier: "T1", text: "x", undo: true, undone: "Undone." }], busy: true, value: LONG } },
 
+  // 47m (D197 Wave 2 M5): the pieces the built pages added — Ask draft's note line, Correspondence's name / send / report,
+  // Off the map's page. Each is a small composition of library pieces with no data states of its own.
+  { name: "AskNote", file: "Cards.jsx", group: "Cards", stateless: "a line in Ask draft's card (the question being answered)",
+    states: { ready: { children: "Answering “Why this role?” — tell draft about it in your own words." } } },
+  { name: "PersonName", file: "Correspondence.jsx", group: "Cards", stateless: "a person's letter tile + name (Correspondence)",
+    states: { ready: { name: "Priya Raman", href: "#priya" } } },
+  { name: "SendTicket", file: "Correspondence.jsx", group: "Cards", stateless: "a ticket that writes and sends one message (Correspondence)",
+    states: { ready: { kicker: "A LETTER · TO PRIYA RAMAN", value: "", placeholder: "Write a message", note: "Ctrl + Enter sends." } } },
+  { name: "ReportBlock", file: "Correspondence.jsx", group: "Cards", stateless: "the report form under a dispatch (Correspondence)",
+    states: { ready: { reason: "" } } },
+  { name: "OffTheMap", file: "PublicPages.jsx", group: "Cards", stateless: "the 404 / fault page (Off the map, D197 #22)",
+    states: { ready: { kicker: ["404", "NO PAGE AT /nowhere"], lead: "This page isn’t on the map.", roads: [{ label: "The market", href: "#jobs" }] } } },
+
   // ── lists ──
   { name: "Gazetteer", file: "Lists.jsx", group: "Lists", states: four({ label: "Every opening", cols: INDEX_COLS, rows: INDEX_ROWS }, "No openings fit your bearing yet."),
     extremes: { label: "Extremes", cols: INDEX_COLS, rows: [{ ...INDEX_ROWS[0], title: LONG, company: LONG_CO }] } },
@@ -311,7 +324,10 @@ export const PORTED_DRAWINGS = ["MarketSurveyPlate", "MarketBoardOrder", "Market
   "ProvingGroundHill", "ProvingGroundChair", "LogbookDaysLeg", "LogbookSummitCairn", "TodaySquareInset", "LogbookTierStamp",
   // 47m (lane person): the final canvas's Passport board and the Drawings sheets' person / jobs / sign-in plates
   "PassportIdentityPage", "PassportRoad", "NotificationsLamp", "ProfileFieldBook", "ProfileSpecimenDrawer", "ProfileSchoolhouse", "SettingOutCounter",
-  "BearingsCompassRose", "VoyageClipboard", "VoyagePostRack", "SignInMarketBehind"];
+  "BearingsCompassRose", "VoyageClipboard", "VoyagePostRack", "SignInMarketBehind",
+  // 47m (lane public): the Drawings sheets' public pages, Off the map and Correspondence plates
+  "RoadmapRoute", "GazetteerGridPage", "SurveyChartExplain", "OffTheMapEdge", "AtlasTitlePage",
+  "LettersPostRack", "DispatchRiderRoute", "SealedLetterDoorstep", "CampsGazetteer", "NoticeBoardReports"];
 
 /** The states every entry with data must have (R1). */
 export const REQUIRED_STATES = Object.freeze(["ready", "loading", "empty", "error"]);

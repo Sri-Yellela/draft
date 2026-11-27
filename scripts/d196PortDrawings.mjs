@@ -59,8 +59,8 @@ export const BOARDS = [
   // ⭐ 47m (lane public, D197 Wave 2 M5): the approved Drawings sheets' drawings for the public pages, Off the map and
   // Correspondence. `null` = a drawing on the sheet that another page's lane ports (the sign-in plate, the résumé tool's desk,
   // the email plates; the jobs lane's compass and clipboard) — skipped here, in place, so the order stays the sheet's.
-  { file: "DrawingsPublic.dc.html", title: "Drawings · public pages (lane public)", drawings: ["RoadmapRoute", "GazetteerGridPage", "SurveyChartExplain", "OffTheMapEdge", null, null, "AtlasTitlePage", null, null, null] },
-  { file: "DrawingsJobs.dc.html", title: "Drawings · jobs and the network (lane public)", drawings: [null, null, "LettersPostRack", "DispatchRiderRoute", "SealedLetterDoorstep", "CampsGazetteer", "NoticeBoardReports"] },
+  { file: "DrawingsPublic.dc.html", title: "Drawings · public pages", drawings: ["RoadmapRoute", "GazetteerGridPage", "SurveyChartExplain", "OffTheMapEdge", null, null, "AtlasTitlePage", null, null, null] },
+  { file: "DrawingsJobs.dc.html", title: "Drawings · jobs and the network", drawings: [null, null, "LettersPostRack", "DispatchRiderRoute", "SealedLetterDoorstep", "CampsGazetteer", "NoticeBoardReports"] },
 ];
 export const DC_DIR = path.join(ROOT, "docs", "sketches", "final", "project");
 const FINAL_DIR = DC_DIR;

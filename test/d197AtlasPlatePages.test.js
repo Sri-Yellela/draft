@@ -91,21 +91,34 @@ test("D197 #7 · the Library holds only outside resources — every link of an o
 test("⛔ D200 Rule 1 · nothing lost — every Atlas panel is in Volume I's footer and the area nav (views or More)", () => {
   const groups = atlasPlaces("/atlas", { league: true, challenges: true });
   const hrefs = groups.flatMap((g) => g.links.map((l) => l.href));
+  // ⭐ D201 (47m, changed on purpose): Roles and skills, the Glossary and How it works live IN the Gazetteer — their old
+  // addresses forward there (AtlasPage forwardOf), and the footer names the Gazetteer's own doors (by role, the A–Z).
+  const FORWARDED = { "roles-and-skills": "/atlas/gazetteer?by=role", glossary: "/atlas/gazetteer", "how-it-works": "/atlas/gazetteer?by=stage" };
+  const atlasPage = fs.readFileSync("client/src/pages/atlas/AtlasPage.jsx", "utf8");
   for (const id of [...ATLAS_NAV.flatMap((g) => g.panels.map((p) => p.id)), ...COMPETE_NAV.panels.map((p) => p.id), "overview"]) {
+    if (FORWARDED[id]) {
+      assert.ok(atlasPage.includes(`if (s === "${id}") return \`\${base}/gazetteer`), `${id} forwards into the Gazetteer`);
+      assert.ok(hrefs.some((h) => h.startsWith("/atlas/gazetteer")), `${id}'s home is in the footer`);
+      continue;
+    }
     assert.ok(hrefs.includes(id === "overview" ? "/atlas/overview" : `/atlas/${id}`), `${id} is reachable`);
   }
-  assert.ok(hrefs.includes("/atlas/library/shelf"), "draft's own courses and guides (the old Library shelf)");
+  assert.ok(hrefs.includes("/atlas/routes"), "draft's own courses and guides (the old Library shelf is Routes, D201 — its address forwards there)");
   // with the switches off, Compete's places are not offered (their addresses still say so)
   assert.ok(!atlasPlaces("/atlas", null).some((g) => g.label === "Compete"));
   // the area nav: the four views + More = every place
   const src = read("client/src/pages/atlas/AtlasVolume.jsx");
-  for (const v of ['label: "Your survey"', 'label: "Library"', 'label: "Today’s question"', 'label: "League"']) assert.ok(src.includes(v), v);
+  // ⭐ D201 (47m, changed on purpose): the five views — Your map · Gazetteer · Routes · Library · Your survey; Today's question and
+  // League are in More (atlasPlaces), which is every other place.
+  for (const v of ['label: "Your map"', 'label: "Gazetteer"', 'label: "Routes"', 'label: "Library"', 'label: "Your survey"']) assert.ok(src.includes(v), v);
   assert.match(src, /const more = atlasPlaces\(base, compete\)\.flatMap\(\(g\) => g\.links\)\.filter\(\(l\) => !inViews\.has\(l\.id\)\)/);
   // every old address still resolves to its page (AtlasPage), and the new ones exist
   const page = read("client/src/pages/atlas/AtlasPage.jsx");
   assert.match(page, /const regionN = slug && \/\^region\\\/\\d\+\$\/\.test\(slug\)/);
-  assert.ok(page.includes('{courseId === "shelf" && <LibraryShelf base={base} signedIn={signedIn} />}'), "the shelf at /library/shelf");
-  assert.ok(page.includes('{courseId && courseId !== "shelf" && (COURSES'), "every course / guide / deck page is unchanged");
+  // ⭐ D201 (47m, changed on purpose): the shelf and the two courses forward to Routes (their circle view kept); guides and
+  // decks keep their own pages (forwardOf returns null for them)
+  assert.ok(page.includes('if (course === "shelf") return `${base}/routes`;'), "the shelf forwards to Routes");
+  assert.ok(page.includes('if (course && ROUTE_COURSES.includes(course)) {'), "a course forwards to its route");
   assert.equal(courseIdOf("library/shelf"), "shelf");
   for (const [slug, panel] of [["your-map", "your-map"], ["your-run", "your-run"], ["your-skills", "your-skills"], ["check", "your-skills"], ["library", "library"],
     ["library/silicon-to-software", "library"], ["how-it-works", "how-it-works"], ["todays-question", "todays-question"], ["the-audit", "the-audit"],
