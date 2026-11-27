@@ -53,7 +53,7 @@ export function lessonsOf(course) {
   const out = [];
   for (const m of course?.modules || []) {
     const n = m.lessons.length;
-    m.lessons.forEach((l, i) => out.push({ ...l, module: m.n, moduleTitle: m.title, region: course.id === PATTERN_ID ? regionOf(3) : regionOf(m.n), stage: stageOf(i, n) }));
+    m.lessons.forEach((l, i) => out.push({ ...l, module: m.n, moduleTitle: m.title, region: course.id === PATTERN_ID ? regionOf(3) : regionOf(m.n), stage: stageOf(i, n), pattern: course.id === PATTERN_ID }));
   }
   return out;
 }
