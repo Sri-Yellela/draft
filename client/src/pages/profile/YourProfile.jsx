@@ -752,6 +752,7 @@ export default function YourProfile({ behind = null }) {
               <Ticket kicker="YOUR PUBLIC PAGE" title={publicUrl ? publicUrl.replace(/^https?:\/\//, "") : "No public link yet"}
                 line={vis.page === "public" && publicUrl ? "Open — what a visitor sees." : "Private until you open the visa page."} go={vis.page === "public" && publicUrl ? "Open →" : null}
                 href={vis.page === "public" && publicUrl ? publicUrl : undefined} />
+              {!page.source ? <Ticket kicker="SETTING OUT · ONE RÉSUMÉ" title="Hand over your résumé" line="It fills every section, your bearing and your stamps." go="Set out →" href="/app/setting-out" /> : null}
               <Ticket kicker="THE MARKET · YOUR BEARINGS" title="Job profiles" line="Every bearing you keep, and what you follow." go="Manage →" href="/app/job-profiles" />
             </div>
           </section>

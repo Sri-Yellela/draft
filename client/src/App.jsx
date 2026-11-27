@@ -29,6 +29,7 @@ import { JobProfilesPanel }      from "./panels/JobProfilesPanel.jsx";
 // ⭐ D167 · Profile and Interview, each with its own navigation (pages/profile, pages/interview). Profile mounts the old
 // settings pages (Profile, Saved answers, Integrations, Account, Customise) as its panels, so App no longer does.
 import ProfilePage               from "./pages/profile/ProfilePage.jsx";
+import SettingOutPage            from "./pages/settingout/SettingOutPage.jsx";   // ⭐ 47m: D197 #15 Setting out
 import { profilePanelFor, profilePath, LEGACY_PROFILE_ROUTES, PASSPORT_VIEWS, passportMore, PASSPORT_STAMPS_EVENT } from "./pages/profile/profilePanels.js";
 import ProvingGround, { useInterviewAreaNav } from "./pages/interview/ProvingGround.jsx";   // ⭐ D197 Wave 2 #13 (47m): Interview as the Proving ground
 import CompanyPage               from "./pages/companies/CompanyPage.jsx";   // D179 P4b
@@ -479,7 +480,7 @@ function AtlasAreaNav({ onHome }) {
 // this nav with its search, so each needs its name here (47j w1-shell checked: none is dead)
 const AREA_NAMES = { "auto-apply" : "Home",   // (the id, spaced for the D6 guard)
   atlas: "Atlas", interview: "Interview", profile: "Profile", network: "Network", feed: "Feed",
-  messages: "Messages", job: "Application", company: "Company", "job-profiles": "Job profiles", plans: "Plans", recruiter: "Recruiter" };
+  messages: "Messages", job: "Application", company: "Company", "job-profiles": "Your bearings", plans: "Plans", recruiter: "Recruiter", "setting-out": "Setting out" };
 
 // ⭐ D196 P1 · THE MARKET'S HERO (plate switch on): the board's own facet counts, the résumé's placement as the sentence
 // carries it (role_label, the level word when chosen), the ISO week. No best match yet — the deck holds it, and the hero
@@ -618,7 +619,7 @@ function AppDashboard({ authUser, setAuthUser }) {
   // route guard read, so dropping it here makes /app/plans bounce to the board the same way any
   // other non-tab path does — the panel is absent, not an empty panel that renders nothing.
   // Panels with a route and no tab: reachable by link, never advertised in the bar (D5).
-  const ROUTE_ONLY_TABS = ["recruiter", "job-profiles"];
+  const ROUTE_ONLY_TABS = ["recruiter", "job-profiles", "setting-out"];   // ⭐ 47m: Setting out (D197 #15) — reached from Your bearings, the passport, a new account
   const NAVIGABLE_TABS = useMemo(
     () => new Set([...appTabs.map(t => t.id).filter(id => id !== "console"),
                    ...(monetisationEnabled ? ["plans"] : []), "profile", "integrations", "account",
@@ -860,6 +861,7 @@ function AppDashboard({ authUser, setAuthUser }) {
             {activeTab === "profile" && profilePanel && <AreaErrorBoundary area="profile" {...areaGuard}><ProfilePage panel={profilePanel} user={authUser} onSignedOut={() => { setAuthContext(""); setAuthUser(null); }}/></AreaErrorBoundary>}
             {activeTab === "interview" && interviewPanel && <AreaErrorBoundary area="interview" {...areaGuard}><ProvingGround panel={interviewPanel}/></AreaErrorBoundary>}
             {activeTab === "job-profiles" && <AreaErrorBoundary area="job-profiles" {...areaGuard}><JobProfilesPanel/></AreaErrorBoundary>}
+            {activeTab === "setting-out" && <AreaErrorBoundary area="setting-out" {...areaGuard}><SettingOutPage/></AreaErrorBoundary>}
             {activeTab === "recruiter"    && <AreaErrorBoundary area="recruiter" {...areaGuard}><RecruiterPanel/></AreaErrorBoundary>}
             {activeTab === "atlas"        && <AreaErrorBoundary area="atlas" {...areaGuard}><AtlasPage base="/app/atlas"/></AreaErrorBoundary>}
             {activeTab === "company" && companyRoute && <AreaErrorBoundary area="company" {...areaGuard}><CompanyPage slug={companyRoute[1]} base="/app/companies" inApp/></AreaErrorBoundary>}

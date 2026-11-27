@@ -304,6 +304,7 @@ export const SHARED = Object.freeze({
   // ── lib ──
   "lib/accountAvatar.js":               { what: "the account avatar" },
   "lib/api.js":                         { what: "THE API client" },
+  "lib/bearing.js":                     { what: "47m · a job profile as its bearing sentence (the Cartouche's parts) — Your bearings and Setting out" },
   "lib/narrationVoice.js":              { what: "D194 (2) · the narration voice — one of this device's installed voices, chosen in Customise, used by the played deck" },
   "lib/personalState.js":               { what: "A148 · forget the signed-in person when they change (sign-out, a switch) — one place, every tab" },
   "lib/atlasLinks.js":                  { what: "D105 P5 · a skill tag's link to its PUBLISHED Atlas page — resolved in bulk, cached per page" },
@@ -391,6 +392,7 @@ export const COMPOSITIONS = Object.freeze([
   { from: "pages/profile/ProfilePage.jsx", to: "panels/SavedAnswersPanel.jsx", why: "D167: Profile → Saved answers is the saved-answer bank, whole (its own API)" },
   { from: "pages/profile/ProfilePage.jsx", to: "panels/IntegrationsPanel.jsx", why: "D167: Profile → Connections holds Integrations, whole (`embedded`)" },
   { from: "pages/profile/ProfilePage.jsx", to: "panels/AccountPanel.jsx", why: "D167: Account's cards spread over Notifications, Privacy, Account, Résumés and Connections (`only`)" },
+  { from: "pages/settingout/SettingOutPage.jsx", to: "pages/profile/ResumeSetup.jsx", why: "D197 #15 (47m): Setting out's leg 03 IS the passport's four-things ticket (FourThingsTicket) — one implementation, two places" },
   { from: "pages/profile/ProfilePage.jsx", to: "panels/CustomisePanel.jsx", why: "D167: Profile → Appearance IS the Customise screen, retained exactly (owner 11-06)" },
   { from: "panels/AutoApplyPanel.jsx", to: "panels/DatabasePanel.jsx", why: "D146: The Table merged into Draft House — its full sheet (spreadsheet, by company, board, funnel, pending, inbox) behind Settings → View" },
 ]);

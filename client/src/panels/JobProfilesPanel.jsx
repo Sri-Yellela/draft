@@ -20,22 +20,11 @@ import { Ticket, Cartouche } from "../plate/Tickets.jsx";
 import { Drawer, ErrorLine, Skeleton } from "../plate/PlateState.jsx";
 import { SettingsSheet, LabelledField } from "../plate/Person.jsx";
 import BearingsCompassRose from "../plate/drawings/BearingsCompassRose.jsx";
+import { bearingParts, LEVEL_WORDS as LEVEL } from "../lib/bearing.js";
 import "../plate/personPages.css";
 
-const LEVEL = { junior: "entry", mid: "mid", senior: "senior", executive: "executive" };
 const formatTimestamp = (value) => { if (!value) return ""; try { return new Date(Number(value) * 1000).toLocaleDateString(); } catch { return ""; } };
 const plain = (e) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
-
-/** PURE. A job profile as its bearing sentence's parts (each read value a dashed, tappable word — it opens the wizard). */
-export function bearingParts(p) {
-  const titles = (p.target_titles || []).slice(0, 3);
-  return [
-    "discovering ", { id: "role", text: p.profile_name || p.role_family || "your field", label: `Field: ${p.profile_name || p.role_family}. Change it` },
-    " roles at ", { id: "level", text: `${LEVEL[p.seniority] || p.seniority || "mid"} level`, label: "Level. Change it" },
-    ...(titles.length ? [" as ", { id: "titles", text: titles.join(", "), label: "Titles. Change them" }] : []),
-    ".",
-  ];
-}
 
 export function JobProfilesPanel() {
   const navigate = useNavigate();
@@ -191,7 +180,7 @@ export function JobProfilesPanel() {
             ) : null}
             {profilesState === "ready" && profiles.length === 0 ? (
               <Drawer title="No bearings yet" text="No job profiles yet. Add your first one and draft starts finding jobs that fit it."
-                actions={<button type="button" className="pl-btn pl-btn--primary" onClick={openCreate}>+ Add a bearing</button>} />
+                actions={<><a className="pl-btn pl-btn--primary" href="/app/setting-out">Set out with your résumé</a><button type="button" className="pl-btn" onClick={openCreate}>+ Add a bearing by hand</button></>} />
             ) : null}
             <div className="pl-bg-cards">
               {profiles.map((profile) => (
