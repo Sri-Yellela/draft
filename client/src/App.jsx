@@ -540,7 +540,7 @@ function AppDashboard({ authUser, setAuthUser }) {
   // ⭐ D105 P4 · /app/atlas and /app/atlas/:slug — the Atlas inside the app (the public mount is /atlas).
   // ⭐ D116 M7: and /app/atlas/family/:key, a family's page.
   // ⭐ D172 (2): and /app/atlas/library/:course, a course page.
-  const atlasRoute = /^atlas(?:\/(?:family|library|region))?(?:\/[^/]+)?$/.test(routeKey);   // ⭐ D197 #6 (47h): + /atlas/region/<n>
+  const atlasRoute = /^atlas(?:\/(?:family|library|region|gazetteer|routes))?(?:\/[^/]+)?$/.test(routeKey);   // ⭐ D197 #6 (47h): + /atlas/region/<n> · ⭐ #8 (47m): + /atlas/gazetteer/<entry>, /atlas/routes/<id>
   // ⭐ D179 P4b · /app/companies/<slug> — a company's page inside the shell (the dock stays; Back returns).
   const companyRoute = /^companies\/([a-z0-9][a-z0-9-]*)$/.exec(routeKey);
   // ⭐ D199 C7 · /app/jobs/<id> — one opening as its sheet, drawn OVER the market: the market stays mounted (activeTab "console")

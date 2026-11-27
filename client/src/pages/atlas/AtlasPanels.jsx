@@ -10,16 +10,14 @@
 //             This week's market (D150 T09 is not built: the auditable roles' open and new-this-week counts) ·
 //             Glossary (GET /api/atlas/glossary — the popup's own meaning, one source)
 // Every colour is a theme token (AtlasPanels.css); no pills — marks and depth boxes (D60).
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import { useRepeatsNav } from "../../components/PlaceNav.jsx";
-import { matchCandidate } from "../../../../shared/atlasSearchNormalize.js";
 import Navigator from "./Navigator.jsx";
 import ReadinessCheck from "./ReadinessCheck.jsx";
 import YourSkillsPanel from "./YourSkillsPanel.jsx";   // D169
-import { ExploreByRole, Recent, directionLine, useAtlasMe } from "./YourMap.jsx";
-import { KIND_LABEL } from "./atlasModel.js";
+import { directionLine, useAtlasMe } from "./YourMap.jsx";
 import { overviewStats, panelHref, learnStepHref } from "./atlasPanels.js";
 import "./AtlasPanels.css";
 import { NoteCard } from "../../components/TextBlocks.jsx";   // A233
@@ -218,20 +216,8 @@ export function AuditPanel({ base }) {
   );
 }
 
-// ── Explore · Roles and skills ───────────────────────────────────────────────────────────────────
-
-export function RolesPanel({ base, search }) {
-  const me = useAtlasMe();
-  return (
-    <div className="atl-pan" data-atlas-panel-body="roles-and-skills">
-      <PanelHead eyebrow="Explore" title="Roles and skills"
-        lead="Every role, skill, tool and stack in the Atlas: what it is, what the board asks for alongside it, and where to learn it." />
-      {search}
-      {me && <ExploreByRole roles={me.exploreByRole?.items} base={base} />}
-      {me && <Recent items={me.recent} base={base} />}
-    </div>
-  );
-}
+// ⭐ D201 (47m, lane gaz): Roles and skills, the Glossary and How it works are the Gazetteer's now (its browse by role, its
+// A–Z, each entry's Why it works — pages/atlas/AtlasGazetteer.jsx); their panels are retired, their addresses forward.
 
 // ── Explore · This week's market ─────────────────────────────────────────────────────────────────
 
@@ -280,117 +266,4 @@ export function AtlasMarketPanel({ base }) {   // 47j: renamed — MarketPanel i
   }, []);
   if (roles == null) return <p className="atl__quiet" role="status">Opening…</p>;
   return <MarketView base={base} roles={roles} cards={cards} />;
-}
-
-// ── Explore · Glossary ───────────────────────────────────────────────────────────────────────────
-
-export const GLOSSARY_PAGE = 120;
-
-/** The glossary's search — the ONE normaliser (shared/atlasSearchNormalize.js), over the name, then its meaning. */
-export function searchGlossary(terms, q) {
-  const query = String(q ?? "").trim();
-  if (!query) return terms || [];
-  const hits = [];
-  for (const t of terms || []) {
-    const m = matchCandidate(query, { name: t.name, definition: t.meaning || "" });
-    if (m) hits.push({ t, rank: m.rank });
-  }
-  return hits.sort((a, b) => a.rank - b.rank || a.t.name.localeCompare(b.t.name)).map(h => h.t);
-}
-
-/**
- * ⭐ D178 · the Glossary's rows: the Atlas terms (each with its lesson when the path teaches it) and the concept index's
- * other concepts as rows of their own — one list, by name. Pure.
- */
-export function glossaryRows(terms = [], concepts = []) {
-  const rows = [...terms, ...concepts.map(c => ({ slug: null, concept: true, name: c.name, kind: "concept", meaning: c.meaning, postings: null, learn: c.learn }))];
-  return rows.sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
-}
-
-/** The glossary drawn from GET /api/atlas/glossary — pure (the tests render it). */
-export function GlossaryView({ base, terms, concepts = [], q = "", onQ = () => {}, shown = GLOSSARY_PAGE, onMore = () => {} }) {
-  const all = useMemo(() => glossaryRows(terms, concepts), [terms, concepts]);
-  const hits = searchGlossary(all, q);
-  return (
-    <div className="atl-pan" data-atlas-panel-body="glossary">
-      <PanelHead eyebrow="Glossary" title="The words the market uses"
-        lead="Every term in the Atlas and every idea the course teaches, in plain words — with how many open postings use it, and the lesson that teaches it. Hover a linked term in a posting to see the same definition." />
-      <input className="atl__input atl-pan__search" type="search" value={q} onChange={(e) => onQ(e.target.value)} maxLength={80}
-        aria-label="Search the glossary" placeholder="Search a term" data-glossary-search="" />
-      <p className="atl__quiet" role="status" data-glossary-count="">{q.trim() ? `${num(hits.length)} of ${num(all.length)} terms` : `${num(all.length)} terms`}</p>
-      <ul className="atl-pan__gloss" data-glossary="">
-        {hits.slice(0, shown).map(t => (
-          <li key={t.slug || `concept:${t.name}`} className="atl-pan__term" data-glossary-term={t.slug || undefined} data-glossary-concept={t.concept ? t.name : undefined}>
-            <div className="atl-pan__term-t">
-              <b>{t.name}</b> <span className="mark mark--dim">{KIND_LABEL[t.kind] || t.kind}</span>
-              <p className="atl-pan__meaning" data-glossary-meaning="">
-                {t.meaning || <span className="atl__quiet">No plain-words definition yet.</span>}
-                {t.fromWikipedia && <span className="atl__quiet"> — From <a href={t.wikipediaUrl || "https://en.wikipedia.org"} target="_blank" rel="noopener noreferrer">Wikipedia</a> (CC BY-SA)</span>}
-              </p>
-            </div>
-            {t.postings != null
-              ? <span className="atl__count" data-glossary-postings={t.postings}>{num(t.postings)} posting{t.postings === 1 ? "" : "s"}</span>
-              : <span />}
-            <span className="atl-pan__term-go">
-              {t.slug && <Link className="atl__link" to={nodeHref(base, t.slug)} data-glossary-open="">Open in Atlas</Link>}
-              {/* ⭐ D178: the concept index's link — the lesson that teaches it, in the course's circle view. */}
-              {t.learn && <Link className="atl__link" to={learnStepHref(base, t.learn.stepId)} data-glossary-learn={t.learn.stepId} title={t.learn.label}>Learn it</Link>}
-            </span>
-          </li>
-        ))}
-      </ul>
-      {hits.length > shown && <button type="button" className="dbx-depth atl-home__go" onClick={onMore} data-glossary-more="">Show more ({num(hits.length - shown)} left)</button>}
-    </div>
-  );
-}
-
-export function GlossaryPanel({ base }) {
-  const [terms, setTerms] = useState(null);
-  const [concepts, setConcepts] = useState([]);
-  const [q, setQ] = useState("");
-  const [shown, setShown] = useState(GLOSSARY_PAGE);
-  useEffect(() => {
-    let live = true;
-    api("/api/atlas/glossary").then(r => { if (live) { setTerms(r.terms || []); setConcepts(r.concepts || []); } }).catch(() => live && setTerms(false));
-    return () => { live = false; };
-  }, []);
-  useEffect(() => { setShown(GLOSSARY_PAGE); }, [q]);
-  if (terms === null) return <p className="atl__quiet" role="status">Opening…</p>;
-  if (terms === false) return <p className="atl__quiet" role="alert">The glossary could not be reached just now.</p>;
-  return <GlossaryView base={base} terms={terms} concepts={concepts} q={q} onQ={setQ} shown={shown} onMore={() => setShown(n => n + GLOSSARY_PAGE)} />;
-}
-
-/**
- * ⭐ A154 (45o, the D172 sketch: "How it works — each idea drawn as one picture: a coloured card per concept with an icon
- * tile and its flow"). One card per approved deck whose Core ideas slide names its parts in order (GET /api/learn/how-it-works);
- * the parts drawn as boxes joined by arrows; the card opens its deck. A find box narrows by title or part. Colours from tokens.
- */
-const PATHWAY_WORD = { software: "Software", data: "Data", ai: "AI", "ml-ai": "AI", security: "Security", design: "Design", mechanical: "Mechanical" };
-export function HowItWorksPanel({ base }) {
-  const [ideas, setIdeas] = useState(null);
-  const [q, setQ] = useState("");
-  useEffect(() => { let live = true; api("/api/learn/how-it-works").then(r => live && setIdeas(r.ideas || [])).catch(() => live && setIdeas([])); return () => { live = false; }; }, []);
-  const needle = q.trim().toLowerCase();
-  const shown = (ideas || []).filter(d => !needle || d.title.toLowerCase().includes(needle) || d.flow.some(p => p.toLowerCase().includes(needle)));
-  return (
-    <div className="atl-pan" data-atlas-panel-body="how-it-works">
-      <PanelHead eyebrow="How it works" title="Each idea as one picture" lead="The parts of an idea in the order they work — open one for its five-slide deck." />
-      <input className="hiw__find" type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Find an idea (Kafka, threads, RAG)" aria-label="Find an idea" data-hiw-find="" />
-      {!ideas && <p className="atl__quiet" role="status">Reading the ideas…</p>}
-      {ideas && shown.length === 0 && <p className="atl__quiet" data-hiw-none="">{ideas.length ? `Nothing matches “${q.trim()}”.` : "No idea is drawn yet."}</p>}
-      <ul className="hiw" data-hiw="">
-        {shown.map(d => (
-          <li key={d.id} className={`hiw__card hiw__card--${d.pathway}`} data-hiw-idea={d.id}>
-            <span className="hiw__tile" aria-hidden="true">{(PATHWAY_WORD[d.pathway] || d.pathway).slice(0, 2)}</span>
-            <div className="hiw__body">
-              <Link to={`${base}/library/${encodeURIComponent(d.id)}`} className="hiw__t">{d.title}</Link>
-              <ol className="hiw__flow" aria-label={`${d.title}, in order`}>
-                {d.flow.map((p, i) => <li key={i}>{i > 0 && <span className="hiw__arrow" aria-hidden="true">→</span>}<span className="hiw__step">{p}</span></li>)}
-              </ol>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }
