@@ -101,7 +101,8 @@ export const MODULES = Object.freeze({
       // (RouteMap: shared, the practice lane's AskRoute / Logbook reuse it)
       "plate/RouteMap.jsx", "plate/Gazetteer.jsx", "pages/atlas/AtlasGazetteer.jsx", "pages/atlas/gazetteerModel.js",
       // ⭐ D197 Wave 2 #9 / #15 / #17 · M5 (47m, lane person): Your passport and its settings, the four things, in the plate system
-      "pages/profile/ProfilePage.jsx", "pages/profile/YourProfile.jsx", "pages/profile/PassportSettings.jsx", "pages/profile/ResumeSetup.jsx"] },
+      "pages/profile/ProfilePage.jsx", "pages/profile/YourProfile.jsx", "pages/profile/PassportSettings.jsx", "pages/profile/ResumeSetup.jsx",
+      "panels/JobProfilesPanel.jsx" /* Your bearings */, "panels/JobWorkspacePanel.jsx" /* The voyage */, "pages/settingout/SettingOutPage.jsx" /* Setting out */, "components/AuthScreen.jsx" /* sign in */] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminGateway.jsx", "panels/adminFlags.jsx","panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "panels/adminReports.jsx", "panels/adminCompanyRecords.jsx", "panels/adminNetwork.jsx", "panels/adminRuns.jsx", "panels/adminPhase1.jsx", "panels/adminDiagnostics.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.
@@ -226,7 +227,6 @@ export const SHARED = Object.freeze({
   "components/PaperBackground.jsx":     { what: "the paper grain behind every page" },
   "components/ui/DateCalendar.jsx":     { what: "the date picker" },
   "components/ui/PanelControls.jsx":    { what: "a panel's tab and search controls" },
-  "components/ui/TileCard.jsx":         { what: "the profile tile" },
   "components/ui/toast.jsx":            { what: "toast primitives (shadcn)" },
   "components/ui/toaster.jsx":          { what: "the app's toaster" },
   // ── module-private parts ──

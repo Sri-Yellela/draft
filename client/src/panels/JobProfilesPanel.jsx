@@ -1,38 +1,56 @@
-// SCRAPING — SCHEDULED FOR REMOVAL AFTER MIGRATION
-import { useCallback, useEffect, useState } from "react";
+// ⭐ D197 Wave 2 · M5 (47m, lane person) · JOB PROFILES → *YOUR BEARINGS* (docs/revamp/jobprofiles.md — the PROPOSED M2,
+// built as proposed: agent's pick, the owner may reverse). A job profile is a BEARING — the market's word for the sentence
+// filter — and this page is the drawer of every bearing you keep, the one you travel on (ACTIVE) and what you follow.
+// Every M1 row keeps its home (J1–J16): the header + Add a bearing (the wizard) · the status line · the carried résumé (the
+// page's one clay point while it exists) · Refine (read from your résumé) · one bearing card per profile (its sentence, its
+// base résumé — Upload / Replace / Use <carried>, Include a summary section, Edit · Activate · Delete) · read failed / empty ·
+// 02 What you follow (saved searches, companies, tracked pages — Track a page). Plate tokens only; the region is IV.
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";   // D159 T2 (46y): a tracker's Open goes to the board
 import { api } from "../lib/api.js";
 import { parseResumeFile } from "../lib/parseResumeFile.js";
-import { useTheme } from "../styles/theme.jsx";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import DomainProfileWizard from "../components/DomainProfileWizard.jsx";
-import RefineJobProfile from "../components/RefineJobProfile.jsx";
-// AC3: the card idiom below was lifted OUT of this panel into a shared primitive, and this panel
-// renders it. Extraction, not duplication — see the note at the top of TileCard.jsx.
-import { TileGrid, TileCard, TilePill } from "../components/ui/TileCard.jsx";
-import { C } from "../styles/colorTokens.js";
-import { TYPE } from "../styles/type.js";
+import { profileToRefine } from "../components/RefineJobProfile.jsx";
 import { carriedResume, dropCarriedResume } from "../lib/signupCarry.js";
-import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
+import PlateRoot from "../plate/PlateRoot.jsx";
+import { Kickers } from "../plate/Marks.jsx";
+import { StatsStrip, LegHeader, PlateHero } from "../plate/Plates.jsx";
+import { Ticket, Cartouche } from "../plate/Tickets.jsx";
+import { Drawer, ErrorLine, Skeleton } from "../plate/PlateState.jsx";
+import { SettingsSheet, LabelledField } from "../plate/Person.jsx";
+import BearingsCompassRose from "../plate/drawings/BearingsCompassRose.jsx";
+import "../plate/personPages.css";
+
+const LEVEL = { junior: "entry", mid: "mid", senior: "senior", executive: "executive" };
+const formatTimestamp = (value) => { if (!value) return ""; try { return new Date(Number(value) * 1000).toLocaleDateString(); } catch { return ""; } };
+const plain = (e) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
+
+/** PURE. A job profile as its bearing sentence's parts (each read value a dashed, tappable word — it opens the wizard). */
+export function bearingParts(p) {
+  const titles = (p.target_titles || []).slice(0, 3);
+  return [
+    "discovering ", { id: "role", text: p.profile_name || p.role_family || "your field", label: `Field: ${p.profile_name || p.role_family}. Change it` },
+    " roles at ", { id: "level", text: `${LEVEL[p.seniority] || p.seniority || "mid"} level`, label: "Level. Change it" },
+    ...(titles.length ? [" as ", { id: "titles", text: titles.join(", "), label: "Titles. Change them" }] : []),
+    ".",
+  ];
+}
 
 export function JobProfilesPanel() {
-  const { theme } = useTheme();
+  const navigate = useNavigate();
   const { setActiveProfileId, deleteProfileCache } = useJobBoard() || {};
   const [profiles, setProfiles] = useState([]);
-  // ⛔ D156 (6) · "loading" | "ready" | "error": "No job profiles yet" only when the read SUCCEEDED and found none — a read
-  // the server did not answer is said as such, with Try again (d156FailedReadNeverShownAsMissing).
+  // ⛔ D156 (6) · "loading" | "ready" | "error": "No job profiles yet" only when the read SUCCEEDED and found none.
   const [profilesState, setProfilesState] = useState("loading");
   const [status, setStatus] = useState("");
+  const [said, setSaid] = useState("");   // the one operable model's caption: "Now travelling on …"
   const [wizardMode, setWizardMode] = useState(null);
   const [editingProfile, setEditingProfile] = useState(null);
+  const [refining, setRefining] = useState(false);
   const [uploadingProfileId, setUploadingProfileId] = useState(null);
   const [carried, setCarried] = useState(() => carriedResume());
-
-  const formatTimestamp = (value) => {
-    if (!value) return "";
-    try { return new Date(Number(value) * 1000).toLocaleDateString(); }
-    catch { return ""; }
-  };
+  const [trackers, setTrackers] = useState({ state: "loading", data: null });
 
   const loadProfiles = useCallback(async () => {
     try {
@@ -40,27 +58,30 @@ export function JobProfilesPanel() {
       const next = Array.isArray(rows) ? rows : [];
       setProfiles(next);
       setProfilesState("ready");
-      const active = next.find(p => p.is_active) || next[0];
+      const active = next.find((p) => p.is_active) || next[0];
       if (active) setActiveProfileId?.(active.id);
     } catch (e) {
-      setProfilesState(s => (s === "ready" ? s : "error"));
+      setProfilesState((s) => (s === "ready" ? s : "error"));
       setStatus(e.message || "Could not load job profiles");
     }
   }, [setActiveProfileId]);
-
+  const loadTrackers = useCallback(async () => {
+    try { setTrackers({ state: "ready", data: await api("/api/trackers", { timeoutMs: 20000 }) }); }
+    catch { setTrackers((t) => ({ ...t, state: "error" })); }
+  }, []);
   useEffect(() => { loadProfiles(); }, [loadProfiles]);
+  useEffect(() => { loadTrackers(); }, [loadTrackers, profiles.length]);
 
   const activateProfile = async (id) => {
     try {
       await api(`/api/domain-profiles/${id}/activate`, { method: "POST" });
-      setProfiles(prev => prev.map(p => ({ ...p, is_active: p.id === id ? 1 : 0 })));
+      setProfiles((prev) => prev.map((p) => ({ ...p, is_active: p.id === id ? 1 : 0 })));
       setActiveProfileId?.(id);
+      const p = profiles.find((x) => x.id === id);
       setStatus("Active job profile updated");
-    } catch (e) {
-      setStatus(e.message || "Could not activate profile");
-    }
+      setSaid(`Now travelling on ${p?.profile_name || "this bearing"} · ${LEVEL[p?.seniority] || p?.seniority || "mid"}.`);
+    } catch (e) { setStatus(e.message || "Could not activate profile"); }
   };
-
   const deleteProfile = async (profile) => {
     if (!profile || profiles.length <= 1) return;
     if (!confirm(`Delete job profile "${profile.profile_name}"?`)) return;
@@ -69,311 +90,198 @@ export function JobProfilesPanel() {
       deleteProfileCache?.(profile.id);
       await loadProfiles();
       setStatus("Job profile deleted");
-    } catch (e) {
-      setStatus(e.message || "Could not delete profile");
-    }
+    } catch (e) { setStatus(e.message || "Could not delete profile"); }
   };
-
-  const openCreate = () => {
-    setEditingProfile(null);
-    setWizardMode("create");
-  };
-
-  const openEdit = (profile) => {
-    setEditingProfile(profile);
-    setWizardMode("edit");
-  };
-
-  const uploadProfileResume = async (profile, event) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
+  const openCreate = () => { setEditingProfile(null); setRefining(false); setWizardMode("create"); };
+  const openEdit = (profile, refine = false) => { setEditingProfile(profile); setRefining(refine); setWizardMode("edit"); };
+  const uploadProfileResume = async (profile, file) => {
     if (!file || !profile?.id) return;
     setUploadingProfileId(profile.id);
     setStatus(`Parsing resume for ${profile.profile_name}...`);
     try {
       const text = await parseResumeFile(file);
       if (!String(text || "").trim()) throw new Error("No text was extracted from that resume");
-      await api(`/api/domain-profiles/${profile.id}/base-resume`, {
-        method: "POST",
-        body: JSON.stringify({ content: text, name: file.name }),
-      });
+      await api(`/api/domain-profiles/${profile.id}/base-resume`, { method: "POST", body: JSON.stringify({ content: text, name: file.name }) });
       await loadProfiles();
       setStatus(`Base resume updated for ${profile.profile_name}. Extracted signals were refreshed for this profile only.`);
-    } catch (e) {
-      setStatus(e.message || "Could not upload profile resume");
-    } finally {
-      setUploadingProfileId(null);
-    }
+    } catch (e) { setStatus(e.message || "Could not upload profile resume"); }
+    finally { setUploadingProfileId(null); }
   };
-
-  // AI1. The summary toggle lives here, beside the base resume, because it is a per-profile RESUME
-  // setting and each profile answers it differently — a candidate keeps the summary on the profile
-  // where it carries a career pivot and off the one where page one is already full.
-  //
-  // Optimistic, then reconciled: a checkbox that waits on a round trip before moving reads as
-  // broken. On failure the previous value is put back and the reason is said, rather than the
-  // control sitting on a setting the server never accepted.
+  // AI1. The summary toggle — optimistic, then reconciled; on failure the previous value is put back and the reason said.
   const setIncludeSummary = async (profile, next) => {
     const previous = profile.include_summary;
-    setProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, include_summary: next } : p));
+    setProfiles((prev) => prev.map((p) => (p.id === profile.id ? { ...p, include_summary: next } : p)));
     try {
-      await api(`/api/domain-profiles/${profile.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ include_summary: next }),
-      });
+      await api(`/api/domain-profiles/${profile.id}`, { method: "PUT", body: JSON.stringify({ include_summary: next }) });
       setStatus(next
         ? `Summary section on for ${profile.profile_name}. It will appear on resumes generated from now on.`
         : `Summary section off for ${profile.profile_name}. Resumes generated from now on will have no summary.`);
     } catch (e) {
-      setProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, include_summary: previous } : p));
+      setProfiles((prev) => prev.map((p) => (p.id === profile.id ? { ...p, include_summary: previous } : p)));
       setStatus(e.message || "Could not change the summary setting");
     }
   };
-
-  const closeWizard = () => {
-    setWizardMode(null);
-    setEditingProfile(null);
+  const closeWizard = () => { setWizardMode(null); setEditingProfile(null); setRefining(false); };
+  const onClick = (e) => {
+    const a = e.target.closest?.("a[href]");
+    if (!a || e.defaultPrevented || !plain(e) || a.target) return;
+    const href = a.getAttribute("href");
+    if (!/^\/(app|companies)\b/.test(href || "")) return;
+    e.preventDefault(); navigate(href);
   };
 
+  const active = profiles.find((p) => p.is_active) || null;
+  const toRefine = profileToRefine(profiles, active?.id ?? null);
+  const t = trackers.data;
+  const newCount = t ? [...t.searches, ...t.companies].reduce((n, x) => n + (Number(x.newCount) || 0), 0) : null;
+  const jump = (id) => () => document.getElementById(id)?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  const needles = profiles.filter((p) => !p.is_active).slice(0, 2).map((p) => p.profile_name || "");
+
   return (
-    // A53: no glass sheet under the page — the leather is the substrate and only the cards are glass
-    // (the board's 09-30 fix, which this surface never got).
-    <div style={{ flex:1, overflow:"auto", padding:"24px 28px", background:"transparent", color:"var(--color-text)" }}>
-      <div data-page-width="fill">
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:16, marginBottom:18 }}>
-          <div>
-            <div className="rm-section-label">Job Profiles</div>
-            <h1 style={{ ...TYPE.PAGE_TITLE, margin:"6px 0 10px" }}>
-              Job profiles
-            </h1>
-            <p style={{ ...TYPE.LEAD, margin:0, maxWidth:640 }}>
-              Create, edit, delete, and switch profile-specific search targets. Each job profile keeps its own titles,
-              skills, base resume, extracted signals, ATS basis, and search behavior.
-            </p>
-          </div>
-          <button type="button" className="rm-btn rm-btn-primary" onClick={openCreate}>
-            + Add Profile
-          </button>
+    <PlateRoot region="IV" className="pl-pp-page" data-job-profiles="" onClick={onClick}>
+      <header className="pl-page pl-pp-head">
+        <Kickers parts={["THE MARKET", "JOB PROFILES"]} />
+        <h1 className="pl-pp-working">Your bearings</h1>
+        <p className="pl-lead pl-lead--body">Each bearing keeps its own titles, skills, base résumé and search. The active one is the one the market travels on.</p>
+        <StatsStrip label="Your bearings at a glance" cells={[
+          { value: profilesState === "ready" ? profiles.length : null, label: "BEARINGS", onClick: jump("bg-bearings") },
+          { value: active ? (active.profile_name || "—") : null, label: "ACTIVE", onClick: jump("bg-bearings") },
+          { value: t ? t.searches.length : null, label: "SAVED SEARCHES", onClick: jump("bg-follow") },
+          { value: t ? t.companies.length : null, label: "COMPANIES FOLLOWED", onClick: jump("bg-follow") },
+          { value: newCount, label: "NEW SINCE YOUR LAST VISIT", onClick: jump("bg-follow"), tone: newCount ? "clay" : undefined },
+        ]} />
+        <div className="pl-actions">
+          <button type="button" className="pl-btn pl-btn--ink" onClick={openCreate}>+ Add a bearing</button>
         </div>
+        {status ? <p className="pl-pp-note" role="status">{status}</p> : null}
+        <p className="pl-label pl-muted" aria-live="polite" data-bearing-caption="">{said}</p>
+      </header>
 
-        {status && (
-          <div style={{ marginBottom:14, fontSize:ts(12), color:"var(--color-text-muted)" }}>
-            {status}
+      <div className="pl-page pl-pp-body">
+        {/* "Sign up to keep it" (queue 30): the résumé this visitor scored on the signup page, carried in memory. Offered once. */}
+        {carried ? (
+          <div className="pl-pp-callout" data-carried-resume="">
+            <span><b>{carried.file.name}</b> — the résumé you checked before signing up.{" "}
+              {carried.from === "honesty" && carried.flagged > 0 ? (
+                <span data-carried-honesty="">{`The honesty check flagged ${carried.flagged} line${carried.flagged === 1 ? "" : "s"} you may not be able to defend — open it in the editor from your passport to fix them. `}</span>
+              ) : null}
+              {profiles.some((p) => !p.has_base_resume) ? "Use it as a bearing's base résumé below." : "Add a bearing and it will be offered as its base résumé."}</span>
+            <button type="button" className="pl-btn" onClick={() => { dropCarriedResume(); setCarried(null); }}>Not this one</button>
           </div>
-        )}
-
-        {/* "Sign up to keep it" (queue 30): the résumé this visitor scored on the signup page, carried
-            in memory into the new account. Offered once; it never touches browser storage. */}
-        {carried && (
-          <div data-carried-resume style={{ marginBottom:14, padding:"12px 14px", borderRadius:12, background:C.ACCENT_QUIET,
-                                            color:C.INK, fontSize:ts(13), lineHeight:1.5, display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
-            <span style={{ flex:1, minWidth:220 }}>
-              <strong>{carried.file.name}</strong> — the résumé you checked before signing up.{" "}
-              {/* D141 (46y): from the honesty check — say what there is to fix once it is the base résumé. */}
-              {carried.from === "honesty" && carried.flagged > 0 && (
-                <span data-carried-honesty>{`The honesty check flagged ${carried.flagged} line${carried.flagged === 1 ? "" : "s"} you may not be able to defend — open it in the editor from your profile to fix them. `}</span>
-              )}
-              {profiles.some(p => !p.has_base_resume)
-                ? "Use it as a profile's base résumé below."
-                : "Add a profile and it will be offered as that profile's base résumé."}
-            </span>
-            <button type="button" className="rm-btn rm-btn-sm" onClick={() => { dropCarriedResume(); setCarried(null); }}>
-              Not this one
-            </button>
+        ) : null}
+        {/* D112 e2: a profile made from a résumé asks to be checked until the wizard is saved for it. */}
+        {toRefine ? (
+          <div data-refine-job-profile={toRefine.id}>
+            <SettingsSheet kicker="READ FROM YOUR RÉSUMÉ · CHECK WHAT IT READ" title={toRefine.profile_name || "Your job profile"}
+              lead="It was set up from your résumé. Check the field, level, titles and keywords it read — everything is already filled in."
+              actions={<button type="button" className={carried ? "pl-btn pl-btn--ink" : "pl-btn pl-btn--primary"} onClick={() => openEdit(toRefine, true)}>Refine your job profile</button>} />
           </div>
-        )}
-
-        {/* The card idiom this panel established now lives in components/ui/TileCard.jsx, and this
-            panel renders it (AC3 requirement 1: reuse the primitive, do not clone it into a second
-            implementation). The markup was lifted out and parameterised, not rebuilt — every value
-            is the one that was here, so these cards are unchanged. */}
-        {/* D112 e2: a profile made from a résumé shows "Refine your job profile" until the wizard is saved for it. */}
-        <RefineJobProfile profiles={profiles} activeId={profiles.find(p => p.is_active)?.id ?? null} onRefined={() => loadProfiles()} />
-
-        <TileGrid min={260} gap={14}>
-          {profiles.map(profile => {
-            const active = !!profile.is_active;
-            return (
-              <TileCard
-                key={profile.id}
-                active={active}
-                data={{ tile: "profile", profile: profile.id }}
-                title={profile.profile_name}
-                meta={`${profile.seniority || "mid"} | ${profile.has_base_resume ? "resume linked" : "resume missing"}`}
-                pill={active ? <TilePill>Active</TilePill> : null}
-                body={(profile.target_titles || []).slice(0, 3).join(", ") || profile.role_family || "No target titles yet"}
-                inset={
-                  <>
-                    <div style={{ display:"flex", justifyContent:"space-between", gap:10, alignItems:"center" }}>
-                      <div>
-                        <div style={{ fontSize:ts(11), fontWeight:800, textTransform:"uppercase", letterSpacing:"0.06em", color:"var(--color-text)" }}>
-                          Base Resume
-                        </div>
-                        <div style={{ fontSize:ts(11), color:profile.has_base_resume ? C.SUCCESS : C.WARNING, marginTop:3 }}>
-                          {profile.has_base_resume
-                            ? `Ready${profile.base_resume_updated_at ? ` · ${formatTimestamp(profile.base_resume_updated_at)}` : ""}`
-                            : "Needed before draft can find and score jobs"}
-                        </div>
-                        <div style={{ fontSize:ts(10), color:"var(--color-text-muted)", marginTop:2 }}>
-                          {profile.has_base_resume
-                            ? "Read from your résumé, for this job profile only"
-                            : "Upload a résumé to start finding and scoring jobs for this profile"}
-                        </div>
-                      </div>
-                      {carried && !profile.has_base_resume && uploadingProfileId !== profile.id && (
-                        <button type="button" className="rm-btn rm-btn-sm rm-btn-primary" style={{ margin:0 }}
-                          onClick={() => { const file = carried.file; dropCarriedResume(); setCarried(null);
-                                           uploadProfileResume(profile, { target: { files: [file], value: "" } }); }}>
-                          Use {carried.file.name}
-                        </button>
-                      )}
-                      <label className="rm-btn rm-btn-sm" style={{ cursor:"pointer", margin:0 }}>
-                        {uploadingProfileId === profile.id
-                          ? "Parsing..."
-                          : profile.has_base_resume ? "Replace" : "Upload"}
-                        <input
-                          type="file"
-                          accept=".txt,.html,.md,.docx,.pdf"
-                          onChange={event => uploadProfileResume(profile, event)}
-                          style={{ display:"none" }}
-                          disabled={uploadingProfileId === profile.id}
-                        />
-                      </label>
-                    </div>
-                    <div style={{ marginTop:7, fontSize:ts(10), color:"var(--color-text-muted)", lineHeight:1.4 }}>
-                      Stored and extracted only for this profile. Other profiles keep their own resume, signals, ATS basis, and search readiness.
-                    </div>
-                    {/* AI1. The copy says WHAT IT DOES, not why a summary might help — the
-                        candidate is choosing a section, not being sold one. The second line is
-                        there because the default changed underneath existing users: every resume
-                        generated before this had a summary, and one generated now will not unless
-                        this is on. Saying so here is the difference between a default and a
-                        surprise. */}
-                    <div style={{ marginTop:9, paddingTop:9, borderTop:"1px solid var(--color-border)" }}>
-                      <label style={{ display:"flex", gap:8, alignItems:"flex-start", cursor:"pointer", margin:0 }}>
-                        <input
-                          type="checkbox"
-                          checked={!!profile.include_summary}
-                          onChange={event => setIncludeSummary(profile, event.target.checked)}
-                          style={{ marginTop:2, flexShrink:0 }}
-                        />
-                        <span>
-                          <span style={{ fontSize:ts(11), fontWeight:800, textTransform:"uppercase", letterSpacing:"0.06em", color:"var(--color-text)" }}>
-                            Include a summary section
-                          </span>
-                          <span style={{ display:"block", fontSize:ts(10), color:"var(--color-text-muted)", marginTop:2, lineHeight:1.4 }}>
-                            {profile.include_summary
-                              ? "Generated resumes for this profile open with a summary."
-                              : "Off. Generated resumes for this profile have no summary section — resumes generated before this setting existed did."}
-                          </span>
-                        </span>
-                      </label>
-                    </div>
-                    {/* ⛔ D165 R1: AL2's per-profile deferral toggle is gone — every run writes its résumé first (routes/apply.js deferGeneration). */}
-                  </>
-                }
-                footer={
-                  <>
-                    <button type="button" className="rm-btn rm-btn-sm" onClick={() => openEdit(profile)}>
-                      Edit
-                    </button>
-                    <button type="button" className="rm-btn rm-btn-sm" onClick={() => activateProfile(profile.id)} disabled={active}>
-                      {active ? "Active" : "Switch"}
-                    </button>
-                    <button
-                      type="button"
-                      className="rm-btn rm-btn-sm"
-                      onClick={() => deleteProfile(profile)}
-                      disabled={profiles.length <= 1}
-                      style={{ color:profiles.length <= 1 ? "var(--color-text-muted)" : C.DANGER }}
-                    >
-                      Delete
-                    </button>
-                  </>
-                }
-              />
-            );
-          })}
-        </TileGrid>
-
-        {profilesState === "error" && profiles.length === 0 && (
-          <div role="alert" data-profiles-read-failed="" style={{
-            border:`1px dashed ${"var(--color-border)"}`,
-            background:"var(--color-surface)",
-            borderRadius:16,
-            padding:"28px",
-            textAlign:"center",
-            color:"var(--color-text-muted)",
-          }}>
-            We couldn't load your job profiles — draft didn't answer in time. Nothing is lost.{" "}
-            <button type="button" onClick={() => { setProfilesState("loading"); loadProfiles(); }}
-              style={{ background:"none", border:0, padding:0, cursor:"pointer", fontWeight:700,
-                       color:"var(--c-accent-ink)", textDecoration:"underline" }}>
-              Try again
-            </button>
-          </div>
-        )}
-
-        {profilesState === "ready" && profiles.length === 0 && (
-          <div style={{
-            border:`1px dashed ${"var(--color-border)"}`,
-            background:"var(--color-surface)",
-            borderRadius:16,
-            padding:"28px",
-            textAlign:"center",
-            color:"var(--color-text-muted)",
-          }}>
-            No job profiles yet. Add your first one and draft starts finding jobs that fit it.
-          </div>
-        )}
-        {/* ⭐ D159 T2–T4 (46y): no sketch exists for trackers — the smallest UI, in this existing panel (beside the job
-            profiles the saved searches belong to). */}
-        <Trackers profiles={profiles} onActivate={setActiveProfileId} />
+        ) : null}
       </div>
 
-      {wizardMode && (
+      <section className="pl-section" id="bg-bearings" aria-labelledby="bg-bearings-t">
+        <LegHeader n={1} meta="EACH BEARING · ITS SENTENCE · ITS BASE RÉSUMÉ" title={<span id="bg-bearings-t">The bearings</span>} />
+        <div className="pl-pp-row">
+          <div className="pl-pp-main">
+            {profilesState === "loading" ? <Skeleton label="Loading your bearings" height={260} lines={4} /> : null}
+            {profilesState === "error" && profiles.length === 0 ? (
+              <div data-profiles-read-failed="" role="alert">
+                <ErrorLine text="We couldn't load your job profiles — draft didn't answer in time. Nothing is lost." onRetry={() => { setProfilesState("loading"); loadProfiles(); }} />
+              </div>
+            ) : null}
+            {profilesState === "ready" && profiles.length === 0 ? (
+              <Drawer title="No bearings yet" text="No job profiles yet. Add your first one and draft starts finding jobs that fit it."
+                actions={<button type="button" className="pl-btn pl-btn--primary" onClick={openCreate}>+ Add a bearing</button>} />
+            ) : null}
+            <div className="pl-bg-cards">
+              {profiles.map((profile) => (
+                <BearingCard key={profile.id} profile={profile} last={profiles.length <= 1} carried={carried} busy={uploadingProfileId === profile.id}
+                  onPart={() => openEdit(profile)} onEdit={() => openEdit(profile)} onActivate={() => activateProfile(profile.id)} onDelete={() => deleteProfile(profile)}
+                  onUpload={(file) => uploadProfileResume(profile, file)} onSummary={(v) => setIncludeSummary(profile, v)}
+                  onUseCarried={() => { const file = carried.file; dropCarriedResume(); setCarried(null); uploadProfileResume(profile, file); }} />
+              ))}
+            </div>
+          </div>
+          <div className="pl-pp-side">
+            <PlateHero aspect="360 / 220" caption={<span className="pl-label">ONE NEEDLE PER BEARING · THE ACTIVE ONE INKED</span>}>
+              <BearingsCompassRose label={`A compass rose, one needle per bearing; the active one, ${active?.profile_name || "none yet"}, is inked`}
+                active={active?.profile_name || ""} needle1={needles[0] || ""} needle2={needles[1] || ""} />
+            </PlateHero>
+          </div>
+        </div>
+      </section>
+
+      <Trackers id="bg-follow" state={trackers.state} data={t} reload={loadTrackers} onActivate={setActiveProfileId} />
+
+      <section className="pl-section pl-section--last" aria-labelledby="bg-onward-t">
+        <LegHeader n={3} meta="ONWARD · FROM YOUR BEARINGS" title={<span id="bg-onward-t">Tickets out</span>} />
+        <div className="pl-tickets">
+          <Ticket tone={carried || toRefine ? "plain" : "clay-tint"} kicker="THE MARKET" title={active ? `Set out on ${active.profile_name}` : "The market"}
+            line="Today's picks and every opening, read against this bearing." go="Open →" href="/app/jobs" />
+          <Ticket kicker="YOUR PASSPORT" title="Your page, from your résumé" line="Only you can see it until you choose." go="Open →" href="/app/profile/about" />
+        </div>
+      </section>
+
+      {wizardMode ? (
         <DomainProfileWizard
-          key={editingProfile ? `edit-${editingProfile.id}` : "create-profile"}
+          key={editingProfile ? `${refining ? "refine" : "edit"}-${editingProfile.id}` : "create-profile"}
           mode={wizardMode}
+          refine={refining || undefined}
           initialProfile={editingProfile}
-          onComplete={(profile) => {
-            closeWizard();
-            loadProfiles().then(() => {
-              if (profile?.id) setActiveProfileId?.(profile.id);
-            });
-          }}
+          onComplete={(profile) => { closeWizard(); loadProfiles().then(() => { if (profile?.id) setActiveProfileId?.(profile.id); }); }}
           onDismiss={closeWizard}
-          bannerText={wizardMode === "edit"
-            ? "Change the roles and skills for this job profile. Your other profiles stay as they are."
+          bannerText={refining ? "Read from your résumé — change anything that is not right. Every step is optional."
+            : wizardMode === "edit" ? "Change the roles and skills for this job profile. Your other profiles stay as they are."
             : "Use the guided selector UI from registration to create another profile."}
         />
-      )}
-    </div>
+      ) : null}
+    </PlateRoot>
   );
 }
 
-// ── ⭐ D159 T2–T4 (46y) · TRACKERS ─────────────────────────────────────────────────────────────────────────────────
-// A saved search (the board's More filters → Save Search, one per job profile), a followed company (its page's Follow) and
-// a pasted careers page / board — each with what is NEW since you last looked (GET /api/trackers; routes/trackers.js).
-// Open marks it seen. No sketch: the smallest UI, plain rows and words (no pills — D60).
+/** One bearing: its sentence (each word opens the wizard), its base résumé, the summary switch, Edit · Activate · Delete. */
+function BearingCard({ profile, last, carried, busy, onPart, onEdit, onActivate, onDelete, onUpload, onSummary, onUseCarried }) {
+  const file = useRef(null);
+  const active = !!profile.is_active;
+  return (
+    <article className="pl-bg-card" data-tile="profile" data-profile={profile.id} data-active={active ? "" : undefined}>
+      <Cartouche kicker={active ? "BEARING · ACTIVE · THE MARKET TRAVELS ON THIS ONE" : "BEARING"} source={profile.role_family ? String(profile.role_family).toUpperCase() : null}
+        parts={bearingParts(profile)} onPart={onPart}
+        actions={<>
+          <button type="button" className="pl-btn" onClick={onEdit}>Edit</button>
+          <button type="button" className="pl-btn pl-btn--ink" onClick={onActivate} disabled={active}>{active ? "Active" : "Activate"}</button>
+          <button type="button" className="pl-btn pl-btn--dashed" onClick={onDelete} disabled={last} title={last ? "The last bearing can't be deleted" : undefined}>Delete</button>
+        </>} />
+      <SettingsSheet kicker="BASE RÉSUMÉ · THIS BEARING ONLY" rows={[
+        { label: profile.has_base_resume ? `Ready${profile.base_resume_updated_at ? ` · ${formatTimestamp(profile.base_resume_updated_at)}` : ""}` : "Needed before draft can find and score jobs",
+          note: profile.has_base_resume ? "Read from your résumé, for this job profile only. Other bearings keep their own résumé, signals, ATS basis and search."
+            : "Upload a résumé to start finding and scoring jobs for this bearing.",
+          control: <>
+            {carried && !profile.has_base_resume && !busy ? <button type="button" className="pl-btn pl-btn--primary" onClick={onUseCarried}>Use {carried.file.name}</button> : null}
+            <button type="button" className="pl-btn" disabled={busy} onClick={() => file.current?.click()}>{busy ? "Parsing…" : profile.has_base_resume ? "Replace" : "Upload"}</button>
+            <input ref={file} type="file" accept=".txt,.html,.md,.docx,.pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; onUpload(f); }} />
+          </> },
+        { label: "Include a summary section",
+          note: profile.include_summary ? "Generated resumes for this profile open with a summary." : "Off. Generated resumes for this profile have no summary section — resumes generated before this setting existed did.",
+          control: <input type="checkbox" className="pl-check" checked={!!profile.include_summary} aria-label="Include a summary section" onChange={(e) => onSummary(e.target.checked)} /> },
+      ]} />
+    </article>
+  );
+}
+
+// ── ⭐ D159 T2–T4 (46y) · TRACKERS → 02 WHAT YOU FOLLOW ─────────────────────────────────────────────────────────────
+// A saved search, a followed company and a pasted careers page / board — each with what is NEW since you last looked
+// (GET /api/trackers; routes/trackers.js). Open marks it seen. No pills (D60).
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const PAGE_STATUS = {
   pending: "Waiting for review — we'll follow it once its board is added",
   unsupported: "We can't read this page yet — paste the job board link from its Apply button (Greenhouse, Lever, Ashby …)",
 };
-function Trackers({ profiles, onActivate }) {
+function Trackers({ id, state, data, reload, onActivate }) {
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
-  const [state, setState] = useState("loading");
   const [url, setUrl] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
-  const load = useCallback(async () => {
-    try { setData(await api("/api/trackers", { timeoutMs: 20000 })); setState("ready"); }
-    catch { setState("error"); }
-  }, []);
-  useEffect(() => { load(); }, [load, profiles.length]);
-
   const openSearch = async (s) => {
     try {
       if (!s.active) { await api(`/api/domain-profiles/${s.profileId}/activate`, { method: "POST" }); onActivate?.(s.profileId); }
@@ -385,11 +293,11 @@ function Trackers({ profiles, onActivate }) {
     navigate(`/companies/${c.slug}`);
   };
   const unfollow = async (c) => {
-    try { await api(`/api/companies/${c.slug}/follow`, { method: "POST", body: JSON.stringify({ on: false }) }); load(); }
+    try { await api(`/api/companies/${c.slug}/follow`, { method: "POST", body: JSON.stringify({ on: false }) }); reload(); }
     catch (e) { setNote(e.message || "Could not unfollow."); }
   };
   const dropPage = async (pg) => {
-    try { await api(`/api/trackers/pages/${pg.id}`, { method: "DELETE" }); load(); }
+    try { await api(`/api/trackers/pages/${pg.id}`, { method: "DELETE" }); reload(); }
     catch (e) { setNote(e.message || "Could not remove it."); }
   };
   const track = async (e) => {
@@ -401,72 +309,40 @@ function Trackers({ profiles, onActivate }) {
       setNote(r.status === "following" ? `Following ${r.company?.name || r.label}. New postings there show here.`
         : r.status === "pending" ? `${r.label || "That board"} isn't on draft yet — it's been sent for review. You'll follow it once it's added.`
         : PAGE_STATUS.unsupported);
-      setUrl(""); load();
+      setUrl(""); reload();
     } catch (err) { setNote(err.message || "Could not track that page."); }
     finally { setBusy(false); }
   };
-
-  const row = { display:"flex", alignItems:"center", gap:12, flexWrap:"wrap", padding:"10px 0", borderTop:"1px solid var(--color-border)" };
-  const muted = { fontSize:ts(12), color:"var(--color-text-muted)" };
-  const fresh = (n) => n == null ? <span style={muted}>count unavailable</span>
-    : n > 0 ? <span data-tracker-new={n} style={{ fontSize:ts(13), fontWeight:700, color:"var(--c-accent-ink)" }}>{plural(n, "new posting")} since you last looked</span>
-    : <span style={muted}>nothing new since you last looked</span>;
+  const fresh = (n) => (n == null ? <span className="pl-pp-note">count unavailable</span>
+    : n > 0 ? <b data-tracker-new={n}>{plural(n, "new posting")} since you last looked</b>
+    : <span className="pl-pp-note">nothing new since you last looked</span>);
   const empty = data && !data.searches.length && !data.companies.length && !data.pages.length;
-
+  const rows = data ? [
+    ...data.searches.map((s) => ({ label: s.label, note: `Saved search · ${s.profileName}`,
+      control: <span data-tracker-search={s.profileId} className="pl-actions">{fresh(s.newCount)}<button type="button" className="pl-btn" onClick={() => openSearch(s)}>Open</button></span> })),
+    ...data.companies.map((c) => ({ label: c.name, note: "Company you follow",
+      control: <span data-tracker-company={c.slug} className="pl-actions">{fresh(c.newCount)}<button type="button" className="pl-btn" onClick={() => openCompany(c)}>Open</button>
+        <button type="button" className="pl-btn" onClick={() => unfollow(c)}>Unfollow</button></span> })),
+    ...data.pages.map((pg) => ({ label: pg.label || pg.url, note: PAGE_STATUS[pg.status] || pg.status,
+      control: <span data-tracker-page={pg.status}><button type="button" className="pl-btn" onClick={() => dropPage(pg)}>Remove</button></span> })),
+  ] : [];
   return (
-    <section data-trackers aria-labelledby="trackers-title" style={{ marginTop:28 }}>
-      <div className="rm-section-label" id="trackers-title">Trackers</div>
-      <p style={{ ...muted, fontSize:ts(13), margin:"6px 0 12px", maxWidth:640 }}>
-        What's new at the searches, companies and job boards you follow. Save a search from the board's filters, press
-        Follow on a company's page, or paste a careers page or job board link here.
-      </p>
-      <form onSubmit={track} style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:8, maxWidth:640 }}>
-        <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} aria-label="A careers page or job board link"
-          placeholder="https://jobs.lever.co/company or a careers page"
-          style={{ flex:"1 1 260px", minWidth:0, padding:"9px 12px", borderRadius:8, border:"1px solid var(--color-border)",
-                   background:"var(--color-surface)", color:"var(--color-text)", fontSize:ts(13), fontFamily:"inherit" }} />
-        <button type="submit" className="rm-btn rm-btn-sm rm-btn-primary" disabled={busy || !url.trim()} style={{ margin:0 }}>
-          {busy ? "Checking…" : "Track"}
-        </button>
-      </form>
-      {note && <div role="status" style={{ ...muted, marginBottom:8 }}>{note}</div>}
-      {state === "loading" && <div style={muted}>Loading your trackers…</div>}
-      {state === "error" && <div style={muted}>Your trackers could not be loaded. <button type="button" className="rm-btn rm-btn-sm" onClick={load}>Try again</button></div>}
-      {empty && <div style={muted}>Nothing tracked yet.</div>}
-      {data && (
-        <div style={{ maxWidth:900 }}>
-          {data.searches.map((s) => (
-            <div key={`s${s.profileId}`} data-tracker-search={s.profileId} style={row}>
-              <div style={{ flex:"1 1 320px", minWidth:0 }}>
-                <div style={{ fontSize:ts(14), fontWeight:600 }}>{s.label}</div>
-                <div style={muted}>Saved search · {s.profileName}</div>
-              </div>
-              {fresh(s.newCount)}
-              <button type="button" className="rm-btn rm-btn-sm" style={{ margin:0 }} onClick={() => openSearch(s)}>Open</button>
-            </div>
-          ))}
-          {data.companies.map((c) => (
-            <div key={`c${c.companyId}`} data-tracker-company={c.slug} style={row}>
-              <div style={{ flex:"1 1 320px", minWidth:0 }}>
-                <div style={{ fontSize:ts(14), fontWeight:600 }}>{c.name}</div>
-                <div style={muted}>Company you follow</div>
-              </div>
-              {fresh(c.newCount)}
-              <button type="button" className="rm-btn rm-btn-sm" style={{ margin:0 }} onClick={() => openCompany(c)}>Open</button>
-              <button type="button" className="rm-btn rm-btn-sm" style={{ margin:0 }} onClick={() => unfollow(c)}>Unfollow</button>
-            </div>
-          ))}
-          {data.pages.map((pg) => (
-            <div key={`p${pg.id}`} data-tracker-page={pg.status} style={row}>
-              <div style={{ flex:"1 1 320px", minWidth:0 }}>
-                <div style={{ fontSize:ts(14), fontWeight:600, overflowWrap:"anywhere" }}>{pg.label || pg.url}</div>
-                <div style={muted}>{PAGE_STATUS[pg.status] || pg.status}</div>
-              </div>
-              <button type="button" className="rm-btn rm-btn-sm" style={{ margin:0 }} onClick={() => dropPage(pg)}>Remove</button>
-            </div>
-          ))}
+    <section className="pl-section" id={id} data-trackers="" aria-labelledby={`${id}-t`}>
+      <LegHeader n={2} meta="SAVED SEARCHES · COMPANIES · CAREERS PAGES" title={<span id={`${id}-t`}>What you follow</span>} />
+      <div className="pl-pp-row">
+        <div className="pl-pp-main">
+          <p className="pl-pp-note">What's new at the searches, companies and job boards you follow. Save a search from the market's filters, press Follow on a company's survey sheet, or paste a careers page or job board link here.</p>
+          <form className="pl-pp-inline" onSubmit={track}>
+            <LabelledField label="A careers page or job board link" type="url" value={url} onChange={setUrl} placeholder="https://jobs.lever.co/company or a careers page" />
+            <button type="submit" className="pl-btn pl-btn--ink" disabled={busy || !url.trim()}>{busy ? "Checking…" : "Track"}</button>
+          </form>
+          {note ? <p className="pl-pp-note" role="status">{note}</p> : null}
+          {state === "loading" ? <Skeleton label="Loading your trackers" height={160} lines={3} /> : null}
+          {state === "error" ? <ErrorLine text="Your trackers could not be loaded." onRetry={reload} /> : null}
+          {empty ? <Drawer text="Nothing tracked yet." /> : null}
+          {rows.length ? <SettingsSheet kicker="WHAT YOU FOLLOW" rows={rows} /> : null}
         </div>
-      )}
+      </div>
     </section>
   );
 }
