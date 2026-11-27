@@ -7,7 +7,7 @@ import { usePlateMotion } from "../motion.js";
 export const SettingOutCounterLabel = "A résumé slides across a counter; a clay ticket on it is stamped read";
 
 /** A résumé slides across a counter; a clay ticket on it is stamped read */
-export default function SettingOutCounter({ label = SettingOutCounterLabel, className }) {
+export default function SettingOutCounter({ label = SettingOutCounterLabel, className, name = "Maya Chen", caption = "YOUR RÉSUMÉ · READ IN 6 S · NO AI" }) {
   const uid = useId().replace(/:/g, "");
   const motion = usePlateMotion();
   void uid; void motion;
@@ -41,7 +41,7 @@ export default function SettingOutCounter({ label = SettingOutCounterLabel, clas
         <rect x="0" y="0" width="110" height="140" rx="4" strokeWidth="1.6" style={{"fill":"var(--pl-card)","stroke":"var(--pl-ink)"}}>
         </rect>
         <text x="12" y="22" textAnchor="start" fontSize="15" fontWeight="400" style={{"fontFamily":"var(--pl-serif)","fill":"var(--pl-ink)"}}>
-          {"Maya Chen"}
+          {name}
         </text>
         <path d="M12 36 L98 36" strokeWidth="3" strokeLinecap="round" style={{"stroke":"var(--pl-iv-4)"}}>
         </path>
@@ -75,7 +75,7 @@ export default function SettingOutCounter({ label = SettingOutCounterLabel, clas
         </text>
       </g>
       <text x="18" y="30" textAnchor="start" fontSize="9" fontWeight="700" letterSpacing="1" style={{"fontFamily":"var(--pl-mono)","fill":"var(--pl-ink)"}}>
-        {"YOUR RÉSUMÉ · READ IN 6 S · NO AI"}
+        {caption}
       </text>
     </svg>
   );

@@ -7,7 +7,7 @@ import { usePlateMotion } from "../motion.js";
 export const ProfileFieldBookLabel = "A ruled field-book page with a pencilled summary and a pencil lying across it";
 
 /** A ruled field-book page with a pencilled summary and a pencil lying across it */
-export default function ProfileFieldBook({ label = ProfileFieldBookLabel, className }) {
+export default function ProfileFieldBook({ label = ProfileFieldBookLabel, className, line1 = "Backend engineer who likes the", line2 = "boring parts: queues, retries,", line3 = "the ledger that has to add up." }) {
   const uid = useId().replace(/:/g, "");
   const motion = usePlateMotion();
   void uid; void motion;
@@ -34,13 +34,13 @@ export default function ProfileFieldBook({ label = ProfileFieldBookLabel, classN
       <path d="M76 24 L76 202" strokeOpacity=".6" strokeWidth="1.2" style={{"stroke":"var(--pl-clay)"}}>
       </path>
       <text x="84" y="52" textAnchor="start" fontSize="15" fontWeight="400" fontStyle="italic" style={{"fontFamily":"var(--pl-serif)","fill":"var(--pl-ink-soft)"}}>
-        {"Backend engineer who likes the"}
+        {line1}
       </text>
       <text x="84" y="74" textAnchor="start" fontSize="15" fontWeight="400" fontStyle="italic" style={{"fontFamily":"var(--pl-serif)","fill":"var(--pl-ink-soft)"}}>
-        {"boring parts: queues, retries,"}
+        {line2}
       </text>
       <text x="84" y="96" textAnchor="start" fontSize="15" fontWeight="400" fontStyle="italic" style={{"fontFamily":"var(--pl-serif)","fill":"var(--pl-ink-soft)"}}>
-        {"the ledger that has to add up."}
+        {line3}
       </text>
       <text x="56" y="40" textAnchor="start" fontSize="8" fontWeight="700" letterSpacing="1" style={{"fontFamily":"var(--pl-mono)","fill":"var(--pl-r5)"}}>
         {"FIELD BOOK · ABOUT"}

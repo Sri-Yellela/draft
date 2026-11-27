@@ -160,6 +160,22 @@ LIVE.PassportRoad = {
     [txt(n), `{at(${i})?.name}`], [txt(w), `{at(${i})?.when}`]]),
 };
 
+// The other ported plates' printed words, made props the same way (each board word is its prop's default), so a real page
+// prints the person's own words — never the board's example person.
+const textLive = (props) => ({
+  props: Object.entries(props).map(([k, v]) => `${k} = ${JSON.stringify(v)}`).join(", "),
+  subs: Object.entries(props).map(([k, v]) => [txt(v), `{${k}}`]),
+});
+Object.assign(LIVE, {
+  ProfileFieldBook: textLive({ line1: "Backend engineer who likes the", line2: "boring parts: queues, retries,", line3: "the ledger that has to add up." }),
+  ProfileSpecimenDrawer: textLive({ p1: "ledger-svc", s1: "GO · POSTGRES", p2: "retry-lab", s2: "PYTHON", p3: "orders-cache", s3: "REDIS", p4: "pdf-parse", s4: "RUST", p5: "talk · idempotency", s5: "SLIDES" }),
+  ProfileSchoolhouse: textLive({ caption: "NORTHEASTERN · M.S. · 2021" }),
+  SettingOutCounter: textLive({ name: "Maya Chen", caption: "YOUR RÉSUMÉ · READ IN 6 S · NO AI" }),
+  BearingsCompassRose: textLive({ needle1: "Data", needle2: "Platform", active: "Backend" }),
+  VoyageClipboard: textLive({ name: "Maya Chen", email: "maya@example.com", why: "WHY KESTREL?", start: "January" }),
+  VoyagePostRack: textLive({ caption: "KESTREL · 3 LETTERS · 1 NEW" }),
+});
+
 export function applyLive(name, jsx) {
   const live = LIVE[name];
   if (!live) return jsx;

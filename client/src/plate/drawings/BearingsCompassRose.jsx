@@ -7,7 +7,7 @@ import { usePlateMotion } from "../motion.js";
 export const BearingsCompassRoseLabel = "A compass rose with three needles, one per saved bearing; the active one, Backend, is inked, the others are outlines";
 
 /** A compass rose with three needles, one per saved bearing; the active one, Backend, is inked, the others are outlines */
-export default function BearingsCompassRose({ label = BearingsCompassRoseLabel, className }) {
+export default function BearingsCompassRose({ label = BearingsCompassRoseLabel, className, needle1 = "Data", needle2 = "Platform", active = "Backend" }) {
   const uid = useId().replace(/:/g, "");
   const motion = usePlateMotion();
   void uid; void motion;
@@ -109,21 +109,21 @@ export default function BearingsCompassRose({ label = BearingsCompassRoseLabel, 
       <path d="M180 112 L137.6 61.4" strokeWidth="2.4" strokeLinecap="round" style={{"stroke":"var(--pl-card)"}}>
       </path>
       <text x="113.15008859259991" y="36.33137791562629" textAnchor="middle" fontSize="13" fontWeight="400" style={{"fontFamily":"var(--pl-serif)","fill":"var(--pl-ink)"}}>
-        {"Data"}
+        {needle1}
       </text>
       <path d="M180 112 L239.8 84.1" strokeWidth="5" strokeLinecap="round" fill="none" style={{"stroke":"var(--pl-iv-6)"}}>
       </path>
       <path d="M180 112 L239.8 84.1" strokeWidth="2.4" strokeLinecap="round" style={{"stroke":"var(--pl-card)"}}>
       </path>
       <text x="274.2560098518116" y="72.04770077896725" textAnchor="middle" fontSize="13" fontWeight="400" style={{"fontFamily":"var(--pl-serif)","fill":"var(--pl-ink)"}}>
-        {"Platform"}
+        {needle2}
       </text>
       <path d="M180 112 L232 34" strokeWidth="7" strokeLinecap="round" style={{"stroke":"var(--pl-ink)"}}>
       </path>
       <path d="M232 34 L226 52 L240 46 Z" style={{"fill":"var(--pl-ink)"}}>
       </path>
       <text x="258" y="28" textAnchor="middle" fontSize="15" fontWeight="400" style={{"fontFamily":"var(--pl-serif)","fill":"var(--pl-ink)"}}>
-        {"Backend"}
+        {active}
       </text>
       <circle cx="180" cy="112" r="8" strokeWidth="1.6" style={{"fill":"var(--pl-clay)","stroke":"var(--pl-ink)"}}>
       </circle>

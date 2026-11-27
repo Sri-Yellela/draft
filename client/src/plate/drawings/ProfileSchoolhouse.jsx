@@ -7,7 +7,7 @@ import { usePlateMotion } from "../motion.js";
 export const ProfileSchoolhouseLabel = "A small schoolhouse with a bell tower standing on the ruler-marked ground strip";
 
 /** A small schoolhouse with a bell tower standing on the ruler-marked ground strip */
-export default function ProfileSchoolhouse({ label = ProfileSchoolhouseLabel, className }) {
+export default function ProfileSchoolhouse({ label = ProfileSchoolhouseLabel, className, caption = "NORTHEASTERN · M.S. · 2021" }) {
   const uid = useId().replace(/:/g, "");
   const motion = usePlateMotion();
   void uid; void motion;
@@ -84,7 +84,7 @@ export default function ProfileSchoolhouse({ label = ProfileSchoolhouseLabel, cl
       <path d="M223 118 L223 142 M210 130 L236 130" strokeWidth="1" style={{"stroke":"var(--pl-ink)"}}>
       </path>
       <text x="18" y="212" textAnchor="start" fontSize="9" fontWeight="700" letterSpacing="1" style={{"fontFamily":"var(--pl-mono)","fill":"var(--pl-ink)"}}>
-        {"NORTHEASTERN · M.S. · 2021"}
+        {caption}
       </text>
     </svg>
   );

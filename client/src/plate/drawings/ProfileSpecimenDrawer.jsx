@@ -7,7 +7,7 @@ import { usePlateMotion } from "../motion.js";
 export const ProfileSpecimenDrawerLabel = "A pulled-out specimen drawer with labelled compartments, one per project";
 
 /** A pulled-out specimen drawer with labelled compartments, one per project */
-export default function ProfileSpecimenDrawer({ label = ProfileSpecimenDrawerLabel, className }) {
+export default function ProfileSpecimenDrawer({ label = ProfileSpecimenDrawerLabel, className, p1 = "ledger-svc", s1 = "GO · POSTGRES", p2 = "retry-lab", s2 = "PYTHON", p3 = "orders-cache", s3 = "REDIS", p4 = "pdf-parse", s4 = "RUST", p5 = "talk · idempotency", s5 = "SLIDES" }) {
   const uid = useId().replace(/:/g, "");
   const motion = usePlateMotion();
   void uid; void motion;
@@ -24,50 +24,50 @@ export default function ProfileSpecimenDrawer({ label = ProfileSpecimenDrawerLab
       <rect x="28" y="88" width="20" height="20" rx="3" strokeWidth="1.1" style={{"fill":"var(--pl-v-4)","stroke":"var(--pl-ink)"}}>
       </rect>
       <text x="54" y="102" textAnchor="start" fontSize="13" fontWeight="400" style={{"fontFamily":"var(--pl-serif)","fill":"var(--pl-ink)"}}>
-        {"ledger-svc"}
+        {p1}
       </text>
       <text x="28" y="122" textAnchor="start" fontSize="7.5" fontWeight="700" letterSpacing="1" style={{"fontFamily":"var(--pl-mono)","fill":"var(--pl-muted)"}}>
-        {"GO · POSTGRES"}
+        {s1}
       </text>
       <rect x="130" y="80" width="100" height="52" rx="4" strokeWidth="1.3" style={{"fill":"var(--pl-card)","stroke":"var(--pl-ink)"}}>
       </rect>
       <rect x="138" y="88" width="20" height="20" rx="3" strokeWidth="1.1" style={{"fill":"var(--pl-v-4)","stroke":"var(--pl-ink)"}}>
       </rect>
       <text x="164" y="102" textAnchor="start" fontSize="13" fontWeight="400" style={{"fontFamily":"var(--pl-serif)","fill":"var(--pl-ink)"}}>
-        {"retry-lab"}
+        {p2}
       </text>
       <text x="138" y="122" textAnchor="start" fontSize="7.5" fontWeight="700" letterSpacing="1" style={{"fontFamily":"var(--pl-mono)","fill":"var(--pl-muted)"}}>
-        {"PYTHON"}
+        {s2}
       </text>
       <rect x="240" y="80" width="100" height="52" rx="4" strokeWidth="1.3" style={{"fill":"var(--pl-card)","stroke":"var(--pl-ink)"}}>
       </rect>
       <rect x="248" y="88" width="20" height="20" rx="3" strokeWidth="1.1" style={{"fill":"var(--pl-v-4)","stroke":"var(--pl-ink)"}}>
       </rect>
       <text x="274" y="102" textAnchor="start" fontSize="13" fontWeight="400" style={{"fontFamily":"var(--pl-serif)","fill":"var(--pl-ink)"}}>
-        {"orders-cache"}
+        {p3}
       </text>
       <text x="248" y="122" textAnchor="start" fontSize="7.5" fontWeight="700" letterSpacing="1" style={{"fontFamily":"var(--pl-mono)","fill":"var(--pl-muted)"}}>
-        {"REDIS"}
+        {s3}
       </text>
       <rect x="20" y="140" width="100" height="52" rx="4" strokeWidth="1.3" style={{"fill":"var(--pl-card)","stroke":"var(--pl-ink)"}}>
       </rect>
       <rect x="28" y="148" width="20" height="20" rx="3" strokeWidth="1.1" style={{"fill":"var(--pl-v-4)","stroke":"var(--pl-ink)"}}>
       </rect>
       <text x="54" y="162" textAnchor="start" fontSize="13" fontWeight="400" style={{"fontFamily":"var(--pl-serif)","fill":"var(--pl-ink)"}}>
-        {"pdf-parse"}
+        {p4}
       </text>
       <text x="28" y="182" textAnchor="start" fontSize="7.5" fontWeight="700" letterSpacing="1" style={{"fontFamily":"var(--pl-mono)","fill":"var(--pl-muted)"}}>
-        {"RUST"}
+        {s4}
       </text>
       <rect x="130" y="140" width="100" height="52" rx="4" strokeWidth="1.3" style={{"fill":"var(--pl-card)","stroke":"var(--pl-ink)"}}>
       </rect>
       <rect x="138" y="148" width="20" height="20" rx="3" strokeWidth="1.1" style={{"fill":"var(--pl-v-4)","stroke":"var(--pl-ink)"}}>
       </rect>
       <text x="164" y="162" textAnchor="start" fontSize="13" fontWeight="400" style={{"fontFamily":"var(--pl-serif)","fill":"var(--pl-ink)"}}>
-        {"talk · idempotency"}
+        {p5}
       </text>
       <text x="138" y="182" textAnchor="start" fontSize="7.5" fontWeight="700" letterSpacing="1" style={{"fontFamily":"var(--pl-mono)","fill":"var(--pl-muted)"}}>
-        {"SLIDES"}
+        {s5}
       </text>
       <rect x="240" y="140" width="100" height="52" rx="4" fill="none" strokeWidth="1.3" strokeDasharray="4 4" style={{"stroke":"var(--pl-ink)"}}>
       </rect>

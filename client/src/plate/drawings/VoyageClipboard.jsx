@@ -7,7 +7,7 @@ import { usePlateMotion } from "../motion.js";
 export const VoyageClipboardLabel = "A clipboard holding an application form; three lines are filled, two are dashed because they are held for you";
 
 /** A clipboard holding an application form; three lines are filled, two are dashed because they are held for you */
-export default function VoyageClipboard({ label = VoyageClipboardLabel, className }) {
+export default function VoyageClipboard({ label = VoyageClipboardLabel, className, name = "Maya Chen", email = "maya@example.com", why = "WHY KESTREL?", start = "January" }) {
   const uid = useId().replace(/:/g, "");
   const motion = usePlateMotion();
   void uid; void motion;
@@ -29,7 +29,7 @@ export default function VoyageClipboard({ label = VoyageClipboardLabel, classNam
       <path d="M118 70 L242 70" strokeWidth="1.6" style={{"stroke":"var(--pl-ink)"}}>
       </path>
       <text x="120" y="67" textAnchor="start" fontSize="12.5" fontWeight="400" style={{"fontFamily":"var(--pl-serif)","fill":"var(--pl-ink)"}}>
-        {"Maya Chen"}
+        {name}
       </text>
       <text x="118" y="88" textAnchor="start" fontSize="7" fontWeight="700" letterSpacing="1" style={{"fontFamily":"var(--pl-mono)","fill":"var(--pl-muted)"}}>
         {"EMAIL"}
@@ -37,7 +37,7 @@ export default function VoyageClipboard({ label = VoyageClipboardLabel, classNam
       <path d="M118 100 L242 100" strokeWidth="1.6" style={{"stroke":"var(--pl-ink)"}}>
       </path>
       <text x="120" y="97" textAnchor="start" fontSize="12.5" fontWeight="400" style={{"fontFamily":"var(--pl-serif)","fill":"var(--pl-ink)"}}>
-        {"maya@example.com"}
+        {email}
       </text>
       <text x="118" y="118" textAnchor="start" fontSize="7" fontWeight="700" letterSpacing="1" style={{"fontFamily":"var(--pl-mono)","fill":"var(--pl-clay)"}}>
         {"WORK AUTHORISATION"}
@@ -48,7 +48,7 @@ export default function VoyageClipboard({ label = VoyageClipboardLabel, classNam
         {"HELD"}
       </text>
       <text x="118" y="148" textAnchor="start" fontSize="7" fontWeight="700" letterSpacing="1" style={{"fontFamily":"var(--pl-mono)","fill":"var(--pl-clay)"}}>
-        {"WHY KESTREL?"}
+        {why}
       </text>
       <path d="M118 160 L242 160" strokeWidth="1.6" strokeDasharray="5 4" style={{"stroke":"var(--pl-clay)"}}>
       </path>
@@ -61,7 +61,7 @@ export default function VoyageClipboard({ label = VoyageClipboardLabel, classNam
       <path d="M118 190 L242 190" strokeWidth="1.6" style={{"stroke":"var(--pl-ink)"}}>
       </path>
       <text x="120" y="187" textAnchor="start" fontSize="12.5" fontWeight="400" style={{"fontFamily":"var(--pl-serif)","fill":"var(--pl-ink)"}}>
-        {"January"}
+        {start}
       </text>
     </svg>
   );

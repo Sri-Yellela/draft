@@ -7,7 +7,7 @@ import { usePlateMotion } from "../motion.js";
 export const VoyagePostRackLabel = "A wooden post rack with four pigeonholes; three letters stand in them, the newest unopened with a clay seal";
 
 /** A wooden post rack with four pigeonholes; three letters stand in them, the newest unopened with a clay seal */
-export default function VoyagePostRack({ label = VoyagePostRackLabel, className }) {
+export default function VoyagePostRack({ label = VoyagePostRackLabel, className, caption = "KESTREL · 3 LETTERS · 1 NEW" }) {
   const uid = useId().replace(/:/g, "");
   const motion = usePlateMotion();
   void uid; void motion;
@@ -58,7 +58,7 @@ export default function VoyagePostRack({ label = VoyagePostRackLabel, className 
         {"—"}
       </text>
       <text x="180" y="216" textAnchor="middle" fontSize="9" fontWeight="700" letterSpacing="1" style={{"fontFamily":"var(--pl-mono)","fill":"var(--pl-ink)"}}>
-        {"KESTREL · 3 LETTERS · 1 NEW"}
+        {caption}
       </text>
     </svg>
   );
