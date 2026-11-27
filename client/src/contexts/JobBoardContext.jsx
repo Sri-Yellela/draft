@@ -57,10 +57,8 @@ export function JobBoardProvider({ children }) {
   // key — so hiding it was always too strong.
   const [atsSortAvailable, setAtsSortAvailable] = useState(true);
   const [barFilters, setBarFilters] = useState(EMPTY_BAR_FILTERS);
-  // Bumped only by the SECOND click (the live half of the double-click local->live pattern). It is a
-  // counter rather than a boolean because two consecutive live searches for the same terms must both
-  // run — a boolean would latch and the second would be a no-op.
-  const [liveSearchTick, setLiveSearchTick] = useState(0);
+  // ⛔ 47m: the live half of the double-click (liveSearchTick, applyBarFilters' `live`) is deleted — no caller passed
+  // `live` since D26, so the board's live search and its profile-intent dialog behind it never ran.
 
   // -- The consolidated control row (W4) --------------------------------------------------
   //
@@ -101,10 +99,9 @@ export function JobBoardProvider({ children }) {
   // level, domain and location it used to carry live in the sentence's dials, and spreading
   // EMPTY_BAR_FILTERS over them here is how a search silently wiped the dials' level and posted
   // clauses (D27). `fields` says which keys this publish speaks for; the rest are left alone.
-  const applyBarFilters = useCallback((params, { live = false, fields = null } = {}) => {
+  const applyBarFilters = useCallback((params, { fields = null } = {}) => {
     const keys = fields || Object.keys(EMPTY_BAR_FILTERS);
     setBarFilters(Object.fromEntries(keys.map(k => [k, (params || {})[k] ?? ""])));
-    if (live) setLiveSearchTick(t => t + 1);
   }, []);
 
   const getProfileCache = useCallback((profileId) => {
@@ -137,7 +134,7 @@ export function JobBoardProvider({ children }) {
       boardTab, setBoardTab, localSearch, setLocalSearch, sortBy, setSortBy,
       activeProfileId, setActiveProfileId, getProfileCache, setProfileCache, deleteProfileCache,
       selectedJob, setSelectedJob, selectedJobMeta, setSelectedJobMeta,
-      barFilters, applyBarFilters, liveSearchTick,
+      barFilters, applyBarFilters,
       atsSortAvailable, setAtsSortAvailable,
       filterPanelOpen, setFilterPanelOpen, activeFilterCount, setActiveFilterCount,
       boardPanel, setBoardPanel,

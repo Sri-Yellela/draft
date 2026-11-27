@@ -33,13 +33,11 @@ import SandboxPanel, { cleanDocHtml } from "./SandboxPanel.jsx";
 import { PanelScrim, PanelDock, PANEL_TOP_INSET, PANEL_BOTTOM_INSET } from "../components/PanelShell.jsx";
 import { usePanelHost } from "../hooks/usePanelHost.js";
 import { useBoardLock } from "../hooks/useBoardLock.js";
-import DomainProfileWizard from "../components/DomainProfileWizard.jsx";
 import { useSyncEvents } from "../hooks/useSyncEvents.js";
 import { useAppScroll } from "../contexts/AppScrollContext.jsx";
 import { useJobBoard, viewFromUrl } from "../contexts/JobBoardContext.jsx";
 import { Z } from "../styles/zLayers.js";
 import { toast } from "../hooks/use-toast.js";
-import ROLE_ALIAS_MAP from "../../../registry/ROLE_ALIAS_MAP.json";
 // The filter option contract. Every option list below renders FROM these tables — see
 // shared/jobFilterOptions.js for why they are not literals here any more.
 import {
@@ -795,143 +793,8 @@ function FiltersPanel({
   );
 }
 
-// -- Aliases (mirrors server normaliser) -----------------------
-const ALIASES = Object.fromEntries(
-  Object.entries(ROLE_ALIAS_MAP).map(([alias, entry]) => [alias, entry.canonical])
-);
-
-const ROLE_FAMILY_DOMAIN_FALLBACK = {
-  data: "data",
-  pm: "pm_general",
-  finance: "finance",
-  marketing: "marketing",
-  hr: "hr",
-  design: "design",
-  legal: "legal",
-  operations: "operations",
-};
-
-function intentDomainForAlias(entry) {
-  if (!entry) return "general";
-  if (entry.domain && entry.domain !== "it_digital") return entry.domain;
-  if (entry.roleFamily === "general" && entry.domain) return entry.domain;
-  return ROLE_FAMILY_DOMAIN_FALLBACK[entry.roleFamily] || entry.roleFamily || "general";
-}
-
-function mergeIntentTerms(baseIntents) {
-  const byDomain = new Map(baseIntents.map(intent => [intent.domainKey, { ...intent, terms: [...intent.terms] }]));
-  for (const [alias, entry] of Object.entries(ROLE_ALIAS_MAP)) {
-    const domainKey = intentDomainForAlias(entry);
-    const current = byDomain.get(domainKey) || {
-      domainKey,
-      label: entry.roleFamily ? `${entry.roleFamily[0].toUpperCase()}${entry.roleFamily.slice(1)} Roles` : "Supported Roles",
-      terms: [],
-    };
-    current.terms.push(alias, entry.canonical, ...(entry.searchVariants || []));
-    byDomain.set(domainKey, current);
-  }
-  return [...byDomain.values()].map(intent => ({
-    ...intent,
-    terms: [...new Set(intent.terms.map(normaliseIntentText).filter(Boolean))],
-  }));
-}
-
-// Search/profile intent guard:
-// /api/scrape normalises the typed query, but the outbound provider call uses
-// the active domain profile's target_titles. Strong cross-profile signals are
-// intercepted here so searches run under the intended profile only after user
-// confirmation.
-const BASE_SEARCH_PROFILE_INTENTS = [
-  {
-    domainKey: "engineering_embedded_firmware",
-    label: "Firmware, Embedded & Device Software",
-    terms: [
-      "firmware", "embedded", "embedded software", "embedded systems",
-      "bsp", "board support", "rtos", "device driver", "driver engineer",
-      "soc bring-up", "chip bring-up", "post-silicon", "hardware debug",
-    ],
-  },
-  {
-    domainKey: "engineering_systems_low_level",
-    label: "Systems, Platform & Performance Engineering",
-    terms: [
-      "kernel", "compiler", "operating systems", "systems software",
-      "performance engineer", "platform software", "linux kernel",
-    ],
-  },
-  {
-    domainKey: "data",
-    label: "Data Science & Analytics",
-    terms: [
-      "data scientist", "data analyst", "machine learning", "ml engineer",
-      "analytics engineer", "research scientist", "business intelligence",
-    ],
-  },
-  {
-    domainKey: "pm_general",
-    label: "Product Management",
-    terms: [
-      "product manager", "technical product manager", "associate product manager",
-      "group product manager", "director of product",
-    ],
-  },
-  {
-    domainKey: "pm_it",
-    label: "IT / Technical Program Management",
-    terms: [
-      "technical program manager", "program manager", "scrum master",
-      "delivery manager", "release manager", "pmo",
-    ],
-  },
-  {
-    domainKey: "finance",
-    label: "Finance & Accounting",
-    terms: ["financial analyst", "fp&a", "investment banking", "credit analyst", "controller"],
-  },
-  {
-    domainKey: "marketing",
-    label: "Marketing & Growth",
-    terms: ["marketing manager", "growth manager", "seo manager", "demand generation"],
-  },
-  {
-    domainKey: "design",
-    label: "Design & UX",
-    terms: ["ux designer", "product designer", "ui/ux", "ux researcher"],
-  },
-];
-
-const SEARCH_PROFILE_INTENTS = mergeIntentTerms(BASE_SEARCH_PROFILE_INTENTS);
-
-function normaliseIntentText(value) {
-  return String(value || "").toLowerCase().replace(/[^a-z0-9+]+/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function profileMatchesIntent(profile, intent) {
-  if (!profile || !intent) return false;
-  if (profile.domain === intent.domainKey) return true;
-  const titles = Array.isArray(profile.target_titles) ? profile.target_titles : [];
-  const haystack = normaliseIntentText([
-    profile.profile_name,
-    profile.domain,
-    profile.role_family,
-    ...titles,
-  ].join(" "));
-  return intent.terms.some(term => haystack.includes(normaliseIntentText(term)));
-}
-
-function detectSearchProfileIntent(query, profiles, activeProfile) {
-  const text = normaliseIntentText(ALIASES[query.trim().toLowerCase()] || query);
-  if (!text || text.split(" ").length > 8) return null;
-  const intent = SEARCH_PROFILE_INTENTS.find(candidate =>
-    candidate.terms.some(term => {
-      const t = normaliseIntentText(term);
-      return text === t || text.includes(t);
-    })
-  );
-  if (!intent || profileMatchesIntent(activeProfile, intent)) return null;
-  const existingProfile = (profiles || []).find(profile => profileMatchesIntent(profile, intent));
-  return { ...intent, existingProfile };
-}
+// ⛔ 47m: the search / profile intent guard (ALIASES, SEARCH_PROFILE_INTENTS, detectSearchProfileIntent) is deleted with
+// the live search it guarded — nothing bumped the bar's live tick since D26, so it and SearchIntentDialog were unreachable.
 
 // -- Pull-to-refresh -------------------------------------------
 function PullToRefresh({ onRefresh, refreshing, theme, children }) {
@@ -1177,7 +1040,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     boardTab, setBoardTab, localSearch, setLocalSearch, sortBy, setSortBy,
     activeProfileId, setActiveProfileId, getProfileCache, setProfileCache, deleteProfileCache,
     selectedJob, setSelectedJob, setSelectedJobMeta,
-    barFilters, liveSearchTick,
+    barFilters,
     filterPanelOpen, setFilterPanelOpen, setActiveFilterCount,
     setAtsSortAvailable, atsSortAvailable,
     setBoardPanel, setBoardHeadline, setBoardPager,
@@ -1363,9 +1226,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
 
   // Domain profiles
   const [domainProfiles,   setDomainProfiles]   = useState([]);
-  const [profileWizardOpen, setProfileWizardOpen] = useState(false);
-  const [profileWizardIntent, setProfileWizardIntent] = useState(null);
-  const [searchIntentPrompt, setSearchIntentPrompt] = useState(null);
   // Increments when active profile changes — triggers job board refetch
   const [profileSwitchKey, setProfileSwitchKey] = useState(0);
 
@@ -1670,15 +1530,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // than from a hand-listed dependency array, so a filter added later cannot forget to invalidate
   // it — that omission would not throw, it would silently resume against the wrong ordering.
   const paramsKeyRef = useRef(null);
-  const pendingIntentSearchRef = useRef(null);
-  const searchIntentResolveRef = useRef(null);
   // Stable ref so startPollLoop (empty deps) can always call the latest fetchJobs
   const fetchJobsRef = useRef(null);
-  // Same device, same reason, for the live half of the search bar's double-click: that effect is
-  // declared above handleSearch and is keyed on a click counter, so it cannot close over the
-  // function directly without capturing whichever render happened to be current when the tick last
-  // changed — the stale-closure bug documented on the debounced-search effect.
-  const handleSearchRef = useRef(null);
 
   const activeFilterSnapshot = useCallback(() => ({
     roleFilter,
@@ -2845,23 +2698,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     }
   }, [barFilters]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The LIVE half of the bar's double-click. The first click only commits the filters above (a
-  // re-query of what we already hold); the second additionally goes out through handleSearch, which
-  // is the same path CHECK FOR NEW JOBS uses — including its "create a profile" / "upload a base
-  // resume" guards, so an unconfigured account gets the existing message rather than a silent no-op.
-  //
-  // Keyed on a counter, not on barFilters, so searching the same terms twice runs twice. The mount
-  // skip is the same hazard the debounced-search effect documents below: at tick 0 nobody has
-  // clicked anything, and firing a live aggregator search on every board mount is exactly the
-  // unrequested request that effect exists to avoid.
-  const liveSearchReady = useRef(false);
-  useEffect(() => {
-    if (!liveSearchReady.current) { liveSearchReady.current = true; return; }
-    const q = (barFilters?.query || "").trim();
-    if (!q) return;
-    handleSearchRef.current?.(q);
-  }, [liveSearchTick]); // eslint-disable-line react-hooks/exhaustive-deps
-
   useEffect(() => {
     setSearchPhase("idle");
   }, [activeProfileKey, searchInput]);
@@ -2969,7 +2805,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     },
   });
 
-  // Shared poll loop — used by handleSearch, handlePullRefresh, handleSetRole
+  // Shared poll loop — used by handlePullRefresh
   const startPollLoop = useCallback((roleQ, pollSince) => {
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     setPollStatus("polling");
@@ -3031,13 +2867,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       }
     }, POLL_INTERVAL_MS);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const activateProfileForSearch = useCallback(async (profileId) => {
-    await api(`/api/domain-profiles/${profileId}/activate`, { method: "POST" });
-    setDomainProfiles(prev => prev.map(p => ({ ...p, is_active: p.id === profileId ? 1 : 0 })));
-    setActiveProfileId?.(profileId);
-    setProfileSwitchKey(k => k + 1);
-  }, [setActiveProfileId]);
 
   // FE-3: persist the CURRENTLY-COMMITTED filter set (buildParams(1), same querystring
   // fetchJobs already sent) as this profile's tracked search — not pendingFilters, so "save"
@@ -3138,18 +2967,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     applyTrackedSearch();
   }, [activeDomainProfile, applyTrackedSearch]);
 
-  const askSearchIntent = useCallback((prompt) => new Promise(resolve => {
-    searchIntentResolveRef.current = resolve;
-    setSearchIntentPrompt(prompt);
-  }), []);
-
-  const closeSearchIntentPrompt = useCallback((accepted) => {
-    const resolve = searchIntentResolveRef.current;
-    searchIntentResolveRef.current = null;
-    setSearchIntentPrompt(null);
-    resolve?.(accepted);
-  }, []);
-
   const deleteDomainProfile = useCallback(async (profileId) => {
     const profile = domainProfiles.find(p => p.id === profileId);
     if (!profile || domainProfiles.length <= 1) return;
@@ -3168,101 +2985,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     }
   }, [deleteProfileCache, domainProfiles, setActiveProfileId]);
 
-  const ensureSearchProfileAlignment = useCallback(async (query) => {
-    const intent = detectSearchProfileIntent(query, domainProfiles, activeDomainProfile);
-    if (!intent) return true;
-
-    if (intent.existingProfile) {
-      const ok = await askSearchIntent({
-        title: "Switch Profile?",
-        body: `This search looks like ${intent.label}. Switch to "${intent.existingProfile.profile_name}" for this search?`,
-        confirmLabel: "Switch and Search",
-        cancelLabel: "Cancel Search",
-      });
-      if (!ok) {
-        setScrapeError(`Search canceled. Switch profiles or refine the query to avoid wrong-profile results.`);
-        return false;
-      }
-      try {
-        await activateProfileForSearch(intent.existingProfile.id);
-      } catch(e) {
-        setScrapeError(e.message || "Could not switch profile for this search.");
-        return false;
-      }
-      return true;
-    }
-
-    const canAddProfile = domainProfiles.length < 4;
-    if (!canAddProfile) {
-      setScrapeError(`This search looks like ${intent.label}, but you already have 4 profiles. Search canceled to avoid wrong-profile results.`);
-      return false;
-    }
-
-    const ok = await askSearchIntent({
-      title: "Add Matching Profile?",
-      body: `This search fits ${intent.label}. Add that profile before searching?`,
-      confirmLabel: "Add Profile",
-      cancelLabel: "Cancel Search",
-    });
-    if (!ok) {
-      setScrapeError(`Search canceled. Add the matching profile or refine the query to continue.`);
-      return false;
-    }
-    pendingIntentSearchRef.current = query;
-    setProfileWizardIntent(intent);
-    setProfileWizardOpen(true);
-    return false;
-  }, [activeDomainProfile, activateProfileForSearch, askSearchIntent, domainProfiles]);
-
-  // Set active role — immediately shows local DB results only.
-  const handleSetRole = useCallback(async (overrideQuery, options = {}) => {
-    const q = (overrideQuery || searchInput).trim();
-    if (!q) return false;
-    if (!activeDomainProfile) {
-      setScrapeError("Create a job search profile before setting a search role.");
-      setProfileWizardOpen(true);
-      return false;
-    }
-    if (!resumeText.trim()) {
-      setScrapeError("Upload the active profile's base resume before setting a search role.");
-      return false;
-    }
-    if (!options.skipProfileIntent) {
-      const aligned = await ensureSearchProfileAlignment(q);
-      if (!aligned) return false;
-    }
-    setScrapeError("");
-    const roleQ = q.toLowerCase();
-    setRoleFilter(roleQ);
-    setSearchInput(q);
-    await fetchJobs(1, false, { overrides: { role: roleQ } });
-    return true;
-  }, [activeDomainProfile, resumeText, searchInput, ensureSearchProfileAlignment, fetchJobs]);
-
-  // -- Scrape / search ---------------------------------------
-  const handleSearch = useCallback(async (overrideQuery, options = {}) => {
-    const q = (overrideQuery || searchInput).trim();
-    if (!q) return;
-    if (!activeDomainProfile) {
-      setScrapeError("Create a job search profile before searching jobs.");
-      setProfileWizardOpen(true);
-      return;
-    }
-    if (!resumeText.trim()) {
-      setScrapeError("Upload the active profile's base resume before searching jobs.");
-      return;
-    }
-    if (!options.skipProfileIntent) {
-      const aligned = await ensureSearchProfileAlignment(q);
-      if (!aligned) return;
-    }
-    setScrapeError("");
-    const immediateRoleQ = q.toLowerCase();
-    setRoleFilter(immediateRoleQ);
-    // Fetch from aggregator — results come back directly, no scraping needed
-    await fetchJobs(1, false, { overrides: { role: immediateRoleQ } });
-  }, [activeDomainProfile, resumeText, searchInput, fetchJobs, ensureSearchProfileAlignment]); // eslint-disable-line react-hooks/exhaustive-deps
-  handleSearchRef.current = handleSearch;
 
   // -- Pull / Check-for-new: DB-first, then scrape if quota unmet -
   // Merges new jobs into the board; removes visited entries.
@@ -3271,7 +2993,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (!q) return false;
     if (!activeDomainProfile) {
       setScrapeError("Create a job search profile before checking for jobs.");
-      setProfileWizardOpen(true);
       return false;
     }
     if (!resumeText.trim()) {
@@ -3848,47 +3569,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       {/* TRANSPARENT, not theme.bg (09-30). theme.bg is --bg-page, which is mapped to SURFACE — the
           GLASS — so the whole board sat under a 58% cream sheet, the cards were glass on glass, and
           the leather never reached them. The page is the substrate; only the cards are glass. */}
-
-      {/* Domain profile wizard modal (non-blocking "+ New Profile") */}
-      {profileWizardOpen && (
-        <DomainProfileWizard
-          initialDomainKey={profileWizardIntent?.domainKey || null}
-          bannerText={profileWizardIntent ? `Create ${profileWizardIntent.label} to search "${pendingIntentSearchRef.current || searchInput}" in the right profile.` : undefined}
-          onComplete={async profile => {
-            setDomainProfiles(prev => [...prev, profile]);
-            setProfileWizardOpen(false);
-            setProfileWizardIntent(null);
-            const pendingQuery = pendingIntentSearchRef.current;
-            pendingIntentSearchRef.current = null;
-            if (profile?.id) {
-              try {
-                await activateProfileForSearch(profile.id);
-              } catch(e) {
-                setScrapeError(e.message || "Profile created, but switching before search failed.");
-                return;
-              }
-            }
-            if (pendingQuery) {
-              const applied = await handleSetRole(pendingQuery, { skipProfileIntent: true });
-              if (applied) setSearchPhase("local");
-            }
-          }}
-          onDismiss={() => {
-            pendingIntentSearchRef.current = null;
-            setProfileWizardIntent(null);
-            setProfileWizardOpen(false);
-          }}
-        />
-      )}
-
-      {searchIntentPrompt && (
-        <SearchIntentDialog
-          theme={theme}
-          prompt={searchIntentPrompt}
-          onConfirm={() => closeSearchIntentPrompt(true)}
-          onCancel={() => closeSearchIntentPrompt(false)}
-        />
-      )}
 
       {/* LinkedInInstallDialog removed in cleanup 5.3 — it was only ever opened by
           startLinkedInImport's always-true "extension not installed" guard, and its Import Now
@@ -4665,38 +4345,6 @@ function SetupGateNotice({ title, body, actionLabel, onAction, children = null }
             {actionLabel}
           </button>
         ))} />
-    </div>
-  );
-}
-
-function SearchIntentDialog({ theme, prompt, onConfirm, onCancel }) {
-  return (
-    <div style={{ position:"fixed", inset:0, zIndex:750, background:C.SCRIM,
-                  display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
-      <div role="dialog" aria-modal="true" style={{ width:"min(92vw, 460px)",
-        background:theme.modalSurface || theme.surface, border:`1px solid ${theme.border}`,
-        borderRadius:8, boxShadow:C.SHADOW_SM, padding:22 }}>
-        <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                      fontSize:ts(26),
-                      color:theme.text, marginBottom:8 }}>
-          {prompt.title}
-        </div>
-        <div style={{ fontSize:ts(13), lineHeight:1.6, color:theme.textMuted, marginBottom:20 }}>
-          {prompt.body}
-        </div>
-        <div style={{ display:"flex", justifyContent:"flex-end", gap:10, flexWrap:"wrap" }}>
-          <button onClick={onCancel}
-            style={{ border:`1px solid ${theme.border}`, borderRadius:6, padding:"8px 12px",
-                     background:theme.surface, color:theme.text, cursor:"pointer", fontWeight:700 }}>
-            {prompt.cancelLabel || "Cancel"}
-          </button>
-          <button onClick={onConfirm}
-            style={{ border:"none", borderRadius:6, padding:"8px 12px",
-                     background:theme.accent, color:C.ON_ACCENT, cursor:"pointer", fontWeight:800 }}>
-            {prompt.confirmLabel || "Continue"}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
