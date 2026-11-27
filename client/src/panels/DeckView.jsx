@@ -799,7 +799,7 @@ export const HOME_DECK_COLUMN = 390;
 // ⭐ 47m (D199 C7, agent's pick — owner may reverse): THE MATCH opens the OPENING SHEET at section 02, How you fit (the
 // ATS card, plate/FitCard.jsx) — /app/jobs/<id>#fit, over the market, so Back returns to the same card. It used to open the
 // board's posting in the deck's slot with its match inside (D152 (8) (b), OPEN_MATCH_EVENT — deleted).
-const matchSheetHref =(jobId) => (jobId ? `${openingSheetHref(jobId)}#fit` : null);
+const matchSheetHref = (jobId) => (jobId ? `${openingSheetHref(jobId)}#fit` : null);
 
 export default function DeckView({ canUseAPlusResume = true, home = false }) {
   const [load, setLoad] = useState({ status: "loading", error: null });
