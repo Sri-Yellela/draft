@@ -285,3 +285,11 @@
   .pl-gz-compass__n, .pl-gz-compass__w, .pl-gz-compass__e, .pl-gz-compass__s, .pl-gz-compass__c { grid-column: 1; grid-row: auto; align-items: flex-start; text-align: left; }
   .pl-gz-stop__open { margin-left: 0; }
 }
+
+/* 47m (D200 Rule 1) · an entry's More about it (pages/atlas/EntryMore.jsx): the old node page's panes, one open at a time */
+.pl-gz-more__panes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.pl-gz-more__pane { padding-top: 4px; }
+.pl-gz-more__cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px 24px; }
+.pl-gz-more__h { margin: 0 0 6px; font-family: var(--pl-mono); font-size: var(--pl-t-mono-xs); font-weight: 600; color: var(--pl-muted); }
+.pl-gz-more__list { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: var(--pl-t-small); }
+.pl-gz-more__n { color: var(--pl-muted); }

@@ -25,7 +25,8 @@ import { routesFor } from "./learnModel.js";
 import { coursePieces, lessonState } from "./libraryModel.js";
 import { loadNode, resolveSearch, payLine, computedLine, orderedResources, WIKI_LICENCE } from "./atlasModel.js";
 import { localDay, MatchAnswer, OrderAnswer } from "./BankAnswers.jsx";
-import { Explain, BuildLink } from "./LearnChecks.jsx";   // 47m: one checkpoint box + one build link, the entry's and the circle's
+import { Explain, BuildLink } from "./LearnChecks.jsx";
+import EntryMore from "./EntryMore.jsx";   // 47m (D200 Rule 1): the old node page's panes   // 47m: one checkpoint box + one build link, the entry's and the circle's
 import { checkpointId, buildId } from "../../../../shared/learnStepState.js";
 import LearnView from "./LearnView.jsx";   // the circle (D203 (8): a route's overview view), until a plate ring is drawn
 
@@ -473,6 +474,7 @@ export function GazetteerEntryPage({ base, signedIn, slug = null, lessonId = nul
             <Compass word={name} up={compass.up} down={compass.down} side={compass.side} roles={compass.roles} link={linkLink}/>
             <EntryRoutes routes={through.map((t) => ({ id: t.route.id, name: t.route.name, at: t.at, of: t.of, href: routeHref(base, t.route.id) }))} onGo={go} drawn={drawn}
               empty="It isn’t on a route yet. Any entry can start one: open Routes and copy one that passes near it."/>
+            <EntryMore base={base} node={n} onGo={go}/>
           </article>
         </div>
       </div>

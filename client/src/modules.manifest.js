@@ -97,7 +97,7 @@ export const MODULES = Object.freeze({
       "plate/practiceFixtures.jsx" /* 47m: the F5 build pages for the practice boards */,
       // ⭐ D197 Wave 1 #8 (47m, lane gaz): the Gazetteer (D201) — the entry, the index, the routes — and THE route drawing
       // (RouteMap: shared, the practice lane's AskRoute / Logbook reuse it)
-      "plate/RouteMap.jsx", "plate/Gazetteer.jsx", "pages/atlas/AtlasGazetteer.jsx", "pages/atlas/LearnChecks.jsx" /* 47m: the checkpoint box + build link, the entry's and the circle's */, "pages/atlas/gazetteerModel.js",
+      "plate/RouteMap.jsx", "plate/Gazetteer.jsx", "pages/atlas/AtlasGazetteer.jsx", "pages/atlas/EntryMore.jsx" /* 47m: an entry's More about it (the old node page's panes, Rule 1) */, "pages/atlas/LearnChecks.jsx" /* 47m: the checkpoint box + build link, the entry's and the circle's */, "pages/atlas/gazetteerModel.js",
       // ⭐ D197 Wave 2 #9 / #15 / #17 · M5 (47m, lane person): Your passport and its settings, the four things, in the plate system
       "pages/profile/ProfilePage.jsx", "pages/profile/YourProfile.jsx", "pages/profile/PassportSettings.jsx", "pages/profile/ResumeSetup.jsx",
       "panels/JobProfilesPanel.jsx" /* Your bearings */, "panels/JobWorkspacePanel.jsx" /* The voyage */, "pages/settingout/SettingOutPage.jsx" /* Setting out */, "components/AuthScreen.jsx" /* sign in */,
