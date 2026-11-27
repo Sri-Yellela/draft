@@ -1,8 +1,7 @@
 // client/src/pages/marketing/HowItWorksPage.jsx — ⭐ 46v 0d (owner 11-18: "yes do the other pages too"): the landing's
 // treatment — the frame (components/MarketingFrame.jsx); the steps are a real sequence, so they are numbered, each a note
 // card in its own pastel (A233).
-import { MarketingFrame, MkLink, MkSteps } from "../../components/MarketingFrame.jsx";
-import { NoteCard } from "../../components/TextBlocks.jsx";
+import { MarketingFrame, MkLink, MkSteps, MkNote } from "../../components/MarketingFrame.jsx";   // 47m: the notes and promises on the plate
 import { useMonetisationEnabled } from "../../lib/monetisation.jsx";
 
 // Step 3 is the only tiered step; the other four describe the product identically either way.
@@ -33,7 +32,7 @@ export function HowItWorksPage() {
         ? "Your best jobs each day and applications that wait for you. Upgrades add tools when you need them."
         : "Your best jobs each day, applications that wait for you, and every tool available."}
       actions={<MkLink primary to="/register">Sign up free</MkLink>}>
-      <MkSteps data-how-steps="" items={steps.map((s) => ({ key: s.n, body: <NoteCard id={`how-step-${s.n}`} title={s.title}>{s.body}</NoteCard> }))} />
+      <MkSteps data-how-steps="" items={steps.map((s) => ({ key: s.n, body: <MkNote id={`how-step-${s.n}`} title={s.title}>{s.body}</MkNote> }))} />
     </MarketingFrame>
   );
 }

@@ -12,9 +12,8 @@
 // not supplied the store item — WORKLOG O55) the page says so and offers nothing to click.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { MarketingFrame, MkSection, MkSteps } from "../../components/MarketingFrame.jsx";
+import { MarketingFrame, MkSection, MkSteps, MkNote, MkPromises } from "../../components/MarketingFrame.jsx";   // 47m: the notes and promises on the plate
 import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
-import { NoteCard, Promises } from "../../components/TextBlocks.jsx";
 import { DraftMark } from "../../components/DraftMark.jsx";
 import { EXTENSION_STORE_URL } from "../../../../shared/extension.js";
 import { CANONICAL_HOST, PRIVACY_POLICY_PATH } from "../../../../shared/brand.js";
@@ -87,7 +86,7 @@ export function ExtensionStateCard({ status }) {
   if (status.state === "connected") {
     const seen = agoWords(status.lastSeenAt ? status.lastSeenAt * 1000 : null);
     return (
-      <NoteCard id="ext-connected" title="Your extension is connected" data-extension-state="connected">
+      <MkNote id="ext-connected" title="Your extension is connected" data-extension-state="connected">
         <p style={{ margin: "0 0 8px" }}>
           {seen ? `Last used ${seen}. ` : ""}Here's what to do with it:
         </p>
@@ -96,12 +95,12 @@ export function ExtensionStateCard({ status }) {
           <li><strong>On an application you drafted</strong> — press Ctrl+Shift+Y to fill it, check every answer, and submit it yourself.</li>
           <li><strong>Not sure which?</strong> — open it and press <em>Read this page</em>; it picks the action that fits.</li>
         </ul>
-      </NoteCard>
+      </MkNote>
     );
   }
   if (status.state === "not_connected") {
     return (
-      <NoteCard id="ext-not-connected" title="Your extension isn't connected" data-extension-state="not_connected">
+      <MkNote id="ext-not-connected" title="Your extension isn't connected" data-extension-state="not_connected">
         <p style={{ margin: 0 }}>
           It has been used on this account, but it holds no live key right now. Click the draft icon in your
           browser's toolbar while you're signed in here and it connects by itself — or press <em>Sign in</em> inside it.
@@ -109,7 +108,7 @@ export function ExtensionStateCard({ status }) {
         <p style={{ margin: "12px 0 0" }}>
           Setting it up on a different browser? <ExtensionInstallButton compact/>
         </p>
-      </NoteCard>
+      </MkNote>
     );
   }
   return null;
@@ -147,10 +146,10 @@ export function ExtensionPage() {
       {status?.state === "connected" && <ImportsPointer/>}
       {/* D33: the install-and-set-up steps are for someone setting it up — not for a connected user. */}
       {status?.state !== "connected" && (
-      <MkSteps data-extension-setup="" items={STEPS.map((s, i) => ({ key: s.title, body: <NoteCard id={`ext-step-${i + 1}`} title={s.title}>{s.body}</NoteCard> }))} />
+      <MkSteps data-extension-setup="" items={STEPS.map((s, i) => ({ key: s.title, body: <MkNote id={`ext-step-${i + 1}`} title={s.title}>{s.body}</MkNote> }))} />
       )}
       <MkSection id="ext-facts" title="What it does, and never does" className="mk-sec--rule">
-        <Promises className="mk-measure" items={FACTS.map(([h, b]) => ({ ok: true, text: <><strong>{h}.</strong> {b}</> }))} />
+        <MkPromises className="mk-measure" items={FACTS.map(([h, b]) => ({ ok: true, text: <><strong>{h}.</strong> {b}</> }))} />
         <p className="mk-quiet">What it stores and sends is set out in the <Link to={PRIVACY_POLICY_PATH}>privacy policy</Link>.</p>
       </MkSection>
     </MarketingFrame>

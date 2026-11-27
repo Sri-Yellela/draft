@@ -1,8 +1,7 @@
 // client/src/pages/marketing/PricingPage.jsx — ⭐ 46v 0d (owner 11-18: "yes do the other pages too"): the landing's
 // treatment — the frame (components/MarketingFrame.jsx), the plans as three cards, each plan's list as ✓ items (A233).
 // Routed only while monetisation is on (App.jsx).
-import { MarketingFrame, MkLink, MkPlan } from "../../components/MarketingFrame.jsx";
-import { Promises } from "../../components/TextBlocks.jsx";
+import { MarketingFrame, MkLink, MkPlan, MkPromises } from "../../components/MarketingFrame.jsx";   // 47m: the notes and promises on the plate
 
 const TIERS = [
   {
@@ -62,7 +61,7 @@ export function PricingPage() {
       <div className="mk-plans" data-plans="">
         {TIERS.map((t) => (
           <MkPlan key={t.name} name={t.name} price={`${t.price}${t.period}`} badge={t.badge} recommended={t.recommended} data-plan={t.name}>
-            <Promises items={t.features.map((f) => ({ ok: true, text: f }))} />
+            <MkPromises items={t.features.map((f) => ({ ok: true, text: f }))} />
             {t.comingSoon
               ? <p className="mk-quiet">Coming soon</p>
               : <div><MkLink primary={t.recommended} to={t.ctaLink}>{t.cta}</MkLink></div>}

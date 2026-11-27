@@ -53,6 +53,36 @@ export function MkPlan({ name, price, badge = null, recommended = false, childre
   );
 }
 
+/** A note on the plate (47m — the marketing pages' NoteCard, marketing.md: "NoteCard → the library Ticket / pl-card"): a
+ *  plate card with its title as the serif head, the text, and its actions under a ruled line. Same props as NoteCard. */
+export function MkNote({ id = "note", title, children = null, actions = null, className = "", style = null, ...data }) {
+  return (
+    <div className={`pl-card mk-note${className ? ` ${className}` : ""}`} style={style || undefined} data-note-card={id} {...data}>
+      <div className="pl-card__body" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {title && <p className="mk-note__t">{title}</p>}
+        {children && <div className="mk-note__s">{children}</div>}
+        {actions && <div className="pl-actions" style={{ marginTop: 4 }}>{actions}</div>}
+      </div>
+    </div>
+  );
+}
+
+/** What happens (✓) and what never does (✗) — a ruled list in ink (a promise isn't a proof, so no green). Same props as
+ *  TextBlocks' Promises; each item keeps its full meaning (and its words for a screen reader). */
+export function MkPromises({ title = null, items, className = "", ...data }) {
+  return (
+    <ul className={`pl-card mk-prom${className ? ` ${className}` : ""}`} data-promises="" aria-label={title || undefined} {...data}>
+      {title && <li className="pl-label" aria-hidden="true">{title}</li>}
+      {(items || []).map((it, i) => (
+        <li key={i} className="pl-card__item" data-promise={it.ok ? "does" : "never"}>
+          <span aria-hidden="true" className="pl-label" style={{ minWidth: 14 }}>{it.ok ? "✓" : "✗"}</span>
+          <span><span className="pl-sr">{it.ok ? "Yes: " : "Never: "}</span>{it.text}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** The page: the public nav, the one-line header (eyebrow · title · lede · actions), the sections, the public footer. */
 export function MarketingFrame({ eyebrow = null, title, lede = null, actions = null, region = "I", children, ...data }) {
   return (

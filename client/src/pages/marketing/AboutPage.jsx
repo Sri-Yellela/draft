@@ -1,8 +1,7 @@
 // client/src/pages/marketing/AboutPage.jsx — ⭐ 46v 0d (owner 11-18: "yes do the other pages too"): the landing's
 // treatment — the frame (components/MarketingFrame.jsx), each section a note card (A233). The words are 46v's corrected
 // ones (b13809ef): what draft does, fit on its own rules, and the honest caveat about tailoring.
-import { MarketingFrame, MkLink } from "../../components/MarketingFrame.jsx";
-import { NoteCard } from "../../components/TextBlocks.jsx";
+import { MarketingFrame, MkLink, MkNote } from "../../components/MarketingFrame.jsx";   // 47m: the notes and promises on the plate
 import { BRAND } from "../../../../shared/brand.js";
 
 const SECTIONS = [
@@ -25,7 +24,7 @@ export function AboutPage() {
     <MarketingFrame eyebrow="About" title="Built for job seekers who are serious about landing"
       actions={<><MkLink primary to="/register">Sign up free</MkLink><MkLink to="/features">What each tool is for</MkLink></>}>
       <div className="mk-stack" data-about-sections="">
-        {SECTIONS.map((s) => <NoteCard key={s.id} id={s.id} title={s.title}>{s.body}</NoteCard>)}
+        {SECTIONS.map((s) => <MkNote key={s.id} id={s.id} title={s.title}>{s.body}</MkNote>)}
       </div>
     </MarketingFrame>
   );

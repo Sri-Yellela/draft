@@ -2,8 +2,7 @@
 // line"): the landing's treatment — the frame (components/MarketingFrame.jsx), the form in the frame's fields, the sent
 // state a note card. ⛔ No promise of a reply time (the owner dropped "We typically respond within 24 hours").
 import { useState } from "react";
-import { MarketingFrame } from "../../components/MarketingFrame.jsx";
-import { NoteCard } from "../../components/TextBlocks.jsx";
+import { MarketingFrame, MkNote } from "../../components/MarketingFrame.jsx";   // 47m: the notes and promises on the plate
 import { api } from "../../lib/api.js";
 
 export function ContactPage() {
@@ -28,7 +27,7 @@ export function ContactPage() {
     <MarketingFrame eyebrow="Contact" title="Get in touch"
       lede="A question about your account, a bug, or an idea for draft — write to us here.">
       {status === "ok" ? (
-        <NoteCard id="contact-sent" title="Message sent" data-contact-sent="">We'll be in touch soon.</NoteCard>
+        <MkNote id="contact-sent" title="Message sent" data-contact-sent="">We'll be in touch soon.</MkNote>
       ) : (
         <form className="mk-form" onSubmit={handleSubmit} data-contact-form="">
           <input id="contact-name" className="mk-field" aria-label="Name" placeholder="Name *" value={form.name}

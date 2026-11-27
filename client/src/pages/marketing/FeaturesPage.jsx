@@ -19,9 +19,8 @@
 // THE LEVER. The tier names are kept and shown only when monetisation is on — with it off, every tool
 // is available to every account, so a tier label would not merely be a commercial claim, it would be
 // false. (Kept rather than deleted so they are not rewritten from memory when the lever turns.)
-import { MarketingFrame, MkSection, MkLink } from "../../components/MarketingFrame.jsx";
-import { BookShelf, BookSpine } from "../../components/BookShelf.jsx";
-import { NoteCard } from "../../components/TextBlocks.jsx";
+import { MarketingFrame, MkSection, MkLink, MkNote } from "../../components/MarketingFrame.jsx";   // 47m: the notes and promises on the plate
+import { RouteLine } from "../../plate/Lists.jsx";   // 47m (marketing.md 16b): the shelf → the route find → fit → apply
 import { useMonetisationEnabled } from "../../lib/monetisation.jsx";
 
 export const TOOLS = [
@@ -78,28 +77,37 @@ export function FeaturesPage() {
     <MarketingFrame eyebrow="Features" title="What each tool is for"
       lede="Everything here is one line — find, fit, apply — and every tool is a stop on it. Each is described by what it does for you, and by the one thing it will not do."
       actions={<MkLink primary to="/register">Get today's draft</MkLink>}>
-      <MkSection id="features-shelf" lede="Pick a book to read about it." data-features-shelf="">
-        <BookShelf>
-          {all.map((t, i) => (
-            <BookSpine key={t.name} id={toolId(t)} last={i === all.length - 1} kind={`/${t.verb}`} title={t.name}
-              foot={monetisationEnabled && t.tier ? t.tier : (t.to ? "try it" : "")} label={`${t.name}: ${t.does}`}
-              onClick={bringIntoView(toolId(t))} data-features-book={t.name} />
+      {/* ⭐ 47m (D197 · marketing.md 16b, M5): the shelf of books becomes the ROUTE find → fit → apply (three stops); under
+          each stop its tools, each a press that brings its note into view below (the books' job, kept) */}
+      <MkSection id="features-shelf" lede="Pick a tool to read about it." data-features-shelf="">
+        <RouteLine label="The line: find, fit, apply" stops={TOOLS.map((s) => ({ name: `/${s.verb}`, state: "ahead" }))}/>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 18 }}>
+          {TOOLS.map((station) => (
+            <div key={station.verb} role="group" aria-label={`/${station.verb}`} style={{ flex: "1 1 240px", display: "flex", flexDirection: "column", gap: 8 }}>
+              <span className="pl-label">/{station.verb.toUpperCase()}</span>
+              {all.filter((t) => t.verb === station.verb).map((t) => (
+                <button key={t.name} type="button" className="pl-btn pl-btn--paper" style={{ justifyContent: "space-between" }}
+                  aria-label={`${t.name}: ${t.does}`} onClick={bringIntoView(toolId(t))} data-features-book={t.name}>
+                  {t.name}<span className="pl-label pl-muted">{monetisationEnabled && t.tier ? t.tier.toUpperCase() : (t.to ? "TRY IT" : "")}</span>
+                </button>
+              ))}
+            </div>
           ))}
-        </BookShelf>
+        </div>
       </MkSection>
       {TOOLS.map(station => (
         <MkSection key={station.verb} id={`station-${station.verb}`} title={`/${station.verb}`} lede={station.line} className="mk-sec--rule">
           <div className="mk-stack">
             {station.tools.map(t => (
               <div key={t.name} id={toolId(t)} tabIndex={-1} data-tool={t.name}>
-                <NoteCard id={toolId(t)} title={<>{t.name}{monetisationEnabled && t.tier && (
+                <MkNote id={toolId(t)} title={<>{t.name}{monetisationEnabled && t.tier && (
                     <span className="mk-eyebrow" style={{ marginLeft: 10 }}>{t.tier}</span>
                   )}</>}
                   actions={t.to ? <MkLink to={t.to}>{t.cta}</MkLink> : null}>
                   <p style={{ margin: 0 }}>{t.does}</p>
                   <p style={{ margin: "6px 0 0" }}><strong>It won't: </strong>{t.wont}</p>
                   {(t.to ? t.limit : t.where) && <p style={{ margin: "6px 0 0", opacity: 0.8 }}>{t.to ? t.limit : t.where}</p>}
-                </NoteCard>
+                </MkNote>
               </div>
             ))}
           </div>

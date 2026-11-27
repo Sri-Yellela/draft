@@ -49,3 +49,10 @@ textarea.mk-field { min-height: 160px; resize: vertical; }
   .mk-step { grid-template-columns: 40px minmax(0, 1fr); gap: 10px; }
   .mk-h2 { font-size: var(--pl-t-card-xl); }
 }
+
+/* 47m: a note on the plate (MkNote) and the ruled promises list (MkPromises) */
+.mk-note { max-width: 760px; }
+.mk-note__t { margin: 0; font-family: var(--pl-serif); font-size: var(--pl-t-card); line-height: 1.1; color: var(--pl-ink); }
+.mk-note__s { color: var(--pl-ink-soft); font-size: var(--pl-t-body); line-height: 1.6; }
+.mk-note__s p { margin: 0 0 8px; }
+.mk-prom { list-style: none; margin: 0; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
