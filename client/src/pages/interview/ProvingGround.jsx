@@ -50,7 +50,7 @@ function useRead(path) {
   return [state, reload];
 }
 
-/** An in-app link for a plate piece's plain <a>: the router moves, the page never reloads. */
+/** An in-app link for a plate piece's plain anchor: the router moves, the page never reloads. */
 const useGo = () => {
   const navigate = useNavigate();
   return useCallback((href) => (e) => {
