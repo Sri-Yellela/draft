@@ -1,28 +1,26 @@
 // ⭐ D180 P2 (45o) · MESSAGES — conversations, Requests (people you aren't connected to: one message until you accept),
-// the ones you sent that wait, and one conversation with its job cards. ⋯ = mute · report · block. Text is drawn as text:
+// the ones you sent that wait, and one conversation with its job cards. Mute · report · block. Text is drawn as text:
 // no link is made clickable (a stranger's link stays plain words — the spec). Real time on the sync stream (45r: a
 // network_message event re-reads the list / the open conversation); polled every 15 s as the fallback.
 // "No AI reads this conversation unless you ask" — and nothing here asks.
 // ⭐ 46f (owner 11-11): these are the PARTS of the Messages page (pages/network/MessagesPage.jsx, /app/messages): the
 // list (useInbox + Inbox) and one conversation (Thread). Network keeps only People.
+// ⭐ D197 Wave 2 #14 · M5 (47m, lane public — the approved mock `network`, Letters): the list is three Gazetteers (Messages ·
+// Requests · Waiting for them: NAME · LAST LINE · WHEN · the unread count as .mark-count); the conversation's strip is
+// ‹ ALL LETTERS · CORRESPONDENCE · <NAME> · a plate menu (Mute / Unmute · Report the conversation · Block <name>); a stranger's
+// request is a clay-tint ticket-shaped card (Accept = the clay point while it shows); each message a CorrespondenceLetter
+// (yours on the region tint; removed → THIS MESSAGE WAS REMOVED; a job → its ticket / NO LONGER OPEN); the report is the
+// plate ReportBlock; the composer is the Send ticket (Ctrl / ⌘ + Enter sends). Every hook the tests read stays.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api.js";
-import DepthButton from "../../components/DepthButton.jsx";
 import { useSyncEvents } from "../../hooks/useSyncEvents.js";   // D180 (45r): real time; the poll below stays the fallback
+import { Gazetteer } from "../../plate/Lists.jsx";
+import { Drawer, Skeleton } from "../../plate/PlateState.jsx";
+import { CorrespondenceLetter, SendTicket, ReportBlock, PersonName } from "../../plate/Correspondence.jsx";
 
 const POLL_MS = 15_000;
-const when = (s) => new Date(s * 1000).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-const REASONS = [["spam", "Spam"], ["harassment", "Harassment"], ["scam", "A scam"], ["inappropriate", "Inappropriate"], ["other", "Something else"]];
-
-function MessageJobCard({ job }) {   // (not JobCard: the board's card has that name — A93)
-  if (!job) return <div className="msg-job msg-job--gone">This job is no longer open.</div>;
-  return (
-    <a className="msg-job" href={job.path} data-msg-job={job.id}>
-      <b>{job.title}</b><span>{[job.company, job.location].filter(Boolean).join(" · ")}</span>
-      <span className="msg-job__go">Open the job →</span>
-    </a>
-  );
-}
+const when = (s) => new Date(s * 1000).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).toUpperCase();
+const pbtn = (label, onClick, extra = {}) => <button type="button" className="pl-btn pl-btn--paper" onClick={onClick} {...extra}>{label}</button>;
 
 function Thread({ id, onBack, onChanged }) {
   const [t, setT] = useState(null);
@@ -40,7 +38,13 @@ function Thread({ id, onBack, onChanged }) {
   // ⭐ D180 (45r): real time — the sync stream says THIS conversation changed (never its words); read it again now.
   useSyncEvents({ network_message: (e) => { if (!e?.threadId || Number(e.threadId) === Number(id)) load(); } });
   useEffect(() => { end.current?.scrollIntoView?.({ block: "end" }); }, [t?.messages?.length]);
-  if (!t) return <p className="net__quiet" role="status">{said || "Opening the conversation…"}</p>;
+  useEffect(() => {
+    if (!menu) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") setMenu(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menu]);
+  if (!t) return said ? <p className="pl-body" role="status">{said}</p> : <Skeleton label="Opening the conversation…" lines={4}/>;
 
   const send = async () => {
     if (!text.trim()) return;
@@ -63,65 +67,60 @@ function Thread({ id, onBack, onChanged }) {
   const mute = async () => { try { await api(`/api/network/messages/${id}/${t.muted ? "unmute" : "mute"}`, { method: "POST", body: "{}" }); setMenu(false); load(); onChanged?.(); } catch (e) { setSaid(e.message); } };
   const hide = async (mid) => { try { await api(`/api/network/message/${mid}/hide`, { method: "POST", body: "{}" }); load(); } catch (e) { setSaid(e.message); } };
   const canWrite = t.status === "open" || (t.mine && !t.messages.some(m => m.mine));
+  const them = { name: t.with.name, href: `/in/${encodeURIComponent(t.with.handle)}` };
 
   return (
-    <section className="msg-thread" data-msg-thread={id}>
-      <header className="msg-thread__head">
-        <button type="button" className="net__back" onClick={onBack}>‹ All messages</button>
-        <a href={`/in/${encodeURIComponent(t.with.handle)}`} className="msg-thread__who">{t.with.name}</a>
-        <span className="msg-thread__menu">
-          <DepthButton onClick={() => setMenu(m => !m)} aria-expanded={menu}>⋯</DepthButton>
+    <section data-msg-thread={id} style={{ display: "flex", flexDirection: "column", gap: 14 }} aria-label={`Correspondence with ${t.with.name}`}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <button type="button" className="pl-btn pl-btn--paper" onClick={onBack}>‹ All letters</button>
+        <span className="pl-label">CORRESPONDENCE · <a href={them.href} style={{ color: "var(--pl-ink)" }}>{String(t.with.name).toUpperCase()}</a></span>
+        <span className="pl-grow"/>
+        <span className="pl-rel">
+          <button type="button" className="pl-btn pl-btn--paper" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(m => !m)}>Mute · Report · Block</button>
           {menu && (
-            <span className="msg-menu" role="menu">
-              <button type="button" role="menuitem" onClick={mute}>{t.muted ? "Unmute" : "Mute"}</button>
-              <button type="button" role="menuitem" onClick={() => { setReporting({ kind: "thread", id }); setMenu(false); }}>Report the conversation</button>
-              <button type="button" role="menuitem" onClick={doBlock}>Block {t.with.name}</button>
-            </span>
+            <div className="pl-menu pl-drop" role="menu" style={{ right: 0 }}>
+              <button type="button" role="menuitem" className="pl-btn pl-btn--paper" onClick={mute}>{t.muted ? "Unmute" : "Mute"}</button>
+              <button type="button" role="menuitem" className="pl-btn pl-btn--paper" onClick={() => { setReporting({ kind: "thread", id }); setMenu(false); }}>Report the conversation</button>
+              <button type="button" role="menuitem" className="pl-btn pl-btn--paper" onClick={doBlock}>Block {t.with.name}</button>
+            </div>
           )}
         </span>
-      </header>
-      <p className="net__quiet msg-thread__ai" data-no-ai="">No AI reads this conversation unless you ask.</p>
+      </div>
+      <span className="pl-label pl-muted" data-no-ai="">No AI reads this conversation unless you ask.</span>
       {t.fromStranger && (
-        <div className="msg-req" data-msg-request="">
-          <p>{t.with.name} isn't a connection. Reply only if you accept — links here aren't clickable.</p>
-          <div className="net__row">
-            <DepthButton primary onClick={() => answer(true)}>Accept</DepthButton>
-            <DepthButton onClick={() => answer(false)}>Decline</DepthButton>
-            <DepthButton onClick={() => setReporting({ kind: "thread", id })}>Report</DepthButton>
+        <div className="pl-ticket" data-tone="clay-tint" data-msg-request="" style={{ flex: "none" }}>
+          <div className="pl-ticket__head">
+            <span className="pl-label">A REQUEST · {String(t.with.name).toUpperCase()} ISN'T A CONNECTION</span>
+            <span className="pl-ticket__line">{t.with.name} isn't a connection. Reply only if you accept — links here aren't clickable.</span>
           </div>
+          <div aria-hidden="true" className="pl-tear"/>
+          <span className="pl-ticket__go" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" className="pl-btn pl-btn--primary" onClick={() => answer(true)}>Accept</button>
+            {pbtn("Decline", () => answer(false))}
+            {pbtn("Report", () => setReporting({ kind: "thread", id }))}
+          </span>
         </div>
       )}
-      <ol className="msg-list">
+      <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 12 }}>
         {t.messages.map(m => (
-          <li key={m.id} className={`msg${m.mine ? " msg--mine" : ""}`} data-msg={m.id}>
-            {m.removed ? <span className="net__quiet">This message was removed.</span> : <>
-              {m.text && <p className="msg__text">{m.text}</p>}
-              {m.kind === "job" && <MessageJobCard job={m.job} />}
-            </>}
-            <span className="msg__meta">{when(m.at)}
-              {" · "}<button type="button" className="msg__act" onClick={() => hide(m.id)}>Delete for me</button>
-              {!m.mine && !m.removed && <>{" · "}<button type="button" className="msg__act" onClick={() => setReporting({ kind: "message", id: m.id })}>Report</button></>}
-            </span>
+          <li key={m.id} data-msg={m.id} className={m.mine ? "msg--mine" : undefined}>
+            <CorrespondenceLetter from={m.mine ? {} : them} mine={!!m.mine} when={when(m.at)} removed={!!m.removed} text={m.text}
+              job={m.kind === "job" ? (m.job ? { title: m.job.title, company: m.job.company, place: m.job.location, href: m.job.path } : false) : null}
+              actions={<>
+                {pbtn("Delete for me", () => hide(m.id))}
+                {!m.mine && !m.removed && pbtn("Report", () => setReporting({ kind: "message", id: m.id }))}
+              </>}/>
           </li>
         ))}
         <li ref={end} aria-hidden="true" />
       </ol>
-      {reporting && (
-        <div className="msg-report" data-msg-reporting={reporting.kind}>
-          <label>Why are you reporting this?{" "}
-            <select value={reason} onChange={e => setReason(e.target.value)}>{REASONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-          </label>
-          <div className="net__row"><DepthButton primary onClick={doReport}>Send the report</DepthButton><DepthButton onClick={() => setReporting(null)}>Cancel</DepthButton></div>
-        </div>
-      )}
-      {said && <p className="net__said" role="status">{said}</p>}
+      {reporting && <ReportBlock data-msg-reporting={reporting.kind} reason={reason} onReason={setReason} onSend={doReport} onCancel={() => setReporting(null)}/>}
+      {said && <p className="pl-label pl-muted" role="status">{said}</p>}
       {canWrite ? (
-        <div className="msg-compose">
-          <textarea value={text} onChange={e => setText(e.target.value)} maxLength={4000} rows={3} placeholder="Write a message" aria-label="Write a message"
-            onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send(); }} />
-          <DepthButton primary onClick={send}>Send</DepthButton>
-        </div>
-      ) : <p className="net__quiet">{t.status === "request" && t.mine ? "They haven't accepted yet — one message until they do." : "Accept the request to reply."}</p>}
+        <SendTicket kicker={`A LETTER · TO ${String(t.with.name).toUpperCase()}`} placeholder="Write a message" maxLength={4000} note="Ctrl + Enter sends."
+          value={text} onChange={setText} onSend={send} clay={!t.fromStranger}
+          onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send(); }}/>
+      ) : <p className="pl-body pl-muted">{t.status === "request" && t.mine ? "They haven't accepted yet — one message until they do." : "Accept the request to reply."}</p>}
     </section>
   );
 }
@@ -139,28 +138,27 @@ export function useInbox() {
 }
 
 export function Inbox({ box, said, openId = null, onOpen }) {
-  if (!box) return <p className="net__quiet" role="status">{said || "Opening your messages…"}</p>;
-  const row = (t) => (
-    <li key={t.id}>
-      <button type="button" className="msg-row" onClick={() => onOpen(t.id)} data-msg-row={t.id} aria-current={Number(openId) === Number(t.id) ? "true" : undefined}>
-        <span className="net-person__tile" aria-hidden="true">{String(t.with.name || "?").charAt(0).toUpperCase()}</span>
-        <span className="net-person__main">
-          <b>{t.with.name}</b>
-          <span className="net-person__sub">{t.preview || " "}</span>
-        </span>
-        <span className="msg-row__meta">{when(t.lastAt)}{t.unread > 0 && <b className="msg-row__n" aria-label={`${t.unread} unread`}>{t.unread}</b>}{t.muted ? " · muted" : ""}</span>
-      </button>
-    </li>
-  );
+  if (!box) return said ? <p className="pl-body" role="status">{said}</p> : <Skeleton label="Opening your messages…" lines={4}/>;
+  const cols = [
+    { key: "title", label: "NAME", render: (t) => (
+      <button type="button" className="pl-btn pl-btn--paper" onClick={() => onOpen(t.id)} data-msg-row={t.id}
+        aria-current={Number(openId) === Number(t.id) ? "true" : undefined} style={{ justifyContent: "flex-start" }}>
+        <PersonName name={t.with.name}/>
+      </button>) },
+    { key: "last", label: "LAST LINE", render: (t) => <span style={{ overflowWrap: "anywhere" }}>{t.preview || "—"}{t.muted ? " · muted" : ""}</span> },
+    { key: "when", label: "WHEN", kind: "mono", render: (t) => when(t.lastAt) },
+    { key: "n", label: "", render: (t) => (t.unread > 0 ? <span className="mark-count" aria-label={`${t.unread} unread`}>{t.unread}</span> : null) },
+  ];
+  const list = (label, rows) => <Gazetteer label={label} cols={cols} rows={rows.map((t) => ({ ...t, id: t.id }))} rowClick onRow={(t) => onOpen(t.id)}/>;
   return (
-    <div data-messages-pane="">
-      <section className="net__sec" data-msg-threads="">
-        <h2>Messages</h2>
-        {box.threads.length === 0 ? <p className="net__quiet">No conversations yet — Send a job from the deck, or write from a connection's page.</p>
-          : <ul className="net__list">{box.threads.map(row)}</ul>}
-      </section>
-      {box.requests.length > 0 && <section className="net__sec" data-msg-requests=""><h2>Requests · {box.requests.length}</h2><ul className="net__list">{box.requests.map(row)}</ul></section>}
-      {box.sent.length > 0 && <section className="net__sec" data-msg-sent=""><h2>Waiting for them · {box.sent.length}</h2><ul className="net__list">{box.sent.map(row)}</ul></section>}
+    <div data-messages-pane="" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div data-msg-threads="">
+        {box.threads.length === 0
+          ? <Drawer kicker="NOT YET" text="No conversations yet — Send a job from the deck, or write from a connection's page."/>
+          : list("Messages", box.threads)}
+      </div>
+      {box.requests.length > 0 && <div data-msg-requests="">{list(`Requests · ${box.requests.length}`, box.requests)}</div>}
+      {box.sent.length > 0 && <div data-msg-sent="">{list(`Waiting for them · ${box.sent.length}`, box.sent)}</div>}
     </div>
   );
 }

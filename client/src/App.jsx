@@ -389,6 +389,12 @@ function LedgerAreaNav({ onHome }) {
   };
   return <ShellAreaNav area="Home" views={LEDGER_AREA_VIEWS} current={current} onGo={onGo} onHome={onHome} />;
 }
+// ⭐ 47m (D197 #14, network.md §6): Correspondence's views — the three network places under their atlas names
+const CORRESPONDENCE_VIEWS = [
+  { id: "network", label: "People", href: "/app/network", icon: "network" },
+  { id: "feed", label: "Dispatches", href: "/app/feed", icon: "list" },
+  { id: "messages", label: "Letters", href: "/app/messages", icon: "replies" },
+];
 function AppAreaNavSlot({ activeTab, onHome }) {
   const navigate = useNavigate();
   const { boardTab, setBoardTab, boardHeadline } = useJobBoard();
@@ -409,6 +415,12 @@ function AppAreaNavSlot({ activeTab, onHome }) {
   if (activeTab === "atlas") return <AtlasAreaNav onHome={onHome} />;
   if (activeTab === "interview") return <InterviewAreaNav onHome={onHome} />;
   if (activeTab === "profile" || activeTab === "plans") return <PassportAreaNav onHome={onHome} />;   // ⭐ 47m: D197 #9 Your passport
+  if (CORRESPONDENCE_VIEWS.some((v) => v.id === activeTab)) {
+    // ⭐ D197 Wave 2 #14 (47m, lane public): Network · Feed · Messages are one area, Correspondence — People · Dispatches ·
+    // Letters as its views (the three addresses kept; the dock's three items stay, D167)
+    return <ShellAreaNav area="Correspondence" views={CORRESPONDENCE_VIEWS} current={activeTab} placeholder="A name or a company…"
+      onGo={(id, href) => navigate(href || CORRESPONDENCE_VIEWS.find((v) => v.id === id)?.href || "/app/network")} onHome={onHome} />;
+  }
   if (!market) return <ShellAreaNav area={AREA_NAMES[activeTab] || "draft"} onHome={onHome} />;
   const current = deckShown ? "picks" : boardTab;
   // the views' counts (the facets answer's, as the classic segment showed them) ride on the nav's words — never a 0 guessed

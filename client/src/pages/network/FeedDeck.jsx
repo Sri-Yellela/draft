@@ -27,10 +27,11 @@ export default function FeedDeck({ id }) {
   if (deck === false) return null;   // not an approved deck: the link stays as the post shows it
   const lesson = `/app/atlas/library/${encodeURIComponent(deck.id)}`;
   return (
-    <section className="feed-deck" data-feed-deck={deck.id} aria-label={`A lesson: ${deck.title}`}>
-      <p className="net__quiet"><Link to={lesson}>{deck.title}</Link></p>
+    <section data-feed-deck={deck.id} aria-label={`A lesson: ${deck.title}`} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {/* 47m (D197 #14): inside the dispatch card — plate type (NetworkPage.css is retired) */}
+      <p className="pl-body"><Link to={lesson} style={{ fontWeight: 700, color: "var(--pl-ink)" }}>{deck.title}</Link></p>
       <DeckPlay deck={deck} mode={mode === "cards" ? "read" : mode} onMode={(m) => setMode(m === "cards" ? "read" : m)}
-        renderCheck={() => <p className="net__quiet" data-feed-deck-check=""><Link to={lesson}>Check yourself in the Library</Link></p>} />
+        renderCheck={() => <p className="pl-body" data-feed-deck-check=""><Link to={lesson}>Check yourself in the Library</Link></p>} />
     </section>
   );
 }

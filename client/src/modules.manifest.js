@@ -105,7 +105,10 @@ export const MODULES = Object.freeze({
       "panels/JobProfilesPanel.jsx" /* Your bearings */, "panels/JobWorkspacePanel.jsx" /* The voyage */, "pages/settingout/SettingOutPage.jsx" /* Setting out */, "components/AuthScreen.jsx" /* sign in */,
       // ⭐ D197 Wave 2 #16 / #14 / #22 + marketing.md (47m, lane public, M5): the signed-out chrome, the public pages, the
       // marketing pages' frame, Off the map and Correspondence — built on the plate from the approved mocks
-      "components/PublicChrome.jsx", "components/Footer.jsx", "components/MarketingFrame.jsx", "pages/LandingPage.jsx", "pages/NotFoundPage.jsx", "pages/jobs/PublicBoardPage.jsx"] },
+      "components/PublicChrome.jsx", "components/Footer.jsx", "components/MarketingFrame.jsx", "pages/LandingPage.jsx", "pages/NotFoundPage.jsx", "pages/jobs/PublicBoardPage.jsx",
+      "pages/marketing/PrivacyPage.jsx", "pages/marketing/TermsPage.jsx", "pages/marketing/ConnectorDocsPage.jsx", "pages/marketing/FeaturesPage.jsx", "pages/BlogPage.jsx", "pages/SurveyPublicPage.jsx",
+      "pages/tools/ApplyToolPage.jsx", "pages/tools/ATSToolPage.jsx", "pages/tools/GenerateToolPage.jsx", "pages/tools/HonestyToolPage.jsx",
+      "pages/network/NetworkPage.jsx", "pages/network/MessagesPane.jsx", "pages/network/FeedPane.jsx", "pages/network/FeedPage.jsx", "pages/network/MessagesPage.jsx", "pages/network/FeedDeck.jsx", "pages/network/CorrespondenceFrame.jsx"] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminGateway.jsx", "panels/adminFlags.jsx","panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "panels/adminReports.jsx", "panels/adminCompanyRecords.jsx", "panels/adminNetwork.jsx", "panels/adminRuns.jsx", "panels/adminPhase1.jsx", "panels/adminDiagnostics.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.
@@ -146,7 +149,8 @@ export const MODULES = Object.freeze({
     // ⛔ 47j R3 (w1-retire): CompanyPage.css is deleted with the classic page — the page is the survey sheet (plate/SurveySheet.jsx)
     members: ["App.jsx", "pages/companies/CompanyPage.jsx"] },
   network: { why: "D180 P1 — the Network place (People: connections, requests, suggestions, blocked), behind the network switch; 46f — Feed (/app/feed) and Messages (/app/messages) as their own places, under the same switch",
-    css: ["pages/network/NetworkPage.css"], members: ["App.jsx", "pages/network/NetworkPage.jsx", "pages/network/MessagesPane.jsx", "pages/network/FeedPane.jsx", "pages/network/FeedPage.jsx", "pages/network/MessagesPage.jsx", "pages/network/networkSwitch.js", "pages/network/FeedDeck.jsx"] },
+    // ⭐ 47m (D197 Wave 2 #14, M5): Correspondence in plate — NetworkPage.css is deleted; the frame the three pages share is its own part
+    members: ["App.jsx", "pages/network/NetworkPage.jsx", "pages/network/MessagesPane.jsx", "pages/network/FeedPane.jsx", "pages/network/FeedPage.jsx", "pages/network/MessagesPage.jsx", "pages/network/networkSwitch.js", "pages/network/FeedDeck.jsx", "pages/network/CorrespondenceFrame.jsx"] },
 });
 
 // ── SHARED: every file under components/, styles/, lib/, hooks/, contexts/, themes/, consoles/.

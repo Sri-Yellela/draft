@@ -47,3 +47,62 @@ export function CorrespondenceLetter({ kind = "letter", from = {}, when, text, l
     </article>
   );
 }
+
+// ⭐ D197 Wave 2 #14 · M5 (47m, lane public) · the three pieces every Correspondence page composes (the approved mock
+// `network`): the SEND TICKET (every composer — a letter, a dispatch, a request's note: write, tear, send), the REPORT block
+// (the five reasons as answer buttons + Send the report — the same block on a dispatch, a letter and a conversation) and a
+// person's NAME (the letter tile + their public page).
+
+/** A person's name in a gazetteer row: the letter tile and the link to their public page (/in/<handle>) when there is one. */
+export function PersonName({ name, href }) {
+  return (
+    <span style={{ display: "inline-flex", gap: 10, alignItems: "center", minWidth: 0 }}>
+      <LetterTile name={name || "?"} size="sm"/>
+      {href ? <a href={href} style={{ fontWeight: 700, color: "var(--pl-ink)", overflowWrap: "anywhere" }}>{name}</a> : <b style={{ overflowWrap: "anywhere" }}>{name}</b>}
+    </span>
+  );
+}
+
+/**
+ * The Send ticket: a perforated card — kicker, the addressee, one line, the text field (and any extra fields as children),
+ * the tear, then Send (the clay point while it shows, unless `clay` is false) and Cancel. Controlled: `value` / `onChange`.
+ */
+export function SendTicket({ kicker, to, note, value, onChange, onSend, onCancel, send = "Send", placeholder = "Write a message", rows = 3, maxLength, clay = true, onKeyDown, children, ...data }) {
+  return (
+    <div className="pl-ticket" style={{ flex: "none" }} {...data}>
+      <div className="pl-ticket__head">
+        {kicker ? <span className="pl-label">{kicker}</span> : null}
+        {to ? <span className="pl-ticket__title">{to}</span> : null}
+        {note ? <span className="pl-ticket__line">{note}</span> : null}
+        <textarea className="pl-textarea" rows={rows} maxLength={maxLength} placeholder={placeholder} aria-label={placeholder}
+          value={value} onChange={(e) => onChange?.(e.target.value)} onKeyDown={onKeyDown}/>
+        {children}
+      </div>
+      <div aria-hidden="true" className="pl-tear"/>
+      <span className="pl-ticket__go" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <button type="button" className={`pl-btn ${clay ? "pl-btn--primary" : "pl-btn--ink"}`} onClick={onSend}>{send}</button>
+        {onCancel ? <button type="button" className="pl-btn pl-btn--paper" onClick={onCancel}>Cancel</button> : null}
+      </span>
+    </div>
+  );
+}
+
+export const REPORT_REASONS = Object.freeze([["spam", "Spam"], ["harassment", "Harassment"], ["scam", "A scam"], ["inappropriate", "Inappropriate"], ["other", "Something else"]]);
+
+/** The report block: "Why are you reporting this?", the five reasons as answer buttons (one pressed), Send the report / Cancel. */
+export function ReportBlock({ question = "Why are you reporting this?", reason, onReason, onSend, onCancel, send = "Send the report", ...data }) {
+  return (
+    <div className="pl-card" style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }} {...data}>
+      <span className="pl-label">{question.toUpperCase()}</span>
+      <div role="radiogroup" aria-label={question} style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {REPORT_REASONS.map(([k, w]) => (
+          <button key={k} type="button" role="radio" aria-checked={reason === k} className={`pl-btn ${reason === k ? "pl-btn--ink" : "pl-btn--paper"}`} onClick={() => onReason?.(k)}>{w}</button>
+        ))}
+      </div>
+      <div className="pl-actions">
+        <button type="button" className="pl-btn pl-btn--ink" onClick={onSend}>{send}</button>
+        <button type="button" className="pl-btn pl-btn--paper" onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
