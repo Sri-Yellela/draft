@@ -36,7 +36,7 @@ import { MIGRATIONS } from "../scripts/migrations.js";
 import picksConfirmRoutes from "../routes/picksConfirm.js";
 import { draftSlots } from "../services/draftSlots.js";
 import { at } from "../test-support/sourceAnchors.js";
-import { trackerView, trackerCounts, sortRows, readyToSend, sendAllConfirmText, panesFor, pulses, stageOfHistory, STAGES, TRACKER_FILTERS, TRACKER_COUNTS, TRACKER_COLUMNS, TRACKER_PANES, TRACKER_PERIODS } from "../client/src/lib/trackerRows.js";
+import { trackerView, trackerCounts, sortRows, readyToSend, sendAllConfirmText, panesFor, pulses, stageOfHistory, STAGES, TRACKER_FILTERS, TRACKER_COUNTS, TRACKER_PANES, TRACKER_PERIODS } from "../client/src/lib/trackerRows.js";
 import { historyToCsv } from "../shared/applicationCsv.js";   // ⭐ A232 R6 (46y, owner 11-19 "all four approved"): d146Tracker's, merged below
 
 const read = (f) => fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
@@ -63,10 +63,10 @@ async function loadUi() {
         import { createElement } from "react";
         import { renderToStaticMarkup } from "react-dom/server.browser";
         import DraftHouseTree, { Branch, RunCard } from ${abs("components/DraftHouseTree.jsx")};
-        import ApplicationTracker, { RowOpen } from ${abs("components/ApplicationTracker.jsx")};
+        import { RowOpen } from ${abs("components/ApplicationTracker.jsx")};
         import CompanyBubble from ${abs("components/CompanyBubble.jsx")};
         export const html = (C, props) => renderToStaticMarkup(createElement(C, props));
-        export { createElement, DraftHouseTree, CompanyBubble, Branch, RunCard, ApplicationTracker, RowOpen };`,
+        export { createElement, DraftHouseTree, CompanyBubble, Branch, RunCard, RowOpen };`,
       resolveDir: CLIENT, loader: "jsx",
     },
     bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
@@ -852,10 +852,10 @@ async function loadUi() {
       contents: `
         import { createElement } from "react";
         import { renderToStaticMarkup } from "react-dom/server.browser";
-        import ApplicationTracker, { RowOpen, StatusDot, TrackerFilters } from ${abs("components/ApplicationTracker.jsx")};
+        import { RowOpen, StatusDot } from ${abs("components/ApplicationTracker.jsx")};
         import DraftHouseTree from ${abs("components/DraftHouseTree.jsx")};
         export const html = (C, props) => renderToStaticMarkup(createElement(C, props));
-        export { createElement, ApplicationTracker, RowOpen, StatusDot, TrackerFilters, DraftHouseTree };`,
+        export { createElement, RowOpen, StatusDot, DraftHouseTree };`,
       resolveDir: CLIENT, loader: "jsx",
     },
     bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
@@ -965,7 +965,13 @@ test("d146ImportExportKept — every Table import and export works from the head
 });
 
 test("d146ColumnsAndSort — Position · Résumé · Answers · Status · When; every header sorts, a second press flips it", async () => {
-  assert.deepEqual(TRACKER_COLUMNS.map(c => c.label), ["Position", "Résumé", "Answers", "Status", "When"]);
+  // ⛔ 47k sweep (changed on purpose): the classic table (ApplicationTracker's default export, its sortable headers,
+  // TRACKER_COLUMNS) and its A201 phone container query are DELETED — R3 retired the classic Home; the ledger's register
+  // (plate/Lists.jsx) draws the rows and its Sort select orders them with the same sortRows. What each row says and how
+  // sortRows orders it stay pinned below; the table is a deletion pin.
+  assert.doesNotMatch(trk, /export default function ApplicationTracker|export function TrackerFilters|data-sort=/, "the classic table is back");
+  assert.doesNotMatch(trkCss, /@container trk\b|\.trk-row\b|\.trk-table\b/, "the classic table's rules are back");
+  assert.match(panel, /const lgSorts = \[\["status:asc", "Sort · status"\], \["when:desc", "Sort · newest"\]/, "the register's Sort");
   const rows = rowsOf();
   const r = byJob(rows, "j-ready");
   assert.equal(r.resume, "Tailored");
@@ -980,24 +986,6 @@ test("d146ColumnsAndSort — Position · Résumé · Answers · Status · When; 
   const when = sortRows(rows, { key: "when", dir: "desc" }).map(x => x.at || 0);
   assert.deepEqual(when, [...when].sort((a, b) => b - a), "newest first");
   assert.equal(sortRows(rows, { key: "status", dir: "asc" })[0].stage, "question", "what needs you first");
-  const { html, ApplicationTracker } = await loadUi();
-  const out = html(ApplicationTracker, { rows, sort: { key: "when", dir: "desc" } });
-  for (const c of TRACKER_COLUMNS) assert.match(out, new RegExp(`data-sort="${c.key}"`));
-  assert.match(out, /aria-sort="descending"/);
-  const seen = [];
-  const el = ApplicationTracker({ rows, sort: { key: "when", dir: "desc" }, onSort: (s) => seen.push(s) });
-  [...walk(el)].find(e => e.props?.["data-sort"] === "when").props.onClick();
-  [...walk(el)].find(e => e.props?.["data-sort"] === "company" || e.props?.["data-sort"] === "position").props.onClick();
-  assert.deepEqual(seen, [{ key: "when", dir: "asc" }, { key: "position", dir: "desc" }]);
-  // Phones: two columns, position and status (with its when beneath).
-  // D149 (11-03) changed this on purpose: tracker-options.html's phone row is a `1fr auto` grid from 760 px — the when
-  // sits on its own line under the position (right-aligned), so the row grid places the When cell instead of a copy.
-  // ⭐ A201 (46k) changed this on purpose: the stacked row follows the TABLE's width (a container query on .trk, 700 px),
-  // not the window's — beside Ask draft a 768-1024 px window left the table ~390 px with five columns in it.
-  const phone = trkCss.slice(at(trkCss, "@container trk (max-width: 700px)"));
-  assert.match(phone, /\.trk-row \{ display: grid; grid-template-columns: minmax\(0, 1fr\) auto;/);
-  assert.match(phone, /\.trk-table \[data-col="resume"\], \.trk-table \[data-col="answers"\] \{ display: none; \}/);
-  assert.match(phone, /\.trk-row td\[data-col="when"\] \{ grid-column: 1; text-align: right; \}/);
 });
 
 test("d146StatusDotWordNoPill — the status is a quiet dot + a word, never a capsule", async () => {
@@ -1024,19 +1012,10 @@ test("d146StatusDotWordNoPill — the status is a quiet dot + a word, never a ca
 });
 
 test("d146RowOpensInPlaceOneAtATime — a row opens under itself, never a new page; another closes it; Escape closes", async () => {
-  const rows = rowsOf();
-  const { html, ApplicationTracker } = await loadUi();
-  const k = byJob(rows, "j-ask").key;
-  const out = html(ApplicationTracker, { rows, openKey: k, renderOpen: (r) => `OPEN:${r.key}` });
-  assert.equal(count(out, "data-row-open="), 1, "exactly one row open");
-  const rowAt = out.indexOf(`data-row="${k}"`), openAt = out.indexOf(`data-row-open="${k}"`);
-  assert.ok(rowAt > 0 && openAt > rowAt && out.indexOf("data-row=", rowAt + 10) > openAt, "opened directly under its own row");
-  assert.equal(count(html(ApplicationTracker, { rows, openKey: null, renderOpen: () => "x" }), "data-row-open="), 0);
-  const seen = [];
-  const el = ApplicationTracker({ rows, openKey: k, onOpen: (x) => seen.push(x) });
-  [...walk(el)].find(e => e.props?.["data-row"] === byJob(rows, "j-sent").key).props.onClick();
-  [...walk(el)].find(e => e.props?.["data-row"] === k).props.onClick();
-  assert.deepEqual(seen, [byJob(rows, "j-sent").key, null], "another row opens instead; the open one closes");
+  // ⛔ 47k sweep (changed on purpose): the classic table's own open-under-its-row render (ApplicationTracker, data-row-open)
+  // is deleted with the table — the ledger's register opens a row in place (Register's openId / renderOpen → RowOpen).
+  assert.doesNotMatch(trk, /data-row-open=/);
+  assert.match(panel, /renderOpen=\{\(a\) => renderRow\(a\.row\)\}/);
   // The panel holds ONE open thing (branchStep) — a row, or a run in the timeline — and Escape closes it.
   // ⛔ 47j w1-retire (changed on purpose): R3 — Home's list is the ledger's register (the classic table is deleted); the same
   // one-open-thing step: a row opens, the open one closes

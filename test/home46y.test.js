@@ -5,7 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { at } from "../test-support/sourceAnchors.js";
-import { filterCounts, homeSummary, homeNeeds, TRACKER_FILTERS } from "../client/src/lib/trackerRows.js";
+import { filterCounts, homeSummary, TRACKER_FILTERS } from "../client/src/lib/trackerRows.js";
 
 const NOW = Date.parse("2026-11-20T15:00:00Z");
 const row = (o) => ({ key: o.key, stage: o.stage, filter: o.filter, company: o.company || "Acme", title: o.title || "Engineer",
@@ -32,13 +32,12 @@ test("home46y · homeSummary — this month · replies · interviews coming up; 
   assert.equal(homeSummary([ROWS[5]], NOW), "1 this month");
 });
 
+// ⛔ 47k sweep (changed on purpose): homeNeeds (the classic Home's needs-you cards) is DELETED — R3 retired the classic Home
+// and nothing called it; the ledger's section 01 (AutoApplyPanel's lgNeeds) picks the front application itself. A deletion pin.
 test("home46y · homeNeeds — Needs you, the next interview, Ready to send, in the sketch's order and words", () => {
-  const n = homeNeeds(ROWS, NOW);
-  assert.deepEqual(n.map(x => x.kind), ["need", "interview", "ready"]);
-  assert.deepEqual([n[0].eyebrow, n[0].title, n[0].line, n[0].label, n[0].act], ["Needs you", "Halcyon", "One question only you can answer: Are you open to relocating?", "Answer it", "open"]);
-  assert.deepEqual([n[1].eyebrow, n[1].title, n[1].label, n[1].act], ["Interview on Tuesday", "Vireo · Platform Engineer", "Prepare in Interview", "interview"]);
-  assert.deepEqual([n[2].eyebrow, n[2].title, n[2].line, n[2].label], ["Ready to send", "Quanta · Data Engineer", "Everything is filled. Submit when you're happy.", "Review and submit"]);
-  assert.deepEqual(homeNeeds([ROWS[2], ROWS[5]], NOW), [], "nothing needs the person → no cards");
+  const lib = fs.readFileSync("client/src/lib/trackerRows.js", "utf8");
+  assert.doesNotMatch(lib, /export function homeNeeds\b/, "the classic Home's needs cards are back");
+  assert.doesNotMatch(fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8"), /homeNeeds\(/);
 });
 
 test("home46y · Home draws the bar, the cards and the two parts (AutoApplyPanel)", () => {

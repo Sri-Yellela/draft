@@ -32,7 +32,10 @@ test("⭐ A201 (Chrome): the screens that garbled read cleanly at 768 and 390, w
 });
 
 test("A201: the fixes — the table and the card pairs follow their OWN width; Tiny floats over the page (owner 11-15)", () => {
-  assert.match(read("client/src/components/ApplicationTracker.css"), /\.trk \{[^}]*container-type: inline-size; container-name: trk; \}[\s\S]*@container trk \(max-width: 700px\) \{/);
+  // ⛔ 47k sweep (changed on purpose): the classic tracker table (.trk, its `trk` container that stacked the rows by the
+  // table's own width) is deleted with the table — R3 retired the classic Home; the ledger's register (plate/Lists.jsx) draws
+  // the rows. The container query left with it.
+  assert.doesNotMatch(read("client/src/components/ApplicationTracker.css"), /container-name: trk;|@container trk\b/);
   const jb = read("client/src/components/JobBubble.css");
   // ⛔ 47j A248 (changed on purpose): the bubble rows (.jb-rows, their `jbrows` container) are deleted with the card
   assert.doesNotMatch(jb, /container-name: jbrows/);

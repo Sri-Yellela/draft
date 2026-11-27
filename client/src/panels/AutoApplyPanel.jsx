@@ -88,9 +88,9 @@ import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
 //             confirm that lists them.
 //   ⭐ 46y (home-sketch.html, D167 on D146): under the header, THE AUTO-APPLY BAR (a live dot, "Auto-apply is running · n of
 //             N today · next run at …", the mode, Pause, Settings — moved here from the header and the timeline's head),
-//             THE NEEDS-YOU CARDS (lib/trackerRows.js homeNeeds), then Applications n · Inbox n new (components/ApplicationInbox.jsx).
+//             THE NEEDS-YOU CARDS (⛔ 47k: homeNeeds deleted — the ledger's section 01, lgNeeds), then Applications n · Inbox n new (components/ApplicationInbox.jsx).
 //   TABLE     (46y: no counts row — each filter carries its count) the filters All · Needs you · In progress · Sent · Replies · Stopped, the search and the
-//             period; plain rows and columns (components/ApplicationTracker.jsx), what each says from lib/trackerRows.js.
+//             period; plain rows and columns (⛔ 47k: the classic table is deleted — the ledger's Register), what each says from lib/trackerRows.js.
 //             A row opens IN PLACE, one at a time: the stage's eyebrow and headline, the panes on demand (The posting ·
 //             Résumé · Answers · Emails — the tree's old leaves) and the stage's actions (actionsFor below + the stage's).
 //   TIMELINE  beside the table, ≈ 300 px (components/DraftHouseTree.jsx): D113's runs by day, each "N looked at · N picked
