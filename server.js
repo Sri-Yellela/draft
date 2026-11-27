@@ -356,7 +356,7 @@ import { tierSkills, skillTierKey } from "./services/jobs/skillTiers.js";   // D
 import { createBoardFitPrecompute, atsBasisHash, atsJobInputHash, storedScoreSql, presentedScore, registerScoreFreshness, currentScoreSql } from "./services/jobs/boardFitPrecompute.js";
 import { deriveAutomationTier } from "./services/jobs/automationTier.js";
 import { backfillAutomationTier } from "./services/jobs/backfillAutomationTier.js";
-import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
+import { backfillRoleMap, backfillRoleMapSliced } from "./services/jobs/backfillRoleMap.js";
 import { remapGeneralRows, REMAP_MATCHED_BY } from "./services/jobs/remapGeneralRoles.js";
 import { tagStaleJobs } from "./services/jobs/jobTags.js";
 // ⭐ D106: the level a posting's text ASKS for, beside its title's ("Titled Junior · asks for 3+ years and system design").
@@ -429,6 +429,11 @@ console.log("[boot] server module loaded");
 // board, CC1b; NULL tags → "unknown", kept) — the same state a request sees between two 10-minute tag passes.
 // ⚠ The deferred work still runs on the one thread: a request landing during it waits for that step (≤ the step's
 // time). Measure on staging before turning it on (scripts/warmupMeasure.mjs; the 47j PROGRESS's step 2).
+// ⭐ 47k (measured on staging, 250k): deferred but whole, the two steps held the thread right after ready, so the first
+// request was answered no sooner (1,523 vs 1,490 ms). With the flag on they now YIELD: job_role_map walks rowid ranges
+// (backfillRoleMapSliced) and the boot tag walk bounds its description pass to each slice's range (WARMUP_DEFER_TAGS_ON
+// in runJobTagWalkSlice) instead of one whole-board stale scan on its first slice.
+const WARMUP_DEFER_TAGS_ON = process.env.WARMUP_DEFER_TAGS === "1";
 const WARMUP_DEFERRED_STEPS = ["job_role_map", "job tags (first slice)"];
 const BOOT = createBootWarmup({ startedAt: Number(process.hrtime.bigint() / 1000000n) - Math.round(process.uptime() * 1000),
   defer: process.env.WARMUP_DEFER_TAGS === "1" ? WARMUP_DEFERRED_STEPS : [] });
@@ -8375,9 +8380,12 @@ BOOT.add("enrichment provenance", () => {
 // once, and nothing on every boot after.
 if (String(process.env.ROLE_MAP_BACKFILL || "").toLowerCase() === "off") {
   console.log("[boot] job_role_map backfill: DISABLED by ROLE_MAP_BACKFILL=off");
-} else BOOT.add("job_role_map", () => {
+} else BOOT.add("job_role_map", async () => {
   try {
-    const roleFill = backfillRoleMap(db);
+    // ⭐ 47k (WARMUP_DEFER_TAGS=1): the step runs after ready, so it walks rowid ranges and yields between them
+    // (backfillRoleMapSliced) — a request arriving right after ready interleaves instead of waiting behind one
+    // whole-board read. Flag off: the one transaction, synchronously, exactly as before (no await is reached).
+    const roleFill = WARMUP_DEFER_TAGS_ON ? await backfillRoleMapSliced(db, { rows: 2000 }) : backfillRoleMap(db);
     if (roleFill.inserted > 0) {
       console.log(`[boot] job_role_map backfilled: ${roleFill.inserted} of ${roleFill.scanned} `
         + `unbucketed posting(s) classified `
@@ -8448,7 +8456,11 @@ function runJobTagWalkSlice() {
   let next = null;
   try {
     const range = nextRowidRange(db, w.from, JOB_TAG_SLICE_ROWS);
-    const r = runJobTagPass(w.trigger, { descriptions: w.first, range });
+    // ⭐ 47k (WARMUP_DEFER_TAGS=1, the boot walk only): every slice carries the description pass over ITS range (≤ 50
+    // rows), so no slice holds a whole-board stale scan; flag off / the interval walk: the first slice's scan, as before.
+    const ranged = WARMUP_DEFER_TAGS_ON && w.trigger === "boot";
+    const r = ranged ? runJobTagPass(w.trigger, { descriptions: true, descriptionRange: range, range })
+      : runJobTagPass(w.trigger, { descriptions: w.first, range });
     const again = r.full && w.repeats < JOB_TAG_RANGE_REPEATS;
     w.repeats = again ? w.repeats + 1 : 0;
     next = again ? w.from : (range.more ? range.to : null);
@@ -8462,7 +8474,7 @@ function runJobTagWalkSlice() {
   w.from = next;
   setTimeout(runJobTagWalkSlice, 50).unref();
 }
-function runJobTagPass(trigger, { descriptions = true, range = null } = {}) {
+function runJobTagPass(trigger, { descriptions = true, range = null, descriptionRange = null } = {}) {
   let full = false;   // a limit was reached: the range may hold more stale rows
   let worked = false;
   // ⛔ D59 · the description pass first — the tags read its label fields (workstyle, location). Writes
@@ -8471,8 +8483,11 @@ function runJobTagPass(trigger, { descriptions = true, range = null } = {}) {
   // posting whose description changed. 44p: the FIRST slice only — its stale scan over the whole board
   // (≈ 4 s at 81k) is the cost, not the rows, so slicing it would pay the scan ten times.
   if (descriptions) try {
-    const d = backfillDescriptionText(db, { dryRun: false, limit: 500, ceiling: 500 });
+    const d = descriptionRange
+      ? backfillDescriptionText(db, { dryRun: false, limit: JOB_TAG_SLICE_TAGS, ceiling: 500, range: descriptionRange })   // 47k: one slice's range
+      : backfillDescriptionText(db, { dryRun: false, limit: 500, ceiling: 500 });
     if (d.written > 0) worked = true;
+    if (descriptionRange && d.written >= JOB_TAG_SLICE_TAGS) full = true;   // 47k: the range holds more stale descriptions — read it again
     if (d.written > 0) console.log(`[description] (${trigger}) normalised ${d.written} of ${d.due} posting(s) — ${d.changedText} with new text, ${d.withFields} with a label block`);
   } catch (e) {
     console.error(`[description] (${trigger}) normalising failed (readers fall back to the stored description):`, e.message);

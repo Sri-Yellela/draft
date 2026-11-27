@@ -122,11 +122,15 @@ export function refreshDescriptionText(db, jobId) {
  * in slices (the boot pass takes 2,000 a pass). It never touches `description` or `content_hash`.
  * @returns {{ dryRun, due, batch, written, refused, changedText, withFields, requirements: object }}
  */
-export function backfillDescriptionText(db, { dryRun = true, ceiling = DESCRIPTION_BACKFILL_CEILING, limit = null, log = null } = {}) {
+export function backfillDescriptionText(db, { dryRun = true, ceiling = DESCRIPTION_BACKFILL_CEILING, limit = null, log = null, range = null } = {}) {
   registerDescriptionBasis(db);
-  const due = db.prepare(`SELECT COUNT(*) AS n FROM scraped_jobs WHERE ${DESCRIPTION_STALE_SQL}`).get().n;
-  const rows = db.prepare(`SELECT job_id, description${fullCol(db)} FROM scraped_jobs WHERE ${DESCRIPTION_STALE_SQL} ORDER BY is_active DESC, rowid${limit ? " LIMIT ?" : ""}`)
-    .all(...(limit ? [limit] : []));
+  // 47k (WARMUP_DEFER_TAGS=1): a rowid range bounds BOTH reads to that range — the boot tag walk's slices then carry the
+  // description work range by range instead of one whole-board stale scan. Without a range: exactly as before.
+  const inRange = range ? ` AND rowid > ? AND rowid <= ?` : "";
+  const rangeArgs = range ? [range.from, range.to] : [];
+  const due = db.prepare(`SELECT COUNT(*) AS n FROM scraped_jobs WHERE ${DESCRIPTION_STALE_SQL}${inRange}`).get(...rangeArgs).n;
+  const rows = db.prepare(`SELECT job_id, description${fullCol(db)} FROM scraped_jobs WHERE ${DESCRIPTION_STALE_SQL}${inRange} ORDER BY is_active DESC, rowid${limit ? " LIMIT ?" : ""}`)
+    .all(...rangeArgs, ...(limit ? [limit] : []));
   const derived = rows.map(r => ({ job_id: r.job_id, ...deriveDescriptionColumns(r.description, r.description_full ?? null) }));
   const requirements = { citizen_only: 0, us_person: 0, clearance: 0, polygraph: 0 };
   for (const d of derived) {

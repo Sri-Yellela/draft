@@ -51,6 +51,7 @@
 "use strict";
 
 import { classifyJob, ROLE_KEY_FALLBACK } from "./classifyJob.js";
+import { nextRowidRange, rangeSql, rangeParams } from "./rowidWalk.js";
 
 export const MATCHED_BY = "backfill_classifier";
 export const MATCHED_BY_UNCLASSIFIED = `${MATCHED_BY}_unclassified`;
@@ -87,8 +88,12 @@ export function backfillDecision(row) {
  *          dry run, and keeping them separate is what lets the script print "would insert N"
  *          without the caller inferring it from a zero.
  */
-export function backfillRoleMap(db, { dryRun = false } = {}) {
-  const rows = db.prepare(UNMAPPED_SQL).all();
+export function backfillRoleMap(db, { dryRun = false, range = null } = {}) {
+  // 47k (WARMUP_DEFER_TAGS=1): a rowid range keeps one call's read + transaction small (backfillRoleMapSliced below);
+  // without a range the query is UNMAPPED_SQL exactly, as before.
+  const rows = range
+    ? db.prepare(UNMAPPED_SQL.replace("\n  ORDER BY", `${rangeSql(range, "sj.")}\n  ORDER BY`)).all(...rangeParams(range))
+    : db.prepare(UNMAPPED_SQL).all();
   const byBucket = {};
   let skippedBlue = 0;
 
@@ -122,4 +127,32 @@ export function backfillRoleMap(db, { dryRun = false } = {}) {
   })();
 
   return { ...base, inserted: decisions.length };
+}
+
+/**
+ * ⭐ 47k (the zero-downtime lane, lever (1) made to yield) · the same backfill walked in rowid ranges, one range's
+ * read + one transaction at a time, yielding to the event loop between ranges, so the requests that arrive right after
+ * ready interleave with it instead of waiting behind one whole-board read. Used only when WARMUP_DEFER_TAGS=1 (the
+ * step runs after ready then); the flag-off boot keeps backfillRoleMap's one transaction. A range is classified whole
+ * or not at all; the board between ranges reads the rest soft-null (shown, unbucketed), as it does before any backfill.
+ * Resolves with the summed summary.
+ */
+export function backfillRoleMapSliced(db, { rows = 2000, yieldFn = (fn) => setImmediate(fn) } = {}) {
+  const total = { scanned: 0, candidates: 0, skippedBlue: 0, byBucket: {}, inserted: 0, ranges: 0 };
+  return new Promise((resolve, reject) => {
+    let from = 0;
+    const step = () => {
+      try {
+        const range = nextRowidRange(db, from, rows);
+        const r = backfillRoleMap(db, { range });
+        total.ranges++;
+        for (const k of ["scanned", "candidates", "skippedBlue", "inserted"]) total[k] += r[k] || 0;
+        for (const [k, n] of Object.entries(r.byBucket || {})) total.byBucket[k] = (total.byBucket[k] || 0) + n;
+        if (!range.more || range.to <= from) return resolve(total);
+        from = range.to;
+        yieldFn(step);
+      } catch (e) { reject(e); }
+    };
+    step();
+  });
 }
