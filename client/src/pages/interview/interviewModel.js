@@ -31,15 +31,35 @@ export const INTERVIEW_GROUPS = Object.freeze([
 export const INTERVIEW_PANEL_IDS = Object.freeze(INTERVIEW_GROUPS.flatMap(g => g.items.map(i => i.id)));
 export const INTERVIEW_DEFAULT = "upcoming";
 
-export const interviewPath = (id) => `${INTERVIEW_BASE}/${INTERVIEW_PANEL_IDS.includes(id) ? id : INTERVIEW_DEFAULT}`;
+// ⭐ D197 Wave 2 #13 (47m, M5) · PROVING GROUND: the area nav's four VIEWS are today's four groups; the nine panel ids stay
+// valid forever (D200 Rule 1) and each opens its view scrolled to its section (docs/revamp/interview.md I0.3).
+export const INTERVIEW_VIEWS = Object.freeze([
+  { id: "upcoming", label: "Coming up", icon: "progress" },
+  { id: "prepare", label: "Prepare", icon: "list" },
+  { id: "practise", label: "Practise", icon: "interview" },
+  { id: "after", label: "After", icon: "replies" },
+]);
+/** Every address id → [its view, the section it scrolls to (null = the view's top)]. */
+export const INTERVIEW_HOMES = Object.freeze({
+  upcoming: ["upcoming", null], prepare: ["prepare", null], practise: ["practise", null], after: ["after", null],
+  guides: ["prepare", "iv-guides"], tracks: ["prepare", "iv-rounds"],
+  mock: ["practise", "iv-mock"], coach: ["practise", "iv-mock"], drills: ["practise", "iv-drills"], defend: ["practise", "iv-defend"],
+  past: ["after", "iv-past"], debrief: ["after", "iv-debrief"],
+});
+const ADDRESS_IDS = Object.keys(INTERVIEW_HOMES);
+export const interviewViewOf = (id) => (INTERVIEW_HOMES[id] || INTERVIEW_HOMES[INTERVIEW_DEFAULT])[0];
+export const interviewSectionOf = (id) => (INTERVIEW_HOMES[id] || [null, null])[1];
 
-/** "interview/debrief" → "debrief"; "interview" + "#tracks" → "tracks"; "interview/nope" → null; not Interview → undefined. */
+export const interviewPath = (id) => `${INTERVIEW_BASE}/${ADDRESS_IDS.includes(id) ? id : INTERVIEW_DEFAULT}`;
+
+/** "interview/debrief" → "debrief"; "interview/practise" → "practise"; "interview" + "#tracks" → "tracks";
+ *  "interview/nope" → null; not Interview → undefined. */
 export function interviewPanelFor(routeKey, hash = "") {
   const m = /^interview(?:\/([^/]+))?\/?$/.exec(String(routeKey || ""));
   if (!m) return undefined;
-  if (m[1]) return INTERVIEW_PANEL_IDS.includes(m[1]) ? m[1] : null;
+  if (m[1]) return ADDRESS_IDS.includes(m[1]) ? m[1] : null;
   const h = String(hash || "").replace(/^#/, "");
-  return INTERVIEW_PANEL_IDS.includes(h) ? h : INTERVIEW_DEFAULT;
+  return ADDRESS_IDS.includes(h) ? h : INTERVIEW_DEFAULT;
 }
 
 /** The rounds the sketch practises, and the D110 bank round each one reads (null: the bank has no such round). */

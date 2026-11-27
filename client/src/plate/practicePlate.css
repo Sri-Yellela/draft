@@ -1,0 +1,23 @@
+/* ⭐ D197 Wave 2 #11 / #12 / #13 (47m, lane practice) · the practice pages' look — the Proving ground (Interview,
+   pages/interview/ProvingGround.jsx), the Logbook and the Today card on Your map (pages/atlas/Logbook.jsx,
+   pages/atlas/TodayCard.jsx) and Ask draft's route card (plate/AskRouteMap.jsx). The approved boards' inline styles
+   (docs/sketches/final/project/{ProvingGround,AskRoute,DrawingsAtlas}.dc.html) and the mocks' layout moved into classes;
+   every value a token (styles/plate.css; test/d196NoRawStylesOutsideTokens). Worn by those four files only. */
+
+/* ── the Proving ground (Region VI) ── */
+.pl-iv { min-height: 100%; padding-bottom: 24px; }
+.pl-iv__hero { flex: 1 1 360px; min-width: 0; max-width: 560px; border: var(--pl-line) solid var(--pl-ink); border-radius: var(--pl-r-plate);
+  box-shadow: var(--pl-s6); overflow: hidden; background: var(--pl-region-tint); }
+.pl-iv__sub { margin: 22px 0 0; }
+.pl-iv__tight { margin-top: 10px; }
+.pl-iv__gap { margin-top: 18px; }
+.pl-iv__meta { margin: 12px 0 0; font-size: var(--pl-t-meta); }
+.pl-iv__quote { font-style: italic; }
+.pl-iv__clock { margin: 0; display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; }
+.pl-iv__split { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.pl-iv__main { flex: 999 1 520px; min-width: 0; }
+.pl-iv__side { flex: 1 1 260px; min-width: 0; max-width: 360px; display: flex; flex-direction: column; gap: 12px; }
+.pl-iv__side .pl-iv__meta { margin: 0; }
+.pl-iv__frame { border: var(--pl-line) solid var(--pl-ink); border-radius: var(--pl-r-small); overflow: hidden; }
+.pl-iv__pair { display: flex; flex-wrap: wrap; gap: 20px; }
+.pl-iv__pair > * { flex: 1 1 300px; min-width: 0; }

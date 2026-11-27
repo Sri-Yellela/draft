@@ -30,7 +30,7 @@ import { JobProfilesPanel }      from "./panels/JobProfilesPanel.jsx";
 // settings pages (Profile, Saved answers, Integrations, Account, Customise) as its panels, so App no longer does.
 import ProfilePage               from "./pages/profile/ProfilePage.jsx";
 import { profilePanelFor, profilePath, LEGACY_PROFILE_ROUTES } from "./pages/profile/profilePanels.js";
-import InterviewPage             from "./pages/interview/InterviewPage.jsx";
+import ProvingGround, { useInterviewAreaNav } from "./pages/interview/ProvingGround.jsx";   // ⭐ D197 Wave 2 #13 (47m): Interview as the Proving ground
 import CompanyPage               from "./pages/companies/CompanyPage.jsx";   // D179 P4b
 import NetworkPage               from "./pages/network/NetworkPage.jsx";      // D180 P1 (45o): behind the network switch
 import FeedPage                  from "./pages/network/FeedPage.jsx";         // 46f: the feed's own page
@@ -408,6 +408,7 @@ function AppAreaNavSlot({ activeTab, onHome }) {
   useEffect(() => { if (market) api("/api/draft/slots").then(setSlots).catch(() => {}); }, [market]);
   if (!market && activeTab === "auto-apply") return <LedgerAreaNav onHome={onHome} />;   // the ledger (⛔ 47j R3: always — the ?plate= switch is retired)
   if (activeTab === "atlas") return <AtlasAreaNav onHome={onHome} />;
+  if (activeTab === "interview") return <InterviewAreaNav onHome={onHome} />;
   if (!market) return <ShellAreaNav area={AREA_NAMES[activeTab] || "draft"} onHome={onHome} />;
   const current = deckShown ? "picks" : boardTab;
   // the views' counts (the facets answer's, as the classic segment showed them) ride on the nav's words — never a 0 guessed
@@ -430,6 +431,14 @@ function AppAreaNavSlot({ activeTab, onHome }) {
   return <ShellAreaNav area="The market" views={views} current={current} onGo={onGo} chip={chip}
     more={[{ id: "import", label: "Import a job", href: "/app/jobs#import", icon: "imported", phone: true }]}
     placeholder="Company, role, tech…" onHome={onHome} />;
+}
+// ⭐ D197 Wave 2 #13 (47m) · INTERVIEW'S AREA NAV — the Proving ground's four views (Coming up · Prepare · Practise · After);
+// an old panel address lights the view that holds it (pages/interview/interviewModel.js INTERVIEW_HOMES).
+function InterviewAreaNav({ onHome }) {
+  const location = useLocation();
+  const panel = interviewPanelFor(location.pathname.replace(/^\/app\/?/, ""), location.hash) || "upcoming";
+  const nav = useInterviewAreaNav(panel);
+  return <ShellAreaNav area={nav.area} views={nav.views} current={nav.current} placeholder={nav.placeholder} onGo={nav.onGo} onHome={onHome} />;
 }
 // ⭐ D197 Wave 1 #5 (47h, lane atlas) · ATLAS'S AREA NAV (the Shell board's figure C): the VOL. I pill (its panel = the
 // volumes and the eight regions), Your survey · Library · Today's question · League (with its switch), More (every other
@@ -826,7 +835,7 @@ function AppDashboard({ authUser, setAuthUser }) {
             {activeTab === "plans" && monetisationEnabled && <AreaErrorBoundary area="plans" {...areaGuard}><PlansPanel user={authUser} onUserChange={setAuthUser}/></AreaErrorBoundary>}
             {/* ⭐ D167 · Profile (its own navigation, nine panels) and Interview (Coming up · Prepare · Practise · After). */}
             {activeTab === "profile" && profilePanel && <AreaErrorBoundary area="profile" {...areaGuard}><ProfilePage panel={profilePanel} user={authUser} onSignedOut={() => { setAuthContext(""); setAuthUser(null); }}/></AreaErrorBoundary>}
-            {activeTab === "interview" && interviewPanel && <AreaErrorBoundary area="interview" {...areaGuard}><InterviewPage panel={interviewPanel}/></AreaErrorBoundary>}
+            {activeTab === "interview" && interviewPanel && <AreaErrorBoundary area="interview" {...areaGuard}><ProvingGround panel={interviewPanel}/></AreaErrorBoundary>}
             {activeTab === "job-profiles" && <AreaErrorBoundary area="job-profiles" {...areaGuard}><JobProfilesPanel/></AreaErrorBoundary>}
             {activeTab === "recruiter"    && <AreaErrorBoundary area="recruiter" {...areaGuard}><RecruiterPanel/></AreaErrorBoundary>}
             {activeTab === "atlas"        && <AreaErrorBoundary area="atlas" {...areaGuard}><AtlasPage base="/app/atlas"/></AreaErrorBoundary>}
