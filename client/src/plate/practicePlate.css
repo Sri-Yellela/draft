@@ -6,8 +6,28 @@
 
 /* ── the Proving ground (Region VI) ── */
 .pl-iv { min-height: 100%; padding-bottom: 24px; }
-.pl-iv__hero { flex: 1 1 360px; min-width: 0; max-width: 560px; border: var(--pl-line) solid var(--pl-ink); border-radius: var(--pl-r-plate);
-  box-shadow: var(--pl-s6); overflow: hidden; background: var(--pl-region-tint); }
+/* 47m (F5 pg-hero): the board's hero — the 1180 measure, the hill card first (flex 1 1 520, the region's 6 px shadow), the column */
+.pl-iv__top { max-width: var(--pl-page-gz); margin: 0 auto; padding: 18px var(--pl-gutter) 0; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 28px; align-items: center; }
+.pl-iv__hero { flex: 1 1 520px; min-width: 0; border: var(--pl-line) solid var(--pl-ink); border-radius: var(--pl-r-plate);
+  box-shadow: var(--pl-s6-region); overflow: hidden; background: var(--pl-region-tint); }
+.pl-iv__hero > svg { display: block; }
+.pl-iv__col { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+/* the board's interview ticket: the when, the company · round, the line | a dashed tear | Prepare */
+.pl-iv-coming { display: flex; flex-direction: column; gap: 12px; }
+.pl-iv-tk { display: flex; align-items: stretch; border: var(--pl-line) solid var(--pl-ink); border-radius: var(--pl-r-small); background: var(--pl-card); box-shadow: var(--pl-s4); overflow: hidden; }
+.pl-iv-tk[data-primary] { box-shadow: var(--pl-s4-clay); }
+.pl-iv-tk__body { flex: 1 1 auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pl-iv-tk__when { color: var(--pl-muted); }
+.pl-iv-tk[data-primary] .pl-iv-tk__when { color: var(--pl-clay-text); }
+.pl-iv-tk__title { font-family: var(--pl-serif); font-size: var(--pl-t-letter); line-height: 1.05; }
+.pl-iv-tk__title a { color: var(--pl-ink); }
+.pl-iv-tk__line { font-size: var(--pl-t-meta); color: var(--pl-ink-soft); }
+.pl-iv-tk__tear { flex: 0 0 auto; width: 0; border-left: var(--pl-line-mark) dashed var(--pl-ink); margin: 10px 0; }
+.pl-iv-tk__act { flex: 0 0 auto; display: flex; align-items: center; padding: 0 14px; }
+.pl-iv-tk__go, .plate a.pl-iv-tk__go { all: unset; cursor: pointer; box-sizing: border-box; display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px;
+  border-radius: var(--pl-r-btn); border: var(--pl-border); background: var(--pl-card); color: var(--pl-ink); font-family: var(--pl-sans); font-weight: 800; font-size: var(--pl-t-meta); }
+.pl-iv-tk[data-primary] .pl-iv-tk__go { min-height: var(--pl-target); padding: 0 16px; background: var(--pl-clay); color: var(--pl-on-clay); font-size: var(--pl-t-small); box-shadow: var(--pl-s3); }
+.pl-iv-tk__go:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 2px; }
 .pl-iv__sub { margin: 22px 0 0; }
 .pl-iv__tight { margin-top: 10px; }
 .pl-iv__gap { margin-top: 18px; }
@@ -57,6 +77,12 @@
 .pl-askroute__waykick { color: var(--pl-clay-text); }
 .pl-askroute__tear { flex: 0 0 auto; width: 0; border-left: 2px dashed var(--pl-ink); margin: 6px 0; }
 .pl-askroute__go { flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; }
+/* the board's card buttons (AskRoute): 40 px, 12 px sides, 800 weight, 13.5 px */
+.pl-askroute .pl-actions { gap: 8px; }
+.pl-askroute__strip .pl-label, .pl-askroute__waykick { font-size: var(--pl-t-9); letter-spacing: .12em; }   /* the board's 9 px mono strip and kicker */
+.pl-askroute__go { font-size: var(--pl-t-10); font-weight: 800; letter-spacing: 0; }
+.pl-askroute__waykick { line-height: normal; }   /* the board's 9 px kicker keeps its own line; only the sentence is 1.4 */
+.pl-askroute .pl-btn { min-height: 40px; padding: 0 12px; font-weight: 800; font-size: var(--pl-t-meta); }
 .pl-askroute__line { margin: 0; font-size: var(--pl-t-small); line-height: 1.45; }
 
 /* ── Ask draft's card in the shell (components/AppNav.jsx): the fixed placement stays AppNav.css's; the card fills it ── */

@@ -75,49 +75,68 @@ export function useInterviewAreaNav(panel) {
 }
 
 // ── the header: the one-line title (D200 Rule 3), the stats strip, the hill ───────────────────────────────────────────
-function Header({ kicker, title, lead, cells, next }) {
+function Header({ kicker, title, lead, cells, next, hill = { lit: 0, you: null }, children = null }) {
   const flag = next ? [`${(next.company || "AN APPLICATION").toUpperCase()} · ${(KIND_WORDS[next.kind] || "Interview").toUpperCase()}`, whenLine(next)] : null;
   const label = `The proving ground: a hill with five rounds as benches, from ${TRACKS[0].label} at the foot to ${TRACKS[TRACKS.length - 1].label} at the top. `
     + (next ? `${next.company || "An application"}'s ${(KIND_WORDS[next.kind] || "interview").toLowerCase()} is flagged: ${whenLine(next).toLowerCase()}.` : "No interview is flagged yet.");
   return (
-    <section className="pl-hero" aria-label="Proving ground">
-      <div className="pl-hero__main">
+    // ⭐ 47m (F5 pg-hero / pg-coming): the approved ProvingGround board's hero — the hill card first, the column beside it
+    <section className="pl-iv__top" aria-label="Proving ground">
+      <div className="pl-iv__hero">
+        <ProvingGroundHill label={label} names={TRACKS.map((t) => t.label)} lit={hill.lit} you={hill.you} flag={flag}/>
+      </div>
+      <div className="pl-iv__col">
         <LegHeader meta={kicker} title={title} level={1}/>
         {lead ? <p className="pl-lead">{lead}</p> : null}
         {cells ? <StatsStrip label="Your interviews" cells={cells}/> : null}
-      </div>
-      <div className="pl-iv__hero">
-        <ProvingGroundHill label={label} names={TRACKS.map((t) => t.label)} lit={0} you={null} flag={flag}/>
+        {children}
       </div>
     </section>
   );
 }
 
 // ── Coming up ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-export function ComingUp({ up, reload, counts, onView }) {   // exported for the F5 fixture (plate/practiceFixtures.jsx)
+/** The ticket's when, as the board writes it: the date, the time, and "tomorrow" / "today" when it is that close. */
+const ticketWhen = (it) => (it.date
+  ? [it.date.ymd, it.date.time, it.daysLeft === 0 ? "today" : it.daysLeft === 1 ? "tomorrow" : null].filter(Boolean).join(" · ")
+  : "no date yet — add it in Prepare").toUpperCase();
+
+/** One interview ahead as the board draws it: the when, the company · the round, its line | the tear | Prepare (the soonest clay). */
+function ComingTicket({ it, primary, onGo }) {
+  const href = `/app/job/${it.applicationId}?tab=prep`;
+  const survey = it.company ? companyPath(it.company) : null;
+  return (
+    <div className="pl-iv-tk" data-primary={primary ? "" : undefined}>
+      <div className="pl-iv-tk__body">
+        <span className="pl-label pl-iv-tk__when">{ticketWhen(it)}</span>
+        <span className="pl-iv-tk__title">{survey ? <a href={survey} onClick={onGo(survey)}>{it.company}</a> : (it.company || "An application")}{it.title ? ` · ${it.title}` : ""}</span>
+        {it.subject ? <span className="pl-iv-tk__line">{it.subject}</span> : null}
+      </div>
+      <span aria-hidden="true" className="pl-iv-tk__tear"/>
+      <div className="pl-iv-tk__act">
+        <a className="pl-iv-tk__go" href={href} onClick={onGo(href)} data-prepare={it.applicationId}>Prepare →</a>
+      </div>
+    </div>
+  );
+}
+
+export function ComingUp({ up, reload, counts, onView, hill }) {   // exported for the F5 fixture (plate/practiceFixtures.jsx)
   const go = useGo();
   const items = up.data?.interviews || [];
   const ahead = items.filter((i) => !isPast(i)), past = items.filter(isPast);
   const soonest = ahead[0] || null;
-  const ticket = (it, primary) => {
-    const href = `/app/job/${it.applicationId}?tab=prep`;
-    return (
-      <Ticket key={it.applicationId} kicker={`${(KIND_WORDS[it.kind] || "Interview").toUpperCase()} · ${whenLine(it)}`} title={it.company || "An application"}
-        line={[it.title, it.subject ? `“${it.subject}”` : null].filter(Boolean).join(" · ")} go="Prepare →" href={href} onClick={go(href)}
-        tone={primary ? "clay-tint" : "plain"}/>
-    );
-  };
   const survey = soonest?.company ? companyPath(soonest.company) : null;
   return (
     <>
-      <Header kicker={`PROVING GROUND · COMING UP · WEEK ${isoWeekOf()}`} title={up.status === "ready" ? upcomingHeadline(items) : "Your interviews"} next={soonest}
-        lead="Found in your Inbox and matched to your applications."
+      <Header kicker={`PROVING GROUND · COMING UP · WEEK ${isoWeekOf()}`} title={up.status === "ready" ? upcomingHeadline(items) : "Your interviews"} next={soonest} hill={hill}
         cells={[
           { value: up.status === "ready" ? ahead.length : null, label: "AHEAD", onClick: () => document.getElementById("iv-up")?.scrollIntoView?.({ behavior: "smooth" }) },
           { value: counts.questions, label: "QUESTIONS IN YOUR BANK", onClick: () => onView("tracks") },
           { value: counts.stories, label: "STORIES", onClick: () => onView("tracks") },
           { value: counts.debriefs, label: "DEBRIEFS", onClick: () => onView("debrief") },
-        ]}/>
+        ]}>
+        {ahead.length ? <section id="coming" aria-label="Coming up" className="pl-iv-coming" data-upcoming-list="">{ahead.map((it, i) => <ComingTicket key={it.applicationId} it={it} primary={i === 0} onGo={go}/>)}</section> : null}
+      </Header>
       <section className="pl-section" aria-labelledby="iv-up-t" data-interview-section="upcoming">
         <LegHeader n={1} meta="FOUND IN YOUR INBOX · MATCHED TO YOUR APPLICATIONS" title={<span id="iv-up-t">Your interviews</span>} id="iv-up"/>
         {up.status === "loading" ? <Skeleton label="Loading your interviews" height={170}/> : null}
@@ -127,7 +146,6 @@ export function ComingUp({ up, reload, counts, onView }) {   // exported for the
             text="When an interview or assessment email reaches your Inbox — through Gmail or forwarding — and matches one of your applications, it shows here with a Prepare button. Every application email stays in Home's Inbox."
             actions={<Link className="pl-btn" to="/app/profile/connections">Connect your mail</Link>}/>
         ) : null}
-        {ahead.length ? <div className="pl-tickets" data-upcoming-list="">{ahead.map((it, i) => ticket(it, i === 0))}</div> : null}
         {past.length ? (
           <>
             <p className="pl-label pl-muted pl-iv__sub">RECENT</p>

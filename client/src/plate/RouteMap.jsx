@@ -216,6 +216,8 @@ export function ProjectRoute({ stops = [], build = { title: "build it", line: ""
 // region ink, the lit green, clay, ink, paper).
 const FLAG = [34, 120];
 const SPOTS = { 2: [[180, 82], [326, 44]], 3: [[130, 92], [228, 70], [326, 44]] };
+// the board's curve handles per leg (out from the last point, in to the next): AskRoute.dc.html's three-stop trail
+const HANDLES = { 3: [[46, 40], [45, 38], [42, 36]] };
 
 /** Which kind of answer this is: "link" (one entry), "route" (two or three), "bigger" (more than three), or null. Pure. */
 export function askRouteKind(lessons = []) {
@@ -224,23 +226,33 @@ export function askRouteKind(lessons = []) {
 }
 
 /** The trail through the points, the board's curve between each pair. Pure. */
-export function askRoutePath(points = []) {
+export function askRoutePath(points = [], handles = null) {
   let d = `M${points[0][0]} ${points[0][1]}`;
   for (let i = 1; i < points.length; i++) {
     const [x0, y0] = points[i - 1], [x1, y1] = points[i];
-    d += ` C ${x0 + 46} ${y0}, ${x1 - 40} ${y1}, ${x1} ${y1}`;
+    const [ho, hi] = handles?.[i - 1] || [46, 40];
+    d += ` C ${x0 + ho} ${y0}, ${x1 - hi} ${y1}, ${x1} ${y1}`;
   }
   return d;
 }
 
-/** The map: `stops` = [{ name, lit }] (2 or 3); the first unlit stop is the waypoint. */
-export function AskRouteMap({ stops = [], label }) {
+/** The waypoint (the board AskRoute): the first unlit stop with a practice step (`practice`, e.g. its Build question), else the
+ *  first unlit stop; -1 when every stop is lit. Pure. */
+export function askRouteWaypoint(stops = []) {
+  const p = stops.findIndex((s) => !s.lit && s.practice);
+  return p >= 0 ? p : stops.findIndex((s) => !s.lit);
+}
+
+/** The map: `stops` = [{ name, lit, practice }] (2 or 3); `plate` = the region's plate mark (the board's "PL. IV"). */
+export function AskRouteMap({ stops = [], label, plate = null }) {
   const spots = SPOTS[stops.length] || SPOTS[3];
   const pts = [FLAG, ...spots.slice(0, stops.length)];
-  const d = askRoutePath(pts);
-  const litUpTo = stops.findIndex((s) => !s.lit);   // the waypoint's index (-1 = every stop lit)
-  const way = litUpTo < 0 ? null : litUpTo;
-  const litD = way === 0 ? null : askRoutePath(pts.slice(0, (way == null ? stops.length : way) + 1));
+  const handles = HANDLES[stops.length] || null;
+  const d = askRoutePath(pts, handles);
+  const firstUnlit = stops.findIndex((s) => !s.lit);   // the lit trail runs from the flag through the lit stops
+  const w = askRouteWaypoint(stops);
+  const way = w < 0 ? null : w;
+  const litD = firstUnlit === 0 ? null : askRoutePath(pts.slice(0, (firstUnlit < 0 ? stops.length : firstUnlit) + 1), handles);
   const contours = [0, 1, 2, 3, 4].map((k) => `M0 ${150 - k * 26} C 80 ${140 - k * 28}, 170 ${156 - k * 26}, 250 ${138 - k * 27} S 340 ${126 - k * 26}, 380 ${130 - k * 27}`);
   const words = label || `The answer as a route: your question is the start flag; ${stops.map((s) => `${s.name}${s.lit ? " (lit)" : ""}`).join(", ")} are the stops${way != null ? `; the waypoint is ${stops[way].name}` : ""}`;
   return (
@@ -268,6 +280,7 @@ export function AskRouteMap({ stops = [], label }) {
           </g>
         );
       })}
+      {plate ? <text x="372" y="162" textAnchor="end" fontSize="8" fontWeight="700" style={{ fontFamily: "var(--pl-mono)", fill: "var(--pl-region)" }}>{plate}</text> : null}
     </svg>
   );
 }
@@ -276,9 +289,9 @@ export function AskRouteMap({ stops = [], label }) {
  * The card under the answer: the strip (THIS ANSWER AS A ROUTE · N STOPS · K LIT), the map, the waypoint ticket (its entry),
  * then Save to my routes (or SAVED · ON YOUR ROUTES) and Open on Your map. `stops` = [{ slug, name, href, lit }].
  */
-export function AskRouteCard({ stops = [], saved = false, saving = false, message = null, onSave, onGo, mapHref = "/app/atlas/your-map" }) {
+export function AskRouteCard({ stops = [], saved = false, saving = false, message = null, onSave, onGo, mapHref = "/app/atlas/your-map", plate = null }) {
   const lit = stops.filter((s) => s.lit).length;
-  const way = stops.find((s) => !s.lit) || null;
+  const way = stops[askRouteWaypoint(stops)] || null;
   const go = (href) => (e) => { if (!onGo || e.metaKey || e.ctrlKey || e.shiftKey || e.button > 0) return; e.preventDefault(); onGo(href); };
   return (
     <div className="pl-askroute" data-ask-route={stops.length}>
@@ -286,11 +299,11 @@ export function AskRouteCard({ stops = [], saved = false, saving = false, messag
         <span className="pl-label">{`THIS ANSWER AS A ROUTE · ${stops.length} STOPS`}</span>
         {lit ? <span className="pl-label pl-tone-lit">{`${lit} LIT`}</span> : null}
       </div>
-      <AskRouteMap stops={stops}/>
+      <AskRouteMap stops={stops} plate={plate}/>
       <div className="pl-askroute__foot">
         {way ? (
           <a className="pl-askroute__way" href={way.href} onClick={go(way.href)} data-ask-route-waypoint={way.slug}>
-            <span className="pl-askroute__waytext"><span className="pl-label pl-askroute__waykick">WAYPOINT · NEXT</span><span><b>{way.name}</b> · its Gazetteer entry</span></span>
+            <span className="pl-askroute__waytext"><span className="pl-label pl-askroute__waykick">WAYPOINT · NEXT</span><span><b>{way.name}</b> · {way.practice || "its Gazetteer entry"}</span></span>
             <span aria-hidden="true" className="pl-askroute__tear"/>
             <span className="pl-label pl-askroute__go">GO →</span>
           </a>

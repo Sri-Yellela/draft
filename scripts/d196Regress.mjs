@@ -243,14 +243,14 @@ export const PAIRS = {
   // tickets in one column); the live page keeps the plate hero (title + strip | the hill) with the tickets as section 01, and
   // its hill draws no lit bench and no "you" (nothing proves a round yet — interview.md, agent's pick)
   "pg-coming": { source: "final", board: "ProvingGround", fixture: "ProvingGroundBoard", boardSel: 'section#coming[aria-label="Coming up"]',
-    buildSel: '[data-upcoming-list]', pad: 4, reduced: true, look: true },
-  "pg-hero": { source: "final", board: "ProvingGround", fixture: "ProvingGroundBoard", boardSel: 'div[style*="box-shadow: 6px 6px 0"]:has(svg[aria-label^="The proving ground"])',
-    buildSel: ".pl-iv__hero", pad: 0, reduced: true, look: true },
+    buildSel: 'section#coming[aria-label="Coming up"]', pad: 4, reduced: true },
+  "pg-hero": { source: "final", board: "ProvingGround", fixture: "ProvingGroundBoard", boardSel: 'div:has(> svg[aria-label^="The proving ground"])',
+    buildSel: ".pl-iv__hero", pad: 0, reduced: true },
   // Ask draft's route card — the board's card in its 430 px column; the waypoint ticket's second line is the board's
   // ("its BUILD question, about 4 min") where the build names the entry ("its Gazetteer entry" — the engine's lessons carry no
   // practice step) — a LOOK until an entry's practice steps reach the engine
-  "askroute-card": { source: "final", board: "AskRoute", fixture: "AskRouteBoard", boardSel: 'aside[aria-label="Ask draft"] li div[style*="border-radius: 12px; overflow: hidden; background: #FFFFFF"]',
-    buildSel: ".pl-askroute", pad: 0, reduced: true, subpixel: true, look: true },
+  "askroute-card": { source: "final", board: "AskRoute", fixture: "AskRouteBoard", boardSel: 'aside[aria-label="Ask draft"] li div:has(> svg[aria-label^="The answer as a route"])',
+    buildSel: ".pl-askroute", pad: 0, reduced: true, subpixel: true },
 };
 // what each Your survey pair keeps out of the pixel gate, and why (D196: masks only for example data, with the reason)
 // ✅ OWNER 11-26 (end of 47i, decision 3 — "go with your recs"): every ys pair at 390 and ys-want at 1280 are owner-accepted

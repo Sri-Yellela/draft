@@ -8,7 +8,7 @@ import { AskRouteCard } from "./RouteMap.jsx";
 import { ComingUp } from "../pages/interview/ProvingGround.jsx";
 
 const PG_UP = { status: "ready", error: "", data: { interviews: [
-  { applicationId: 1, company: "Kestrel", title: "Coding", kind: "interview", daysLeft: 1, date: { ymd: "FRI 11-27", time: "2:00 PM" }, subject: "45 min · two problems, one on hash maps" },
+  { applicationId: 1, company: "Kestrel", title: "Coding", kind: "interview", daysLeft: 1, date: { ymd: "FRI 11-27", time: "2:00 PM" }, subject: "45 min · two problems, one on hash maps (from your debrief notes)" },
   { applicationId: 2, company: "Northwind", title: "System design", kind: "interview", daysLeft: 4, date: { ymd: "MON 11-30", time: "11:00 AM" }, subject: "60 min · a design round with the platform team" },
 ] } };
 
@@ -17,7 +17,7 @@ export function ProvingGroundBoard() {
   return (
     <MemoryRouter>
       <PlateRoot region="VI" className="pl-iv" data-plate-page="interview">
-        <ComingUp up={PG_UP} reload={() => {}} counts={{ questions: 38, stories: 6, debriefs: 3 }} onView={() => {}}/>
+        <ComingUp up={PG_UP} reload={() => {}} counts={{ questions: 38, stories: 6, debriefs: 3 }} onView={() => {}} hill={{ lit: 2, you: 2 }}/>
       </PlateRoot>
     </MemoryRouter>
   );
@@ -25,13 +25,14 @@ export function ProvingGroundBoard() {
 
 /** The board's route card, in the card's 430 px column. */
 export function AskRouteBoard() {
+  const q = new URLSearchParams((globalThis.location?.hash || "").slice(1));   // the board's sub-pixel offset and width (#ox / #oy / #w)
   const stops = [
     { slug: "http", name: "HTTP", href: "#http", lit: true },
     { slug: "retries", name: "retries", href: "#retries", lit: false },
-    { slug: "idempotency", name: "idempotency", href: "#idempotency", lit: false },
+    { slug: "idempotency", name: "idempotency", href: "#idempotency", lit: false, practice: "its BUILD question, about 4 min" },
   ];
   return (
-    <PlateRoot region="IV"><div style={{ width: 402, padding: 14 }}><AskRouteCard stops={stops}/></div></PlateRoot>
+    <PlateRoot region="IV"><div style={{ width: Number(q.get("w")) || 374, marginLeft: Number(q.get("ox")) || 0, marginTop: Number(q.get("oy")) || 0 }}><AskRouteCard stops={stops} plate="PL. IV"/></div></PlateRoot>
   );
 }
 
