@@ -1232,3 +1232,18 @@ button.pl-logdays__day[aria-pressed="true"] { outline: var(--pl-line) solid var(
 .pl-ask__input { min-height: 64px; }
 .pl-ask__formacts { display: flex; gap: 8px; justify-content: flex-end; }
 .pl-ask__opt { display: flex; gap: 8px; align-items: center; font-size: var(--pl-t-tiny); color: var(--pl-ink-soft); }
+
+/* ⭐ 47m · THE SEARCH SUGGEST (components/UsbSuggest.jsx) — one list for /jobs, the market's search and the dock search, a plate
+   card in a portal: the grouped rows (D179), the scope boxes (A148; D60: boxes, never capsules), one highlight for pointer and keys. */
+.pl-suggest { background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-input); box-shadow: var(--pl-s3); padding: 6px; color: var(--pl-ink); }
+.pl-suggest__scopes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 4px 4px 8px; border-bottom: var(--pl-line-thin) solid var(--pl-rule); margin-bottom: 4px; }
+.pl-suggest__lead { font-size: var(--pl-t-mono-xs); color: var(--pl-muted); margin-right: 2px; }
+.pl-suggest__scope { font: inherit; font-size: var(--pl-t-13); padding: 4px 9px; border-radius: var(--pl-r-btn); border: var(--pl-border); background: var(--pl-card); color: var(--pl-ink); cursor: pointer; }
+.pl-suggest__scope:hover { background: var(--pl-paper-hover); }
+.pl-suggest__scope[aria-pressed="true"] { background: var(--pl-clay-tint); box-shadow: var(--pl-s3); font-weight: 700; }
+.pl-suggest__hint { margin: 0; padding: 8px 10px; font-size: var(--pl-t-13); color: var(--pl-muted); }
+.pl-suggest__list { margin: 0; padding: 0; list-style: none; }
+.pl-suggest__group { display: block; padding: 10px 10px 3px; font-size: var(--pl-t-mono-xs); color: var(--pl-muted); list-style: none; cursor: default; }
+.pl-suggest__item { padding: 7px 10px; border-radius: var(--pl-r-tag); font-size: var(--pl-t-small); color: var(--pl-ink-soft); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-suggest__item[data-active] { background: var(--pl-paper-hover); color: var(--pl-ink); }
+.pl-suggest__sub { color: var(--pl-muted); font-size: var(--pl-t-13); }

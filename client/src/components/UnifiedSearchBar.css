@@ -228,27 +228,7 @@
    and a correct 240x280 rect and painted nothing, because .usb__bar two levels up clipped it.
    Surface, border and shadow therefore come from DockPortal; these rules are the rows inside it. */
 .usb__suggest { position: relative; flex: 1; min-width: 0; display: flex; }
-.usb__suggest-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.usb__suggest-item {
-  padding: 7px 10px;
-  border-radius: 6px;
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: .8125rem;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-/* One highlight class for both the pointer and the arrow keys, so they cannot disagree. */
-.usb__suggest-item--active {
-  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
-  color: var(--color-text);
-}
+/* ⭐ 47m: the list's rows are the plate's now (plate/plate.css .pl-suggest__*); only the field's wrapper stays here. */
 
 @media (prefers-reduced-motion: reduce) {
   .usb__chev { transition: none; }
@@ -305,12 +285,3 @@
   animation-delay: calc(var(--ci, 0) * 48ms);
 }
 
-/* ⭐ D179 · the grouped dropdown (Companies · Roles · Technologies · Titles): a quiet heading per kind, a muted second part. */
-.usb__suggest-group { padding: 8px 10px 2px; font-size: 11px; font-weight: 600; color: var(--c-ink-faint); list-style: none; cursor: default; }
-.usb__suggest-sub { color: var(--c-ink-muted); font-size: 12px; }
-/* A148 (45o): the scope labels heading the dropdown — depth boxes, never capsules (D60). */
-.usb__scopes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 6px 8px; border-bottom: 1px solid var(--c-border); }
-.usb__scopes-lead { font-size: 11px; font-weight: 600; color: var(--c-ink-faint); margin-right: 2px; }
-.usb__scope { font: inherit; font-size: 12px; padding: 4px 8px; border-radius: 8px; cursor: pointer; color: var(--c-ink); }
-.usb__scope[aria-pressed="true"] { outline: 2px solid var(--c-accent); outline-offset: 0; }
-.usb__scopes-hint { margin: 0; padding: 8px 10px; font-size: 12px; color: var(--c-ink-muted); }

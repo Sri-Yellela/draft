@@ -13,20 +13,20 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { getAuthContext } from "../lib/api.js";
 import { DockPortal } from "./DockPortal.jsx";
 import { Z } from "../styles/zLayers.js";
+import PlateRoot from "../plate/PlateRoot.jsx";   // ⭐ 47m: the list is drawn in plate tokens (plate/plate.css .pl-suggest)
 
-// Same portal, same tokens, as the bar's dropdowns (UsbSelect) — one popup style, not two.
+// ⭐ 47m (the 47j owner question, agent's pick — owner may reverse): THE LIST IS THE PLATE'S — one list for /jobs, the
+// market's search and the dock search, drawn inside a PlateRoot (the plate tokens, the person's theme) as a plate card: paper
+// card, the 1.5 px ink line, the hard shadow, mono group heads (D179: Companies · People · Roles · Technologies · Titles).
+// The portal's own box is made bare (no surface, border, blur or padding of its own) so the plate card is the only box.
 //
 // It has to be a portal: .usb__bar is `overflow: hidden` (it clips the inner fields to the bar's
 // rounded corners), so an absolutely-positioned list inside it is invisible. Measured that way
 // first — the list was in the DOM with all eight rows and a correct 240x280 rect, painting nothing,
 // because the ancestor two levels up cut it off. That is precisely what DockPortal's own header
 // says it exists to prevent.
-const PORTAL_THEME = {
-  menuSurface: "var(--bg-card)",
-  surface:     "var(--bg-card)",
-  border:      "var(--border-glass)",
-  shadowLg:    "var(--c-shadow-lg), 0 0 0 1px var(--border-glass)",
-};
+const BARE_PORTAL = { background: "transparent", border: "none", borderRadius: 0, boxShadow: "none", backdropFilter: "none",
+  WebkitBackdropFilter: "none", padding: "0 10px 10px 0" };   // the right / bottom room is the hard shadow's
 
 // Long enough that a fast typist makes one request for a word rather than one per letter, short
 // enough to feel immediate. The server also caches per role scope, so bursts cost nothing.
@@ -266,19 +266,19 @@ export default function UsbSuggest({
       {showList && (
         <DockPortal
           anchorRect={rect}
-          theme={PORTAL_THEME}
           onClose={dismiss}
           // Same tier as UsbSelect's listbox, and for the same reason — see the note there. One
           // search surface, one dropdown tier.
           tier={Z.SEARCH_DROPDOWN}
-          style={{ minWidth: Math.max(240, Math.round(rect.width)), maxWidth: 360, padding: 6 }}
+          style={{ ...BARE_PORTAL, minWidth: Math.max(240, Math.round(rect.width)), maxWidth: 370 }}
         >
+          <PlateRoot className="pl-suggest" data-suggest-plate="">
           {grouped && (
             // A148: the scope labels. pointerdown + preventDefault, like the rows: the box keeps focus.
-            <div className="usb__scopes" role="group" aria-label="Search for" data-search-scopes="">
-              <span className="usb__scopes-lead">Search for</span>
+            <div className="pl-suggest__scopes" role="group" aria-label="Search for" data-search-scopes="">
+              <span className="pl-label pl-suggest__lead">Search for</span>
               {SEARCH_SCOPES.map(([k, word]) => (
-                <button key={k} type="button" className="usb__scope dbx-depth" aria-pressed={scope === k} data-scope={k}
+                <button key={k} type="button" className="pl-suggest__scope" aria-pressed={scope === k} data-scope={k}
                   onPointerDown={(e) => { e.preventDefault(); setScope((s) => (s === k ? null : k)); }}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setScope((s) => (s === k ? null : k)); } }}>
                   {word}
@@ -287,12 +287,12 @@ export default function UsbSuggest({
             </div>
           )}
           {grouped && !items.length && (
-            <p className="usb__scopes-hint" data-search-hint="">
+            <p className="pl-suggest__hint" data-search-hint="">
               {typed.length >= 2 ? `No ${scope ? SCOPE_NOUN[scope] : "matches"} for “${typed}”.`
                 : scope ? `Type a name to search ${SCOPE_NOUN[scope]} only.` : "Pick one to search only that, or just type."}
             </p>
           )}
-          <ul className="usb__suggest-list" id={listId} role="listbox" aria-label={
+          <ul className="pl-suggest__list" id={listId} role="listbox" aria-label={
             field === "location" ? "Location suggestions" : "Job title suggestions"
           }>
             {items.map((s, i) => {
@@ -300,24 +300,25 @@ export default function UsbSuggest({
               const head = grouped && (i === 0 || (items[i - 1]?.kind || "title") !== row.kind)
                 && items.some((x) => (x?.kind || "title") !== "title");
               return [
-                head ? <li key={`h:${row.kind}`} role="presentation" className="usb__suggest-group" data-suggest-group={row.kind}>{GROUP_WORD[row.kind]}</li> : null,
+                head ? <li key={`h:${row.kind}`} role="presentation" className="pl-label pl-suggest__group" data-suggest-group={row.kind}>{GROUP_WORD[row.kind]}</li> : null,
                 <li
                   key={row.key}
                   id={`${listId}-${i}`}
                   role="option"
                   aria-selected={i === active}
                   data-suggest-kind={row.kind}
-                  className={"usb__suggest-item" + (i === active ? " usb__suggest-item--active" : "")}
+                  className="pl-suggest__item" data-active={i === active ? "" : undefined}
                   // pointerdown, not click: the input's blur fires first on a click and would unmount
                   // the row out from under it.
                   onPointerDown={e => { e.preventDefault(); accept(row); }}
                   onMouseMove={() => setActive(i)}
                 >
-                  {row.label}{row.sub ? <span className="usb__suggest-sub"> · {row.sub}</span> : null}
+                  {row.label}{row.sub ? <span className="pl-suggest__sub"> · {row.sub}</span> : null}
                 </li>,
               ];
             })}
           </ul>
+          </PlateRoot>
         </DockPortal>
       )}
     </div>
