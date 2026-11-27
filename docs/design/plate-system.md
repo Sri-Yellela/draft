@@ -72,6 +72,19 @@ Each page wears one region's palette, plus three fixed accents: clay for "you / 
 
 **Hypsometric ramp (Region IV, light to deep):** #E9EEF4 → #DCE4EE → #CDD8E7 → #B9C8DC → #9FB3CE → #7F96B6 → #5D79A3 → #1F3A63 → #16294A → #0F1E36. Build the same 10-step ramp for any other region before designing its pages.
 
+**Every region's ramp (steps 0–9, light to deep; tokens `--pl-<roman>-0…9` in `client/src/styles/plate.css`).** IV's is the report's; III's was built for the explainer (D198) around canvas v4's four steps; the other six were built in 47k by `scripts/plateRamps.mjs`, the method read off III and IV (OKLCH: one lightness ladder for the light steps, the region colour itself at step 6 when it is mid-light and at step 7 when it is deep, each step below it ×0.82 lightness; it reproduces III and IV within a just-noticeable step). Ink text reads on steps 0–5 and paper text on steps 7–9 (≥ 4.5 : 1); step 6 carries no text. Guard: `test/plateRamps47k.test.js`.
+
+| Region | Colour at | Ramp |
+| --- | --- | --- |
+| I · Foundations | step 6 | #FBEDE8 → #F6DFD8 → #F2CEC3 → #EBB8A9 → #DF9C88 → #CB7C65 → #C2593A → #954128 → #70311F → #522619 |
+| II · [Part 2 name] | step 7 | #EEEFFD → #E1E2FA → #D2D4F8 → #BEC1F3 → #A5A7EB → #8A8ADB → #6B66C9 → #4B3FA8 → #372D82 → #282160 |
+| III · Algorithms | step 6 | #FBF1EA → #F5E2D6 → #EFD0BE → #E6BA9F → #D99C78 → #C97F55 → #B4532A → #8F4122 → #6B3119 → #4A2211 |
+| IV · Systems & networks | step 7 | #E9EEF4 → #DCE4EE → #CDD8E7 → #B9C8DC → #9FB3CE → #7F96B6 → #5D79A3 → #1F3A63 → #16294A → #0F1E36 |
+| V · Security & money (Profile / Settings) | step 7 | #F4EEF5 → #EBE1ED → #E1D1E4 → #D3BDD7 → #C0A3C6 → #A986B0 → #8E6396 → #6A3E73 → #502D57 → #3B2140 |
+| VI · Languages & media (Interview) | step 7 | #EBF1F3 → #DCE7EA → #C9DBE0 → #B2CBD2 → #93B5BF → #729CA7 → #497F8D → #2F6B7A → #20515D → #183C45 |
+| VII · The physical world | step 7 | #F4EFEA → #EBE3DA → #E0D5C7 → #D3C3AE → #C0AB8E → #A9906D → #8E7045 → #7A5A2A → #5D431C → #453115 |
+| VIII · Intelligence | step 7 | #F0F1EB → #E4E6DB → #D7D9C9 → #C5C8B2 → #AEB293 → #939873 → #757A4D → #5A5F2E → #434720 → #313417 |
+
 **Rules**
 
 - A region page uses only its own ramp plus clay, green and ink. Borrowed colours from other regions appear only as chips that point there (interchanges, filters).

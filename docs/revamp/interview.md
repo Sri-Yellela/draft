@@ -122,8 +122,8 @@ the Job workspace page (`/app/job/<id>`), listed here only where Interview links
   no pill; the chip = the next interview's countdown is **not** proposed (NavChip has two kinds, drafts and run; a third kind
   would be a new piece — owner's call at M4).
 - **Region palette:** **VI · Languages & media** (`--pl-r6` #2F6B7A, tint #EAF3F5): interviews are spoken, and VI is used by
-  no Wave 1 page (the market and the survey sheet wear IV). ⚠ VI's 10-step ramp is not built yet (only IV and III are) —
-  M5 builds it before any drawing (design doc rule). Plus clay, green and ink.
+  no Wave 1 page (the market and the survey sheet wear IV). ✅ VI's 10-step ramp is built (47k): `--pl-vi-0…9` in
+  `styles/plate.css`, listed in the design doc's ramp table (#2F6B7A at step 7). Plus clay, green and ink.
 - **The single clay point:** the **soonest interview's ticket** (*Prepare →*) on Coming up; on Practise, the Defend ticket's
   primary answer button; never both on one screen.
 - **Hero plate:** **drawing needed — "the proving ground"**: a terrain you climb, the five rounds as benches up a hill,

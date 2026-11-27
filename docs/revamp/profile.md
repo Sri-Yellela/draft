@@ -171,9 +171,8 @@ map: who you are, where you may go, and the stamps you earned. Its parts:
 | **Connections** | what the passport is linked to | §5 |
 
 - **Palette — Region V (Security & money, `#6A3E73`, tint `#F4EDF5`).** A passport is an identity document and its first
-  job is privacy; V's emblem is the lock. ⚠ V has only five steps in `styles/plate.css` (`--pl-r5`, `-d1`, `-l1`, `-ring`,
-  `-tint`) — **its 10-step ramp must be built** before M5 (the design doc: *"Build the same 10-step ramp for any other region
-  before designing its pages"*). Green = proven stamps only.
+  job is privacy; V's emblem is the lock. ✅ V's 10-step ramp is built (47k): `--pl-v-0…9` in `styles/plate.css`, listed in
+  the design doc's ramp table (#6A3E73 at step 7). Green = proven stamps only.
 - **The one clay point:** the passport's **next stamp** — a waypoint ticket *YOUR NEXT STAMP · Prove TypeScript · 5 min*
   (the top unproven résumé skill → Atlas). While *What changed* (A21) or *the four things* (A22) is open, the clay moves to
   it instead (still one per screen).

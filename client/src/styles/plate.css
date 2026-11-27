@@ -65,6 +65,22 @@
   /* Region III's ramp (D198, canvas v4's explainer — built first for the cost scale: light = 1, mid = 3, deep = 7) */
   --pl-iii-0: #FBF1EA; --pl-iii-1: #F5E2D6; --pl-iii-2: #EFD0BE; --pl-iii-3: #E6BA9F; --pl-iii-4: #D99C78;
   --pl-iii-5: #C97F55; --pl-iii-6: #B4532A; --pl-iii-7: #8F4122; --pl-iii-8: #6B3119; --pl-iii-9: #4A2211;
+  /* ⭐ 47k · the other six regions' ramps, built by scripts/plateRamps.mjs from each region colour with the method read off
+     III and IV (OKLCH: one lightness ladder for the light steps; the region colour itself at step 6 when mid-light — I —
+     and at step 7 when deep — II, V–VIII; the steps below it ×.82 lightness each). Ink on 0–5 and paper on 7–9 hold
+     ≥ 4.5 : 1 (test/plateRamps47k.test.js). Built before their pages: V (Profile / Settings), VI (Interview). */
+  --pl-i-0: #FBEDE8; --pl-i-1: #F6DFD8; --pl-i-2: #F2CEC3; --pl-i-3: #EBB8A9; --pl-i-4: #DF9C88;
+  --pl-i-5: #CB7C65; --pl-i-6: #C2593A; --pl-i-7: #954128; --pl-i-8: #70311F; --pl-i-9: #522619;
+  --pl-ii-0: #EEEFFD; --pl-ii-1: #E1E2FA; --pl-ii-2: #D2D4F8; --pl-ii-3: #BEC1F3; --pl-ii-4: #A5A7EB;
+  --pl-ii-5: #8A8ADB; --pl-ii-6: #6B66C9; --pl-ii-7: #4B3FA8; --pl-ii-8: #372D82; --pl-ii-9: #282160;
+  --pl-v-0: #F4EEF5; --pl-v-1: #EBE1ED; --pl-v-2: #E1D1E4; --pl-v-3: #D3BDD7; --pl-v-4: #C0A3C6;
+  --pl-v-5: #A986B0; --pl-v-6: #8E6396; --pl-v-7: #6A3E73; --pl-v-8: #502D57; --pl-v-9: #3B2140;
+  --pl-vi-0: #EBF1F3; --pl-vi-1: #DCE7EA; --pl-vi-2: #C9DBE0; --pl-vi-3: #B2CBD2; --pl-vi-4: #93B5BF;
+  --pl-vi-5: #729CA7; --pl-vi-6: #497F8D; --pl-vi-7: #2F6B7A; --pl-vi-8: #20515D; --pl-vi-9: #183C45;
+  --pl-vii-0: #F4EFEA; --pl-vii-1: #EBE3DA; --pl-vii-2: #E0D5C7; --pl-vii-3: #D3C3AE; --pl-vii-4: #C0AB8E;
+  --pl-vii-5: #A9906D; --pl-vii-6: #8E7045; --pl-vii-7: #7A5A2A; --pl-vii-8: #5D431C; --pl-vii-9: #453115;
+  --pl-viii-0: #F0F1EB; --pl-viii-1: #E4E6DB; --pl-viii-2: #D7D9C9; --pl-viii-3: #C5C8B2; --pl-viii-4: #AEB293;
+  --pl-viii-5: #939873; --pl-viii-6: #757A4D; --pl-viii-7: #5A5F2E; --pl-viii-8: #434720; --pl-viii-9: #313417;
 
   /* ── Stage colours on Route and Index (report) ── */
   --pl-stage-start: #3E6B5A; --pl-stage-build: #1F3A63; --pl-stage-deepen: #C2593A; --pl-stage-master: #6A3E73;
