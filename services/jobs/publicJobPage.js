@@ -21,6 +21,7 @@ import { formatPosting } from "../../shared/postingFormat.js";
 import { sponsorshipSignal } from "../kb/sponsorshipSignal.js";
 import { ogUrl, ogImageMeta } from "../ogImage.js";
 import { jobPagePath, companyPagePathFromSlug, boardIdFromPath } from "../../shared/companyPaths.js";   // A157 (45q)
+import { PLATE_STYLE, PLATE_FONTS, publicNavHtml, publicFooterHtml, offTheMapPage, OTHER_ROADS } from "../publicChrome.js";   // ⭐ 47m (D197 #16 / #22)
 
 export const JOBS_SITEMAP_MAX = 50000;   // the sitemap protocol's per-file limit
 const SLUG_PART_MAX = 60;
@@ -197,32 +198,22 @@ export function atlasLinksFor(db, skills, max = ATLAS_LINKS_MAX) {
   } catch { return []; }
 }
 
-export const STYLE = `
-:root{--bg:#f7f5f0;--card:#fffdf8;--ink:#1d1b18;--muted:#6b665d;--line:#e2ddd2;--accent:#2f5d50;--accent-ink:#fff;--warn:#8a4b14;--warn-bg:#fbf0e3}
-@media (prefers-color-scheme:dark){:root{--bg:#141413;--card:#1d1c1a;--ink:#ece8df;--muted:#a39e93;--line:#34322e;--accent:#7fb8a6;--accent-ink:#10201b;--warn:#f0b37a;--warn-bg:#2b2117}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
-.wrap{max-width:min(760px,100%);margin:0 auto;padding:20px 16px 64px}
-header.site{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:24px}
-header.site a.brand{color:var(--ink);font-weight:800;font-size:22px;text-decoration:none;letter-spacing:-.02em}
-a{color:var(--accent);overflow-wrap:anywhere}
-h1{font-size:clamp(26px,5vw,38px);line-height:1.2;margin:0 0 8px;overflow-wrap:anywhere}
-.facts{color:var(--muted);margin:0 0 16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:16px 18px;margin:16px 0}
-.card h2{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 10px}
-.mark{display:inline-block;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;padding:1px 8px;margin:0 6px 6px 0;font-size:14px}
-.cta{display:inline-block;background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:10px 18px;font-weight:700;text-decoration:none}
-.closed{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
-.small{font-size:13px;color:var(--muted)}
-.posting h3{font-size:17px;margin:20px 0 6px}
-`;
+// ⭐ 47m (D197 Wave 2 #16, M5): the server pages' look is the PLATE's (services/publicChrome.js — tokens, the public nav,
+// the footer); the class names below keep their meaning. The head of every page (JSON-LD, canonical, og) is unchanged.
+export const STYLE = PLATE_STYLE;
+/** The plate head + chrome every server page wears — the fonts, the style, then the nav (top) and the footer (bottom). */
+export const PLATE_HEAD = PLATE_FONTS;
+export const plateNav = (opts) => publicNavHtml(opts);
+export const plateFooter = () => publicFooterHtml();
 
-/** No such public posting (or a held one): a real 404, never the app shell's 200 — a crawler reads that as a soft 404. */
+/** No such public posting (or a held one): a real 404, never the app shell's 200 — a crawler reads that as a soft 404.
+ *  ⭐ 47m (D197 #22): drawn as Off the map — the 404 and noindex kept; the way back goes to the open board (closer to what
+ *  the reader wanted than the old /try → /), and the front door is the other road. */
 export function renderMissingJobPage() {
-  return { status: 404, html: `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Posting not found | draft</title><meta name="robots" content="noindex"><style>${STYLE}</style></head>
-<body><div class="wrap"><header class="site"><a class="brand" href="/" aria-label="draft — home">/draft</a><a href="/login">Sign in</a></header>
-<main><h1>This posting isn't here</h1><p>It may have been removed. <a href="/try">See how draft finds, tailors and applies</a>.</p></main></div></body></html>` };
+  return offTheMapPage({ status: 404, docTitle: "Posting not found", kicker: ["404", "NO SUCH POSTING"], title: "This posting isn't here",
+    lead: "It may have been removed, or it was filled. Every open job on draft is one step away.",
+    back: { title: "Browse open jobs", go: "Open jobs →", href: "/jobs" },
+    roads: [{ kicker: "THE FRONT DOOR", title: "See how draft finds, tailors and applies", go: "Go →", href: "/" }, OTHER_ROADS[1]] });
 }
 
 /**
@@ -266,12 +257,12 @@ export function renderPublicJobPage(db, row, { base, open, now = Math.floor(Date
 ${open ? "" : `<meta name="robots" content="noindex">`}
 <meta property="og:title" content="${esc(titleText)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:type" content="website">
 ${ogImageMeta(ogUrl(new URL(canonical).origin, { eyebrow: row.company || "Job", title: row.title || titleText, line: open ? "Open now · apply on the employer's site" : "This posting has closed" }), titleText)}
-<style>${STYLE}</style>
+${PLATE_HEAD}<style>${STYLE}</style>
 ${open ? jsonLdScript(jobPostingJsonLd(row, { base })) : ""}
-</head><body><div class="wrap">
-<header class="site"><a class="brand" href="/" aria-label="draft — home">/draft</a><a href="/login">Sign in</a></header>
+</head><body>${plateNav({ clay: !open })}<div class="wrap">
 <main>
-${open ? "" : `<div class="card closed" role="status"><strong>This posting has closed.</strong> ${esc(job.company)} is no longer taking applications for it.</div>`}
+${open ? "" : `<div class="card closed" role="status"><span class="stamp">Closed</span> <strong>This posting has closed.</strong> ${esc(job.company)} is no longer taking applications for it.</div>`}
+<p class="kicker">Opening · ${esc(job.company)}${job.location ? ` · ${esc(job.location)}` : ""}</p>
 <h1>${esc(job.title)}</h1>
 <p class="facts">${facts.map(esc).join(" · ")}</p>
 <p class="small">Posted by ${esc(job.company)} on their careers site${original ? ` · <a href="${esc(original)}" rel="noopener nofollow">View the original posting</a>` : ""}</p>
@@ -281,6 +272,6 @@ ${atlas.length ? `<section class="card"><h2>In the Atlas</h2><p>${atlas.map(a =>
 <section class="card posting"><h2>The posting, as ${esc(job.company)} wrote it</h2>
 ${descriptionHtml(job.description) || `<p class="small">The posting's text could not be read — see the original.</p>`}
 </section>
-</main></div></body></html>`;
+</main></div>${plateFooter()}</body></html>`;
   return { status: 200, html };
 }
