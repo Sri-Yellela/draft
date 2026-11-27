@@ -27,10 +27,6 @@ export const TRACKER_COUNTS = Object.freeze([
   { id: "needs", label: "needs you", accent: true }, { id: "progress", label: "in progress" }, { id: "sent", label: "sent" },
   { id: "replied", label: "replied" }, { id: "interview", label: "interview" },
 ]);
-export const TRACKER_COLUMNS = Object.freeze([
-  { key: "position", label: "Position" }, { key: "resume", label: "Résumé" }, { key: "answers", label: "Answers" },
-  { key: "status", label: "Status" }, { key: "when", label: "When" },
-]);
 export const TRACKER_PANES = Object.freeze([["posting", "The posting"], ["resume", "Résumé"], ["answers", "Answers"], ["emails", "Emails"]]);
 /** The period in the filter row. Days back from now; null = any time. */
 export const TRACKER_PERIODS = Object.freeze([["any", "Any time", null], ["7", "Last 7 days", 7], ["30", "Last 30 days", 30], ["90", "Last 90 days", 90]]);
@@ -279,37 +275,6 @@ export function homeSummary(rows = [], now = Date.now()) {
   const coming = rows.filter(r => (r.stage === "interview" || r.stage === "assessment") && r.node?.ref?.interview?.ymd >= today).length;
   return [month && `${month} this month`, replies && `${replies} repl${replies === 1 ? "y" : "ies"}`,
     coming && `${coming} interview${coming === 1 ? "" : "s"} coming up`].filter(Boolean).join(" · ");
-}
-
-/**
- * ⭐ 46y · home-sketch.html's .needs — at most three cards above the table, in its order: the first application that
- * needs the person (Needs you), the next interview (Interview on <weekday>), the first one ready to send. Each card names
- * its row (`key`) and what its button does (`act`: "open" opens the row in place; "interview" goes to Interview).
- */
-export function homeNeeds(rows = [], now = Date.now()) {
-  const out = [];
-  const need = rows.find(r => r.stage === "question" || r.stage === "needs");
-  if (need) {
-    const q = need.node?.question?.question;
-    out.push({ key: need.key, kind: "need", eyebrow: "Needs you", title: need.company,
-      line: q ? `One question only you can answer: ${q}` : (need.node?.say || "Waiting for you."),
-      act: "open", label: need.stage === "question" ? "Answer it" : "Open it", primary: true });
-  }
-  const today = new Date(now).toLocaleDateString("en-CA");
-  const iv = rows.filter(r => (r.stage === "interview" || r.stage === "assessment") && r.node?.ref?.interview?.ymd >= today)
-    .sort((a, b) => String(a.node.ref.interview.ymd).localeCompare(String(b.node.ref.interview.ymd)))[0];
-  if (iv) {
-    const w = iv.node.ref.interview;
-    const [y, m, d] = w.ymd.split("-").map(Number);
-    const weekday = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
-    out.push({ key: iv.key, kind: "interview", eyebrow: `${iv.stage === "assessment" ? "Assessment" : "Interview"} on ${weekday}`,
-      title: [iv.company, iv.title].filter(Boolean).join(" · "), line: `${iv.status}.`,
-      act: "interview", label: "Prepare in Interview", primary: false });
-  }
-  const ready = rows.find(r => r.stage === "ready");
-  if (ready) out.push({ key: ready.key, kind: "ready", eyebrow: "Ready to send", title: [ready.company, ready.title].filter(Boolean).join(" · "),
-    line: "Everything is filled. Submit when you're happy.", act: "open", label: "Review and submit", primary: false });
-  return out;
 }
 
 /** The order "Needs you" rows sit in when the table is sorted by status: what needs the user first. */
