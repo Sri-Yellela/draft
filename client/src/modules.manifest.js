@@ -105,7 +105,7 @@ export const MODULES = Object.freeze({
       "panels/JobProfilesPanel.jsx" /* Your bearings */, "panels/JobWorkspacePanel.jsx" /* The voyage */, "pages/settingout/SettingOutPage.jsx" /* Setting out */, "components/AuthScreen.jsx" /* sign in */,
       // ⭐ D197 Wave 2 #16 / #14 / #22 + marketing.md (47m, lane public, M5): the signed-out chrome, the public pages, the
       // marketing pages' frame, Off the map and Correspondence — built on the plate from the approved mocks
-      "components/PublicChrome.jsx", "components/Footer.jsx", "components/MarketingFrame.jsx", "pages/LandingPage.jsx", "pages/NotFoundPage.jsx"] },
+      "components/PublicChrome.jsx", "components/Footer.jsx", "components/MarketingFrame.jsx", "pages/LandingPage.jsx", "pages/NotFoundPage.jsx", "pages/jobs/PublicBoardPage.jsx"] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminGateway.jsx", "panels/adminFlags.jsx","panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "panels/adminReports.jsx", "panels/adminCompanyRecords.jsx", "panels/adminNetwork.jsx", "panels/adminRuns.jsx", "panels/adminPhase1.jsx", "panels/adminDiagnostics.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.
@@ -139,7 +139,7 @@ export const MODULES = Object.freeze({
   interview: { why: "Interview (D167) — Coming up, Prepare, Practise, After; D110's prep, bank and debriefs",
     members: ["App.jsx", "pages/interview/ProvingGround.jsx" /* 47m: D197 Wave 2 #13 M5 — the Proving ground (the classic InterviewPage is deleted) */, "pages/interview/interviewModel.js"] },
   audit: { why: "D150 T05–T08 — the 3-minute audit, /audit", css: ["pages/audit/AuditPage.css"], members: ["App.jsx", "pages/audit/AuditPage.jsx"] },
-  publicBoard: { why: "D179 P3 — the open board, /jobs signed out", css: ["pages/jobs/PublicBoardPage.css"],
+  publicBoard: { why: "D179 P3 — the open board, /jobs signed out (47m: in plate, the approved mock public-jobs — its look is plate.css)",
     members: ["App.jsx", "pages/jobs/PublicBoardPage.jsx"] },
   companies: { why: "D179 P4b / A157 — a page for every company, public at /<company> (its postings at /<company>/<id>) and inside the shell at /app/companies/<slug>",
     // ⛔ A157 (45q, owner 11-09): the Companies tab (CompaniesView) is removed — search and the company's name reach a page.
