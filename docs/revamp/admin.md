@@ -1,4 +1,4 @@
-Status: M1–M3 done (47j, lane w2-outside) · ⏸ awaiting the owner's M4 look
+Status: M4 approved (owner 11-27) · ⭐ M5 built — the frame and the kit (47m, lane outside) — UNTESTED
 
 # D197 Wave 2 #21 — Admin and `/dev`: tokens and components only (no new art); readable, dense
 
@@ -117,3 +117,21 @@ has no plate piece — proposed a `Drawer`-styled drop target; (c) **Calibrate**
 the sections as binder tabs, the stats strip (people · active in 7 days · suspended · overrides), the filter chips,
 the users as a Gazetteer (12 synthetic people), and an open person (FactSheet + the actions: one clay write, the
 guarded writes dashed-confirm). At 390 the table scrolls inside its box and the person stacks below.
+
+## M5 · What was built (47m, lane outside — untested)
+
+- `components/AdminLayout.jsx` — a plate root (region IV): the bar = the /d tile, a mono ADMIN PANEL label, who is signed in,
+  Sign Out as a plate button, the ruler.
+- `panels/AdminPanel.jsx` — the frame: the five groups = `AreaNav` views (the DB inspector in its *More*), the group's question
+  the `Kickers`, the group the `PageTitle`, the disk banner above the tabs, the sections = `BinderTabs`. Every `at(g, s)`
+  panel, control and API is unchanged; the place in the URL is unchanged.
+- `panels/adminKit.jsx` — every admin panel is drawn from the kit, so the kit now carries the plate's tokens: the panel a plate
+  card (ink edge, hard shadow, trimmed padding), the serif heading, mono labels, the serif numeral (green only for proven), the
+  step a numbered ticket, the confirm a plate card. (Dense: paddings trimmed.)
+- `panels/adminOps.jsx DiskBanner` — a `Ticket` (clay-tint only when red), linking Today → Disk and backups.
+- ⭐ **Agent's pick — owner may reverse (unclear home (a), the doc's recommendation):** Appearance's *the Admin pages' look*
+  switch is struck — Admin is a plate page and follows the app's palette; a browser still holding an old Admin look is shown
+  it once with *Follow the app*. The two user offers (Studio, Dusk) are unchanged.
+- LEFT: the panels' own inner controls (the `rm-btn` / `dbx-depth` buttons, the tables as `Gazetteer`, filters as
+  `FilterChips`, switches, dialogs) — the frame and the kit only; (b) Enrichment's drop target, (c) a plate textarea,
+  (d) the DB inspector (its own page; not restyled) stay as they were.

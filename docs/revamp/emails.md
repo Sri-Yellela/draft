@@ -1,4 +1,4 @@
-Status: M1–M3 done (47j, lane w2-outside) · ⏸ awaiting the owner's M4 look
+Status: M4 approved (owner 11-27) · ⭐ M5 built (47m, lane outside) — UNTESTED (no suite / browser run in 47m)
 
 # D197 Wave 2 #18 — Emails → **Dispatches**
 
@@ -156,3 +156,27 @@ Robotics, Brightline Health), each with its plain-text part shown beside it (the
 (`client/src/plate/Dispatch.jsx`: `DispatchFrame`, `DispatchEntry`, `DispatchButton`, registry entries "Dispatches") —
 inline styles only inside the email body, every value a `var(--pl-*)` token (the template resolves them to the values
 above at M5).
+
+## M5 · What was built (47m, lane outside — untested)
+
+- **`services/dispatchHtml.js`** — the dispatch template (`renderDispatch`): the 600 px presentation table, inline styles,
+  the masthead (/d tile + wordmark), the ruled edge with its tick strip (table cells), the mono kicker, the header plate
+  (an `<img>`, absolute URL only), the card with a hard ink shadow drawn as table cells, the stats strip, the entries (the
+  region number tag, serif title, company, mono facts, the skill squares as cells, ink links), the code cell, ONE clay
+  bulletproof button, the small print, the foot; `color-scheme: light`; Outlook's 2 px border in an `mso` conditional.
+- **The token values** — `shared/emailPlates.js` `PLATE_EMAIL` (pinned to `client/src/styles/plate.css` by
+  `test/dispatchHtml47m.test.js`).
+- **The header plates** (Drawing 23 of `DrawingsPublic`) — `client/public/email/plate-{dispatch,run-report,digest}.png`,
+  560 × 140 at 2×, rasterised by `scripts/buildEmailPlates.mjs` (@resvg/resvg-js) from `shared/emailPlates.js plateSvgs`.
+  ⭐ **Agent's pick — owner may reverse:** a sent plate carries no per-send words (a fixed line: *A dispatch from draft* /
+  *The run report* / *New openings that fit*; the dispatch's count box holds the /d) — a static image cannot say "4"; the
+  per-send title is the HTML `<h1>` under it. F5: `email-plate-*` in `scripts/d196Regress.mjs` (the same drawing with the
+  board's example words, fixture `EmailPlateBoard`) — not run.
+- **Wired:** every notify event (`services/notify.js eventEmailHtml` — ALERT A1–A5 / A9 / A11, PICKS A6, RUN SUMMARY A7,
+  QUESTION A8, DIGEST A10), the password reset and the codes (`emailService.js`, ACCOUNT, no plate image), the support
+  reply (`routes/tickets.js`, the admin's words as written), the service notice (`services/notices.js`, NOTICE, the footer
+  verbatim). **The plain-text part of every one is unchanged.**
+- ⭐ **Agent's pick — owner may reverse:** operator mail C1–C6 stays plain text (the doc's proposal). B7 marketing is not
+  called by any route — not wired (nothing to restyle until it is).
+- The mock's A2 small print ("It waits for you — there is no deadline. Nothing was sent.") is NOT in the sent email: it is
+  not in today's text, and "Nothing was sent" is not known for a check after Submit (words stay).

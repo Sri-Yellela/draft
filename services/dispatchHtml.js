@@ -18,17 +18,9 @@
 //  • color-scheme: light — the paper stays paper (no dark plate yet).
 // ⛔ D190: nothing here calls a model. ⛔ D100 P4 privacy is the caller's: this renders the words it is handed.
 
-export const PLATE_EMAIL = Object.freeze({
-  paper: "#F4EFE9", paperWarm: "#FBF8F4", card: "#FFFFFF", ink: "#1B1B1B", inkSoft: "#3F3A36", muted: "#55504C",
-  rule: "#E6DED8", clay: "#C2593A", onClay: "#FFFFFF", clayText: "#8A3A22", clayTint: "#FBEFEA", lit: "#3E6B5A",
-  r4: "#1F3A63", r4Tint: "#EDF1F7",
-});
-/** The plate.css custom property each PLATE_EMAIL key is the value of (the pin's map). */
-export const PLATE_EMAIL_VARS = Object.freeze({
-  paper: "--pl-paper", paperWarm: "--pl-paper-warm", card: "--pl-card", ink: "--pl-ink", inkSoft: "--pl-ink-soft", muted: "--pl-muted",
-  rule: "--pl-rule", clay: "--pl-clay", onClay: "--pl-on-clay", clayText: "--pl-clay-text", clayTint: "--pl-clay-tint", lit: "--pl-lit",
-  r4: "--pl-r4", r4Tint: "--pl-r4-tint",
-});
+// the token values and the three plates live in shared/emailPlates.js (pure — the PNG build and the F5 fixture read them too)
+import { PLATE_EMAIL, PLATE_EMAIL_VARS, EMAIL_PLATES } from "../shared/emailPlates.js";
+export { PLATE_EMAIL, PLATE_EMAIL_VARS, EMAIL_PLATES };
 const T = PLATE_EMAIL;
 export const FACES = Object.freeze({
   serif: "'Instrument Serif', Georgia, 'Times New Roman', serif",
@@ -36,12 +28,6 @@ export const FACES = Object.freeze({
   mono: "'JetBrains Mono', Menlo, Consolas, monospace",
 });
 
-/** The three header plates (DrawingsPublic Drawing 23), served from the client's public folder. alt = what it shows. */
-export const EMAIL_PLATES = Object.freeze({
-  dispatch: { file: "plate-dispatch.png", alt: "draft — a dispatch" },
-  "run-report": { file: "plate-run-report.png", alt: "draft — the run report" },
-  digest: { file: "plate-digest.png", alt: "draft — the digest" },
-});
 export const EMAIL_PLATE_PATH = "/email/";
 
 export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);

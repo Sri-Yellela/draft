@@ -45,7 +45,9 @@ export const GENERATED_TOKEN_FILES = new Set(["shared/atsReportTokens.js"]);
 // ⭐ D196 F1 (owner 11-24): the plate system's tokens are their own token file, scoped to `.plate` (a light paper look for its
 // own pages until a dark plate variant is sketched) — the design report's values, held to the report by
 // test/d196NoRawStylesOutsideTokens.test.js, which also forbids any literal in the plate library itself.
-export const PLATE_TOKEN_FILES = new Set(["client/src/styles/plate.css"]);
+// ⭐ D197 #18 M5 (47m): the EMAIL's copy of the plate's values (mail clients read no custom property) — pinned value for
+// value to plate.css by test/dispatchHtml47m.test.js; the client reads it only for the email plates' F5 fixture.
+export const PLATE_TOKEN_FILES = new Set(["client/src/styles/plate.css", "shared/emailPlates.js"]);
 const TOKEN_FILES = new Set([TOKEN_FILE, ...THEME_FILES, ...GENERATED_TOKEN_FILES, ...PLATE_TOKEN_FILES]);
 // Plus the two NAMED colours this client actually used as paint — quoted "white"/"black" in JS, and
 // `: white;` in CSS. They were added to the scan after the first pass MISSED them: the login button

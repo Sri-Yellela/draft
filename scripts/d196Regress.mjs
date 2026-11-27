@@ -218,6 +218,13 @@ export const PAIRS = {
   ...Object.fromEntries([["head", 1, "number"], ["close", 2, "close"], ["want", 3, "wants"], ["learn", 4, "learn"], ["move", 5, "move"], ["route", 6, "route"]]
     .map(([k, n, s]) => [`ys-${k}`, { source: "final", board: "YourSurvey", fixture: "YourSurveyBoard", boardSel: `section:nth-of-type(${n})`,
       buildSel: `[data-skm-section="${s}"]`, pad: 0, reduced: true, subpixel: true, ...(ysPair(k) || {}) }])),
+  // ⭐ D197 Wave 2 #18 · M5 (47m, lane outside) · THE EMAIL HEADER PLATES — DrawingsPublic's Drawing 23 (approved 11-27), each
+  // plate against its own svg on the board, drawn at the board's width (`matchWidth`) from the SAME drawing the PNGs are
+  // rasterised from (shared/emailPlates.js plateSvgs), with the board's example words (DRAWING_23_WORDS) — like with like.
+  // ⚠ Not run yet (47m: no browser runs); the shipped PNG's own faces (Georgia / Consolas at build time) are not this pair's.
+  ...Object.fromEntries([["dispatch", "4 new openings that fit"], ["run-report", "Sent 6, held 2"], ["digest", "Your week on the map"]]
+    .map(([k, t]) => [`email-plate-${k}`, { source: "final", board: "DrawingsPublic", fixture: "EmailPlateBoard", drawing: k,
+      boardSel: `svg[aria-label="An email header plate for ${t}"]`, buildSel: "svg[role=img]", pad: 0, matchWidth: true, reduced: true }])),
 };
 // what each Your survey pair keeps out of the pixel gate, and why (D196: masks only for example data, with the reason)
 // ✅ OWNER 11-26 (end of 47i, decision 3 — "go with your recs"): every ys pair at 390 and ys-want at 1280 are owner-accepted

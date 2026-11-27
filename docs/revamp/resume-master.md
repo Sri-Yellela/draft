@@ -1,4 +1,4 @@
-Status: M1–M3 done (47j, lane w2-outside) · ⏸ awaiting the owner's M4 look — M1 + M2 only (no mock: a separate repository; see M3)
+Status: M4 approved (owner 11-27) · ⭐ M2 built in Resume Master (47m, lane outside) on its branch `l47m-rm-plate` — UNTESTED, not pushed, not merged
 
 # D197 Wave 2 #20 — Resume Master (D189 / D192): the document workspace in plate tokens
 
@@ -124,3 +124,21 @@ Tiny only).
 No mock: Resume Master's pages are not React and live in another repository, so a `/dev/plate` mock would show draft's
 components, not RM's pages. The two library pieces RM would wear are already drawn here: `FitCard` (the ATS card) and
 `FloatingPanel` (Tiny, if the owner picks the side panel) — see `/dev/plate?page=extension-panel`.
+
+## M2 · What was built (47m, lane outside — in the resume-master repository, branch `l47m-rm-plate`, untested)
+
+- `scripts/site/themes.mjs` — **`plate-light`**, draft's plate values as rm-editor/1's token set (paper, white cards, ink,
+  clay, the hard ink shadows as the depth tokens), plus the `--pl-*` structure in `:root` (the 1.5 px ink border, region VI,
+  the mono face); `public/tokens.css` / `public/theme.js` regenerated (`scripts/site/buildSite.mjs`).
+- ⭐ **Agent's pick — owner may reverse:** the plate is the site's DEFAULT theme and resolves to paper in every light / dark
+  choice; Dusk and Plain stay in Settings → Appearance (`public/settings-panel.js`), and a browser that chose one keeps it.
+- `public/site.css`, `public/workspace/workspace.css`, `public/assistant/tiny.css` — the plate rules, only while the plate is on:
+  ink-edged controls with hard shadows, the active mode a white binder tab with region VI's shadow (clay stays the one primary:
+  Done, Download PDF, Check), the nav card-white on a ruled edge, mono labels, the drop target dashed.
+- ⭐ **Agent's pick — owner may reverse (§6):** Tiny stays the bubble, restyled (a 1.5 px ink circle, a hard shadow; the card a
+  plate card) — the least-loss option; the side panel is not built.
+- Tests moved on purpose there: `test/m20TokensOnly.test.js` (a fifth theme, the default), `test/siteLookA68.test.js` (Dusk's
+  values read from its own block).
+- LEFT: the editor (`public/editor/editor.css`) and the ATS panel (`public/ats-panel.css`) take the plate's tokens but no plate
+  rules; the ATS card is not yet draft's FitCard; the home's hero plate (an isometric desk tile in region VI) is not drawn;
+  RM's own logo in plate linework is not sketched.

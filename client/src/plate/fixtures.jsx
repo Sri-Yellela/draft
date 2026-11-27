@@ -15,6 +15,7 @@ import { LegHeader } from "./Plates.jsx";
 import { BoardSearch } from "../components/BoardBar.jsx";
 import { publishFrontCard } from "./marketPlate.js";
 import { DRAWINGS } from "./drawings/index.js";
+import { plateSvgs, DRAWING_23_WORDS } from "../../../shared/emailPlates.js";   // ⭐ D197 #18 M5 (47m): the email plates' F5
 import { FieldCard } from "./Cards.jsx";
 import { PlateDeckStill } from "../panels/DeckView.jsx";
 import { MarketIndexTable, RowBubble, indexRow } from "./MarketIndex.jsx";   // FIX-7 / FIX-8   // FIX-2: the Deck tab is the real FanCard, at the board's size
@@ -166,6 +167,16 @@ export function MarketTicketsBoard() {
 }
 
 /** One ported drawing at the board element's width (the regression run passes #name=…&w=… in the address). */
+/** ⭐ D197 #18 M5 (47m, F5): an email header plate (shared/emailPlates.js — the drawing the PNGs are made from) with Drawing
+ *  23's example words, at the board's width (#name = dispatch | run-report | digest, #w / #h / #ox / #oy). */
+export function EmailPlateBoard() {
+  const q = new URLSearchParams((globalThis.location?.hash || "").slice(1));
+  const svg = plateSvgs({ words: DRAWING_23_WORDS })[q.get("name")] || "";
+  const w = Number(q.get("w")) || 560;
+  return <PlateRoot><div style={{ width: w, lineHeight: 0, marginLeft: Number(q.get("ox")) || 0, marginTop: Number(q.get("oy")) || 0 }}
+    dangerouslySetInnerHTML={{ __html: svg.replace('width="560" height="140"', 'width="100%" style="display: block; border-bottom: var(--pl-border)"') }}/></PlateRoot>;
+}
+
 export function PortedDrawing() {
   const q = new URLSearchParams((globalThis.location?.hash || "").slice(1));
   const D = DRAWINGS[q.get("name")];
@@ -510,4 +521,4 @@ export function AtlasLibraryBoard() {
   );
 }
 
-export const FIXTURES = { ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellPhoneTop, ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard, MarketHeroFinal, MarketSectionFinal, AtlasHomeBoard, AtlasVolumesBoard, AtlasMapBoard, AtlasLibraryBoard, ShellRailAtlas, ...FIT_FIXTURES, ...SHEET_FIXTURES, ...YS_FIXTURES };
+export const FIXTURES = { EmailPlateBoard, ShellRailMarket, ShellRailLedger, ShellPhoneBar, ShellPhoneTop, ShellMarket, MarketFace, MarketBearing, MarketHeroBoard, MarketOpeningsBoard, MarketIndexBoard, MarketTicketsBoard, PortedDrawing, ExplainerBoard, MarketHeroFinal, MarketSectionFinal, AtlasHomeBoard, AtlasVolumesBoard, AtlasMapBoard, AtlasLibraryBoard, ShellRailAtlas, ...FIT_FIXTURES, ...SHEET_FIXTURES, ...YS_FIXTURES };
