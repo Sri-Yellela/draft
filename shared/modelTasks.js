@@ -74,7 +74,7 @@ export const TASKS = Object.freeze({
     purposes: ["cover_letter", "cover_letter_apply"], dataClass: "candidate", untrusted: ["posting"],
     what: "a cover letter from the résumé and the posting (/api/cover-letter/generate, the apply path)",
     defaultRoute: route(MODEL_HAIKU, { max_tokens: 800 }, { b: budget(0.01, 8_000, 20_000) }) }),
-  "profile.domain_chips": task({ runsIn: "draft", status: "live", evalSet: "structured.owner-check",
+  "profile.domain_chips": task({ runsIn: "draft", status: "retired" /* ⭐ D190 (47m): the wizard reads the résumé + the taxonomy instead — services/chipSuggestions.js */, evalSet: "structured.owner-check",
     purposes: ["domain_chips"], dataClass: "candidate",
     what: "suggested keyword / verb / tool chips for a domain profile (A80 V3, still a known D17 violation)",
     defaultRoute: route(MODEL_HAIKU, { max_tokens: 600 }, { b: budget(0.005, 5_000, 15_000) }) }),

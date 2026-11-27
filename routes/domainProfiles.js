@@ -33,9 +33,8 @@ import { sampleRoleFamily, trialSampleIdForText as sampleIdForText, activeTrialS
 import { readProfile } from "../services/structuredProfile.js";
 import { prefillFromResumeText } from "../shared/resumePrefill.js";   // D184 B-7: the résumé's city for the sentence
 import { snapshotForReplace, pageDigest, refillFromResume, whatChanged, recordReplacement, dealAgain } from "../services/profileReplace.js";
-import { DATA_CLASS } from "../services/modelCall.js";
-// D162 G1: the feature names its task; the gateway picks the model (shared/modelTasks.js profile.domain_chips).
-import { callTask } from "../services/modelGateway.js";
+import { suggestChips } from "../services/chipSuggestions.js";   // D190 (47m): the wizard's suggestions, no model
+import { baseResumeText } from "../services/yourSkills.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -811,49 +810,19 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
   });
 
   // ── POST /api/domain-profiles/generate-chips ─────────────────
-  // Haiku call: suggest additional chips beyond the base registry set.
-  router.post("/generate-chips", async (req, res) => {
-    const { domain, roleFamily, existingKeywords = [], existingVerbs = [], existingTools = [] } = req.body;
-    if (!domain || !roleFamily) return res.status(400).json({ error: "domain and roleFamily required" });
-
-    const prompt = `You are a resume expert. Given the domain and role family below, suggest additional resume chips that are NOT already in the existing lists.
-
-Domain: ${domain}
-Role Family: ${roleFamily}
-
-Existing keywords (do not repeat): ${existingKeywords.join(", ")}
-Existing action verbs (do not repeat): ${existingVerbs.join(", ")}
-Existing tools (do not repeat): ${existingTools.join(", ")}
-
-Return ONLY valid JSON in this exact format — no markdown, no explanation:
-{
-  "keywords": ["keyword1", "keyword2", ...],
-  "verbs": ["Verb1", "Verb2", ...],
-  "tools": ["Tool1", "Tool2", ...]
-}
-
-Rules:
-- keywords: exactly 10 short phrases (2-4 words each), domain-specific, not in existing list
-- verbs: exactly 5 action verbs (Title Case), not in existing list
-- tools: exactly 5 software tools or platforms, not in existing list`;
-
-    try {
-      const msg = await callTask({
-        task: "profile.domain_chips", anthropic, db, userId: req.user.id,
-        // CANDIDATE: the candidate's profile, to suggest domain skills. Never routed off Anthropic.
-        dataClass: DATA_CLASS.CANDIDATE,
-        messages: [{ role: "user", content: prompt }],
-      });
-      const raw = msg.content.map(b => b.text || "").join("").replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(raw);
-      res.json({
-        keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],
-        verbs:    Array.isArray(parsed.verbs)    ? parsed.verbs    : [],
-        tools:    Array.isArray(parsed.tools)    ? parsed.tools    : [],
-      });
-    } catch(e) {
-      res.status(500).json({ error: "Chip generation failed: " + e.message });
-    }
+  // ⭐ D190 (47m, D197 #15 M5): MORE SUGGESTIONS WITHOUT A MODEL. The wizard's stop 4 asked Haiku (task profile.domain_chips,
+  // A80 V3 — "still a known D17 violation"); it now reads the person's own résumé against the taxonomy registry and fills
+  // from the role family's other fields (services/chipSuggestions.js). Same request, same answer shape (+ `from`: where
+  // each chip came from), no model, no cost.
+  router.post("/generate-chips", (req, res) => {
+    const { domain, existingKeywords = [], existingVerbs = [], existingTools = [] } = req.body || {};
+    if (!domain) return res.status(400).json({ error: "domain required" });
+    const registry = getRegistry();
+    if (!registry[domain]) return res.status(404).json({ error: "Domain not found" });
+    let resumeText = "";
+    try { resumeText = baseResumeText(db, req.user.id) || ""; } catch { /* no résumé yet — the family's chips alone */ }
+    res.json(suggestChips({ registry, domain, resumeText,
+      existing: { keywords: existingKeywords, verbs: existingVerbs, tools: existingTools } }));
   });
 
   return router;

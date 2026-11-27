@@ -617,7 +617,7 @@ export default function DomainProfileWizard({
                   cursor: loadingAi ? "default" : "pointer", opacity: loadingAi ? 0.6 : 1,
                 }}
               >
-                {loadingAi ? "Loading suggestions…" : "Load more AI suggestions"}
+                {loadingAi ? "Reading your résumé…" : "Suggest more from your résumé"}{/* D190 (47m): no model — services/chipSuggestions.js */}
               </button>
             </div>
           )}
