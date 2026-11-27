@@ -45,9 +45,14 @@ import "./styles/pageWidth.css"; // 46q: FULL WIDTH — the page gutter + the re
 import "./styles/cues.css";   // D91: shape cues and the system preferences (reduced transparency, forced colours)
 import { ThemeProvider } from "./styles/theme.jsx";
 import App from "./App.jsx";
+import AreaErrorBoundary from "./plate/AreaErrorBoundary.jsx";
 
+// ⭐ 47k · THE LAST NET: each /app area has its own boundary inside the shell (App.jsx); this one catches what they can't —
+// the marketing / public / admin pages and a throw in the dock or top bar themselves. Its Go to Home loads /app afresh.
 createRoot(document.getElementById("root")).render(
   <ThemeProvider>
-    <App />
+    <AreaErrorBoundary area="app" resetKey="root">
+      <App />
+    </AreaErrorBoundary>
   </ThemeProvider>
 );

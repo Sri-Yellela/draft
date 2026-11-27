@@ -84,6 +84,13 @@ test("47k · areaChunkDetector — the browsers' chunk-load messages, and nothin
   for (const e of no) assert.equal(isChunkLoadError(e), false, String(e?.message ?? e));
 });
 
+test("47k · areaRootBoundary — the root render sits in one AreaErrorBoundary, outside App (the public pages, admin, the dock)", () => {
+  const MAIN = read("client/src/main.jsx");
+  assert.match(MAIN, /import AreaErrorBoundary from "\.\/plate\/AreaErrorBoundary\.jsx";/);
+  assert.match(MAIN, /<ThemeProvider>\s*<AreaErrorBoundary area="app" resetKey="root">\s*<App \/>\s*<\/AreaErrorBoundary>\s*<\/ThemeProvider>/,
+    "App renders inside the root boundary (inside ThemeProvider, so the drawer wears the theme's plate)");
+});
+
 function memoryStore() {
   const m = new Map();
   return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), _m: m };
