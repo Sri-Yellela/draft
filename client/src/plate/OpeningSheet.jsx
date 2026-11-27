@@ -14,6 +14,13 @@
 //   05 Sponsorship and the company (the DOL facts, "not a promise", the survey sheet's ticket) ·
 //   the sticky action bar: Pass · Save · Send · Draft this job — MarketCardFace's TicketActions (A93), wired to the board's
 //   own decide (lib/assistantBridge.js "boardDecide" — the same call the board's buttons make, D200 Rule 1).
+// ⭐ 47m (the deck-slot posting, JobDetailPanel and SandboxPanel retired — agent's pick, owner may reverse): THE SHEET IS THE
+// POSTING'S ONE HOME. 06 Your application (plate/SheetResume.jsx) carries the résumé for this job (generate / regenerate,
+// which résumé, preview / edit, what we changed, PDF / HTML), SandboxPanel's live view, History, the cover letter, I applied
+// myself, the notices; 04 fetches a description the source didn't send (Y2B) and says why when it can't; 05 adds who you
+// know there (D138 / D180 P4), the form's own questions (D185-1) and the applicant count. The board under the sheet is told
+// which job is open ("boardOpenSheet") so it publishes that job's meta (useJobBoard().selectedJobMeta) — and Ask draft's
+// "currentJob" is this sheet's job. S · D · P decide from the keyboard (A105 finding 11), as the posting's did.
 // ⛔ D190: no model — "plain words" are the posting's own lines (the scorer's duty phrases), never a paraphrase.
 // ⛔ R2: nothing invented — no pay → "Not posted", no filings → no stamp, no stack → it says so, a team we can't name → blank.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -33,6 +40,11 @@ import SendJobPicker from "../components/SendJobPicker.jsx";
 import { formatPosting } from "../../../shared/postingFormat.js";
 import { reportAsks } from "../../../shared/atsReportModel.js";   // the asks as the one report model reads them (T9)
 import { postingClick } from "../lib/openPosting.js";
+import { useJobBoard } from "../contexts/JobBoardContext.jsx";
+import SheetResume from "./SheetResume.jsx";
+import WarmPathsBlock from "../components/WarmPathsBlock.jsx";
+import WorksHere from "../components/WorksHere.jsx";
+import ApplicationQuestions from "../components/ApplicationQuestions.jsx";
 
 export const OPENING_ROUTE = /^jobs\/([^/?#]+)$/;   // App.jsx: /app/jobs/<id> (the board's ?page= / ?job= stay on /app/jobs)
 /** The sheet's address for one opening (the board's job id). */
@@ -132,7 +144,8 @@ function Item({ yet, children }) {
  * companyHref, logo, region, sponsors, match, applyUrl, description, publicPath }, `company` = the survey sheet's read,
  * `fit` = the FitCard read (or null: FitCard reads it by jobId). `still`: the F5 fixture (no reads, no motion).
  */
-export function OpeningSheetView({ data, company = null, fit = null, fitFront = null, fitPlausibility, still = false, onDecide, onSend, onBack, backHref = "/app/jobs" }) {
+export function OpeningSheetView({ data, company = null, fit = null, fitFront = null, fitPlausibility, still = false, onDecide, onSend, onBack, backHref = "/app/jobs",
+  descNote = null, extras = null, application = null }) {   // 47m: the live sheet's 04 note, 05 extras and 06 (none in the F5 fixture)
   // ⛔ A246 (47j): `data` IS the opening. It used to read `data?.job || data`, and openingFromJob carried the raw job as
   // `job`, so every live sheet drew the RAW job: no place, pay, type, level, posted or match (the fixtures passed the opening
   // itself, so F5 and d202 never saw it). The raw job now rides as `raw`.
@@ -230,14 +243,14 @@ export function OpeningSheetView({ data, company = null, fit = null, fitFront = 
         <article className="pl-op__card pl-op__posting" data-opening-posting="">
           {m.sections.length ? m.sections.map((s, i) => (
             <div key={i} className="pl-op__block">{s.title ? <h3 className="pl-op__h3">{s.title}</h3> : null}{s.items.map((t, k) => <p key={k} className="pl-op__p">{t}</p>)}</div>
-          )) : <p className="pl-op__quiet">This posting came without its text. Open the original to read it.</p>}
+          )) : (descNote || <p className="pl-op__quiet">This posting came without its text. Open the original to read it.</p>)}
           {m.tail.length ? <details className="pl-op__tail"><summary>{m.tail.map((s) => s.title).join(" · ")}</summary>
             {m.tail.map((s, i) => <div key={i}>{s.items.map((t, k) => <p key={k} className="pl-op__p">{t}</p>)}</div>)}</details> : null}
           {o.applyUrl ? <a className="pl-op__orig" href={o.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick({ jobId: o.jobId, url: o.applyUrl }, e, { url: o.applyUrl })}>Open the original posting ↗</a> : null}
         </article>
       </section>
 
-      <section className="pl-op__section pl-op__section--last" aria-labelledby="op-company">
+      <section className={`pl-op__section${application ? "" : " pl-op__section--last"}`} aria-labelledby="op-company">
         <LegHeader n={5} id="company" meta="SPONSORSHIP AND THE COMPANY" title={<span id="op-company">Who you’d be joining</span>}/>
         <p className="pl-op__lead">The short version of {possessive(o.company)} survey sheet.</p>
         <div className="pl-op__row">
@@ -250,7 +263,16 @@ export function OpeningSheetView({ data, company = null, fit = null, fitFront = 
           {co ? <Ticket href={co} kicker={`SURVEY SHEET · ${String(o.company || "").toUpperCase()}`} title="The whole company"
             line={`Their stack, their hiring${m.openRoles != null ? `, their ${m.openRoles} open roles` : ""}.`} go="Open the survey sheet →"/> : null}
         </div>
+        {extras ? <div className="pl-op__extras" data-opening-extras="">{extras}</div> : null}
       </section>
+
+      {application ? (
+        <section className="pl-op__section pl-op__section--last" aria-labelledby="op-apply">
+          <LegHeader n={6} id="apply" meta="YOUR APPLICATION · THE RÉSUMÉ, THE LETTER, THE RECORD" title={<span id="op-apply">Your résumé for this job</span>}/>
+          <p className="pl-op__lead">Tailored from your base résumé, previewed and edited in the editor, kept with every version.</p>
+          {application}
+        </section>
+      ) : null}
 
       <div className="pl-op__bar" data-opening-actions="">
         <div className="pl-op__barin">
@@ -288,6 +310,37 @@ export default function OpeningSheet({ jobId }) {
   const [networkOn, setNetworkOn] = useState(false);
   const scroller = useRef(null);
   const back = useCallback(() => { if (window.history.length > 1) navigate(-1); else navigate("/app/jobs"); }, [navigate]);
+  // ⭐ 47m: the board under the sheet is told which job is open, so it publishes that job's meta (06's calls) and Ask
+  // draft's currentJob is this one. It may register a moment after the sheet mounts — asked again until it answers.
+  const board = useJobBoard();
+  useEffect(() => {
+    let tries = 0, timer = 0, done = false;
+    const ask = () => {
+      const open = assistantAction("boardOpenSheet");
+      if (open) { open(jobId); done = true; return; }
+      if (++tries < 20) timer = setTimeout(ask, 250);
+    };
+    ask();
+    return () => { clearTimeout(timer); if (done) assistantAction("boardCloseSheet")?.(jobId); };
+  }, [jobId]);
+  const onBoard = board?.selectedJob && String(board.selectedJob.jobId ?? board.selectedJob.id) === String(jobId) ? board.selectedJob : null;
+  const meta = onBoard ? board.selectedJobMeta || null : null;
+  // Y2B (moved from the posting): a source that sends no description in its list (SmartRecruiters, Workday) is fetched once,
+  // now, because somebody opened it — three states said plainly: loading, could not (with Retry), the source never says.
+  const [desc, setDesc] = useState({ text: null, state: null, message: null });
+  const [descTry, setDescTry] = useState(0);
+  const hasDesc = !!(job?.description && String(job.description).trim());
+  useEffect(() => {
+    setDesc({ text: null, state: null, message: null });
+    if (!job || hasDesc) return undefined;
+    let live = true;
+    setDesc({ text: null, state: "loading", message: null });
+    api(`/api/jobs/by-id/${encodeURIComponent(jobId)}/description`, { method: "POST" })
+      .then((d) => { if (!live) return; if (d?.success && d.description) setDesc({ text: d.description, state: null, message: null });
+        else setDesc({ text: null, state: d?.reason === "no_fetcher" ? "unavailable" : "failed", message: d?.message || null }); })
+      .catch((e) => { if (live) setDesc({ text: null, state: "failed", message: e?.message || null }); });
+    return () => { live = false; };
+  }, [jobId, !!job, hasDesc, descTry]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     let live = true;
     setJob(null); setErr(null); setCompany(null); setFit(null);
@@ -305,12 +358,20 @@ export default function OpeningSheet({ jobId }) {
     api(`/api/public/companies/${encodeURIComponent(slug)}?job=${encodeURIComponent(jobId)}`).then((d) => { if (live) setCompany(d || null); }).catch(() => {});
     return () => { live = false; };
   }, [job?.company, jobId]);
+  const decideRef = useRef(null);
   useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape" && !picking) { e.preventDefault(); back(); } };
+    const onKey = (e) => {
+      if (e.key === "Escape" && !picking) { e.preventDefault(); back(); return; }
+      // A105 finding 11 (moved from the posting): S save, D draft, P pass — never while typing, never with a modifier.
+      const typing = e.target?.closest?.("input, textarea, select, [contenteditable=''], [contenteditable='true']");
+      if (typing || e.ctrlKey || e.metaKey || e.altKey || picking) return;
+      const d = { s: "saved", d: "drafted", p: "passed" }[String(e.key).toLowerCase()];
+      if (d && decideRef.current) { e.preventDefault(); decideRef.current(d); }
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [back, picking]);
-  const opening = useMemo(() => (job ? openingFromJob(job) : null), [job]);
+  const opening = useMemo(() => (job ? openingFromJob(desc.text ? { ...job, description: desc.text } : job) : null), [job, desc.text]);
   // ⭐ 47m: the deck's MATCH opens the sheet at section 02 (/app/jobs/<id>#fit, DeckView matchSheetHref) — once the
   // sheet is drawn, its overlay scrolls How you fit to the top (the browser can't: the overlay, not the window, scrolls).
   const { hash } = useLocation();
@@ -330,6 +391,7 @@ export default function OpeningSheet({ jobId }) {
     try { await fn(job, decision); back(); }
     catch (e) { setSaid(e?.message || "That didn’t go through."); }
   }, [job, back]);
+  decideRef.current = job ? decide : null;
   const send = useCallback(async () => {
     if (!job) return;
     if (networkOn) { setPicking(job); return; }
@@ -345,7 +407,18 @@ export default function OpeningSheet({ jobId }) {
       {err ? <PlateRoot className="pl-op"><div className="pl-op__top"><p className="pl-op__quiet">{err === "missing" ? "This opening isn’t on the board any more." : "The opening didn’t load."}</p>
         <a className="pl-op__back" href="/app/jobs" onClick={(e) => { e.preventDefault(); back(); }}>← Back to the market</a></div></PlateRoot>
         : !opening ? <PlateRoot className="pl-op"><div className="pl-op__top" role="status"><p className="pl-op__quiet">Opening the sheet…</p></div></PlateRoot>
-        : <OpeningSheetView data={opening} company={company} fit={fit} onDecide={decide} onSend={send} onBack={back}/>}
+        : <OpeningSheetView data={opening} company={company} fit={fit} onDecide={decide} onSend={send} onBack={back}
+            descNote={desc.state === "loading" ? <p className="pl-op__quiet" role="status">Loading the description from the source…</p>
+              : desc.state === "failed" ? <p className="pl-op__quiet">{desc.message || "Could not load the description from the source just now."}{" "}
+                  <button type="button" className="pl-q-link" onClick={() => setDescTry((n) => n + 1)}>Retry</button></p>
+              : desc.state === "unavailable" ? <p className="pl-op__quiet">{desc.message || "This source does not publish a description for this posting."}</p> : null}
+            extras={<>
+              <WarmPathsBlock jobId={job.id ?? job.jobId}/>
+              <WorksHere company={job.company} job={{ id: job.id ?? job.jobId }}/>
+              <ApplicationQuestions jobId={job.id ?? job.jobId} company={job.company}/>
+              {job.applicantCount != null ? <p className="pl-op__quiet" data-applicant-count="">{job.applicantCount > 200 ? "200+" : job.applicantCount} applicants</p> : null}
+            </>}
+            application={<SheetResume job={onBoard || null} meta={meta}/>}/>}
       {said ? <p className="pl-op__said" role="status">{said}</p> : null}
       {picking ? <SendJobPicker job={picking} onClose={() => setPicking(null)}/> : null}
     </div>

@@ -858,6 +858,26 @@ button.pl-dock__item[aria-expanded="true"] { background: var(--pl-card); border:
 .pl-op__barname b { font-size: var(--pl-t-ui-lg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pl-op__barin .pl-tbtn__gap { display: none; }
 .pl-op__said { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 61; margin: 0; padding: 8px 14px; border: var(--pl-border); border-radius: var(--pl-r-btn); background: var(--pl-ink); color: var(--pl-on-ink); font-size: var(--pl-t-13); }
+/* ⭐ 47m · the sheet's 06, YOUR APPLICATION (plate/SheetResume.jsx): the résumé for this job + SandboxPanel's live view, History,
+   More — the posting's old controls, each in a plate card; the read-only preview is one framed page (the PDF keeps A4). */
+.pl-opr { margin-top: 20px; display: flex; flex-direction: column; gap: 20px; max-width: 820px; }
+.pl-opr__card { margin-top: 0; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.pl-opr__head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline; }
+.pl-opr__state { font-weight: 700; font-size: var(--pl-t-ui-lg); }
+.pl-opr__state[data-resume-state="ready"] { color: var(--pl-lit); }
+.pl-opr__state[data-resume-state="failed"] { color: var(--pl-clay-text); }
+.pl-opr__acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pl-opr__src { display: flex; flex-direction: column; gap: 6px; max-width: 420px; }
+.pl-opr__live { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: var(--pl-border-rule); }
+.pl-opr__kb { display: flex; flex-direction: column; gap: 8px; }
+.pl-opr__kbrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: var(--pl-t-small); }
+.pl-opr__kbrow > .pl-label[data-kind="flag"] { color: var(--pl-clay-text); }
+.pl-opr__kbtext { flex: 1 1 260px; min-width: 0; }
+.pl-opr__frame { width: 100%; height: min(70vh, 900px); border: var(--pl-border); border-radius: var(--pl-r-card); background: var(--pl-card); box-sizing: border-box; }
+.pl-opr__form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pl-opr__form > .pl-q-input { flex: 1 1 280px; }
+.pl-opr__submitted { display: flex; flex-direction: column; gap: 6px; }
+.pl-op__extras { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; max-width: 820px; }
 /* ── end D199 C7 ── */
 /* ── ⭐ D199 / D200 (47h) · THE MARKET, REBUILT — the `Market` board: the one-line header beside the political map, ONE
    section (the bearing cartouche with the search + sort, the filter chips, the active chips, the stats box) → Deck · Terrain
