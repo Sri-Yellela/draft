@@ -50,6 +50,17 @@ export const LAYOUT_OPTIONS = Object.freeze([
       { id: "largest", label: "Largest", ...def("text", "largest"), description: "A quarter larger." },
     ],
   },
+  {
+    // ⭐ D197 #17 (47m, the approved DarkPlate board) · styled in styles/plate.css under [data-plate-face="…"].
+    id: "plate", label: "Plate pages", attribute: LAYOUT_OPTION_IDS.plate.attribute,
+    description: "The map-paper pages — the market, Atlas, Home, Your passport. Paper follows your theme; Night is the plate's own dark version.",
+    values: [
+      { id: "paper", label: "Paper", ...def("plate", "paper"),
+        description: "Warm paper and ink, in your theme's colours." },
+      { id: "night", label: "Night", ...def("plate", "night"),
+        description: "A warm near-black ground, paper-coloured lines, the clay lifted to stay the brightest thing on screen." },
+    ],
+  },
 ].map((o) => Object.freeze({ ...o, values: Object.freeze(o.values.map((v) => Object.freeze(v))) })));
 
 /** The default value of each option, from the registry. */

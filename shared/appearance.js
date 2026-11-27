@@ -34,6 +34,9 @@ export const LAYOUT_OPTION_IDS = Object.freeze({
   // gets the dock (parseLayoutFlags), as `nav` was retired in D145.
   // ⭐ D145 · text size — the whole type scale × 0.9 · 1 · 1.12 · 1.25 (client/src/themes/shapes.js TEXT_SCALE).
   text: Object.freeze({ attribute: "data-text-size", values: Object.freeze(["smaller", "default", "larger", "largest"]), default: "default" }),
+  // ⭐ D197 #17 (47m) · the plate pages at night — the approved DarkPlate board (client/src/styles/plate.css, its block
+  // under [data-plate-face="night"]): Paper (today's plate, coloured by the theme) or Night (the plate's own dark tokens).
+  plate: Object.freeze({ attribute: "data-plate-face", values: Object.freeze(["paper", "night"]), default: "paper" }),
 });
 export const LAYOUT_KEYS = Object.freeze(Object.keys(LAYOUT_OPTION_IDS));
 /** Every option at its default — what a new account, and every account stored before D93, reads. */

@@ -340,3 +340,48 @@
 
 /* Plain (D181): no tints — region grounds become paper, ink and paper only. */
 .plate[data-plain] { --pl-region-tint: var(--pl-paper-warm); --pl-region-ring: var(--pl-rule); --pl-clay-tint: var(--pl-paper-warm); }
+
+/* ⭐ D197 #17 (47m, lane person) · THE PLATE AT NIGHT — the approved board DarkPlate (docs/sketches/final/project/
+   DarkPlate.dc.html, its token table): ground #161412, card #262220, ink → #EFE8E0 (every 1.5 px line stays, in the paper
+   colour), the hard shadow gains a 1.5 px rule-coloured edge (black on black disappears), clay #E27A57 with ink text, lit
+   green #7DB39A, region marks at their ramp's step 4, and every ramp runs deep → mid (terrain still reads darker = higher).
+   Chosen in Appearance (Customise → "Plate pages": Paper · Night) — a layout option, so it is the attribute
+   data-plate-face on <html> (themes/index.js applyLayout, before first paint too) and applies live, no reload.
+   Paper is today's plate (the theme mapping above). Plate drawings take every colour from these tokens, so they turn too.
+   ⚠ The political map's own palette (--pl-map-*) stays paper on purpose, as in every theme (D199 C5 defect (c)). */
+[data-plate-face="paper"] { --pl-face: paper; }
+[data-plate-face="night"] { --pl-face: night; }
+:root[data-plate-face="night"] .plate, :root [data-plate-face="night"] .plate, :root .plate[data-plate-face="night"] {
+  color-scheme: dark;
+  --pl-paper: #161412; --pl-paper-deep: #1B1816; --pl-paper-warm: #1F1C19; --pl-paper-hover: #2B2724; --pl-tab-off: #24201D;
+  --pl-card: #262220; --pl-card-veil: color-mix(in srgb, #262220 85%, transparent);
+  --pl-ink: #EFE8E0; --pl-ink-soft: #CFC6BC; --pl-muted: #A39A90; --pl-muted-2: #8F867D; --pl-rule: #3A3430; --pl-rule-2: #3A3430;
+  --pl-clay: #E27A57; --pl-clay-hover: #EC8E6E; --pl-clay-text: #F0A487; --pl-clay-tint: #3A2219;
+  --pl-lit: #7DB39A; --pl-on-ink: #161412; --pl-on-clay: #1B1B1B;
+  --pl-shade: #000000;
+  --pl-s1: 2px 2px 0 #000000, 2px 2px 0 1.5px #3A3430; --pl-s3: 3px 3px 0 #000000, 3px 3px 0 1.5px #3A3430;
+  --pl-s4: 4px 4px 0 #000000, 4px 4px 0 1.5px #3A3430; --pl-s5: 5px 5px 0 #000000, 5px 5px 0 1.5px #3A3430;
+  --pl-s6: 6px 6px 0 #000000, 6px 6px 0 1.5px #3A3430; --pl-s8: 8px 8px 0 #000000, 8px 8px 0 1.5px #3A3430;
+  --pl-s10: 10px 10px 0 #000000, 10px 10px 0 1.5px #3A3430;
+  --pl-s-hover: 7px 7px 0 #000000, 7px 7px 0 1.5px #3A3430;
+  --pl-r1: #DF9C88; --pl-r1-tint: color-mix(in srgb, #70311F 42%, #161412); --pl-r1-ring: color-mix(in srgb, #70311F 58%, #161412);
+  --pl-r2: #A5A7EB; --pl-r2-tint: color-mix(in srgb, #372D82 42%, #161412); --pl-r2-ring: color-mix(in srgb, #372D82 58%, #161412);
+  --pl-r3: #D99C78; --pl-r3-tint: color-mix(in srgb, #6B3119 42%, #161412); --pl-r3-ring: color-mix(in srgb, #6B3119 58%, #161412);
+  --pl-r4: #9FB3CE; --pl-r4-tint: color-mix(in srgb, #16294A 42%, #161412); --pl-r4-ring: color-mix(in srgb, #16294A 58%, #161412);
+  --pl-r5: #C0A3C6; --pl-r5-tint: color-mix(in srgb, #502D57 42%, #161412); --pl-r5-ring: color-mix(in srgb, #502D57 58%, #161412);
+  --pl-r6: #93B5BF; --pl-r6-tint: color-mix(in srgb, #20515D 42%, #161412); --pl-r6-ring: color-mix(in srgb, #20515D 58%, #161412);
+  --pl-r7: #C0AB8E; --pl-r7-tint: color-mix(in srgb, #5D431C 42%, #161412); --pl-r7-ring: color-mix(in srgb, #5D431C 58%, #161412);
+  --pl-r8: #AEB293; --pl-r8-tint: color-mix(in srgb, #434720 42%, #161412); --pl-r8-ring: color-mix(in srgb, #434720 58%, #161412);
+  --pl-i-0: #522619; --pl-i-1: #70311F; --pl-i-2: #70311F; --pl-i-3: #954128; --pl-i-4: #954128; --pl-i-5: #C2593A; --pl-i-6: #C2593A; --pl-i-7: #CB7C65; --pl-i-8: #CB7C65; --pl-i-9: #DF9C88;
+  --pl-ii-0: #282160; --pl-ii-1: #372D82; --pl-ii-2: #372D82; --pl-ii-3: #4B3FA8; --pl-ii-4: #4B3FA8; --pl-ii-5: #6B66C9; --pl-ii-6: #6B66C9; --pl-ii-7: #8A8ADB; --pl-ii-8: #8A8ADB; --pl-ii-9: #A5A7EB;
+  --pl-iii-0: #4A2211; --pl-iii-1: #6B3119; --pl-iii-2: #6B3119; --pl-iii-3: #8F4122; --pl-iii-4: #8F4122; --pl-iii-5: #B4532A; --pl-iii-6: #B4532A; --pl-iii-7: #C97F55; --pl-iii-8: #C97F55; --pl-iii-9: #D99C78;
+  --pl-iv-0: #0F1E36; --pl-iv-1: #16294A; --pl-iv-2: #16294A; --pl-iv-3: #1F3A63; --pl-iv-4: #1F3A63; --pl-iv-5: #5D79A3; --pl-iv-6: #5D79A3; --pl-iv-7: #7F96B6; --pl-iv-8: #7F96B6; --pl-iv-9: #9FB3CE;
+  --pl-v-0: #3B2140; --pl-v-1: #502D57; --pl-v-2: #502D57; --pl-v-3: #6A3E73; --pl-v-4: #6A3E73; --pl-v-5: #8E6396; --pl-v-6: #8E6396; --pl-v-7: #A986B0; --pl-v-8: #A986B0; --pl-v-9: #C0A3C6;
+  --pl-vi-0: #183C45; --pl-vi-1: #20515D; --pl-vi-2: #20515D; --pl-vi-3: #2F6B7A; --pl-vi-4: #2F6B7A; --pl-vi-5: #497F8D; --pl-vi-6: #497F8D; --pl-vi-7: #729CA7; --pl-vi-8: #729CA7; --pl-vi-9: #93B5BF;
+  --pl-vii-0: #453115; --pl-vii-1: #5D431C; --pl-vii-2: #5D431C; --pl-vii-3: #7A5A2A; --pl-vii-4: #7A5A2A; --pl-vii-5: #8E7045; --pl-vii-6: #8E7045; --pl-vii-7: #A9906D; --pl-vii-8: #A9906D; --pl-vii-9: #C0AB8E;
+  --pl-viii-0: #313417; --pl-viii-1: #434720; --pl-viii-2: #434720; --pl-viii-3: #5A5F2E; --pl-viii-4: #5A5F2E; --pl-viii-5: #757A4D; --pl-viii-6: #757A4D; --pl-viii-7: #939873; --pl-viii-8: #939873; --pl-viii-9: #AEB293;
+  --pl-at-start-tint: color-mix(in srgb, #7DB39A 18%, #161412); --pl-at-master-tint: color-mix(in srgb, #C0A3C6 18%, #161412);
+  --pl-at-card-paper: #2A2522; --pl-at-card-line: #3A3430; --pl-at-stamp-ground: color-mix(in srgb, #2A2522 85%, transparent);
+  --pl-r4-plate: #1F2A3A; --pl-contour-1: #3A3430; --pl-contour-2: #332E2A; --pl-road: #4A433D;
+  --pl-lit-deep: #9FD3BE; --pl-lit-soft: #2F5446;
+}
