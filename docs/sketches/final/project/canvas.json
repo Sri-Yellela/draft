@@ -154,6 +154,92 @@
       "w": 1280,
       "x": 4080,
       "y": 4200
+    },
+    "GazetteerIndex.dc.html": {
+      "expand": "fill",
+      "h": 3000,
+      "is_interactive": true,
+      "page": "final",
+      "title": "Gazetteer · the index: search, A–Z, Due, browse by region / role / stage / interview (D201 b) · NEW 47l, awaiting the owner’s look",
+      "w": 1280,
+      "x": 0,
+      "y": 12800
+    },
+    "Route.dc.html": {
+      "expand": "fill",
+      "h": 3200,
+      "is_interactive": true,
+      "page": "final",
+      "title": "A full route over entries · Coding interview patterns + a project route (D201 c, D203) · NEW 47l, awaiting the owner’s look",
+      "w": 1280,
+      "x": 1360,
+      "y": 12800
+    },
+    "AskRoute.dc.html": {
+      "expand": "fill",
+      "h": 2000,
+      "is_interactive": true,
+      "page": "final",
+      "title": "Ask draft · an answer drawn as a route (D197 #12, U1) · NEW 47l, awaiting the owner’s look",
+      "w": 1280,
+      "x": 2720,
+      "y": 12800
+    },
+    "Passport.dc.html": {
+      "expand": "fill",
+      "h": 2700,
+      "is_interactive": true,
+      "page": "final",
+      "title": "Profile as Your passport · Region V’s ramp on a page, the passport drawing, Notifications (D197 #9 / #17) · NEW 47l, awaiting the owner’s look",
+      "w": 1280,
+      "x": 4080,
+      "y": 12800
+    },
+    "ProvingGround.dc.html": {
+      "expand": "fill",
+      "h": 2700,
+      "is_interactive": true,
+      "page": "final",
+      "title": "Interview as the Proving ground · Region VI’s ramp on a page, the hill of rounds, Defend, Debrief (D197 #13) · NEW 47l, awaiting the owner’s look",
+      "w": 1280,
+      "x": 5440,
+      "y": 12800
+    },
+    "DarkPlate.dc.html": {
+      "expand": "fill",
+      "h": 2500,
+      "page": "final",
+      "title": "The plate at night · the dark variant, paper vs night side by side + the tokens (D197 #17) · NEW 47l, awaiting the owner’s look",
+      "w": 1280,
+      "x": 6800,
+      "y": 12800
+    },
+    "DrawingsAtlas.dc.html": {
+      "expand": "fill",
+      "h": 1500,
+      "page": "final",
+      "title": "Drawings I · the day’s leg, the cairn, today’s square, the tier stamp, field book, specimen drawer, schoolhouse, the counter · NEW 47l",
+      "w": 1280,
+      "x": 8160,
+      "y": 12800
+    },
+    "DrawingsJobs.dc.html": {
+      "expand": "fill",
+      "h": 1500,
+      "page": "final",
+      "title": "Drawings II · bearings compass, clipboard form, post rack, dispatch rider, sealed letter, gazetteer of camps, notice board · NEW 47l",
+      "w": 1280,
+      "x": 9520,
+      "y": 12800
+    },
+    "DrawingsPublic.dc.html": {
+      "expand": "fill",
+      "h": 1750,
+      "page": "final",
+      "title": "Drawings III · roadmap route, gazetteer page, survey chart, edge of the map, sign-in backdrop, desk tile, title page, email plates · NEW 47l",
+      "w": 1280,
+      "x": 10880,
+      "y": 12800
     }
   },
   "createdOnFiles": {
@@ -168,7 +254,8 @@
     "tA",
     "tB",
     "tC",
-    "sF"
+    "sF",
+    "tD"
   ],
   "notes": {
     "sF": {
@@ -205,6 +292,15 @@
       "w": 240,
       "x": 0,
       "y": 9600
+    },
+    "tD": {
+      "kind": "title1",
+      "maxW": 8000,
+      "page": "final",
+      "text": "4 · New sketches (47l) — awaiting the owner’s look",
+      "w": 240,
+      "x": 0,
+      "y": 12500
     }
   },
   "order": [
@@ -223,6 +319,15 @@
     "Maps.dc.html",
     "Explainer.dc.html",
     "Storyboard.dc.html",
+    "GazetteerIndex.dc.html",
+    "Route.dc.html",
+    "AskRoute.dc.html",
+    "Passport.dc.html",
+    "ProvingGround.dc.html",
+    "DarkPlate.dc.html",
+    "DrawingsAtlas.dc.html",
+    "DrawingsJobs.dc.html",
+    "DrawingsPublic.dc.html",
     "Lesson.dc.html",
     "Shelves.dc.html"
   ],
