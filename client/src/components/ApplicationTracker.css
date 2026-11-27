@@ -1,5 +1,9 @@
-/* ⭐ D146 · the one application tracker's table (components/ApplicationTracker.jsx). Tokens only (var(--c-*)); type
-   follows the user's text size (--type-scale, D145); corners from D144's shape tokens with today's values as fallback. */
+/* ⭐ D146 · what is left of the one application tracker (components/ApplicationTracker.jsx): the opened row (RowOpen,
+   the ledger opens a row in place with it), the status dot (StatusDot) and the filter buttons the Inbox wears. Tokens only
+   (var(--c-*)); type follows the user's text size (--type-scale, D145).
+   ⛔ 47k (the R3 sweep): the classic table's rules (.trk, .trk-table, .trk-sort, .trk-row, .trk-pos, .trk-open, the
+   A201 container query that stacked its rows) and TrackerFilters' (.trk-find, .trk-search, .trk-period, .trk-chip__n) are
+   DELETED with the table — the ledger's register (plate/Lists.jsx) draws the rows now. */
 
 /* ⭐ D149 (11-03) · tracker-options.html's values, verbatim: --bg #1B1B1B → --c-canvas · --card #262626 →
    --c-surface-solid · --raise #2F2F2F → --c-fh-well (#2E2E2E) · --line #363636 → --c-border (#343434) · --ink →
@@ -12,59 +16,20 @@
 
 /* the sketch's .flt — quiet buttons on the card colour; the pressed one raised */
 .trk-filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 14px; }
-.trk-find { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: -6px 0 14px; }
-.trk-chip, .trk-period {
+.trk-chip {
   border: 0; border-radius: 11px; padding: 7px 13px; background: var(--c-surface-solid); font: inherit; line-height: 1.55;
   font-size: calc(13.5px * var(--type-scale, 1)); font-weight: 600; color: var(--c-ink-muted); cursor: pointer;
 }
 .trk-chip[aria-pressed="true"] { background: var(--c-fh-well); color: var(--c-ink); }
-.trk-chip__n { margin-left: 5px; color: var(--c-ink-faint); font-weight: 500; }
-.trk-chip:focus-visible, .trk-sort:focus-visible, .trk-row:focus-visible, .trk-period:focus-visible, .trk-od:focus-visible, .trk-btn:focus-visible {
+.trk-chip:focus-visible, .trk-od:focus-visible, .trk-btn:focus-visible {
   outline: 2px solid var(--c-accent); outline-offset: 3px;
 }
-/* the search (the shared PanelSearch) and the period: not in the sketch, kept as quietly as a filter button */
-.trk-search { display: flex; flex: 0 1 260px; min-width: 0; }
-.trk-search > div { flex: 1 1 auto !important; min-width: 0; }
-.trk-search .rm-input { height: auto; padding-top: 7px; padding-bottom: 7px; border: 0; border-radius: 11px !important; background: var(--c-surface-solid);
-  font-size: calc(13.5px * var(--type-scale, 1)); color: var(--c-ink); box-shadow: none; }
-
-/* the sketch's .tbl — one card, no border, radius 22; .th / .tr: padding 14 × 18, the columns 2.2fr 1fr 1fr 1.2fr 1fr
-   with 12 px between (a table: each column its share of the width, half the gap on each side of a cell) */
-.trk { min-width: 0; border-radius: 22px; background: var(--c-surface-solid); overflow: hidden; line-height: 1.55; container-type: inline-size; container-name: trk; }
-/* ⭐ 46q (audit): the empty line sits inside the card's padding, not on its left edge. */
-.trk > .dht-empty { padding: 14px 18px 18px; }
-.trk-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.trk-table th { text-align: left; padding: 0; border-bottom: 1px solid var(--c-border); font-weight: 400; }
-.trk-table [data-col] { padding-left: 6px; padding-right: 6px; }
-.trk-table [data-col="position"] { padding-left: 18px; }
-.trk-table [data-col="when"] { padding-right: 18px; text-align: right; }
-.trk-table th[data-col="position"] { width: 33.8%; }
-.trk-table th[data-col="resume"], .trk-table th[data-col="answers"] { width: 15.5%; }
-.trk-table th[data-col="status"] { width: 18.4%; }
-.trk-sort {
-  width: 100%; text-align: inherit; padding: 14px 0; border: 0; background: transparent; font: inherit; cursor: pointer;
-  font-size: calc(12px * var(--type-scale, 1)); letter-spacing: .06em; text-transform: uppercase; color: var(--c-ink-faint);
-}
-.trk-row { cursor: pointer; border-top: 1px solid var(--c-border); }
-.trk-row:first-child { border-top: 0; }
-.trk-row:hover, .trk-row[data-open="true"] { background: var(--c-surface-tint); }
-/* 14 above, 26 below: the sketch's .tr is a grid whose folded .det still takes a 12 px row gap under the content */
-.trk-row td { padding-top: 14px; padding-bottom: 26px; vertical-align: middle; font-size: calc(14px * var(--type-scale, 1)); color: var(--c-ink-muted); }
-.trk-row td[data-col="resume"] { color: var(--c-ink); }
-.trk-row td[data-col="when"] { font-size: calc(13.5px * var(--type-scale, 1)); color: var(--c-ink-faint); }
-.trk-pos { display: flex; gap: 12px; align-items: center; min-width: 0; }
-.trk-pos__t { display: flex; flex-direction: column; min-width: 0; }
-.trk-pos__t b { color: var(--c-ink); font-size: calc(15px * var(--type-scale, 1)); font-weight: 600; }
-.trk-pos__t span { font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* the sketch's .dot — a 7 px circle in the stage's colour, 8 px before the word; "Needs you" in the accent */
 .trk-status { display: inline-flex; gap: 8px; align-items: center; color: var(--c-ink); font-size: calc(14px * var(--type-scale, 1)); }
 .trk-status[data-status-ring="need"] { color: var(--c-accent-ink); }
 .trk-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--trk-dot, var(--c-ink-faint)); flex-shrink: 0; }
-/* "Not selected" is the sketch's grey dot (--muted), not the replied violet */
-.trk-row[data-stage="rejected"] .trk-dot { background: var(--c-ink-faint); }
 
-/* the opened row: the sketch's .det inside the row (.tr.open is #2A2A2A) — .in 18 × 4 × 6 inside the row's 14 × 18 */
-.trk-open > td { padding: 0; background: var(--c-surface-tint); }
+/* the opened row: the sketch's .det (.in 18 × 4 × 6) */
 .trk-o { padding: 4px 22px 20px; }
 .trk-o__eyebrow { margin: 0 0 8px; color: var(--c-accent-ink); font-size: calc(14px * var(--type-scale, 1)); }
 .trk-o__headline {
@@ -126,19 +91,3 @@
 .trk-btn[data-kind="danger"] { color: var(--c-danger); }
 .trk-btn:disabled { opacity: .55; cursor: wait; }
 @media (prefers-reduced-motion: reduce) { .trk-o__pane { animation: none; } }
-
-/* phones (the sketch's 760 px): no header row; each row the sketch's `1fr auto` grid — the position and the status,
-   the when under the position (right-aligned), 6 px between; the opened row below. */
-/* ⭐ A201 (46k, owner 11-13: "the content of the home panel rows are garbled when shrunken"): the stacked rows follow the
-   TABLE's own width (a container query on .trk), not the window's — with Ask draft open the table is ~390 px narrower than
-   the window, and a 768-1024 px window kept five columns in it (titles over the status, 54 px cells). */
-@container trk (max-width: 700px) {
-  .trk-table thead { display: none; }
-  .trk-table, .trk-table tbody, .trk-open, .trk-open > td { display: block; }
-  .trk-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; row-gap: 6px; padding: 14px 18px 20px; }
-  .trk-row td { display: block; padding: 0 !important; }
-  .trk-table [data-col="resume"], .trk-table [data-col="answers"] { display: none; }
-  .trk-row td[data-col="when"] { grid-column: 1; text-align: right; }
-  .trk-o { padding: 4px 22px 20px; }
-}
-@media (max-width: 760px) { .trk-search { flex: 1 1 auto; } }
