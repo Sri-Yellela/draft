@@ -8448,20 +8448,36 @@ const JOB_TAG_SLICE_ROWS = 500;
 const JOB_TAG_SLICE_TAGS = 50;
 const JOB_TAG_SLICE_LEVELS = 15;
 const JOB_TAG_RANGE_REPEATS = 60;
+// ⭐ 47l (WARMUP_DEFER_TAGS=1, the boot walk only) · production 47k (93c7871): the deferred first slice held the thread
+// 2,574 ms right after ready on a cold volume (30 ms warm) — inside Railway's switch-over, so the first requests waited
+// on it. The boot walk now starts BOOT_TAG_DELAY_MS after ready (past the switch) and its first ranges ramp 100 → 200 →
+// 400 rows before the usual JOB_TAG_SLICE_ROWS, so no early slice reads a cold 500-row range in one go. Flag off and the
+// interval walk: unchanged.
+const BOOT_TAG_DELAY_MS = 4000;
+const BOOT_TAG_RAMP = [100, 200, 400];
 let jobTagWalk = null;
 function runJobTagPassSliced(trigger) {
   if (jobTagWalk) return;
-  jobTagWalk = { trigger, from: 0, first: true, repeats: 0 };
+  jobTagWalk = { trigger, from: 0, first: true, repeats: 0, slices: 0 };
+  if (WARMUP_DEFER_TAGS_ON && trigger === "boot") {
+    setTimeout(() => {
+      console.log(`[boot] job tags boot walk starts at ${Math.round(process.uptime() * 1000)} ms (${BOOT_TAG_DELAY_MS} ms after its step)`);
+      runJobTagWalkSlice();
+    }, BOOT_TAG_DELAY_MS).unref();
+    return;
+  }
   runJobTagWalkSlice();
 }
 function runJobTagWalkSlice() {
   const w = jobTagWalk;
   let next = null;
   try {
-    const range = nextRowidRange(db, w.from, JOB_TAG_SLICE_ROWS);
     // ⭐ 47k (WARMUP_DEFER_TAGS=1, the boot walk only): every slice carries the description pass over ITS range (≤ 50
     // rows), so no slice holds a whole-board stale scan; flag off / the interval walk: the first slice's scan, as before.
     const ranged = WARMUP_DEFER_TAGS_ON && w.trigger === "boot";
+    const range = ranged && w.slices < BOOT_TAG_RAMP.length ? nextRowidRange(db, w.from, BOOT_TAG_RAMP[w.slices])   // 47l: the ramp
+      : nextRowidRange(db, w.from, JOB_TAG_SLICE_ROWS);
+    w.slices += 1;
     const r = ranged ? runJobTagPass(w.trigger, { descriptions: true, descriptionRange: range, range })
       : runJobTagPass(w.trigger, { descriptions: w.first, range });
     const again = r.full && w.repeats < JOB_TAG_RANGE_REPEATS;
