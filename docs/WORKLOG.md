@@ -292,7 +292,7 @@ Each is the agent's recommendation from the end of 47i, now the owner's decision
 **STATE AT THE END OF 47j (re-measure before quoting):**
 - **draft pushed `7b319198..cfd506b5`** on the owner's "push" (11-27 ~00:37Z). **Production measured:** `/api/version` commit `cfd506b`, started 00:38:14Z, 279 migrations to **281** (none added in 47j; the next free is **282**); `/`, `/app`, `/jobs`, `/atlas`, `/dev/plate` 200 (0.10–0.12 s; the gallery 1.1 s). resume-master untouched in 47j.
 - **The suite: 6,774 tests, 0 red on the final tree** (`fda330dd`): fast 6,491 — 6,490 / 0 + 1 skip; browser 283 — 41 · 47 · 41 · 75 · 55 · 24 (details: the A252 lines in the 47j block below; CLAUDE.md has the count).
-- **Worktrees:** none (the seven 47j lanes removed, junctions unlinked first, 0 reparse points left). The lane branches `l47j-*` still exist locally (all merged) — delete them when convenient (`git branch -d`).
+- **Worktrees:** none (the seven 47j lanes removed, junctions unlinked first, 0 reparse points left). The lane branches `l47j-*` are deleted too (all seven were merged; `git branch -d`).
 - ⚠ The working tree has modified `docs/fidelity-shots/*.png` — the probe refills' screenshots, not committed on purpose (as in earlier sessions).
 
 **WHAT 47j DID** (the 47j block below): A248 / A249 / A251 · the R2 browser tier · the zero-downtime baseline · **A252: the redesign probe of every surface, reconciled, then SEVEN parallel lanes** — R3 (the classic Home + company page + `?plate=0` deleted), the shell's leftovers (Plans → Profile → Account), the market's last classic pieces (toast, end of deck, shortcut list, filters drawer), and **D197 Wave 2 M1–M3 for every page** (inventories + briefs in `docs/revamp/*.md`, mocks at `/dev/plate?page=<id>`).
