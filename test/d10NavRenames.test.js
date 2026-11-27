@@ -30,7 +30,7 @@ test("D10: no Job Profiles TAB — but the page keeps its route and its ways in"
   assert.doesNotMatch(tabsBlock(), /id: "job-profiles"/, "Job Profiles is back in the top bar");
   // The route: a route-only panel is in NAVIGABLE_TABS, so /app/job-profiles renders, not bounces.
   assert.match(app, /const ROUTE_ONLY_TABS = \[[^\]]*"job-profiles"[^\]]*\];/);
-  assert.match(app, /activeTab === "job-profiles" && <JobProfilesPanel/);
+  assert.match(app, /activeTab === "job-profiles" && <AreaErrorBoundary area="job-profiles" \{\.\.\.areaGuard\}><JobProfilesPanel/);
   // The ways in: the Profile panel's SETTINGS group (D18; D149 moved the avatar menu into the Profile panel), Profile,
   // and the Daily Deck's set-up state.
   // ⛔ 47j w1-shell (changed on purpose): the Profile panel's Settings group left with TopBar's ProfileMenuPanel (nothing

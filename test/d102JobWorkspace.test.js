@@ -14,7 +14,7 @@ test("D102 P5 · /app/job/:id is a route of its own — not bounced to the board
     "the page is reached by the record id (The Table) or the job id (Draft House)");
   // D105 P4 (changed on purpose): /app/atlas/<slug> passes the guard too.
   assert.match(app, /if \(!jobRoute && !atlasRoute[^)]*?routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS\.has\(routeKey\)\)/);
-  assert.match(app, /\{activeTab === "job" && jobRoute && <JobWorkspacePanel \{\.\.\.\(jobByJobId \? \{ jobId: decodeURIComponent\(jobRoute\[1\]\) \} : \{ applicationId: jobRoute\[1\] \}\)\}\/>\}/);
+  assert.match(app, /\{activeTab === "job" && jobRoute && <AreaErrorBoundary area="job" \{\.\.\.areaGuard\}><JobWorkspacePanel \{\.\.\.\(jobByJobId \? \{ jobId: decodeURIComponent\(jobRoute\[1\]\) \} : \{ applicationId: jobRoute\[1\] \}\)\}\/><\/AreaErrorBoundary>\}/);
 });
 
 test("D102 P5 · the page reads the one detail route and shows the five tabs; Needs-you first; Approve is a click", () => {

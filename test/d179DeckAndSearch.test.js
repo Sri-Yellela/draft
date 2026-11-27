@@ -53,5 +53,5 @@ test("d179CompanyPickOpensPage · a company picked opens its page — in the she
   assert.match(ui, /if \(row\.kind === "company"\) \{[\s\S]*?navigate\(`\$\{pathname\.startsWith\("\/app"\) \? "\/app" : ""\}\/companies\/\$\{row\.item\.slug\}`\);/);
   const app = read("client/src/App.jsx");
   assert.match(app, /<Route path="\/companies\/:slug"/, "the public page");
-  assert.match(app, /activeTab === "company" && companyRoute && <CompanyPage slug=\{companyRoute\[1\]\} base="\/app\/companies" inApp\/>/, "inside the shell");
+  assert.match(app, /activeTab === "company" && companyRoute && <AreaErrorBoundary area="company" \{\.\.\.areaGuard\}><CompanyPage slug=\{companyRoute\[1\]\} base="\/app\/companies" inApp\/>/, "inside the shell");
 });

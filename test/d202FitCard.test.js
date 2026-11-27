@@ -232,7 +232,7 @@ test("D199 C7 · d199OpeningSheetRoute — /app/jobs/<id> is the sheet, over the
   assert.match(app, /const openingRoute = OPENING_ROUTE\.exec\(routeKey\);/);
   assert.match(app, /: openingRoute \|\| routeKey === CONSOLE_ROUTE \|\| LEGACY_CONSOLE_ROUTES\.has\(routeKey\)/);
   assert.match(app, /&& !openingRoute && routeKey !== CONSOLE_ROUTE/);
-  assert.match(app, /\{openingRoute && <OpeningSheet jobId=\{decodeURIComponent\(openingRoute\[1\]\)\}\/>\}/);
+  assert.match(app, /\{openingRoute && <AreaErrorBoundary area="opening" \{\.\.\.areaGuard\}><OpeningSheet jobId=\{decodeURIComponent\(openingRoute\[1\]\)\}\/><\/AreaErrorBoundary>\}/);
   const html = B.sheet({ data: B.BOARD_OPENING, company: B.BOARD_COMPANY, fit: B.BOARD_FIT, still: true });
   const t = text(html);
   for (const w of ["MKT", "SOFTWARE ENG. › FRONTEND", "KESTREL PAYMENTS", "FRONTEND ENGINEER II", "← Back to the market", "OPENING SHEET", "POSTED 2 H AGO", "LIVE · CHECKED TODAY",

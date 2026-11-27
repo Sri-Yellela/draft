@@ -14,7 +14,7 @@ test("a157InAppCompanyRoute: every routed place the shell draws is excused from 
   assert.ok(guard.length > 0 && guard.length < 400);
   for (const r of ["!jobRoute", "!atlasRoute", "!companyRoute", "profilePanel === undefined", "interviewPanel === undefined"])
     assert.ok(guard.includes(r), `the guard excuses ${r}`);
-  assert.match(app, /activeTab === "company" && companyRoute && <CompanyPage/);
+  assert.match(app, /activeTab === "company" && companyRoute && <AreaErrorBoundary area="company" \{\.\.\.areaGuard\}><CompanyPage/);
   assert.match(app, /\}, \[routeKey, consolePath, navigate, NAVIGABLE_TABS, atlasRoute, companyRoute,/);
 });
 

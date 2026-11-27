@@ -97,7 +97,7 @@ test("the pipeline's state sits above the tab switch, so a run keeps reporting w
   const panelAt = dash.indexOf("<AutoApplyPanel user={authUser}/>"); // ⭐ D146: the panel takes the user (The Table's exports)
   assert.ok(providerAt !== -1 && panelAt !== -1 && providerAt < panelAt,
     "AutoApplyProvider must wrap the panel, above the tab switch");
-  assert.match(app, /activeTab === "auto-apply"\s*&& <AutoApplyPanel user=\{authUser\}\/>/);
+  assert.match(app, /activeTab === "auto-apply"\s*&& <AreaErrorBoundary area="auto-apply" \{\.\.\.areaGuard\}><AutoApplyPanel user=\{authUser\}\/><\/AreaErrorBoundary>/);
 });
 
 test("the tab exists, routes, and is not bounced back to the board", () => {

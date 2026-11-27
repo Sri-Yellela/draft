@@ -29,8 +29,8 @@ test("d180OwnPages46f: Feed and Messages join the dock after Network, only while
 
 test("d180OwnPages46f: App routes /app/feed and /app/messages to their pages", () => {
   assert.match(APP, /"feed", "messages",/, "navigable");
-  assert.match(APP, /\{activeTab === "feed" && <FeedPage\/>\}/);
-  assert.match(APP, /\{activeTab === "messages" && <MessagesPage\/>\}/);
+  assert.match(APP, /\{activeTab === "feed" && <AreaErrorBoundary area="feed" \{\.\.\.areaGuard\}><FeedPage\/><\/AreaErrorBoundary>\}/);
+  assert.match(APP, /\{activeTab === "messages" && <AreaErrorBoundary area="messages" \{\.\.\.areaGuard\}><MessagesPage\/><\/AreaErrorBoundary>\}/);
 });
 
 test("d180OwnPages46f: both pages ask the switch first and say so when off — a failure reads as off", () => {

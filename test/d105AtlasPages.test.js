@@ -291,7 +291,7 @@ test("D105 P4 · the top bar gains Atlas; /atlas is public and a signed-in reade
   assert.match(app, /const atlasRoute = \/\^atlas\(\?:\\\/\(\?:family\|library\|region\)\)\?\(\?:\\\/\[\^\/\]\+\)\?\$\/\.test\(routeKey\);/);
   // ⭐ D167 (changed on purpose): Profile's and Interview's panel addresses are not bounced either.
   assert.match(app, /if \(!jobRoute && !atlasRoute && !companyRoute && profilePanel === undefined && interviewPanel === undefined[\s\S]{0,160}?routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS\.has\(routeKey\)\)/, "/app/atlas/<slug> is not bounced");
-  assert.match(app, /\{activeTab === "atlas"\s+&& <AtlasPage base="\/app\/atlas"\/>\}/);
+  assert.match(app, /\{activeTab === "atlas"\s+&& <AreaErrorBoundary area="atlas" \{\.\.\.areaGuard\}><AtlasPage base="\/app\/atlas"\/><\/AreaErrorBoundary>\}/);
   // Public: no gate around it — signed out, the page with the marketing chrome; signed in, the same page in the app.
   const route = app.slice(at(app, '<Route path="/atlas/*"'), at(app, "}/>", at(app, '<Route path="/atlas/*"')));
   assert.doesNotMatch(route, /UserRouteGate|AdminRouteGate|requireAuth/);

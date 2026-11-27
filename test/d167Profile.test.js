@@ -163,7 +163,7 @@ test("d167ProfileKeepsEverySetting · every old settings page and card has a pan
   // old route → panel; the query kept on the way (OAuth / Gmail returns)
   assert.deepEqual(LEGACY_PROFILE_ROUTES, { profile: "about", customise: "appearance", "saved-answers": "answers", integrations: "connections", account: "account" });
   assert.match(APP, /navigate\(\{ pathname: profilePath\(LEGACY_PROFILE_ROUTES\[routeKey\]\), search: location\.search \|\| "" \}, \{ replace:true \}\);/);
-  assert.match(APP, /\{activeTab === "job-profiles" && <JobProfilesPanel\/>\}/, "the full job-profile manager keeps its page, opened from Your résumés");
+  assert.match(APP, /\{activeTab === "job-profiles" && <AreaErrorBoundary area="job-profiles" \{\.\.\.areaGuard\}><JobProfilesPanel\/><\/AreaErrorBoundary>\}/, "the full job-profile manager keeps its page, opened from Your résumés");
   // Account's cards: every one is drawn by some panel
   const ACCOUNT = read("client/src/panels/AccountPanel.jsx");
   const cards = [...ACCOUNT.matchAll(/\{has\("([a-z]+)"\) &&/g)].map(m => m[1]);
@@ -210,7 +210,7 @@ test("d167InterviewPageSections · /app/interview: Coming up · Prepare · Pract
   assert.equal(interviewPanelFor("interview/debrief"), "debrief");
   assert.equal(interviewPanelFor("interview", "#tracks"), "tracks");
   assert.equal(interviewPanelFor("interview/x"), null);
-  assert.match(APP, /\{activeTab === "interview" && interviewPanel && <InterviewPage panel=\{interviewPanel\}\/>\}/);
+  assert.match(APP, /\{activeTab === "interview" && interviewPanel && <AreaErrorBoundary area="interview" \{\.\.\.areaGuard\}><InterviewPage panel=\{interviewPanel\}\/><\/AreaErrorBoundary>\}/);
   assert.match(APP, /<Route path="\/interview\/\*" element=\{<ToApp\/>\}\/>/);
   const { interview } = await loadUi();
   for (const id of INTERVIEW_PANEL_IDS) {
