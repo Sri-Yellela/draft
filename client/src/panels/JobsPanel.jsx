@@ -244,37 +244,6 @@ function buildArtifact(job, data, tool) {
 // A93: LinkedInLogo, IndeedLogo, PlatformLogo, WorkBadge and ResumeBadge were dead private copies of
 // JobCard's — removed. The board's card is JobBubble; JobCard keeps the only copies.
 
-// ── The board's text button (was the "Lucy" button: rectangle → pill on hover over 1s, Barlow
-//    capitals, a 2.5px ink box). A53: the deck's treatment — a glass pill at rest, the orange FILL
-//    with ink text on hover (text on orange is ink; colorTokens.js). Same props, same callers.
-function LucyBtn({ children, onClick, disabled, accent: accentProp,
-                    style = {}, title }) {
-  const [hov, setHov] = useState(false);
-  const live = hov && !disabled;
-  return (
-    <button className="dbx-depth dbx-depth"
-      onClick={onClick} disabled={disabled} title={title}
-      onMouseEnter={() => !disabled && setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        ...(live
-          ? { background: accentProp || C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`,
-              boxShadow: C.SHADOW_GLASS_HOVER }
-          : { ...glass({ radius: 10 }), color: C.INK }),
-        cursor: disabled ? "not-allowed" : "pointer",
-        padding: "7px 18px", fontWeight: 800, fontSize: ts(12.5), letterSpacing: "0.02em",
-        fontFamily: "inherit",
-        transition: "background-color 160ms ease, box-shadow 160ms ease",
-        whiteSpace: "nowrap", flexShrink: 0,
-        opacity: disabled ? 0.45 : 1,
-        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
-        ...style,
-      }}>
-      {children}
-    </button>
-  );
-}
-
 
 // Every one of the five option lists this file used to declare is now a reference to the shared
 // contract. They were all correct — that is exactly why they are dangerous as copies: nothing
@@ -3785,14 +3754,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   displayJobsRef.current = displayJobs;
 
   const genCount = Object.values(generated).filter(v=>v?.html && v.html !== "__exists__").length;
-  const normalisedPreview = ALIASES[searchInput.trim().toLowerCase()]
-    || (searchInput.trim() ? searchInput.trim().replace(/\b\w/g, c=>c.toUpperCase()) : "");
-  const showPreview = !searchCommitted && !!(normalisedPreview && normalisedPreview.toLowerCase() !== searchInput.trim().toLowerCase());
-  const boardTabs = [
-    ["all", "All Jobs"],
-    ["saved", "Saved ★"],
-    ["pending", "Pending"],
-  ];
 
   const isLastPage = currentPage >= totalPages;
 
@@ -3851,23 +3812,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   }, [currentPage, totalPages, totalJobs, jobs, boardLoading, pagerGoTo, setBoardPager]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => setBoardPager?.(null), [setBoardPager]);
 
-  // BUTTON STATES: first click applies local role filter, second click triggers fresh scrape.
-  // To change labels edit the buttonLabel derived value below.
-  const roleIsSet = !!roleFilter &&
-    searchInput.trim().toLowerCase() === roleFilter.trim();
-  const runSearchButton = useCallback(async (overrideQuery) => {
-    const q = (overrideQuery || searchInput).trim();
-    if (!q) return;
-    if (!roleIsSet || searchPhase === "idle") {
-      const applied = await handleSetRole(q);
-      if (applied) setSearchPhase("local");
-      return;
-    }
-    const refreshed = await handlePullRefresh();
-    if (!refreshed) setSearchPhase("idle");
-  }, [handlePullRefresh, handleSetRole, roleIsSet, searchInput, searchPhase]);
-  const buttonLabel = scraping ? "Searching…" : searchPhase === "local" && roleIsSet ? "Search New" : "Set Role";
-  const buttonIcon = scraping ? "…" : searchPhase === "local" && roleIsSet ? "↻" : "⌕";
   // ⛔ ONLY A MISSING PROFILE REPLACES THE BOARD. A MISSING RESUME NO LONGER DOES.
   //
   // This used to have a second branch: no base resume -> replace the entire board with "Upload a
@@ -4022,27 +3966,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         flexShrink:0, flexWrap:"wrap",
       }}>
 
-        {/* ── Row A ──────────────────────────────────── */}
-        {/* Board tabs — superseded by TopBar Pill 2 */}
-        {false && (
-        <div style={{ display:"flex", flexShrink:0, overflow:"hidden",
-                      border:`2px solid ${theme.borderStrong}`, borderRadius:2 }}>
-          {boardTabs.map(([id,lbl], idx) => (
-            <button key={id} onClick={() => setBoardTab(id)}
-              style={{
-                padding:"6px 16px", border:"none", cursor:"pointer",
-                fontFamily:"inherit", fontWeight:800,
-                fontSize:ts(13),
-                background: boardTab===id ? theme.accent : theme.surface,
-                color: boardTab===id ? C.ON_ACCENT : theme.text,
-                transition:"background 0.15s",
-                borderRight: idx === boardTabs.length - 1 ? "none" : `2px solid ${theme.borderStrong}`,
-              }}>
-              {lbl}
-            </button>
-          ))}
-        </div>
-        )}
+        {/* ⛔ 47k (A248 sweep): the dead `{false && …}` board-tabs strip and ATS role-search row (its LucyBtn, the
+            "Will search as" preview, Set Role / Search New) are deleted — the plate's search and tabs replaced them. */}
         {/* ── The control ROW is gone (W4). Nothing in it was deleted; every control MOVED. ──
             FILTERS, NEW IN 24H, Save Search and the saved-search chip -> the filters panel, opened
               by the filter icon (App.jsx's BoardControlIcons).
@@ -4058,39 +3983,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         {/* A74 (owner, 10-03): the "N filters active" chip and the "567 jobs" count are removed — the
             filter icon's badge already signals active filters. This row now shows only errors. */}
 
-        {/* ATS role search + trigger — superseded by UnifiedSearchBar */}
-        {false && (<>
-        <div style={{ flexBasis:"100%", height:0 }}/>
-
-        <div style={{ position:"relative", flex:1, minWidth:200 }}>
-          <input value={searchInput} onChange={e=>{ setSearchInput(e.target.value); setSearchCommitted(false); }}
-            onKeyDown={e => e.key==="Enter" && runSearchButton()}
-            placeholder="ATS search role, e.g. ML Engineer, SWE..."
-            style={{ width:"100%", height:38, paddingLeft:14, paddingRight:14,
-                     borderRadius:2, border:`1px solid ${theme.border}`,
-                     background:theme.surface, color:theme.text,
-                     fontFamily:"inherit", fontSize:ts(13), outline:"none",
-                     boxSizing:"border-box" }}/>
-          {showPreview && (
-            <div style={{ position:"absolute", top:"calc(100% + 4px)", left:0,
-              fontSize:ts(10), color:theme.textMuted, background:theme.surface,
-              border:`1px solid ${theme.border}`,
-              borderRadius:4, padding:"4px 10px", whiteSpace:"nowrap", zIndex:10 }}>
-              Will search as: <span style={{ color:theme.accentText, fontWeight:700 }}>{normalisedPreview}</span>
-            </div>
-          )}
-        </div>
-
-        <LucyBtn
-          onClick={() => runSearchButton()}
-          disabled={scraping || bgLoading}
-          title={searchPhase === "local" && roleIsSet
-            ? "Look for new jobs for this role now, for this job profile"
-            : "Apply this role to the local board first"}>
-          <span aria-hidden="true">{buttonIcon}</span>
-          <span>{buttonLabel}</span>
-        </LucyBtn>
-        </>)}
         {uploadError && (
           <div style={{ flexBasis:"100%", padding:"4px 0", fontSize:ts(11), color:C.DANGER }}>
             Error: {uploadError}
