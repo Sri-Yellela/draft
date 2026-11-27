@@ -970,7 +970,7 @@ test("d146ColumnsAndSort — Position · Résumé · Answers · Status · When; 
   // (plate/Lists.jsx) draws the rows and its Sort select orders them with the same sortRows. What each row says and how
   // sortRows orders it stay pinned below; the table is a deletion pin.
   assert.doesNotMatch(trk, /export default function ApplicationTracker|export function TrackerFilters|data-sort=/, "the classic table is back");
-  assert.doesNotMatch(trkCss, /@container trk\b|\.trk-row\b|\.trk-table\b/, "the classic table's rules are back");
+  assert.doesNotMatch(trkCss.replace(/\/\*[\s\S]*?\*\//g, ""), /@container trk\b|\.trk-row\b|\.trk-table\b/, "the classic table's rules are back");
   assert.match(panel, /const lgSorts = \[\["status:asc", "Sort · status"\], \["when:desc", "Sort · newest"\]/, "the register's Sort");
   const rows = rowsOf();
   const r = byJob(rows, "j-ready");
