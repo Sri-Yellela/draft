@@ -61,7 +61,7 @@ export const MODULES = Object.freeze({
   // canvas export; its pages are composed only from these. The gallery (/dev/plate) shows every component in every state.
   // plate/plate.css is the library's look, worn by the library's files and the gallery only; P1–P5's pages join as members.
   plate: { why: "D196's plate component library and its gallery (F3 / F4)", css: ["plate/plate.css", "plate/sheets.css" /* 47h: the ledger + the survey sheet */, "plate/atlasPlate.css" /* 47h: Atlas */, "plate/person.css" /* 47j (w2-person): the person's pieces */],
-    members: ["App.jsx", "plate/PlateRoot.jsx", "plate/PlateState.jsx", "plate/Shell.jsx", "plate/Marks.jsx", "plate/Plates.jsx", "plate/Tickets.jsx",
+    members: ["App.jsx", "plate/PlateRoot.jsx", "plate/PlateState.jsx", "plate/AreaErrorBoundary.jsx", "plate/areaFault.js" /* 47k: each area's error boundary in the shell + its pure chunk-error / reload guard */, "plate/Shell.jsx", "plate/Marks.jsx", "plate/Plates.jsx", "plate/Tickets.jsx",
       "plate/Cards.jsx", "plate/Lists.jsx", "plate/Drawings.jsx", "plate/icons.jsx", "plate/motion.js", "plate/registry.js", "plate/fonts.js",
       "plate/drawings/index.js", "plate/fixtures.jsx", "pages/dev/PlateGallery.jsx",
       "pages/dev/platePages/index.js" /* D197 Wave 2 · M3: the page mocks (`/dev/plate?page=<id>`); each mock file joins here */,

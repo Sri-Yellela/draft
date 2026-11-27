@@ -52,6 +52,7 @@ import { MarketSearchRow, MarketSortButton, MarketFilterRow, MarketStatsBox } fr
 import MarketPager from "./plate/MarketPager.jsx";   // ⭐ D199 C3: pages, not endless scroll
 import { sectorsFromRoleOptions } from "./plate/MarketMap.jsx";   // ⭐ D199 C5 / D200: the political map's sectors
 import PlateRoot from "./plate/PlateRoot.jsx";
+import AreaErrorBoundary from "./plate/AreaErrorBoundary.jsx";   // ⭐ 47k: one area failing (a render throw, a missing chunk) never blanks the shell
 import OpeningSheet, { OPENING_ROUTE } from "./plate/OpeningSheet.jsx";   // ⭐ D199 C7: /app/jobs/<id>, the opening sheet over the market
 import { LegHeader } from "./plate/Plates.jsx";
 import WordPanel                 from "./components/WordPanel.jsx";
@@ -651,6 +652,9 @@ function AppDashboard({ authUser, setAuthUser }) {
     }
   }, [activeTab, consolePath, navigate, NAVIGABLE_TABS, pathForTab]);
 
+  // ⭐ 47k: what every area's AreaErrorBoundary is given — the /app route resets a failed area; Go to Home is the area nav's Home.
+  const areaGuard = { resetKey: routeKey, onHome: () => handlePanelChange("today") };
+
   // ⛔ 47j w1-shell: handleProfileActivate (the board's refresh after the account panel's job-profile switcher) left with
   // the panel — the switcher lives on Profile → Your profile and /app/job-profiles.
   useInactivityLogout(handleLogout, true);
@@ -809,24 +813,27 @@ function AppDashboard({ authUser, setAuthUser }) {
             {/* ⭐ D196 P1: the deck and the board under the market's binder tabs. FIX-1 (owner 11-24): ONE plate root under
                 the whole page — paper (in the person's theme's palette), full height. ⛔ 47j R2: the classic grid
                 (`.home`) is deleted — the market is the plate market only (`?plate=0` no longer reaches it). */}
-            {home && <PlateRoot className="pl-marketpage" data-plate-page="market"><MarketHeroSlot /><MarketSectionSlot deck={homeDeck} index={homeBoard} /></PlateRoot>}
-            {openingRoute && <OpeningSheet jobId={decodeURIComponent(openingRoute[1])}/>}
+            {/* ⭐ 47k · EVERY AREA SITS IN ITS OWN AreaErrorBoundary (plate/AreaErrorBoundary.jsx): a throw or a missing chunk
+                swaps only that area for the plate's drawer (Reload · Go to Home) — the dock and the area nav above stay live.
+                areaGuard's resetKey is the /app route, so moving anywhere clears a failed area. Pinned by test/areaErrorBoundary47k.test.js. */}
+            {home && <AreaErrorBoundary area="home" {...areaGuard}><PlateRoot className="pl-marketpage" data-plate-page="market"><MarketHeroSlot /><MarketSectionSlot deck={homeDeck} index={homeBoard} /></PlateRoot></AreaErrorBoundary>}
+            {openingRoute && <AreaErrorBoundary area="opening" {...areaGuard}><OpeningSheet jobId={decodeURIComponent(openingRoute[1])}/></AreaErrorBoundary>}
             {/* ⭐ D49 · THE BOARD'S BAR STICKS (StickyBar, above in Home's board column): sticky only works inside its
                 parent's box, so it sits in the column with the jobs, not in the header. D12's ExtensionFirstRunPrompt
                 says where jobs from elsewhere come from until the extension is connected. */}
-            {activeTab === "auto-apply"   && <AutoApplyPanel user={authUser}/>}
-            {activeTab === "job" && jobRoute && <JobWorkspacePanel {...(jobByJobId ? { jobId: decodeURIComponent(jobRoute[1]) } : { applicationId: jobRoute[1] })}/>}
-            {activeTab === "plans" && monetisationEnabled && <PlansPanel user={authUser} onUserChange={setAuthUser}/>}
+            {activeTab === "auto-apply"   && <AreaErrorBoundary area="auto-apply" {...areaGuard}><AutoApplyPanel user={authUser}/></AreaErrorBoundary>}
+            {activeTab === "job" && jobRoute && <AreaErrorBoundary area="job" {...areaGuard}><JobWorkspacePanel {...(jobByJobId ? { jobId: decodeURIComponent(jobRoute[1]) } : { applicationId: jobRoute[1] })}/></AreaErrorBoundary>}
+            {activeTab === "plans" && monetisationEnabled && <AreaErrorBoundary area="plans" {...areaGuard}><PlansPanel user={authUser} onUserChange={setAuthUser}/></AreaErrorBoundary>}
             {/* ⭐ D167 · Profile (its own navigation, nine panels) and Interview (Coming up · Prepare · Practise · After). */}
-            {activeTab === "profile" && profilePanel && <ProfilePage panel={profilePanel} user={authUser} onSignedOut={() => { setAuthContext(""); setAuthUser(null); }}/>}
-            {activeTab === "interview" && interviewPanel && <InterviewPage panel={interviewPanel}/>}
-            {activeTab === "job-profiles" && <JobProfilesPanel/>}
-            {activeTab === "recruiter"    && <RecruiterPanel/>}
-            {activeTab === "atlas"        && <AtlasPage base="/app/atlas"/>}
-            {activeTab === "company" && companyRoute && <CompanyPage slug={companyRoute[1]} base="/app/companies" inApp/>}
-            {activeTab === "network" && <NetworkPage/>}
-            {activeTab === "feed" && <FeedPage/>}
-            {activeTab === "messages" && <MessagesPage/>}
+            {activeTab === "profile" && profilePanel && <AreaErrorBoundary area="profile" {...areaGuard}><ProfilePage panel={profilePanel} user={authUser} onSignedOut={() => { setAuthContext(""); setAuthUser(null); }}/></AreaErrorBoundary>}
+            {activeTab === "interview" && interviewPanel && <AreaErrorBoundary area="interview" {...areaGuard}><InterviewPage panel={interviewPanel}/></AreaErrorBoundary>}
+            {activeTab === "job-profiles" && <AreaErrorBoundary area="job-profiles" {...areaGuard}><JobProfilesPanel/></AreaErrorBoundary>}
+            {activeTab === "recruiter"    && <AreaErrorBoundary area="recruiter" {...areaGuard}><RecruiterPanel/></AreaErrorBoundary>}
+            {activeTab === "atlas"        && <AreaErrorBoundary area="atlas" {...areaGuard}><AtlasPage base="/app/atlas"/></AreaErrorBoundary>}
+            {activeTab === "company" && companyRoute && <AreaErrorBoundary area="company" {...areaGuard}><CompanyPage slug={companyRoute[1]} base="/app/companies" inApp/></AreaErrorBoundary>}
+            {activeTab === "network" && <AreaErrorBoundary area="network" {...areaGuard}><NetworkPage/></AreaErrorBoundary>}
+            {activeTab === "feed" && <AreaErrorBoundary area="feed" {...areaGuard}><FeedPage/></AreaErrorBoundary>}
+            {activeTab === "messages" && <AreaErrorBoundary area="messages" {...areaGuard}><MessagesPage/></AreaErrorBoundary>}
           </main>
 
           {/* JobDetailPanel moved into JobsPanel, which is where the PDF and ATS panels live and
@@ -1150,7 +1157,7 @@ function AppRouter() {
         {/* ⭐ D196 F4 · the plate gallery — every plate component in every state, beside its sketch (Admin only) */}
         <Route path="/dev/plate" element={
           <AdminRouteGate authStatus={authStatus} authUser={authUser} adminSession={adminSession}>
-            <Suspense fallback={null}><PlateGallery/></Suspense>
+            <AreaErrorBoundary area="plate-gallery" resetKey="dev/plate"><Suspense fallback={null}><PlateGallery/></Suspense></AreaErrorBoundary>
           </AdminRouteGate>
         }/>
 
