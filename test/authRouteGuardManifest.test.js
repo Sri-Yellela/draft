@@ -654,6 +654,10 @@ const AUTHENTICATED = new Set([
   "GET /api/interview/upcoming",
   // D142 Defend (46y): the follow-ups for the caller's own base résumé's bullets (templates; nothing stored).
   "GET /api/interview/defend",
+  // 47m (D197 #12, routes/atlasQuestionRoutes.js): Ask draft's saved route cards — the caller's own rows only.
+  "GET /api/atlas/question-routes",
+  "POST /api/atlas/question-routes",
+  "DELETE /api/atlas/question-routes/:id",
   // D113: the picks API for the Draft House tree — the caller's own picks and runs only (routes/picksConfirm.js; the
   // signed-out confirm page is /p/confirm/<token>, outside /api). U4 "Make it now": the caller's own offered pick's résumé.
   "GET /api/picks/state",

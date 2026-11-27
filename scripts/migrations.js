@@ -7485,4 +7485,22 @@ export const MIGRATIONS = [
           ('data-engineering', 'Data engineering roadmap', '["b1","c3","c5","lx1","b2","o4","x2"]', 4, 'seed:281');
       `,
     },
+    {
+      // ⭐ 47m (D197 Wave 2 #12, lane practice) · ASK DRAFT'S ROUTE CARD: a learning answer that names two or three Atlas
+      // entries is drawn as a small route (the question = the start flag, the entries = the stops); "Save to my routes" keeps
+      // it here — the question it was made from and the entries in order (slug + name) — so Routes lists it flagged "made
+      // from a question" (GET /api/atlas/question-routes). The person's own: it goes with the account (ON DELETE CASCADE),
+      // moves on a merge (MERGE_PLAN "move") and is in their export. No model reads or writes it (D190). Only ADDS a table.
+      id: "283_atlas_question_routes",
+      sql: `
+        CREATE TABLE IF NOT EXISTS atlas_question_routes (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          question    TEXT    NOT NULL,
+          stops_json  TEXT    NOT NULL,
+          created_at  INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_atlas_question_routes_user ON atlas_question_routes(user_id, created_at);
+      `,
+    },
   ];

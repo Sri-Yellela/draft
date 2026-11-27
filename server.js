@@ -29,6 +29,7 @@ import applyRoutes, { capturedAtsAtApply } from "./routes/apply.js";
 import applicationRecordRoutes from "./routes/applicationRecords.js";
 import pipelineRoutes from "./routes/pipeline.js";
 import interviewRoutes from "./routes/interview.js";
+import atlasQuestionRoutes from "./routes/atlasQuestionRoutes.js";   // ⭐ 47m D197 #12: Ask draft's saved route cards (migration 283)
 import inboxRoutes, { createInboundHookRouter } from "./routes/inbox.js";
 import { sweepInbox } from "./services/inbox.js";
 import gmailRoutes from "./routes/gmail.js";
@@ -8179,6 +8180,24 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
       sql: `
         INSERT OR IGNORE INTO learn_routes (id, name, targets, position, updated_by) VALUES
           ('data-engineering', 'Data engineering roadmap', '["b1","c3","c5","lx1","b2","o4","x2"]', 4, 'seed:281');
+      `,
+    },
+    {
+      // ⭐ 47m (D197 Wave 2 #12, lane practice) · ASK DRAFT'S ROUTE CARD: a learning answer that names two or three Atlas
+      // entries is drawn as a small route (the question = the start flag, the entries = the stops); "Save to my routes" keeps
+      // it here — the question it was made from and the entries in order (slug + name) — so Routes lists it flagged "made
+      // from a question" (GET /api/atlas/question-routes). The person's own: it goes with the account (ON DELETE CASCADE),
+      // moves on a merge (MERGE_PLAN "move") and is in their export. No model reads or writes it (D190). Only ADDS a table.
+      id: "283_atlas_question_routes",
+      sql: `
+        CREATE TABLE IF NOT EXISTS atlas_question_routes (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          question    TEXT    NOT NULL,
+          stops_json  TEXT    NOT NULL,
+          created_at  INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_atlas_question_routes_user ON atlas_question_routes(user_id, created_at);
       `,
     },
   ];
@@ -17030,6 +17049,8 @@ pipelineRoutes(app, db, requireAuth);
 inboxRoutes(app, db, requireAuth);
 // D110: interview mode — the Prep tab, the story bank, debriefs and the user's own question bank (services/interviewPrep.js).
 interviewRoutes(app, db, requireAuth);
+// ⭐ 47m (D197 Wave 2 #12): Ask draft's route card — Save to my routes keeps an answer made from a question (the caller's own).
+atlasQuestionRoutes(app, db, requireAuth);
 // ⭐ D112 item 8 · notifications: every event stays a `notifications` row (the bell, the SSE badge); by the person's own
 // per-event switches it is also a Web Push (VAPID + RFC 8291 on node:crypto, no vendor — offered only when VAPID_PUBLIC_KEY,
 // VAPID_PRIVATE_KEY and VAPID_SUBJECT are set) and an email through the Resend sender. services/notify.js, routes/notify.js.

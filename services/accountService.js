@@ -205,6 +205,8 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   "profile_projects", "profile_evidence", "proof_pages",
   // D110 (186): interview mode — the dates the user typed, their story bank, their debriefs and their own question bank.
   "interview_prep", "interview_stories", "interview_debriefs", "interview_questions",
+  // 47m (283): Ask draft's saved route cards — the question and the entries, in order.
+  "atlas_question_routes",
   // D113 (188): the picks runs (what each run looked at, picked and left out, by reason) and the picks themselves.
   "picks_runs", "picks", "picks_left_out",
   // D136 P3 (214) / D143 (215) / D138 (216): the signals each send had, the navigator's aim and route, the person's own contacts.
@@ -379,6 +381,8 @@ export const MERGE_PLAN = Object.freeze({
   people_index: "drop",
   // ⭐ 47a (280): the board's kept answers (order, counts) — a cache keyed to FROM's own board; INTO counts its own.
   board_kept_cache: "drop",
+  // ⭐ 47m (283): Ask draft's saved route cards — the person's own list, each row theirs alone; they follow the person.
+  atlas_question_routes: "move",
   atlas_prefs: "drop",   // A155: a preference only — the surviving account keeps its own
   // D180 P2 (253): a read mark / mute per Network thread. FROM's threads are keyed by its id (low_id / high_id), not
   // user_id, and go with FROM's row by cascade — so its read marks go too. (45p: merge refused every merge without it.)
