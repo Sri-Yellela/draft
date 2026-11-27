@@ -23,11 +23,10 @@
 export const MODULES = Object.freeze({
   shell: { why: "the app's chrome — App mounts it", members: ["App.jsx", "components/AppShell.jsx", "components/TopBar.jsx", "components/AppNav.jsx", "components/dockPlace.js", "components/AskDraftThread.jsx",
     "components/PublicChrome.jsx" /* 47m: the public nav replaced NavBar.jsx (deleted) */, "components/InlineLoginPopover.jsx", "components/AdminLayout.jsx", "consoles/PlanConsoles.jsx"] },
-  auth: { why: "sign-in and sign-up", members: ["App.jsx", "components/AuthScreen.jsx", "components/SignupAtsHook.jsx", "components/DealBackdrop.jsx"] },
+  auth: { why: "sign-in and sign-up", members: ["App.jsx", "components/AuthScreen.jsx", "components/SignupAtsHook.jsx"] },
   deck: { why: "the Daily Deck",
-    // ⚠ DealBackdrop (behind the login form) deals the deck's OWN card backs — a decided reuse (queue 30; the
-    // owner kept the card back as decided, 10-07). It is the one place outside the deck that may use them.
-    members: ["panels/DeckView.jsx", "components/CardBack.jsx", "components/DealBackdrop.jsx"] },
+    // 47m: DealBackdrop (the deal behind the login form) is retired — the sign-in page draws the market plate (D197 #17).
+    members: ["panels/DeckView.jsx", "components/CardBack.jsx"] },
   board: { why: "Full House — the board, its cards and its posting panel",
     members: ["panels/JobsPanel.jsx", "components/JobBubble.jsx", "components/CoverLetterModal.jsx", "components/ByomResumeChoice.jsx",
       "components/WarmPathsBlock.jsx"] },
@@ -253,7 +252,6 @@ export const SHARED = Object.freeze({
   "consoles/PlanConsoles.jsx":          { what: "the plan consoles — mount the board", module: "shell" },
   "components/AuthScreen.jsx":          { what: "sign-in / sign-up", module: "auth" },
   "components/SignupAtsHook.jsx":       { what: "the sign-up page's ATS hook", module: "auth" },
-  "components/DealBackdrop.jsx":        { what: "the dealt cards behind the login form", module: "auth" },
   "components/CardBack.jsx":            { what: "a deck card's back (the tinted logo — owner-decided O34)", module: "deck" },
   "components/DeckGeometryControl.jsx": { what: "the deck's layout control (D149: on the Customise page)", module: "customise" },
   "components/JobBubble.jsx":           { what: "the board's column (JobBoardColumns; 47j A248: D1's card is deleted)", module: "board" },
