@@ -1131,7 +1131,8 @@ function AppRouter() {
         }/>
         <Route path="/jobs/:slug" element={<FromServer/>}/>
         {/* ⭐ D150 T05–T08 · the 3-minute audit — public; a signed-in reader keeps the result at once. */}
-        <Route path="/audit" element={<AuditPage signedIn={authStatus === "authenticated" && !!authUser && !authUser.isAdmin}/>}/>
+        {/* 47m (D197 · marketing.md 16p): under the plate public nav + footer (Region IV, the market's — a run across its roles) */}
+        <Route path="/audit" element={<PublicPage region="IV" data-audit-page=""><AuditPage signedIn={authStatus === "authenticated" && !!authUser && !authUser.isAdmin}/></PublicPage>}/>
 
         {/* ⭐ D179 P4b · a page for every company — PUBLIC (no sign-in); a signed-in reader gets it inside the app. */}
         <Route path="/companies/:slug" element={

@@ -4,10 +4,8 @@
 // applicant-side use only (the Usage Policy's high-risk Employment area is employers screening people), true
 // content only (no fabricated credentials — the Usage Policy's falsified-records clause), and AI-assisted
 // content. ⚠ Wording is product text pending counsel (WORKLOG O93, the compliance document's Q1, Q2, Q5, Q6).
-import ScrollDock from "../../components/ScrollDock.jsx";
-import { Footer } from "../../components/Footer.jsx";
+import { PublicPage } from "../../components/PublicChrome.jsx";   // 47m (D197, M5): the plate public nav + footer
 import { BRAND, SUPPORT_EMAIL } from "../../../../shared/brand.js";
-import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const SECTIONS = [
   {
@@ -58,31 +56,26 @@ const SECTIONS = [
 
 export function TermsPage() {
   return (
-    <div className="scroll-dock-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
-                  background: "transparent", color: "var(--color-text)",
-                  fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <ScrollDock variant="marketing" />
-      <main style={{ flex: 1, maxWidth: 720, margin: "0 auto", padding: "64px 24px" }}>
-        <h1 style={{ fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 400,
-                      color: "var(--color-text)", marginBottom: 8, lineHeight: 1.1,
-                      fontFamily: "var(--font-display)" }}>
+    // ⭐ 47m (D197 · marketing.md 16j): legal text — plain plate styling, no metaphor; the words are unchanged
+    <PublicPage region="I" data-policy-page="terms">
+      <main style={{ flex: 1, maxWidth: 760, margin: "0 auto", padding: "40px var(--pl-gutter) 24px", color: "var(--pl-ink)", fontFamily: "var(--pl-sans)" }}>
+        <h1 className="pl-mk-hero__title" style={{ marginBottom: 10 }}>
           Terms of Service
         </h1>
-        <p style={{ fontSize: ts(13), color: "var(--color-text-faint)", marginBottom: 48 }}>
+        <p className="pl-label pl-muted" style={{ margin: "0 0 48px" }}>
           Last updated: October 9, 2026
         </p>
         {SECTIONS.map((s, i) => (
-          <div key={i} style={{ marginBottom: 40 }}>
-            <h2 style={{ fontSize: ts(18), fontWeight: 800, color: "var(--color-text)", marginBottom: 12 }}>
+          <div key={i} style={{ marginBottom: 32, paddingTop: 16, borderTop: "var(--pl-border-rule)" }}>
+            <h2 style={{ fontFamily: "var(--pl-serif)", fontSize: "var(--pl-t-card)", fontWeight: 400, color: "var(--pl-ink)", margin: "0 0 10px", lineHeight: 1.1 }}>
               {s.title}
             </h2>
-            <p style={{ fontSize: ts(14), color: "var(--color-text-muted)", lineHeight: 1.8, margin: 0 }}>
+            <p className="pl-body" style={{ lineHeight: 1.7 }}>
               {s.body}
             </p>
           </div>
         ))}
       </main>
-      <Footer/>
-    </div>
+    </PublicPage>
   );
 }

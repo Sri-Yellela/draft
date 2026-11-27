@@ -7,8 +7,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTheme } from "../../styles/theme.jsx";
-import { Footer } from "../../components/Footer.jsx";
-import ScrollDock from "../../components/ScrollDock.jsx";
+import { PublicPage } from "../../components/PublicChrome.jsx";   // 47m (D197, M5): the plate public nav + footer replace the tools dock
 import { C } from "../../styles/colorTokens.js";
 import { markStyle } from "../../styles/mark.js";
 import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
@@ -93,11 +92,9 @@ export function HonestyToolPage() {
   const lines = result ? result.lines.filter(l => !onlyFlagged || l.risk !== "low") : [];
   const s = result?.summary;
   return (
-    <div className="scroll-dock-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: theme.bg, color: theme.text,
-      fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <ScrollDock variant="tools" />
+    <PublicPage region="II" data-tool-page="">
       <main style={{ flex: 1, maxWidth: 760, margin: "0 auto", padding: "48px 16px", width: "100%", boxSizing: "border-box" }}>
-        <h1 style={{ fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 400, fontFamily: "var(--font-display)", marginBottom: 10, color: theme.text }}>
+        <h1 className="pl-mk-hero__title" style={{ marginBottom: 10 }}>
           Will your AI résumé get you caught?
         </h1>
         <p style={{ fontSize: ts(15), color: theme.textMuted, marginBottom: 28, lineHeight: 1.6 }}>
@@ -182,7 +179,6 @@ export function HonestyToolPage() {
           </div>
         )}
       </main>
-      <Footer />
-    </div>
+      </PublicPage>
   );
 }

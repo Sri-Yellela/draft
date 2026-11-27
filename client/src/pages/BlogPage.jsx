@@ -1,37 +1,21 @@
+// /blog — ⭐ 47m (D197 · marketing.md 16q, M5): kept (it is on the approved mock's nav) and drawn as the plate's NOT YET
+// drawer under the public nav — the same words, the 🚧 emoji gone (the plate has no emoji). ⚠ agent's pick (owner may
+// reverse): when posts exist, the Library's field-notes drawer is their natural home (marketing.md).
+import { Kickers } from "../plate/Marks.jsx";
+import { Drawer } from "../plate/PlateState.jsx";
+import { PublicPage } from "../components/PublicChrome.jsx";
+
 export default function BlogPage() {
   return (
-    <main style={{
-      maxWidth: '960px', margin: '0 auto',
-      padding: 'calc(56px + 4rem) 1.5rem 4rem',
-      minHeight: '100vh',
-    }}>
-      <h1 style={{
-        fontFamily: 'var(--font-display, sans-serif)',
-        fontSize: 'clamp(2rem, 4vw, 3.5rem)',
-        fontWeight: 700,
-        color: 'var(--color-text)',
-        letterSpacing: '-0.025em',
-        marginBottom: '1rem',
-      }}>
-        Blog & Changelog
-      </h1>
-      <p style={{
-        fontSize: '1.125rem',
-        color: 'var(--color-text-muted)',
-        maxWidth: '52ch', lineHeight: 1.7,
-      }}>
-        Product updates, job search tips, and resume advice.
-      </p>
-      <div style={{
-        marginTop: '3rem', padding: '2rem',
-        background: 'var(--color-surface)',
-        borderRadius: '1rem',
-        border: '1px solid var(--color-border)',
-        color: 'var(--color-text-muted)',
-        fontSize: '.875rem',
-      }}>
-        🚧 This page is coming soon.
-      </div>
-    </main>
+    <PublicPage region="I" data-blog-page="">
+      <main className="pl-page" style={{ display: "flex", flexDirection: "column", gap: 14, paddingTop: 32 }}>
+        <Kickers parts={["FIELD NOTES"]}/>
+        <h1 className="pl-mk-hero__title">Blog & Changelog</h1>
+        <p className="pl-mk-hero__line">Product updates, job search tips, and resume advice.</p>
+        <div style={{ maxWidth: 640, marginTop: 18 }}>
+          <Drawer kicker="NOT YET" text="This page is coming soon."/>
+        </div>
+      </main>
+    </PublicPage>
   );
 }

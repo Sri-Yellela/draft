@@ -5,8 +5,7 @@
 // troubleshooting, the AI-assistance notice, how to disconnect, and contacts (docs/CLAUDE_CONNECTOR_COMPLIANCE.md
 // §6). ⛔ DR-7: no plan names, prices or "upgrade" here either — this page is part of the listing.
 // The tool table is read from the same names the server serves (test/d86ConnectorDocs.test.js holds them equal).
-import ScrollDock from "../../components/ScrollDock.jsx";
-import { Footer } from "../../components/Footer.jsx";
+import { PublicPage } from "../../components/PublicChrome.jsx";   // 47m (D197, M5): the plate public nav + footer
 import { BRAND, SUPPORT_EMAIL, PRIVACY_CONTACT_EMAIL, SECURITY_EMAIL, CANONICAL_ORIGIN } from "../../../../shared/brand.js";
 import { BYO_DAILY_CAP_DEFAULT } from "../../../../shared/entitlements.js";
 import { PolicySection, P, UL, LI, Strong } from "../../components/PolicyProse.jsx";
@@ -29,15 +28,13 @@ const cell = { padding: "8px 10px", borderTop: "1px solid var(--color-border)", 
 
 export function ConnectorDocsPage() {
   return (
-    <div className="scroll-dock-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
-                  background: "transparent", color: "var(--color-text)", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <ScrollDock variant="marketing" />
-      <main style={{ flex: 1, minWidth: 0, width: "100%", maxWidth: 820, margin: "0 auto", padding: "64px 24px", boxSizing: "border-box" }}>
-        <h1 style={{ fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 400, color: "var(--color-text)", marginBottom: 8, lineHeight: 1.1,
-                     fontFamily: "var(--font-display)" }}>
+    // ⭐ 47m (D197 · marketing.md 16k): reference text — plain plate styling, no metaphor; the words are unchanged
+    <PublicPage region="I" data-policy-page="connector">
+      <main style={{ flex: 1, minWidth: 0, width: "100%", maxWidth: 840, margin: "0 auto", padding: "40px var(--pl-gutter) 24px", boxSizing: "border-box", color: "var(--pl-ink)", fontFamily: "var(--pl-sans)" }}>
+        <h1 className="pl-mk-hero__title" style={{ marginBottom: 10 }}>
           {BRAND} for Claude
         </h1>
-        <p style={{ fontSize: ts(13), color: "var(--color-text-faint)", marginBottom: 48 }}>Last updated: October 9, 2026</p>
+        <p className="pl-label pl-muted" style={{ margin: "0 0 48px" }}>Last updated: October 9, 2026</p>
 
         <P>
           {BRAND} connects to Claude so you can tailor your résumé to a job on your {BRAND} board in a Claude
@@ -122,7 +119,6 @@ export function ConnectorDocsPage() {
           <P>Help: <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> · Privacy: <a href={`mailto:${PRIVACY_CONTACT_EMAIL}`}>{PRIVACY_CONTACT_EMAIL}</a> · Security: <a href={`mailto:${SECURITY_EMAIL}`}>{SECURITY_EMAIL}</a></P>
         </PolicySection>
       </main>
-      <Footer/>
-    </div>
+    </PublicPage>
   );
 }

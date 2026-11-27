@@ -7,8 +7,7 @@ import { useState, useRef, useEffect } from "react";
 // That was the THIRD reason that button was broken, after the dead route and the ignored ?jd=.
 import { Link, useSearchParams } from "react-router-dom";
 import { useTheme } from "../../styles/theme.jsx";
-import { Footer } from "../../components/Footer.jsx";
-import ScrollDock from "../../components/ScrollDock.jsx";
+import { PublicPage } from "../../components/PublicChrome.jsx";   // 47m (D197, M5): the plate public nav + footer replace the tools dock
 import { C } from "../../styles/colorTokens.js";
 import { AtsReport, fromStandaloneResult } from "../../components/AtsReport.jsx";
 import { loginHref } from "../../lib/signInReturn.js";   // A138: back to this page after sign-in
@@ -67,14 +66,10 @@ export function ATSToolPage() {
   };
 
   return (
-    <div className="scroll-dock-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
-                  background: theme.bg, color: theme.text,
-                  fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <ScrollDock variant="tools" />
+    <PublicPage region="II" data-tool-page="">
 
       <main style={{ flex: 1, maxWidth: 720, margin: "0 auto", padding: "48px 24px", width: "100%" }}>
-        <h1 style={{ fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 400,
-                     fontFamily: "var(--font-display)", marginBottom: 10, color: theme.text }}>
+        <h1 className="pl-mk-hero__title" style={{ marginBottom: 10 }}>
           See how well your resume matches any job
         </h1>
         <p style={{ fontSize: ts(15), color: theme.textMuted, marginBottom: 36, lineHeight: 1.6 }}>
@@ -184,7 +179,6 @@ export function ATSToolPage() {
         </div>
       </section>
 
-      <Footer/>
-    </div>
+      </PublicPage>
   );
 }

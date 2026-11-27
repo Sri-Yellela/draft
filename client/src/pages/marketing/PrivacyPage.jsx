@@ -1,7 +1,6 @@
 // client/src/pages/marketing/PrivacyPage.jsx
 import { Link } from "react-router-dom";
-import ScrollDock from "../../components/ScrollDock.jsx";
-import { Footer } from "../../components/Footer.jsx";
+import { PublicPage } from "../../components/PublicChrome.jsx";   // 47m (D197, M5): the plate public nav + footer
 import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL, SUPPORT_EMAIL } from "../../../../shared/brand.js";
 import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyProse.jsx";
 import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
@@ -163,24 +162,16 @@ const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
 export function PrivacyPage() {
   return (
-    <div className="scroll-dock-page" style={{
-      minHeight: "100vh", display: "flex", flexDirection: "column",
-      background: "transparent", color: "var(--color-text)",
-      fontFamily: "'DM Sans', system-ui, sans-serif",
-    }}>
-      <ScrollDock variant="marketing" />
-
-      <main style={{ flex: 1, maxWidth: 720, margin: "0 auto", padding: "64px 24px 80px" }}>
+    // ⭐ 47m (D197 · marketing.md 16i): legal text — plain plate styling, no metaphor; the text is unchanged (it is legal)
+    <PublicPage region="I" data-policy-page="privacy">
+      <main style={{ flex: 1, maxWidth: 760, margin: "0 auto", padding: "40px var(--pl-gutter) 24px", color: "var(--pl-ink)", fontFamily: "var(--pl-sans)" }}>
 
         {/* Header */}
-        <header style={{ marginBottom: 48, paddingBottom: 24, borderBottom: "1px solid var(--color-border)" }}>
-          <h1 style={{
-            fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 400, color: "var(--color-text)", marginBottom: 8,
-            lineHeight: 1.1, fontFamily: "var(--font-display)",
-          }}>
+        <header style={{ marginBottom: 48, paddingBottom: 24, borderBottom: "var(--pl-border)" }}>
+          <h1 className="pl-mk-hero__title" style={{ marginBottom: 10 }}>
             Privacy Policy
           </h1>
-          <p style={{ fontSize: ts(13), color: "var(--color-text-faint)" }}>
+          <p className="pl-label pl-muted" style={{ margin: 0 }}>
             Effective: {EFFECTIVE_DATE}
           </p>
         </header>
@@ -1215,8 +1206,6 @@ export function PrivacyPage() {
         </div>
 
       </main>
-
-      <Footer />
-    </div>
+    </PublicPage>
   );
 }

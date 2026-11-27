@@ -2,8 +2,7 @@
 import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useTheme } from "../../styles/theme.jsx";
-import { Footer } from "../../components/Footer.jsx";
-import ScrollDock from "../../components/ScrollDock.jsx";
+import { PublicPage } from "../../components/PublicChrome.jsx";   // 47m (D197, M5): the plate public nav + footer replace the tools dock
 import { C } from "../../styles/colorTokens.js";
 import { markStyle } from "../../styles/mark.js";
 import { loginHref } from "../../lib/signInReturn.js";   // A138: back to this page after sign-in
@@ -47,38 +46,26 @@ export function ApplyToolPage() {
 
   if (authNeeded) {
     return (
-      <div className="scroll-dock-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
-                    background: theme.bg, color: theme.text,
-                    fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-        <ScrollDock variant="tools" />
-        <div style={{ flex: 1, display: "flex", flexDirection: "column",
-                      alignItems: "center", justifyContent: "center", gap: 16, padding: 24, textAlign: "center" }}>
-          <div style={{ fontSize: ts(48) }}>🔒</div>
-          <div style={{ fontWeight: 800, fontSize: ts(22), color: theme.text }}>Sign in to use Draft</div>
-          <div style={{ fontSize: ts(14), color: theme.textMuted, maxWidth: 360 }}>
-            Drafting applications and generating résumés need a free account. ATS scoring does not.
+      <PublicPage region="II" data-tool-page="">
+        {/* ⚠ 47m agent's pick (owner may reverse; marketing.md 16n asks whether /tools/apply stays public): the sign-in gate is
+            kept as it was — the page still asks for an account first — drawn as the plate's drawer (the lock emoji is gone). */}
+        <main className="pl-page" style={{ paddingTop: 48 }} data-apply-signin="">
+          <div className="pl-state pl-drawer" style={{ maxWidth: 560, margin: "0 auto" }}>
+            <span className="pl-label">AN ACCOUNT FIRST</span>
+            <p className="pl-drawer__title">Sign in to use Draft</p>
+            <p className="pl-drawer__text">Drafting applications and generating résumés need a free account. ATS scoring does not.</p>
+            <Link className="pl-btn pl-btn--primary" to={loginHref()}>Sign in or register free →</Link>
           </div>
-          <Link to={loginHref()}>
-            <button style={{ padding: "10px 28px", borderRadius: 6, border: "none",
-                             background: theme.accent, color: C.ON_ACCENT, fontWeight: 700, cursor: "pointer", fontSize: ts(14) }}>
-              Sign in or register free →
-            </button>
-          </Link>
-        </div>
-        <Footer/>
-      </div>
+        </main>
+      </PublicPage>
     );
   }
 
   return (
-    <div className="scroll-dock-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
-                  background: theme.bg, color: theme.text,
-                  fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <ScrollDock variant="tools" />
+    <PublicPage region="II" data-tool-page="">
 
       <main style={{ flex: 1, maxWidth: 720, margin: "0 auto", padding: "48px 24px", width: "100%" }}>
-        <h1 style={{ fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 400,
-                     fontFamily: "var(--font-display)", marginBottom: 10, color: theme.text }}>
+        <h1 className="pl-mk-hero__title" style={{ marginBottom: 10 }}>
           Apply to multiple jobs in one click
         </h1>
         <p style={{ fontSize: ts(15), color: theme.textMuted, marginBottom: 36, lineHeight: 1.6 }}>
@@ -197,7 +184,6 @@ export function ApplyToolPage() {
         </div>
       </section>
 
-      <Footer/>
-    </div>
+      </PublicPage>
   );
 }

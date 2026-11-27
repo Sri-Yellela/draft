@@ -6,16 +6,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SurveyForm, { surveyPage, surveyCard } from "../components/SurveyForm.jsx";
 import DepthButton from "../components/DepthButton.jsx";
-import { StampLogo } from "../components/StampLogo.jsx";
 import { api } from "../lib/api.js";
+import { PublicPage } from "../components/PublicChrome.jsx";
+import { Stamp } from "../plate/Marks.jsx";
 
-// Owner 11-01: the site header with the /draft wordmark above the form (linking home; no app navigation — no account).
-function SurveyHeader() {
-  return (
-    <header data-survey-header="" style={{ boxSizing: "border-box", width: "min(680px, calc(100% - 32px))", margin: "16px auto 0" }}>
-      <a href="/" aria-label="draft — home" style={{ display: "inline-block" }}><StampLogo progress={0}/></a>
-    </header>
-  );
+// Owner 11-01: the site header with the /draft wordmark above the form (linking home; no account needed).
+// ⭐ 47m (D197 · marketing.md 16q, M5): that header is the plate public nav now (the wordmark → /), the public footer under it.
+function SurveyFrame({ children, ...data }) {
+  return <PublicPage region="I" data-survey-header="" {...data}>{children}</PublicPage>;
 }
 
 export default function SurveyPublicPage() {
@@ -28,23 +26,22 @@ export default function SurveyPublicPage() {
   }, []);
   if (sent) {
     return (
-      <>
-      <SurveyHeader/>
+      <SurveyFrame>
       <div style={surveyPage} data-survey-public="sent">
         <div style={{ ...surveyCard, textAlign: "center", padding: 22 }}>
-          <h2 style={{ margin: "0 0 6px" }}>Thanks!</h2>
+          <Stamp tone="ink">SENT</Stamp>
+          <h2 style={{ margin: "10px 0 6px", fontFamily: "var(--pl-serif)", fontWeight: 400, fontSize: "var(--pl-t-card)" }}>Thanks!</h2>
           <p style={{ margin: "0 0 14px", color: "var(--color-text-muted)" }}>Want to see it? Make an account and try draft.</p>
           <DepthButton primary onClick={() => navigate("/register")} data-survey-try="">Try draft</DepthButton>
         </div>
       </div>
-      </>
+      </SurveyFrame>
     );
   }
-  if (err) return <div style={surveyPage}><p role="alert">{err}</p></div>;
-  if (!questions) return <div style={surveyPage} aria-busy="true"/>;
+  if (err) return <SurveyFrame><div style={surveyPage}><p role="alert" className="pl-body">{err}</p></div></SurveyFrame>;
+  if (!questions) return <SurveyFrame><div style={surveyPage} aria-busy="true"/></SurveyFrame>;
   return (
-    <div data-survey-public="">
-      <SurveyHeader/>
+    <SurveyFrame data-survey-public="">
       <SurveyForm questions={questions} honeypot
         title="Help us build a better way to job hunt"
         intro="About two minutes. Your answers shape what we build. Nothing here is shared with employers."
@@ -53,6 +50,6 @@ export default function SurveyPublicPage() {
           setSent(true); window.scrollTo(0, 0);
         }}
         footer={<>We save your answers to improve draft and never share them with employers. <a href="/privacy" target="_blank" rel="noopener">Privacy</a></>}/>
-    </div>
+    </SurveyFrame>
   );
 }
