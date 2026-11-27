@@ -5,6 +5,7 @@
 // the caller raises it explicitly to at least the count · TEST-TO-ME · provider pacing (Resend's default
 // limit is 2 requests a second) · a LOG of who, when, which audience and how many — never the content.
 import { sendEmail } from "./emailService.js";
+import { renderDispatch } from "./dispatchHtml.js";
 import { isSuppressed } from "./emailSuppression.js";
 import { toActor } from "./actor.js";
 
@@ -55,7 +56,11 @@ export async function sendNotice(db, { audience, subject, body, why, testTo = nu
   if (!String(subject ?? "").trim() || !String(body ?? "").trim()) fail(400, "A notice needs a subject and a body.");
   if (!String(why ?? "").trim()) fail(400, "Say why the user is receiving it — it is printed in the notice.");
   const text = String(body).trim() + noticeFooter(String(why).trim());
-  const send = (to) => sendEmail({ to, subject: String(subject).trim(), text, db, env, ...(fetchImpl ? { fetchImpl } : {}) });
+  // ⭐ D197 #18 M5 (47m): the HTML part — a NOTICE dispatch: the admin's body as written (escaped, line breaks kept) and the
+  // footer sentence verbatim; the text part above is unchanged.
+  const html = renderDispatch({ kind: "NOTICE", title: String(subject).trim(), paragraphs: [{ lines: String(body).trim() }],
+    smallPrint: [noticeFooter(String(why).trim()).replace(/^\s*—\s*/, "")] });
+  const send = (to) => sendEmail({ to, subject: String(subject).trim(), text, html, db, env, ...(fetchImpl ? { fetchImpl } : {}) });
   const log = (counts) => db.prepare("INSERT INTO notice_log (admin_user_id, actor, audience, recipients, sent, skipped, failed, test) VALUES (?,?,?,?,?,?,?,?)")
     .run(toActor(adminUserId).userId, toActor(adminUserId).ref, audience, counts.recipients, counts.sent, counts.skipped, counts.failed, counts.test ? 1 : 0);
 

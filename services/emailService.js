@@ -1,5 +1,6 @@
 import { BRAND, SENDER_FROM, SUPPORT_EMAIL } from "../shared/brand.js";
 import { isSuppressed } from "./emailSuppression.js";
+import { renderDispatch } from "./dispatchHtml.js";   // ⭐ D197 #18 M5 (47m): the account mail's HTML part
 
 // ── Outbound email — one sender, honest about whether it can send ──────────────────────────────
 //
@@ -51,6 +52,10 @@ export async function sendPasswordResetEmail({ to, resetUrl, otp, expiresAt }, o
     subject: `Reset your ${BRAND} password`,
     text: [`Use this one-time link to reset your ${BRAND} password:`, resetUrl, "", `Code: ${otp}`, `Expires: ${expires}`,
            "", "If you didn't ask for this, ignore this email — your password stays as it is."].join("\n"),
+    // ⭐ D197 #18 M5 (47m): the HTML part — an ACCOUNT dispatch; the text above stays as it was
+    html: renderDispatch({ kind: "ACCOUNT", title: "Reset your password", lead: `Use this one-time link to reset your ${BRAND} password:`,
+      action: { label: "Reset your password →", url: resetUrl }, code: otp, paragraphs: [`Expires: ${expires}`],
+      smallPrint: ["If you didn't ask for this, ignore this email — your password stays as it is."] }),
     ...opts,
   });
 }
@@ -60,6 +65,8 @@ export async function sendVerificationCodeEmail({ to, code, purpose = "confirm t
     to,
     subject: `Your ${BRAND} code: ${code}`,
     text: [`Use this code to ${purpose}:`, "", code, "", "It expires in 15 minutes. If you didn't ask for it, ignore this email."].join("\n"),
+    html: renderDispatch({ kind: "ACCOUNT", title: `Your ${BRAND} code`, lead: `Use this code to ${purpose}:`, code,
+      smallPrint: ["It expires in 15 minutes. If you didn't ask for it, ignore this email."] }),
     ...opts,
   });
 }

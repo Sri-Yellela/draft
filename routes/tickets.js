@@ -10,6 +10,7 @@ import {
   TicketError, TICKET_CATEGORIES, TICKET_STATUSES, TICKET_PRIORITIES, CANNED,
 } from "../services/tickets.js";
 import { writeAudit } from "../services/userAdmin.js";
+import { renderDispatch } from "../services/dispatchHtml.js";   // ⭐ D197 #18 M5 (47m): the reply's HTML part
 
 export function createSupportRouters({ db, requireAuth, requireAdmin, sendEmail, supportEmail, appUrl }) {
   const fail = (res, e) => (e instanceof TicketError
@@ -58,7 +59,10 @@ export function createSupportRouters({ db, requireAuth, requireAdmin, sendEmail,
       let mailed = false;
       if (!internal && t.email) {
         const r = await (async () => { try { return await sendEmail({ db, to: t.email, subject: `Re: ${t.subject} [#${t.id}]`, replyTo: supportEmail,
-          text: `${String(req.body?.body || "").trim()}\n\n—\nRead the whole thread, or reply, in draft: ${appUrl(req)}/app/account#help\n(Or reply to this email.)` }); }
+          text: `${String(req.body?.body || "").trim()}\n\n—\nRead the whole thread, or reply, in draft: ${appUrl(req)}/app/account#help\n(Or reply to this email.)`,
+          // ⭐ D197 #18 M5 (47m): the HTML part — an ACCOUNT dispatch; the admin's words as written (escaped, line breaks kept)
+          html: renderDispatch({ kind: "ACCOUNT", title: `Re: ${t.subject}`, paragraphs: [{ lines: String(req.body?.body || "").trim() }],
+            action: { label: "Read the whole thread in draft →", url: `${appUrl(req)}/app/account#help` }, smallPrint: ["Or reply to this email."] }) }); }
           catch (e) { console.warn("[tickets] reply mail failed:", e.message); return null; } })();
         mailed = !!r?.ok;
       }

@@ -25,6 +25,9 @@
 // carries a Topic so an offline phone gets one message, not a stack.
 import { sendPush, vapidConfig, endpointAllowed } from "./webPush.js";
 import { sendEmail, emailConfigured } from "./emailService.js";
+// ⭐ D197 #18 M5 (47m): every notify email gains an HTML part — a DISPATCH in the plate tokens (services/dispatchHtml.js);
+// the plain-text part below stays today's words exactly (docs/revamp/emails.md "two parts, always").
+import { renderDispatch, NOTIFY_FOOT } from "./dispatchHtml.js";
 
 const now = () => Math.floor(Date.now() / 1000);
 
@@ -168,6 +171,71 @@ export function eventEmail(event, data = {}, appUrl = "") {
   return null;
 }
 
+/**
+ * ⭐ D197 #18 M5 (47m) · the HTML part of an event's email — a dispatch (docs/revamp/emails.md "Where each M1 row lives").
+ * The same words as the plain-text part (eventEmail, or the in-app line); only the look is new. `url` is the event's
+ * same-site path (def.url, incl. A2's held row). Pure; `date` for the kicker.
+ */
+export function eventEmailHtml(event, data = {}, appUrl = "", url = null, date = new Date()) {
+  const base = String(appUrl || "");
+  const open = (path) => ({ label: "Open in draft →", url: `${base}${path}` });
+  const def = NOTIFY_EVENTS[event];
+  const path = typeof url === "string" ? url : def?.url || "/app";
+  const t = eventText(event, data);
+  const common = { appUrl: base, date, foot: [NOTIFY_FOOT] };
+  if (event === "picks") {
+    const items = Array.isArray(data.items) ? data.items.slice(0, 25) : [];
+    if (!items.length) return null;
+    return renderDispatch({ ...common, kind: "PICKS", plate: "dispatch",
+      title: `${items.length === 1 ? "One job" : `${items.length} jobs`} picked for you`,
+      lead: `${items.length === 1 ? "One job was" : `${items.length} jobs were`} picked for you.`,
+      paragraphs: ["A tap on Apply, then Confirm, sends the application. Pass removes it."],
+      entries: items.map((it, i) => ({ n: i + 1, title: it.title, company: it.company || null, lines: it.line ? [it.line] : [],
+        links: [{ label: "Apply", url: it.apply }, { label: "Pass", url: it.pass }] })),
+      action: data.applyAll ? { label: `Apply to all ${items.length} →`, url: data.applyAll } : open("/app/auto-apply"),
+      smallPrint: ["These links work until your next run time."] });
+  }
+  if (event === "pick_question") {
+    const qs = listOf(Array.isArray(data.questions) ? data.questions : []);
+    return renderDispatch({ ...common, kind: "QUESTION", plate: "dispatch", title: t.title,
+      lead: `${data.title || "A job you applied to"}${data.company ? ` — ${data.company}` : ""} stopped on ${qs.length === 1 ? "a question" : `${qs.length} questions`} only you can answer:`,
+      entries: qs.map((q, i) => ({ n: i + 1, title: q })),
+      action: { label: "Answer it →", url: data.answer },
+      smallPrint: ["Nothing was sent. It continues once you answer."] });
+  }
+  if (event === "new_match") {
+    const items = Array.isArray(data.items) ? data.items.slice(0, 25) : [];
+    if (!items.length) return null;
+    const sponsors = items.filter((it) => it.sponsor).length;
+    const lead = data.sponsorFirst && sponsors ? "New jobs that fit your résumé — companies with an H-1B filing record first." : "New jobs that fit your résumé.";
+    return renderDispatch({ ...common, kind: "DIGEST", plate: "digest", lead,
+      title: items.length === 1 ? "1 new job fits you" : `${items.length} new jobs fit you`,
+      stats: [{ value: items.length, label: "NEW" }, ...(sponsors ? [{ value: sponsors, label: "FILED H-1B" }] : [])],
+      entries: items.map((it, i) => ({ n: i + 1, title: it.title, company: it.company || null,
+        facts: [it.ago ? `posted ${it.ago}` : null, it.of ? `asks for ${it.matched} of your ${it.of} top skills` : null,
+          it.sponsor ? "has filed H-1B petitions before" : null].filter(Boolean),
+        squares: it.of ? { of: it.of, lit: it.matched } : null, links: [{ label: "Open on the market", url: it.url }] })),
+      action: { label: "See them on the market →", url: `${base}/app/jobs` },
+      smallPrint: [...(sponsors ? ["A filing record is history, not a promise — confirm with the employer. Not legal advice."] : []),
+        "Daily digest, or as they arrive: draft → Account → Notifications."] });
+  }
+  if (event === "switched_to_extension") {
+    const who = data.company ? `${data.company}: the` : "The";
+    return renderDispatch({ ...common, kind: "ALERT", plate: "dispatch", title: t.title,
+      lead: `${who} site flagged draft's submit — it's ready in your extension, one press sends it.`,
+      paragraphs: ["Nothing was sent. Open it in draft (Open & fill) or from the extension's queue: the form is filled in your own browser, and Submit application in the extension sends it."],
+      action: open(typeof data.url === "string" ? data.url : "/app/auto-apply") });
+  }
+  if (event === "picks_summary") {
+    const n = (k) => Math.max(0, Number(data[k]) || 0);
+    return renderDispatch({ ...common, kind: "RUN SUMMARY", plate: "run-report", title: t.title, lead: t.body,
+      stats: [{ value: n("sent"), label: "SENT", tone: "lit" }, { value: n("waiting"), label: "NEED YOU" }, { value: n("needYou"), label: "NEED A SIGN-IN" }],
+      action: { label: "Open the ledger →", url: `${base}/app/auto-apply` } });
+  }
+  // A1–A5, A9, A11: the ALERT — the event's title and its in-app line (count-only, D100 P4), one clay Open in draft
+  return renderDispatch({ ...common, kind: "ALERT", plate: "dispatch", title: t.title, lead: t.body, action: open(path) });
+}
+
 // ── preferences ──────────────────────────────────────────────────────────────────────────────
 
 /** The person's choices: every event × channel, a stored row winning over the event's default. */
@@ -301,7 +369,10 @@ async function dispatch(userId, event, data, config) {
     if (to) {
       try {
         const mail = eventEmail(event, data, appUrl);
-        out.email = await sendEmail({ db, to, fetchImpl, env, subject: mail?.subject || `draft · ${text.title}`,
+        // ⭐ D197 #18 M5: the HTML part (a dispatch); a failure to draw it never costs the email — the text goes alone
+        let html = null;
+        try { html = eventEmailHtml(event, data, appUrl, def.url); } catch (e) { log?.warn?.(`[notify] html ${event}: ${e.message}`); }
+        out.email = await sendEmail({ db, to, fetchImpl, env, subject: mail?.subject || `draft · ${text.title}`, html,
           text: mail?.text || [text.body, "", `Open draft: ${appUrl}${def.url}`, "",
             "You chose to get this by email. Change it in draft → Account → Notifications."].join("\n") });
       } catch (e) { log?.warn?.(`[notify] email ${event}: ${e.message}`); out.email = { ok: false }; }
