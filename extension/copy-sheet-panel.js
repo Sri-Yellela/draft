@@ -65,9 +65,25 @@ export function renderCopySheetPanel(sheet, theme, dockMeta) {
            background: none; color: ${c.INK_MUTED}; font-size: 12px; font-weight: 500; }
     .src.you { color: ${c.ACCENT_INK}; }
 `;
+  // ⭐ D197 #19 (47n) · THIS VIEW IN THE PLATE — the dock is a plate (47m), so its views draw with the plate's pieces too
+  // (docs/revamp/extension.md M2, "other tabs keep their parts"): an icon control is the plate's small box (radius 8 — D60,
+  // a 1.5 px ink edge, a hard 2 px ink shadow), the one accent press is the clay, a label is the plate's mono label. T26 holds:
+  // no rule between rows, no tinted box, the dock's frame the only surface. No plate palette (an older worker) → no layer.
+  const PL = theme?.plate || {};
+  const MONO_PL = `'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace`;
+  const plateCss = PL.INK ? `
+    button { border: 1.5px solid ${PL.INK}; background: ${PL.CARD}; color: ${PL.INK}; box-shadow: 2px 2px 0 ${PL.INK}; }
+    button:hover:not(:disabled), button:focus-visible { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 ${PL.INK}; }
+    button:active:not(:disabled) { transform: translate(1px, 1px); box-shadow: 1px 1px 0 ${PL.INK}; }
+    button:disabled { border-style: dashed; box-shadow: none; }
+    button.primary { background: ${PL.CLAY}; color: ${PL.ON_CLAY}; }
+    button.primary:hover:not(:disabled), button.primary:focus-visible { box-shadow: 3px 3px 0 ${PL.INK}; }
+    .k, .h { font-family: ${MONO_PL}; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: ${PL.MUTED}; }
+    .v { color: ${PL.INK}; }
+  ` : '';
   const I = (name, size) => (typeof D.icon === 'function' ? D.icon(name, size) : '');
   const style = document.createElement('style');
-  style.textContent = css;
+  style.textContent = css + plateCss;
 
   const panel = document.createElement('div');
   panel.className = 'p';

@@ -544,6 +544,21 @@ export function renderOverlay(model, meta) {
     #${ID} .rm-n { font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--c-ink-muted); }
     @media (prefers-reduced-motion: reduce) { #${ID} .rm-btn { transition: none; } }
   `;
+  // ⭐ D197 #19 (47n) · THIS VIEW IN THE PLATE — the dock is a plate (47m), so its views draw with the plate's pieces too
+  // (docs/revamp/extension.md M2, "other tabs keep their parts"): an icon control is the plate's small box (radius 8 — D60,
+  // a 1.5 px ink edge, a hard 2 px ink shadow), the one accent press is the clay, a label is the plate's mono label. T26 holds:
+  // no rule between rows, no tinted box, the dock's frame the only surface. No plate palette (an older worker) → no layer.
+  const PL = theme.plate || {};
+  const MONO_PL = `'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace`;
+  const plateCss = PL.INK ? `
+    #${ID} .rm-btn { border: 1.5px solid ${PL.INK}; background: ${PL.CARD}; color: ${PL.INK}; box-shadow: 2px 2px 0 ${PL.INK}; }
+    #${ID} .rm-btn:hover:not(:disabled), #${ID} .rm-btn:focus-visible { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 ${PL.INK}; }
+    #${ID} .rm-btn:active:not(:disabled) { transform: translate(1px, 1px); box-shadow: 1px 1px 0 ${PL.INK}; }
+    #${ID} .rm-btn:disabled { border-style: dashed; box-shadow: none; }
+    #${ID} .rm-btn.primary { background: ${PL.CLAY}; color: ${PL.ON_CLAY}; }
+    #${ID} .rm-btn.primary:hover:not(:disabled), #${ID} .rm-btn.primary:focus-visible { box-shadow: 3px 3px 0 ${PL.INK}; }
+    #${ID} .rm-f, #${ID} .rm-n, #${ID} .rm-lbl { font-family: ${MONO_PL}; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: ${PL.MUTED}; }
+  ` : '';
   // ⭐ T26 · the dock's ONE icon set (extension/dock.js), and the one shape of an icon control: an icon, its words as the
   // aria-label AND the tooltip. `cls`: ' primary' for the row's one accent press.
   const I = (name, size) => (typeof D.icon === 'function' ? D.icon(name, size) : '');
@@ -605,7 +620,7 @@ export function renderOverlay(model, meta) {
   if (host.dataset.run !== runId) host.dataset.run = runId;   // which fill drew it (a test reads it; the page learns nothing it could not see)
   const root = host.shadowRoot || host.attachShadow({ mode: 'open' });
   const style = root.querySelector('style') || document.createElement('style');
-  if (style.textContent !== css) style.textContent = css;
+  if (style.textContent !== css + plateCss) style.textContent = css + plateCss;   // 47n: the plate layer last
   let panel = root.getElementById?.(ID) || null;
   if (!panel) {
     panel = document.createElement('div');

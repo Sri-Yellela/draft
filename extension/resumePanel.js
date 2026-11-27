@@ -431,6 +431,23 @@ export function renderResumePanel(model, meta) {
   `;
   const I = (name, size) => (typeof D.icon === 'function' ? D.icon(name, size) : '');
   const sr = (text, attrs = '') => `<span class="sr"${attrs}>${esc(text)}</span>`;
+  // ⭐ D197 #19 (47n) · THIS VIEW IN THE PLATE — the dock is a plate (47m), so its views draw with the plate's pieces too
+  // (docs/revamp/extension.md M2, "other tabs keep their parts"): an icon control is the plate's small box (radius 8 — D60,
+  // a 1.5 px ink edge, a hard 2 px ink shadow), the one accent press is the clay, a label is the plate's mono label. T26 holds:
+  // no rule between rows, no tinted box, the dock's frame the only surface. No plate palette (an older worker) → no layer.
+  const PL = theme?.plate || {};
+  const MONO_PL = `'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace`;
+  const plateCss = PL.INK ? `
+    .btn { border: 1.5px solid ${PL.INK}; background: ${PL.CARD}; color: ${PL.INK}; box-shadow: 2px 2px 0 ${PL.INK}; }
+    .btn:hover:not(:disabled), .btn:focus-visible { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 ${PL.INK}; }
+    .btn:active:not(:disabled) { transform: translate(1px, 1px); box-shadow: 1px 1px 0 ${PL.INK}; }
+    .btn:disabled { border-style: dashed; box-shadow: none; }
+    .btn.primary { background: ${PL.CLAY}; color: ${PL.ON_CLAY}; }
+    .btn.primary:hover:not(:disabled), .btn.primary:focus-visible { box-shadow: 3px 3px 0 ${PL.INK}; }
+    .hd { font-family: ${MONO_PL}; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: ${PL.MUTED}; }
+    .fc-turn, .fc-tab, .fc-filter { border: 1.5px solid ${PL.INK}; border-radius: 8px; background: ${PL.CARD}; box-shadow: 2px 2px 0 ${PL.INK}; }
+    .fc-tab[aria-selected="true"], .fc-filter[aria-pressed="true"] { background: ${PL.INK}; color: ${PL.CARD}; box-shadow: none; }
+  ` : '';
   /** An icon control: its label is its name and its tooltip. */
   const ibtn = (a) => `<button class="btn${a.primary ? ' primary' : ''}" data-role="${esc(a.role)}" aria-label="${esc(a.label)}" title="${esc(a.label)}">${I(a.icon || 'open')}</button>`;
   // the state as a shape: ready / attached ✓ · needs you ! · generating (pauses) · cancelled ∅ · nothing yet (the tab's icon)
@@ -480,7 +497,7 @@ export function renderResumePanel(model, meta) {
   const mount = (h, label) => {
     const r = h.attachShadow({ mode: 'open' });
     const style = document.createElement('style');
-    style.textContent = css;
+    style.textContent = css + plateCss;   // 47n: the plate layer last
     const p = document.createElement('div');
     p.className = 'rp';
     p.setAttribute('role', 'region');
