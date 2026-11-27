@@ -98,7 +98,8 @@ test("the four surfaces — board side panel, deck panel, phone sheet, public to
   // The board's posting renders ATSPanel … (⭐ D152 (8) (b): the deck's left panel and its sheet are deleted — the deck's
   // match opens in the posting, so the deck draws only its collapsed score through the one adapter.)
   // ⭐ D152 (8): the board's report is the match INSIDE the posting (the side panel over the page is retired).
-  assert.match(code("components/JobDetailPanel.jsx"), /<ATSPanel\b/, "the posting's match");
+  // ⭐ 47m (D199 C7): the posting is the opening sheet — its 02 draws FitCard (D202), the one card
+  assert.match(strip(fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")), /<FitCard jobId=/, "the posting's match");
   const deck = code("panels/DeckView.jsx");
   assert.match(deck, /<AtsBandCard report=\{fromDeckReport\(card\.report\)\}/, "the deck draws the frozen report through the one adapter");
   assert.doesNotMatch(deck, /<ATSPanel\b|DeckAtsReport|AtsSheet/, "the deck's own full report is back");
@@ -106,7 +107,6 @@ test("the four surfaces — board side panel, deck panel, phone sheet, public to
   // ⭐ 46x (owner 11-19, option C): the posting's match is the ATS card now (AtsCard: the number, the four parts, the biggest
   // gain — no claims); the one report component stays the deck's, the public tool's, the signup hook's and the extension's
   // D202 (47h, the owner's yes — moved on purpose): the classic ATS card (components/AtsCard.jsx) is retired; the match panel draws FitCard
-  assert.match(code("components/ATSPanel.jsx"), /<FitCard key=/);
   assert.match(code("pages/tools/ATSToolPage.jsx"), /<AtsReport report=\{fromStandaloneResult\(result\)\}/, "the public tool");
   assert.match(code("components/SignupAtsHook.jsx"), /<AtsBandCard\b/, "the signup hook's band card");
   // T9: the extension's on-page panel (the renderer, in the panel's shadow root) — ⭐ T31: the popup's element went with

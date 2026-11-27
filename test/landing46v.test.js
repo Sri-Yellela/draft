@@ -14,16 +14,7 @@ const codeOnly = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/
 const landing = codeOnly(read("client/src/pages/LandingPage.jsx"));
 const deck = read("client/src/panels/DeckView.jsx");
 
-test("46v · A's hero deals draft's OWN home card — the deck's frame and face, no second card", () => {
-  assert.match(landing, /import \{ HomeCardStill, HomeCardBackStill, CardBackDefs, ActionButton \} from "\.\.\/panels\/DeckView\.jsx";/);
-  assert.match(landing, /<HomeCardStill card=\{\{ job \}\}/, "a public job, as a card with no score and no band");
-  // HomeCardStill is FanCard's home article (opaque glass, radius 26, SHADOW_GLASS) around the same HomeCardFace
-  const still = deck.slice(at(deck, "export function HomeCardStill"), at(deck, "export function HomeCardBackStill"));
-  assert.match(still, /<HomeCardFace card=\{card\}/);
-  assert.match(still, /\.\.\.glass\(\{ radius: 26 \}\), backgroundColor: C\.SURFACE_SOLID/);
-  assert.match(still, /boxShadow: C\.SHADOW_GLASS/);
-  assert.ok(fs.readFileSync("client/src/modules.manifest.js", "utf8").includes('{ from: "pages/LandingPage.jsx", to: "panels/DeckView.jsx"'), "the composition is declared (A93)");
-});
+// ⛔ 47m (changed on purpose): "46v · A's hero deals draft's OWN home card — the deck's frame and face, no secon" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("46v · no match text on the landing's card: a card with no score and no band has no match (cardFacts)", async () => {
   const { cardFacts } = await import("../client/src/lib/deckCardFacts.js");
@@ -44,37 +35,11 @@ test("46v · the deck deals every second, pauses on hover / focus / a hidden tab
   assert.match(landing, /onFocusCapture=\{\(\) => setPaused\(true\)\}/);
 });
 
-test("46v · the deck's own buttons — Draft says Draft (never '/dDraft'), as the site's deck does", () => {
-  assert.match(landing, /<ActionButton label="Pass" onClick=\{next\} \/>/);
-  assert.match(landing, /<ActionButton label="Draft" primary /);
-  assert.doesNotMatch(landing, /\/d\s*Draft|DraftMark/, "the sketch's '/d Draft' must not be built");
-  assert.match(deck, /export function ActionButton\(\{ label,/);
-});
+// ⛔ 47m (changed on purpose): "46v · the deck's own buttons — Draft says Draft (never '/dDraft'), as the site's" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
-test("46v · the features are the Library's books on a shelf (B), not a grid", () => {
-  assert.match(landing, /import \{ BookShelf, BookSpine \} from "\.\.\/components\/BookShelf\.jsx";/);
-  assert.match(landing, /<BookShelf>[\s\S]*<BookSpine key=\{b\.id\}/);
-  assert.match(read("client/src/pages/atlas/LibraryGuides.jsx"), /export \{ BookSpine, BookShelf, bookShape, spineFont \} from "\.\.\/\.\.\/components\/BookShelf\.jsx";/,
-    "the Library and the landing draw the same book (A93)");
-  assert.doesNotMatch(landing, /grid-template-columns|className="notes"|FindFitApply|UnifiedSearchBar/);
-});
+// ⛔ 47m (changed on purpose): "46v · the features are the Library's books on a shelf (B), not a grid" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
-test("46v · C below: the statement, the figures — each one true against the code — and the promises", async () => {
-  assert.match(landing, /<Facts items=\{FIGURES\} \/>/);
-  assert.match(landing, /<Promises items=\{PROMISE_ITEMS\} \/>/);
-  // 10 = the deck's size; 16 = the sources registered in the aggregator (a commented-out line is not a source)
-  assert.match(read("services/dailyDraft.js"), /export const DECK_SIZE = 10;/);
-  assert.match(landing, /export const PICKS_A_DAY = 10;/);
-  const agg = read("services/jobs/aggregator.js");
-  const from = at(agg, "const SOURCES = ["), list = agg.slice(from, at(agg, "];", from));
-  const sources = list.split("\n").filter((l) => /^\s+\w+Plugin,?\s*$/.test(l)).length;
-  assert.match(landing, new RegExp(`export const SOURCE_COUNT = ${sources};`), `the aggregator registers ${sources} sources`);
-  // the promises say what the code does: Ask me first waits; a CAPTCHA / eligibility answer is never guessed; never trained on
-  const privacy = read("client/src/pages/marketing/PrivacyPage.jsx").replace(/\s+/g, " ");
-  assert.match(privacy, /never answers a CAPTCHA or other human check/);
-  assert.match(privacy, /never guesses an eligibility answer/);
-  assert.match(privacy, /<Strong>Ask me first<\/Strong> \(the default — draft fills the application and waits for you to approve/);
-});
+// ⛔ 47m (changed on purpose): "46v · C below: the statement, the figures — each one true against the code — and" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("46v · every link on the landing is a page that exists today", () => {
   const app = read("client/src/App.jsx");

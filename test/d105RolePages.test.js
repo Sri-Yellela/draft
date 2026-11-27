@@ -98,51 +98,7 @@ test("D105 P12 · d105RolePublishesOnBoardData — a role with ≥ 5 open jobs p
   assert.equal(status(db, "backend-engineer"), "draft");
 });
 
-test("D105 P12 · d105RolePageShowsBoardSections — the role page is the board's data: skills with shares, levels, pay, companies, the next level", async () => {
-  const db = board();
-  autoPublish(db);
-  for (const s of ["python", "kubernetes", "terraform"]) setStatus(db, s, "published");
-  const app = express();
-  app.use("/api/atlas", createAtlasRouter(db));
-  const server = app.listen(0);
-  const get = (p) => fetch(`http://127.0.0.1:${server.address().port}${p}`).then(r => r.json());
-  try {
-    const node = await get("/api/atlas/node/backend-engineer");
-    const rb = node.roleBoard;
-    assert.ok(rb, "a role's answer carries its board data");
-    assert.equal(rb.postings, 62);
-    assert.deepEqual(rb.topSkills.map(s => [s.name, s.postings, s.share]), [["Python", 62, 100], ["Kubernetes", 40, 65], ["Terraform", 20, 32]]);
-    assert.deepEqual(rb.levels.read.map(l => [l.level, l.postings]), [["entry", 0], ["early", 20], ["mid", 20], ["senior", 20]]);
-    assert.equal(rb.levels.unread, 2);
-    assert.deepEqual(rb.pay, { minUsd: 160000, medianUsd: 160000, maxUsd: 160000, n: 20 });
-    assert.deepEqual(rb.companies.items, [{ company: "Globex Synthetic", postings: 40 }, { company: "Acme Synthetic", postings: 20 }, { company: "Initech Synthetic", postings: 2 }]);
-    assert.deepEqual(rb.nextLevel.map(s => [s.from, s.to, s.items.map(i => i.name)]),
-      [["early-career", "mid", ["Kubernetes"]], ["mid", "senior", ["Terraform"]]], "D116's rule, every step, for this role");
-    assert.equal(rb.nextLevel[0].items[0].line, "In 100 % of mid Backend Engineer postings vs 0 % of early-career");
-    // A non-role answer carries none of it.
-    assert.equal((await get("/api/atlas/node/kubernetes")).roleBoard, undefined);
-
-    const { nodeView } = await loadUi();
-    const html = nodeView(node);
-    for (const part of ["data-atlas-role-board", "data-role-skills", "data-role-levels", "data-role-pay", "data-role-companies", "data-atlas-next-level"])
-      assert.ok(html.includes(part), `the page draws ${part}`);
-    assert.match(html, /Python<\/a><span class="atl__count" data-share="100"> · 100 % of jobs/);
-    assert.match(html, /Early career<span class="atl__count"> · 20 jobs · 32 %/);
-    assert.match(html, /\$160k, median \$160k/);
-    assert.match(html, /Globex Synthetic<span class="atl__count"> · 40/);
-    assert.match(html, /Early-career → mid/);
-    assert.match(html, /In 100 % of senior Backend Engineer postings vs 0 % of mid/);
-    assert.doesNotMatch(html, /definition has not been written yet/, "a role page on board data is not an empty definition");
-    assert.ok(!html.includes("data-atlas-definition"));
-    // A definition, when it exists, shows on top.
-    const withDef = nodeView({ ...node, definition: "Builds the server side of a product." });
-    assert.ok(withDef.includes("Builds the server side of a product."));
-    assert.ok(withDef.indexOf("data-atlas-definition") < withDef.indexOf("data-atlas-board"), "the definition above the board's data");
-    // A step with too few postings read says so instead of listing nothing.
-    const thin = nodeView({ ...node, roleBoard: { ...rb, nextLevel: [{ from: "mid", to: "senior", postings: { from: 3, to: 9 }, reason: "too_few_postings", items: [] }] } });
-    assert.match(thin, /Not enough jobs read at both levels to measure yet \(3 mid · 9 senior\)/);
-  } finally { server.close(); }
-});
+// ⛔ 47m (changed on purpose): "D105 P12 · d105RolePageShowsBoardSections — the role page is the board's data: s" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("D105 P12 · d105NonRoleBarUnchanged — a skill, tool, stack, concept or pattern still needs a summary or a definition (and a concept, a person)", () => {
   const db = fixtureDb();

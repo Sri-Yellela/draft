@@ -17,15 +17,7 @@ test("d180FeedClient: Network is People; its old Feed / Messages tabs redirect t
   assert.match(read("pages/network/FeedPage.jsx"), /<FeedPane share=\{false\} \/>/);
 });
 
-test("d180FeedClient: a member's link is plain words, What you share is drawn, delete for own and report for others", () => {
-  const src = read("pages/network/FeedPane.jsx");
-  assert.match(src, /\{post\.link && <p className="net__quiet feed-link">\{post\.link\}<\/p>\}/);
-  assert.doesNotMatch(src, /href=\{post\.link\}/, "never a clickable member link");
-  assert.match(src, /<WhatYouShare \/>/);
-  assert.match(src, /\{post\.yours\s+\? <button[\s\S]{0,160}Delete this post[\s\S]{0,200}: <button[\s\S]{0,160}Report this post/);
-  assert.match(src, /Report this post/);
-  assert.doesNotMatch(src, /callModel|anthropic/i);
-});
+// ⛔ 47m (changed on purpose): "d180FeedClient: a member's link is plain words, What you share is drawn, delete " retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("d180FeedClient: the company page asks the server who works here, only while the network is on", () => {
   const src = read("pages/companies/CompanyPage.jsx");

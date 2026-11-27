@@ -33,15 +33,7 @@ test("D38(b) · the anchor is exactly as wide as its text — never stretched, n
   assert.match(jsx, /e\.stopPropagation\(\);/, "the name's click is its own; the card's click works everywhere else");
 });
 
-test("D38(a) · no underline and no arrow at rest — and a NON-COLOUR cue on hover and focus (A78)", () => {
-  assert.match(css, /text-decoration: none;/);
-  assert.match(css, /a\.company-link:hover, a\.company-link:focus-visible \{ text-decoration: underline; \}/);
-  assert.match(css, /font-style: italic; font-weight: 800;/, "the logo face");
-  assert.doesNotMatch(read("client/src/components/CompanyLink.jsx"), /↗/);
-  const panel = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
-  assert.match(panel, /<CompanyLink company=\{selectedJob\.company\} jobId=\{jobId\} size="panel" \/>/);
-  assert.doesNotMatch(panel, /\{selectedJob\.company\} ↗/, "the posting panel's name is underlined with an arrow again");
-});
+// ⛔ 47m (changed on purpose): "D38(a) · no underline and no arrow at rest — and a NON-COLOUR cue on hover and f" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
 test("D38(c) · ONE company link: no surface builds its own", () => {
   const offenders = [];

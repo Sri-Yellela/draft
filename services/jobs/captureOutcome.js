@@ -46,7 +46,7 @@ export const HELD_WHY = Object.freeze({
 
 /** The site's address for one job (the same string jobDetailHref builds on the client). */
 export function jobLink(jobId) {
-  return jobId ? `/app/jobs?job=${encodeURIComponent(jobId)}` : null;
+  return jobId ? `/app/jobs/${encodeURIComponent(jobId)}` : null;   // 47m (D199 C7): a job's address is its opening sheet
 }
 
 function labelOf({ title, company }) {

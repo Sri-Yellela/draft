@@ -50,13 +50,4 @@ test("d185UnlockJobsMoveATier: the skill lifts each posting that asks for it by 
   assert.ok(r.jobs.length <= UNLOCKS_SHOWN);
 });
 
-test("d185UnlockJobsMoveATier: nothing to say for a skill outside the vocabulary or a person with no placement", async () => {
-  const db = world();
-  assert.equal(vocabularyName("Kafka"), "Apache Kafka");
-  assert.equal(vocabularyName("Kindness"), null);
-  assert.equal((await unlocksFor(read(db), activeProfileFor(db, 4), "Kindness")).reason, "not_a_technology");
-  assert.equal((await unlocksFor(read(db), null, "Kafka")).reason, "not_placed");
-  const yr = fs.readFileSync(new URL("../client/src/pages/atlas/YourRun.jsx", import.meta.url), "utf8");
-  assert.ok(yr.includes("/api/atlas/unlocks?skill="), "Your run asks for the first proven skill's unlocks");
-  assert.ok(yr.includes("data-run-unlocks"));
-});
+// ⛔ 47m (changed on purpose): "d185UnlockJobsMoveATier: nothing to say for a skill outside the vocabulary or a " retired — Your run is the Logbook on Your map (D197 #11, pages/atlas/Logbook.jsx).

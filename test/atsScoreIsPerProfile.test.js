@@ -151,45 +151,6 @@ test("both surviving apply sources are scoped to the profile, NULL last", () => 
 // THE ROUTE TO THE TERM LIST — the data gap, and why it is not a backfill
 // ════════════════════════════════════════════════════════════════════════════════════════════
 
-test("an unscored row still offers a way into its ATS report", () => {
-  // 0 of 2,458 active postings carry a stored score, and BOTH halves of the only route were shut:
-  // the badge renders nothing without a score (correctly — a card must not report an absent score
-  // as a verdict) and the handler behind it was gated on the same value. Two right decisions
-  // composing into a dead end on 100% of rows.
-  assert.match(JOB_CARD, /function AtsSlot\(\{ score, onClick \}\)/,
-    "a card needs a control that exists when there is no score");
-  assert.match(JOB_CARD, /if \(score != null && !Number\.isNaN\(score\)\) return <ATSBadge/,
-    "with a score it is still the band badge, unchanged");
-  assert.match(JOB_CARD, /if \(!onClick\) return null;/,
-    "and nothing at all when there is nowhere to go");
-  // The band must not be faked for an unscored row: no band label, no band colour.
-  const slot = JOB_CARD.slice(at(JOB_CARD, "function AtsSlot("), at(JOB_CARD, "function ATSBadge("));
-  assert.doesNotMatch(slot, /atsBandFor|atsBandLabel/,
-    "the neutral control may not consult the band vocabulary — there is no band to report");
+// ⛔ 47m (changed on purpose): "an unscored row still offers a way into its ATS report" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
-  // ⭐ D152 (5), changed on purpose (11-04): the board's bubbles carry no ATS square any more ("the old green ATS box leaves
-  // the bubbles") — an unscored row's way into its report is the opened posting's match box, whose handler is not gated
-  // on a score (JobDetailPanel's onOpen → selectedJobMeta.onAts).
-  assert.equal((JOBS_PANEL.match(/onAts=\{\(\) => openAtsPanel\(buildAtsPayload\(job, g\)\)\}/g) || []).length, 0);
-  // D152 (8) (44t): the opener also names the job, so the match opens inside that posting (option A), not over the page.
-  assert.match(JOBS_PANEL, /onAts: \(\) => openAtsPanel\(buildAtsPayload\(selectedJob, g2\), selectedJob\),/);
-  // ⭐ D152 (8): the match box opens the report IN the posting — ATSPanel, which fetches it on demand when handed none.
-  assert.match((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */, /onOpen=\{\(\) => \{ setMatchMounted\(true\); setMatchOpen\(o => !o\); \}\}/);
-  assert.match((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */, /<ATSPanel report=\{selectedJobMeta\?\.atsPayload\?\.report\}/);
-  noLiveMatch(JOBS_PANEL, /if \(g\?\.atsReport \|\| g\?\.atsScore != null/,
-    "the handler may not require the report it exists to go and fetch");
-  assert.equal((JOB_CARD.match(/<AtsSlot score=/g) || []).length, 2);
-  noLiveMatch(JOB_CARD, /<ATSBadge score=\{g\?\.atsScore/,
-    "no call site may reach past the slot to the badge");
-});
-
-test("the report payload names its own job, so the panel fetches the right one", () => {
-  // ATSPanel scores on demand when it is handed no report — that is the answer to "backfill or per
-  // request": per request, for the one posting being looked at, ~7ms. But it can only do that if it
-  // knows WHICH posting, and it used to take that from `selectedJob`, the JD drawer's state. A card
-  // click on a board with nothing selected therefore fetched nothing at all.
-  assert.match(JOBS_PANEL, /jobId: job\?\.jobId \|\| job\?\.id \|\| null,/);
-  // ⭐ D152 (8): the match is inside the posting the report is about — its own job, and an opener selects that job first.
-  assert.match(JOB_DETAIL, /<ATSPanel report=\{selectedJobMeta\?\.atsPayload\?\.report\} score=\{selectedJobMeta\?\.atsPayload\?\.score\}\s+jobId=\{selectedJob\.jobId\}/);
-  assert.match(JOBS_PANEL, /if \(job && selectedJobIdRef\.current !== job\.jobId\) setSelectedJob\(job\);/);
-});
+// ⛔ 47m (changed on purpose): "the report payload names its own job, so the panel fetches the right one" retired — ATSPanel (the posting's report loader) is deleted with the posting: the sheet's 02 draws FitCard, which reads its own report (D202).

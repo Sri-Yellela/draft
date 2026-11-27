@@ -63,9 +63,4 @@ test("D120 P2 · d120DirectionLine — the one line of direction (Next up), read
   assert.match(read("client/src/pages/atlas/AtlasPanels.jsx"), /me\?\.tree \? directionLine\(me\.tree\) : null/);
 });
 
-test("D120 P2 · retired with A228 — the old home, its course block and its grid are gone; a query is still the search page", () => {
-  assert.ok(!fs.existsSync("client/src/pages/atlas/YourCourse.jsx"), "Your course went with the home it sat on");
-  assert.doesNotMatch(read("client/src/pages/atlas/YourMap.jsx").replace(/\/\/[^\n]*/g, ""), /export function (AtlasHome|ExploreHome|Families)\b|mapSections/);
-  assert.doesNotMatch(read("client/src/pages/atlas/AtlasPage.css"), /^\.atl-home \{/m);
-  assert.match(read("client/src/pages/atlas/AtlasPage.jsx"), /\{!slug && q && <AtlasSearch base=\{base\} q=\{q\} \/>\}/);
-});
+// ⛔ 47m (changed on purpose): "D120 P2 · retired with A228 — the old home, its course block and its grid are go" retired — the surface it pinned was rebuilt in the plate system (47m M5).

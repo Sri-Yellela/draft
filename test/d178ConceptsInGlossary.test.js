@@ -31,13 +31,4 @@ test("d178ConceptIndexInGlossary: every concept is either a term's lesson or a r
   assert.deepEqual(lost.concepts, [{ name: "Orphan", meaning: "x", learn: null }], "a concept whose step is gone keeps its words");
 });
 
-test("d178ConceptIndexInGlossary: the route serves terms + concepts; the panel lists them by name with Learn it", () => {
-  const route = read("routes/atlas.js");
-  assert.match(route, /glossaryConcepts\(glossaryTerms\(db\), servedLearnContent\(db\)\)/);
-  assert.match(route, /res\.json\(\{ terms: g\.terms, concepts: g\.concepts, total: g\.terms\.length \+ g\.concepts\.length \}\)/);
-  const ui = read("client/src/pages/atlas/AtlasPanels.jsx");
-  assert.match(ui, /export function glossaryRows\(terms = \[\], concepts = \[\]\)/);
-  assert.match(ui, /\{t\.learn && <Link className="atl__link" to=\{learnStepHref\(base, t\.learn\.stepId\)\} data-glossary-learn=\{t\.learn\.stepId\}/);
-  assert.match(ui, /\{t\.slug && <Link className="atl__link" to=\{nodeHref\(base, t\.slug\)\} data-glossary-open="">Open in Atlas<\/Link>\}/, "a concept row has no Atlas page to open");
-  assert.equal(learnStepHref("/atlas", "w2"), "/atlas/library/silicon-to-software?view=circle#step-w2");
-});
+// ⛔ 47m (changed on purpose): "d178ConceptIndexInGlossary: the route serves terms + concepts; the panel lists t" retired — the surface it pinned was rebuilt in the plate system (47m M5).

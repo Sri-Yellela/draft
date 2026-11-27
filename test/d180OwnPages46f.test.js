@@ -43,20 +43,7 @@ test("d180OwnPages46f: both pages ask the switch first and say so when off — a
   }
 });
 
-test("d180OwnPages46f: Feed = the posts column beside What you share; Messages = the list beside the open conversation", () => {
-  assert.match(FEED, /<div className="net-cols__main"><FeedPane share=\{false\} \/><\/div>/);
-  assert.match(FEED, /<aside className="net-cols__side"[^>]*>\s*<WhatYouShare \/>/);
-  assert.match(MSGS, /const open = Number\(new URLSearchParams\(location\.search\)\.get\("thread"\)\) \|\| null;/);
-  assert.match(MSGS, /<Inbox box=\{box\} said=\{said\} openId=\{open\} onOpen=\{openThread\} \/>/);
-  assert.match(MSGS, /<Thread key=\{open\} id=\{open\}/);
-  assert.match(PANE, /export \{ Thread \};/);
-  assert.match(PANE, /export function useInbox\(\) \{/);
-  assert.match(PANE, /useSyncEvents\(\{ network_message: \(\) => load\(\) \}\);/, "the list stays live");
-  assert.match(PANE, /aria-current=\{Number\(openId\) === Number\(t\.id\) \? "true" : undefined\}/, "the open one is marked");
-  const css = read("client/src/pages/network/NetworkPage.css");
-  assert.match(css, /\.msg-cols--open \.msg-cols__list, \.msg-cols:not\(\.msg-cols--open\) \.msg-cols__thread \{ display: none; \}/, "a phone shows one or the other");
-  assert.doesNotMatch(css, /999px/, "D60 (test/d60NoPills.test.js guards the rest)");
-});
+// ⛔ 47m (changed on purpose): "d180OwnPages46f: Feed = the posts column beside What you share; Messages = the l" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("d180OwnPages46f: old addresses and the unread notification reach the new pages; the manifest lists the files", () => {
   assert.match(read("services/notify.js"), /url: "\/app\/messages", defaults: \{ push: false, email: false \}/);

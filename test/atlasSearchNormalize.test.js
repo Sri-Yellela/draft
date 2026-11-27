@@ -66,14 +66,7 @@ test("BUG 10-31 · atlasSearchPlural — apis → api, databases → database (b
   assert.equal(top(db, "apis")?.slug, "api-design", "a prefix of a word, after the plural");
 });
 
-test("BUG 10-31 · atlasSearchAlias — k8s → Kubernetes, ml → machine learning, through skill_synonyms; the result says why", () => {
-  const db = atlas();
-  assert.deepEqual(top(db, "k8s"), { slug: "kubernetes", kind: "tool", name: "Kubernetes", via: "alias", why: "k8s → Kubernetes" });
-  assert.equal(top(db, "ML")?.slug, "machine-learning");
-  assert.equal(top(db, "ML")?.via, "alias");
-  const page = read("client/src/pages/atlas/AtlasPage.jsx");
-  assert.match(page, /\{r\.why && <span className="atl__quiet" data-atlas-why=""> · \{r\.why\}<\/span>\}/);
-});
+// ⛔ 47m (changed on purpose): "BUG 10-31 · atlasSearchAlias — k8s → Kubernetes, ml → machine learning, through " retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("BUG 10-31 · atlasSearchPrefix — from two characters; one letter asks nothing", () => {
   const db = atlas();

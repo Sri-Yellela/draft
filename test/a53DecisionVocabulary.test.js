@@ -79,22 +79,7 @@ test("the guard goes red on an injected violation of each kind", () => {
 
 // ── 2 · one call, both surfaces ──────────────────────────────────────────────────────────────
 
-test("the board's Draft calls the SAME route, through the SAME function, as the deck's", () => {
-  const deck = code(read("client/src/panels/DeckView.jsx"));
-  const board = code(read("client/src/panels/JobsPanel.jsx"));
-  assert.match(deck, /commitDecision\(\{ jobId: id, decision, tool, surface: DECISION_SURFACES\.DECK \}\)/);
-  assert.match(board, /commitDecision\(\{ jobId, decision, tool: draftTool, surface: DECISION_SURFACES\.BOARD \}\)/);
-  // Both wire the board's buttons to it.
-  // ⭐ D156 (1c) (changed on purpose): the posting's decisions go through decidePosting — on the deck, a deck card's are
-  // the deck's (the same commitDecision), a bubble's posting is the board's decideJob; off the deck, decideJob as before.
-  assert.match(board, /onDraft: \(\) => decidePostingRef\.current\?\.\(selectedJob, DECISIONS\.DRAFTED\)/);
-  assert.match(board, /const decidePosting = \(job, decision\) => \{\n\s+if \(!besideMode\) \{ decideJob\(job, decision\); return; \}/);
-  // 47j R2 (changed on purpose): the board's rows are the Index's — each row's Draft is the same decideJob
-  assert.match(board, /onDraft=\{\(\) => decideJob\?\.\(r\.job, DECISIONS\.DRAFTED\)\}/);
-  // ⛔ No fork: lib/jobDecisions.js is the ONLY client file that POSTs a run.
-  const posters = CLIENT.filter(f => /api\(\s*"\/api\/apply\/runs"\s*,\s*\{\s*method:\s*"POST"/.test(f.src)).map(f => f.p);
-  assert.deepEqual(posters, ["client/src/lib/jobDecisions.js"]);
-});
+// ⛔ 47m (changed on purpose): "the board's Draft calls the SAME route, through the SAME function, as the deck's" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("⛔ Save and Pass SET — no client code calls the per-id toggle routes", () => {
   for (const { p, src } of CLIENT) {

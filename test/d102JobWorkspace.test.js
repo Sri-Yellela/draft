@@ -17,15 +17,7 @@ test("D102 P5 · /app/job/:id is a route of its own — not bounced to the board
   assert.match(app, /\{activeTab === "job" && jobRoute && <AreaErrorBoundary area="job" \{\.\.\.areaGuard\}><JobWorkspacePanel \{\.\.\.\(jobByJobId \? \{ jobId: decodeURIComponent\(jobRoute\[1\]\) \} : \{ applicationId: jobRoute\[1\] \}\)\}\/><\/AreaErrorBoundary>\}/);
 });
 
-test("D102 P5 · the page reads the one detail route and shows the five tabs; Needs-you first; Approve is a click", () => {
-  assert.match(page, /: `\/api\/pipeline\/job\/\$\{encodeURIComponent\(applicationId\)\}`;/);
-  assert.match(page, /try \{ setD\(await api\(path\)\); \}/);
-  for (const t of ["Checklist", "Résumé", "Form", "Job", "Emails"]) assert.match(page, new RegExp(`"${t}"\]`), t);
-  assert.match(page, /const needs = fields\.filter\(f => f\.skipped \|\| f\.value == null \|\| f\.value === ""\);/);
-  assert.match(page, /onClick=\{\(\) => decidePending\(\[d\.runJobId\], true\)\}/, "D36·5: only a click sends");
-  assert.match(page, /\{d\.form\?\.approvable && d\.runJobId && \(/, "Approve only when the server says it is approvable");
-  assert.match(page, /title=\{SOURCE_WORDS\[f\.source\] \|\| f\.provenance \|\| ""\}/, "every value says where it came from");
-});
+// ⛔ 47m (changed on purpose): "D102 P5 · the page reads the one detail route and shows the five tabs; Needs-you" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("D102 P5 · The Table's History opens a row's page by its record id", () => {
   assert.match(history, /href=\{`\/app\/job\/\$\{row\.recordId\}`\}/);

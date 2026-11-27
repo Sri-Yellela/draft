@@ -74,7 +74,7 @@ test("the four outcomes, each in its own words, each with a link to the job on d
   assert.equal(att.matchedExisting, true);
   // v1.5.2 (owner 10-12): ONE wording after a capture that matched a board job
   assert.equal(att.message, "Backend Engineer at Northwind is on your board and in your imports.");
-  assert.equal(att.link, "/app/jobs?job=greenhouse%3Anorthwind%3A1");
+  assert.equal(att.link, "/app/jobs/greenhouse%3Anorthwind%3A1");   // 47m (D199 C7): the job's address is its opening sheet
 
   const held = describeCapture(d, { jobId: "greenhouse:northwind:2", action: "attached", ...t });
   assert.equal(held.outcome, "held", "an attach to a held row is reported as HELD — 'already on the board' would be false");

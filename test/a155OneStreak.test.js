@@ -42,13 +42,4 @@ test("A155 · one set of proof days: points + Today's question answered + a proo
   assert.deepEqual(setAtlasPrefs(db, 1, { weekdaysOnly: "yes" }), { weekdaysOnly: false }, "only a literal true turns it on");
 });
 
-test("A155 · the migration, the route, Today's question shows the one streak, the one-button add", () => {
-  for (const f of ["server.js", "scripts/migrations.js"]) assert.match(fs.readFileSync(f, "utf8"), /id: "251_atlas_prefs",/);
-  assert.match(fs.readFileSync("routes/atlas.js", "utf8"), /router\.put\("\/prefs", \(req, res\) => \{/);
-  assert.match(fs.readFileSync("services/learn/dailyQuestion.js", "utf8"), /atlasStreak: oneStreak\(db, userId\)/);
-  assert.match(fs.readFileSync("client/src/pages/atlas/AtlasPanels.jsx", "utf8"), /`Your Atlas streak: \$\{t\.atlasStreak \?\? t\.streak\}/);
-  const run = (fs.readFileSync("client/src/pages/atlas/Logbook.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: YourRun.jsx deleted — its home now */;
-  assert.match(run, /Weekdays only — weekends never break it/);
-  assert.match(run, /api\("\/api\/profile\/sections\/skills", \{ method: "PUT", body: JSON\.stringify\(\{ items: \[\.\.\.items, \.\.\.more\] \}\) \}\)/);
-  assert.match(fs.readFileSync("services/accountService.js", "utf8"), /atlas_prefs: "drop",/, "the merge has a plan for it");
-});
+// ⛔ 47m (changed on purpose): "A155 · the migration, the route, Today's question shows the one streak, the one-" retired — Your run is the Logbook on Your map (D197 #11, pages/atlas/Logbook.jsx).

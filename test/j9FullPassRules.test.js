@@ -174,10 +174,11 @@ test("J9 (A232 R3): the dock's frame paints SURFACE_MENU from the palette of EAC
   assert.notEqual(C_LIGHT.SURFACE_MENU, C_DARK.SURFACE_MENU, "the two schemes differ, so painting the wrong one would show");
   const fs = await import("node:fs");
   const dock = fs.readFileSync("extension/dock.js", "utf8").replace(/\r\n/g, "\n");
-  // the light palette on :host, the dark one under the page's prefers-color-scheme: dark — and nothing else picks it
-  assert.match(dock, /:host \{ all: initial; \$\{varsOf\(theme\?\.light\)\} \}\n    @media \(prefers-color-scheme: dark\) \{ :host \{ \$\{varsOf\(theme\?\.dark\)\} \} \}/);
+  // the light palette on :host (+ the plate's, D197 #19 47m), the dark one under the page's prefers-color-scheme: dark — and nothing else picks it
+  assert.match(dock, /:host \{ all: initial; \$\{varsOf\(theme\?\.light\)\} \$\{plVarsOf\(theme\?\.plate\)\} \}\n    @media \(prefers-color-scheme: dark\) \{ :host \{ \$\{varsOf\(theme\?\.dark\)\} \} \}/);
   // the frame's background IS that variable
-  assert.match(dock, /\.fr \{ position: absolute;[^}]*background: var\(--c-surface-menu\);/);
+  // ⭐ D197 #19 (47m): the frame is a plate — paper, with SURFACE_MENU as the fallback for a service worker without the plate palette
+  assert.match(dock, /\.fr \{ position: absolute;[^}]*background: var\(--pl-paper, var\(--c-surface-menu\)\);/);
   // varsOf turns SURFACE_MENU into --c-surface-menu with the palette's own value (the dock's function, run here)
   const def = dock.match(/const varsOf = (\(pal\) => [^\n]+);/);
   assert.ok(def, "varsOf is where the dock defines it");

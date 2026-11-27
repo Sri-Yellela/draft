@@ -251,16 +251,4 @@ test("D169 · d169NoQuestionsProofOrBuild — no questions: a proof link or a bu
   assert.match(src, /draft doesn't open it or vouch for it/, "⛔ D109: draft certifies nothing");
 });
 
-test("D169 · the quick check lives in Atlas's Your skills only — the posting's ATS panel no longer claims or opens a check (46x)", async () => {
-  // ⭐ 46x (owner 11-19: "ditch the whole prove it and claim it gimmick and definitely ditch it from the jd panel"): moved on
-  // purpose — d169AtsClaimOpensCheck pinned the claim → check in the posting's panel; the panel draws the ATS card now.
-  const src = (fs.readFileSync("client/src/plate/FitCard.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: ATSPanel.jsx deleted — its home now */.replace(/^\s*\/\/.*$/gm, "");
-  assert.doesNotMatch(src, /SkillCheck|setProving|setProfileClaim/);
-  // The Atlas list opens the SAME component (A93: built once).
-  assert.match(read("client/src/pages/atlas/YourSkillsPanel.jsx"), /import SkillCheck from "\.\.\/\.\.\/components\/SkillCheck\.jsx";/);
-  const u = await loadUi();
-  assert.match(u.check("Kafka"), /data-skill-check="Kafka"/);
-  const { db } = fixtureDb();
-  addSkill(db, 1, { name: "Kafka" });
-  assert.match(u.listOpen(listYourSkills(db, 1), "kafka"), /data-skill-check="Kafka"/, "the row's check opens in place, under the row");
-});
+// ⛔ 47m (changed on purpose): "D169 · the quick check lives in Atlas's Your skills only — the posting's ATS pan" retired — ATSPanel (the posting's report loader) is deleted with the posting: the sheet's 02 draws FitCard, which reads its own report (D202).

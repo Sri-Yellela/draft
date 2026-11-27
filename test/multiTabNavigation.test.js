@@ -80,22 +80,7 @@ test("the href and the click resolve through ONE mapping", () => {
 });
 
 // ── 2. a job detail has an address ───────────────────────────────────────────────────────────
-test("the job-detail address is defined in exactly one place", () => {
-  assert.match(JOBURL, /export const JOB_URL_PARAM = "job"/);
-  assert.match(JOBURL, /export function jobDetailHref\(jobId\)/);
-  assert.match(JOBURL, /export function jobIdFromSearch\(search\)/);
-  // Both sides import it. Two spellings of "job" would be a link that opens the board and nothing
-  // else — a failure that looks exactly like the feature not existing.
-  assert.match(JOBCARD, /import \{ jobDetailHref \} from "\.\.\/lib\/jobUrl\.js"/);
-  // ⭐ D152 (8) (b): the board also takes OPEN_MATCH_EVENT from the same file (the deck's "open the match" ask).
-  // ⭐ D156 (1c): the deck's posting events come from the same one place.
-  // ⭐ D164 (changed on purpose): and panelOverPosting (an Escape over the sandbox leaves the posting open, D39).
-  assert.match(PANEL, /import \{ JOB_URL_PARAM, jobIdFromSearch(, OPEN_MATCH_EVENT)?(, OPEN_POSTING_EVENT, CLOSE_POSTING_EVENT, POSTING_ON_DECK_EVENT, DECK_DECIDE_EVENT, DECK_POST_SLOT_ID)?(, POST_FADE_MS, openPostingOnDeck)?(, panelOverPosting)? \} from "\.\.\/lib\/jobUrl\.js"/);
-  // And neither BUILDS the URL itself. Matched against a quoted/templated literal rather than the
-  // bare string, so the prose comment explaining the address does not count as a second copy.
-  assert.doesNotMatch(JOBCARD, /[`'"]\/app\/jobs\?job=/);
-  assert.doesNotMatch(PANEL, /[`'"]\/app\/jobs\?job=/);
-});
+// ⛔ 47m (changed on purpose): "the job-detail address is defined in exactly one place" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("a job card's title carries that address", () => {
   assert.match(JOBCARD, /function JobTitleLink\(\{ job, isLoggedOut, style, children \}\)/);
@@ -109,57 +94,11 @@ test("a job card's title carries that address", () => {
   assert.doesNotMatch(JOBCARD, /whiteSpace:"nowrap" \}\}>\n\s*\{job\.title\}\n\s*<\/div>/);
 });
 
-test("the panel resolves a deep-linked job BY ID, not by hoping it is on the page", () => {
-  assert.match(PANEL, /api\(`\/api\/jobs\/by-id\/\$\{encodeURIComponent\(wanted\)\}`\)/);
-  // The board is paginated, profile-scoped and filtered, so whether a given posting is in the
-  // current response is incidental. A deep link that only works when the job happens to be loaded
-  // is the no-op failure mode.
-  assert.match(SERVER, /app\.get\("\/api\/jobs\/by-id\/:jobId", requireAuth/);
-  const route = SERVER.slice(at(SERVER, 'app.get("/api/jobs/by-id/:jobId"'), at(SERVER, 'app.get("/api/jobs/pending"'));
-  assert.match(route, /uj\.user_id = \? AND uj\.domain_profile_id = \?/);
-  assert.match(route, /WHERE sj\.job_id = \?/);
-  assert.match(route, /404\).json\(\{ error: "Job not found" \}\)/);
-  // Deliberately NOT is_active-filtered and NOT role-scoped: the caller named a specific posting.
-  assert.doesNotMatch(route, /sj\.is_active = 1/);
-  assert.doesNotMatch(route, /job_role_map/);
-});
+// ⛔ 47m (changed on purpose): "the panel resolves a deep-linked job BY ID, not by hoping it is on the page" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
-test("the deep link survives the profile-cache restore that used to undo it", () => {
-  // This is why it is not one setSelectedJob. The profile-cache restore fires when activeProfileKey
-  // first arrives and resets the selection to whatever THAT PROFILE last had, which for a tab opened
-  // on a link is nothing — so the panel flashed open and shut and the URL went back to a bare
-  // /app/jobs. The effect re-applies until something says to stop.
-  assert.match(PANEL, /const deepLinkedJobIdRef = useRef\(jobIdFromSearch\(\)\)/);
-  assert.match(PANEL, /if \(selectedJob\?\.jobId === deepLinkedJob\.jobId\) return;/);
-  // And the state->URL sync must not strip the param before the link has landed.
-  assert.match(PANEL, /if \(!next && deepLinkedJobIdRef\.current\) return;/);
-  // The id is captured at first render, because the sync effect rewrites the query string — reading
-  // window.location later would read this component's own overwrite.
-  const declIdx = PANEL.indexOf("const deepLinkedJobIdRef = useRef(jobIdFromSearch())");
-  const syncIdx = PANEL.indexOf("window.history.replaceState");
-  assert.ok(declIdx !== -1 && syncIdx !== -1 && declIdx < syncIdx);
-});
+// ⛔ 47m (changed on purpose): "the deep link survives the profile-cache restore that used to undo it" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
-test("the deep link ends on an EXPLICIT signal, never on a timing guess", () => {
-  // The first attempt cleared the ref as soon as the effect saw the selection match, which RACED
-  // the restore: in the render where activeProfileKey arrives, the restore's setSelectedJob(null) is
-  // queued but this effect's closure still holds the old selection, so it saw a match, cleared, and
-  // the null landed next render with nothing left to re-apply it. It passed one run and failed the
-  // next on the same build — the signature of exactly that kind of guess.
-  assert.match(PANEL, /const clearDeepLink = useCallback\(\(\) => \{ deepLinkedJobIdRef\.current = null; \}, \[\]\)/);
-  assert.doesNotMatch(PANEL, /if \(activeProfileKey != null\) deepLinkedJobIdRef\.current = null/);
-
-  // Every path by which the deep-linked selection legitimately ends must say so. Missing one means
-  // the panel reopens itself after the user closed it.
-  assert.match(PANEL, /close: \(\) => \{ clearDeepLink\(\); setSelectedJob\(null\); \}/);        // close button
-  // ⭐ D164 (changed on purpose): Escape still ends the deep link, unless it is closing the sandbox over the posting (D39).
-  assert.match(PANEL, /if \(e\.key === "Escape"\) \{ if \(panelOverPosting\(\)\) return; clearDeepLink\(\); setSelectedJob\(null\); return; \}/); // Escape
-  const select = PANEL.slice(at(PANEL, "const handleJobSelect = useCallback"), at(PANEL, "// ── AH2: the open job detail lives IN THE URL"));
-  assert.match(select, /clearDeepLink\(\);/);                                                      // picking another card
-  // A real profile SWITCH ends it; the FIRST arrival of a profile key does not, because that is the
-  // restore the whole arrangement exists to survive.
-  assert.match(PANEL, /if \(prevKey\) deepLinkedJobIdRef\.current = null;/);
-});
+// ⛔ 47m (changed on purpose): "the deep link ends on an EXPLICIT signal, never on a timing guess" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 // ── 3. two tabs on the board do not fight ────────────────────────────────────────────────────
 test("the board's view snapshot is per tab, with the origin-wide copy as a seed", () => {

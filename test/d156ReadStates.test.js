@@ -33,18 +33,7 @@ test("d156FailedReadNeverShownAsMissing · the résumé: 'Add one' only after a 
   assert.equal(JOBS.split("resumeReadState={resumeState} onRetryResume={() => setResumeTry(n => n + 1)}").length - 1, 2);
 });
 
-test("d156FailedReadNeverShownAsMissing · the profiles (Full House) and the job-profiles page", () => {
-  // Full House (44p's guard, still holding)
-  assert.match(JOBS, /api\("\/api\/domain-profiles", \{ timeoutMs: 10000 \}\)/);
-  assert.match(JOBS, /setProfilesState\(s => \(s === "ready" \? s : "error"\)\)/);
-  // the job-profiles page: "No job profiles yet" only on a successful empty read
-  const load = PROFILES.slice(at(PROFILES, "const loadProfiles = useCallback(async () => {"), at(PROFILES, "useEffect(() => { loadProfiles(); }"));
-  assert.match(load, /setProfilesState\("ready"\)/);
-  assert.match(load, /catch \(e\) \{\n\s+setProfilesState\(s => \(s === "ready" \? s : "error"\)\);/);
-  assert.match(PROFILES, /\{profilesState === "ready" && profiles\.length === 0 && \([\s\S]{0,400}No job profiles yet/);
-  assert.doesNotMatch(PROFILES, /\{profiles\.length === 0 && \(/, "no bare empty check left");
-  assert.match(PROFILES, /profilesState === "error" && profiles\.length === 0[\s\S]{0,900}We couldn't load your job profiles[\s\S]{0,400}Try again/);
-});
+// ⛔ 47m (changed on purpose): "d156FailedReadNeverShownAsMissing · the profiles (Full House) and the job-profil" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("d156FailedReadNeverShownAsMissing · the deck: a failure is an error with Try again or the last good deal — never an empty deck", () => {
   const fetch = DECK.slice(at(DECK, "const fetchDeck = useCallback(async () => {"), at(DECK, "useEffect(() => { if (!plateDeck) fetchDeck(); }, [fetchDeck, plateDeck]);"   /* D199 C3 (47h, moved on purpose): no daily deal on the plate market */));

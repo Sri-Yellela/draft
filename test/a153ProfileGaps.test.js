@@ -34,37 +34,6 @@ test("A153 · schools carry logos like employers; the public header offers Get s
   assert.match(run, /href=\{`\/in\/\$\{proofPage\.handle\}`\}/);
 });
 
-test("A153 part 2 · photo on the profile, the page's own replace, edited marks, counts as proof, Behind as folded rows", () => {
-  const yp = fs.readFileSync("client/src/pages/profile/YourProfile.jsx", "utf8");
-  assert.match(yp, /function PhotoUpload\(\{ has \}\)/);
-  assert.match(yp, /await api\("\/api\/account\/avatar", \{ method: "POST", body: form \}\);\s*announceAccountChanged\(\);/, "the account's one picture");
-  assert.match(yp, /await api\("\/api\/parse-pdf", \{ method: "POST", body: form \}\);/);
-  // D186-3 (45s, on purpose): the replace goes through replaceInto(profileId, …) — with no profile the upload MAKES one.
-  assert.match(yp, /\/api\/domain-profiles\/\$\{profileId\}\/base-resume/);
-  assert.match(yp, /await replaceInto\(page\.activeProfileId, text, file\.name\);/);
-  assert.match(yp, /window\.dispatchEvent\(new Event\(RESUME_REPLACED_EVENT\)\);/, "then What changed (P2)");
-  for (const id of ["contact", "defaults", "resumes", "skills", "tailoring", "proofpage"]) assert.ok(yp.includes(`<BehindRow id="${id}"`), id);
-  assert.match(yp, /\{mounted \? children : null\}/, "a row mounts its editor only once opened");
-  assert.match(fs.readFileSync("services/profilePage.js", "utf8"), /activeProfileId: safe\(\(\) => db\.prepare\(`SELECT id FROM domain_profiles WHERE user_id = \? AND is_active = 1 LIMIT 1`\)/);
-  const ps = fs.readFileSync("client/src/components/ProfileSections.jsx", "utf8");
-  assert.match(ps, /source === "user" \? <span data-edited-by-you=""/);
-  assert.equal((ps.match(/<EditedMark source=\{x\.source\} theme=\{theme\} \/>/g) || []).length, 3, "experience, projects, education");
-  // provesSkills, run from the component's own source: whole words, your skills, only with a proof link
-  const start = ps.indexOf("export function provesSkills("), end = ps.indexOf("\nfunction Box(", start);
-  const provesSkills = new Function(`${ps.slice(start, end).replace("export function", "function")}; return provesSkills;`)();
-  const sk = [{ name: "Kafka" }, { name: "Go" }, { name: "C++" }, { name: "Java" }];
-  assert.deepEqual(provesSkills({ backed: true, name: "Tidewatch", description: "A Kafka pipeline in Go, C++ core" }, sk), ["Kafka", "Go", "C++"]);
-  assert.deepEqual(provesSkills({ backed: true, name: "JavaScript app", description: "good stuff" }, sk), [], "Java is not JavaScript; Go is not good");
-  assert.deepEqual(provesSkills({ backed: false, name: "Kafka" }, sk), [], "no proof link, no claim");
-});
+// ⛔ 47m (changed on purpose): "A153 part 2 · photo on the profile, the page's own replace, edited marks, counts" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
-test("A223 (46r) · 'Add a photo' sits beside the avatar — the full-width head row's free space goes after it, not around it", () => {
-  const css = "" /* 47m: YourProfile.css deleted */;
-  assert.match(css, /\.yp__headrow \{ display: flex; justify-content: space-between;/);
-  assert.match(css.match(/^\.yp__photo \{([^}]*)\}/m)[1], /margin-right: auto;/);
-  // the order the row draws: the avatar, the photo control, then the actions
-  const yp = fs.readFileSync("client/src/pages/profile/YourProfile.jsx", "utf8");
-  const from = at(yp, '<div className="yp__headrow">');
-  const row = yp.slice(from, at(yp, '<h2 className="yp__name">', from));
-  assert.ok(at(row, "yp__avatar") < at(row, "<PhotoUpload") && at(row, "<PhotoUpload") < at(row, 'className="yp__acts"'));
-});
+// ⛔ 47m (changed on purpose): "A223 (46r) · 'Add a photo' sits beside the avatar — the full-width head row's fr" retired — Your profile is the plate passport (D197 #9): its look is plate/personPages.css.

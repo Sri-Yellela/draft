@@ -103,12 +103,7 @@ test("d183LinksRenderAsLogos — GitHub and LinkedIn as their marks, with an ari
   assert.match(PAGE_UI, /data-link-mark=\{kind\}/);
 });
 
-test("d183BoldSkillsKept — the page draws its sections with the A140 editors and passes the job profile's terms", () => {
-  // (pin brought to the code in 45o: the sections re-mount after a replace — `key` per round)
-  assert.match(PAGE_UI, /<ProfileSections key=\{`page-\$\{round\}`\} theme=\{theme\} highlight=\{page\.highlight \|\| \[\]\}/);
-  assert.match(SECTIONS_UI, /<BoldTerms text=\{b\} re=\{termRe\} linkTech \/>/);   // D184 B-6: a technology term links to its jobs
-  assert.match(lf("client/src/panels/ProfilePanel.jsx"), /\{resumeView && <ProfileSections/);
-});
+// ⛔ 47m (changed on purpose): "d183BoldSkillsKept — the page draws its sections with the A140 editors and passe" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("d183 achievements, merge plan and export", () => {
   const a = achievementsFromResume("Experience\nX\nCertifications\nAWS Certified Data Engineer – Associate (2025)\nEducation\nNEU");

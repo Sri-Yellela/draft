@@ -241,31 +241,7 @@ test("D108 P3 · the facts feed D104's eligibility as CONTEXT only — the verdi
   assert.match(src, /const verdict = eligibilityOf\(req, defaults, degrees\);/);
 });
 
-test("D108 P3 · Atlas role pages: 'Sponsors who hire this role' — computed from active postings + LCA facts, published roles only", async () => {
-  const db = await factDb();
-  const node = (slug, name, term, status) => db.prepare(`INSERT INTO atlas_nodes (slug, kind, name, term, status, source) VALUES (?, 'role', ?, ?, ?, 'test')`).run(slug, name, term, status);
-  node("software-engineer", "Software Engineer", "software engineer", "published");
-  node("senior-software-engineer", "Senior Software Engineer", "senior software engineer", "published");
-  node("data-engineer", "Data Engineer", "data engineer", "draft");
-  const job = (id, title, company, active = 1) => db.prepare(`INSERT INTO scraped_jobs (job_id,title,company,url,apply_url,search_query,_hash,description,is_active)
-    VALUES (?,?,?,?,?,?,?,?,?)`).run(id, title, company, `https://x.test/${id}`, `https://x.test/${id}`, "t", `h${id}`, "x", active);
-  job("1", "Software Engineer, Payments", "Zentrix Labs");
-  job("2", "Software Engineer II", "Zentrix Labs");
-  job("3", "Senior Software Engineer", "Tinyco");            // the longer role wins — not this page's
-  job("4", "Software Engineer", "Quillfeather");             // no safe LCA match → not listed
-  job("5", "Software Engineer", "Tinyco", 0);                // inactive
-  job("6", "Data Engineer", "Zentrix Labs");
-  const s = sponsorsForRole(db, "software-engineer");
-  assert.deepEqual(s.map(x => [x.company, x.postings, x.filings]), [["Zentrix Labs", 2, 290]]);
-  assert.equal(s[0].source.name, LCA_SOURCE_NAME);
-  assert.deepEqual(sponsorsForRole(db, "senior-software-engineer").map(x => x.company), ["Tinyco"]);
-  assert.deepEqual(sponsorsForRole(db, "data-engineer"), [], "a draft node shows nothing");
-  assert.match(read("routes/atlas.js"), /node\.kind === "role" \? \(\(\) => \{ try \{ return sponsorsForRole\(db, node\.slug\);/);
-  // D121 P3 renamed it: "Companies hiring <role> that sponsor", each with the ONE signal's chip.
-  // ⭐ D172 (changed on purpose): the section is the role card's "Companies that sponsor" pane (one card, on demand).
-  assert.match(read("client/src/pages/atlas/AtlasPage.jsx"), /data-atlas-sponsors=\{p\.id === "sponsors" \? "" : undefined\}/);
-  assert.match(read("client/src/pages/atlas/atlasModel.js"), /sponsors: "Companies that sponsor"/);
-});
+// ⛔ 47m (changed on purpose): "D108 P3 · Atlas role pages: 'Sponsors who hire this role' — computed from active" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("D108 · migration 187 is byte-identical in server.js and scripts/migrations.js, appended, additive", () => {
   const id = "187_sponsorship_facts";

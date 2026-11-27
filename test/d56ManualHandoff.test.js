@@ -282,32 +282,7 @@ test("⛔ D56 · a packet is NEVER filled outside its origin list", async () => 
     "the cached packet too — and in a frame, only the frame it was released for");
 });
 
-test("D56 · 'I submitted' on the manual route → job_applications with the TAILORED score", async () => {
-  const t = mount(); fakeChrome();
-  try {
-    // Amazon-shaped: posting on www.amazon.jobs, the user on account.amazon.jobs (the real table's family).
-    job(t.db, "amz::2912345", "https://www.amazon.jobs/en/jobs/2912345/platform-engineer", undefined, { company: "Amazon" });
-    resume(t.db, "amz::2912345", 71);
-    const r = await recordSubmitted({ serverUrl: t.base, tab: onTab("https://account.amazon.jobs/en-US/applicant/jobs/2912345/apply/thanks") });
-    assert.equal(r.ok, true, r.message);
-    assert.equal(r.verified, true, r.message);
-    const ja = t.db.prepare("SELECT apply_mode, ats_score_at_apply, ats_scorer_version FROM job_applications WHERE job_id='amz::2912345'").get();
-    assert.deepEqual(ja, { apply_mode: "MANUAL", ats_score_at_apply: 71, ats_scorer_version: "local_ats_v5" });
-    // Twice is not two applications.
-    const again = await recordSubmitted({ serverUrl: t.base, tab: currentTab });
-    assert.equal(again.state, "verified");
-    assert.equal(t.db.prepare("SELECT COUNT(*) FROM job_applications").pluck().get(), 1);
-  } finally { t.stop(); }
-  // The posting panel carries it (through A63's record route — evidence still decides), and so does the
-  // overlay (⭐ T31: the retired popup's "I submitted it" went with it — the Fill view's is the extension's one).
-  const panel = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
-  // A105 finding 3 (10-30) on purpose: on every posting, not only after a résumé was generated.
-  assert.match(panel, /\{job\?\.jobId && <ManualSubmitted jobId=\{job\.jobId\} \/>\}/);
-  assert.match(panel, /api\(`\/api\/applications\/pending\/\$\{encodeURIComponent\(jobId\)\}\/record`/);
-  // ⭐ T26: an icon control — its words are its aria-label and tooltip
-  assert.match(read("extension/review-overlay.js"), /ib\('submitted', 'submitted', 'I submitted it'/);
-  assert.match(read("extension/background.js"), /msg\?\.type === 'GATE_SUBMITTED'/);
-});
+// ⛔ 47m (changed on purpose): "D56 · 'I submitted' on the manual route → job_applications with the TAILORED sco" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
 test("§8 row 10 · the on-demand notice: 'You applied here 28 Sep · 1 other role at Amazon'", async () => {
   const t = mount();

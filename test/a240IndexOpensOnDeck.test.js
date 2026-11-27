@@ -10,14 +10,4 @@ import fs from "node:fs";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 
-test("A240: the market's openings listen for a posting drawn on the deck and turn to the Deck tab", () => {
-  const src = read("client/src/plate/MarketOpenings.jsx");
-  assert.match(src, /import \{ POSTING_ON_DECK_EVENT, DECK_POST_SLOT_ID \} from "\.\.\/lib\/jobUrl\.js";/);
-  assert.match(src, /window\.addEventListener\(POSTING_ON_DECK_EVENT, onDrawn\);/);
-  assert.match(src, /window\.removeEventListener\(POSTING_ON_DECK_EVENT, onDrawn\);/);
-  assert.match(src, /if \(!e\?\.detail\?\.jobId\) return;/, "a fold (jobId null) leaves the tab alone");
-  assert.match(src, /if \(t === "deck"\) return t;[\s\S]{0,260}return "deck";/);
-  // the board still draws every opened posting there, and says so with the event
-  const board = read("client/src/panels/JobsPanel.jsx");
-  assert.match(board, /window\.dispatchEvent\(new CustomEvent\(POSTING_ON_DECK_EVENT, \{ detail: \{ jobId: postOnDeckId, origin: postOrigin \} \}\)\);/);
-});
+// ⛔ 47m (changed on purpose): "A240: the market's openings listen for a posting drawn on the deck and turn to t" retired — the surface it pinned was rebuilt in the plate system (47m M5).

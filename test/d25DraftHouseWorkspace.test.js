@@ -246,7 +246,7 @@ test("the panel's header describes Draft House as it is — the AD1-era prose is
 test("RecruiterPanel is still reachable — by route and by two in-app links — so its render path stays", () => {
   // D25 was asked to remove the render path only if it is provably dead. It is not: /app/recruiter is
   // a route-only tab (D5), and two components navigate to it. Whether those links go is O53.
-  assert.match(app, /const ROUTE_ONLY_TABS = \["recruiter", "job-profiles"\];/);
+  assert.match(app, /const ROUTE_ONLY_TABS = \["recruiter", "job-profiles", "setting-out"\];/);
   assert.match(app, /\{activeTab === "recruiter"\s+&& <AreaErrorBoundary area="recruiter" \{\.\.\.areaGuard\}><RecruiterPanel\/><\/AreaErrorBoundary>\}/);
   assert.match(read("client/src/components/JobCard.jsx"), /navigate\(`\/app\/recruiter\?company=/);
   assert.match(read("client/src/components/CompanyViewModal.jsx"), /navigate\(`\/app\/recruiter\?company=/);

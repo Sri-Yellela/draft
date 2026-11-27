@@ -98,7 +98,7 @@ test("d190TinyFloats — the fox bubble opens the panel as a floating card; toke
   assert.doesNotMatch(NAV, /AskItem/);
   assert.match(NAV, /const TINY_FACE = \{ __html: tinySvg\(\{ size: 40 \}\) \};/, "the fox from shared/tinyMascot.js");
   assert.match(NAV, /data-tiny-launch="" data-open=\{open \? "true" : "false"\}/);
-  assert.match(NAV, /<h2>\{TINY_NAME\}<\/h2>/, "the card is named Tiny");
+  assert.match(NAV, /<AskDraftCard name=\{TINY_NAME\}/, "the card is named Tiny (D197 #12: the plate card draws the name)");
   assert.match(NAV, /aria-label=\{TINY_NAME\} data-ask-draft="" data-tiny-card=""/, "the data-ask-* hooks stay");
   assert.doesNotMatch(NAV.slice(at(NAV, "export function AskDraftPanel("), at(NAV, "export default function AppNav(")), />Ask draft<|"Ask draft"|Ask draft couldn't/, "no visible “Ask draft” left in the panel");
   assert.match(NAV, /sessionStorage\.getItem\(TINY_OPEN_KEY\) === "1"/, "open state remembered for the tab's session");

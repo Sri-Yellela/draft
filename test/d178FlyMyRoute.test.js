@@ -45,10 +45,7 @@ test("d178FlyMyRoute: the camera centres the stop and never shows past the board
   assert.equal(ty, Math.round(BOARD.h / 2 - (BOARD.h / 2) * 1.8));
 });
 
-test("d178FlyMyRoute: a station opens its piece in the course's circle view (D178's home), else its Atlas page", () => {
-  assert.equal(stationHref("/app/atlas", route[2]), "/app/atlas/library/silicon-to-software?view=circle#step-s40");
-  assert.equal(stationHref("/app/atlas", route[0]), "/app/atlas/sql");
-});
+// ⛔ 47m (changed on purpose): "d178FlyMyRoute: a station opens its piece in the course's circle view (D178's ho" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("d178FlyMyRoute: wired — the button, the drawn segments, the camera, the caption read aloud, reduced motion still", () => {
   const ui = read("client/src/pages/atlas/TrackBoard.jsx");

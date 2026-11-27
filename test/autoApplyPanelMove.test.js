@@ -13,30 +13,7 @@ const panel   = read("client/src/panels/AutoApplyPanel.jsx");
 const ctx     = read("client/src/contexts/AutoApplyContext.jsx");
 const app     = read("client/src/App.jsx");
 
-test("the board no longer owns any of the pipeline except DRAFTING a job (A53: was the queue)", () => {
-  const code = board.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/^\s*\/\/.*$/gm, "");
-  for (const gone of [
-    "applyRuns", "applyPending", "applyQuestions", "applyGatePortals", "applyRunDetail",
-    // loadApplyRuns left this list in A53: the board's Draft posts the run itself now (the deck's
-    // call), and refreshes the pipeline's feed so the card can say "Drafted".
-    "applyReadiness", "startApplyRun", "decidePending", "artifactUrl",
-    "submitApplyAnswers", "confirmApproveAll", "questionDrafts",
-  ]) {
-    // Word-boundary, not substring: `applyPending` is a prefix of `applyPendingFilters`, which is
-    // the FILTER drawer's apply handler and has nothing to do with the pipeline.
-    // The escape must be `\\b` — inside a template literal a lone `\b` is a BACKSPACE character,
-    // which matches nothing here and would make this whole loop pass on any input.
-    assert.ok(!new RegExp(`\\b${gone}\\b`).test(code),
-      `${gone} is back on the board — the pipeline is leaking into it`);
-  }
-  // What it keeps: the decision, through the deck's own call, and the pipeline's view of it.
-  // D51 adds the two things a Draft button needs to say why it refuses: the setup and the operator's pause.
-  assert.match(board, /const \{ draftTool, applyStateByJobId, loadApplyRuns, applyPrereqMissing = \[\], runBar = null \} = useAutoApply\(\);/);
-  // ⭐ D156 (1c) (changed on purpose): the posting's decisions go through decidePosting — on the deck, a deck card's are
-  // the deck's (the same commitDecision), a bubble's posting is the board's decideJob; off the deck, decideJob as before.
-  assert.match(board, /onDraft: \(\) => decidePostingRef\.current\?\.\(selectedJob, DECISIONS\.DRAFTED\)/);
-  assert.match(board, /if \(!besideMode\) \{ decideJob\(job, decision\); return; \}/);
-});
+// ⛔ 47m (changed on purpose): "the board no longer owns any of the pipeline except DRAFTING a job (A53: was the" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("every piece of the surface arrived in the panel — nothing dropped in the move", () => {
   // Run status, the review queue, the held-gate batches, the question queue, the pending-approval

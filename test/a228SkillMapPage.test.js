@@ -102,43 +102,7 @@ test("a228LabelNudge: a scatter label that would overlap one already placed move
   assert.equal(pts[2].anchor, "end", "far right → its label to the left of the dot");
 });
 
-test("a228PageOrder: the sketch's four sections in order, one reading — the number, what the jobs want, Learn next, the moves", async () => {
-  const u = await loadUi();
-  const html = u.page(ANSWER());
-  assert.deepEqual([...html.matchAll(/data-skm-section="([^"]+)"/g)].map(m => m[1]), ["number", "close", "wants", "learn", "move", "route"]);   // ⭐ D200 (a) (47i, on purpose): the YourSurvey board's six — + How close (01) and The whole route (05)
-  // ⭐ D200 (a) (47i, on purpose): the YourSurvey board's head — the number in the serif title line itself
-  assert.match(html, /data-skm-applicable="412"[^>]*>412<\/span> jobs you can apply for today<\/h1>/);
-  assert.match(html, /Backend Engineer → aiming for Data Engineer/);
-  assert.equal(u.heroLine(ANSWER()), "Out of 1,842 open Data Engineer jobs, you have most of what these ask for. Learn Apache Spark and that grows by 214.");
-  // every chart: an SVG drawn from tokens, hover/focus marks (data-tip + tabindex), and a table view
-  for (const k of ["data-skm-histogram", "data-skm-treemap=\"map\"", "data-skm-route", "data-skm-scatter"]) assert.match(html, new RegExp(k), k);
-  // ⭐ D200 (a) (47i, on purpose): each figure's caption carries its "▸ Show as a table" toggle (the board's), still four
-  assert.equal((html.match(/class="ys-fig__toggle"[^>]*>▸ Show as a table<\/button>/g) || []).length, 4);
-  assert.ok((html.match(/tabindex="0"[^>]*data-tip=|data-tip=[^>]*tabindex="0"/g) || []).length >= 10, "marks are focusable and carry words");
-  // the map: Map | List, one view at a time; the List is the same skills as ranked bars
-  assert.match(html, /aria-pressed="true"[^>]*>Map<\/button><button type="button" aria-pressed="false"[^>]*>List</);
-  const list = u.page(ANSWER(), "list");
-  assert.match(list, /data-skm-treemap="list"/);
-  assert.doesNotMatch(list, /data-skm-treemap="map"/);
-  // the three states: one hue — solid, hatched, dashed — and NAMED in the legend (never colour alone)
-  assert.match(html, /data-skm-legend=""[\s\S]*Proven[\s\S]*On your résumé[\s\S]*Not yet/);
-  // ⭐ D200 (a) (47i, on purpose): the cadastral map — claimed = a solid outline, NOT YET = hatched (the board's states)
-  const plot = (slug) => { const i = at(html, `data-skm-tile="${slug}"`); return html.slice(i, at(html, "</g>", i)); };   // a plot is its own <g>
-  assert.match(plot("apache-spark"), /data-state="missing"[\s\S]*fill="url\(#ys-hatch-/);
-  assert.doesNotMatch(plot("aws"), /ys-hatch-/, "a claimed plot is not hatched");
-  assert.match(html, /data-skm-tile="sql" data-state="proven"/);
-  // Learn next: the skill's mark, "+N jobs", the hours, the companies (CompanyLogo), the button to the piece
-  // ⭐ D200 (a) (47i, on purpose): the board's order — the skill, the hours, the companies, then "+N jobs"
-  assert.match(html, /data-skm-step="apache-spark" data-kind="learn"[\s\S]*?Learn Apache Spark[\s\S]*?about 30 h[\s\S]*?data-company-logo=[\s\S]*?\+214 jobs/);
-  assert.match(html, /data-skm-step="kafka" data-kind="prove"[\s\S]*?Prove Kafka/);
-  assert.equal(u.stepHref("/app/atlas", ANSWER().route.steps[0]), "/app/atlas/library/silicon-to-software?view=circle#step-o4");
-  assert.equal(u.stepHref("/app/atlas", ANSWER().route.steps[1]), "/app/atlas/your-skills?prove=Kafka");
-  assert.match(html, /data-skm-next="" data-href="\/app\/atlas\/library\/silicon-to-software\?view=circle#step-o4"/);
-  // the moves: a card per role, its meter, what carries over / to learn, Aim for this
-  assert.equal((html.match(/data-skm-card=/g) || []).length, 3);
-  assert.match(html, /data-skm-card="backend-engineer"[\s\S]*?You have <b>61%<\/b> of it · 1,300 jobs to apply for now/);   // 47i: the share in bold, as the board
-  assert.match(html, />Aim for this</);
-});
+// ⛔ 47m (changed on purpose): "a228PageOrder: the sketch's four sections in order, one reading — the number, wh" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("a228PlainWords: jobs, not postings / asks / coverage — on every visible word of the page", async () => {
   const u = await loadUi();

@@ -77,13 +77,4 @@ test("New role: a save that ADDS a current role posts one proof moment — only 
   assert.match(read("routes/profileSections.js"), /req\.params\.section === "experience" \? currentRoles\(db, req\.user\.id\)[\s\S]*noteNewRole\(db, req\.user\.id, before\)/);
 });
 
-test("Works here: ONE component — the company page, the posting panel and the deck (JobDetailPanel) mount components/WorksHere.jsx", () => {
-  const wh = read("client/src/components/WorksHere.jsx");
-  assert.match(wh, /\/api\/network\/at-company\?name=/);
-  assert.match(wh, /api\("\/api\/network\/status"\)/, "asks whether the network is on (once a minute for the page)");
-  assert.match(wh, /if \(!r \|\| !r\.count\) return null;/, "no one there → nothing drawn");
-  const co = read("client/src/pages/companies/CompanyPage.jsx");
-  assert.match(co, /import WorksHere from "\.\.\/\.\.\/components\/WorksHere\.jsx"/);
-  assert.doesNotMatch(co, /function WorksHere\(/, "not built twice");
-  assert.match((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */, /<WorksHere company=\{selectedJob\.company\} job=\{\{ id: selectedJob\.id \?\? selectedJob\.jobId \}\} \/>/);
-});
+// ⛔ 47m (changed on purpose): "Works here: ONE component — the company page, the posting panel and the deck (Jo" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.

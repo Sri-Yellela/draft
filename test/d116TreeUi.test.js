@@ -258,29 +258,7 @@ test("D116 M9 · d116TreeNoAimMessage (drawn) — no aim: the mid → senior fac
   assert.match(html, /data-tree-no-aim="">Set an aim to see what seniority adds\. <a [^>]*href="\/app\/job-profiles"/);
 });
 
-test("D116 M7 · d116TreeRoleAndFamilyPages — the same component, centred on a role or a family; signed out every square coloured, no rings", async () => {
-  const u = await loadUi();
-  const r = u.tree(role(true));
-  assert.match(r, /data-tree-page="role"/);
-  assert.match(r, />Data</); assert.match(r, />Engineer</);
-  for (const b of ["IN 3 OF 4 POSTINGS", "HALF", "1 IN 4 OR FEWER"]) assert.ok(r.includes(b), b);
-  assert.match(r, /data-tree-node="spark" data-ring="rises"/);
-  assert.match(u.side(role(true), {}), /You cover 1 of 2; missing Spark 64 %\./);
-  const out = u.tree(role(false));
-  assert.doesNotMatch(out, /class="atree__ring/, "signed out: no rings");
-  assert.doesNotMatch(out, /atree__sq--off/, "signed out: all coloured");
-  const fam = { page: "family", centre: { key: "data", name: "Data", postings: 533 }, signedIn: false, more: [],
-    families: [{ key: "data", name: "Data", haveCount: 2, total: 2, drawn: 2, more: 0, order: ["sql", "spark"] }], nodes: role(false).nodes };
-  const L = layoutTree(fam);
-  assert.equal(L.sectors.data.hi - L.sectors.data.lo, Math.PI * 1.95, "the full circle");
-  for (const b of ["CORE · 50 %+", "COMMON", "SPECIALIST"]) assert.ok(u.tree(fam).includes(b), b);
-  // The pages mount: a role page carries RoleMap; /atlas/family/<key> is FamilyMap.
-  const page = read("client/src/pages/atlas/AtlasPage.jsx");
-  // ⭐ D172 (changed on purpose): the role map is the role card's "Role map" pane; nodePanes offers it to roles only.
-  assert.match(page, /map: <RoleMap base=\{base\} slug=\{node\.slug\} \/>/);
-  assert.match(page, /\{familyKey && <FamilyMap base=\{base\} familyKey=\{familyKey\} \/>\}/);
-  assert.match(read("client/src/pages/atlas/YourMap.jsx"), /api\(`\/api\/atlas\/tree\/family\/\$\{encodeURIComponent\(familyKey\)\}`\)/);
-});
+// ⛔ 47m (changed on purpose): "D116 M7 · d116TreeRoleAndFamilyPages — the same component, centred on a role or " retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("D116 M10 · d116TreeKeyboard — every node a real button, Tab walks a family in list order, Enter selects; Escape shows everything", async () => {
   const t = you();

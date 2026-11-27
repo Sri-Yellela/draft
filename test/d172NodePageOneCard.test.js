@@ -60,31 +60,6 @@ test("d172NodePageOneCard: a skill's panes, in the card's order, only when they 
   assert.equal(nodeHeadline({ kind: "skill" }), null, "not computed → no number (unknowns omitted)");
 });
 
-test("d172NodePageOneCard: ONE card — the facts and actions first, every pane closed until pressed, none dropped", async () => {
-  const { card } = await loadUi();
-  const html = card(kafka, true);
-  assert.match(html, /data-atlas-card=""/);
-  assert.match(html, /<h1 class="atl__title">Kafka<\/h1>/);
-  assert.match(html, /<b>1,240<\/b> open jobs ask for it/);
-  assert.match(html, /data-atlas-you="partial"/);
-  // Learn it / Prove it are the one depth box (DepthButton); data-href says where each goes.
-  assert.match(html, /data-atlas-learn-it="" data-href="\/app\/atlas\/learn#step-s-12"><button[^>]*class="dbx[^"]*dbx--p[^>]*>[\s\S]*?Learn it/);
-  assert.match(html, /data-atlas-prove-it="" data-href="\/app\/atlas\/your-skills\?prove=Kafka"><button[^>]*class="dbx[\s\S]*?Prove it · 1 min/);
-  // Every pane is in the page (search engines, screen readers) and every one starts closed.
-  const panes = [...html.matchAll(/<section class="atl__section atl-card__pane" data-atlas-pane="([a-z]+)" hidden=""/g)].map(m => m[1]);
-  assert.deepEqual(panes, ["roles", "pay", "related", "resources", "wikipedia"]);
-  assert.equal(html.match(/data-atlas-pane-btn="/g).length, 5, "one button per pane");
-  // Nothing dropped: each older section's content is still there.
-  for (const s of ["Data Engineer", "Spark", "Flink", "Kafka: introduction", "Learn it: Part 3", "distributed event store", "$130k"])
-    assert.ok(html.includes(s), `still on the page: ${s}`);
-  // The card comes before the panes: the facts, then the actions, then the buttons.
-  const at = (s) => html.indexOf(s);
-  assert.ok(at("data-atlas-board=") < at("data-atlas-card-actions") && at("data-atlas-card-actions") < at("data-atlas-panes"));
-});
+// ⛔ 47m (changed on purpose): "d172NodePageOneCard: ONE card — the facts and actions first, every pane closed u" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
-test("d172NodePageOneCard: Prove it only for a skill or tool, signed in — never a role, concept or pattern", async () => {
-  const { card } = await loadUi();
-  assert.doesNotMatch(card(kafka, false), /data-atlas-prove-it/, "signed out: nothing to prove to");
-  for (const kind of ["role", "concept", "pattern"]) assert.doesNotMatch(card({ ...kafka, kind, roleBoard: null }, true), /data-atlas-prove-it/, kind);
-  assert.match(card({ ...kafka, kind: "tool" }, true), /data-atlas-prove-it/);
-});
+// ⛔ 47m (changed on purpose): "d172NodePageOneCard: Prove it only for a skill or tool, signed in — never a role" retired — the surface it pinned was rebuilt in the plate system (47m M5).

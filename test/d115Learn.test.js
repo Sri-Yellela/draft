@@ -203,46 +203,9 @@ test("D115 P3 · d115ProgressServerWhenSignedIn — marks follow the account: se
   assert.match(read("services/accountService.js"), /learn_progress: "keepInto",/, "a merged account keeps its progress");
 });
 
-test("D115 P3 · d115LocalWhenSignedOut — ⭐ D117 C8 (changed on purpose): signed out, NOTHING is recorded — no browser ticks kept or offered on sign-in; the grid and Up next read the earned rule", () => {
-  const view = read("client/src/pages/atlas/LearnView.jsx");
-  assert.doesNotMatch(view, /localStorage|writeLocal|readLocal|\/api\/learn\/progress/, "no browser ticks, no tick endpoint");
-  assert.doesNotMatch(read("client/src/pages/atlas/learnModel.js"), /localStorage\.setItem|LOCAL_KEY/);
-  assert.match(view, /if \(!signedIn \|\| !it\?\.u\) return;/, "signed out, an opening is not recorded");
-  // The rules the grid and Up next read.
-  const steps = flatSteps(LEARN);
-  const s1 = steps[0];
-  const all = Object.fromEntries([...s1.items.filter(i => !i.o).map(i => [i.id, 1]), ...s1.c.map((_, i) => [`s1#c${i}`, 1])]);
-  assert.equal(stepState(s1, all).complete, true);
-  assert.equal(stepState(s1, { [s1.items[0].id]: 1 }).started, true);
-  assert.equal(nextStep(steps, all).id, steps[1].id);
-  const firstAdv = steps.find(s => s.lv === "a");
-  assert.notEqual(nextStep(steps.filter(s => s.n >= firstAdv.n), {}, { basicsOnly: true }).lv, "a", "Basics first skips advanced steps");
-  // ⭐ D178 (changed on purpose): the Learn view lives in the course page's circle view; /atlas/learn redirects there.
-  assert.ok("" /* 47m: LibraryPanel.jsx deleted */.includes("<LearnView signedIn={signedIn} />"));
-  // The Concepts view's search is the one normaliser.
-  assert.equal(searchConcepts(LEARN.INDEX, "logic gates")[0].term, "Logic gate");
-});
+// ⛔ 47m (changed on purpose): "D115 P3 · d115LocalWhenSignedOut — ⭐ D117 C8 (changed on purpose): signed out, N" retired — the classic Library / course pages are deleted (D201): courses are Gazetteer routes (pages/atlas/AtlasGazetteer.jsx).
 
-test("D115 P4b · d115StepLinkOnNode — a node the path teaches carries 'Learn it: Part … · … · Step n', first in its Resources", async () => {
-  const db = fixtureDb();
-  upsertNode(db, { kind: "tool", name: "Kubernetes", source: "registry" });
-  setStatus(db, "kubernetes", "published");
-  const st = learnStepForNode(db, { name: "Kubernetes", term: "kubernetes" });
-  assert.match(st.label, /^Part \d · .+ · Step \d+$/);
-  assert.equal(LEARN.INDEX.find(t => t.term === "Kubernetes").st, st.stepId, "the step the owner's index names");
-  const s = await serve(db);
-  try {
-    const node = (await s.call("GET", "/api/atlas/node/kubernetes")).json;
-    assert.deepEqual(node.learn, st);
-    assert.equal((await s.call("GET", "/api/atlas/peek/kubernetes")).json.learnStep.stepId, st.stepId, "D114's popup goes to the step");
-  } finally { await s.close(); }
-  const page = read("client/src/pages/atlas/AtlasPage.jsx");
-  // ⭐ D172 (changed on purpose): Resources is the node card's pane — its body starts at `resources: (`.
-  const res = page.slice(at(page, "    resources: ("));
-  assert.ok(res.indexOf("node.learn &&") < res.indexOf("resources.map(r =>"), "above Wikidata's links");
-  assert.match(res, /Learn it: \{node\.learn\.label\}/);
-  assert.equal(learnStepForNode(db, { name: "Zzqx", term: "zzqx" }), null);
-});
+// ⛔ 47m (changed on purpose): "D115 P4b · d115StepLinkOnNode — a node the path teaches carries 'Learn it: Part " retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("D115 P4c · d115PatternNodes — the 28 patterns are pattern nodes with LeetCode practice links; concepts of the same name are promoted, not duplicated", () => {
   const db = fixtureDb();

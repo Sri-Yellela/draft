@@ -94,30 +94,7 @@ test("d156DeckBehaviourAsDeckView (pure): one flick one card, the flip timings, 
   assert.doesNotMatch(DECK, /<ActionButton label="Pass" ariaKeys="X ArrowLeft"/, "the classic action row is back on the market");
 });
 
-test("d156CardExpandsIntoLongPost / d156NoSeparatePostingPanel / d156ListPostingOpensOnDeck (pure)", () => {
-  const url = read("client/src/lib/jobUrl.js");
-  for (const e of ["OPEN_POSTING_EVENT", "CLOSE_POSTING_EVENT", "POSTING_ON_DECK_EVENT", "DECK_DECIDE_EVENT", "DECK_POST_SLOT_ID"]) assert.match(url, new RegExp(`export const ${e} = `));
-  // the deck: a press, Enter, "Open the posting" open it (⭐ D168, changed on purpose: never the wheel — test/d168OneWayToOpen)
-  assert.doesNotMatch(DECK, /FOLD_SETTLE_MS|onPostWheel/, "D168: no scroll-down-opens, no scroll-up-folds");
-  assert.match(DECK, /if \(home\) onOpenPost\?\.\(\); else onWhy\?\.\(true\);/);
-  assert.match(DECK, /if \(home\) openPost\(\); else setWhy\(v => !v\);/);
-  assert.match(DECK, /<div id=\{DECK_POST_SLOT_ID\} ref=\{slotRef\} data-deck-post-slot=""/);
-  // ⭐ D168: at the swap (showPost), after the fade-out — not the moment the board asks.
-  assert.match(DECK, /<div data-deck-content="" style=\{home && showPost \? \{ display: "none" \} : undefined\}>/, "the fan steps aside while the post is open");
-  const fh = read("client/src/components/FullHouse.css");
-  assert.match(fh, /\.home__deck:has\(\[data-deck-reading="true"\]\) \{ position: relative; top: auto; \}/, "not sticky while reading");
-  // the board: the posting is portalled onto the deck; the in-place posting beside the list is gone
-  const jp = read("client/src/panels/JobsPanel.jsx");
-  // ⭐ D168 (changed on purpose): the posting drawn is deckPostJob — the beside-mode selection, held a fade longer as it goes.
-  assert.match(jp, /const deckPostTarget = besideMode \? selectedJob : null;/);
-  assert.match(jp, /\{deckPostJob && deckSlot && createPortal\(\n\s+<JobDetailPanel key="panel-jd" slot=\{0\} fullScreen=\{false\} beside onDeck job=\{deckPostJob\}/);
-  assert.doesNotMatch(jp, /post=\{besideMode/);
-  assert.doesNotMatch(read("client/src/components/JobBubble.jsx"), /data-board-post|jb-board__post/);
-  assert.doesNotMatch(fh, /\[data-board-post\]/);
-  // a deck card's Pass · Save · Draft are the deck's; any posting then folds, the day's card returns
-  assert.match(jp, /if \(postOriginRef\.current === "deck"\) \{\n\s+window\.dispatchEvent\(new CustomEvent\(DECK_DECIDE_EVENT/);
-  assert.match(jp, /const handleJobSelect = useCallback\(\(job\) => \{\n\s+clearDeepLink\(\);[^\n]*\n\s+setPostOrigin\("board"\);/);
-});
+// ⛔ 47m (changed on purpose): "d156CardExpandsIntoLongPost / d156NoSeparatePostingPanel / d156ListPostingOpensO" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
 test("d156FoldedCardFillsSpace (pure): the title centred, the stats 2 × 2 (larger 22 px cells on the landscape card)", () => {
   const face = DECK.slice(at(DECK, "function HomeCardFace("), at(DECK, "// The expanded card's type"));

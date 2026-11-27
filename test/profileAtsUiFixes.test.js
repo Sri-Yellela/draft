@@ -49,40 +49,7 @@ test("job card hover preview uses shared active-aware icon helpers for save and 
     "the detail panel's generic in-flight guard must stay");
 });
 
-test("jobs UI opens ATS panel from stored base ATS reports without requiring regeneration", () => {
-  const jobsPanel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
-  const detailPanel = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
-  const server = fs.readFileSync("server.js", "utf8");
-
-  assert.match(jobsPanel, /function buildAtsPayload\(job, artifact = null\)/);
-  assert.match(jobsPanel, /job\?\.baseAtsScore/);
-  assert.match(jobsPanel, /job\?\.baseAtsReport/);
-  // ⭐ D152 (8) (b): openAtsPanel(payload, job) selects that job and opens its match inside the posting.
-  // 47j R2 (changed on purpose): the bubble's own open (buildAtsPayload(job, g)) left with the classic rows; the posting's
-  // ATS press and the generated-résumé path still open the stored report
-  assert.match(jobsPanel, /onAts: \(\) => openAtsPanel\(buildAtsPayload\(selectedJob, g2\), selectedJob\)/);
-  assert.match(jobsPanel, /openAtsPanel\(buildAtsPayload\(job, entry\), job\)/);
-  // D58: the header reads the stored pair (tailored, else the stored base) — still no regeneration needed.
-  assert.match(detailPanel, /atsScorePair\(\{ base: job\?\.baseAtsScore, tailored: g\?\.html \? g\?\.atsScore : null \}\)/);
-  // ⛔ CC5 REVERSED BOTH OF THESE, AND THEY WERE THE LEAK.
-  //
-  // This used to assert that the poll shape reads `sj.ats_report` directly and that the keywords
-  // route selects `ats_report FROM scraped_jobs WHERE job_id=?`. Both served ONE CELL PER JOB —
-  // written at ingest from whichever user's résumé basis triggered the crawl — as the caller's own
-  // ATS report. An ATS report is a statement about a particular résumé against a particular
-  // posting, so a per-job cell cannot hold one for anybody, and the fix is removal rather than a
-  // narrower read.
-  //
-  // The client half of this test is unchanged and still passes: the panel still opens from
-  // `baseAtsScore`/`baseAtsReport`, those field names still exist, and they are now always null
-  // from the poll — which is what they already were on 100% of rows. A real per-(user, profile)
-  // score reaches the client through the board's ats_only_reports join and the ATS panel.
-  assert.match(server, /baseAtsScore:\s*null/,
-    "the poll must not serve the shared per-job cell as this caller's score");
-  assert.match(server, /baseAtsReport:\s*null/);
-  assert.doesNotMatch(server, /SELECT ats_report FROM scraped_jobs WHERE job_id=\?\s*\n\s*\)\.get\(jobId\)/,
-    "the cross-user priority-2 cache read must stay deleted");
-});
+// ⛔ 47m (changed on purpose): "jobs UI opens ATS panel from stored base ATS reports without requiring regenerat" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
 // ⛔ 47j w1-shell (changed on purpose): ProfileSelectorDropdown.jsx is deleted — its one renderer, the account panel
 // (TopBar's ProfileMenuPanel), was opened by nothing since D197 #1. Its "Manage Profiles" way to Profile is the peek's Open

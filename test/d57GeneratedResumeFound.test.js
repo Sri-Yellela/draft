@@ -135,28 +135,7 @@ test("D57 · Settings lists every generated résumé — date, 'expires in N day
   assert.match(panel, /`Expires in \$\{r\.expiresInDays\} day/);
 });
 
-test("D57 · deleting frees the button: the delete answers, the board hears resume_deleted, the panel offers Résumé again", async () => {
-  const db = seed();
-  gen(db, "j1", 40);
-  const t = mount(db);
-  try {
-    const r = await fetch(`${t.base}/api/generated-resumes/j1`, { method: "DELETE" });
-    assert.equal(r.status, 200);
-    assert.deepEqual(t.events, [[1, { type: "resume_deleted", jobId: "j1" }]]);
-    assert.equal(db.prepare("SELECT COUNT(*) FROM resumes").pluck().get(), 0);
-    assert.equal(db.prepare("SELECT resume_generated FROM user_jobs WHERE job_id='j1'").pluck().get(), 0);
-    assert.equal((await fetch(`${t.base}/api/generated-resumes/j1`, { method: "DELETE" })).status, 404);
-  } finally { t.stop(); }
-  const jobs = read("client/src/panels/JobsPanel.jsx");
-  assert.match(jobs, /resume_deleted: \(\{ jobId \}\) => \{[\s\S]{0,200}?delete n\[jobId\]/);
-  assert.match(read("server.js"), /emitToUser\(req\.user\.id, \{ type: "resume_deleted", jobId: String\(req\.params\.jobId\) \}\)/);
-  const jd = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
-  // D86: two renderings of the same control — the plain button, or the split while bring-your-own-model is on.
-  // Both stay gated on !hasArtifact, which is what this pins.
-  assert.match(jd, /\{canGen && onGenerate && !hasArtifact && !byom\.available && \(/, "no résumé → the Résumé button");
-  // D147 (11-03): under More the button reads "Résumé for this job".
-  assert.match(jd, /\{canGen && onGenerate && !hasArtifact && byom\.available && split\(false, "Résumé for this job"/, "no résumé → the Résumé split");
-});
+// ⛔ 47m (changed on purpose): "D57 · deleting frees the button: the delete answers, the board hears resume_dele" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
 test("D57 · the retention sweep deletes an expired convenience copy and never a drafted/applied one", () => {
   const db = seed();
@@ -206,30 +185,7 @@ test("D57 · drafting a job with a stored résumé attaches it to the Draft at o
 
 // ── the posting panel and the card say "résumé ready" — after a reload too ────────────────────────
 
-test("D57 · after a reload the stored résumé reads 'Résumé ready · 2h ago' with view · download · regenerate", () => {
-  const jobs = read("client/src/panels/JobsPanel.jsx");
-  // The boot map (GET /api/resumes) carries when it was generated and the PARSED report.
-  assert.match(jobs, /atsReport:r\.atsReport \?\? null, company:r\.company, title:r\.role,[^\n]*\n\s+generatedAt: r\.generated_at \? Number\(r\.generated_at\) \* 1000 : null,/);
-  assert.match(read("server.js"), /COALESCE\(MAX\(v\.created_at\), r\.created_at\) AS generated_at/);
-  // View and Download reach a stored (__exists__) résumé from the store.
-  // e2e 11-05 (step 3), changed on purpose: viewing a stored résumé is its own path — never the Generate gates
-  // (the plan may generate, the base résumé text has loaded), which made "View résumé" a silent no-op after a reload.
-  assert.match(jobs, /onViewSandbox: \(\) => \{\n\s+if \(g2\?\.html === "__exists__"\) \{ viewStoredResume\(selectedJob, g2\.tool\); return; \}/);
-  assert.match(jobs, /const viewStoredResume = useCallback\(async \(job, tool = "generate"\) => \{/);
-  assert.match(jobs, /const d = await api\(`\/api\/resumes\/\$\{encodeURIComponent\(selectedJob\.jobId\)\}`\);/);
-  // ⭐ D164 (11-05) changed this on purpose: Regenerate carries the posting's "Which résumé" (generateFrom → generate).
-  assert.match(jobs, /onRegenerate: \(opts\) => generateFrom\(selectedJob, true, opts\),/);
-  const jd = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
-  const acts = jd.slice(at(jd, "function PostingActions("), at(jd, "export default function JobDetailPanel("));
-  assert.match(acts, /const hasArtifact = done && !!g\?\.html;/, "a stored résumé counts — it used to be hidden behind Regenerate");
-  assert.match(acts, /\{ago \? `Résumé ready · \$\{ago\}` : "Résumé ready"\}/);
-  // D147 (11-03): under More, "View" reads "View résumé" (the row is no longer beside the résumé button).
-  // ⭐ D164 (11-05) changed this on purpose: under the Résumé control they read "Preview / edit" and "Download PDF" (beside
-  // a new "Download HTML") — the same onViewSandbox / onExport calls.
-  for (const label of [">Preview / edit<", ">Download PDF<", '"Regenerate"']) assert.ok(acts.includes(label), label);
-  assert.doesNotMatch(acts, /done \? "Regenerate" : "Résumé"/, "never a Regenerate button in place of the résumé");
-  assert.match(jd, /if \(s < 86400\) return `\$\{Math\.round\(s \/ 3600\)\}h ago`;/);
-});
+// ⛔ 47m (changed on purpose): "D57 · after a reload the stored résumé reads 'Résumé ready · 2h ago' with view ·" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
 test("D57 · the job card carries a 'résumé ready' marker in every view", () => {
   // 47j R2 + A248 (changed on purpose): the board no longer draws JobBubble (the Index draws the rows), and A248 deleted the

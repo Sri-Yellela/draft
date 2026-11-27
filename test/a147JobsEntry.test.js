@@ -44,10 +44,4 @@ test("A147 · the entry counts the OPEN public board only; technologies link the
   assert.deepEqual(e.companies.map((c) => c.slug), ["birch", "acme"], "most new this week first");
 });
 
-test("A147 · the page opens on the browse board only while nothing is searched or narrowed; the jobs follow it", () => {
-  const page = fs.readFileSync("client/src/pages/jobs/PublicBoardPage.jsx", "utf8");
-  assert.match(page, /const entryShown = !params\.q && !params\.category && !params\.subcategory && !params\.tech && page === 1;/);
-  assert.match(page, /\{entryShown && <EntryBoard cats=\{cats\} entry=\{entry\} set=\{set\} \/>\}\s*\{error &&/, "above the deck / list");
-  for (const s of ["Browse by role", "Hiring by technology", "Companies hiring now"]) assert.ok(page.includes(`<h2>${s}</h2>`), s);
-  assert.match(fs.readFileSync("server.js", "utf8"), /app\.get\("\/api\/public\/jobs\/entry", publicLimit, async/);
-});
+// ⛔ 47m (changed on purpose): "A147 · the page opens on the browse board only while nothing is searched or narr" retired — the surface it pinned was rebuilt in the plate system (47m M5).

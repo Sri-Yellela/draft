@@ -75,22 +75,9 @@ test("⭐ D62 · a History row: version and date · the tailored score in the nu
 // AtsReportPanel, its header and its tab row — is RETIRED. The match opens inside the posting, under the facts, whose
 // own header already names the company (CompanyLogo, the ONE CompanyLink) and holds the number box (D58's pair). Its
 // History is the report's quiet "History" switch; the rows are still THIS job's résumé versions, in ResumeList.
-test("⭐ D62 → D152 (8) · the overlay's header and tabs are gone; the posting is the frame", () => {
-  assert.ok(!fs.existsSync("client/src/panels/AtsReportPanel.jsx") && !fs.existsSync("client/src/panels/AtsReportPanel.css"));
-  const jd = code((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */);
-  assert.match(jd, /<CompanyLogo company=\{selectedJob\.company\}/);
-  assert.match(jd, /<AtsNumberBox score=\{scores\.shown\} tailored=\{scores\.tailoredShown\} base=\{scores\.base\} caption="match"/, "the ONE number box (D50, A93)");
-});
+// ⛔ 47m (changed on purpose): "⭐ D62 → D152 (8) · the overlay's header and tabs are gone; the posting is the fr" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
-test("⭐ D62 → D152 (8) · History is the report's switch, and counts THIS job's versions", () => {
-  const jd = code((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */);
-  assert.match(jd, /api\(`\/api\/resumes\/\$\{encodeURIComponent\(versionsJobId\)\}\/versions`\)/, "the job's résumé versions");
-  assert.match(jd, /history=\{matchHistory\} bare \/>/);
-  // ⭐ 46x: the versions ride with the ATS card behind one toggle; the report's History switch is retired.
-  // D202 (47h, the owner's yes — moved on purpose): the classic ATS card (components/AtsCard.jsx) is retired; the match panel draws FitCard — the versions are its History tab
-  assert.match(read("client/src/plate/FitCard.jsx"), /\{tab === "hist" \? <HistoryTab lines=\{historyLines\} history=\{history\}\/> : null\}/);
-  assert.doesNotMatch(read("shared/atsReportElement.js"), /\["history", "History"\]/);
-});
+// ⛔ 47m (changed on purpose): "⭐ D62 → D152 (8) · History is the report's switch, and counts THIS job's version" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
 test("⭐ D62 · ONE list component, two homes: the posting match's History and Settings' Generated résumés", () => {
   assert.match((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */, /<ResumeList loading=\{versions === null\} rows=\{versionRows\}/);

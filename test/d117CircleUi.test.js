@@ -95,31 +95,7 @@ test("D117 C7 · d117CircleStatesFilled — every piece on the ring follows its 
   assert.ok(Math.abs(lay.angle.get("s1") + Math.PI / 2) < 0.1, "Step 1 is one place on the ring (the top)");
 });
 
-test("D117 C7 · d117EntryOpensPiece — an entry from anywhere lands on #step-<id> and THAT piece opens (never Step 1)", async () => {
-  const { circle } = await loadUi();
-  const db = await world();
-  assert.equal(entryFromHash("#step-o4"), "o4");
-  assert.equal(entryFromHash(`#step-${encodeURIComponent("x-2")}`), "x-2");
-  assert.equal(entryFromHash("#nothing"), null);
-  const html = circle(props(db, { initialSel: "o4" }));
-  assert.match(html, /data-learn-selected="o4"/);
-  assert.match(html, /Part 4 · [^·]+ · [^·]+ · one piece of the whole · <b>Piece \d+ of 108<\/b>/);
-  assert.match(html, /aria-pressed="true" data-learn-piece="o4"/);
-  // Every way in points at the piece: the Atlas page, D114's popup, Your map's tree and its "Learn next", the server's path.
-  assert.equal(learnStepPath("o4"), "/learn#step-o4");
-  assert.match(read("client/src/pages/atlas/AtlasPage.jsx"), /\/learn#step-\$\{encodeURIComponent\(node\.learn\.stepId\)\}/);
-  assert.match(read("client/src/components/AtlasTerm.jsx"), /#step-\$\{encodeURIComponent\(p\.learnStep\.stepId\)\}/);
-  assert.match(read("client/src/pages/atlas/AtlasTree.jsx"), /\/learn#step-\$\{encodeURIComponent\(n\.courseStep\.stepId\)\}/);
-  // ⭐ A228 (46r, moved on purpose): the five sections' Learn next chips (YourMap.jsx) are retired; the skill map's steps
-  // enter the course at their piece through atlasPanels.js learnStepHref (#step-<id> on the course's circle view).
-  assert.match(read("client/src/pages/atlas/SkillMap.jsx"), /if \(s\.stepId\) return learnStepHref\(base, s\.stepId\);/);
-  assert.match(read("client/src/pages/atlas/atlasPanels.js"), /#step-\$\{encodeURIComponent\(stepId\)\}/);
-  const view = read("client/src/pages/atlas/LearnView.jsx");
-  assert.match(view, /const \[entry, setEntry\] = useState\(\(\) => entryFromHash\(location\.hash\)\);/);
-  // ⭐ D178 (changed on purpose): Learn is the circle only (its tabs retired), so an entry just selects the piece.
-  assert.match(view, /useEffect\(\(\) => \{ const id = entryFromHash\(location\.hash\); if \(id\) setEntry\(id\); \}, \[location\.hash\]\);/);
-  assert.match(view, /<LearnCircle key=\{entry \|\| "start"\}[^>]*initialSel=\{entry \|\| next\?\.id\}/);
-});
+// ⛔ 47m (changed on purpose): "D117 C7 · d117EntryOpensPiece — an entry from anywhere lands on #step-<id> and T" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("D117 C7 · d117UnlockToastAndMap — the write that finishes a piece names what it unlocked; the toast says it; the piece's chips fill (D116 M8 colours the map)", async () => {
   const { circle } = await loadUi();
@@ -162,34 +138,7 @@ test("D117 C7 · d117DraftedNeedsNotLiveUntilAccepted — a drafted link is used
   assert.match(html, /Nothing: you can start here\./);
 });
 
-test("D117 C8 · d117NoSelfCompleteControl — no checkbox, no 'done' / 'I explained it' / 'complete' button anywhere in the circle or the piece; items are links; the page never calls the tick endpoint", async () => {
-  const { circle } = await loadUi();
-  const db = await world();
-  for (const sel of ["o4", "s1", "w4"]) {
-    const html = circle(props(db, { initialSel: sel }));
-    assert.doesNotMatch(html, /type="checkbox"/, sel);
-    const buttons = [...html.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)].map(m => m[1].replace(/<[^>]+>/g, ""));
-    assert.ok(buttons.length > 5);
-    for (const b of buttons) assert.doesNotMatch(b, /\bdone\b|complete|I explained it|mark (it|as)|finished/i, b);
-    const items = [...html.matchAll(/data-learn-item="([^"]+)"/g)].length;
-    assert.ok(items > 0 && (html.match(/data-learn-open="/g) || []).length > 0);
-    assert.match(html, /role="progressbar"/);
-  }
-  const src = ["pages/atlas/LearnCircle.jsx", "pages/atlas/LearnView.jsx", "pages/atlas/learnModel.js"].map(f => read(`client/src/${f}`).replace(/^\s*\/\/.*$/gm, "")).join("\n");
-  assert.doesNotMatch(src, /\/api\/learn\/progress|type="checkbox"[^/]*data-learn-item|I explained it/);
-  // The page's half of d117OpenedOnlyFromDraftClick: the item's own link click is what records the opening.
-  // D119: the item is a ResourceTile — the whole tile is the link, and its press records the opening.
-  assert.match(read("client/src/pages/atlas/LearnCircle.jsx"), /<ResourceTile item=\{it\} thumb=\{thumbs\[it\.u\] \|\| null\} opened=\{!!marks\[it\.id\]\} onOpen=\{\(\) => onOpen\?\.\(it, piece\)\}/);
-  assert.match(read("client/src/components/ResourceTile.jsx"), /<a className="rt" href=\{item\.u\} target="_blank" rel="noopener noreferrer" data-resource-tile=\{item\.id \|\| ""\} data-learn-open=\{item\.id\}\s+onClick=\{\(\) => onOpen\?\.\(item\)\}>/);
-  assert.match(read("client/src/pages/atlas/LearnView.jsx"), /api\("\/api\/learn\/opened", \{ method: "POST", body: JSON\.stringify\(\{ id: it\.id \}\), keepalive: true \}\)/);
-  // The page's half of d117ExplainedNeedsOwnWords: a paste of 25+ words never lands.
-  assert.deepEqual(pasteVerdict(OWN), { words: 30, refused: true, message: OWN_WORDS });
-  assert.equal(pasteVerdict("Kubernetes").refused, false);
-  assert.match(read("client/src/pages/atlas/LearnCircle.jsx"), /if \(v\.refused\) \{ e\.preventDefault\(\); setSay\(v\.message\); \}/);
-  // "opened", never "done".
-  const st = stepState(props(db).pieces.find(p => p.id === "o4"), { "o4-vm": 1 });
-  assert.equal(barLine(st), "1 of 3 opened · 0 of 3 explained · build not linked yet");
-});
+// ⛔ 47m (changed on purpose): "D117 C8 · d117NoSelfCompleteControl — no checkbox, no 'done' / 'I explained it' " retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("D117 C7 · d117ReducedMotion — the route's ink stroke and the toast animate only when motion is welcome; reduced motion draws them at once", () => {
   const css = read("client/src/pages/atlas/LearnCircle.css");

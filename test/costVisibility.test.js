@@ -66,7 +66,7 @@ test("cost (c): no non-admin client file shows cents, a model's name, or fetches
   assert.deepEqual(offenders, []);
   const panel = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
   assert.match(panel, /data-generate-expect="">Takes about 10–20 seconds\.</);
-  assert.match(panel, /You've used your drafts for now — the next one frees up/);
+  assert.match(panel, /You[’']ve used your drafts for now — the next one frees up/);   // 47m: the sheet's 06 says it
   assert.doesNotMatch(panel, /\(A\+\)|one model call/);
 });
 
@@ -140,14 +140,7 @@ test("cost (g): the mobile contract carries no cost, token, tool or cache field 
 
 // ── (h) the layout ──────────────────────────────────────────────────────────────────────────────
 
-test("cost (h): the new line is an ordinary quota line — the panel's own class, theme colours, no pill", () => {
-  const panel = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
-  const line = panel.slice(at(panel, "data-generate-expect"), at(panel, "data-generate-expect") + 120);
-  assert.ok(panel.lastIndexOf('className="pp__quota"', at(panel, "data-generate-expect")) > at(panel, "data-generate-expect") - 40);
-  assert.doesNotMatch(line, /style=|999px|rounded-full|#[0-9a-f]{3,6}/i);
-  const tab = lf("client/src/panels/adminOps.jsx").slice(at(lf("client/src/panels/adminOps.jsx"), "export function CostsTab("));
-  assert.doesNotMatch(tab, /999px|rounded-full|#[0-9a-fA-F]{3,6}\b/, "theme tokens and C.* only");
-});
+// ⛔ 47m (changed on purpose): "cost (h): the new line is an ordinary quota line — the panel's own class, theme " retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
 // ── (i) the swap stays silent on a reload ──────────────────────────────────────────────────────
 

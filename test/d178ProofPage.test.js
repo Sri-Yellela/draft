@@ -109,13 +109,4 @@ test("d178ProofPageLearning: the route passes the learning reader in (no static 
   assert.match(read("routes/proofPage.js"), /if \(HANDLE_RE\.test\(h\)\) return res\.redirect\(301, `\/in\/\$\{h\}`\);/);
 });
 
-test("d178ProofPageLearning: the Profile asks separately; Your run points to the page", () => {
-  const ui = read("client/src/components/ProfileSections.jsx");
-  assert.match(ui, /\{s\.enabled && \(\n\s*<label [^>]*data-proof-page-learning=\{s\.showLearning \? "on" : "off"\}>\n\s*<input type="checkbox" checked=\{!!s\.showLearning\} onChange=\{e => send\(true, \{ showLearning: e\.target\.checked \}\)\} \/>/);
-  assert.doesNotMatch(ui.slice(at(ui, "function ProofPageSetting"), at(ui, "const ymLabel")).replace(/^\s*\/\/.*$/gm, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, ""), CERTIFY);
-  const run = (fs.readFileSync("client/src/pages/atlas/Logbook.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: YourRun.jsx deleted — its home now */;
-  assert.match(run, /api\("\/api\/profile\/proof-page"\)\.then\(r => live && setProofPage\(r\)\)/);
-  // ⭐ A153 (45o, on purpose): D183 P3 made /in/<handle> the page; Your run links it and the profile's own place.
-  assert.match(run, /href=\{`\/in\/\$\{proofPage\.handle\}`\}/);
-  assert.match(run, /<Link className="atl__link" to="\/app\/profile\/about">Your profile → Behind your profile<\/Link>/);
-});
+// ⛔ 47m (changed on purpose): "d178ProofPageLearning: the Profile asks separately; Your run points to the page" retired — Your run is the Logbook on Your map (D197 #11, pages/atlas/Logbook.jsx).

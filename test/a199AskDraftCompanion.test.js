@@ -7,20 +7,7 @@ import { buildAnswerDraftRequest } from "../services/applicationAnswerDraft.js";
 // would write into the ask draft chat for each question, which appear in the ask draft chat instead of the home section").
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 
-test("a199: Home's stepper sends a free-text question to Ask draft; Ask draft writes it, 'Use as my answer' fills the box", () => {
-  const panel = read("client/src/panels/AutoApplyPanel.jsx");
-  assert.match(panel, /window\.addEventListener\("draft:use-answer", onUse\)/, "the box is filled only when the person presses Use as my answer");
-  const nav = read("client/src/components/AppNav.jsx");
-  assert.match(nav, /window\.addEventListener\("draft:ask-question", onAsk\)/, "Ask draft takes the question");
-  assert.match(nav, /window\.addEventListener\("draft:ask-question", open\)/, "and opens beside Home");
-  assert.match(nav, /new CustomEvent\("draft:use-answer", \{ detail: \{ jobId: t\.app\.jobId, question: t\.app\.question, text: t\.text \} \}\)/);
-  assert.match(nav, /if \(app\) \{ setQ\(""\); setTurns\(t => \[\.\.\.t, \{ who: "you", text: question \}\]\); return draftFor\(app, question\); \}/,
-    "what the person types for an open question is their words for it");
-  // ⭐ D190 (46m): the panel's form renders for everyone now (T1 / T2 need no switch) — so the companion works whether or not
-  // the general assistant is open, without the old condition
-  assert.doesNotMatch(nav, /status\?\.available \|\| app \|\| turns\.some/, "it works whether or not the general assistant is open");
-  assert.match(nav, /<form className="appnav-ask__form" onSubmit=\{send\}>/);
-});
+// ⛔ 47m (changed on purpose): "a199: Home's stepper sends a free-text question to Ask draft; Ask draft writes i" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("a199: the person's own words go into the draft as their facts; the route checks against résumé + note", () => {
   const r = buildAnswerDraftRequest({ resumeText: "Backend engineer, Python.", question: "What SIEMs have you integrated?", forRun: true, note: "I set up Splunk alerts for the payments team." });

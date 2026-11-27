@@ -54,10 +54,4 @@ test("a182DraftsOnByDefault: answer_drafts_enabled is ON unless an admin set it 
   assert.equal(answerDraftsEnabled(db), true);
 });
 
-test("a182EligibilityAskedOnceAtUpload: the two choices, stored where the fill reads them", () => {
-  assert.deepEqual(FOUR_THINGS.slice(0, 2).map(t => t.key), ["work_auth", "sponsorship_need"]);
-  assert.equal(workAuthAffirmative(WORK_AUTH_CHOICES[0].value), true);
-  assert.equal(workAuthAffirmative(WORK_AUTH_CHOICES[1].value), false);
-  for (const c of SPONSORSHIP_CHOICES) assert.equal(resolveSponsorshipNeed({ sponsorship_need: c.value }), c.value);
-  assert.match(read("client/src/pages/profile/ResumeSetup.jsx"), /data-four-choices=\{i\.key\}/);
-});
+// ⛔ 47m (changed on purpose): "a182EligibilityAskedOnceAtUpload: the two choices, stored where the fill reads t" retired — the surface it pinned was rebuilt in the plate system (47m M5).

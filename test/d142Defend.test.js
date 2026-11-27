@@ -111,11 +111,11 @@ test("d142DefendNoModel · D190: the service and the panel call no model and sen
   const svc = read("services/defendResume.js");
   assert.doesNotMatch(svc, /anthropic|callTask|modelClient|fetch\(|INSERT|UPDATE /i);
   const page = (fs.readFileSync("client/src/pages/interview/ProvingGround.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: InterviewPage.jsx deleted — its home now */;
-  const panel = page.slice(at(page, "function Defend()"), at(page, "function Debrief()"));
+  // ⭐ 47m (D197 #13): Defend is the Proving ground's DefendWalk (the approved ProvingGround board's chair)
+  const panel = page.slice(at(page, "function DefendWalk()"), at(page, "function Practise("));
   assert.match(panel, /useRead\("\/api\/interview\/defend"\)/);
   assert.doesNotMatch(panel, /method: "POST"|getUserMedia|SpeechRecognition/, "typed answers stay in the tab; nothing listens");
-  // the approved sketch's words (docs/sketches/Interview.html → Defend)
-  for (const w of ["Every line you wrote, asked about", "The coach picks a bullet and asks the follow-ups an interviewer would.", "Answer out loud", "Type it"]) assert.ok(panel.includes(w), w);
+  for (const w of ["THE INTERVIEWER ASKS", "Answer out loud", "Type it"]) assert.ok(panel.includes(w), w);
 });
 
 test("d142DefendSteps · ask → answering → the harder follow-up → the line's next question → the next line", () => {

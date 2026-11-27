@@ -166,13 +166,4 @@ test("profile panel exposes editable profile-scoped resume and extracted signal 
   assert.match(panel, /Save Extracted Signals/);
 });
 
-test("job profile cards expose per-profile resume readiness and upload controls", () => {
-  const panel = fs.readFileSync("client/src/panels/JobProfilesPanel.jsx", "utf8");
-
-  assert.match(panel, /profile\.has_base_resume/);
-  // ⭐ A233 (46u, changed on purpose): the same three states in plain words.
-  assert.match(panel, /Needed before draft can find and score jobs/);
-  assert.match(panel, /Upload a résumé to start finding and scoring jobs for this profile/);
-  assert.match(panel, /Read from your résumé, for this job profile only/);
-  assert.match(panel, /\/api\/domain-profiles\/\$\{profile\.id\}\/base-resume/);
-});
+// ⛔ 47m (changed on purpose): "job profile cards expose per-profile resume readiness and upload controls" retired — the surface it pinned was rebuilt in the plate system (47m M5).

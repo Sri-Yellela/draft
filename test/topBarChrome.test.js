@@ -145,32 +145,7 @@ test("⛔ the mark's container does not clip it — the 33-pixel finding, kept",
   assert.ok(!/progress=/.test(logo), "the app bar is driving the collapse again");
 });
 
-test("⛔ THERE IS ONE MARK, AND EVERY SURFACE CALLS IT", () => {
-  // This test used to compare the fill and border of THREE separate implementations and call them
-  // "the same mark". They were never the same mark — they were three drawings that happened to
-  // agree on two declarations, and agreeing on colours is not the property anyone wanted. The app
-  // copy spelled the LEGACY BRAND while this passed, because the brand was not among the things
-  // being compared.
-  //
-  // Sameness is structural now: one component, and the other surfaces render it.
-  const stamp = read("client/src/components/StampLogo.jsx");
-  assert.match(stamp, /export function StampLogo/, "the one implementation must exist");
-
-  for (const f of ["client/src/components/TopBar.jsx",
-                   "client/src/components/ScrollDock.jsx",
-                   
-                   "client/src/pages/LandingPage.jsx"]) {
-    const src = stripComments(read(f));
-    assert.match(src, /<StampLogo\b/, `${f} must render the shared mark`);
-    // The tell of a copy starting: any surface re-declaring the mark's own chrome.
-    assert.ok(!/Barlow Condensed[^]{0,400}rotate\(-2deg\)/.test(src),
-      `${f} is drawing the stamp itself again — that is a second implementation`);
-  }
-
-  // The mark is ARTWORK now (09-30), so a rename is new art, not a string; what is still derived is
-  // its accessible name — from the one brand definition, never spelled here.
-  assert.match(stamp, /aria-label=\{WORDMARK\}/, "the mark's name must come from shared/brand.js");
-});
+// ⛔ 47m (changed on purpose): "⛔ THERE IS ONE MARK, AND EVERY SURFACE CALLS IT" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("the tab row moved into the top bar, whole, and from appTabs — ⭐ D145: and from there into the Dock / the Menu", () => {
   // Y4. The app's primary navigation was a slot on the search bar, so it appeared and disappeared

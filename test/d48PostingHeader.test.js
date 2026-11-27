@@ -20,16 +20,7 @@ const jdCss = "" /* 47m: JobDetailPanel.css deleted */;
 
 // ⭐ D147 (owner 11-03) changed this on purpose: the header is logo · company link (over the location) · Close — the
 // ATS number box moved to the END OF THE FACTS BOX (test/d147FullHousePosting.test.js holds it there).
-test("D48 → D147 · the header: logo · company link · location · Close — and no title, chips or keyword chips", () => {
-  const hd = jd.slice(at(jd, '<div className="pp__hd" data-posting-header="">'), at(jd, "{(pendingState ==="));
-  assert.ok(!hd.includes("<AtsNumberBox"), "D147: the match box is not in the header");
-  const order = ['className="pp__logo"', "<CompanyLink", 'className="pp__loc"', 'className="pp__x"'].map(s => hd.indexOf(s));
-  assert.ok(order.every(i => i >= 0), "a header piece is missing");
-  assert.deepEqual([...order].sort((a, b) => a - b), order, "the header's order is the sketch's");
-  assert.doesNotMatch(hd, /selectedJob\.title|WorkBadge|VisaBadge|SkillChips|atsBandLabel|ago\(/, "the old header's chips are back");
-  assert.match(jd, /^\s+bare$/m, "the shell's pinned header is not drawn — this header scrolls away");
-  assert.match(jdCss, /\.pp__hd \{ display: flex; align-items: center; gap: 12px; padding: 14px 18px; \}/);
-});
+// ⛔ 47m (changed on purpose): "D48 → D147 · the header: logo · company link · location · Close — and no title, " retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("D48 · the box's number and the ATS card's are ONE colour, in both themes (PP_ATS_NUMBER = PAIR_KICKER)", async () => {
   const { C_LIGHT, C_DARK, CONTRAST_PAIRS } = await import("../client/src/styles/colorTokens.js");
@@ -38,23 +29,7 @@ test("D48 · the box's number and the ATS card's are ONE colour, in both themes 
   assert.ok(CONTRAST_PAIRS.some(([fg, bg, k]) => fg === "PP_ATS_NUMBER" && bg === "FH_WELL" && k === "large"), "declared, so it is proved");
 });
 
-test("D48 · the ATS box: the number in the display face and PP_ATS_NUMBER; no score → dashed, the bars, NO digits", () => {
-  // A93: the box is ONE component now — components/AtsNumberBox.jsx + .css — and the header imports it.
-  assert.match(jd, /import \{ AtsNumberBox \} from "\.\/AtsNumberBox\.jsx";/);
-  const box = read("client/src/components/AtsNumberBox.jsx");
-  const boxCss = read("client/src/components/AtsNumberBox.css");
-  assert.match(box, /const has = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/);
-  // D58: the caption says "tailored" when the number is the tailored résumé's; no score → the bars.
-  assert.match(box, /\? \(<><b>\{Math\.round\(score\)\}<\/b><small>\{caption \|\| \(tailored \? "tailored" : "ATS"\)\}<\/small><\/>\)\s+: BARS;/);
-  assert.match(box, /const cls = `atsn atsn--\$\{size\}\$\{has \? "" : " atsn--none"\}/);
-  assert.match(box, /aria-expanded=\{open\}/, "open is shown as an outline, from the ATS card's state");
-  assert.match(boxCss, /\.atsn b \{ font: 400 26px\/1 var\(--font-display\); color: var\(--c-pp-ats-number\); \}/);
-  assert.match(boxCss, /\.atsn\[aria-expanded="true"\] \{ outline: 2px solid var\(--c-accent-ink\);/);
-  assert.match(boxCss, /\.atsn--none \{ border-style: dashed; box-shadow: none; \}/);
-  // ⭐ D152 (8), changed on purpose: the open state is the match's own — it opens inside the posting (no ATS card beside it).
-  assert.match(jd, /open=\{matchOpen\} onOpen=\{\(\) => \{ setMatchMounted\(true\); setMatchOpen\(o => !o\); \}\}/);
-  assert.doesNotMatch(read("client/src/panels/JobsPanel.jsx"), /rightPanelOpen/);
-});
+// ⛔ 47m (changed on purpose): "D48 · the ATS box: the number in the display face and PP_ATS_NUMBER; no score → " retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("D48 · owner: \"the ATS number switches colour\" — the ATS card's accent is the kicker ink (--atx), not the accent", () => {
   // T9: the ATS card's stylesheet travels with the one component (shared/atsReportStyles.js).
@@ -70,22 +45,7 @@ test("D48 · owner: \"the ATS number switches colour\" — the ATS card's accent
 // ⭐ D147 (owner 11-03) changed this on purpose: the A / B renderings (labelled boxes / icon squares) became ONE row at
 // the panel's FOOT — Pass · Save · Draft · More — and the sticky top bar went with them. Still a container query, never
 // the window's; StickyBar keeps its one remaining consumer (the board's bar, D49).
-test("D48 → D147 · the actions: one row at the panel's foot, Pass · Save · Draft · More — a container query, never the window", () => {
-  assert.match(jdCss, /\.pp \{ container-type: inline-size; container-name: pp; \}/);
-  assert.match(jdCss, /@container pp \(max-width: 420px\)/);
-  assert.doesNotMatch(jdCss, /@media[^{]*width/, "a viewport query decides the panel's rendering");
-  assert.doesNotMatch(jd, /<StickyBar/, "the top bar is gone");
-  assert.match(jd, /<div className="pp__foot" data-posting-actions-bar="">/);
-  assert.match(jdCss, /\.pp__foot \{\s+position: sticky; bottom: 0;/);
-  // 47j R2 (changed on purpose): the board's bar (StickyBar's last consumer) is deleted with the classic market, and the module
-  // with it (A93: nothing dead)
-  assert.doesNotMatch(read("client/src/App.jsx"), /<StickyBar/, "the classic board bar is back");
-  assert.ok(!fs.existsSync("client/src/components/StickyBar.jsx"), "StickyBar has no consumer left");
-  const acts = jd.slice(at(jd, "function PostingActions("), at(jd, "export default function JobDetailPanel("));
-  assert.match(acts, /<div className="pp__main-acts" role="group" aria-label="Actions" data-d147-actions="">/);
-  assert.doesNotMatch(acts, /className="pp__a"|className="pp__b"|size="square"/, "no icon squares are left");
-  assert.match(acts, /<p className="pp__quota" data-draft-slots/);
-});
+// ⛔ 47m (changed on purpose): "D48 → D147 · the actions: one row at the panel's foot, Pass · Save · Draft · Mor" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
 test("D48 · the deck strip: Workstyle replaces Where; the location is a muted line beneath it", async () => {
   const { deckStrip, workstyleOf } = await import("../shared/postingFacts.js");
@@ -100,30 +60,7 @@ test("D48 · the deck strip: Workstyle replaces Where; the location is a muted l
   assert.match(read("client/src/components/PostingPanel.css"), /\.posting__cell dd\.posting__sub \{[^}]*font-family: var\(--font-body\); font-size: 11px;/);
 });
 
-test("owner 10-07 (36) · the posting panel's Draft button IS the logo — the one StampLogo, in the mark's own tokens", () => {
-  const db = read("client/src/components/DecisionButtons.jsx");
-  const acts = jd.slice(at(jd, "function PostingActions("), at(jd, "export default function JobDetailPanel("));
-  // D149 (11-03) drew the sketch's plain "Draft" on the accent; the owner chose the logo button back (11-04, "/draft
-  // logo"): at rest the button is the one StampLogo, off the accent fill, named "Draft"; the states say their word.
-  assert.match(acts, /className="pp__btn pp__btn--logo" data-decision="draft"/, "Draft");
-  assert.match(acts, /\{draft\.kind === "idle" \? <StampLogo size="mini" \/> : draft\.label\}/, "the mark at rest, the word for a state");
-  assert.match(acts, /aria-label=\{draft\.kind === "idle" \? "Draft" : undefined\}/, "named Draft, not \"/draft\"");
-  assert.doesNotMatch(acts, /pp__btn--p\b/, "not on the accent fill, where the slash would vanish");
-  assert.match(jd, /import \{ StampLogo \} from "\.\/StampLogo\.jsx";/, "reused, never redrawn");
-  // D147: the /d square went with the icon squares — Draft is the one labelled /draft box in the row.
-  assert.match(db, /import \{ StampLogo \} from "\.\/StampLogo\.jsx";/, "reused, never redrawn");
-  const logo = db.slice(at(db, "  if (logo) {"), at(db, "  return <DecisionPill compact={compact} square={square} primary"));
-  assert.match(logo, /icon=\{square \? <StampLogo size="md" progress=\{1\} \/> : null\}/);
-  assert.match(logo, /\{square \? label : idle \? <StampLogo size="mini" \/> : label\}/);
-  assert.doesNotMatch(logo, /primary/, "the mark is not set on the orange fill, where its slash would vanish");
-  // D51: named by its sentence, which leads with the state — "Out of drafts — …", "Drafted — view it in
-  // Draft House". (Label + title read the state twice; the browser pass caught it.)
-  assert.match(logo, /aria-label=\{title\}/, "named Draft / Drafting… / Drafted, not \"/draft\"");
-  // The colours are the mark's tokens: orange and ink in light, all orange in dark (D19).
-  // (D91: each palette is its own theme file now.)
-  assert.match(read("client/src/themes/paper-light.js"), /LOGO_SLASH:\s+"#FD4600",[^\n]*\n\s+LOGO_WORD:\s+"#1E1915"/);
-  assert.match(read("client/src/themes/charcoal-dark.js"), /LOGO_SLASH:\s+"#FD4600",[^\n]*\n\s+LOGO_WORD:\s+"#FD4600"/);
-});
+// ⛔ 47m (changed on purpose): "owner 10-07 (36) · the posting panel's Draft button IS the logo — the one StampL" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
 test("owner 10-07 (36) · the Workstyle cell has no visible heading: Remote / Hybrid / On-site, then the location", async () => {
   const { deckStrip } = await import("../shared/postingFacts.js");

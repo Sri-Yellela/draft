@@ -92,12 +92,4 @@ test("d172RunPointsOnlyFromProof: the words and links (pure)", () => {
   assert.equal(questHref("/app/atlas", { id: "prove", skill: "Kafka" }), "/app/atlas/your-skills?prove=Kafka");
 });
 
-test("d172RunPointsOnlyFromProof: GET /api/atlas/run is signed-in and private; the panel and the quick check are wired", () => {
-  const route = read("routes/atlas.js");
-  assert.match(route, /router\.get\("\/run", \(req, res\) => \{\n    res\.set\("Cache-Control", "private, no-store"\);\n    if \(req\.user\?\.id == null\) return res\.status\(401\)/);
-  assert.match(read("client/src/pages/atlas/AtlasPage.jsx"), /\{panel === "your-run" && <YourRun base=\{base\} signedIn=\{signedIn\} \/>\}/);
-  assert.match(read("client/src/pages/atlas/YourSkillsPanel.jsx"), /get\("prove"\)[\s\S]{0,200}setOpenKey\(s\.key\)/, "?prove= opens that skill's own quick check");
-  const css = read("client/src/pages/atlas/YourRun.css");
-  assert.doesNotMatch(css, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i, "tokens only");
-  assert.doesNotMatch(css, /border-radius:\s*(999px|50%)/, "no capsules");
-});
+// ⛔ 47m (changed on purpose): "d172RunPointsOnlyFromProof: GET /api/atlas/run is signed-in and private; the pan" retired — Your run is the Logbook on Your map (D197 #11, pages/atlas/Logbook.jsx).

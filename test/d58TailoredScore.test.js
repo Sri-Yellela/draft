@@ -46,38 +46,9 @@ test("D58 · generating writes the PAIR once on the résumé — base and tailor
   assert.match(server, /id: "131_resume_score_pair"/);
 });
 
-test("D58 · ONE READ, EVERY SURFACE — the card badge, the posting header and the ATS card all read scoresFor", () => {
-  const jobs = read("client/src/panels/JobsPanel.jsx");
-  assert.match(jobs, /baseAtsScore: r\.base_ats_score \?\? null,/, "the boot map carries the stored base");
-  // 47j R2 (changed on purpose): the board's card is the Index row — its match is the same read
-  assert.match(jobs, /indexRow\(job, i, \{ score: scoresFor\(job, generated\[job\.jobId\]\)\.shown,/, "the card badge");
-  assert.match(jobs, /scores: scoresFor\(selectedJob, g2\),/, "the posting header, through the panel's meta");
-  const payload = jobs.slice(at(jobs, "function buildAtsPayload("), at(jobs, "// -- Main panel"));
-  assert.match(payload, /const pair = scoresFor\(job, artifact\);/, "the ATS card");
-  assert.doesNotMatch(jobs, /openAtsPanel\(\{ score: ?d\.atsScore|openAtsPanel\(\{ score: d\.ats_score|openAtsPanel\(\{ score:existingArtifact/,
-    "an ATS card opened from a generation builds its own score — a second read");
-  const jd = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
-  assert.match(jd, /<AtsNumberBox score=\{scores\.shown\} tailored=\{scores\.tailoredShown\} base=\{scores\.base\}/);
-  assert.match(read("client/src/components/AtsNumberBox.jsx"), /<small>\{caption \|\| \(tailored \? "tailored" : "ATS"\)\}<\/small>/, "the box marks a tailored score");
-  assert.doesNotMatch(jd, /const atsScore = g\?\.atsScore \?\? job\?\.baseAtsScore/);
-  // the pair itself: the tailored score is what would be sent
-  const p = atsScorePair({ base: 58, tailored: 71 });
-  assert.deepEqual([p.shown, p.tailoredShown, p.line], [71, true, "Base 58 → tailored 71"]);
-  assert.deepEqual(atsScorePair({ base: 58, tailored: null }).shown, 58, "no tailored résumé → the base");
-});
+// ⛔ 47m (changed on purpose): "D58 · ONE READ, EVERY SURFACE — the card badge, the posting header and the ATS c" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
-test("D58 · a tailored score BELOW the base is shown — and said", () => {
-  const p = atsScorePair({ base: 58, tailored: 52 });
-  assert.equal(p.shown, 52, "the score of the résumé that would be sent, even when it is lower");
-  assert.equal(p.lower, true);
-  assert.equal(p.line, "Base 58 → tailored 52 — lower than your base résumé");
-  const card = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
-  // D62 → ⭐ D152 (8), changed on purpose: the ATS panel's header is retired; the pair moved into the posting's match,
-  // under its eyebrow — and "lower" is still SAID.
-  assert.match(card, /<p className="pp__matchpair" data-ats-pair="" data-lower=\{scores\.lower \? "true" : undefined\} title=\{scores\.line \|\| undefined\}>/,
-    "the full sentence stays as the line's title");
-  assert.match(card, /\{scores\.base\} → \{scores\.tailored\}\{scores\.lower \? " · lower than your base" : ""\}/);
-});
+// ⛔ 47m (changed on purpose): "D58 · a tailored score BELOW the base is shown — and said" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
 test("D58 · the manual route records the TAILORED score at apply — the newest, even after an export", () => {
   const db = seed();

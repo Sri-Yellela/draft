@@ -74,7 +74,7 @@ test("D138 · d138NeverContactsAutomatically — the note is drafted for the use
   assert.match(note, /I'm applying for the Data Engineer role at Snowflake \(https:\/\/jobs\.example\/1\)\. We're both Northeastern alumni/);
   assert.match(note, /\[One line, in your words: /, "the user's own words go in before it leaves");
   const block = read("client/src/components/WarmPathsBlock.jsx");
-  assert.match((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */, /<WarmPathsBlock jobId=\{selectedJob\.id \?\? selectedJob\.jobId\} \/>/);
+  assert.match((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */, /<WarmPathsBlock jobId=\{job\.id \?\? job\.jobId\}\/>/   /* 47m: on the opening sheet */);
   assert.match(block, /navigator\.clipboard\?\.writeText/);
   assert.match(block, /draft never sends it for you\./);
   assert.doesNotMatch(block, /method: "POST"|sendMail|\/api\/.*send/i, "no send path");

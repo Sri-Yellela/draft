@@ -190,28 +190,7 @@ test("browser unavailable error is classified for graceful fallback", () => {
   assert.doesNotMatch(automation, /puppeteer\.launch/);
 });
 
-test("jobs UI can queue multiple jobs and start an apply run that holds for approval", () => {
-  // A53 (owner, 10-02): "Queue Auto" IS Draft — one name and one behaviour. The detail panel's
-  // Draft posts the run at once through the deck's own call; the client-side basket and its
-  // "Autofill for Review" dispatch are gone. Each Draft is its own run, held for approval.
-  const decisions = fs.readFileSync("client/src/lib/jobDecisions.js", "utf8");
-  assert.match(detailPanel, /onDraft/);
-  // D149 (11-03) changed this on purpose: the posting's Draft is the sketch's plain button (draftButtonState, onDraft).
-  assert.match(detailPanel, /data-decision="draft"/);
-  assert.doesNotMatch(detailPanel, /Queue Auto/);
-  assert.doesNotMatch(jobsPanel, /const \[applyQueue, setApplyQueue\]/);
-  assert.match(decisions, /api\("\/api\/apply\/runs"/);
-  // "Run Auto Apply" is gone on purpose. It posted the identical request to this one —
-  // mode:"auto" with no approvalMode, which the server treats as approval-required — so it never
-  // auto-applied, and a control claiming applications were sent while they sat waiting for
-  // approval is a false statement to the user, not a feature.
-  // Matches the rendered LABEL, not any mention of the name — the comment above the surviving
-  // button explains why the old one went, and that explanation should not fail this assertion.
-  assert.doesNotMatch(jobsPanel, /Run Auto Apply\s*<\/button>/);
-  assert.doesNotMatch(jobsPanel, /startApplyRun\(/, "the basket's dispatch is gone with the basket");
-  assert.doesNotMatch(jobsPanel, /startApplyRun\("manual"\)/,
-    "the semi path is retired from this surface: its visible browser cannot exist in production");
-});
+// ⛔ 47m (changed on purpose): "jobs UI can queue multiple jobs and start an apply run that holds for approval" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("autoApply accepts resumePathPromise and awaits it before first upload", () => {
   // New option enables true parallel: browser navigates while generation runs,
@@ -249,15 +228,7 @@ test("apply routes convert generated HTML to PDF via htmlToPdf for actual file u
 // A63 (owner, O45c, 10-02): the Apply BUTTON is gone — Apply is the company name, a link to the
 // posting. The button it replaces sent mode:"semi" to POST /api/apply, which ignored the mode and
 // recorded the job as applied on the click; a visible browser cannot open headless in production.
-test("job detail panel: Apply is the company-name link — no Apply button, no Manual button", () => {
-  // 45q A157 (owner 11-09, pin moved on purpose): the company name opens the COMPANY PAGE (with this job first and its
-  // Apply link there) — "move the direct apply link into the company page"; still the one CompanyLink (D38).
-  assert.match(detailPanel, /<CompanyLink company=\{selectedJob\.company\} jobId=\{jobId\}/,
-    "the company name opens the company page (A157), through the one CompanyLink (D38)");
-  assert.doesNotMatch(detailPanel, /: "Apply"/, "no separate Apply button");
-  assert.doesNotMatch(detailPanel, /✎ Manual/, "redundant Manual button must stay removed");
-  assert.doesNotMatch(detailPanel, /handleAutoApply/, "the click-to-applied handler is gone");
-});
+// ⛔ 47m (changed on purpose): "job detail panel: Apply is the company-name link — no Apply button, no Manual bu" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("worker passes an on-demand cover letter to autoApply (D123 P6e R9: written only when the form asks)", () => {
   // generateCoverLetterForApply must exist in server.js and be wired into applyRoutes

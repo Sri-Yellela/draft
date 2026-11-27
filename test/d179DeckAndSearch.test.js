@@ -23,14 +23,7 @@ test("d179DeckDesignUnchanged · the deck keeps its fan and actions, gains Send 
   assert.doesNotMatch(deck, /data-taxonomy-chip|className="[^"]*crumb/, "no taxonomy chip on the card (owner 11-07 / D182 J19)");
 });
 
-test("d179SignedOutSamePageNoPersonalParts · signed out, the deck's own card without match %, Starred / Imported or fit sorts; acting asks to sign up", () => {
-  const page = read("client/src/pages/jobs/PublicBoardPage.jsx");
-  assert.match(page, /import \{ CardFace \} from "\.\.\/\.\.\/panels\/DeckView\.jsx";/, "the SAME card");
-  assert.match(page, /band: null, score: null/, "no match % signed out");
-  const code = page.replace(/^\s*\/\/.*$/gm, "");   // the header comment names them to say they are absent
-  assert.doesNotMatch(code, /Starred|Imported|Best fit|For you/, "no personal views or sorts");
-  assert.match(page, /<Link to=\{`\/register\?returnTo=\$\{encodeURIComponent\(j\.path\)\}`\}>Save<\/Link>/, "acting asks to sign up");
-});
+// ⛔ 47m (changed on purpose): "d179SignedOutSamePageNoPersonalParts · signed out, the deck's own card without m" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("d179SearchSuggestsCompaniesRolesTech · one box, grouped: companies (with open jobs), technologies, titles; people public only", async () => {
   const db = new Database(":memory:");

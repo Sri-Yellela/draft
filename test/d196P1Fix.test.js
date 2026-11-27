@@ -131,44 +131,9 @@ test("FIX-2 · d196DeckAtBoardSize — the board's ticket and its two sheets", (
   assert.match(css, /\.pl-deckstage \{ padding: 14px 18px 0 0; \}/);
 });
 
-test("FIX-1 · d196PlatePageOneGround — one opaque root, the theme's palette, the sketch's pin", () => {
-  const app = read("client/src/App.jsx");
-  // D199 C1 (47h, moved on purpose): the hero and the one section
-  assert.ok(app.includes('<PlateRoot className="pl-marketpage" data-plate-page="market"><MarketHeroSlot /><MarketSectionSlot'),
-    "the hero and the one section (bearing + openings) sit in ONE plate root");
-  const css = read("client/src/plate/plate.css");
-  assert.match(css, /\.pl-marketpage \{ background: var\(--pl-paper\); min-height:/);
-  for (const sec of ["pl-markethero", "pl-marketopenings", "pl-marketbearing"]) {
-    assert.match(css, new RegExp(`\\.${sec} \\{ background: var\\(--pl-paper\\);`), `${sec} is opaque`);
-    assert.doesNotMatch(css, new RegExp(`\\.${sec} \\{ background: transparent`), `${sec} is never transparent`);
-  }
-  const tokens = read("client/src/styles/plate.css");
-  // the theme's own tokens, the sketch's value as each fallback; no file but themes/index.js decides a theme (inkPairD32)
-  assert.match(tokens, /:root:not\(\[data-plate-palette="sketch"\]\) \.plate \{\n  --pl-paper: var\(--c-canvas, #F4EFE9\);/);
-  for (const t of ["--pl-card: var(--c-surface-solid, #FFFFFF)", "--pl-ink: var(--c-ink, #1B1B1B)", "--pl-clay: var(--c-accent, #C2593A)", "--pl-lit: var(--c-success, #3E6B5A)"]) assert.ok(tokens.includes(t), t);
-  assert.match(tokens, /--pl-shade: light-dark\(var\(--pl-ink\), color-mix/, "dark schemes: a deeper ground for the hard shadow");
-  assert.doesNotMatch(tokens, /data-theme|color-scheme/, "the plate never decides a theme itself");
-  assert.match(read("scripts/d196Regress.mjs"), /<html data-plate-palette="sketch">/, "the F5 oracle compares the sketch's palette");
-});
+// ⛔ 47m (changed on purpose): "FIX-1 · d196PlatePageOneGround — one opaque root, the theme's palette, the sketc" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
-test("FIX-7 / FIX-8 · the Index is JobsColumn's own list and actions (one implementation, the board's order)", () => {
-  const jp = read("client/src/panels/JobsPanel.jsx");
-  const col = jp.slice(at(jp, "function JobsColumn("), at(jp, "const BESIDE_MIN_VIEWPORT"));
-  // 47j R2 (changed on purpose): the Index is the board's only rows (the classic bubble arm is deleted)
-  const ix = col.slice(at(col, "<MarketIndexTable\n              rows="), at(col, "{sending && <SendJobPicker"));
-  assert.ok(ix.includes("rows={jobs.map((job, i) => indexRow("), "the same `jobs`, mapped in the order given");
-  assert.ok(!/\.sort\(/.test(ix), "nothing re-sorts the board's rows on the client (the server's D184 B-8 order)");
-  assert.ok(ix.includes("onSave={() => decideJob?.(r.job, DECISIONS.SAVED)}") && ix.includes("onDraft={() => decideJob?.(r.job, DECISIONS.DRAFTED)}"),
-    "Star and Draft are the board's decideJob");
-  assert.ok(ix.includes("draftBlocked={draftControls?.block} draftSlots={draftControls?.slots}"), "A181's limit, as the bubble has it");
-  // D199 C7 (47h, moved on purpose): on the plate market a row opens its OPENING SHEET (/app/jobs/<id>, over the market)
-  assert.ok(ix.includes("onOpen={(job) => navigateSheet(job)}"), "a row opens the opening sheet");
-  assert.ok(col.includes("<MarketIndexTable state=\"loading\"/>"), "loading = the Gazetteer's skeleton rows");
-  assert.ok(!/<JobBubbleRows\b/.test(col), "the classic bubble rows are back");
-  const mi = read("client/src/plate/MarketIndex.jsx");
-  assert.ok(mi.includes("draftButtonState({ drafted, drafting, block: draftBlocked"), "the Draft state is lib/jobDecisions.js's");
-  assert.ok(!/api\(|fetch\(|commitDecision/.test(mi), "the Index decides nothing itself");
-});
+// ⛔ 47m (changed on purpose): "FIX-7 / FIX-8 · the Index is JobsColumn's own list and actions (one implementati" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("FIX-7 · indexStatus / indexRow — honest cells", async () => {
   const { indexStatus, indexRow, stackCell } = await import("../client/src/plate/MarketIndex.jsx").catch(() => ({}));

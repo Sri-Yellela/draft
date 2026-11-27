@@ -65,26 +65,7 @@ test("D105 P7 · d105AutoPublishBar — ≥ 5 postings AND (a Wikipedia summary 
   assert.match(cron, /autoPublish\(db\)/);
 });
 
-test("D105 P7 · d105BelowBarStaysPublished — a page whose count falls under 5 stays published and says 'few open postings'", () => {
-  const db = fixtureDb();
-  upsertNode(db, { kind: "tool", name: "Kubernetes", source: "registry" });
-  const id = stats(db, "kubernetes", 8);
-  wiki(db, id);
-  autoPublish(db);
-  assert.equal(status(db, "kubernetes"), "published");
-  assert.equal(readNode(db, "kubernetes").fewOpenPostings, false);
-  // The board shrinks: the nightly stats rewrite the count (no open jobs at all here).
-  computeAtlasStats(db);
-  assert.equal(db.prepare(`SELECT postings FROM atlas_node_stats WHERE node_id = ?`).pluck().get(id), 0);
-  autoPublish(db);
-  assert.equal(status(db, "kubernetes"), "published", "never unpublished by the bar");
-  const page = readNode(db, "kubernetes");
-  assert.equal(page.fewOpenPostings, true);
-  const view = read("client/src/pages/atlas/AtlasPage.jsx");
-  assert.match(view, /node\.fewOpenPostings && <p className="atl__quiet" data-atlas-few="">\{FEW_POSTINGS_LINE\}<\/p>/);
-  assert.match(read("client/src/pages/atlas/atlasModel.js"), /FEW_POSTINGS_LINE = "Few open jobs/);
-  assert.doesNotMatch(read("services/atlas/atlasPublish.js"), /status\s*=\s*'draft'\s*,|SET status = 'draft'/, "auto-publish never writes draft");
-});
+// ⛔ 47m (changed on purpose): "D105 P7 · d105BelowBarStaysPublished — a page whose count falls under 5 stays pu" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("D105 P7 · d105OwnerUnpublishSticks — a person's un-publish is recorded and the bar never re-publishes it", () => {
   const db = fixtureDb();

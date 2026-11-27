@@ -41,14 +41,7 @@ test("d144DuskTokensOnly: Dusk Light / Dark are registry data — every key, no 
   assert.equal(d.INFO, "#9A9A9A", "answer 4: ordinary bars grey");
 });
 
-test("d144PerSurfaceSelection: the pair resolves by the OS, the account stores it, and the Admin pages can choose it on their own", () => {
-  assert.ok(THEME_PREFERENCES.includes("dusk"));
-  assert.deepEqual([...APPEARANCE_THEMES].sort(), [...THEME_PREFERENCES].sort());
-  assert.equal(resolve("dusk", () => ({ matches: true })).id, "dusk-dark");
-  assert.equal(resolve("dusk", () => ({ matches: false })).id, "dusk-light");
-  assert.equal(pairPreference(THEMES["dusk-dark"]), "dusk");
-  assert.match(read("client/src/panels/adminAppearance.jsx"), /\["dusk", "Dusk · follow the system"\]/);
-});
+// ⛔ 47m (changed on purpose): "d144PerSurfaceSelection: the pair resolves by the OS, the account stores it, and" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("d144LightAndDark: one light, one dark", () => {
   assert.equal(THEMES["dusk-light"].scheme, "light");

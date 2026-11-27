@@ -42,16 +42,7 @@ test("A116 · D147 — Full House's header block and the sentence's size follow 
   assert.match(raw("client/src/components/Customise.css"), /\.cz-pv \{ --fh-sentence-size: 24px; \}/);
 });
 
-test("A116 · D147 — the opened posting (its header, actions, facts box and match box) follows the text size", () => {
-  const pp = raw("client/src/components/PostingPanel.css");
-  const block = slice(pp, "/* ── ⭐ D147 · the opened posting", "/* ── The phone.");
-  assert.deepEqual(unscaled(block.replace(/\/\*[\s\S]*?\*\//g, "")), []);
-  assert.match(pp, /\.posting__mast--panel \.posting__title \{ font-size: calc\(28px \* var\(--type-scale, 1\)\); \}/);
-  const jd = raw("client/src/components/JobDetailPanel.css");
-  const d147 = slice(jd, "/* D147 · Close — a small quiet text box");
-  assert.deepEqual(unscaled(d147.replace(/\/\*[\s\S]*?\*\//g, "")), []);
-  assert.match(jd, /\.pp__loc \{ font-size: calc\(13px \* var\(--type-scale, 1\)\);/);
-});
+// ⛔ 47m (changed on purpose): "A116 · D147 — the opened posting (its header, actions, facts box and match box) " retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
 test("A116 · D148 — the settings drawer's block follows the text size", () => {
   const dh = raw("client/src/components/DraftHouse.css");

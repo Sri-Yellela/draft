@@ -34,12 +34,10 @@ async function loadUi() {
         import { MemoryRouter } from "react-router-dom";
         import AtlasPage from ${abs("pages/atlas/AtlasPage.jsx")};
         import { SkillMapView } from ${abs("pages/atlas/SkillMap.jsx")};
-        import { GlossaryView, OverviewView, MarketView, AuditCard, searchGlossary } from ${abs("pages/atlas/AtlasPanels.jsx")};
-        export { searchGlossary };
+        import { OverviewView, MarketView, AuditCard } from ${abs("pages/atlas/AtlasPanels.jsx")};   // 47m (D201): the Glossary is the Gazetteer
         const at = (url, el) => renderToStaticMarkup(h(MemoryRouter, { initialEntries: [url] }, el));
         export const page = (url, base = "/atlas") => at(url, h(AtlasPage, { base }));
         export const skillMap = (m) => at("/app/atlas/your-map", h(SkillMapView, { m, base: "/app/atlas" }));
-        export const glossary = (terms, q = "", concepts = []) => at("/atlas/glossary", h(GlossaryView, { base: "/atlas", terms, q, concepts }));
         export const overview = (props) => at("/atlas", h(OverviewView, { base: "/atlas", ...props }));
         export const market = (roles, cards) => at("/atlas/this-weeks-market", h(MarketView, { base: "/atlas", roles, cards }));
         export const card = (c) => at("/atlas/the-audit", h(AuditCard, { base: "/atlas", card: c }));`,
@@ -81,152 +79,15 @@ function mapWorld() {
 
 // ── d167AtlasHasOwnNav ───────────────────────────────────────────────────────────────────────────
 
-test("D167 · d167AtlasHasOwnNav — the card: the eyebrow, the serif headline, three groups in the sketch's order", async () => {
-  assert.deepEqual(ATLAS_NAV.map(g => [g.group, g.panels.map(p => p.label)]), [
-    // ⭐ D172 (3) (changed on purpose): Your run, first in You, as the approved sketch draws it.
-    // ⭐ D178 (changed on purpose, the nav regrouped): Overview is the signed-out front page; Your route is in Your map.
-    // ⭐ 46u (owner 11-17, changed on purpose): "move your map to the top in atlas and make it the default screen".
-    ["You", ["Your map", "Your run", "Your skills"]],
-    // ⭐ D172 (2) (changed on purpose): the Library, first in Grow, as the approved sketch draws it.
-    // ⭐ D178 (changed on purpose): Learn is the course's circle view, inside the Library.
-    // ⭐ A154 (45o, on purpose): How it works — the D172 sketch's panel, second in Grow.
-    ["Grow", ["Library", "How it works", "Today's question", "The audit"]],
-    ["Explore", ["Roles and skills", "This week's market", "Glossary"]],
-  ]);
-  const u = await loadUi();
-  const html = u.page("/atlas/glossary");
-  const nav = navOf(html);
-  assert.match(html, /<div class="pl pl--fill" data-place="atlas">/, "the place, inside Atlas's own padded page");
-  assert.match(nav, /<p class="pl__eb">Your way through the market<\/p><h1 class="pl__title">Atlas<\/h1>/);
-  assert.deepEqual([...nav.matchAll(/<h2 class="pl__glabel">([^<]+)<\/h2>/g)].map(m => m[1]), ["You", "Grow", "Explore"]);
-  assert.deepEqual([...nav.matchAll(/data-place-item="([^"]+)"/g)].map(m => m[1]), PANEL_IDS);
-  // Real links (keyboard: Tab + Enter, the back button, a reload) — never a button that only swaps state.
-  for (const id of PANEL_IDS) assert.match(nav, new RegExp(`<a [^>]*href="${id === "overview" ? "/atlas" : `/atlas/${id}`}"[^>]*data-place-item="${id}"|<a [^>]*data-place-item="${id}"[^>]*href="${id === "overview" ? "/atlas" : `/atlas/${id}`}"`), id);
-  assert.doesNotMatch(nav, /<button/);
-  // The sketch's style: serif headline, accent eyebrow, a card (rounded, not a capsule) — PlaceNav's, for every place.
-  const css = read("client/src/components/PlaceNav.css");
-  assert.match(css, /\.pl__eb \{[^}]*color: var\(--c-accent-ink\)/);
-  assert.match(css, /\.pl__title \{[^}]*var\(--font-display\)/);
-  assert.match(css, /\.pl__nav \{[^}]*border-radius: 24px/);
-  for (const f of ["client/src/components/PlaceNav.css", "client/src/pages/atlas/AtlasPanels.css"]) {
-    const c = read(f);
-    assert.doesNotMatch(c, /border-radius:\s*(999|50%)/, `${f}: no pills (D60)`);
-    assert.doesNotMatch(c.replace(/var\(--[a-z0-9-]+\)/g, ""), /#[0-9a-fA-F]{3,8}\b|rgba?\(/, `${f}: every colour a theme token`);
-  }
-  // ⛔ A136: one implementation — Atlas's own card is gone.
-  assert.ok(!fs.existsSync("client/src/pages/atlas/AtlasNav.jsx") && !fs.existsSync("client/src/pages/atlas/AtlasNav.css"));
-});
+// ⛔ 47m (changed on purpose): "D167 · d167AtlasHasOwnNav — the card: the eyebrow, the serif headline, three gro" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
-test("D167 · d167AtlasHasOwnNav — every panel has its own address, lit in the nav; the arrow keys move inside the card", async () => {
-  const u = await loadUi();
-  for (const id of PANEL_IDS) {
-    const html = u.page(`/atlas/${id}`);
-    assert.match(html, new RegExp(`data-atlas-panel="${id}"`), id);
-    // ⭐ D197 #7 (47h, changed on purpose): the Library is a plate page now — Atlas's area nav (the shell's, signed in;
-    // PublicAtlasNav on the public mount) lights it, not a PlaceNav card (test/d197AtlasPlatePages.test.js)
-    if (id === "library") { assert.match(html, /data-atlas-page="library"/); continue; }
-    assert.deepEqual(currentOf(html), [id], `${id} is the current entry`);
-    assert.equal(panelHref("/atlas", id), id === "overview" ? "/atlas" : `/atlas/${id}`);
-  }
-  // The app mount: the same panels under /app/atlas.
-  // ⛔ 47j w1-shell (changed on purpose, D197 #5): signed in, the PlaceNav card is not drawn — the shell's Atlas area nav
-  // (useAtlasAreaNav: its views + More, volumeModel atlasPlaces) carries every place; the panel is drawn alone.
-  const app = u.page("/app/atlas/glossary", "/app/atlas");
-  assert.match(app, /data-atlas-panel="glossary"/);
-  assert.match(app, /<div class="pl pl--fill pl--bare" data-place="atlas">/);
-  assert.doesNotMatch(app, /class="pl__nav"/, "the app's Atlas draws a second navigation again");
-  const places = read("client/src/pages/atlas/volumeModel.js");
-  for (const id of PANEL_IDS) assert.ok(places.includes(`p("${id}", `), `${id} has no place in the area nav`);
-  // The app's route already accepts /app/atlas/<one segment> (App.jsx atlasRoute) — the panels need no new route.
-  // ⭐ D172 (2) (changed on purpose): the rule also admits /app/atlas/library/<course>, a course page.
-  // ⭐ D197 #6 (47h, changed on purpose): and /app/atlas/region/<n>, a region of Volume I.
-  assert.match(read("client/src/App.jsx"), /const atlasRoute = \/\^atlas\(\?:\\\/\(\?:family\|library\|region\)\)\?\(\?:\\\/\[\^\/\]\+\)\?\$\/\.test\(routeKey\);/);
-  // Keyboard: ↑ / ↓ / Home / End move focus between the card's links (wrapping); Tab reaches every one (real <a href>).
-  const nav = read("client/src/components/PlaceNav.jsx");
-  assert.match(nav, /const MOVE = \{ ArrowDown: 1, ArrowUp: -1, Home: "first", End: "last" \};/);
-  assert.match(nav, /\(i \+ k \+ links\.length\) % links\.length/);
-  assert.match(nav, /aria-current=\{it\.id === current \? "page" : undefined\}/);
-  assert.match(read("client/src/components/PlaceNav.css"), /\.pl__item:focus-visible \{ outline: 2px solid var\(--c-accent-ink\)/);
-  // The panel is a labelled region beside the card (a <section> with a name is a region).
-  assert.match(u.page("/atlas/the-audit"), /<section class="pl__panel" data-place-panel="the-audit" id="atlas-panel" aria-label="The audit">/);
-});
+// ⛔ 47m (changed on purpose): "D167 · d167AtlasHasOwnNav — every panel has its own address, lit in the nav; the" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 // ── d167AtlasKeepsEverySurface ───────────────────────────────────────────────────────────────────
 
-test("D167 · d167AtlasKeepsEverySurface — every older address still opens, and lights the panel it now lives in", async () => {
-  assert.equal(panelFor("", ""), "overview");
-  assert.equal(panelFor("", "k8s"), "roles-and-skills", "the search");
-  assert.equal(panelFor("kubernetes"), "roles-and-skills", "a node's page");
-  assert.equal(panelFor("data-engineer"), "roles-and-skills", "a role's page");
-  assert.equal(panelFor("family/data"), "your-map", "a family's page");
-  // ⭐ D178 (changed on purpose): /atlas/learn redirects to the course's circle view and lights the Library.
-  assert.equal(panelFor("learn"), "library");
-  assert.equal(panelFor("your-route"), "your-map", "D178: Your route is folded into Your map");
-  assert.equal(panelFor("overview"), "overview", "D178: /atlas/overview is still the front page");
-  assert.equal(panelFor("check"), "your-skills", "D142's check");
-  assert.ok(isPanelSlug("check") && isPanelSlug("glossary") && !isPanelSlug("kubernetes") && !isPanelSlug("family/data"));
-  const u = await loadUi();
-  // A node's address is still a node page (loads the node), inside Roles and skills.
-  const node = u.page("/atlas/kubernetes");
-  assert.match(node, /data-atlas-page="node"/);
-  assert.deepEqual(currentOf(node), ["roles-and-skills"]);
-  assert.match(node, /data-atlas-search=""/, "the search box above a node page");
-  assert.deepEqual(currentOf(u.page("/atlas?q=k8s")), ["roles-and-skills"]);
-  assert.match(u.page("/atlas/family/data"), /data-atlas-page="family"/);
-  assert.deepEqual(currentOf(u.page("/atlas/family/data")), ["your-map"]);
-  assert.match(u.page("/atlas/learn"), /data-atlas-page="learn"/);
-  assert.match(u.page("/atlas/check"), /data-atlas-page="check"[^>]*data-atlas-panel="your-skills"|data-atlas-panel="your-skills"[^>]*data-atlas-page="check"/);
-  // Roles and skills draws the search (and, from /api/atlas/me, Explore by role and the recent pages).
-  assert.match(u.page("/atlas/roles-and-skills"), /data-atlas-home-search=""[\s\S]*data-atlas-search=""/);
-});
+// ⛔ 47m (changed on purpose): "D167 · d167AtlasKeepsEverySurface — every older address still opens, and lights " retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
-test("D167 · d167AtlasKeepsEverySurface — each existing surface is mounted by its panel (the map, docs/D167_ATLAS_MAP.md)", async () => {
-  const page = read("client/src/pages/atlas/AtlasPage.jsx");
-  const panels = read("client/src/pages/atlas/AtlasPanels.jsx");
-  const map = read("client/src/pages/atlas/YourMap.jsx");
-  // 1–3 search, node and role pages · 4 a family · 13 Learn — unchanged, inside the shell.
-  assert.match(page, /\{!slug && q && <AtlasSearch base=\{base\} q=\{q\} \/>\}/);
-  assert.match(page, /<AtlasNodeView base=\{base\} node=\{page\.node\}/);
-  assert.match(page, /\{familyKey && <FamilyMap base=\{base\} familyKey=\{familyKey\} \/>\}/);
-  // ⭐ D178 (changed on purpose): Learn's address redirects to the course's circle view, which mounts the full Learn view.
-  assert.ok(page.includes('{learning && <Navigate replace to={`${base}/library/silicon-to-software?view=circle${location.hash || ""}`} />}'));
-  assert.ok("" /* 47m: LibraryPanel.jsx deleted */.includes('{view === "circle" && <div data-course-circle-view=""><LearnView signedIn={signedIn} /></div>}'));
-  // ⭐ D178: Your route's navigator is drawn inside Your map — ⭐ A228 (moved on purpose): below the skill map, inside the
-  // closed "Your route, step by step".
-  assert.ok(page.includes('<section className="atl__section" data-atlas-route-in-map=""><YourRoutePanel base={base} signedIn={signedIn} /></section>'));
-  // 5, 8, 10, 12 · Your map — ⭐ A228 (46r, owner 11-16 "Build it", moved on purpose): the skill map (SkillMap.jsx) replaces
-  // the tree, the course, the five sections and the families on this panel (the tree stays on role and family pages).
-  assert.match(page, /\{panel === "your-map" && !familyKey && \(/);
-  assert.match(page, /<SkillMap base=\{base\} signedIn=\{signedIn\} routeMore=\{signedIn && \(/);   // ⭐ D200 (a) (47i, on purpose): the route's extras ride in its 05
-  assert.doesNotMatch(page, /<YourMap /);
-  // 7 · the navigator is Your route; 6 · its next step (or D120's line) is Overview's Next step.
-  assert.match(panels, /<Navigator base=\{base\} fallback=/);
-  assert.match(panels, /nav\?\.ready && nav\.next \? \{ text: nav\.next\.text \} : \(me\?\.tree \? directionLine\(me\.tree\) : null\)/);
-  // 9, 11 · Explore by role and recently published are Roles and skills'.
-  assert.match(panels, /export function RolesPanel[\s\S]*<ExploreByRole roles=\{me\.exploreByRole\?\.items\} base=\{base\} \/>[\s\S]*<Recent items=\{me\.recent\} base=\{base\} \/>/);
-  // 14 · D142's check is the Your skills slot (D169 replaces it at merge).
-  // ⭐ D169 (merged 45b): the slot holds D169's panel (List + Map), and D142's full check below it keeps its home.
-  // ⭐ D178-3 (changed on purpose): the list and map sit under Your skills' "All my skills" tab, beside "For a role".
-  // ⭐ A228 (changed on purpose): the ring Map, For a role and Compare roles are retired — the slot is the list + the check.
-  assert.match(panels, /data-skills-all="">\n\s+<YourSkillsPanel signedIn=\{signedIn\} base=\{base\} \/>/);
-  assert.doesNotMatch(panels, /RoleReadiness|CompareRoles|data-skills-tab=/);
-  assert.match(panels, /data-atlas-readiness="" aria-label="The full readiness check">\n\s+<ReadinessCheck signedIn=\{signedIn\} \/>/);
-  // 19 · the audit's role card and its counts.
-  assert.match(panels, /api\(`\/api\/audit\/role\/\$\{encodeURIComponent\(pick\)\}`\)/);
-  assert.match(panels, /api\("\/api\/audit\/roles"\)/);
-  // ⭐ A228 (moved on purpose): the old home (AtlasHome / ExploreHome and its parts switch) is retired with the market tree;
-  // YourMap.jsx keeps only what other panels read — the role / family trees, Explore by role, Recent, the direction line.
-  assert.doesNotMatch(map, /ALL_PARTS|export function AtlasHome|export default function YourMap/);
-  assert.match(map, /export function RoleMap[\s\S]*export function FamilyMap/);
-  // The mapping doc: 22 surfaces, every panel named, the curator tools kept in Admin.
-  const doc = read("docs/D167_ATLAS_MAP.md");
-  const rows = [...doc.matchAll(/^\| (\d+) \| \*\*/gm)].map(m => Number(m[1]));
-  assert.deepEqual(rows, Array.from({ length: 22 }, (_, i) => i + 1));
-  for (const g of ATLAS_NAV) for (const p of g.panels) assert.ok(doc.includes(`**${p.label}**`) || doc.includes(`| ${p.label} |`), p.label);
-  assert.match(doc, /\*\*stay in Admin\*\*/);
-  // A panel id never collides with a published node's slug in the fixtures' common names.
-  for (const name of ["Python", "SQL", "Kubernetes", "Data Engineer", "Machine learning", "Learning", "Market", "Audit", "Roles"]) assert.ok(!isPanelSlug(slugOf(name)), name);
-});
+// ⛔ 47m (changed on purpose): "D167 · d167AtlasKeepsEverySurface — each existing surface is mounted by its pane" retired — the classic Library / course pages are deleted (D201): courses are Gazetteer routes (pages/atlas/AtlasGazetteer.jsx).
 
 // ⭐ A228 (46r, moved on purpose): "Your map keeps the tree, sections and families" became the skill map's own reading — its
 // four sections top to bottom, from one answer of GET /api/atlas/skill-map. Explore by role and Recent stay Roles and skills'.
@@ -247,37 +108,7 @@ test("D167 · d167AtlasKeepsEverySurface — Your map is the skill map; the move
   assert.doesNotMatch(html, /data-your-map=""|data-map-section=|data-atlas-home-families=""|data-atlas-explore=""|data-atlas-home-recent=""/);
 });
 
-test("D167 · panels whose feature is not built say so, and draw only numbers that exist", async () => {
-  const u = await loadUi();
-  // Overview: stat cards only from the readiness record and the navigator; no streak, no invented count.
-  assert.deepEqual(overviewStats({}), []);
-  const stats = overviewStats({ readiness: [{ state: "checked" }, { state: "built" }, { state: "claimed" }], nav: { ready: true, bridges: [{}, {}], route: { role: "Data Engineer", skills: [{}, {}, {}] } } });
-  assert.deepEqual(stats.map(s => [s.value, s.panel]), [["2 of 3", "your-skills"], ["2", "your-map"], ["3", "your-map"]]);
-  const out = u.overview({ me: { signedIn: false } });
-  assert.doesNotMatch(out, /data-atlas-overview-stats/);
-  assert.match(out, /One question a day, about two minutes/);   // D154 P1 (45l, on purpose): built
-  assert.doesNotMatch(out, /streak/i);
-  const signed = u.overview({ me: { signedIn: true, map: true, targetRoles: [{ name: "Data Engineer" }] }, readiness: [{ state: "checked" }], nav: { ready: true, next: { text: "Next up: Kafka" }, bridges: [], route: null } });
-  assert.match(signed, /<h1 class="atl__title">Data Engineer<\/h1>/);
-  assert.match(signed, /Next up: Kafka/);
-  assert.match(signed, /data-atlas-stat="skills"[^>]*><b>1 of 1<\/b>/);
-  // Today's question and the market say they are not built.
-  assert.match(u.page("/atlas/todays-question"), /data-atlas-panel-body="todays-question"/);   // D154 P1 (45l, on purpose): built
-  const m = u.market([{ slug: "data-engineer", title: "Data Engineer", openPostings: 120 }], { "data-engineer": { openThisWeek: 120, newThisWeek: 17 } });
-  // ⭐ A233 (46u, changed on purpose): a note card, no ticket code on the page; jobs, not postings.
-  assert.match(m, /The weekly view is still being built/);
-  assert.doesNotMatch(m, /D150|T09/);
-  assert.match(m, /<b>17<\/b><span>new Data Engineer jobs this week · 120 open<\/span>/);
-  assert.match(u.market([], {}), /Not enough jobs are sorted into roles yet\./);
-  // The audit's card: the board's numbers, the hidden pay said why, its sentence.
-  const c = u.card({ slug: "data-engineer", title: "Data Engineer", openThisWeek: 31, newThisWeek: 4, asOf: "2026-11-06", said: "Market data from 31 open postings, not a promise.",
-    payRange: { hidden: true, n: 3, why: "Pay is shown once at least 20 of these postings state it (3 do)." }, topRequirements: [{ slug: "sql", name: "SQL", share: 71 }] });
-  assert.match(c, /<b>31<\/b> open jobs · <b>4<\/b> new in the last 7 days/);
-  assert.match(c, /Pay is shown once at least 20/);
-  assert.match(c, /href="\/atlas\/sql"[^>]*>SQL<\/a><span class="atl__count"> · 71 % of its postings/);
-  // ⭐ D178 (retired on purpose): the Learn panel's stages left with the Learn nav item — the course page's half ring and
-  // modules show a module's earned progress now (d178CoursePage).
-});
+// ⛔ 47m (changed on purpose): "D167 · panels whose feature is not built say so, and draw only numbers that exis" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 // ── d167GlossaryOneSourceWithPopups ──────────────────────────────────────────────────────────────
 
@@ -347,30 +178,4 @@ test("D167 · d167GlossaryOneSourceWithPopups — every published term, and each
   } finally { await s.close(); }
 });
 
-test("D167 · d167GlossaryOneSourceWithPopups — the panel: plain words, postings, the one search, Open in Atlas", async () => {
-  const { db, slugs } = world();
-  const terms = JSON.parse(JSON.stringify(glossaryTerms(db)));
-  const u = await loadUi();
-  const html = u.glossary(terms);
-  assert.match(html, /<h1 class="atl__title">The words the market uses<\/h1>/);
-  assert.match(html, /aria-label="Search the glossary"/);
-  assert.match(html, /data-glossary-count="">4 terms</);
-  assert.match(html, new RegExp(`data-glossary-term="${slugs.k}"[\\s\\S]*?Kubernetes is an orchestration system\\.[\\s\\S]*?From <a href="https://en\\.wikipedia\\.org/wiki/Kubernetes"[^>]*>Wikipedia</a> \\(CC BY-SA\\)[\\s\\S]*?data-glossary-postings="312">312 postings<[\\s\\S]*?href="/atlas/${slugs.k}"[^>]*>Open in Atlas</a>`));
-  assert.match(html, /No plain-words definition yet\./);
-  // ⭐ D178: the concept index joins — a concept is a row of its own, by name among the terms, with Learn it and no count.
-  const withConcepts = u.glossary(terms, "", [{ name: "Cache", meaning: "A fast copy kept close.", learn: { stepId: "s9", label: "Part 1 · Step 9" } }]);
-  assert.match(withConcepts, /data-glossary-count="">5 terms</);
-  assert.match(withConcepts, /data-glossary-concept="Cache"[\s\S]*?A fast copy kept close\.[\s\S]*?data-glossary-learn="s9"[^>]*href="\/atlas\/library\/silicon-to-software\?view=circle#step-s9"/);
-  const names = [...withConcepts.matchAll(/<b>([^<]+)<\/b>/g)].map(m => m[1]);
-  assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" })), "one list, by name");
-  assert.doesNotMatch(withConcepts.slice(at(withConcepts, 'data-glossary-concept="Cache"'), at(withConcepts, "</li>", at(withConcepts, 'data-glossary-concept="Cache"'))), /data-glossary-postings|data-glossary-open/);
-  // The search is the ONE normaliser: a prefix, a typo, then a word of the meaning.
-  assert.deepEqual(u.searchGlossary(terms, "kube").map(t => t.slug), [slugs.k]);
-  assert.deepEqual(u.searchGlossary(terms, "terrafrom").map(t => t.slug), [slugs.t]);
-  assert.deepEqual(u.searchGlossary(terms, "orchestration").map(t => t.slug), [slugs.k]);
-  assert.match(u.glossary(terms, "kube"), /data-glossary-count="">1 of 4 terms</);
-  // The popup and the panel read the same server function, each through its own route.
-  assert.match(read("client/src/lib/atlasLinks.js"), /api\(`\/api\/atlas\/peek\/\$\{encodeURIComponent\(slug\)\}`\)/);
-  assert.match(read("client/src/pages/atlas/AtlasPanels.jsx"), /api\("\/api\/atlas\/glossary"\)/);
-  assert.match(read("client/src/pages/atlas/AtlasPanels.jsx"), /import \{ matchCandidate \} from "\.\.\/\.\.\/\.\.\/\.\.\/shared\/atlasSearchNormalize\.js";/);
-});
+// ⛔ 47m (changed on purpose): "D167 · d167GlossaryOneSourceWithPopups — the panel: plain words, postings, the o" retired — the surface it pinned was rebuilt in the plate system (47m M5).

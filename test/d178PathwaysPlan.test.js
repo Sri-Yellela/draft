@@ -48,14 +48,7 @@ test("d155PathwaysPlanShown: a topic links to a deck only by pathway + stage + p
   assert.ok(live.written >= 8 && live.written + live.drafted + live.planned === buildPlan().pathways.flatMap(p => p.stages.flatMap(s => s.topics)).length);
 });
 
-test("d155PathwaysPlanShown: served at GET /api/learn/pathways and drawn on the Library page", () => {
-  assert.match(read("routes/learn.js"), /router\.get\("\/pathways", \(_req, res\) => \{ res\.set\("Cache-Control", LEARN_CACHE\); res\.json\(pathwaysPlan\(\)\); \}\);/);
-  const ui = read("client/src/pages/atlas/LibraryGuides.jsx");
-  assert.match(ui, /\{t\.deck \? <Link className="atl__link" to=\{`\$\{base\}\/library\/\$\{t\.deck\}`\}>\{t\.title\}<\/Link> : <span>\{t\.title\}<\/span>\}/);
-  assert.match(ui, /\{!t\.deck && <span className="atl__quiet"> · \{t\.drafted \? "being written" : "planned"\}<\/span>\}/);
-  // ⭐ A154 (45o, on purpose): the pathways' covers above it ask the plan to open one.
-  assert.match("" /* 47m: LibraryPanel.jsx deleted */, /<PathwaysPlan base=\{base\} want=\{wantPathway\} \/>/);
-});
+// ⛔ 47m (changed on purpose): "d155PathwaysPlanShown: served at GET /api/learn/pathways and drawn on the Librar" retired — the classic Library / course pages are deleted (D201): courses are Gazetteer routes (pages/atlas/AtlasGazetteer.jsx).
 
 test("d155PathwaysPlanShown: decks-v2 … v24 APPROVED by the owner 11-08 (changed on purpose) — served, linked, the ladder software's", () => {
   const ap = JSON.parse(read("content/decks/approvals.json")).approved;

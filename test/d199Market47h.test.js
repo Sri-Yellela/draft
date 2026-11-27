@@ -339,7 +339,8 @@ test("D200 Rule 3 · d200HeaderOneLine — a mono kicker, 'Openings for you', on
 
 test("D199 C7 (47h) · the deck's card, an Index row and the field card's link open the opening sheet; a direct link can still decide", () => {
   const dv = read("client/src/panels/DeckView.jsx");
-  assert.match(dv, /if \(plateDeck\) navigate\(openingSheetHref\(cur\.job\.id\)\);\n\s*else openPostingOnDeck\(cur\.job\.id\);/);
+  assert.match(dv, /if \(!cur \|\| cur\.decision\) return;\n\s*navigate\(openingSheetHref\(cur\.job\.id\)\);/);   // 47m: the deck-slot posting is deleted — the sheet always
+  assert.doesNotMatch(dv, /openPostingOnDeck|POSTING_ON_DECK_EVENT|DECK_POST_SLOT_ID/);
   const jp = read("client/src/panels/JobsPanel.jsx");
   assert.match(jp, /onOpen=\{\(job\) => navigateSheet\(job\)\}/);
   assert.match(jp, /navigateTo\(openingSheetHref\(id\)\)/);

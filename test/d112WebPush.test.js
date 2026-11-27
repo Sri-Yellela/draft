@@ -151,9 +151,10 @@ test("D112 · nothing offered without the env — unset, half-set, mismatched or
     assert.equal(pref.status, 400);
   } finally { on.close(); }
   // The client shows push only when the server offers it, and registers the service worker only on the person's press.
-  const card = fs.readFileSync(new URL("../client/src/components/NotificationSettings.jsx", import.meta.url), "utf8");
+  // ⭐ 47m (D197 #17): Notifications are a page of the passport's settings (PassportSettings) — the same reads and the same press
+  const card = fs.readFileSync(new URL("../client/src/pages/profile/PassportSettings.jsx", import.meta.url), "utf8");
   assert.match(card, /const pushOffered = state\.push\?\.offered && pushSupported\(\);/);
-  assert.match(card.slice(at(card, "const setHerePush"), at(card, "if (!pushOffered && !emailOffered)")), /Notification\.requestPermission\(\)[\s\S]*serviceWorker\.register\("\/sw\.js"/);
+  assert.match(card.slice(at(card, "const setHerePush"), at(card, "const setHerePush") + 700), /Notification\.requestPermission\(\)[\s\S]*serviceWorker\.register\("\/sw\.js"/);
 });
 
 test("D112 · endpoints — only the browsers' push services, https, no credentials, no odd port", () => {

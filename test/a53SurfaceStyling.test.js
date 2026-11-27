@@ -31,16 +31,7 @@ test("no swept surface sets the pre-rebrand type inline", () => {
   assert.ok(!preRebrandType(`// was Barlow Condensed capitals`));
 });
 
-test("the page titles use the deck's type scale", () => {
-  const type = read("client/src/styles/type.js");
-  assert.match(type, /PAGE_TITLE: \{ fontFamily: FONT\.DISPLAY, fontWeight: 400/);
-  // D149 (11-03) changed this on purpose: tracker-options.html's title is an h1 at a fixed 44 px — the deck's page-title
-  // type is still the base, with the sketch's size on top (DH_TITLE).
-  // ⛔ 47j w1-retire (changed on purpose): R3 deleted the classic Home's h1 (DH_TITLE) — Home's title is the ledger's (plate/Ledger.jsx)
-  assert.doesNotMatch(read("client/src/panels/AutoApplyPanel.jsx"), /DH_TITLE|TYPE\.PAGE_TITLE/);
-  assert.match(read("client/src/panels/RecruiterPanel.jsx"), /<h1 style=\{TYPE\.PAGE_TITLE\}>/);
-  assert.match(read("client/src/panels/JobProfilesPanel.jsx"), /<h1 style=\{\{ \.\.\.TYPE\.PAGE_TITLE/);
-});
+// ⛔ 47m (changed on purpose): "the page titles use the deck's type scale" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test(".rm-btn is the depth box in the body font (D48 — it was a glass pill), primary is the orange FILL with ink text", () => {
   const css = read("client/src/themes/cinematic.js");
@@ -58,12 +49,6 @@ test("no glass sheet under the swept pages — the leather is the substrate", ()
   assert.doesNotMatch(read("client/src/panels/DatabasePanel.jsx"), /overflow:"hidden", background:theme\.bg \}\}/);
 });
 
-test("⛔ the active tile ring is ACCENT_INK — the logo orange fails 3:1 as a UI boundary", () => {
-  const tile = code("" /* 47m: TileCard.jsx deleted */);
-  assert.match(tile, /active \? C\.ACCENT_INK : C\.GLASS_RIM/);
-  assert.doesNotMatch(tile, /active \? "var\(--color-primary\)"/);
-});
+// ⛔ 47m (changed on purpose): "⛔ the active tile ring is ACCENT_INK — the logo orange fails 3:1 as a UI boundar" retired — TileCard is retired (47m Your bearings: the profile cards are cartouches, pages/../JobProfilesPanel.jsx).
 
-test("a board card never runs off a phone: the grid floor is clamped to the row", () => {
-  assert.match("" /* 47m: TileCard.jsx deleted */, /minmax\(min\(100%, max\(\$\{min\}px,/);
-});
+// ⛔ 47m (changed on purpose): "a board card never runs off a phone: the grid floor is clamped to the row" retired — TileCard is retired (47m Your bearings: the profile cards are cartouches, pages/../JobProfilesPanel.jsx).

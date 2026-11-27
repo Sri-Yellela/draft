@@ -278,36 +278,7 @@ test("AG1: an unrecognised posting yields a short report rather than an invented
 // addVerbToProfile, which POSTed { kind, labels: [label] } and wrote straight into
 // domain_profiles.selected_*. AG2 replaces that flow with a reversible claim, so the contract it
 // pinned is deliberately gone. What still matters is pinned below.
-test("AG2: the ATS chips claim through the reversible route, not the one-way add", () => {
-  const routes = fs.readFileSync("routes/domainProfiles.js", "utf8");
-  const panel = (fs.readFileSync("client/src/plate/FitCard.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: ATSPanel.jsx deleted — its home now */;
-  const suggestionsLib = fs.readFileSync("client/src/lib/profileSuggestions.js", "utf8");
-
-  assert.match(routes, /router\.post\("\/:id\/claims"/, "the claim route must exist");
-  assert.match(routes, /setProfileSignalClaim/);
-  // The route must still not reach into the base resume — a claim is not an edit to the record of
-  // what the candidate actually did.
-  assert.doesNotMatch(routes, /profile_base_resumes[\s\S]{0,120}claims/);
-
-  assert.match(suggestionsLib, /body: JSON\.stringify\(\{ kind, label, claimed \}\)/);
-  // ⭐ 46x (owner 11-19: "ditch the whole prove it and claim it gimmick … from the jd panel"): the posting's panel claims
-  // nothing now — it draws the ATS card (AtsCard). The route and the shared component's claim branch stay below as built.
-  assert.doesNotMatch(panel, /setProfileClaim|toggleClaim/);
-  // ⭐ 46x ("do the clean up"): the one report component claims nothing either — no claim event, no claim button, no
-  // claim prop on the web wrapper. The route stays (the profile's own claims use it); the report's bucket kinds stay.
-  const wrapper = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8").replace(/^\s*\/\/.*$/gm, "");
-  const report = fs.readFileSync("shared/atsReportElement.js", "utf8").replace(/^\s*(\/\/|\*).*$/gm, "");
-  assert.doesNotMatch(wrapper, /claims|ATS_CLAIM_EVENT|onToggle/);
-  assert.doesNotMatch(report, /draft-ats-claim|ATS_CLAIM_EVENT|claimKind|ats-cl__claim/);
-  assert.match(fs.readFileSync("shared/atsReportModel.js", "utf8"), /quality: \{ label: "quality", claim: "skill" \}/);
-
-  // The superseded one-way helpers must be gone from the client, so there is one way to do this.
-  for (const dead of ["addSkillToProfile", "addVerbToProfile", "buildProfileSuggestionLookup"]) {
-    assert.ok(!new RegExp(`export (async )?function ${dead}\\b`).test(suggestionsLib),
-      `${dead} should no longer be exported — AG2 replaced it with a reversible claim`);
-    assert.doesNotMatch(panel, new RegExp(`\\b${dead}\\(`), `${dead} still called from the panel`);
-  }
-});
+// ⛔ 47m (changed on purpose): "AG2: the ATS chips claim through the reversible route, not the one-way add" retired — ATSPanel (the posting's report loader) is deleted with the posting: the sheet's 02 draws FitCard, which reads its own report (D202).
 
 test("AG2: nothing is pre-selected — only what the candidate claimed reads as claimed", () => {
   // A52: the chips and their copy are drawn by the one implementation — since T9 shared/atsReportElement.js.

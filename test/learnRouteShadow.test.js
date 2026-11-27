@@ -23,9 +23,4 @@ test("46q learnRouteShadow — no app-level /api/learn route is shadowed by the 
   assert.deepEqual(shadowed, [], `declared after app.use("/api/learn", …) and answered by the router first — never reached: ${shadowed.join(", ")}`);
 });
 
-test("46q the practice card asks its own route and refuses a shape it does not know", () => {
-  assert.match(SERVER, /app\.get\("\/api\/learn\/practice-progress", requireAuth, \(req, res\) => \{\n  try \{ res\.set\("Cache-Control", "no-store"\)\.json\(practiceProgress\(/);
-  assert.match(PANELS, /api\(`\/api\/learn\/practice-progress\?day=\$\{day\}`\)/);
-  assert.doesNotMatch(PANELS, /api\(`\/api\/learn\/progress\?day=/, "not the lesson marks' path");
-  assert.match(PANELS, /if \(!p\?\.level \|\| !p\.accuracy \|\| !p\.streak\) return null;/);
-});
+// ⛔ 47m (changed on purpose): "46q the practice card asks its own route and refuses a shape it does not know" retired — the surface it pinned was rebuilt in the plate system (47m M5).

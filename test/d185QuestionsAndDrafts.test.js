@@ -46,23 +46,4 @@ test("Drafted answers: the check withholds a link or contact the résumé doesn'
   assert.equal(checkAnswerDraft("Reach me at someone@else.example", { resumeText: RESUME, untrusted }).ok, false);
 });
 
-test("Wiring: the questions route reads the cache only and uses the manual packet's payload; the draft route is gated, on demand, never saves", () => {
-  const apply = read("routes/apply.js");
-  const q = apply.slice(at(apply, 'app.get("/api/apply/questions/:jobId"'), at(apply, 'app.get("/api/apply/status/:jobId"'));
-  assert.match(q, /const schema = cachedApplicationSchema\(db, jobId\);/);
-  assert.match(q, /if \(!schema\) \{ warmApplicationSchema\(db, job\); return res\.json\(\{ known: false, status: "reading" \}\); \}/, "never a fetch on the request");
-  assert.match(q, /withHowHeard\(userId, jobId, withSavedAnswerRecords\(userId, withCarriedWorkHistory\(userId, buildAutofillPayload\(profile, "APPLY", job\.company, jobId\), entries\)\)\)/);
-  assert.match(q, /packet\.unresolved\.filter\(u => u\.from_schema\)/, "the employer's own questions, in its wording");
-  const server = read("server.js");
-  const d = server.slice(at(server, 'app.post("/api/apply/questions/:jobId/draft"'), at(server, "// HEALTH + SPA"));
-  assert.match(d, /if \(!answerDraftsEnabled\(db\)\) return res\.status\(404\)/);
-  assert.match(d, /draftableQuestion\(cachedSchemaForDraft\(db, jobId\), req\.body\?\.question\)/);
-  assert.match(d, /callTask\(\{ task: "answers\.routine"/);
-  assert.match(d, /checkAnswerDraft\(text, \{ resumeText: note \? `\$\{resumeText\}\n\$\{note\}` : resumeText, untrusted: r\.untrusted \}\)/);
-  assert.doesNotMatch(d, /rememberAnswer|saved-answers|INSERT/, "the server never saves a draft");
-  const ui = read("client/src/components/ApplicationQuestions.jsx");
-  assert.match(ui, /\/api\/saved-answers\/remember", \{ method: "POST", body: JSON\.stringify\(\{ question, answer: state\.text, company, scope: "company" \}\)/,
-    "the person's edited text, saved by the person, for this employer");
-  assert.match(ui, /if \(!r\?\.known \|\| !r\.count\) return null;/);
-  assert.match((fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */, /<ApplicationQuestions jobId=\{selectedJob\.id \?\? selectedJob\.jobId\} company=\{selectedJob\.company\} \/>/);
-});
+// ⛔ 47m (changed on purpose): "Wiring: the questions route reads the cache only and uses the manual packet's pa" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.

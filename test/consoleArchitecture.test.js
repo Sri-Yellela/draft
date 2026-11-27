@@ -20,24 +20,7 @@ test("app routes users into one shared jobs console", () => {
   assert.doesNotMatch(consoles, /Generate Console|A\+ Console|Baseline Console/);
 });
 
-test("plan updates refresh console state without mode switching", () => {
-  const app = fs.readFileSync("client/src/App.jsx", "utf8");
-  const topBar = fs.readFileSync("client/src/components/TopBar.jsx", "utf8");
-  const plans = (fs.readFileSync("client/src/pages/profile/PassportSettings.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: PlansPanel.jsx deleted — its home now */;
-  const server = fs.readFileSync("server.js", "utf8");
-  const accountRoute = fs.readFileSync("routes/account.js", "utf8");
-
-  assert.match(app, /plan_updated/);
-  assert.match(app, /navigate\(consolePath/);
-  assert.match(plans, /requestPlanChange/);
-  assert.match(plans, /Request \{tier === "BASIC" \? "downgrade" : "upgrade"\}/);
-  assert.match(server, /createAccountRouter/);
-  assert.match(accountRoute, /changeOptions/);
-  assert.match(server, /function requireToolEntitlement/);
-  assert.match(server, /function legacyModeForTool/);
-  assert.doesNotMatch(server, /Next available upgrade|Already on highest plan/);
-  assert.doesNotMatch(topBar, /APPLY_MODES|Apply Mode|\/api\/settings\/apply-mode/);
-});
+// ⛔ 47m (changed on purpose): "plan updates refresh console state without mode switching" retired — PlansPanel is folded into the passport's settings (D197 #17', PassportSettings PassportPlan).
 
 test("data repair migration protects tier and profile integrity", () => {
   const server = fs.readFileSync("server.js", "utf8");

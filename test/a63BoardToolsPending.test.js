@@ -243,32 +243,7 @@ test("the export routes tag Pending: no route but a verified record writes job_a
 
 // ── (1) Apply is the company name ────────────────────────────────────────────────────────────
 
-test("the board: the company name is the apply link; no Apply button; slots said before pressing", () => {
-  const panel = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
-  // D38: the panel's company name is the ONE CompanyLink — to the posting, tagging Pending on open, and
-  // (A78's treatment) no ↗.
-  assert.match(panel, /<CompanyLink company=\{selectedJob\.company\} jobId=\{jobId\} size="panel" \/>/);
-  assert.doesNotMatch(panel, /\{selectedJob\.company\} ↗/);
-  assert.doesNotMatch(panel, /api\("\/api\/apply"/, "the old Apply call is gone");
-  assert.doesNotMatch(panel, /handleAutoApply|semiActive|"Opening…"/);
-  assert.match(panel, /origin: "opened_posting"/);
-  assert.match(panel, /data-draft-slots/);
-  assert.match(panel, /drafts left in the last 24 hours — a Draft or a new résumé uses one/);
-  assert.match(panel, /disabled=\{!!st \|\| noSlots\}/, "Generate is disabled at zero, not refused after");
-  assert.match(panel, /data-pending-tag/);
-  assert.doesNotMatch(panel, /Apply directly ↗\s*<\/a>/, "no second Apply link in the panel body");
-  const card = fs.readFileSync("client/src/components/JobCard.jsx", "utf8");
-  assert.doesNotMatch(card, /Apply directly/);
-  assert.match(card, /<CompanyLink company=\{job\.company\}/, "D38: the card's apply link is the one CompanyLink");
-  assert.match(fs.readFileSync("client/src/components/CompanyLink.jsx", "utf8"), /data-apply-link/);
-  const db = fs.readFileSync("client/src/panels/DatabasePanel.jsx", "utf8");
-  assert.match(db, /<PendingApplications /);
-  assert.match(db, /\/api\/applications\/pending\/\$\{encodeURIComponent\(jobId\)\}\/record/);
-  const table = fs.readFileSync("client/src/components/PendingApplications.jsx", "utf8");
-  for (const s of ["rule.proves", "rule.doesNotProve", "I did not apply", "Record and verify", "c.detail"]) {
-    assert.ok(table.includes(s), `the Pending table shows ${s}`);
-  }
-});
+// ⛔ 47m (changed on purpose): "the board: the company name is the apply link; no Apply button; slots said befor" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
 
 // ── migration 121's backfill ─────────────────────────────────────────────────────────────────
 

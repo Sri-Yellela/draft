@@ -99,15 +99,4 @@ async function loadUi() {
   try { return await import(pathToFileURL(file).href); } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 }
 
-test("d172ShelfCoversFromTokens: one cover per course that exists, drawn, its colours from theme tokens", async () => {
-  const { shelf } = await loadUi();
-  const html = shelf();
-  // ⭐ D178 (changed on purpose): two courses exist — the path and the coding-interview patterns; still no 'Soon' covers.
-  assert.equal(html.match(/data-course="/g).length, 2, "one cover per course that exists");
-  assert.match(html, /href="\/app\/atlas\/library\/coding-interview-patterns"/);
-  assert.match(html, /href="\/app\/atlas\/library\/silicon-to-software"/);
-  assert.match(html, /<svg class="lib-cover__art"/);
-  const css = read("client/src/pages/atlas/LibraryPanel.css");
-  assert.doesNotMatch(css, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i, "no colour literal — tokens only");
-  assert.doesNotMatch(css, /border-radius:\s*(999px|50%)/, "no capsules (D60)");
-});
+// ⛔ 47m (changed on purpose): "d172ShelfCoversFromTokens: one cover per course that exists, drawn, its colours " retired — the classic Library / course pages are deleted (D201): courses are Gazetteer routes (pages/atlas/AtlasGazetteer.jsx).

@@ -135,7 +135,7 @@ test("⛔ scroll capture is paid back: the keyboard does everything the wheel do
     "the wheel is only captured AFTER a rotation is known to be possible");
   assert.match(wheel, /canStep: \(dir\) => stepTarget\(stateRef\.current, dir\) != null,/);
   assert.match(lib, /if \(e\.ctrlKey \|\| skip\(e\)\) return;/, "pinch-zooming scrolls the page");
-  assert.match(wheel, /skip: \(\) => !!expandedRef\.current \|\| !!boardPostRef\.current,/, "reading an expanded card or a posting scrolls the page");
+  assert.match(wheel, /skip: \(\) => !!expandedRef\.current,/, "reading an expanded card scrolls the page (47m: the posting is its own sheet, not on the deck)");
   assert.match(deckSrc, /addEventListener\("wheel", onWheel, \{ passive: false \}\)/);
   assert.match(wheel, /\n\s+step,\n/, "one flick rotates one card (the deck's step)");
   for (const k of ['k === "j"', 'k === "k"', 'k === "ArrowDown"', "Enter", "Escape"]) assert.ok(deckSrc.includes(k), `no key for ${k}`);

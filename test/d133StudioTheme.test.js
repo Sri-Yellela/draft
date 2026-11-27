@@ -35,40 +35,7 @@ test("d133StudioTokensOnly: Studio Light / Dark are registry data — every key,
   assert.equal(resolve("studio", () => ({ matches: false })).id, "studio-light");
 });
 
-test("d133PerSurfaceSelection: the Admin pages can have their own look; every other page keeps the ordinary preference", () => {
-  assert.equal(surfaceOf("/admin"), "admin");
-  assert.equal(surfaceOf("/admin/"), "admin");
-  assert.equal(surfaceOf("/administrator"), "app");
-  assert.equal(surfaceOf("/app/board"), "app");
-  const raw = "system;cues;admin=studio-dark";
-  assert.equal(surfacePreference("admin", fakeStore(raw)), "studio-dark");
-  assert.equal(surfacePreference("app", fakeStore(raw)), "system");
-  assert.equal(surfacePreference("admin", fakeStore("contrast-light")), "contrast-light", "no admin choice → follows the app");
-  assert.equal(surfacePreference("admin", fakeStore("system;admin=bogus")), "system", "an unknown value is ignored");
-  // The pre-paint script resolves the same theme the app resolves, for both surfaces (no flash on /admin).
-  for (const [path, stored, dark] of [["/admin", raw, false], ["/app", raw, false], ["/admin", "paper-light;admin=studio", true], ["/administrator", "paper-light;admin=studio-dark", false]]) {
-    const attrs = {};
-    const g = globalThis;
-    const saved = { localStorage: g.localStorage, location: g.location, window: g.window, document: g.document };
-    Object.assign(g, { localStorage: fakeStore(stored), location: { pathname: path }, window: { matchMedia: () => ({ matches: dark }) },
-      document: { documentElement: { setAttribute: (k, v) => { attrs[k] = v; }, style: { setProperty() {} } } } });
-    try { new Function(prePaintScript())(); } finally { Object.assign(g, saved); }
-    const want = resolve(surfacePreference(surfaceOf(path), fakeStore(stored)), () => ({ matches: dark })).id;
-    assert.equal(attrs["data-theme"], want, `${path} ${stored}`);
-  }
-  // The admin flag survives the ordinary preference being saved, and ACTIVE_THEME still comes from resolve().
-  const idx = read("client/src/themes/index.js");
-  assert.match(idx, /formatRaw\(\{ pref, cues: !!cues, noOffer: cur\.noOffer, layout: cur\.layout, admin: cur\.admin \}\)/);
-  assert.match(idx, /export function resolve\(pref = surfacePreference\(\)/);
-  assert.match(idx, /export const ACTIVE_THEME = resolve\(\);/);
-  // Admin → System → Appearance, and the server switch that offers Studio to users (off by default).
-  assert.match(read("client/src/panels/adminMap.js"), /\["appearance", "Appearance"\]/);
-  assert.match(read("client/src/panels/adminAppearance.jsx"), /setAdminSurfaceTheme\(id\)/);
-  const server = read("server.js");
-  assert.match(server, /app\.post\("\/api\/admin\/appearance", requireAdmin,/);
-  // ⭐ D144 (changed on purpose): the same routes carry Dusk's own switch beside Studio's.
-  assert.match(server, /studioForUsers: studioForUsers\(\), duskForUsers: duskForUsers\(\) \}\)\);/);
-});
+// ⛔ 47m (changed on purpose): "d133PerSurfaceSelection: the Admin pages can have their own look; every other pa" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("d133UsersOfferedOnlyWhenOn: Settings → Appearance lists Studio only when the owner offers it, or the person is on it", () => {
   const src = read("client/src/components/AppearanceSettings.jsx");

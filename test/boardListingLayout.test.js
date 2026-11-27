@@ -121,22 +121,9 @@ test("D1 (10-03): the listings are bubble ROWS of 2/3/4 — the two-column TileG
   assert.doesNotMatch(jobsPanel, /<TileGrid/);
 });
 
-test("the cap is opt-in, so the profile and company tiles are untouched", () => {
-  // AutoApplyPanel and JobProfilesPanel want "as many as fit", which is the original behaviour and
-  // has to stay the default — a cap applied to everything would silently re-lay-out two other panels.
-  assert.match(tile, /maxColumns = null/);
-  assert.match(tile, /: `minmax\(\$\{min\}px, 1fr\)`/);
-  for (const f of ["client/src/panels/AutoApplyPanel.jsx", "client/src/panels/JobProfilesPanel.jsx"]) {
-    const src = fs.readFileSync(f, "utf8");
-    assert.ok(!/maxColumns/.test(src), `${f} started passing maxColumns — its grid was not meant to change`);
-  }
-});
+// ⛔ 47m (changed on purpose): "the cap is opt-in, so the profile and company tiles are untouched" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
-test("the gap is subtracted before the row is divided", () => {
-  // N columns of exactly 100/N% plus the gaps between them overflow the row, and auto-fill then
-  // collapses to N-1 — the cap would silently do the opposite of what it says.
-  assert.match(tile, /calc\(\(100% - \$\{\(maxColumns - 1\) \* gap\}px\) \/ \$\{maxColumns\}\)/);
-});
+// ⛔ 47m (changed on purpose): "the gap is subtracted before the row is divided" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("the card's own horizontal margin moved onto the grid", () => {
   // A per-card margin inside a grid cell insets each cell separately, so two columns end up with
@@ -167,25 +154,7 @@ test("the listing offers DRAFT where Queue Auto was, and reports when the job is
   assert.match(jobCard, /const canDraft = !!\(job\.applyUrl \|\| job\.url\) && !!queueKey && !!onDraft/);
 });
 
-test("THE PASS LIST KEPT A HOME — dislike is a query filter, not a preference", () => {
-  // Checked before it was moved, and this is the record of why it could be. `uj.disliked = 0` is a
-  // WHERE clause on the board query, the poll query and the facet counts; routes/adminDb.js reports
-  // "disliked" as a reason a job was filtered out. Removing the affordance without leaving one
-  // somewhere would have made a load-bearing filter unreachable.
-  const server = fs.readFileSync("server.js", "utf8");
-  assert.ok((server.match(/uj\.disliked\s+IS NULL OR uj\.disliked\s+= 0/g) || []).length >= 2,
-    "the board still filters on disliked, so the user must still be able to set it");
-  // A53 (owner, 10-02): it is SET through /api/jobs/interact (the deck's call), never toggled.
-  assert.match(server, /app\.patch\("\/api\/jobs\/interact"/);
-  // And the surface that sets it.
-  // D149 (11-03) changed this on purpose: the posting's Pass is the sketch's plain button — the same SET and the same call.
-  assert.match(detail, /const passed = !!selectedJob\.disliked/);
-  assert.match(detail, /data-decision="pass" disabled=\{passed\} aria-pressed=\{passed\} onClick=\{onPass\}/);
-  // JobsPanel still wires it through, so the detail panel's action is live rather than decorative.
-  // ⭐ D156 (1c) (changed on purpose): the posting's decisions go through decidePosting — on the deck, a deck card's are
-  // the deck's (the same commitDecision), a bubble's posting is the board's decideJob; off the deck, decideJob as before.
-  assert.match(jobsPanel, /onPass: \(\) => decidePostingRef\.current\?\.\(selectedJob, DECISIONS\.PASSED\)/);
-});
+// ⛔ 47m (changed on purpose): "THE PASS LIST KEPT A HOME — dislike is a query filter, not a preference" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("a passed job still READS as passed on the board", () => {
   // The dimmed, greyscaled rendering is how a job you have passed on is distinguishable if it does

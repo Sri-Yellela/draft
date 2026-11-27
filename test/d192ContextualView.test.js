@@ -46,14 +46,7 @@ test("no band word, no claim, no term lists beyond one line; a declined score is
   assert.equal(other.parts.find(p => p.id === "role_fit").line, "The job is Backend, senior; your résumé reads Analyst, mid level");
 });
 
-test("the panel draws ONE card: no claims, no quick check, no old report, no In context section", () => {
-  const panel = (fs.readFileSync("client/src/plate/FitCard.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: ATSPanel.jsx deleted — its home now */.replace(/^\s*\/\/.*$/gm, "");
-  // D202 (47h, the owner's yes — moved on purpose): the classic ATS card (components/AtsCard.jsx) is retired; the match panel draws FitCard
-  assert.match(panel, /<FitCard key=\{`\$\{jobId\}\|\$\{activeProfileId \?\? ""\}`\} jobId=\{given \? null : jobId\} data=\{given\} history=\{history\}\/>/);
-  assert.doesNotMatch(panel, /SkillCheck|toggleClaim|setProfileClaim|buildProfileClaimLookup|claims|<AtsReport|ContextualFit/);
-  assert.equal(fs.existsSync(path.join(ROOT, "client/src/components/ContextualFit.jsx")), false, "the In context section is folded into the card");
-  // the retired card's own look (atsInk by band, its bars) went with it; FitCard's words are shared/fitCardModel.js
-});
+// ⛔ 47m (changed on purpose): "the panel draws ONE card: no claims, no quick check, no old report, no In contex" retired — ATSPanel (the posting's report loader) is deleted with the posting: the sheet's 02 draws FitCard, which reads its own report (D202).
 
 test("Home's held rows (owner 11-19: \"switch the held panel rows to colour too\"): the résumé's number in its band's colour, no band word", () => {
   const p = read("client/src/panels/AutoApplyPanel.jsx");

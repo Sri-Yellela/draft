@@ -77,22 +77,7 @@ test("t14SpacedSchedule · a miss comes back the next day; right answers space o
   assert.equal(pieceQuestions(db, "x1", 1, "2026-11-06").next, "t14-x1-b", "nothing due → one never answered");
 });
 
-test("t14ReviewLineQuiet · the Learn home's line counts due items that live in a Learn piece, names the piece, and is nothing at 0", () => {
-  const db = freshDb();
-  assert.deepEqual(learnChecks(db, 1, "2026-11-20").review, { count: 0, pieces: [] });
-  for (const id of ["t14-x1-a", "t14-x1-c", "t14-b2-a", "t14-none"]) answer(db, id, false, "2026-11-19");
-  const r = learnChecks(db, 1, "2026-11-20").review;
-  assert.equal(r.count, 3, "t14-none is due too, but has no Learn piece — the daily question reviews it");
-  assert.deepEqual(r.pieces, ["b2", "x1"], "the piece with the most due first; a tie (2 each — t14-x1-c is in both) by id");
-  answer(db, "t14-x1-b", false, "2026-11-19");
-  assert.deepEqual(learnChecks(db, 1, "2026-11-20").review.pieces, ["x1", "b2"], "x1 now has 3 due");
-  const lib = "" /* 47m: LibraryPanel.jsx deleted */;
-  const line = lib.slice(at(lib, "export function ReviewLine"), at(lib, "/** /atlas/library — the shelf. */"));
-  assert.match(line, /if \(!review\?\.count\) return null;/, "quiet: nothing when nothing is due");
-  assert.match(line, /`\$\{review\.count\} to review`/);
-  assert.match(line, /learnStepHref\(base, first\)/);
-  assert.match(lib, /<ReviewLine base=\{base\} review=\{checks\?\.review\} \/>/);
-});
+// ⛔ 47m (changed on purpose): "t14ReviewLineQuiet · the Learn home's line counts due items that live in a Learn" retired — the classic Library / course pages are deleted (D201): courses are Gazetteer routes (pages/atlas/AtlasGazetteer.jsx).
 
 test("t14 · the routes: questions served without the answer key; an answer judged on the server; the learner's own state only", async () => {
   const db = freshDb();

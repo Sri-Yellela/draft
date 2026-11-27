@@ -10,28 +10,4 @@ import fs from "node:fs";
 
 const SERVER = fs.readFileSync("server.js", "utf8");
 
-test("the client: one scoring read per screen", () => {
-  const read = (f) => fs.readFileSync(f, "utf8");
-  // The JD header no longer prints "No signal" for an absent score.
-  const jd = (fs.readFileSync("client/src/plate/SheetResume.jsx", "utf8") + fs.readFileSync("client/src/plate/OpeningSheet.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: JobDetailPanel.jsx deleted — its home now */;
-  // D48: the header's ATS number box — no score draws the dashed box with NO digits, never "No signal".
-  // D58: through the ONE pair read (shared/resumeScores.js) — the tailored score when a résumé exists, else the base.
-  assert.match(jd, /const scores = selectedJobMeta\?\.scores \?\? atsScorePair\(\{ base: job\?\.baseAtsScore, tailored: g\?\.html \? g\?\.atsScore : null \}\);/);
-  assert.match(read("client/src/components/AtsNumberBox.jsx"), /const has = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/);   // A93: the one box
-  assert.match(read("client/src/components/AtsNumberBox.jsx"), /\? \(<><b>\{Math\.round\(score\)\}<\/b>/);
-  assert.doesNotMatch(jd, /No signal/);
-  // The panel's own verdict is adopted by the board, the JD header and the panel header.
-  const jobs = read("client/src/panels/JobsPanel.jsx");
-  assert.match(jobs, /const adoptPanelVerdict = useCallback\(/);
-  // ⭐ D152 (8): the verdict sink reaches the match inside the posting (the ATS overlay is retired).
-  assert.match(jobs, /atsPayload: buildAtsPayload\(selectedJob, g2\), activeProfileId, onAtsReport: adoptPanelVerdict,/);
-  assert.match(jobs, /report\.report_basis === "generated_resume"\) return;/, "a generated résumé's report is not the base verdict");
-  assert.match(jd, /onReport=\{selectedJobMeta\?\.onAtsReport \|\| null\}/);
-  // D202 (47h, the owner's yes — moved on purpose): the classic ATS card (components/AtsCard.jsx) is retired; the match panel draws FitCard: the verdict the card read is handed to the board
-  assert.match((fs.readFileSync("client/src/plate/FitCard.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: ATSPanel.jsx deleted — its home now */, /fitCardFor\(jobId\)\.then\(\(d\) => \{ if \(live && d\?\.report\) onReport\(jobId, d\.report\); \}\)/);
-  // ATSPanel: a declined report's null is the band, never replaced by a stored number.
-  // 46x: the same rule, handed to the ATS card (AtsCard) as the report it draws
-  assert.ok((fs.readFileSync("client/src/plate/FitCard.jsx", "utf8")).replace(/\r\n/g, "\n") /* 47m: ATSPanel.jsx deleted — its home now */.includes('Object.prototype.hasOwnProperty.call(report, "score") ? report : { ...report, score: score ?? null }'))   // D202 (47h): the generated report, given to FitCard
-  assert.ok(true);
-  assert.match(SERVER, /report_basis: "generated_resume"/);
-});
+// ⛔ 47m (changed on purpose): "the client: one scoring read per screen" retired — the posting panel is deleted (D199 C7): a job opens as its opening sheet (plate/OpeningSheet.jsx, SheetResume.jsx), pinned by d199Market47h and a204.
