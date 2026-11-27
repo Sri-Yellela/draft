@@ -173,6 +173,9 @@
   --pl-t-17: calc(17px * var(--pl-scale));         /* D199 C7: the sheet's company name */
   --pl-t-header: calc(42px * var(--pl-scale));     /* D200 Rule 3 (47h): the market's one-line header, "Openings for you" */
   --pl-t-cartouche: calc(32px * var(--pl-scale));  /* D199 (47h): the bearing sentence inside the controls cartouche (the Market board) */
+  --pl-t-headword: calc(66px * var(--pl-scale));  /* D201 (47m): a Gazetteer entry's headword (the Gazetteer board) */
+  --pl-t-21: calc(21px * var(--pl-scale));        /* D201 (47m): a dictionary row's headword, a suggestion's word */
+  --pl-t-19: calc(19px * var(--pl-scale));        /* D201 (47m): a due row's word, the search field */
   --pl-track-mono: .12em;
   --pl-track-tag: .08em;
   --pl-track-stamp: .16em;
@@ -202,6 +205,13 @@
   --pl-s4-region: 4px 4px 0 var(--pl-region);
   --pl-s5-region: 5px 5px 0 var(--pl-region);
   --pl-s8-lit: 8px 8px 0 var(--pl-lit);
+  /* D201 (47m): the Gazetteer boards' toned shadows — the due card (clay), Why it works (III), the stamp (V), the ways in */
+  --pl-s5-clay: 5px 5px 0 var(--pl-clay);
+  --pl-s5-r3: 5px 5px 0 var(--pl-r3);
+  --pl-s5-r5: 5px 5px 0 var(--pl-r5);
+  --pl-s3-r5: 3px 3px 0 var(--pl-r5);
+  --pl-s3-r4: 3px 3px 0 var(--pl-r4);
+  --pl-s3-lit: 3px 3px 0 var(--pl-lit);
   --pl-s-tab: 3px -3px 0 var(--pl-region);          /* the open binder tab */
 
   /* ── Radii (report + boards) ── */
