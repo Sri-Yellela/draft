@@ -95,7 +95,7 @@ export const MODULES = Object.freeze({
       "components/AdminLayout.jsx", "panels/AdminPanel.jsx", "panels/adminKit.jsx", "panels/adminOps.jsx",
       // ⭐ D197 Wave 2 #13 / #11 (47m, lane practice, M5): the Proving ground (Interview) and Your map's Logbook + Today card
       "pages/interview/ProvingGround.jsx", "pages/atlas/Logbook.jsx", "pages/atlas/TodayCard.jsx",
-      "plate/practiceFixtures.jsx" /* 47m: the F5 build pages for the practice boards */, "plate/AskRouteMap.jsx" /* 47m D197 #12: Ask draft's answer as a route (the board AskRoute); folds into lane gaz's RouteMap after the merge */,
+      "plate/practiceFixtures.jsx" /* 47m: the F5 build pages for the practice boards */,
       // ⭐ D197 Wave 1 #8 (47m, lane gaz): the Gazetteer (D201) — the entry, the index, the routes — and THE route drawing
       // (RouteMap: shared, the practice lane's AskRoute / Logbook reuse it)
       "plate/RouteMap.jsx", "plate/Gazetteer.jsx", "pages/atlas/AtlasGazetteer.jsx", "pages/atlas/gazetteerModel.js",

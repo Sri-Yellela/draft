@@ -29,7 +29,7 @@ import PlateRoot from "../plate/PlateRoot.jsx";   // ⭐ D197 #1: the dock and t
 import { Dock, AreaNav, useSearchShortcut } from "../plate/Shell.jsx";
 import { Icon, notifIcon } from "../plate/icons.jsx";   // ⭐ 47m: the peek's per-type notification icons
 import { AskDraftCard } from "../plate/Cards.jsx";   // ⭐ D197 #12 (47m, M5): Tiny's card is the plate's
-import { AskRouteCard, askRouteKind } from "../plate/AskRouteMap.jsx";   // the answer as a route (the board AskRoute)
+import { AskRouteCard, askRouteKind } from "../plate/RouteMap.jsx";   // the answer as a route (the board AskRoute)
 // an answer naming more than three entries points to an existing route — the course, whose circle is its overview (D201 (2))
 const ROUTE_FOR_BIGGER = "/app/atlas/library/silicon-to-software?view=circle";
 import UsbSuggest from "./UsbSuggest.jsx";
@@ -462,7 +462,7 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
   };
   // ⭐ D197 Wave 2 #12 · M5 (47m, lane practice; the owner 11-27: the mock and the board AskRoute approved) · THE CARD IS THE
   // PLATE'S AskDraftCard (plate/Cards.jsx) — only the look and the route card change; the engine above is untouched (D190:
-  // act first, ask a model last). An answer naming 2–3 Atlas entries draws as a route (plate/AskRouteMap.jsx); one stays a
+  // act first, ask a model last). An answer naming 2–3 Atlas entries draws as a route (plate/RouteMap.jsx); one stays a
   // link; more than three point to an existing route (the course's circle). Saved → POST /api/atlas/question-routes.
   const [routeSaves, setRouteSaves] = useState({});   // turn index → "saving" | "saved" | an error sentence
   const questionFor = (i) => { for (let k = i - 1; k >= 0; k--) if (turns[k]?.who === "you" || turns[k]?.who === "question") return turns[k].text; return ""; };

@@ -1,10 +1,10 @@
 // ⭐ D196 F5 (47m, lane practice) · the regression run's build side for the practice pages — the LIVE components drawn on
 // the approved boards' example data (docs/sketches/final/project/ProvingGround.dc.html, AskRoute.dc.html): the Proving
 // ground's Coming up (pages/interview/ProvingGround.jsx ComingUp, Kestrel · coding tomorrow, Northwind · system design) and
-// Ask draft's route card (plate/AskRouteMap.jsx: HTTP lit, retries, idempotency the waypoint). Fixtures only, never the app.
+// Ask draft's route card (plate/RouteMap.jsx: HTTP lit, retries, idempotency the waypoint). Fixtures only, never the app.
 import { MemoryRouter } from "react-router-dom";
 import PlateRoot from "./PlateRoot.jsx";
-import { AskRouteCard } from "./AskRouteMap.jsx";
+import { AskRouteCard } from "./RouteMap.jsx";
 import { ComingUp } from "../pages/interview/ProvingGround.jsx";
 
 const PG_UP = { status: "ready", error: "", data: { interviews: [

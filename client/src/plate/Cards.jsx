@@ -70,7 +70,7 @@ export function AskDraftCard({ name = "Ask draft", sub = "draft’s helper — n
   onClose, onUndo, onAnswerBack, onDecide, onUseAnswer, children = null, bodyRef, face = null, renderTurn, ...s }) {
   // ⭐ 47m (D197 #12 M5 — the live panel, components/AppNav.jsx AskDraftPanel, draws THIS card): `face` = Tiny's face before
   // the name (U2: kept, as a logo is kept); `renderTurn(t, i)` = a turn's own extra under its words (the answer's route card,
-  // plate/AskRouteMap.jsx); the data-ask-* hooks the walks and probes read ride on the same elements as before.
+  // plate/RouteMap.jsx); the data-ask-* hooks the walks and probes read ride on the same elements as before.
   const inputId = useId();   // the gallery draws several cards on one page — no shared id
   const gate = plateState(s, { height: 420, radius: "plate", label: `Loading ${name}`, lines: 5 });
   if (gate) return gate;

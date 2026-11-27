@@ -1,6 +1,6 @@
 /* ⭐ D197 Wave 2 #11 / #12 / #13 (47m, lane practice) · the practice pages' look — the Proving ground (Interview,
    pages/interview/ProvingGround.jsx), the Logbook and the Today card on Your map (pages/atlas/Logbook.jsx,
-   pages/atlas/TodayCard.jsx) and Ask draft's route card (plate/AskRouteMap.jsx). The approved boards' inline styles
+   pages/atlas/TodayCard.jsx) and Ask draft's route card (plate/RouteMap.jsx). The approved boards' inline styles
    (docs/sketches/final/project/{ProvingGround,AskRoute,DrawingsAtlas}.dc.html) and the mocks' layout moved into classes;
    every value a token (styles/plate.css; test/d196NoRawStylesOutsideTokens). Worn by those four files only. */
 
