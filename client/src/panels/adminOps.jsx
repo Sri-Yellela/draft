@@ -7,6 +7,7 @@
 // what they change, and the one that resumes real submissions to employers is the one that asks
 // hardest. A51 is why: "Clean Pool" deleted users' Saves and Passes in one unlabelled click.
 import { useState, useEffect, useCallback } from "react";
+import { Ticket } from "../plate/Tickets.jsx";   // ⭐ D197 #21 M5 (47m): the disk banner
 import { api, authContextQuery } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
@@ -379,9 +380,14 @@ export function DiskBanner() {
   const [g, setG] = useState(null);
   useEffect(() => { api("/api/admin/disk").then(setG).catch(() => {}); }, []);
   if (!g || (g.tone !== "amber" && g.tone !== "red")) return null;
+  // ⭐ D197 #21 M5 (47m): the banner is a plate TICKET above the tabs (admin.md) — clay-tint only when red (it needs the admin
+  // now); the words are today's, the ticket opens Today → Disk and backups.
   return (
-    <div role="alert" data-disk-banner={g.tone} style={{ margin: "0 0 16px", padding: "10px 14px", borderLeft: `4px solid ${DISK_TONE[g.tone]}`, color: DISK_TONE[g.tone], fontWeight: 700, fontSize: ts(13) }}>
-      The volume is {g.usedPct}% full ({mbOf(g.usedBytes)} of {mbOf(g.totalBytes)}) — {g.tone === "red" ? "free space now" : "plan for it"}. No company tranche is enabled above {g.tranche25?.limit ?? 70}%.
+    <div role="alert" data-disk-banner={g.tone}>
+      <Ticket tone={g.tone === "red" ? "clay-tint" : "plain"} kicker={`DISK · ${g.tone.toUpperCase()} · ${g.usedPct}% FULL`}
+        title={g.tone === "red" ? "Free space now" : "Plan for the disk"}
+        line={`The volume is ${g.usedPct}% full (${mbOf(g.usedBytes)} of ${mbOf(g.totalBytes)}) — ${g.tone === "red" ? "free space now" : "plan for it"}. No company tranche is enabled above ${g.tranche25?.limit ?? 70}%.`}
+        go="Open Disk and backups →" href="/admin?g=today&s=disk"/>
     </div>
   );
 }

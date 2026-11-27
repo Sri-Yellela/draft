@@ -90,7 +90,10 @@ export const MODULES = Object.freeze({
       "plate/Ledger.jsx", "plate/ledgerModel.js", "plate/SurveySheet.jsx", "plate/surveySheet.js", "plate/surveyDrawings.jsx", "plate/sheetFixtures.jsx",
       "panels/AutoApplyPanel.jsx", "pages/companies/CompanyPage.jsx",
       // ⭐ D197 Wave 1 #5–#7 (47h, lane atlas): Atlas's three boards (Volume I, a region, the Library) and the pages that draw them
-      "plate/AtlasHome.jsx", "plate/AtlasRegion.jsx", "plate/AtlasLibrary.jsx", "pages/atlas/AtlasVolume.jsx", "pages/atlas/AtlasPage.jsx"] },
+      "plate/AtlasHome.jsx", "plate/AtlasRegion.jsx", "plate/AtlasLibrary.jsx", "pages/atlas/AtlasVolume.jsx", "pages/atlas/AtlasPage.jsx",
+      // ⭐ D197 Wave 2 #21 M5 (47m, lane outside): Admin in the plate — the frame (a plate root, the area nav, the binder tabs),
+      // the kit every admin panel is drawn from (plate tokens, pl-label), and the disk banner's ticket
+      "components/AdminLayout.jsx", "panels/AdminPanel.jsx", "panels/adminKit.jsx", "panels/adminOps.jsx"] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminGateway.jsx", "panels/adminFlags.jsx","panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "panels/adminReports.jsx", "panels/adminCompanyRecords.jsx", "panels/adminNetwork.jsx", "panels/adminRuns.jsx", "panels/adminPhase1.jsx", "panels/adminDiagnostics.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.

@@ -7,10 +7,8 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import DepthButton from "../components/DepthButton.jsx";
-import { THEME_LIST, ACTIVE_THEME, adminSurfaceTheme, setAdminSurfaceTheme } from "../themes/index.js";
+import { ACTIVE_THEME, adminSurfaceTheme, setAdminSurfaceTheme } from "../themes/index.js";
 import { Panel, row, quiet } from "./adminKit.jsx";
-
-const PAIRS = [["dusk", "Dusk · follow the system"], ["plain", "Plain · follow the system"], ["studio", "Studio · follow the system"], ["system", "Paper / Charcoal · follow the system"], ["contrast", "Contrast · follow the system"]];
 
 export function AppearanceTab() {
   const mine = adminSurfaceTheme();
@@ -28,18 +26,21 @@ export function AppearanceTab() {
       setSaid(r.studioForUsers ? "Users now see Studio in Settings → Appearance." : "Studio is no longer offered to users (anyone already on it keeps it)."); }
     catch (e) { setSaid(e.message); }
   };
-  const choices = [[null, "Follow the app (the same look as the rest of draft)"], ...PAIRS, ...THEME_LIST.map((t) => [t.id, t.label])];
+  // ⭐ D197 #21 M5 (47m, agent's pick — owner may reverse; admin.md's unclear home (a), its recommendation): the plate
+  // replaces Studio on Admin, so the Admin pages' own-look switch is STRUCK — Admin is a plate page and takes the app's
+  // palette like every plate page. Nothing is lost: a browser that still holds an old Admin look is shown it once, with the
+  // one way back (Follow the app); the two user offers below are unchanged.
   return (
     <>
-      <Panel data-admin-appearance="" title="The Admin pages' look"
-        purpose={`On this browser only. Now: ${ACTIVE_THEME.label}${mine ? "" : " (following the app)"}. Studio is the look of the Testers sketch — a quiet ground, flat cards, blue bars, the orange kept for what matters. Choosing reloads the page.`}
-        code="themes/index.js setAdminSurfaceTheme — the stored appearance's ;admin=<pref> flag">
-        <div style={row}>
-          {choices.map(([id, label]) => (
-            <DepthButton key={String(id)} pressed={(mine || null) === id} primary={(mine || null) === id} onClick={() => setAdminSurfaceTheme(id)}>{label}</DepthButton>
-          ))}
-        </div>
-      </Panel>
+      {mine ? (
+        <Panel data-admin-appearance="" title="The Admin pages' look"
+          purpose={`On this browser only, Admin still wears an old look of its own (${ACTIVE_THEME.label}). Admin is now drawn in the plate and follows the app's palette; the per-surface switch is retired. Choosing reloads the page.`}
+          code="themes/index.js setAdminSurfaceTheme(null) — clears the stored appearance's ;admin=<pref> flag">
+          <div style={row}>
+            <DepthButton primary onClick={() => setAdminSurfaceTheme(null)}>Follow the app (the same look as the rest of draft)</DepthButton>
+          </div>
+        </Panel>
+      ) : null}
       <Panel data-admin-appearance-users="" title="Offer Studio to users"
         purpose="When on, Studio Light and Studio Dark appear in every user's Settings → Appearance beside the other themes. Off by default; nobody is switched to it."
         code="GET/POST /api/admin/appearance — app_settings studio_for_users · GET /api/config studioForUsers">

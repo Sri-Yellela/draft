@@ -25,6 +25,7 @@ test("no surface draws the name as text in place of the mark", () => {
 test("the five surfaces that drew text now render the shared mark", () => {
   for (const f of ["components/AuthScreen.jsx", "components/Footer.jsx",   // A93: MarketingNav.jsx deleted — nothing rendered it
                    "components/AdminLayout.jsx", "pages/AdminLoginPage.jsx"]) {
-    assert.match(strip(fs.readFileSync(`${ROOT}/${f}`, "utf8")), /<StampLogo\b/, f);
+    // ⭐ 47m (D197 #21, changed on purpose): the admin frame is a plate root and draws the plate's /d tile (PlateLogo)
+    assert.match(strip(fs.readFileSync(`${ROOT}/${f}`, "utf8")), f.endsWith("AdminLayout.jsx") ? /<PlateLogo\b/ : /<StampLogo\b/, f);
   }
 });

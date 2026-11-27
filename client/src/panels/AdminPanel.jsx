@@ -32,14 +32,18 @@ import { Phase1Tab } from "./adminPhase1.jsx";
 import { DiagnosticsTab, BackgroundJobsSection, PostingArchiveSection, HirebaseSection, HirebaseFeedSection } from "./adminDiagnostics.jsx";
 import { PeopleUsers, SupportQueue } from "./adminPeople.jsx";
 import { TYPE } from "../styles/type.js";
+// ⭐ D197 #21 M5 (47m): the frame's plate pieces (the area nav, the binder tabs, the kicker, the page title)
+import { AreaNav } from "../plate/Shell.jsx";
+import { BinderTabs, PageTitle } from "../plate/Plates.jsx";
+import { Kickers } from "../plate/Marks.jsx";
 import StatCard from "../components/StatCard.jsx";
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
-const ADMIN_ACCENT = C.ACCENT;
-// ADMIN_ACCENT is the orange, which is 2.96:1 on the paper: a FILL only. Text, edges and strokes use the
+// The orange is 2.96:1 on the paper: a FILL only. Text, edges and strokes use the
 // darker ink twin (4.5:1+), the rule UI step 2 set for the logo orange.
 const ADMIN_ACCENT_TEXT = C.ACCENT_INK;
-const ADMIN_TEXT   = C.ON_ACCENT;
+// ⭐ D197 #21 (47m): the area nav's icon for each group
+const GROUP_ICON = { today: "needs", board: "list", people: "network", data: "library", system: "filters" };
 
 function displayEventSubtype(value) {
   if (value === "CUSTOM_SAMPLER" || value === "A_PLUS") return "A+";
@@ -630,76 +634,31 @@ export function AdminPanel() {
   };
 
   return (
-    <div data-admin-page="" style={{ padding:"32px var(--page-gutter)", overflowY:"auto", height:"100%",
-                  boxSizing:"border-box", background:theme.bg,
+    <div data-admin-page="" style={{ overflowY:"auto", height:"100%", boxSizing:"border-box",
                   // ⭐ 46q FULL WIDTH (owner 11-16): the full width with the page gutter (was a centred 1200, 10-02).
-                  width:"100%",
-                  borderTop:`4px solid ${ADMIN_ACCENT_TEXT}` }}>
+                  width:"100%" }}>
 
       {deletePreview && (
         <DeleteUserDialog preview={deletePreview}
           onCancel={() => setDeletePreview(null)} onDeleted={onUserDeleted}/>
       )}
 
-      {/* Admin header */}
-      <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:24 }}>
-        {/* A50 step 6: the shared type scale (styles/type.js), not the pre-rebrand Barlow badge.
-            A tool, so the title is the section size, not the deck's page size. */}
-        <h1 style={{ ...TYPE.SECTION_TITLE, fontSize: ts(32) }}>Admin</h1>
-        <div style={{ flex:1 }}/>
-        {/* DB Inspector shortcut */}
-        <a href="/admin/db" style={{ textDecoration:"none" }}>
-          <div style={{
-            display:"flex", alignItems:"center", gap:10,
-            background:theme.surface, border:`1px solid ${theme.border}`,
-            borderRadius:10, padding:"10px 16px", cursor:"pointer",
-            transition:"border-color 0.15s",
-          }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = ADMIN_ACCENT_TEXT}
-          onMouseLeave={e => e.currentTarget.style.borderColor = theme.border}>
-            <span style={{ fontSize:ts(18) }}>🔬</span>
-            <div>
-              <div style={{ fontWeight:800, fontSize:ts(12), color:theme.text, letterSpacing:"0.05em" }}>
-                DB Inspector
-              </div>
-              <div style={{ fontSize:ts(10), color:theme.textMuted }}>
-                Pipeline Health · Schema · Tables · Trace
-              </div>
-            </div>
-            <span style={{ fontSize:ts(11), color:ADMIN_ACCENT_TEXT, fontWeight:700, marginLeft:4 }}>→</span>
-          </div>
-        </a>
-      </div>
+      {/* ⭐ D197 Wave 2 #21 · M5 (47m) — THE FRAME IN THE PLATE (docs/revamp/admin.md, the mock platePages/Admin.jsx): the five
+          groups are the area nav's views (the DB inspector in its More), the group's question the kicker, the disk banner a
+          ticket above the tabs, the group's sections the binder tabs. The place in the URL is unchanged (adminMap.js). */}
+      <AreaNav area="Admin" views={ADMIN_GROUPS.map(g => ({ id: g.id, label: g.label, href: `/admin?g=${g.id}`, icon: GROUP_ICON[g.id] || "list" }))}
+        current={place.g} more={[{ id: "db", label: "Database inspector", href: "/admin/db" }]}
+        onGo={(id, href) => { if (id === "db") window.location.assign(href); else go(id); }}/>
+      <div style={{ padding:"20px var(--page-gutter) 72px", boxSizing:"border-box", display:"flex", flexDirection:"column", gap:14 }}>
+      <Kickers parts={[`ADMIN · ${group.label.toUpperCase()}`, group.question.toUpperCase()]}/>
+      <PageTitle as="h1">{group.label}</PageTitle>
 
       {/* ⛔ D77: the disk banner — every admin tab, while the volume is amber or red. */}
       <DiskBanner/>
 
-      {/* ── The five groups (D83's map) ── */}
-      <nav aria-label="Admin groups" data-admin-groups="" style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:12 }}>
-        {ADMIN_GROUPS.map(g => (
-          <button key={g.id} type="button" className="dbx-depth" data-admin-group={g.id} aria-current={place.g === g.id ? "page" : undefined}
-            onClick={() => go(g.id)}
-            style={{ border:"none", cursor:"pointer", fontFamily:"inherit", padding:"10px 16px", textAlign:"left",
-                     background: place.g === g.id ? ADMIN_ACCENT : theme.surface, color: place.g === g.id ? ADMIN_TEXT : theme.text }}>
-            <div style={{ fontWeight:800, fontSize:ts(13) }}>{g.label}</div>
-            {/* D91 P6: full strength on the orange fill — 0.8 there was 3.95:1 (the matrix's scan). */}
-            <div style={{ fontSize:ts(11), opacity: place.g === g.id ? 1 : 0.8 }}>{g.question}</div>
-          </button>
-        ))}
-      </nav>
-      {/* ── The group's panels ── */}
-      <div role="tablist" aria-label={group.label} data-admin-sections="" style={{ display:"flex", flexWrap:"wrap", gap:4,
-           borderBottom:`2px solid ${ADMIN_ACCENT_TEXT}`, marginBottom:24 }}>
-        {group.sections.map(([id, label]) => (
-          <button key={id} type="button" role="tab" aria-selected={place.s === id} data-admin-section={id}
-            onClick={() => go(group.id, id)}
-            style={{ padding:"8px 14px", border:"none", cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:ts(12),
-                     background:"transparent", color: place.s === id ? theme.text : theme.textMuted,
-                     borderBottom: place.s === id ? `3px solid ${ADMIN_ACCENT_TEXT}` : "3px solid transparent", marginBottom:-2 }}>
-            {label}
-          </button>
-        ))}
-      </div>
+      <BinderTabs label={group.label} idBase="pl-admin" tabs={group.sections.map(([id, label]) => ({ id, label }))} selected={place.s}
+        onSelect={(id) => go(group.id, id)}>
+      <div data-admin-sections="" style={{ display:"flex", flexDirection:"column", gap:14, paddingTop:14, minWidth:0 }}>
       <AdminSection.Provider value={group.sections.find(([id]) => id === place.s)?.[1] || ""}>
 
       {/* Today — what needs me? */}
@@ -906,6 +865,9 @@ export function AdminPanel() {
             )}
           </AnimatePresence>
       </AdminSection.Provider>
+      </div>
+      </BinderTabs>
+      </div>
     </div>
   );
 }
