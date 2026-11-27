@@ -88,9 +88,11 @@ export function indexRow(job, i, { score = null, status = "NEW", yours = null, s
 // that, and a saved row shows a small filled ★ before its title. On a touch screen the actions are always open and the
 // first tap opens the posting. ≥ 44 px targets; under Reduce motion the cell opens without the grow.
 
-/** C8 · the row's actions: Star and Draft, the board's own handlers (JobsColumn's decideJob / draftControls). */
+/** C8 · the row's actions: Star and Draft, the board's own handlers (JobsColumn's decideJob / draftControls).
+ *  ⭐ 47m (A250, agent's pick — owner may reverse): + Send (`onSend`), the deck's and the sheet's fourth action on the row —
+ *  the network's picker when it is on, else the posting's public link (shared or copied). No `onSend`, no button. */
 export function RowBubble({ job, saved = false, drafted = false, drafting = false, draftBlocked = null, draftSlots = null,
-                            onSave, onDraft, onViewDraft = null, onExplainDraft = null }) {
+                            onSave, onDraft, onViewDraft = null, onExplainDraft = null, onSend = null }) {
   const draft = draftButtonState({ drafted, drafting, block: draftBlocked, canView: !!onViewDraft, slots: draftSlots });
   const what = `${job.title || "this opening"}${job.company ? ` at ${job.company}` : ""}`;
   const canDraft = !!(job.applyUrl || job.url);
@@ -102,6 +104,9 @@ export function RowBubble({ job, saved = false, drafted = false, drafting = fals
         aria-label={saved ? `Starred: ${what}` : `Star ${what}`} onClick={stop(saved ? null : onSave)}>
         <StarMark filled={saved}/><span>{saved ? "Starred" : "Star"}</span>
       </button>
+      {onSend ? (
+        <button type="button" className="pl-ixrow__send" data-bubble-action="send" aria-label={`Send ${what}`} onClick={stop(onSend)}>Send</button>
+      ) : null}
       {canDraft ? (
         <button type="button" className="pl-ixrow__draft" data-bubble-action="draft" data-draft-state={draft.kind}
           disabled={draft.disabled} aria-disabled={draft.ariaDisabled || undefined} title={draft.title}

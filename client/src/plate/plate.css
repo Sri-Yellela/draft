@@ -30,7 +30,7 @@
   .plate .at-march, .plate .at-tick, .plate .at-stamp, .plate .pl-lit-pop, .plate .pl-tape__word { animation: none; }
   .plate .at-draw { animation: none; stroke-dashoffset: 0; }
   .plate .pl-lift, .plate .pl-lift:hover { transition: none; transform: none; }
-  .plate .pl-ixrow__star, .plate .pl-ixrow__draft { animation: none !important; }   /* D199 C8: the Index actions just appear */
+  .plate .pl-ixrow__star, .plate .pl-ixrow__draft, .plate .pl-ixrow__send { animation: none !important; }   /* D199 C8: the Index actions just appear */
 }
 
 /* ── Base ── */
@@ -334,31 +334,9 @@
 @media (max-width: 860px) {
   .pl-gzc--n { width: 4.63%; } .pl-gzc--title { width: 32.87%; } .pl-gzc--co { width: 17.52%; } .pl-gzc--match { width: 8.42%; }
   .pl-gzc--stack { width: 13.88%; } .pl-gzc--h1b { width: 8.42%; } .pl-gzc--status { width: 14.25%; }
-  .pl-rowbubble__dot { display: none; }   /* a 108 px status column: the circle would cover the tag; hover / focus / a tap open the pill */
 }
-/* ── D196 FIX-8 · the row bubble: a 32 px circle at rest; on hover / focus within the row a pill grows LEFTWARDS over the
-   row's last cell (an overlay — the row never moves), Star and Draft inside; open on touch; no grow under Reduce motion ── */
-.pl-rowbubble { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; z-index: 1; }
-.pl-rowbubble__dot { width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; border: var(--pl-border); background: var(--pl-card);
-  color: var(--pl-ink); display: inline-flex; align-items: center; justify-content: center; font-size: var(--pl-t-13); transition: opacity var(--pl-hover) var(--pl-ease); }
-.pl-rowbubble__pill { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; gap: 6px; align-items: center; padding: 4px;
-  background: var(--pl-card); border: var(--pl-border); border-radius: var(--pl-r-input); box-shadow: var(--pl-s3); white-space: nowrap;
-  clip-path: inset(-6px -6px -6px 100% round 12px); opacity: 0; pointer-events: none;
-  transition: clip-path var(--pl-hover) var(--pl-ease), opacity var(--pl-hover) var(--pl-ease); }
-.pl-marketindex tr:hover .pl-rowbubble__pill, .pl-marketindex tr:focus-within .pl-rowbubble__pill { clip-path: inset(-6px -6px -6px -6px round 12px); opacity: 1; pointer-events: auto; }
-.pl-marketindex tr:hover .pl-rowbubble__dot, .pl-marketindex tr:focus-within .pl-rowbubble__dot { opacity: 0; }
-.pl-rowbubble__star, .pl-rowbubble__draft { all: unset; box-sizing: border-box; cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
-  border: var(--pl-border); border-radius: var(--pl-r-btn); font-weight: 700; font-size: var(--pl-t-small); }
-.pl-rowbubble__star { width: 44px; background: var(--pl-card); color: var(--pl-ink); }
-.pl-rowbubble__draft { padding: 0 16px; background: var(--pl-clay); color: var(--pl-on-clay); }
-.pl-rowbubble__draft:hover { background: var(--pl-clay-hover); }
-.pl-rowbubble__draft[disabled], .pl-rowbubble__draft[aria-disabled="true"] { opacity: .5; cursor: default; }
-.pl-rowbubble__draft[data-draft-state="drafted"] { background: var(--pl-card); color: var(--pl-ink); }
-.pl-rowbubble__star:focus-visible, .pl-rowbubble__draft:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 2px; }
-/* touch (no hover): the first tap on a row arms it (MarketIndexTable) and its pill opens; the second opens the posting */
-.pl-marketindex tr[data-armed] .pl-rowbubble__pill { clip-path: inset(-6px -6px -6px -6px round 12px); opacity: 1; pointer-events: auto; }
-.pl-marketindex tr[data-armed] .pl-rowbubble__dot { opacity: 0; }
-@media (prefers-reduced-motion: reduce) { .pl-rowbubble__pill, .pl-rowbubble__dot { transition: none; } }
+/* ⛔ 47m: D196 FIX-8's row bubble (.pl-rowbubble*, an overlay pill on <tr> rows) is deleted — D199 C8 replaced it with the row's
+   own actions cell (.pl-ixrow__act, below), and nothing has drawn it since. */
 
 /* ── Register (ledger-ruled rows, ink head bar with bulk actions) ── */
 .pl-register { margin-top: 16px; border: var(--pl-border); border-radius: var(--pl-r-card); background-color: var(--pl-card); background-image: var(--pl-ledger-lines); box-shadow: var(--pl-s5); overflow: hidden; }
@@ -1163,25 +1141,26 @@ p.pl-mk-notice { padding: 4px 0 10px; }
    holds only the ⋯; on hover / focus Star and Draft join the row's flow at once — the title gives way — and fade in (0.25 s) */
 .pl-ixrow__act { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
 @keyframes pl-ix-in { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: none; } }
-.pl-ixrow:hover .pl-ixrow__star, .pl-ixrow:hover .pl-ixrow__draft, .pl-ixrow:focus-within .pl-ixrow__star, .pl-ixrow:focus-within .pl-ixrow__draft { animation: pl-ix-in .25s var(--pl-ease) both; }
+.pl-ixrow:hover .pl-ixrow__star, .pl-ixrow:hover .pl-ixrow__draft, .pl-ixrow:hover .pl-ixrow__send, .pl-ixrow:focus-within .pl-ixrow__star, .pl-ixrow:focus-within .pl-ixrow__draft, .pl-ixrow:focus-within .pl-ixrow__send { animation: pl-ix-in .25s var(--pl-ease) both; }
 /* at rest Star and Draft are out of the layout (still focusable — Tab reaches them and the row opens): clipped inside the
    44 px cell they were laid out to its LEFT (flex-end overflow) and A201's probe read their words over the STATUS tag at 768 */
 .pl-ixc--act { position: relative; }
 .pl-ixrow__act { min-width: 44px; }   /* the board's 44 px cell at rest, with only the ⋯ in it */
 .pl-ixrow[data-row-opens] { min-height: 61px; }   /* the board's row: 8 + 44 (its buttons, laid out at rest) + 8 + the 1 px rule */
 @media (hover: hover) {
-  .pl-ixrow:not(:hover):not(:focus-within) .pl-ixrow__star, .pl-ixrow:not(:hover):not(:focus-within) .pl-ixrow__draft {
+  .pl-ixrow:not(:hover):not(:focus-within) .pl-ixrow__star, .pl-ixrow:not(:hover):not(:focus-within) .pl-ixrow__draft, .pl-ixrow:not(:hover):not(:focus-within) .pl-ixrow__send {
     position: absolute; right: 0; top: 0; opacity: 0; pointer-events: none; }   /* out of the flow and not drawn; Tab still reaches them */
 }
 .pl-ixrow__more { flex: 0 0 auto; width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; border: var(--pl-border); background: var(--pl-card); display: inline-flex; align-items: center; justify-content: center; font-weight: 800; }
 .pl-ixrow:hover .pl-ixrow__more, .pl-ixrow:focus-within .pl-ixrow__more { display: none; }
-.pl-ixrow__star, .pl-ixrow__draft { all: unset; cursor: pointer; box-sizing: border-box; flex: 0 0 auto; min-height: 44px; display: inline-flex; align-items: center; gap: 6px; border-radius: var(--pl-r-btn); border: var(--pl-border); font-size: var(--pl-t-meta); box-shadow: var(--pl-s3); white-space: nowrap; }
-.pl-ixrow__star { padding: 0 12px; background: var(--pl-card); color: var(--pl-ink); font-weight: 700; }
+.pl-ixrow__star, .pl-ixrow__draft, .pl-ixrow__send { all: unset; cursor: pointer; box-sizing: border-box; flex: 0 0 auto; min-height: 44px; display: inline-flex; align-items: center; gap: 6px; border-radius: var(--pl-r-btn); border: var(--pl-border); font-size: var(--pl-t-meta); box-shadow: var(--pl-s3); white-space: nowrap; }
+.pl-ixrow__star, .pl-ixrow__send { padding: 0 12px; background: var(--pl-card); color: var(--pl-ink); font-weight: 700; }
+.pl-ixrow__star:hover, .pl-ixrow__send:hover { background: var(--pl-paper-hover); }
 .pl-ixrow__draft { padding: 0 14px; background: var(--pl-clay); color: var(--pl-on-clay); font-weight: 800; }
 .pl-ixrow__draft:hover { background: var(--pl-clay-hover); }
 .pl-ixrow__draft[disabled], .pl-ixrow__draft[aria-disabled="true"] { opacity: .5; cursor: default; }
 .pl-ixrow__draft[data-draft-state="drafted"] { background: var(--pl-card); color: var(--pl-ink); }
-.pl-ixrow__star:focus-visible, .pl-ixrow__draft:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 2px; }
+.pl-ixrow__star:focus-visible, .pl-ixrow__draft:focus-visible, .pl-ixrow__send:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 2px; }
 .pl-ixnote { margin: 10px 2px 0; font-size: var(--pl-t-tiny); color: var(--pl-muted); }
 @media (hover: none) { .pl-ixrow__more { display: none; } }
 /* A201 (390): on a phone the row's actions are always open, so the row makes room — the star is its icon (its name stays the

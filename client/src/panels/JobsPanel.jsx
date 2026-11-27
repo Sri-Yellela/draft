@@ -4067,9 +4067,21 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
   const { applySubmitted = [], applyGatedJobs = [], applyReviewJobs = [] } = useAutoApply() || {};
   const submittedIds = useMemo(() => new Set(applySubmitted.map((j) => j?.jobId).filter(Boolean)), [applySubmitted]);
   const needsYouIds = useMemo(() => new Set([...applyGatedJobs, ...applyReviewJobs].map((j) => j?.jobId).filter(Boolean)), [applyGatedJobs, applyReviewJobs]);
-  // ⭐ (11) 45q · D180's Send on the list rows — only while the network is on (the deck's own rule), through the ONE picker.
+  // ⭐ (11) 45q · D180's Send on the list rows, through the ONE picker. ⭐ 47m (A250): the Index row's Send — the network on, the
+  // picker; off, the posting's public link shared or copied (the deck's and the opening sheet's own rule), its word in the note line.
   const [networkOn, setNetworkOn] = useState(false);
   const [sending, setSending] = useState(null);
+  const [sentWord, setSentWord] = useState(null);
+  useEffect(() => { if (!sentWord) return undefined; const t = setTimeout(() => setSentWord(null), 2500); return () => clearTimeout(t); }, [sentWord]);
+  const sendRow = useCallback(async (job) => {
+    if (networkOn) { setSending(job); return; }
+    if (!job?.publicPath) { setSentWord("This job has no public page yet"); return; }
+    const url = `${window.location.origin}${job.publicPath}`;
+    try {
+      if (navigator.share) { await navigator.share({ title: `${job.title} — ${job.company}`, url }); setSentWord("Shared"); }
+      else { await navigator.clipboard.writeText(url); setSentWord("Link copied"); }
+    } catch { /* the person closed the share sheet */ }
+  }, [networkOn]);
   useEffect(() => { let live = true; api("/api/network/status").then(r => live && setNetworkOn(!!r?.enabled)).catch(() => {}); return () => { live = false; }; }, []);
   // ⛔ D45: never while the current view is still loading — "nothing here" when the truth is "not here yet"
   // is silence reported as success.
@@ -4179,9 +4191,10 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                 <RowBubble job={r.job} saved={!!(r.job._user?.starred ?? r.job.starred)} drafted={isJobDrafted(r.id)} drafting={draftingIds.has(r.id)}
                   onSave={() => decideJob?.(r.job, DECISIONS.SAVED)} onDraft={() => decideJob?.(r.job, DECISIONS.DRAFTED)}
                   onViewDraft={draftControls?.onView} draftBlocked={draftControls?.block} draftSlots={draftControls?.slots}
-                  onExplainDraft={(reason) => draftControls?.onExplain(r.job, reason)}/>
+                  onExplainDraft={(reason) => draftControls?.onExplain(r.job, reason)} onSend={() => sendRow(r.job)}/>
               )}/>
           {sending && <SendJobPicker job={sending} onClose={() => setSending(null)} />}
+          {sentWord ? <p className="pl-ixnote" role="status" data-index-sent="">{sentWord}</p> : null}
 
           {/* ⭐ D199 C3: the board pages (plate/MarketPager.jsx); reaching a page's end fetches nothing. ⛔ 47j R2: D147's
               endless-scroll line (BoardMore) is deleted with the classic market. */}
