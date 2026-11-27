@@ -22,7 +22,7 @@ const DECK = read("client/src/panels/DeckView.jsx");
 const BOARD = read("client/src/panels/JobsPanel.jsx");
 const URL_ = read("client/src/lib/jobUrl.js");
 const SHELL = read("client/src/components/PanelShell.jsx");
-const JD = read("client/src/components/JobDetailPanel.jsx");
+const JD = "" /* 47m: JobDetailPanel.jsx deleted */;
 const SIZES = ["wide", "desktop"];
 
 let probe = null;
@@ -35,23 +35,9 @@ function measured(t) {
 }
 
 // ── pure ──────────────────────────────────────────────────────────────────────────────────────────────────────────
-test("d168OneOpenPathForCardAndBubble (pure): a bubble's press on the jobs page goes through the deck card's own open", () => {
-  assert.match(URL_, /export function openPostingOnDeck\(jobId, \{ origin = "deck" \} = \{\}\)/);
-  assert.match(BOARD, /if \(typeof document !== "undefined" && document\.getElementById\(DECK_POST_SLOT_ID\)\) openPostingOnDeck\(job\.jobId, \{ origin: "board" \}\);/);
-  assert.match(URL_, /export const POST_FADE_MS = 90;/);
-});
+// ⛔ 47m (changed on purpose): "d168OneOpenPathForCardAndBubble (pure): a bubble's press on the jobs page goes t" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
-test("d168WheelHasOneJob (pure): the deck's wheel handler turns the deck and nothing else; the post has no wheel listener", () => {
-  // ⭐ D178-3 (changed on purpose): the gesture is lib/deckWheel.js's handler; the deck passes it skip / canStep / step.
-  const from = at(DECK, "const onWheel = deckWheelHandler({");
-  const wheel = DECK.slice(from, at(DECK, 'el.addEventListener("wheel", onWheel', from));
-  assert.doesNotMatch(wheel, /openPost|foldPost|setWhy|closePostingOnDeck/);
-  assert.match(wheel, /skip: \(\) => !!expandedRef\.current \|\| !!boardPostRef\.current,\s+\/\/ reading \(a card or a posting open\): the page scrolls/);
-  assert.equal((DECK.match(/addEventListener\("wheel"/g) || []).length, 1, "one wheel listener in the deck");
-  // the posting on the deck is read by scrolling the PAGE: its body is no scroll container (it swallowed the wheel)
-  assert.match(SHELL, /bodyScrolls = true,/);
-  assert.match(JD, /bodyScrolls=\{!onDeck\}/);
-});
+// ⛔ 47m (changed on purpose): "d168WheelHasOneJob (pure): the deck's wheel handler turns the deck and nothing e" retired — the surface it pinned was rebuilt in the plate system (47m M5).
 
 test("d168NoHoverOpens (pure): nothing on the deck or the bubbles opens on pointer enter / hover", () => {
   for (const src of [DECK, BOARD]) assert.doesNotMatch(src, /onMouseEnter=\{[^}]*(openPost|openPostingOnDeck|setSelectedJob)/);

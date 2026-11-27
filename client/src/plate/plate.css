@@ -1178,6 +1178,8 @@ p.pl-mk-notice { padding: 4px 0 10px; }
 .pl-ixrow__star:hover, .pl-ixrow__send:hover { background: var(--pl-paper-hover); }
 .pl-ixrow__draft { padding: 0 14px; background: var(--pl-clay); color: var(--pl-on-clay); font-weight: 800; }
 .pl-ixrow__draft:hover { background: var(--pl-clay-hover); }
+/* 47m (A250 + A201): on a phone the row holds Star and Draft only — Send stays on the deck card and the opening sheet (agent's pick) */
+@media (max-width: 600px) { .pl-ixrow__send { display: none; } }
 .pl-ixrow__draft[disabled], .pl-ixrow__draft[aria-disabled="true"] { opacity: .5; cursor: default; }
 .pl-ixrow__draft[data-draft-state="drafted"] { background: var(--pl-card); color: var(--pl-ink); }
 .pl-ixrow__star:focus-visible, .pl-ixrow__draft:focus-visible, .pl-ixrow__send:focus-visible { outline: var(--pl-line-mark) solid var(--pl-clay); outline-offset: 2px; }

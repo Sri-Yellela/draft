@@ -646,9 +646,11 @@ export function AdminPanel() {
       {/* ⭐ D197 Wave 2 #21 · M5 (47m) — THE FRAME IN THE PLATE (docs/revamp/admin.md, the mock platePages/Admin.jsx): the five
           groups are the area nav's views (the DB inspector in its More), the group's question the kicker, the disk banner a
           ticket above the tabs, the group's sections the binder tabs. The place in the URL is unchanged (adminMap.js). */}
+      <div style={{ padding: "12px var(--page-gutter) 0" }}>{/* D163: the nav inside the page gutter, never flush to the edge */}
       <AreaNav area="Admin" views={ADMIN_GROUPS.map(g => ({ id: g.id, label: g.label, href: `/admin?g=${g.id}`, icon: GROUP_ICON[g.id] || "list" }))}
         current={place.g} more={[{ id: "db", label: "Database inspector", href: "/admin/db" }]}
         onGo={(id, href) => { if (id === "db") window.location.assign(href); else go(id); }}/>
+      </div>
       <div style={{ padding:"20px var(--page-gutter) 72px", boxSizing:"border-box", display:"flex", flexDirection:"column", gap:14 }}>
       <Kickers parts={[`ADMIN · ${group.label.toUpperCase()}`, group.question.toUpperCase()]}/>
       <PageTitle as="h1">{group.label}</PageTitle>

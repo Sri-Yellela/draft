@@ -61,6 +61,9 @@ test("d163ContentGroupCentred, the other screens (real Chrome, 1280 · 1440 · 1
   const CENTRED_MEASURE = new Map([
     ["market", "owner 11-26 (47j, \"keep it centred\"): the approved Market board's measure"],
     ["tracker", "47m, decided (agent's pick — owner may reverse): the ledger keeps the approved Ledger board's centred plate measure"],
+    // ⭐ 47m (D197 Wave 2 M5, agent's pick — owner may reverse): the passport and its settings pages and the Proving ground are
+    // plate pages built from approved boards (Passport, ProvingGround) — the same centred plate measure (--pl-page)
+    ...["profile", "account", "customise", "integrations", "saved-answers", "interview"].map((s) => [s, "47m: an approved plate board's centred measure (--pl-page)"]),
   ]);
   assert.match(SHOTS, /centredMeasure: "owner 11-26 \(47j\): the market keeps the approved board's measure, centred, on wide screens"/);
   for (const s of SCREENS) for (const w of WIDTHS) {

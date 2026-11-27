@@ -23,7 +23,7 @@ export default function AdminLayout({ user, onLogout, children }) {
           </span>
           <button type="button" className="pl-btn" onClick={onLogout}>Sign Out</button>
         </div>
-        <Ruler size="leg"/>
+        <div style={{ padding: "0 clamp(12px, 3vw, 24px)" }}><Ruler size="leg"/></div>   {/* D163: inside the gutter, never flush to the edge */}
       </div>
 
       {/* Admin content */}
