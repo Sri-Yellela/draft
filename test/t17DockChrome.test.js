@@ -237,9 +237,12 @@ test("⛔ T17: the four themes — the frame is painted from the palette it is h
     await page.evaluate((m) => globalThis.__draftDock.ensure(m), meta(theme, { tab: "fill" }, name.startsWith("contrast")));   // D191 B1: the row (and its selected tab) is drawn off the home tab
     const got = await page.evaluate(() => { const r = document.getElementById("rm-draft-dock").shadowRoot; const tab = r.querySelector('[aria-selected="true"]'); return {
       ink: getComputedStyle(r.querySelector(".fr")).color, cues: document.getElementById("rm-draft-dock").getAttribute("data-cues"),
-      before: getComputedStyle(tab, "::before").content, radius: Math.max(...[...r.querySelectorAll("button, .fr")].map(b => parseFloat(getComputedStyle(b).borderTopRightRadius) || 0)) }; });
+      before: getComputedStyle(tab, "::before").content, radius: Math.max(...[...r.querySelectorAll("button")].map(b => parseFloat(getComputedStyle(b).borderTopRightRadius) || 0)),
+      frame: parseFloat(getComputedStyle(r.querySelector(".fr")).borderTopRightRadius) || 0 }; });
     assert.equal(hex(got.ink), want.INK.toUpperCase(), `${name}: the ink is the palette's`);
     assert.ok(got.radius <= 10, `${name}: D60 — no capsule (max radius ${got.radius})`);
+    // ⭐ D197 #19 (47m): the frame is a plate — the FloatingPanel mock's 14 px corners on a whole panel, never a capsule
+    assert.ok(got.frame <= 14, `${name}: D60 — the frame's corners are the plate's (${got.frame})`);
     if (name.startsWith("contrast")) { assert.equal(got.cues, "shape"); assert.match(got.before, /▸/, "the selected tab carries a shape, not colour alone"); }
     else assert.equal(got.cues, null);
     await page.close();

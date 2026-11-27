@@ -30,9 +30,10 @@ test("T26 ① ONE icon set — stroke icons in currentColor, hidden from assisti
 });
 
 test("T26 ② LINE BUDGET — the header's rule is the frame's one divider; the tabs have none under them", () => {
-  const rules = [...FRAME_CSS.matchAll(/border(?:-top|-bottom|-left|-right)?: 1px solid var\(--c-border\)/g)];
+  // ⭐ D197 #19 (47m, changed on purpose): the masthead's rule is the plate's 1.5 px ink line (the --c-border fallback kept)
+  const rules = [...FRAME_CSS.matchAll(/border(?:-top|-bottom|-left|-right)?: (?:1px solid var\(--c-border\)|1\.5px solid var\(--pl-ink, var\(--c-border\)\))/g)];
   assert.equal(rules.length, 1, `${rules.length} divider rules in the frame`);
-  assert.match(FRAME_CSS, /\.hd \{[^}]*border-bottom: 1px solid var\(--c-border\)/);
+  assert.match(FRAME_CSS, /\.hd \{[^}]*border-bottom: 1\.5px solid var\(--pl-ink, var\(--c-border\)\)/);
   assert.doesNotMatch(FRAME_CSS.slice(at(FRAME_CSS, ".tabs {"), at(FRAME_CSS, ".tab {")), /border/);
 });
 
