@@ -1,5 +1,5 @@
 // client/src/panels/JobsPanel.jsx — Lucy Brand, shared job pool
-import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 // ⛔ 47j w1-market (D197 Wave 1 #2): the board's empty / notice / error states are the plate's drawer and error line
 // (plate/PlateState.jsx) — A233's NoteCard and the shared EmptyState no longer draw anything on the plate market.
 import { Drawer, ErrorLine } from "../plate/PlateState.jsx";
@@ -27,11 +27,8 @@ import { JobBoardColumns } from "../components/JobBubble.jsx";   // ⛔ 47j R2: 
 import { viewKey, viewCacheGet, viewCacheSet } from "../lib/boardViewCache.js";
 import { SavedEmptyState, useExtensionStatus } from "../components/ExtensionPrompt.jsx";
 import { EXTENSION_PAGE, EXTENSION_STORE_URL } from "../../../shared/extension.js";
-import JobDetailPanel from "../components/JobDetailPanel.jsx";
 import SendJobPicker from "../components/SendJobPicker.jsx";   // (11) 45q: D180's Send on the list rows
-import SandboxPanel, { cleanDocHtml } from "./SandboxPanel.jsx";
-import { PanelScrim, PanelDock, PANEL_TOP_INSET, PANEL_BOTTOM_INSET } from "../components/PanelShell.jsx";
-import { usePanelHost } from "../hooks/usePanelHost.js";
+import { PANEL_TOP_INSET, PANEL_BOTTOM_INSET } from "../components/PanelShell.jsx";
 import { useBoardLock } from "../hooks/useBoardLock.js";
 import { useSyncEvents } from "../hooks/useSyncEvents.js";
 import { useAppScroll } from "../contexts/AppScrollContext.jsx";
@@ -45,7 +42,7 @@ import {
   POSTING_AGE, VISITED, ageDaysMap,
 } from "../../../shared/jobFilterOptions.js";
 // AH2: the job-detail address, shared with JobCard so the href and the param cannot disagree.
-import { JOB_URL_PARAM, jobIdFromSearch, OPEN_POSTING_EVENT, CLOSE_POSTING_EVENT, POSTING_ON_DECK_EVENT, DECK_DECIDE_EVENT, DECK_POST_SLOT_ID, POST_FADE_MS, openPostingOnDeck, panelOverPosting } from "../lib/jobUrl.js";
+import { jobIdFromSearch } from "../lib/jobUrl.js";   // ⛔ 47m: a ?job=<id> link opens the opening sheet (the posting, its deck slot and events are deleted)
 // D35: the Full House header (App.jsx) renders the sentence, its one panel and the sort panel; this
 // panel publishes what they read — the committed clause params and the facets answer.
 import { JOB_FUNCTIONS, PLACES } from "../../../shared/jobTagVocabulary.js";
@@ -63,7 +60,7 @@ import { C } from "../styles/colorTokens.js";
 import { atsScorePair } from "../../../shared/resumeScores.js";
 import { openPosting } from "../lib/openPosting.js";
 import { rememberBoardFilters } from "../lib/boardFilterMemory.js";
-import { openResumeEditor } from "../lib/resumeEditor.js";
+import { openResumeEditor, cleanDocHtml } from "../lib/resumeEditor.js";
 import { sentenceFromResume } from "../../../shared/resumeSentence.js";   // D184 B-7
 import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
@@ -875,17 +872,6 @@ function PullToRefresh({ onRefresh, refreshing, theme, children }) {
 // cards have — the panels overlay it now rather than taking columns from it, so a wide panel over a
 // narrow board is the same legibility problem it always was.
 // Tier 1 (full layout):  board alone, or board + one panel
-// Tier 3 (condensed):    board + two panels (the side-by-side maximum)
-// Tier 2 (medium):       only reached by manual drag — ResizeObserver overrides Tier 1 -> 2 when
-//                        the board is dragged to 180-279px. Tier 3 always wins over pixels.
-function getCardTier(panelBVisible, panelCVisible, panelDVisible) {
-  const extraPanels = [panelBVisible, panelCVisible, panelDVisible].filter(Boolean).length;
-  if (extraPanels === 0) return 1; // A only — full width
-  if (extraPanels === 1) return 1; // A+B — still 30%, full layout
-  return 3;                        // A+B+C or A+B+C+D — 6%, condensed
-}
-
-// getPanelDefaults removed — see the note where the rebalancing effect used to be.
 
 /**
  * ⭐ D58 · ONE READ OF THE SCORE, for every surface on this board: the card badge, the posting header's box
@@ -900,39 +886,6 @@ export function scoresFor(job, artifact = null) {
   });
 }
 
-function buildAtsPayload(job, artifact = null) {
-  const activeArtifact = artifact ? getActiveArtifact(artifact, artifact.activeTool || artifact.tool) : null;
-  const pair = scoresFor(job, artifact);
-  const score = activeArtifact?.atsScore
-    ?? job?.atsScore
-    ?? job?.resumeAtsScore
-    ?? job?.baseAtsScore
-    ?? null;
-  const report = activeArtifact?.atsReport
-    ?? job?.atsReport
-    ?? job?.resumeAtsReport
-    ?? job?.baseAtsReport
-    ?? job?.ats_report
-    ?? null;
-  return {
-    score,
-    report,
-    // ⛔ CC5 · THE PAYLOAD CARRIES ITS OWN JOB ID, and without it the empty-payload route above
-    // cannot work. AtsReportPanel used to take the job to fetch from `selectedJob`, which is the
-    // JD panel's state and has nothing to do with which report is on screen: opening a report from
-    // a card, or from the history list, left the panel asking the server about whatever job
-    // happened to be selected — or about nothing at all, on a board with no selection, which is
-    // when a card's chip is clicked. Now the report says which job it is about.
-    jobId: job?.jobId || job?.id || null,
-    // D58: "Base 58 → tailored 71" — the base score stays in the ATS card, beside the tailored one.
-    pair,
-    company: activeArtifact?.company || job?.company,
-    title: activeArtifact?.title || job?.title || job?.role,
-    // D62: the header draws the company's CompanyLogo and its ONE link (D38).
-    companyIconUrl: job?.companyIconUrl || null,
-    applyUrl: job?.applyUrl || job?.url || null,
-  };
-}
 
 // -- Main panel ------------------------------------------------
 // A126 · the posting-by-id reads in flight / just answered, shared across the deck's repeated asks (see onOpen).
@@ -972,12 +925,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // Job data
   const [jobs,        setJobs]        = useState(() => BOARD_LAST?.jobs || []);
   const decideJobRef = useRef(null);
-  // ⭐ D156 (1c): who opened the posting — "deck" (the front card expanding, or its match) or "board" (a bubble, a deep
-  // link). On Home the posting is drawn on the deck either way; a deck card's Pass · Save · Draft are the deck's to make.
-  const [postOrigin, setPostOrigin] = useState("board");
-  const postOriginRef = useRef("board");
-  postOriginRef.current = postOrigin;
-  const decidePostingRef = useRef(null);
   const [totalJobs,   setTotalJobs]   = useState(() => BOARD_LAST?.total || 0);
   const [totalPages,  setTotalPages]  = useState(() => BOARD_LAST?.totalPages || 0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -1029,10 +976,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const [genFailed,   setGenFailed]   = useState({});
   const [sandbox,     setSandbox]     = useState(null);
   const [sandboxOpen, setSandboxOpen] = useState(false);
-  // ⭐ D152 (8) (b): the ATS panel drawn OVER the page (AtsReportPanel — its own overlay, scrim and History tab) is
-  // RETIRED. Every opener now asks for the match INSIDE the posting, under the facts (ats-options.html option A): a
-  // counter per ask, read by JobDetailPanel through selectedJobMeta.matchAsk.
-  const [matchAsk, setMatchAsk] = useState(null);
 
   // Split view — selectedJob lifted to JobBoardContext (must be declared here,
   // before the useMemo at ~line 962 that uses !!selectedJob in its dep array)
@@ -1045,9 +988,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setAtsSortAvailable, atsSortAvailable,
     setBoardPanel, setBoardHeadline, setBoardPager,
   } = useJobBoard();
-  // The open posting's id, for callbacks that must not re-bind on every selection (openAtsPanel, D152 (8)).
-  const selectedJobIdRef = useRef(null);
-  selectedJobIdRef.current = selectedJob?.jobId ?? null;
 
   // Open / close sandbox — panel size rebalancing handled by useEffect below.
   //
@@ -1062,30 +1002,16 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // bottom-nav "Jobs" button. On a narrow viewport the panel is a full-screen overlay (see
   // usePanelHost's fallback) and the board simply stays where it is underneath it.
 
-  // AH2: the job this tab was OPENED to show, captured at first render.
-  //
-  // It is read here and never from the URL again, because the sync effect further down rewrites the
-  // query string — anything consulting window.location afterwards would be reading this component's
-  // own overwrite rather than the address the user arrived on. The reasoning for the whole
-  // arrangement is with those effects, near handleJobSelect.
+  // ⭐ 47m (AH2's address, moved): a ?job=<id> link (an email, an old bookmark) opens the job's OPENING SHEET, /app/jobs/<id> —
+  // the sheet is the posting's one home now (D199 C7). Read once, at first render.
   const deepLinkedJobIdRef = useRef(jobIdFromSearch());
-  const [deepLinkedJob, setDeepLinkedJob] = useState(null);
-  // Called from every path that legitimately ends the deep-linked selection: the panel's close
-  // button, Escape, picking a different card, and a real profile switch. Once it has run, the
-  // reconcile effect below stops re-opening the panel and the URL sync is free to drop the param.
-  //
-  // This is deliberately an EXPLICIT signal rather than a timing guess. The first attempt cleared
-  // the ref as soon as it saw the selection match, which raced the profile-cache restore: within
-  // the render where activeProfileKey arrives, the restore's setSelectedJob(null) has been queued
-  // but this effect's closure still holds the OLD selection, so it saw a match, cleared, and the
-  // null landed the next render with nothing left to re-apply it. Intermittently — which is how it
-  // passed once and failed the next run on the same build.
-  const clearDeepLink = useCallback(() => { deepLinkedJobIdRef.current = null; }, []);
 
   // ⭐ D157 (option A) + D171 FIX 4: a résumé that is READY opens in the embedded editor (resume-master's tool, a focused
   // full-screen view — components/ResumeEditorHost.jsx); Back / Esc returns here with the posting still open. The
   // panel below keeps what the editor doesn't do: the generating skeleton, a failure, a missing artifact, the company
   // KB's findings to review, and the A+ / Generate switch — and it is the fallback when the editor can't be reached.
+  // ⭐ 47m: that "panel" is the opening sheet's 06 now (plate/SheetResume.jsx's live view — `sandboxOpen` says it is wanted;
+  // the entry reaches the sheet through selectedJobMeta.sandbox). SandboxPanel is deleted.
   const sandboxSaveRef = useRef(null);
   const sandboxExportRef = useRef(null);
   const openSandbox = useCallback((entry) => {
@@ -1100,113 +1026,13 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       title: active.title || entry.title, tool: active.tool, version: active.version,
       onSave: (html) => sandboxSaveRef.current?.(html, active),
       onExport: (html) => sandboxExportRef.current?.(null, html, active.company, active),
-      fallback: () => setSandboxOpen(true),
+      fallback: () => { setSandbox(e => (e ? { ...e, fallback: true } : e)); setSandboxOpen(true); },   // 47m: the sheet says why it is a preview
     });
   }, []);
 
-  const closeSandbox = useCallback(() => {
-    setSandboxOpen(false);
-  }, []);
-
-  // ⭐ D152 (8) (b): open THE MATCH IN THE POSTING. `job` — when the caller holds it and it is not the one open — is
-  // selected first, so the posting the report is about is the one on screen; with neither, the open posting's.
-  const openAtsPanel = useCallback((atsData, job = null) => {
-    if (atsData) setActiveAts(atsData);
-    if (job && selectedJobIdRef.current !== job.jobId) setSelectedJob(job);
-    const id = job?.jobId ?? atsData?.jobId ?? selectedJobIdRef.current ?? null;
-    setMatchAsk(prev => ({ jobId: id, n: (prev?.n || 0) + 1 }));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ⛔ A52 · ONE SCORING READ PER SCREEN. When the ATS panel has scored a posting itself, its verdict
-  // becomes the board's for that posting — on the card, the JD header and the panel's own header —
-  // until the next board load reads the (by then re-scored) stored value. Before this the card and
-  // the JD header kept the stored score they were loaded with while the panel, open beside them,
-  // showed a fresh one: "No signal" next to "Strong match". A generated résumé's report is about a
-  // different résumé and is never adopted as the base verdict.
-  const adoptPanelVerdict = useCallback((jobId, report) => {
-    if (!jobId || !report || report.report_basis === "generated_resume") return;
-    if (!String(report.source || "").startsWith("local_ats")) return;
-    const score = report.score ?? null;
-    const patch = (j) => (j && j.jobId === jobId ? { ...j, baseAtsScore: score } : j);
-    setJobs(prev => prev.map(patch));
-    setSelectedJob(prev => patch(prev));
-    setActiveAts(prev => (prev && prev.jobId === jobId && !prev.report ? { ...prev, score } : prev));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── The panel host ──────────────────────────────────────────────────────────────────────────
-  // ⭐ D152 (8): ATS is no longer one of them — the match opens inside the posting. What follows is the history of the
-  // three-peer order, kept for why PDF outranks JD.
-  // JD, PDF and ATS are peers in one ordered set. The host does not own their open/closed state —
-  // that still lives where it always did (selectedJob in JobBoardContext, sandboxOpen here; the
-  // match's own state moved into the posting with D152 (8)), set by the same call sites, including the generate flow's
-  // own openSandbox(). It observes them, orders them by focus, tiles them, and evicts the least
-  // recently focused when one more opens than will fit. See hooks/usePanelHost.js for why eviction
-  // rather than refusal.
-  //
-  // THE ORDER OF THIS ARRAY IS A PRIORITY, later = higher, and the host reads it when only ONE
-  // panel fits (see the eviction note in hooks/usePanelHost.js). Seven call sites open the PDF
-  // sandbox and the ATS report together — the generate flow, the reuse flow, the cached-artifact
-  // flow, the card's eye button, the JD panel's Regen and Preview, the history list — and at
-  // capacity 1 exactly one of them can be on screen. Which one was previously decided by whichever
-  // setState ran first, which for the generate flow meant the sandbox (opened immediately as a
-  // skeleton) lost its slot to the report that arrived with the response seconds later.
-  //
-  // [jd, ats, pdf]: the resume outranks its report, which outranks the job description it was
-  // generated from. Above capacity 1 nothing here applies — eviction is still by focus recency —
-  // and JD open on its own is unaffected either way.
-  // ⭐ D149 (owner 11-03, fullhouse-declutter.html) · THE POSTING OPENS BESIDE THE LIST on a desktop — the sketch's
-  // `.fhl` grid (list | posting, 1fr : 1.05fr) with the posting held at the top of the window while the list scrolls,
-  // no scrim, the list still live (another row opens in its place). So the JD panel leaves the overlay host there and
-  // is drawn ON THE DECK in the front card's place (⭐ D156 (1c), DeckView's slot — it was D152 (6)'s posting in place of the list); the PDF stays an overlay peer (⭐ D152 (8): the ATS report is no longer one — it opens inside the posting). At
-  // ≤ 1000px (the sketch's breakpoint) it is the full-screen overlay as before.
-  // ⭐ D156 (1c): ON THE DECK — the deck's slot (DeckView renders it on Home, an earlier sibling, so it is in the document
-  // by the time a posting opens). Without a deck on screen the posting is the overlay, as on a phone.
-  const deckSlot = typeof document !== "undefined" ? document.getElementById(DECK_POST_SLOT_ID) : null;
-  const besideMode = !!selectedJob && vpWidth > BESIDE_MIN_VIEWPORT && !!deckSlot;
-  // …and the deck is told which posting it is showing, so it folds its card into it (and out again).
-  const postOnDeckId = besideMode ? String(selectedJob?.jobId ?? "") || null : null;
-  useEffect(() => {
-    window.dispatchEvent(new CustomEvent(POSTING_ON_DECK_EVENT, { detail: { jobId: postOnDeckId, origin: postOrigin } }));
-  }, [postOnDeckId, postOrigin]);
-  useEffect(() => () => window.dispatchEvent(new CustomEvent(POSTING_ON_DECK_EVENT, { detail: { jobId: null } })), []);
-  // ⭐ D168 · THE SWAP's outgoing half: the posting DRAWN on the deck lags a change AWAY from the one shown by POST_FADE_MS,
-  // so a folding (or replaced) posting fades out with its own content while DeckView runs the swap; opening one onto the
-  // deck, or the same posting updating, is drawn at once.
-  const deckPostTarget = besideMode ? selectedJob : null;
-  const [deckPostJob, setDeckPostJob] = useState(null);
-  const deckPostJobRef = useRef(null);
-  deckPostJobRef.current = deckPostJob;
-  useLayoutEffect(() => {
-    const cur = deckPostJobRef.current;
-    if (!cur || (deckPostTarget && String(deckPostTarget.jobId) === String(cur.jobId))) { setDeckPostJob(deckPostTarget); return undefined; }
-    const t = setTimeout(() => setDeckPostJob(deckPostTarget), POST_FADE_MS);
-    return () => clearTimeout(t);
-  }, [deckPostTarget]);
-  const panelDescriptors = useMemo(() => ([
-    { id: "jd",  open: !!selectedJob && !besideMode, close: () => { clearDeepLink(); setSelectedJob(null); } },
-    { id: "pdf", open: sandboxOpen,     close: () => { setSandboxOpen(false); setSandbox(null); } },
-  ]), [selectedJob, besideMode, sandboxOpen, setSelectedJob, clearDeepLink]);
-  const {
-    visible: visiblePanels, dockWidth, focusPanel,
-    beginResize, resizeBy, endResize,
-    openCount: openPanelCount, fullScreenMode: panelsFullScreen, lastOpenedId,
-  } = usePanelHost(panelDescriptors, vpWidth);
-  const panelProps = useCallback((id) => {
-    const p = visiblePanels.find(v => v.id === id);
-    if (!p) return null;
-    return {
-      slot: p.slot, width: p.width, focused: p.focused, fullScreen: p.fullScreen,
-      // D39: Escape and the backdrop close the most recently OPENED panel — one at a time, deterministic.
-      closesOnEscape: id === lastOpenedId,
-      // D39: a closed neighbour's space, held so this panel does not slide (usePanelHost reserveAfterClose).
-      reserveRight: p.reserveRight || 0,
-      resizeMode: p.resizeMode,
-      onFocus: () => focusPanel(id),
-      onResizeStart: beginResize,
-      onResize: (delta) => resizeBy(id, delta),
-      onResizeEnd: endResize,
-    };
-  }, [visiblePanels, focusPanel, beginResize, resizeBy, endResize, lastOpenedId]);
+  // ⛔ 47m: the match opened inside the posting (openAtsPanel, matchAsk, adoptPanelVerdict) and the panel host that tiled the
+  // posting and the PDF sandbox (usePanelHost, the deck's slot, the swap's deckPostJob) are deleted with them — the job opens
+  // as its opening sheet, whose 02 is the ATS card (FitCard reads its own report) and whose 06 is the résumé.
 
   // While any panel OR THE FILTERS DRAWER is open the board is inert and the page is frozen at its
   // current scroll offset, which is restored exactly on close. See hooks/useBoardLock.js — a scrim
@@ -1219,9 +1045,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // is, and it is the same mechanism the panels have always used.
   // filterPanelOpen, not the `filtersOpen` alias — the alias is declared ~130 lines below this call
   // and reading it here would be a temporal-dead-zone ReferenceError on every render.
-  useBoardLock(openPanelCount > 0 || filterPanelOpen);
+  useBoardLock(filterPanelOpen);
 
-  const [activeAts,   setActiveAts]   = useState(null);
   const [attribution, setAttribution] = useState([]); // job source attribution from aggregator
 
   // Domain profiles
@@ -1311,11 +1136,10 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
 
   // effectiveTier: panel count is primary driver; ResizeObserver only overrides Tier 1 ? 2
   const effectiveTier = useMemo(() => {
-    const baseTier = getCardTier(!!selectedJob, sandboxOpen, false);
-    if (baseTier === 3) return 3; // panel count wins — never override Tier 3
+    // 47m: no panel opens beside the board any more (the job opens as its sheet), so only a manual drag picks Tier 2.
     if (manualWidth !== null && manualWidth < 280 && manualWidth >= 180) return 2;
-    return baseTier;
-  }, [!!selectedJob, sandboxOpen, manualWidth]); // eslint-disable-line react-hooks/exhaustive-deps
+    return 1;
+  }, [manualWidth]);
 
 
   // Task 5 — Inline error states
@@ -1692,10 +1516,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     localSearch,
     sortBy,
     ...activeFilterSnapshot(),
-    selectedJob,
     ...overrides,
   }), [jobs, pendingJobs, totalJobs, totalPages, currentPage, boardTab, localSearch, sortBy,
-      activeFilterSnapshot, selectedJob]);
+      activeFilterSnapshot]);
 
   latestSnapshotRef.current = makeProfileSnapshot();
 
@@ -1730,7 +1553,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // dropped the newer ones on every reload and profile switch.
     applyFilterSnapshot(snapshot);
     setPendingFilters({ ...defaultFilterSnapshot(), ...snapshot });
-    setSelectedJob(snapshot.selectedJob || null);
     // 45s: a résumé's sentence applied for THIS profile in the same moment wins over the restored snapshot (once).
     const placed = placementSentenceRef.current;
     if (placed && profileKey != null && placed.key === String(profileKey)) {
@@ -1811,7 +1633,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       onViewSandbox: () => {
         if (g2?.html === "__exists__") { viewStoredResume(selectedJob, g2.tool); return; }
         const e2 = { ...g2, company: g2?.company || selectedJob.company, title: g2?.title || selectedJob.title };
-        openSandbox(e2); openAtsPanel(buildAtsPayload(selectedJob, g2), selectedJob);
+        openSandbox(e2);
       },
       onExport: async () => {
         if (g2?.html === "__exists__") {
@@ -1842,10 +1664,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       resumeSources: domainProfiles.map(p => ({ id: p.id, name: p.profile_name || p.name || `Job profile ${p.id}`, active: p.id === activeDomainProfile?.id })),
       resumeSourceId: activeDomainProfile?.id ?? null,
       onVisit: () => visitUrl(selectedJob),
-      // A53: the deck's three decisions, the deck's calls. Save and Pass SET; Undo is the toast.
-      onSave: () => decidePostingRef.current?.(selectedJob, DECISIONS.SAVED),
-      onPass: () => decidePostingRef.current?.(selectedJob, DECISIONS.PASSED),
-      onDraft: () => decidePostingRef.current?.(selectedJob, DECISIONS.DRAFTED),
+      // 47m: Pass · Save · Draft are the sheet's own bar (TicketActions → the deck's or the board's decide).
       drafted: isJobDrafted(selectedJob.jobId),
       drafting: draftingIds.has(selectedJob.jobId),
       // D51: never a dead end — the reason, and the way to Draft House.
@@ -1855,22 +1674,22 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       // ⛔ D59: the posting's stated citizenship / clearance, at the point of Draft.
       eligibilityNotice: isJobDrafted(selectedJob.jobId) ? null : eligibilityNoticeFor(selectedJob),
       onExplainDraft: (reason) => draftControls.onExplain(selectedJob, reason),
-      onAts: () => openAtsPanel(buildAtsPayload(selectedJob, g2), selectedJob),
-      // ⭐ D152 (8): the match opens IN the posting — its report payload, the profile it is scored for, and the verdict sink.
-      atsPayload: buildAtsPayload(selectedJob, g2), activeProfileId, onAtsReport: adoptPanelVerdict,
-      // D58: the header box reads the same pair the card badge and the ATS card read.
-      scores: scoresFor(selectedJob, g2),
-      // ⭐ D152 (8) (b): an opener's ask for the match in this posting, and the History switch's résumé versions (D62's,
-      // moved from the retired ATS panel): how many résumés exist (a refetch after one is generated), and what a row does.
-      matchAsk,
+      // ⭐ 47m: the History list's refetch (genCount) and SandboxPanel's live view, now the sheet's 06: the entry while it is
+      // wanted (generating · failed · missing · KB findings · variants · the editor's fallback) and its four calls.
       genCount: Object.values(generated).filter(v => v?.html && v.html !== "__exists__").length,
       onOpenVersion: (v) => openSandbox({ ...v, jobId: v.job_id, title: v.role, atsScore: v.ats_score, atsReport: v.atsReport }),
       onExportVersion: (v) => exportAndTrack(null, v.html, v.company),
       onResume: () => generate(selectedJob, false),
+      sandbox: (sandboxOpen || sandbox?.missing || sandbox?.error) && sandbox && (!sandbox.jobId || String(sandbox.jobId) === String(selectedJob.jobId)) ? sandbox : null,
+      onSandboxSave: (html, art) => sandboxSaveRef.current?.(html, art),
+      onSandboxExport: (job, html, company, art) => sandboxExportRef.current?.(job, html, company, art),
+      onSandboxDismiss: () => { setSandboxOpen(false); setSandbox(null); },
+      onOpenEditor: (art) => openSandbox({ ...art, kbFindings: [], variants: undefined }),
     });
-  }, [selectedJob, generated, loading, applyMode, canUseGenerate, resumeText, draftedIds, draftingIds, applyStateByJobId, matchAsk, companyNoticeFor, eligibilityNoticeFor, draftBlocked, genFailed, domainProfiles, activeDomainProfile]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedJob, generated, loading, applyMode, canUseGenerate, resumeText, draftedIds, draftingIds, applyStateByJobId, sandbox, sandboxOpen, companyNoticeFor, eligibilityNoticeFor, draftBlocked, genFailed, domainProfiles, activeDomainProfile]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-open resume + ATS panel when a pending job card is selected
+  // ⭐ 47m: a pending job opened (as its sheet) gets its stored résumé recorded, so 06 says Ready and offers Preview / edit —
+  // nothing opens by itself any more (it used to pop the sandbox and the ATS panel over the posting).
   useEffect(() => {
     if (!selectedJob || boardTab !== "pending") return;
     const key = selectedJob.jobId;
@@ -1889,17 +1708,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         status:    "success",
       };
       setGenerated(p => ({ ...p, [key]: entry }));
-      openSandbox({ ...entry });
-      openAtsPanel({ score: entry.atsScore, report: entry.atsReport, jobId: selectedJob.jobId,
-                     company: selectedJob.company, title: selectedJob.title }, selectedJob);
       return;
     }
-
-    // Fallback: resume exists in DB (generated[key] = __exists__) - fetch on demand
-    if (generated[key]?.html === "__exists__") {
-      generateActual(selectedJob, false, true);
-      return;
-    }
+    // A résumé stored in the DB (generated[key] = __exists__) is fetched when the person asks — 06's Preview / edit.
 
     // No generated artifact yet. Keep the pre-generation state neutral.
   }, [selectedJob?.jobId, boardTab]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1931,7 +1742,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // at, and re-opening a job from the previous profile would be the app arguing with them. The
     // FIRST arrival of a profile key (prevKey null) is not a switch and must not clear it: that is
     // the restore this whole arrangement exists to survive.
-    if (prevKey) deepLinkedJobIdRef.current = null;
     switchingProfileRef.current = true;
     const cached = getProfileCache?.(nextKey);
     if (cached) {
@@ -1941,7 +1751,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     } else {
       const cachedUi = readProfileUiCache(nextKey);
       nextFetchPageRef.current = cachedUi?.currentPage || 1;
-      applyProfileSnapshot({ ...(cachedUi || {}), jobs: [], pendingJobs: [], totalJobs: 0, totalPages: 0, selectedJob: null }, nextKey);
+      applyProfileSnapshot({ ...(cachedUi || {}), jobs: [], pendingJobs: [], totalJobs: 0, totalPages: 0 }, nextKey);
       setSandbox(null);
       setSandboxOpen(false);
       setScrapeError("");
@@ -1962,154 +1772,41 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     writeProfileUiCache(activeProfileKey, latestSnapshotRef.current);
   }, [activeProfileKey, makeProfileSnapshot, setProfileCache]);
 
-  // -- Split-view: job selection ---------------------------------
-  const handleJobSelect = useCallback((job) => {
-    clearDeepLink();   // the user is driving the panel now
-    setPostOrigin("board");
-    // ⭐ D168 · ONE WAY TO OPEN: on the jobs page (the deck's slot is in the document) a bubble's press opens its posting
-    // through the deck card's own open — openPostingOnDeck, heard once below (onOpen) — so a card and a bubble open the
-    // same way, with the same swap. A press opens (a second press on the open one is no fold: Esc / "Fold it back" fold).
-    // Elsewhere (Full House) the row toggles the panel as before.
-    if (typeof document !== "undefined" && document.getElementById(DECK_POST_SLOT_ID)) openPostingOnDeck(job.jobId, { origin: "board" });
-    else setSelectedJob(prev => {
-      if (prev?.jobId === job.jobId) return null; // toggle off
-      return job;
-    });
-    markVisited(job);
-    if (!job.visited) {
-      api(`/api/jobs/${job.jobId}/visited`, { method:"PATCH" }).catch(()=>{});
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── AH2: the open job detail lives IN THE URL ────────────────────────────────────────────────
-  //
-  // selectedJob was React state and nothing else, so a job detail had no address. It could not be
-  // linked, could not be reopened where you left it, and — one selectedJob per mounted panel — two
-  // of them could not be on screen at once by any means the app offered. /app/jobs/<id> was worse
-  // than nothing: routeKey is not in NAVIGABLE_TABS, so it silently redirected to the bare board.
-  //
-  // A QUERY PARAM, not a path segment. The console already owns /app/jobs, so ?job= names a detail
-  // without inventing a route the panel switcher would have to learn — and it composes with the
-  // board's other URL state instead of replacing it. replaceState rather than navigate() for the
-  // same reason App.jsx strips ?authContext that way: the address has to be copyable, but toggling
-  // a side panel is not a step the Back button should have to unwind.
-  //
-  // A tab opened straight onto a link has no board row for that job — it may be on another page,
-  // filtered out, classified under a different profile, or closed — so it is fetched BY ID. A deep
-  // link that resolves only when the job is coincidentally on the current page is the no-op
-  // failure mode this codebase keeps finding.
+  // ⭐ 47m · a ?job=<id> address opens the job's opening sheet (replace — the old address is not a step Back should unwind).
   useEffect(() => {
     const wanted = deepLinkedJobIdRef.current;
+    deepLinkedJobIdRef.current = null;
     if (!wanted) return;
-    let cancelled = false;
-    api(`/api/jobs/by-id/${encodeURIComponent(wanted)}`)
-      .then(d => { if (!cancelled && d?.job) setDeepLinkedJob(normalizeApiJob(d.job)); })
-      // An unknown or stale id leaves the board exactly as it is, and stops the insistence below.
-      .catch(() => { deepLinkedJobIdRef.current = null; });
-    return () => { cancelled = true; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Applying it takes more than one setSelectedJob, and that is not a hack — it is the profile-cache
-  // restore above, which fires when activeProfileKey first arrives and resets the selection to
-  // whatever THAT PROFILE last had open. For a tab opened on a link that is nothing, so a single
-  // set was silently undone a few hundred milliseconds later: the panel flashed open and closed and
-  // the URL went back to a bare /app/jobs. Measured exactly that way before this.
-  //
-  // Effects run in declaration order, so on the render where the profile key lands the restore runs
-  // first and this re-applies after it. Once the selection has stuck AND the profile key is known,
-  // the ref clears and this stops caring — from then on the panel belongs to the user, and
-  // reopening it after they close it would be the app arguing with them.
-  useEffect(() => {
-    if (!deepLinkedJob || !deepLinkedJobIdRef.current) return;
-    if (selectedJob?.jobId === deepLinkedJob.jobId) return;
-    setSelectedJob(deepLinkedJob);
-  }, [deepLinkedJob, selectedJob?.jobId, activeProfileKey, setSelectedJob]);
-
-  // The deck's open / fold of the posting (lib/jobUrl.js). A job on this page is opened as it is; one that is not is
-  // fetched by id, as a deep link is.
-  useEffect(() => {
-    // ⛔ A126 (hotfix 11-05) · ONE read per posting, and only the LAST ask opens. Production 11-05: every scroll on the
-    // deck card re-asked for the same posting (greenhouse::8198280 thirteen times in 90 s) while the board was slow, each
-    // a request the server still ran after the page gave up on it. Now a posting's read is shared while in flight and
-    // kept for a minute, and a reply for a card the person has since scrolled past is dropped.
-    const latest = { id: null };
-    const byId = (id) => {
-      const hit = byIdReads.get(id);
-      if (hit && Date.now() - hit.at < 60_000) return hit.p;
-      const p = api(`/api/jobs/by-id/${encodeURIComponent(id)}`)
-        .then(d => (d?.job ? normalizeApiJob(d.job) : null))
-        .catch((err) => { byIdReads.delete(id); throw err; });
-      byIdReads.set(id, { p, at: Date.now() });
-      return p;
-    };
-    // ⛔ 47m: the deck's MATCH no longer asks here (OPEN_MATCH_EVENT deleted) — it opens the opening sheet's section 02.
-    // ⭐ D156 (1c): the deck's front card expanding into the long post — the same posting, opened by the deck.
-    // ⭐ D168: and a bubble's press on the jobs page (handleJobSelect) — THE one open path for both (origin deck / board).
-    const onOpen = (e) => {
-      const id = e.detail?.jobId;
-      if (!id) return;
-      latest.id = id;
-      const go = (job) => { clearDeepLink(); setPostOrigin(e.detail?.origin === "board" ? "board" : "deck"); setSelectedJob(job); };
-      const known = displayJobsRef.current.find(j => String(j.jobId) === id || String(j.id) === id);
-      if (known) { go(known); return; }
-      byId(id).then(job => { if (job && latest.id === id) go(job); }).catch(() => {});
-    };
-    const onClose = () => { clearDeepLink(); setSelectedJob(null); };
-    window.addEventListener(OPEN_POSTING_EVENT, onOpen);
-    window.addEventListener(CLOSE_POSTING_EVENT, onClose);
-    return () => {
-      window.removeEventListener(OPEN_POSTING_EVENT, onOpen);
-      window.removeEventListener(CLOSE_POSTING_EVENT, onClose);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // state -> URL, so the address is copyable and survives a reload.
-  useEffect(() => {
-    const next = selectedJob?.jobId || null;
-    // Never strip the param out from under a deep link that has not landed yet. This effect runs on
-    // the first commit, when the selection is still null, and stripping there would erase the
-    // address the tab was opened with before anything had a chance to read it.
-    if (!next && deepLinkedJobIdRef.current) return;
     const params = new URLSearchParams(window.location.search);
-    if ((params.get(JOB_URL_PARAM) || null) === next) return;
-    if (next) params.set(JOB_URL_PARAM, next); else params.delete(JOB_URL_PARAM);
+    params.delete("job");
     const qs = params.toString();
-    window.history.replaceState({}, "",
-      `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`);
-  }, [selectedJob?.jobId]);
+    navigate(`${openingSheetHref(wanted)}${qs ? `?${qs}` : ""}`, { replace: true });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keyboard nav: Escape closes, ArrowUp/Down navigates
-  useEffect(() => {
-    if (!selectedJob) return;
-    const handler = (e) => {
-      // ⭐ D164: an Escape that closes the sandbox over the posting does not also close the posting (D39: one per press).
-      if (e.key === "Escape") { if (panelOverPosting()) return; clearDeepLink(); setSelectedJob(null); return; }
-      // A105 finding 11: the open posting's three decisions from the keyboard — S save, D draft, P pass (the deck's
-      // letters). Never while typing, never with a modifier; Draft only DRAFTS (D36·5: nothing here sends).
-      const typing = e.target?.closest?.("input, textarea, select, [contenteditable=''], [contenteditable='true']");
-      if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        const decision = { s: DECISIONS.SAVED, d: DECISIONS.DRAFTED, p: DECISIONS.PASSED }[e.key.toLowerCase()];
-        if (decision) { e.preventDefault(); decidePostingRef.current?.(selectedJob, decision); return; }
-      }
-      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-        e.preventDefault();
-        setSelectedJob(prev => {
-          if (!prev) return prev;
-          const jobs = displayJobsRef.current;
-          const idx = jobs.findIndex(j => j.jobId === prev.jobId);
-          const nextIdx = e.key === "ArrowDown" ? idx + 1 : idx - 1;
-          if (nextIdx >= 0 && nextIdx < jobs.length) {
-            const next = jobs[nextIdx];
-            markVisited(next);
-            return next;
-          }
-          return prev;
-        });
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [selectedJob]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ⭐ 47m · THE SHEET'S JOB. The opening sheet (plate/OpeningSheet.jsx) says which job it has open ("boardOpenSheet") and
+  // closes it on leaving; the board selects it, so selectedJobMeta (the sheet's 06) and Ask draft's currentJob are that job.
+  // A job on this page is the page's own row; one that is not is read by id (one read per posting, kept a minute — A126).
+  const openOnSheet = useCallback((id) => {
+    if (!id) return;
+    const key = String(id);
+    const known = displayJobsRef.current.find(j => String(j.jobId) === key || String(j.id) === key);
+    if (known) { setSelectedJob(known); return; }
+    let hit = byIdReads.get(key);
+    if (!hit || Date.now() - hit.at >= 60_000) {
+      const pr = api(`/api/jobs/by-id/${encodeURIComponent(key)}`)
+        .then(d => (d?.job ? normalizeApiJob(d.job) : null))
+        .catch((err) => { byIdReads.delete(key); throw err; });
+      hit = { p: pr, at: Date.now() };
+      byIdReads.set(key, hit);
+    }
+    hit.p.then(job => { if (job) setSelectedJob(job); }).catch(() => {});
+  }, [setSelectedJob]);
+  const closeOnSheet = useCallback((id) => {
+    setSelectedJob(prev => (prev && (!id || String(prev.jobId) === String(id)) ? null : prev));
+    setSandboxOpen(false);
+  }, [setSelectedJob]);
+  const sheetCallsRef = useRef({});
+  sheetCallsRef.current = { openOnSheet, closeOnSheet };
 
   // -- Build query params from current filter state ----------
   const buildParams = useCallback((page = 1, overrideStarred = null, overrides = {}, cursor = null) => {
@@ -3088,7 +2785,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         generatedAt: existing?.generatedAt ?? null }, tool);
       setGenerated(p => ({ ...p, [key]: entry }));
       openSandbox({ ...entry, company: entry.company, title: entry.title });
-      openAtsPanel(buildAtsPayload(job, entry), job);
     } catch(e) {
       setSandbox({ generating: false, status:"missing", missing:true, error: e.message, company: job.company, title: job.title });
     }
@@ -3125,7 +2821,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (existingArtifact?.html && existingArtifact.html !== "__exists__" && !force) {
       const entry = {...existing, ...existingArtifact, company:existingArtifact.company||job.company, title:existingArtifact.title||job.title};
       openSandbox(entry);
-      openAtsPanel(buildAtsPayload(job, existing), job);
       return;
     }
 
@@ -3165,7 +2860,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       setGenerated(p => ({ ...p, [key]: mergeArtifact(p[key], artifact) }));
       clearGenFailed(key);
       openSandbox(mergeArtifact(generated[key], artifact));
-      openAtsPanel(buildAtsPayload(job, artifact), job);
     } catch(e) {
       setSandbox({ generating: false, status:"error", error: e.message, company: job.company, title: job.title });
       failGen(key, e.message);   // D164: the posting's Résumé control says "Failed — Try again", never "no résumé"
@@ -3338,22 +3032,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     return "done";
   }, [applyFlags, draftTool, draftedIds, draftingIds, applyStateByJobId, loadApplyRuns, boardTab, currentPage, companyNoticeFor]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ⭐ D156 (1c) · THE OPENED POSTING'S Pass · Save · Draft. On Home's deck (besideMode — the posting is drawn in the front
-  // card's place): a posting the DECK opened is the deck's card, so the deck decides it (DECK_DECIDE_EVENT — one commit,
-  // the deck's exit and toast); one opened from the list is decided here. Either way the posting then folds and the day's
-  // card is in front again (owner 11-05: "its buttons act on that posting, then the day's card returns"). Off the deck
-  // (a phone's full-screen posting) nothing changes: the board decides and the posting stays open.
-  const decidePosting = (job, decision) => {
-    if (!besideMode) { decideJob(job, decision); return; }
-    if (postOriginRef.current === "deck") {
-      window.dispatchEvent(new CustomEvent(DECK_DECIDE_EVENT, { detail: { jobId: String(job?.jobId ?? job?.id), decision } }));
-    } else {
-      decideJob(job, decision);
-    }
-    clearDeepLink();
-    setSelectedJob(null);
-  };
-  decidePostingRef.current = decidePosting;
 
   const undoLastDecision = useCallback(async (given = null) => {
     const t = given || decisionToast;
@@ -3383,7 +3061,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const assistantStateRef = useRef({});
   assistantStateRef.current = { selectedJob, experienceLevels, workModels, places, localSearch };
   useEffect(() => registerAssistantActions("board", {
-    currentJob: () => assistantStateRef.current.selectedJob || null,
+    currentJob: () => assistantStateRef.current.selectedJob || null,   // 47m: the opening sheet's job
+    boardOpenSheet: (id) => sheetCallsRef.current.openOnSheet(id),
+    boardCloseSheet: (id) => sheetCallsRef.current.closeOnSheet(id),
     boardDecide: async (job, decision) => {
       const r = await decideJobRef.current?.(job, decision);
       if (r?.error) throw new Error(r.error);
@@ -3764,9 +3444,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             const key = job.jobId;
             setGenerated(p => ({ ...p, [key]: priorEntry }));
             openSandbox({ ...priorEntry, company: job.company, title: job.title });
-            if (priorEntry.atsReport || priorEntry.atsScore != null) {
-              openAtsPanel({ score: priorEntry.atsScore, report: priorEntry.atsReport, jobId: job.jobId, company: job.company, title: job.title }, job);
-            }
           }}
           onGenerateNew={() => {
             const { job, tool, source } = companyReuseTarget;
@@ -3797,10 +3474,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               theme={theme}
               totalPages={totalPages} currentPage={currentPage} isLastPage={isLastPage}
               generate={generate} openSandbox={openSandbox} exportAndTrack={exportAndTrack}
-              visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds} draftControls={draftControls} openAtsPanel={openAtsPanel}
+              visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds} draftControls={draftControls}
               goPage={goPage} totalJobs={totalJobs} onPullRefresh={handlePullRefresh}
               isMobile={isMobile}
-              onJobSelect={handleJobSelect} selectedJobId={selectedJob?.jobId}
               activeFilterCount={activeFilterCount}
               onClearFilters={clearAllFilters}
               searchActive={!!localSearch.trim()}
@@ -3825,40 +3501,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             {/* Likewise the mobile "ats" pane — ⭐ D152 (8): the match opens inside the posting (full screen on a
                 narrow viewport), never a panel of its own. */}
           </div>
-          {/* Bottom nav.
-              Resume and ATS now OPEN THE PANEL that owns each surface instead of switching to a
-              pane. They used to call setMobilePane("editor"/"ats"), and those panes were deleted
-              when the surfaces became popup panels — so both buttons emptied the board and showed
-              nothing in its place. The tab still shows the resume and still shows the report; the
-              surface it reaches is the full-screen panel rather than a second inline copy of it.
-              Disabled when there is nothing to show yet, which is honest about a resume that has
-              not been generated instead of opening an empty sandbox. */}
-          <div style={{ display:"flex", borderTop:`1px solid ${theme.border}`,
-                        background:theme.surface, flexShrink:0 }}>
-            {[
-              { id:"jobs",   label:"Jobs",   icon:"Jobs", active: !sandboxOpen && !selectedJob,
-                enabled: true,          onPress: () => { closeSandbox(); clearDeepLink(); setSelectedJob(null); } },
-              { id:"editor", label:"Resume", icon:"Edit", active: sandboxOpen,
-                enabled: !!sandbox,     onPress: () => openSandbox(sandbox) },
-              { id:"ats",    label:"ATS",    icon:"ATS",  active: !!selectedJob && !sandboxOpen,
-                enabled: !!activeAts && !!selectedJob, onPress: () => { closeSandbox(); openAtsPanel(null); } },
-            ].map(({ id, label, icon, active, enabled, onPress }) => (
-              <button key={id} onClick={onPress} disabled={!enabled}
-                title={enabled ? undefined : `No ${label.toLowerCase()} yet — generate a resume first`}
-                style={{
-                  flex:1, padding:"10px 0", border:"none",
-                  cursor: enabled ? "pointer" : "not-allowed",
-                  background:"transparent", display:"flex", flexDirection:"column",
-                  alignItems:"center", gap:2,
-                  opacity: enabled ? 1 : 0.4,
-                  color: active ? theme.accentText : theme.textMuted,
-                  fontSize:ts(10), fontWeight:700,
-                }}>
-                <span style={{ fontSize:ts(18) }}>{icon}</span>
-                {label}
-              </button>
-            ))}
-          </div>
+          {/* ⛔ 47m: the bottom nav (Jobs · Resume · ATS) is deleted — its Resume and ATS opened the PDF sandbox and the posting's
+              match, both the opening sheet's now (06 and 02); the board is the one pane. */}
         </div>
       )}
 
@@ -3884,10 +3528,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               totalPages={totalPages} currentPage={currentPage} isLastPage={isLastPage}
               generate={generate} openSandbox={openSandbox} exportAndTrack={exportAndTrack}
               visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds} draftControls={draftControls}
-              openAtsPanel={openAtsPanel}
               goPage={goPage} totalJobs={totalJobs} onPullRefresh={handlePullRefresh}
               isMobile={isMobile}
-              compact={false} selectedJobId={selectedJob?.jobId} onJobSelect={handleJobSelect}
+              compact={false}
               activeFilterCount={activeFilterCount}
               onClearFilters={clearAllFilters}
               searchActive={!!localSearch.trim()}
@@ -3930,46 +3573,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         </div>
       )}
 
-      {/* ── The popup panel group: JD, PDF and ATS as peers, inside ONE overlay surface ────────
-          All three render through PanelShell and are laid out by one host, so "replace" and
-          "side by side" are properties of the set rather than of any one panel.
-
-          The dock is what makes the tiling INTERNAL. Panels are its flex children, so they lay out
-          against each other and against nothing else — the board cannot be a party to it. It is
-          also what gives the group outer bounds to keep still: before it, each panel was
-          independently right-anchored to the viewport, and dragging one wider pushed its neighbour
-          off the left edge of the screen rather than resizing against it.
-
-          ONE scrim for the whole group: two stacked 45% scrims compound to ~70% and the board stops
-          being visible behind them, which would break the "dims but does not hide" property exactly
-          when a second panel opens. Clicking it closes the focused panel — the same gesture the JD
-          drawer's own backdrop has always had. The dock is always mounted, and is an empty
-          pointer-events:none box when nothing is open, so AnimatePresence still gets to play the
-          last panel's exit instead of having its container yanked mid-animation. */}
-      <PanelScrim show={openPanelCount > 0} onClick={() => {
-        // ⛔ D39: the most recently OPENED panel closes first — not "the focused one", which a click on
-        // a peer could change. The other panel does not move (usePanelHost SPATIAL_ORDER).
-        panelDescriptors.find(d => d.id === lastOpenedId)?.close?.();
-      }}/>
-      <PanelDock width={dockWidth} fullScreen={panelsFullScreen && openPanelCount > 0}>
-        <AnimatePresence>
-          {panelProps("jd")  && <JobDetailPanel key="panel-jd" {...panelProps("jd")}/>}
-          {panelProps("pdf") && (
-            <SandboxPanel key="panel-pdf" {...panelProps("pdf")}
-              entry={sandbox} onClose={closeSandbox}
-              onSave={saveSandboxHtml} onExport={exportAndTrack}/>
-          )}
-        </AnimatePresence>
-      </PanelDock>
-      {/* ⭐ D156 (1c): on a desktop the posting is drawn ON THE DECK, in the front card's place (the deck's slot) — the card
-          becomes the long post; the list beside it never folds away. Outside the overlay host, Escape closing it only while
-          no overlay panel is open (D39). */}
-      {/* ⭐ D168: the posting drawn is deckPostJob — the selection, held a fade longer when it goes (the swap's fade-out). */}
-      {deckPostJob && deckSlot && createPortal(
-        <JobDetailPanel key="panel-jd" slot={0} fullScreen={false} beside onDeck job={deckPostJob} focused={openPanelCount === 0}
-          closesOnEscape={openPanelCount === 0} resizeMode="none" />,
-        deckSlot,
-      )}
     </div>
   );
 }
@@ -4050,10 +3653,10 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       generated, loading, applyMode, canUseGenerate, canUseAPlusResume,
                       theme, totalPages, currentPage, isLastPage,
                       generate, openSandbox, exportAndTrack,
-                      visitUrl, decideJob, isJobDrafted = () => false, draftingIds = new Set(), draftControls = null, openAtsPanel,
+                      visitUrl, decideJob, isJobDrafted = () => false, draftingIds = new Set(), draftControls = null,
                       goPage, totalJobs = 0, onPullRefresh,
                       isMobile,
-                      compact, selectedJobId, onJobSelect,
+                      compact,
                       activeFilterCount = 0, onClearFilters,
                       searchActive = false, profileName = null,
                       curation = null, curateOff = false, onToggleCurate, boardReason = null,
@@ -4207,7 +3810,6 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
 }
 
 /** ⭐ D149 · below this width the opened posting is the full-screen overlay (fullhouse-declutter.html's 1000px rule). */
-const BESIDE_MIN_VIEWPORT = 1000;
 
 
 // Displays LinkedIn jobs already captured via the extension. The `onImport`/`linkedinImporting`

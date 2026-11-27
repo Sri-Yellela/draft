@@ -13,6 +13,24 @@
 //   downloadPdfUrl,                        a ready PDF for this document (an attempt's), used by Download PDF
 //   fallback(),                            the opener's own preview, when the editor can't load
 // }
+// e2e step 3 (moved from panels/SandboxPanel.jsx, deleted 47m): page frames made <body> editable (contenteditable /
+// spellcheck) — editing state, not résumé content. Saved html, the HTML download and the printed PDF take the document
+// without them.
+export function cleanDocHtml(html) {
+  return String(html || "").replace(/<body\b[^>]*>/i, (tag) => tag
+    .replace(/\s+contenteditable="[^"]*"/gi, "")
+    .replace(/\s+spellcheck="[^"]*"/gi, ""));
+}
+
+// e2e step 3 (moved from panels/SandboxPanel.jsx, deleted 47m): page frames made <body> editable (contenteditable /
+// spellcheck) — editing state, not résumé content. Saved html, the HTML download and the printed PDF take the document
+// without them.
+export function cleanDocHtml(html) {
+  return String(html || "").replace(/<body\b[^>]*>/i, (tag) => tag
+    .replace(/\s+contenteditable="[^"]*"/gi, "")
+    .replace(/\s+spellcheck="[^"]*"/gi, ""));
+}
+
 export const RESUME_EDITOR_EVENT = "draft:resume-editor";
 // ⭐ D157 (i) (45n) · the editor's OWN ADDRESS — /draft/resume/<job>. Opening a job's résumé shows it in the address bar;
 // a reload (or a shared link to yourself) lands on the jobs page with that résumé open again (REOPEN_KEY → the host).
