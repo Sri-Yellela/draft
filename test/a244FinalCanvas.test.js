@@ -8,7 +8,9 @@ import path from "node:path";
 import http from "node:http";
 import { finalBoards, pendingBoards, PENDING_LOOK, finalIndex, serveFinal, FINAL_DIR } from "../scripts/d196FinalCanvas.mjs";
 
-const APPROVED = ["Shell", "Market", "Opening", "Ledger", "Survey", "ATSCard", "Home", "Map", "Gazetteer", "YourSurvey", "Library", "Emblem", "Maps", "Explainer", "Storyboard"];
+const APPROVED = ["Shell", "Market", "Opening", "Ledger", "Survey", "ATSCard", "Home", "Map", "Gazetteer", "YourSurvey", "Library", "Emblem", "Maps", "Explainer", "Storyboard",
+  // 47m: row 4, approved by the owner 11-27
+  "GazetteerIndex", "Route", "AskRoute", "Passport", "ProvingGround", "DarkPlate", "DrawingsAtlas", "DrawingsJobs", "DrawingsPublic"];
 
 test("A244: every approved board's source is in the snapshot, in the canvas's order; retired boards are not listed", () => {
   const stems = finalBoards().map((b) => b.stem);

@@ -24,7 +24,8 @@ export function finalIndex() {
 
 /** 47l · boards drawn on the canvas but NOT yet approved (row 4, "awaiting the owner's look"). They are never an oracle:
  *  finalBoards() leaves them out, so no F5 pair can gate against them. Move a stem out of this list when the owner approves it. */
-export const PENDING_LOOK = Object.freeze(["GazetteerIndex", "Route", "AskRoute", "Passport", "ProvingGround", "DarkPlate", "DrawingsAtlas", "DrawingsJobs", "DrawingsPublic"]);
+// 47m: the owner approved all nine row-4 boards on 11-27 ("I have reviewed and approved all sketches and mockups") — none pending.
+export const PENDING_LOOK = Object.freeze([]);
 
 const onPage = (ix) => ix.order.filter((f) => ix.boards[f]?.page).map((f) => ({ file: f, stem: f.replace(/\.dc\.html$/, ""), ...ix.boards[f] }));
 
