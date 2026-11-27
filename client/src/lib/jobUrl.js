@@ -29,16 +29,9 @@ export function jobIdFromSearch(search) {
   catch { return null; }
 }
 
-// ⭐ D152 (8) (b): "open this job's match" — the deck (Home's left column) asks the board (its right column) to open
-// the posting IN PLACE with its match open under the facts (ats-options.html option A), instead of drawing a report
-// over the page. One event, named once: the deck dispatches it, JobsPanel listens.
-export const OPEN_MATCH_EVENT = "draft:open-match";
-
-/** Ask the board to open job `jobId`'s posting with its match open. A no-op without a window. */
-export function openMatchInPosting(jobId, { origin = "deck" } = {}) {
-  if (!jobId || typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(OPEN_MATCH_EVENT, { detail: { jobId: String(jobId), origin } }));
-}
+// ⛔ 47m (D199 C7): "open this job's match" no longer asks the board to open its posting with the match inside
+// (OPEN_MATCH_EVENT / openMatchInPosting, D152 (8) (b), deleted) — the deck's MATCH opens the OPENING SHEET at its section 02,
+// How you fit (plate/OpeningSheet.jsx openingSheetHref + "#fit").
 
 // ⭐ D156 (1c) (owner 11-05: "doesnt make sense to have a card and then a panel posting of the same thing … the card can turn
 // into the long post"): ON HOME THE OPENED POSTING IS DRAWN ON THE DECK, in the front card's place — never in a panel of

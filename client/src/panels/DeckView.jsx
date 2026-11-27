@@ -48,7 +48,7 @@ import { useViewport } from "../hooks/useViewport.js";
 import { CHROME_HEIGHT_VAR } from "../hooks/useChromeHeight.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { registerAssistantActions } from "../lib/assistantBridge.js";   // D190: Ask draft decides the front card through the deck
-import { DECK_DECIDE_EVENT, DECK_POST_SLOT_ID, POSTING_ON_DECK_EVENT, POST_FADE_MS, closePostingOnDeck, jobDetailHref, openMatchInPosting, openPostingOnDeck, panelOverPosting } from "../lib/jobUrl.js";
+import { DECK_DECIDE_EVENT, DECK_POST_SLOT_ID, POSTING_ON_DECK_EVENT, POST_FADE_MS, closePostingOnDeck, jobDetailHref, openPostingOnDeck, panelOverPosting } from "../lib/jobUrl.js";
 import { TITLE_ATTR, transitionClick } from "../lib/viewTransitions.js";
 import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
 import { DECISIONS, counts, deckReducer, fanOrder, initialDeck, isFinished, stepTarget } from "../lib/deckState.js";
@@ -161,7 +161,7 @@ function FlipButton({ dir, disabled, onFlip }) {
 // The posting stays INSIDE the card, growing downward (grid-row 0fr ↔ 1fr on ONE clock, --deck-t / --deck-ease, set
 // once on the deck's root, no stagger). ⭐ D152 (8) (b): the report beside the card (A40's two equal panels) and the
 // phone's sheet are DELETED — the deck lives only on Home, where the match opens in the board's posting, under its
-// facts (option A, docs/sketches/ats-options.html), through lib/jobUrl.js openMatchInPosting.
+// facts (option A, docs/sketches/ats-options.html) — since 47m, the opening sheet's section 02 (matchSheetHref, D199 C7).
 const ON_THE_CLOCK = "var(--deck-t) var(--deck-ease)";
 // `inert` as an attribute — React 18 has no boolean prop for it. Hidden content takes no focus and no clicks.
 const inertIf = (hidden) => (hidden ? { inert: "", "aria-hidden": true } : null);
@@ -796,13 +796,10 @@ function EndOfDeck({ s, tally, needsReview, onUndo }) {
 // vertical layout at every width, never the two-panel report beside it (the column is the deck's whole width).
 // ⭐ D156 (2): 640 px at ≥ 1440 for the landscape card (lib/fanGeometry.js homeDeckColumn).
 export const HOME_DECK_COLUMN = 390;
-// ⭐ D152 (8) (b): on Home a "Full report on the board" link stays a real link (copyable, opens in a new tab) but a plain
-// click opens the posting beside the deck with its match open — the board is already on this screen.
-const homeReport = (jobId) => (e) => {
-  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-  e.preventDefault();
-  openMatchInPosting(jobId);
-};
+// ⭐ 47m (D199 C7, agent's pick — owner may reverse): THE MATCH opens the OPENING SHEET at section 02, How you fit (the
+// ATS card, plate/FitCard.jsx) — /app/jobs/<id>#fit, over the market, so Back returns to the same card. It used to open the
+// board's posting in the deck's slot with its match inside (D152 (8) (b), OPEN_MATCH_EVENT — deleted).
+const matchSheetHref =(jobId) => (jobId ? `${openingSheetHref(jobId)}#fit` : null);
 
 export default function DeckView({ canUseAPlusResume = true, home = false }) {
   const [load, setLoad] = useState({ status: "loading", error: null });
@@ -1423,8 +1420,8 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                       why={why} onWhy={(v) => { setWhy(v); if (!v) setExpanded(false); }}
                       // ⭐ D152 (8) (b): the report opens in the board's posting, under its facts (option A) — the sheet
                       // and the report beside the card are deleted; on Home "Full report on the board" goes there too.
-                      onSignal={() => openMatchInPosting(e.card.job.id)}
-                      onReport={home ? homeReport(e.card.job.id) : transitionClick(navigate, jobDetailHref(e.card.job.id), { awaitTitle: e.card.job.id })} onGoto={(i) => dispatch({ type: "goto", index: i })} headingRef={headingRef} faceRef={faceRef} />
+                      onSignal={() => navigate(matchSheetHref(e.card.job.id))}
+                      onReport={transitionClick(navigate, home ? matchSheetHref(e.card.job.id) : jobDetailHref(e.card.job.id), { awaitTitle: e.card.job.id })} onGoto={(i) => dispatch({ type: "goto", index: i })} headingRef={headingRef} faceRef={faceRef} />
                   ))}
                 </AnimatePresence>
               </div>

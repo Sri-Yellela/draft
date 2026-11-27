@@ -17,7 +17,7 @@
 // ⛔ D190: no model — "plain words" are the posting's own lines (the scorer's duty phrases), never a paraphrase.
 // ⛔ R2: nothing invented — no pay → "Not posted", no filings → no stamp, no stack → it says so, a team we can't name → blank.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import PlateRoot from "./PlateRoot.jsx";
 import { LegHeader } from "./Plates.jsx";
 import { Breadcrumb, LetterTile, Stamp } from "./Marks.jsx";
@@ -311,6 +311,14 @@ export default function OpeningSheet({ jobId }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [back, picking]);
   const opening = useMemo(() => (job ? openingFromJob(job) : null), [job]);
+  // ⭐ 47m: the deck's MATCH opens the sheet at section 02 (/app/jobs/<id>#fit, DeckView matchSheetHref) — once the
+  // sheet is drawn, its overlay scrolls How you fit to the top (the browser can't: the overlay, not the window, scrolls).
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (!opening || !hash || hash.length < 2) return;
+    const at = scroller.current?.querySelector?.(`[id="${hash.slice(1).replace(/"/g, "")}"]`);
+    at?.scrollIntoView?.({ block: "start" });
+  }, [opening, hash]);
   const decide = useCallback(async (decision) => {
     // ⛔ A247 (47j): the sheet opened from the deck's FRONT card is decided by the deck's own decide (its exit, its "Passed …"
     // line, its Undo — lib/assistantBridge.js "deckDecide", the same one Ask draft uses); any other opening by the board's.

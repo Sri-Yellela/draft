@@ -47,7 +47,7 @@ import {
   POSTING_AGE, VISITED, ageDaysMap,
 } from "../../../shared/jobFilterOptions.js";
 // AH2: the job-detail address, shared with JobCard so the href and the param cannot disagree.
-import { JOB_URL_PARAM, jobIdFromSearch, OPEN_MATCH_EVENT, OPEN_POSTING_EVENT, CLOSE_POSTING_EVENT, POSTING_ON_DECK_EVENT, DECK_DECIDE_EVENT, DECK_POST_SLOT_ID, POST_FADE_MS, openPostingOnDeck, panelOverPosting } from "../lib/jobUrl.js";
+import { JOB_URL_PARAM, jobIdFromSearch, OPEN_POSTING_EVENT, CLOSE_POSTING_EVENT, POSTING_ON_DECK_EVENT, DECK_DECIDE_EVENT, DECK_POST_SLOT_ID, POST_FADE_MS, openPostingOnDeck, panelOverPosting } from "../lib/jobUrl.js";
 // D35: the Full House header (App.jsx) renders the sentence, its one panel and the sort panel; this
 // panel publishes what they read — the committed clause params and the facets answer.
 import { JOB_FUNCTIONS, PLACES } from "../../../shared/jobTagVocabulary.js";
@@ -2172,8 +2172,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setSelectedJob(deepLinkedJob);
   }, [deepLinkedJob, selectedJob?.jobId, activeProfileKey, setSelectedJob]);
 
-  // ⭐ D152 (8) (b): the deck's report opens HERE — the posting in place, its match open under the facts (lib/jobUrl.js
-  // OPEN_MATCH_EVENT). A job on this page is opened as it is; one that is not is fetched by id, as a deep link is.
+  // The deck's open / fold of the posting (lib/jobUrl.js). A job on this page is opened as it is; one that is not is
+  // fetched by id, as a deep link is.
   useEffect(() => {
     // ⛔ A126 (hotfix 11-05) · ONE read per posting, and only the LAST ask opens. Production 11-05: every scroll on the
     // deck card re-asked for the same posting (greenhouse::8198280 thirteen times in 90 s) while the board was slow, each
@@ -2189,15 +2189,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       byIdReads.set(id, { p, at: Date.now() });
       return p;
     };
-    const onAsk = (e) => {
-      const id = e.detail?.jobId;
-      if (!id) return;
-      latest.id = id;
-      const go = (job) => { clearDeepLink(); setPostOrigin(e.detail?.origin === "board" ? "board" : "deck"); openAtsPanel(null, job); };
-      const known = displayJobsRef.current.find(j => String(j.jobId) === id || String(j.id) === id);
-      if (known) { go(known); return; }
-      byId(id).then(job => { if (job && latest.id === id) go(job); }).catch(() => {});
-    };
+    // ⛔ 47m: the deck's MATCH no longer asks here (OPEN_MATCH_EVENT deleted) — it opens the opening sheet's section 02.
     // ⭐ D156 (1c): the deck's front card expanding into the long post — the same posting, opened by the deck.
     // ⭐ D168: and a bubble's press on the jobs page (handleJobSelect) — THE one open path for both (origin deck / board).
     const onOpen = (e) => {
@@ -2210,11 +2202,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       byId(id).then(job => { if (job && latest.id === id) go(job); }).catch(() => {});
     };
     const onClose = () => { clearDeepLink(); setSelectedJob(null); };
-    window.addEventListener(OPEN_MATCH_EVENT, onAsk);
     window.addEventListener(OPEN_POSTING_EVENT, onOpen);
     window.addEventListener(CLOSE_POSTING_EVENT, onClose);
     return () => {
-      window.removeEventListener(OPEN_MATCH_EVENT, onAsk);
       window.removeEventListener(OPEN_POSTING_EVENT, onOpen);
       window.removeEventListener(CLOSE_POSTING_EVENT, onClose);
     };
