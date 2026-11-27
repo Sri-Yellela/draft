@@ -73,7 +73,7 @@ test("connected: a live token — and the recent captures say what happened to e
   assert.equal(s.connected, true);
   assert.equal(s.recentCaptures[0].outcome, "held");
   assert.match(s.recentCaptures[0].message, /NOT on the board/);
-  assert.equal(s.recentCaptures[0].link, "/app/jobs?job=j1");
+  assert.equal(s.recentCaptures[0].link, "/app/jobs/j1");   // 47m (D199 C7): the job's address is its opening sheet
 });
 
 test("the /extension page offers the install ONLY to the signed-out and to not_installed", () => {
