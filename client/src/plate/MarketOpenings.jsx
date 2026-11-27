@@ -15,7 +15,6 @@ import { companyPath } from "../lib/companySlug.js";
 import { Drawer } from "./PlateState.jsx";
 import { useFrontCard } from "./marketPlate.js";
 import { fieldCardView } from "../../../shared/contextualView.js";
-import { POSTING_ON_DECK_EVENT, DECK_POST_SLOT_ID } from "../lib/jobUrl.js";   // ⭐ A240: a posting opened from the Index shows on the Deck tab
 import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
 import { useCompanyBrief } from "../lib/companyBrief.js";   // ⭐ D199 C6: the company in brief
 import FitCard, { fitCardFor, withPartReasons } from "./FitCard.jsx";   // ⭐ D202: the field card ⇄ the ATS card, one card
@@ -148,23 +147,7 @@ export function MarketTickets({ needsYou = 0, ledgerHref = "/app/auto-apply" }) 
 // goes to the field card (.pl-market-deck__side, flex 1 1 360px).
 export default function MarketOpenings({ deck, index, field = null, initialTab = "deck", pager = null }) {   // field: the gallery / F5 fixture's own card
   const [tab, setTab] = useState(initialTab);
-  // ⭐ A240 (47g, walked): an Index row's title opens its posting through the board's one open path (D168), which draws it in
-  // the deck's post slot — inside the Deck tab's panel. With Index selected that panel is hidden, so the click showed
-  // nothing (measured: the slot open, ?job= set, the posting 0 × 0). Whenever the board draws a posting on the deck, the
-  // openings turn to Deck and bring the posting into view.
-  useEffect(() => {
-    if (typeof window === "undefined") return undefined;
-    const onDrawn = (e) => {
-      if (!e?.detail?.jobId) return;
-      setTab((t) => {
-        if (t === "deck") return t;
-        requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById(DECK_POST_SLOT_ID)?.scrollIntoView?.({ block: "start", behavior: "smooth" })));
-        return "deck";
-      });
-    };
-    window.addEventListener(POSTING_ON_DECK_EVENT, onDrawn);
-    return () => window.removeEventListener(POSTING_ON_DECK_EVENT, onDrawn);
-  }, []);
+  // ⛔ 47m (D199 C7): an Index row opens its opening sheet (/app/jobs/<id>), so the A240 turn-to-Deck listener is gone.
   return (
     <div className="pl-marketopenings" data-plate-market-openings="" id="openings">
       <BinderTabs tabs={MARKET_TABS} selected={tab} onSelect={setTab} label="View openings" idBase="mk-tab"

@@ -29,7 +29,7 @@ export const MODULES = Object.freeze({
     // owner kept the card back as decided, 10-07). It is the one place outside the deck that may use them.
     members: ["panels/DeckView.jsx", "components/CardBack.jsx", "components/DealBackdrop.jsx"] },
   board: { why: "Full House — the board, its cards and its posting panel",
-    members: ["panels/JobsPanel.jsx", "components/JobBubble.jsx", "components/JobDetailPanel.jsx", "components/CoverLetterModal.jsx", "components/ByomResumeChoice.jsx",
+    members: ["panels/JobsPanel.jsx", "components/JobBubble.jsx", "components/CoverLetterModal.jsx", "components/ByomResumeChoice.jsx",
       "components/WarmPathsBlock.jsx"] },
   fullHouseHeader: { why: "the Full House header — the sentence, its words, the sort, the bar",
     css: ["components/FullHouse.css"],
@@ -85,7 +85,7 @@ export const MODULES = Object.freeze({
       "components/UsbSuggest.jsx" /* 47m: the search suggest is a plate card (.pl-suggest) on /jobs, the market and the dock */,
       "plate/explainer/Explainer.jsx", "plate/explainer/explainerModel.js" /* D198 E1: the explainer engine */,
       "plate/FitCard.jsx" /* D202: the field card ⇄ the ATS card, one card on the market and the sheet */, "plate/OpeningSheet.jsx" /* D199 C7: the opening sheet, /app/jobs/<id> */,
-      "plate/TeamDiorama.jsx" /* D199 C7: the sheet's hero plate — the survey diorama with its words as props */, "plate/fitCardFixtures.jsx" /* the card lane's F5 fixtures */, "components/ATSPanel.jsx" /* D202 (47h, owner yes): the posting's match panel draws THE FitCard */,
+      "plate/TeamDiorama.jsx" /* D199 C7: the sheet's hero plate — the survey diorama with its words as props */, "plate/fitCardFixtures.jsx" /* the card lane's F5 fixtures */,
       // ⭐ D197 Wave 1 #3 / #4 (47h): the ledger (Home) and the survey sheet (the company page), and the pages that mount them
       "plate/Ledger.jsx", "plate/ledgerModel.js", "plate/SurveySheet.jsx", "plate/surveySheet.js", "plate/surveyDrawings.jsx", "plate/sheetFixtures.jsx",
       "panels/AutoApplyPanel.jsx", "pages/companies/CompanyPage.jsx",
@@ -138,7 +138,6 @@ export const MODULES = Object.freeze({
 //    No `module` → shared app-wide. `module` → private to that module. A stylesheet names its `owner`.
 export const SHARED = Object.freeze({
   // ── the ATS ──
-  "components/ATSPanel.jsx":            { what: "the ATS report LOADER (fetch, cache, claims) — the deck and the ATS panel mount it" },
   "components/AtsInk.jsx":             { what: "an ATS number painted by its band, inline (46x, owner 11-19: colour, not words) — the ATS card and Home's held rows" },
   "components/PlausibilityFlags.jsx":  { what: "D192 (4d): does the résumé add up — a quiet ⚠ per bullet that doesn't line up with its employer, a reason, Dismiss (the ATS card; Home's held review)" },
   "components/AtsReport.jsx":           { what: "THE ATS report in the web app — a thin React wrapper of the ONE component, shared/atsReportElement.js (A52 → T9; see CROSS_PRODUCT)" },
@@ -244,8 +243,6 @@ export const SHARED = Object.freeze({
   "components/JobBubble.jsx":           { what: "the board's column (JobBoardColumns; 47j A248: D1's card is deleted)", module: "board" },
   "components/WarmPathsBlock.jsx":      { what: "D138 — people the user knows at a posting's company, beside the posting panel", module: "board" },
   "components/JobBubble.css":           { what: "its look", owner: "components/JobBubble.jsx" },
-  "components/JobDetailPanel.jsx":      { what: "the board's posting panel (D48)", module: "board" },
-  "components/JobDetailPanel.css":      { what: "its look", owner: "components/JobDetailPanel.jsx" },
   "components/CoverLetterModal.jsx":    { what: "the posting panel's cover letter", module: "board" },
   "components/ByomResumeChoice.jsx":    { what: "the posting panel's Résumé choice — draft, or the user's own ChatGPT / Claude (D86)", module: "board" },
   "components/ByomResumeChoice.css":    { what: "its look", owner: "components/ByomResumeChoice.jsx" },
@@ -375,7 +372,6 @@ export const COMPOSITIONS = Object.freeze([
   { from: "components/AdminLayout.jsx", to: "panels/AdminPanel.jsx", why: "the admin frame renders the admin panel" },
   { from: "plate/fixtures.jsx", to: "pages/atlas/yourSurveyFixtures.jsx", why: "D200 (a) (47i): the F5 build pages draw Your survey (Atlas's SkillMapView) on the YourSurvey board's data — test fixtures only, never the app" },
   { from: "consoles/PlanConsoles.jsx", to: "panels/JobsPanel.jsx", why: "each plan console renders the board" },
-  { from: "panels/JobsPanel.jsx", to: "panels/SandboxPanel.jsx", why: "the board's panel dock mounts the PDF panel beside the posting" },
   { from: "panels/AutoApplyPanel.jsx", to: "panels/JobWorkspacePanel.jsx", why: "D102 P5: on a wide screen Draft House shows an opened application beside its list" },
   { from: "panels/DatabasePanel.jsx", to: "panels/JobWorkspacePanel.jsx", why: "D102 P5: on a wide screen The Table shows an opened application beside History" },
   { from: "pages/LandingPage.jsx", to: "panels/DeckView.jsx", why: "46v (owner 11-18: \"use the same card as we use inside the site\"): the landing's hero deals the deck's own home card (HomeCardStill) and its buttons, no decisions" },
