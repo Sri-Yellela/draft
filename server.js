@@ -419,7 +419,19 @@ import { createBootWarmup } from "./services/boot/bootWarmup.js";
 console.log("[boot] server module loaded");
 // ⛔⛔ D151 Rule 1: the boot's timeline, and the warm-up that runs AFTER the listener binds (services/boot/bootWarmup.js).
 // startedAt is the process's own start, so listenMs is "start → port bound", the number Rule 1 budgets (≤ 3 s).
-const BOOT = createBootWarmup({ startedAt: Number(process.hrtime.bigint() / 1000000n) - Math.round(process.uptime() * 1000) });
+// ⭐ 47k (the zero-downtime lane, owner 11-26 decision 6, lever (1)) · WARMUP_DEFER_TAGS=1 takes the two slowest
+// warm-up steps out of the gate (production 47j: the tags' first slice 1.7–2.6 s + job_role_map 0.7 s of a 3.4–3.6 s
+// listen → ready): /api/health/ready answers once the rest have run, and those two run right after, in their order
+// (the tags read the role map's bucket). Default OFF = the gate exactly as before. Safe because neither step loads
+// anything into memory: both only WRITE derived rows (job_role_map buckets for unbucketed postings, tag_* / level /
+// description_text for stale ones), and every reader reads the table — so in the gap a request reads the PERSISTED
+// state of the last pass, and a posting neither has reached reads as today's soft-null (no bucket → visible on every
+// board, CC1b; NULL tags → "unknown", kept) — the same state a request sees between two 10-minute tag passes.
+// ⚠ The deferred work still runs on the one thread: a request landing during it waits for that step (≤ the step's
+// time). Measure on staging before turning it on (scripts/warmupMeasure.mjs; the 47j PROGRESS's step 2).
+const WARMUP_DEFERRED_STEPS = ["job_role_map", "job tags (first slice)"];
+const BOOT = createBootWarmup({ startedAt: Number(process.hrtime.bigint() / 1000000n) - Math.round(process.uptime() * 1000),
+  defer: process.env.WARMUP_DEFER_TAGS === "1" ? WARMUP_DEFERRED_STEPS : [] });
 
 // ── Config ────────────────────────────────────────────────────
 const PORT           = process.env.PORT           || 3001;
@@ -8442,7 +8454,11 @@ function runJobTagWalkSlice() {
     next = again ? w.from : (range.more ? range.to : null);
   } catch (e) { console.error(`[tags] (${w.trigger}) slice failed:`, e.message); }
   w.first = false;
-  if (next == null) { jobTagWalk = null; return; }
+  if (next == null) {
+    // 47k: the boot walk's end on the boot timeline's clock (ms since process start), for the staging measurement.
+    if (w.trigger === "boot") console.log(`[boot] job tags boot walk done at ${Math.round(process.uptime() * 1000)} ms`);
+    jobTagWalk = null; return;
+  }
   w.from = next;
   setTimeout(runJobTagWalkSlice, 50).unref();
 }
@@ -17840,13 +17856,16 @@ app.listen(PORT, () => {
   // warm-up (production 11-04 21:24Z: ≈ 18 s of plans, user 3's alone 13.9 s, between job_role_map and
   // the tag slice) — and every request in a deploy window waits for ready. The plan itself now yields
   // between pages (services/jobs/boardFitPrecompute.js planSliced).
+  // ⭐ 47k (WARMUP_DEFER_TAGS=1): ready may flip before the role map and the tags' first slice (WARMUP_DEFERRED_STEPS),
+  // so the board-fit pass (after its delay) and the walks below wait on BOOT.settled() — they read the role map's
+  // bucket and the tags. With the flag off settled() IS run()'s (already resolved) promise: same order, same tick.
   BOOT.run().then(() => setTimeout(() => {
     if (!boardFitAutomationEnabled()) {
       console.log("[board-fit] boot pass: DISABLED by BOARD_FIT_PRECOMPUTE=off");
       return;
     }
-    scheduleBoardFitForAll("boot");
-  }, Number(process.env.BOARD_FIT_BOOT_DELAY_MS ?? 30000)).unref?.()).then(() => {
+    BOOT.settled().then(() => scheduleBoardFitForAll("boot"));
+  }, Number(process.env.BOARD_FIT_BOOT_DELAY_MS ?? 30000)).unref?.()).then(() => BOOT.settled()).then(() => {
     // ⛔⛔ D153 (3): the backlog classification walk, from READY (never inside the warm-up; it yields between pages).
     // On the same ready as the board-fit pass — the warm-up is started once (test/a123BoardFitReconcile A123 (7)).
     // ⛔ A140 (1): the removed trial's fictional sample details out of every profile — small (one row per account),

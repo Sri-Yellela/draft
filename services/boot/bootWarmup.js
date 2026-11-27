@@ -16,19 +16,21 @@
 // is recorded with its error and the warm-up continues — the reads each step feeds already treat its
 // absence as "unknown", which is why none of them ever failed the boot.
 //
-// ⭐ 47k (the zero-downtime lane, owner 11-26 decision 6, lever (1)) · DEFERRABLE STEPS. A step added with
-// { deferrable: true } is part of the gate exactly as before UNLESS the warm-up was created with
-// deferDeferrable: true (server.js: WARMUP_DEFER_TAGS=1, default OFF). Then ready flips without it, and the
-// deferred steps run AFTER ready, in the order they were added, one at a time with the same yield between them,
-// each timed into the timeline as phase "deferred" and logged with the ms since start it finished at.
-// settled() resolves once they have all run (with the flag off it is the same promise as run()) — anything that
+// ⭐ 47k (the zero-downtime lane, owner 11-26 decision 6, lever (1)) · DEFERRED STEPS. `defer` names steps that
+// leave the gate: a step added under one of those names does not hold ready; it runs AFTER ready, in the order the
+// deferred steps were added, one at a time with the same yield between them, timed into the timeline as phase
+// "deferred" and logged with the ms since start it finished at. server.js passes the names only when
+// WARMUP_DEFER_TAGS=1 (default OFF: `defer` is empty and every step is gated exactly as before).
+// settled() resolves once they have all run (with nothing deferred it is the same promise as run()) — anything that
 // must see their work (the board-fit boot pass, the classify walk) waits on it, not on ready.
 
 const nowMs = () => Number(process.hrtime.bigint() / 1000000n);
 
-export function createBootWarmup({ log = console, startedAt = nowMs(), yieldFn = (fn) => setImmediate(fn), deferDeferrable = false } = {}) {
+export function createBootWarmup({ log = console, startedAt = nowMs(), yieldFn = (fn) => setImmediate(fn), defer = [] } = {}) {
+  const deferNames = new Set(defer);
+  const deferring = deferNames.size > 0;
   const steps = [];        // { name, fn } — queued for after listen, run in order
-  const deferredSteps = [];   // 47k: { name, fn } — run after ready, only when deferDeferrable
+  const deferredSteps = [];   // 47k: { name, fn } — named in `defer`; run after ready
   const timeline = [];     // { name, phase, ms, ok, error?, at } — every timed boot step
   let state = "booting";   // booting → warming → ready
   let listenMs = null, readyMs = null, running = null, done = 0;
@@ -47,11 +49,10 @@ export function createBootWarmup({ log = console, startedAt = nowMs(), yieldFn =
     },
     /** Record a before-listen step timed by the caller (a block that cannot be wrapped in a function). */
     note(name, ms, ok = true, error) { record(name, "before-listen", ms, ok, error); },
-    /** Queue a step for after the listener is bound. 47k: { deferrable: true } runs it after ready when the
-     *  warm-up defers (deferDeferrable); otherwise it is an ordinary gated step, in its place. */
-    add(name, fn, { deferrable = false } = {}) {
+    /** Queue a step for after the listener is bound. 47k: a step named in `defer` runs after ready instead. */
+    add(name, fn) {
       if (state === "ready") throw new Error(`boot warm-up already finished; "${name}" added too late`);
-      if (deferrable && deferDeferrable) deferredSteps.push({ name, fn });
+      if (deferNames.has(name)) deferredSteps.push({ name, fn });
       else steps.push({ name, fn });
     },
     listening() { if (listenMs == null) listenMs = nowMs() - startedAt; },
@@ -67,7 +68,7 @@ export function createBootWarmup({ log = console, startedAt = nowMs(), yieldFn =
             log.log(`[boot] ready at ${readyMs} ms (listening at ${listenMs} ms)` + (slow.length ? ` — ${slow.join(", ")}` : "")
               + (deferredSteps.length ? ` · deferred until after ready: ${deferredSteps.map(d => d.name).join(", ")}` : ""));
             resolve(self.snapshot());
-            if (deferDeferrable) self.settled();   // 47k: the deferred steps start on ready, whoever waits on them
+            if (deferring) self.settled();   // 47k: the deferred steps start on ready, whoever waits on them
             return;
           }
           const { name, fn } = steps[done];
@@ -86,7 +87,7 @@ export function createBootWarmup({ log = console, startedAt = nowMs(), yieldFn =
     },
     /** 47k: resolves once ready AND every deferred step has run. Without deferral it IS run()'s promise. */
     settled() {
-      if (!deferDeferrable) return self.run();
+      if (!deferring) return self.run();
       if (settling) return settling;
       settling = self.run().then(() => new Promise((resolve) => {
         const next = () => {
@@ -117,7 +118,7 @@ export function createBootWarmup({ log = console, startedAt = nowMs(), yieldFn =
     snapshot() {
       const snap = { state, listenMs, readyMs, pending: steps.slice(done).map(s => s.name), timeline: timeline.slice() };
       // 47k: only when deferring, so the flag-off snapshot (/api/version, /api/diag) is byte-for-byte today's.
-      if (deferDeferrable) Object.assign(snap, { deferred: deferredSteps.slice(deferredDone).map(s => s.name), settledMs });
+      if (deferring) Object.assign(snap, { deferred: deferredSteps.slice(deferredDone).map(s => s.name), settledMs });
       return snap;
     },
   };
