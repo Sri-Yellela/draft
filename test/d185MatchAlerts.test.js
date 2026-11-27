@@ -54,7 +54,7 @@ test("d185AlertsTopTierOnly: only postings asking for most of the top skills, li
   const sent = await runMatchAlerts(db, read(db), s.notify, { nowSec: NOW });
   assert.equal(sent, 1);
   assert.equal(s.sent[0].ev, MATCH_ALERT_EVENT);
-  assert.deepEqual(s.sent[0].data.items.map(i => i.url.split("job=")[1]).sort(), [four, top].sort());
+  assert.deepEqual(s.sent[0].data.items.map(i => i.url.split("/app/jobs/")[1]).sort(), [four, top].sort());
   // At most once: the next sweep (instant now) finds nothing new to say.
   setMatchAlertSettings(db, 7, { mode: "instant" });
   const s2 = sink();
@@ -123,7 +123,7 @@ test("d185AlertsBeachhead: a person who needs sponsorship sees sponsors first, a
   const s = sink();
   await runMatchAlerts(db, read(db), s.notify, { nowSec: NOW });
   const items = s.sent[0].data.items;
-  assert.equal(items[0].url.split("job=")[1], sp, "the sponsor leads, though the other posting is newer");
+  assert.equal(items[0].url.split("/app/jobs/")[1], sp, "the sponsor leads, though the other posting is newer");
   assert.equal(items[0].sponsor, true);
   const mail = eventEmail("new_match", s.sent[0].data, "https://draft.example");
   assert.match(mail.text, /H-1B filing record first/);

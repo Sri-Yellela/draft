@@ -93,7 +93,7 @@ export function boardJobForExtension(db, userId, jobId, { scoreFor, hasBaseResum
   return {
     job: { jobId: String(row.job_id), title: row.title ?? null, company: row.company ?? null, url,
            logo: row.company_icon_url || getKnownLogoUrl(row.company || "") || null,
-           reportPath: `/app/jobs?job=${encodeURIComponent(String(row.job_id))}` },
+           reportPath: `/app/jobs/${encodeURIComponent(String(row.job_id))}` },   // 47n (D199 C7): the opening sheet
     ats,
   };
 }

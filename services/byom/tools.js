@@ -144,7 +144,7 @@ export class ToolRefusal extends Error {
   constructor(code, message, extra = {}) { super(message); this.code = code; this.extra = extra; }
 }
 
-const jobLink = (appUrl, jobId) => `${appUrl}/app/jobs?job=${encodeURIComponent(jobId)}`;
+const jobLink = (appUrl, jobId) => `${appUrl}/app/jobs/${encodeURIComponent(jobId)}`;   // 47n (D199 C7): a job's address is its opening sheet
 const patchHash = (patch) => crypto.createHash("sha256").update(JSON.stringify(patch ?? null)).digest("hex").slice(0, 32);
 
 // ── DR-3 · THE BRIEF AS A SIGNED TOKEN. `brf_<payload>.<mac>`: payload = base64url JSON

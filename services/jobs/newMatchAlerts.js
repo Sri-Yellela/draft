@@ -161,7 +161,7 @@ export function alertMessage(items, { appUrl = "", nowSec, sponsorFirst = false 
       return { title: it.title, company: it.company, sponsor: !!it.sponsor, matched: Number(it.matched), of: it.of,
         ago: mins == null ? null : mins < 60 ? `${mins} minute${mins === 1 ? "" : "s"} ago`
           : mins < 48 * 60 ? `${Math.round(mins / 60)} hour${Math.round(mins / 60) === 1 ? "" : "s"} ago` : `${Math.round(mins / 1440)} days ago`,
-        url: `${appUrl}/app/jobs?job=${encodeURIComponent(it.job_id)}` };   // the board's own deep link (JobsPanel ?job=)
+        url: `${appUrl}/app/jobs/${encodeURIComponent(it.job_id)}` };   // 47n (D199 C7): the opening sheet (old ?job= links still redirect)
     }),
   };
 }

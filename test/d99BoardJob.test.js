@@ -67,7 +67,7 @@ test("⛔ GET /api/extension/job/:id: the server's address, the card and draft's
   const r = await m.get("gh-live-1");
   assert.equal(r.status, 200);
   assert.deepEqual(r.body.job, { jobId: "gh-live-1", title: "Backend Engineer", company: "Synthco",
-    url: "https://boards.greenhouse.io/synthco/jobs/1", logo: r.body.job.logo, reportPath: "/app/jobs?job=gh-live-1" });
+    url: "https://boards.greenhouse.io/synthco/jobs/1", logo: r.body.job.logo, reportPath: "/app/jobs/gh-live-1" });   // 47n (changed on purpose): the opening sheet's address
   assert.deepEqual(r.body.ats, { state: "ready", score: 72, band: "STRONG", scorable: true, matched: ["node.js", "postgres"], missing: ["kafka"] });
 });
 
