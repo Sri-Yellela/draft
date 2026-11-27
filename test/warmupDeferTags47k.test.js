@@ -12,7 +12,9 @@ import fs from "node:fs";
 import Database from "better-sqlite3";
 import { createBootWarmup } from "../services/boot/bootWarmup.js";
 import { MIGRATIONS } from "../scripts/migrations.js";
-import { backfillRoleMap, backfillRoleMapSliced } from "../services/jobs/backfillRoleMap.js";
+import { backfillRoleMap } from "../services/jobs/backfillRoleMap.js";
+import { walkRoleMapBackfill, unmappedRangeSql } from "../services/jobs/roleMapWalk.js";
+import { ACTIVE_JOB_INDEX } from "../services/jobs/rowidWalk.js";
 import { backfillDescriptionText, DESCRIPTION_STALE_SQL } from "../services/jobs/descriptionText.js";
 import { tagStaleJobs } from "../services/jobs/jobTags.js";
 import { buildJobFilters } from "../services/jobs/jobQuery.js";
@@ -159,21 +161,33 @@ test("47k in the gap: reads see the last pass's persisted buckets / tags, and a 
 });
 
 // ── 47k, after staging: the deferred steps YIELD (deferred but whole, they held the thread right after ready) ─────────
-test("47k yield: backfillRoleMapSliced walks rowid ranges, yields between them, and writes what the whole backfill writes", async () => {
+test("47k yield: walkRoleMapBackfill walks job_id ranges, yields between them, and writes what the whole backfill writes", async () => {
   const titles = ["Senior Software Engineer", "Account Executive", "Data Engineer", "Product Manager", "Backend Engineer", "Forklift Operator"];
   const a = migratedDb(), b = migratedDb();
   for (let i = 0; i < 37; i++) for (const d of [a, b]) seed(d, `j${String(i).padStart(3, "0")}`, titles[i % titles.length], "Remote");
+  b.exec(`CREATE INDEX IF NOT EXISTS ${ACTIVE_JOB_INDEX} ON scraped_jobs(job_id, is_active)`);   // as the boot builds it
   const whole = backfillRoleMap(a);
   let yields = 0;
-  const sliced = await backfillRoleMapSliced(b, { rows: 5, yieldFn: (fn) => { yields++; setImmediate(fn); } });
-  assert.ok(sliced.ranges >= 8, `walked in ranges (${sliced.ranges})`);
-  assert.equal(yields, sliced.ranges - 1, "a yield between every two ranges");
-  for (const k of ["scanned", "candidates", "skippedBlue", "inserted"]) assert.equal(sliced[k], whole[k], k);
-  assert.deepEqual(sliced.byBucket, whole.byBucket);
+  const walked = await walkRoleMapBackfill(b, { rows: 5, yieldFn: (fn) => { yields++; setImmediate(fn); } });
+  assert.equal(walked.ranges, 8, "37 postings in ranges of 5");
+  assert.equal(yields, walked.ranges - 1, "a yield between every two ranges");
+  for (const k of ["scanned", "candidates", "skippedBlue", "inserted"]) assert.equal(walked[k], whole[k], k);
+  assert.deepEqual(walked.byBucket, whole.byBucket);
   const map = (d) => d.prepare("SELECT job_id, role_key, matched_by FROM job_role_map ORDER BY job_id").all();
   assert.deepEqual(map(b), map(a), "the same rows as the one-transaction backfill");
-  assert.equal((await backfillRoleMapSliced(b, { rows: 5 })).inserted, 0, "idempotent");
+  assert.equal((await walkRoleMapBackfill(b, { rows: 5 })).inserted, 0, "idempotent");
   a.close(); b.close();
+});
+
+test("47k yield: the walk's range read uses the (job_id, is_active) index — never a table search by rowid (26 s on production 11-27)", () => {
+  const d = migratedDb();
+  d.exec(`CREATE INDEX IF NOT EXISTS ${ACTIVE_JOB_INDEX} ON scraped_jobs(job_id, is_active)`);
+  const plan = d.prepare("EXPLAIN QUERY PLAN " + unmappedRangeSql(d)).all("", "z").map(r => r.detail).join(" | ");
+  assert.ok(plan.includes(`SEARCH sj USING INDEX ${ACTIVE_JOB_INDEX} (job_id>? AND job_id<?)`), plan);
+  assert.doesNotMatch(plan, /INTEGER PRIMARY KEY|USE TEMP B-TREE/, plan);
+  // backfillRoleMap.js is a classifier-fingerprint file: the walk must not live there (an edit re-runs the 22k re-file)
+  assert.doesNotMatch(read("services/jobs/backfillRoleMap.js"), /walkRoleMapBackfill|INDEXED BY/);
+  d.close();
 });
 
 test("47k yield: backfillDescriptionText with a range reads and writes only that range", () => {
@@ -192,7 +206,7 @@ test("47k yield: backfillDescriptionText with a range reads and writes only that
 test("47k yield: server.js — flag on, the role map is the sliced walk and the boot tag walk's slices carry ranged descriptions; flag off unchanged", () => {
   const s = read("server.js");
   assert.match(s, /const WARMUP_DEFER_TAGS_ON = process\.env\.WARMUP_DEFER_TAGS === "1";/);
-  assert.match(s, /const roleFill = WARMUP_DEFER_TAGS_ON \? await backfillRoleMapSliced\(db, \{ rows: 2000 \}\) : backfillRoleMap\(db\);/);
+  assert.match(s, /const roleFill = WARMUP_DEFER_TAGS_ON \? await walkRoleMapBackfill\(db, \{ rows: 2000 \}\) : backfillRoleMap\(db\);/);
   assert.match(s, /const ranged = WARMUP_DEFER_TAGS_ON && w\.trigger === "boot";/);
   assert.match(s, /runJobTagPass\(w\.trigger, \{ descriptions: true, descriptionRange: range, range \}\)/);
   assert.match(s, /: runJobTagPass\(w\.trigger, \{ descriptions: w\.first, range \}\);/, "flag off / the interval: the first slice's scan, as before");

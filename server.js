@@ -356,7 +356,8 @@ import { tierSkills, skillTierKey } from "./services/jobs/skillTiers.js";   // D
 import { createBoardFitPrecompute, atsBasisHash, atsJobInputHash, storedScoreSql, presentedScore, registerScoreFreshness, currentScoreSql } from "./services/jobs/boardFitPrecompute.js";
 import { deriveAutomationTier } from "./services/jobs/automationTier.js";
 import { backfillAutomationTier } from "./services/jobs/backfillAutomationTier.js";
-import { backfillRoleMap, backfillRoleMapSliced } from "./services/jobs/backfillRoleMap.js";
+import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
+import { walkRoleMapBackfill } from "./services/jobs/roleMapWalk.js";   // 47k: the flagged boot's role-map walk (index-only)
 import { remapGeneralRows, REMAP_MATCHED_BY } from "./services/jobs/remapGeneralRoles.js";
 import { tagStaleJobs } from "./services/jobs/jobTags.js";
 // ⭐ D106: the level a posting's text ASKS for, beside its title's ("Titled Junior · asks for 3+ years and system design").
@@ -431,7 +432,7 @@ console.log("[boot] server module loaded");
 // time). Measure on staging before turning it on (scripts/warmupMeasure.mjs; the 47j PROGRESS's step 2).
 // ⭐ 47k (measured on staging, 250k): deferred but whole, the two steps held the thread right after ready, so the first
 // request was answered no sooner (1,523 vs 1,490 ms). With the flag on they now YIELD: job_role_map walks rowid ranges
-// (backfillRoleMapSliced) and the boot tag walk bounds its description pass to each slice's range (WARMUP_DEFER_TAGS_ON
+// (walkRoleMapBackfill, index-only) and the boot tag walk bounds its description pass to each slice's range (WARMUP_DEFER_TAGS_ON
 // in runJobTagWalkSlice) instead of one whole-board stale scan on its first slice.
 const WARMUP_DEFER_TAGS_ON = process.env.WARMUP_DEFER_TAGS === "1";
 const WARMUP_DEFERRED_STEPS = ["job_role_map", "job tags (first slice)"];
@@ -8383,9 +8384,11 @@ if (String(process.env.ROLE_MAP_BACKFILL || "").toLowerCase() === "off") {
 } else BOOT.add("job_role_map", async () => {
   try {
     // ⭐ 47k (WARMUP_DEFER_TAGS=1): the step runs after ready, so it walks rowid ranges and yields between them
-    // (backfillRoleMapSliced) — a request arriving right after ready interleaves instead of waiting behind one
+    // (walkRoleMapBackfill) — a request arriving right after ready interleaves instead of waiting behind one
     // whole-board read. Flag off: the one transaction, synchronously, exactly as before (no await is reached).
-    const roleFill = WARMUP_DEFER_TAGS_ON ? await backfillRoleMapSliced(db, { rows: 2000 }) : backfillRoleMap(db);
+    // ⛔ 47k: walkRoleMapBackfill (job_id ranges through the (job_id, is_active) index), NOT backfillRoleMapSliced's
+    // rowid walk — that fetched every row to test is_active: 26 s after ready on production's first flagged boot.
+    const roleFill = WARMUP_DEFER_TAGS_ON ? await walkRoleMapBackfill(db, { rows: 2000 }) : backfillRoleMap(db);
     if (roleFill.inserted > 0) {
       console.log(`[boot] job_role_map backfilled: ${roleFill.inserted} of ${roleFill.scanned} `
         + `unbucketed posting(s) classified `
