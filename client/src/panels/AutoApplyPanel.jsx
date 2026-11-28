@@ -891,6 +891,14 @@ export function AutoApplyPanel({ user = null } = {}) {
           ...(heldQuestionsFor(node).length ? [] : [{ id: "answer", label: "Answer them", kind: "primary", onClick: () => openApplicationReview(r) }]),
           ...runAgain, ...yourself(row)];
         const packet = handoffPacketFor?.(r.primary?.row) || handoffPacketFor?.(r);
+        if (r.primary?.code === "human_check" && !packet && row.applyUrl && !r.postingGone) {
+          const [portalAction] = yourself(row);
+          return [
+            { ...portalAction, label: "Open employer portal", kind: "primary" },
+            { id: "open", label: "Review application", onClick: () => openApplicationReview(r) },
+            clearIt(r),
+          ];
+        }
         const resumable = !!packet && !packet.postingGone && !packet.stale && !r.postingGone;
         // ⭐ D52: a stale (or never-built) packet is ONE click from fresh — a new Draft of the same job.
         const life = packetLife(packet);

@@ -145,6 +145,16 @@ const BY_REASON = {
     action: "Solve it here — draft fills the form again and shows you the check; or complete it yourself",
     protective: true, retryable: false, solvesHere: true,
   },
+  human_check: {
+    obstacle: "The employer's portal requires a verification check",
+    action: "Open the employer's application in your browser to complete verification",
+    protective: true, retryable: false,
+  },
+  session_signed_out: {
+    obstacle: "Your employer portal session has expired",
+    action: "Sign in again to the employer's portal",
+    protective: true, retryable: false,
+  },
   no_submit_button: {
     obstacle: "The form was filled but had no submit button we could find",
     action: "Open the filled form and submit it yourself",

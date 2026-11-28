@@ -21,8 +21,22 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
   describeApplication, sectionFor, boardApplicationChip, groupByApplication, groupByCompany,
-  splitByFault, SECTION, PREREQUISITE_LABELS, prerequisitesByCause,
+  splitByFault, SECTION, PREREQUISITE_LABELS, prerequisitesByCause, solvableHere,
 } from "../client/src/lib/applyObstacles.js";
+
+test("worker verification and expired sessions are candidate actions", () => {
+  const verification = { status: "held_review", reasonCode: "human_check" };
+  const expired = { status: "held_gate", reasonCode: "session_signed_out" };
+  for (const row of [verification, expired]) {
+    const obstacle = describeApplication(row);
+    assert.equal(obstacle.section, SECTION.NEEDS_YOU);
+    assert.equal(obstacle.protective, true);
+    assert.equal(obstacle.retryable, false);
+    assert.equal(solvableHere(row), false);
+  }
+  assert.match(describeApplication(verification).action, /complete verification/);
+  assert.match(describeApplication(expired).action, /Sign in again/);
+});
 // AD1: the outcome partition itself, so the sub-tab assertions read the shared source of truth
 // rather than three literal words that could drift from what routes/apply.js files rows under.
 import { OUTCOME, OUTCOME_LABELS } from "../shared/applyOutcomeGroups.js";

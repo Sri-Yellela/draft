@@ -173,6 +173,13 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
+### ▶▶▶ cdx-01 PROGRESS (agent, 11-27) — auto-apply exceptions
+
+- **OWNER DECISION.** Start with candidate-authorised background applications where an employer or ATS supports automated submission. Collect sign-in and verification exceptions in Draft House. Use the existing worklog with the `cdx` notation.
+- ✅ **WORKER HOLDS IN DRAFT HOUSE.** The worker already reports `human_check` and `session_signed_out`. Both now tell the candidate what happened and what action is needed. A verification hold without a handoff packet offers **Open employer portal** when the posting is available, with **Review application** alongside it.
+- **TECH.** **Mechanism:** worker-specific reasons fell back to generic status copy. **Change:** `client/src/lib/applyObstacles.js` names both outcomes and `client/src/panels/AutoApplyPanel.jsx` reuses the existing posting action. **Verified:** focused obstacle and worker tests, 62 / 62, 0 red. **Unknown:** actual portal coverage and browser behaviour on staging.
+- **LEFT.** Confirm an employer-authorised submission integration and an approved test account before implementing and exercising the unattended path. Check the exception flow in staging and measure confirmed submissions per candidate action. This session's changes are local.
+
 ### ✅✅ OWNER 11-26 — "yes to all" — FOUR APPROVALS, the agent acts on each (no further question needed)
 1. **resume-master takes `@draft/ats-scorer` 1.7.2** — ▶ agent: re-copy its vendored `src/contextual.js`, `package.json` and `CHECKSUMS.json` from draft's 1.7.2 and commit in the resume-master repo (by path, no assistant trailer); older contract versions stay served (D192).
 2. **The mobile repos' `contract/CHECKSUMS.json` refresh** — ▶ agent: update `checkedAt` (additive only, nothing else) in **draft-android** (`contract/CHECKSUMS.json`) and **draft-ios** (`Contract/CHECKSUMS.json`), commit in each repo; the owner pushes them (as before).
