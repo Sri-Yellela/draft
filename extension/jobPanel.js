@@ -107,11 +107,25 @@ export function renderJobPanel(model, theme, dockMeta) {
     .pick button { justify-self: start; font: 600 12.5px ${SANS}; color: ${P('INK', 'INK')}; background: none; border: 0; padding: 3px 0; cursor: pointer; }
     .pick button[aria-current="true"] { color: ${P('CLAY_TEXT', 'ACCENT_INK')}; font-weight: 800; }
     .pick button:focus-visible { outline: 2px solid ${P('CLAY_TEXT', 'ACCENT_INK')}; outline-offset: 2px; }
+    /* ⭐ D197 #19 (47n) · More → the skill squares (green only for proven: on your résumé; the rest an ink outline, dashed) */
+    .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .more { margin: 8px 16px 0; text-align: center; font-size: 12px; }
+    .sqs { display: grid; gap: 6px; justify-items: center; margin-top: 8px; }
+    .sqs[hidden] { display: none; }
+    .sqw { font: 700 10.5px/1.4 ${MONO}; letter-spacing: .1em; text-transform: uppercase; color: ${P('MUTED', 'INK_MUTED')}; }
+    .sqr { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; list-style: none; margin: 0; padding: 0; }
+    .sq { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: ${P('INK', 'INK')}; }
+    .sq i { width: 12px; height: 12px; box-sizing: border-box; border-radius: 2px; flex: none; border: 1.5px dashed ${P('MUTED', 'INK_MUTED')}; }
+    .sq[data-on] i { background: ${P('LIT', 'SUCCESS')}; border: 1.5px solid ${P('INK', 'INK')}; }
   `;
   const m = model;
   const job = m.job ? `<div class="job"><div class="lg" aria-hidden="true">${m.job.logo ? `<img alt="" src="${esc(m.job.logo)}" referrerpolicy="no-referrer">` : esc(m.job.letter)}</div>
       <div class="tx"><div class="jt" data-role="title">${esc(m.job.title)}</div>${m.job.sub ? `<div class="js" title="${esc(m.job.sub)}">${esc(m.job.sub)}</div>` : ''}</div></div>` : '<div class="job"></div>';
   const note = m.note ? `<div class="nt" data-role="note">${m.note.act ? `<button class="ln" data-act="${esc(m.note.act)}">${esc(m.note.text)}</button>` : esc(m.note.text)}</div>` : '';
+  const skills = m.skills && Array.isArray(m.skills.squares) && m.skills.squares.length ? m.skills : null;
+  const more = skills ? `<div class="more"><button class="ln" data-role="more" aria-expanded="false" aria-controls="rm-draft-skills">More</button>
+      <div class="sqs" id="rm-draft-skills" hidden><span class="sqw">${esc(skills.words)}</span><ul class="sqr" aria-label="${esc(skills.words)}">${skills.squares
+        .map(s => `<li class="sq"${s.on ? ' data-on=""' : ''} title="${esc(s.label)} — ${s.on ? 'on your résumé' : 'not on your résumé yet'}"><i aria-hidden="true"></i>${esc(s.label)}<span class="sr"> (${s.on ? 'on your résumé' : 'not on your résumé yet'})</span></li>`).join('')}</ul></div></div>` : '';
   const sw = (key, on, words) => `<button class="opt" role="switch" data-set="${key}" aria-checked="${on ? 'true' : 'false'}">${on ? '✓ ' : ''}${esc(words)}</button>`;
   const how = m.how ? `<div class="how" role="group" aria-label="How I apply"><div class="hh"><span>How I apply</span><button class="ln" data-act="auto-setup">All settings</button></div>
       ${m.how.resume ? `<button class="opt" data-role="resume" aria-haspopup="true" aria-expanded="false">Résumé: ${esc(m.how.resume)} ▾</button><div class="pick" data-role="resume-list" hidden></div>` : ''}
@@ -122,7 +136,7 @@ export function renderJobPanel(model, theme, dockMeta) {
       ${m.button ? `<button class="go" data-role="go" ${m.button.act ? `data-act="${esc(m.button.act)}"` : ''}${m.button.disabled ? ' disabled' : ''}>${esc(m.button.label || '')}</button>` : ''}
       ${m.ask ? `<div class="ask"><input id="rm-draft-ask-input" type="text" maxlength="600" placeholder="Search jobs, or ask draft" aria-label="Search jobs, or ask draft" autocomplete="off">
         <button class="opt" data-role="ask-go" type="button">Go</button></div><div class="reply" data-role="reply" role="status" aria-live="polite"></div>` : ''}
-      ${note}<div class="said" data-role="said" role="alert"></div>
+      ${note}${more}<div class="said" data-role="said" role="alert"></div>
       <div class="mid"></div>${how}
       <div class="ft"><button class="ln" data-act="open-draft">Open draft ↗</button></div></div>`;
   const img = root.querySelector('.lg img');
@@ -184,6 +198,9 @@ export function renderJobPanel(model, theme, dockMeta) {
   root.addEventListener('click', async (ev) => {
     if (!ev.isTrusted) return;                                     // ⛔ the person's own click only
     const said = root.querySelector('[data-role="said"]');
+    // ⭐ D197 #19 (47n): More opens the skill squares in place — nothing is sent
+    const mb = ev.target.closest?.('[data-role="more"]');
+    if (mb) { const box = root.getElementById('rm-draft-skills'); if (box) { box.hidden = !box.hidden; mb.setAttribute('aria-expanded', box.hidden ? 'false' : 'true'); mb.textContent = box.hidden ? 'More' : 'Less'; } return; }
     if (ev.target.closest?.('[data-role="ask-go"]')) { const i = root.getElementById('rm-draft-ask-input'); const v = i?.value || ''; if (i) i.value = ''; void ask(v); return; }
     // ⭐ B4 · Résumé ▾: the list on the person's click (PANEL_PROFILES), a pick switches the active job profile
     const rb = ev.target.closest?.('[data-role="resume"]');

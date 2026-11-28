@@ -41,6 +41,21 @@ export function jobOf(page, ctx) {
   return { title: title || company, sub: title ? sub : clean(page?.location, 60), logo, letter: (company || title).charAt(0).toUpperCase() };
 }
 
+/**
+ * ⭐ D197 #19 (47n) · THE SKILL SQUARES behind More (docs/revamp/extension.md M2: the section's one drawing — the match as lit
+ * squares, "4 of your 5 top skills"; green only for proven = on your résumé). From the fit card's own words, in the scorer's
+ * order (the résumé's matches first, then the rest), the first five; a claimed word counts as yours (the web's FitCard does).
+ * `fit` is fitCardModel's result; null → no squares (no report, or an older worker). Pure.
+ */
+export function skillSquares(fit, n = 5) {
+  const words = Array.isArray(fit?.words) ? fit.words : [];
+  const top = words.filter(w => w && typeof w.label === 'string' && w.label.trim()).slice(0, n)
+    .map(w => ({ label: clean(w.label, 60), on: w.state === 'on' || w.state === 'claimed' }));
+  if (!top.length) return null;
+  const have = top.filter(s => s.on).length;
+  return { squares: top, words: `${have} of your ${top.length} top skill${top.length === 1 ? '' : 's'}` };
+}
+
 export function panelModel({ signedIn = false, page = null, ctx = null, pending = false, settings = {}, home = null, other = false, profile = null, applyMode = null } = {}) {
   const job = jobOf(page, ctx);
   // ⭐ B4 · How I apply: the résumé = the account's active job profile (its name; ▾ lists the others). ⭐ 46x (owner 11-19:

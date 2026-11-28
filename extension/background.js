@@ -46,7 +46,7 @@ import {
   GLOBAL_ORIGINS, loadSettings as loadAutoSettings, updateSettings as updateAutoSettings, hasPostingUrlShape, isApplyStageUrl,
 } from './autoRead.js';
 // ⭐ D191 sketch 2 (owner 11-18) · THE ONE PANEL — the dock's home tab: the words (pure) and the view (injected)
-import { panelModel } from './jobPanelModel.js';
+import { panelModel, skillSquares } from './jobPanelModel.js';
 import { renderJobPanel } from './jobPanel.js';
 // ⭐ D191 B3: Ask draft inside the panel — the site's engine, run here (the side panel's ask.js retired)
 import { createPanelAsk } from './panelAsk.js';
@@ -1004,8 +1004,12 @@ function rememberPressContext(tab, c) {
   // ⭐ 46x: the band of the number shown — the contextual one's when that is the number (the colour says it, no word)
   const band = contextual != null && typeof report?.contextualBand === "string" ? report.contextualBand : typeof report?.band === "string" ? report.band : null;
   const f = c.facts || null;
+  // ⭐ D197 #19 (47n): the skill squares behind the panel's More — the fit card's words from the same report (the bundled
+  // shared model, boardJob.js loads it); words and states only leave this worker, never the report
+  let skills = null;
+  try { const fm = report && globalThis.__draftAtsReport?.fitCardModel ? globalThis.__draftAtsReport.fitCardModel({ report }) : null; skills = skillSquares(fm); } catch { skills = null; }
   pressContextByTab.set(tab.id, { job: p ? { jobId: p.known ? p.jobId ?? null : null, title: p.title ?? null, company: p.company ?? null, known: !!p.known, score, skill, band, contextual: contextual != null,
-      mine: !!p.mine, onBoard: !!p.onBoard, ...(f?.job ? { facts: f.job } : {}), ...(f?.application ? { application: f.application } : {}) } : null,
+      mine: !!p.mine, onBoard: !!p.onBoard, ...(skills ? { skills } : {}), ...(f?.job ? { facts: f.job } : {}), ...(f?.application ? { application: f.application } : {}) } : null,
     prepared: !!c.prepared,
     company: c.company ? { name: c.company.name, sponsorship: c.company.sponsorship, openJobs: c.company.openJobs, href: c.company.href || null,
       ...(f?.company ? { logo: f.company.logo, about: f.company.about, trend: f.company.trend } : {}) } : null });
@@ -1042,6 +1046,8 @@ async function drawPanel(tab, o = {}) {
   const profile = o.signedIn && !o.pending ? (await panelProfiles().catch(() => null))?.find(p => p.active) || null : null;
   const applyMode = o.signedIn ? await panelApplyMode().catch(() => null) : null;
   const model = { ...panelModel({ signedIn: !!o.signedIn, page, ctx, pending: !!o.pending, settings: settings?.panel || {}, home, other, profile, applyMode }), expand: o.expand !== false };
+  // ⭐ D197 #19 (47n): a job's skill squares, behind More (collapsed — the owner's "few words" panel stays status · job · button · note)
+  if (model.job && model.kind !== 'signed-out' && ctx?.job?.skills) model.skills = ctx.job.skills;
   const r = await drawInDock(tab.id, renderJobPanel, [model, theme, meta]).catch(() => null);
   return { ok: !!r?.rendered, kind: r?.kind || null };
 }
