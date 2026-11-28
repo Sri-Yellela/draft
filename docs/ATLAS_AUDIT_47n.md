@@ -39,7 +39,14 @@ the domain table). Its source: `tmp/atlas-crossroads.html`; the measuring script
 | Engineering | mech 47 · elec 64 · civil 38 · process 49 · aero 24 · biomed 20 | | | covered; robotics / architecture / geospatial 0 |
 | CS core | ml 31 · systems 56 · infra 26 · data 29 · backend 33 | | | the core |
 
-## Proposal (the owner's word first — nothing built)
+## ⛔ Superseded by the owner's correction (11-27)
+*"I meant shared like how wiki has links of a keyword and the keyword can be found across domains but the keyword itself
+means the same and would lead to the same specific thing, although same words with diff meanings might have to be programmed
+specially. and i said visualise an example of this not an artifact to visualise the problem."* — one entry per meaning,
+linked inline from every domain; disambiguation for same-word-different-meaning. 47o: an example visualisation of that
+target + an audit to plan it (docs/WORKLOG.md, 47n END block). The findings above stay as input; the proposal below does not.
+
+## Proposal (SUPERSEDED — kept as history)
 1. A gazetteer per domain: fill the 12 empty families; split Data & analytics from data engineering, Cloud from Infra,
    Quant under finance, tech program management from construction PM.
 2. One home family per node + listed-in for hubs (GPU home Systems, listed in ML / Cloud / Game & graphics / Electrical /
