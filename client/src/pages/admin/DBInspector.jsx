@@ -10,6 +10,7 @@ import { atsBandFor, atsBandLabel } from "../../../../shared/atsBands.js";
 import StatCard from "../../components/StatCard.jsx";
 import IngestFunnel from "../../components/IngestFunnel.jsx";
 import { useConfirm } from "../../panels/adminKit.jsx";
+import { BinderTabs } from "../../plate/Plates.jsx";   // D197 #21 (47n)
 import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 // A50 step 6: the board's bands, not the v3-era 70/50 ramp (under v4 that ramp painted almost every
 // score red). Admin still sees the number beside the band — it is a diagnostic tool.
@@ -48,25 +49,18 @@ function ago(ts) {
 function fmt(n) { return n == null ? "—" : Number(n).toLocaleString(); }
 function truncate(s, n=40) { if (!s) return "—"; return s.length > n ? s.slice(0,n)+"…" : s; }
 
-// D91 P6: a status colour sits on ITS OWN declared quiet fill (each pair is in CONTRAST_PAIRS and proved in
-// every theme). A 13% tint of itself was an undeclared pair — NOT CONFIGURED read 4.42:1 in the matrix's scan.
-const PILL_QUIET = new Map([[C.SUCCESS, C.SUCCESS_QUIET], [C.WARNING, C.WARNING_QUIET], [C.DANGER, C.DANGER_QUIET],
-  [C.INFO, C.INFO_QUIET], [C.VIOLET, C.VIOLET_QUIET], [C.ACCENT_INK, C.ACCENT_QUIET],
-  [C.BAND_STRONG, C.BAND_STRONG_QUIET], [C.BAND_MODERATE, C.BAND_MODERATE_QUIET], [C.BAND_WEAK, C.BAND_WEAK_QUIET]]);
 function Pill({ color, children }) {
+  // D197 #21 (47n): a state is a WORD, no box (D152's mark; docs/revamp/admin.md — amber / red are words with a dot): the
+  // plate's mono label in ink, its state a 6 px dot in the colour (a perfect circle, D60). The colour never carries the text,
+  // so it needs no quiet fill for contrast.
   return (
-    <span style={{
-      display:"inline-block", padding:"2px 8px", borderRadius:6,
-      // A colour with no quiet fill (INK_FAINT — "NOT ENABLED") takes no tint: it sits on the panel, its proven ground.
-      fontSize:ts(10), fontWeight:700, background:PILL_QUIET.get(color) ?? "transparent", color,
-      border:`1px solid ${color}44`, letterSpacing:"0.05em",
-      // nowrap because a wrapped label breaks OUT of the rounded background rather than growing
-      // it — two-line "LIVE SEARCH ONLY" and "NOT CONFIGURED" spilled over the pill's own border,
-      // which no assertion on the label text can see. Screenshot-only defect.
-      whiteSpace:"nowrap",
-    }}>{children}</span>
+    <span style={{ display:"inline-flex", alignItems:"center", gap:6, fontFamily:"var(--pl-mono)", fontSize:ts(10), fontWeight:700,
+      color:"var(--pl-ink)", letterSpacing:"0.08em", whiteSpace:"nowrap" }}>
+      <span aria-hidden="true" style={{ width:6, height:6, borderRadius:"50%", background:color, flex:"none" }}/>{children}
+    </span>
   );
 }
+
 
 // A93: StatCard is components/StatCard.jsx — AdminPanel and the DB inspector drew the same card.
 
@@ -173,15 +167,12 @@ function SchemaMapView({ theme }) {
         position:"absolute", top:10, right:10, zIndex:3,
         display:"flex", gap:6, alignItems:"center",
       }}>
-        <button onClick={() => setScale(s => Math.min(1.8, s + 0.1))}
-          style={{ padding:"4px 9px", borderRadius:6, border:`1px solid ${theme.border}`,
-                   background:theme.surfaceHigh, color:theme.text, cursor:"pointer" }}>+</button>
-        <button onClick={() => setScale(s => Math.max(0.45, s - 0.1))}
-          style={{ padding:"4px 9px", borderRadius:6, border:`1px solid ${theme.border}`,
-                   background:theme.surfaceHigh, color:theme.text, cursor:"pointer" }}>-</button>
-        <button onClick={() => { setScale(1); setOffset({ x:20, y:20 }); }}
-          style={{ padding:"4px 9px", borderRadius:6, border:`1px solid ${theme.border}`,
-                   background:theme.surfaceHigh, color:theme.text, cursor:"pointer", fontSize:ts(11) }}>Reset</button>
+        <button className="pl-btn pl-btn--paper pl-btn--dense" onClick={() => setScale(s => Math.min(1.8, s + 0.1))}
+          >+</button>
+        <button className="pl-btn pl-btn--paper pl-btn--dense" onClick={() => setScale(s => Math.max(0.45, s - 0.1))}
+          >-</button>
+        <button className="pl-btn pl-btn--paper pl-btn--dense" onClick={() => { setScale(1); setOffset({ x:20, y:20 }); }}
+          >Reset</button>
       </div>
 
       <div style={{
@@ -370,9 +361,8 @@ function ScrapeMonitorTab({ theme }) {
             <option key={s.source} value={s.source}>{s.source} ({s.n})</option>
           ))}
         </select>
-        <button onClick={load}
-          style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                   padding:"5px 14px", fontWeight:700, fontSize:ts(11), cursor:"pointer" }}>
+        <button className="pl-btn pl-btn--paper pl-btn--dense" onClick={load}
+          >
           Refresh
         </button>
       </div>
@@ -741,20 +731,14 @@ function ScrapeMonitorTab({ theme }) {
                           Job Description
                         </span>
                         <div style={{ display:"flex", gap:8 }}>
-                          <button
+                          <button className="pl-btn pl-btn--paper pl-btn--dense"
                             type="button"
                             onClick={() => {
                               navigator.clipboard.writeText(job.description || "");
                               setCopied("text");
                               setTimeout(() => setCopied(null), 2000);
                             }}
-                            style={{
-                              fontSize:ts(11), padding:"3px 10px", borderRadius:6,
-                              border:`1px solid ${theme.border}`,
-                              background: copied === "text" ? C.SUCCESS_QUIET : theme.surface,
-                              color: copied === "text" ? C.SUCCESS : theme.textMuted,
-                              cursor:"pointer",
-                            }}>
+                            >
                             {copied === "text" ? "✓ Copied" : "Copy Text"}
                           </button>
                         </div>
@@ -851,18 +835,12 @@ function SchemaExplorerTab({ theme }) {
         buttons (it sets flexBasis:100% / order:99) instead of squeezing them. */}
     <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:16, flexWrap:"wrap" }}>
       {["tables","map"].map(v => (
-        <button key={v} type="button" onClick={() => setSchemaView(v)}
-          style={{
-            padding:"6px 14px", borderRadius:8,
-            border:`1px solid ${schemaView === v ? ACCENT_TEXT : theme.border}`,
-            background:schemaView === v ? ACCENT : theme.surfaceHigh,
-            color:schemaView === v ? C.ON_ACCENT : theme.text,
-            cursor:"pointer", fontSize:ts(12), fontWeight:700,
-          }}>
+        <button className="pl-btn pl-btn--paper pl-btn--dense" aria-pressed={schemaView === v} key={v} type="button" onClick={() => setSchemaView(v)}
+          >
           {v === "tables" ? "Tables" : "Map View"}
         </button>
       ))}
-      <button
+      <button className="pl-btn pl-btn--paper pl-btn--dense"
         type="button"
         onClick={async () => {
           try {
@@ -872,17 +850,10 @@ function SchemaExplorerTab({ theme }) {
             setTimeout(() => setSchemaCopied(false), 3000);
           } catch(e) { console.error("Schema copy failed:", e); }
         }}
-        style={{
-          display:"flex", alignItems:"center", gap:6,
-          padding:"6px 14px", borderRadius:8,
-          border:`1px solid ${schemaCopied ? `${C.SUCCESS}66` : theme.border}`,
-          background: schemaCopied ? C.SUCCESS_QUIET : theme.surfaceHigh,
-          color: schemaCopied ? C.SUCCESS : theme.text,
-          cursor:"pointer", fontSize:ts(12), fontWeight:600, transition:"all 0.2s",
-        }}>
+        style={{ display:"flex", alignItems:"center", gap:6 }}>
         {schemaCopied ? "✓ Schema Copied!" : "📋 Copy Full Schema"}
       </button>
-      <button
+      <button className="pl-btn pl-btn--paper pl-btn--dense"
         type="button"
         onClick={async () => {
           try {
@@ -896,12 +867,7 @@ function SchemaExplorerTab({ theme }) {
             URL.revokeObjectURL(url);
           } catch(e) { console.error("Schema download failed:", e); }
         }}
-        style={{
-          padding:"6px 14px", borderRadius:8,
-          border:`1px solid ${theme.border}`,
-          background:theme.surfaceHigh, color:theme.text,
-          cursor:"pointer", fontSize:ts(12),
-        }}>
+        >
         ⬇ Download .sql
       </button>
       {/* D83 audit #21: importing enrichment lives in ONE place — Admin → The board → Enrichment (the six steps, Undo on
@@ -1057,7 +1023,7 @@ function SchemaExplorerTab({ theme }) {
                 const cols = Object.keys(recentRows[0]);
                 return (
                   <div style={{ overflowX:"auto" }}>
-                    <table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(10) }}>
+                    <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(10) }}>
                       <thead>
                         <tr style={{ background:theme.surfaceHigh }}>
                           {cols.map(c => (
@@ -1082,7 +1048,7 @@ function SchemaExplorerTab({ theme }) {
                           </tr>
                         ))}
                       </tbody>
-                    </table>
+                    </table></div>
                   </div>
                 );
               })()}
@@ -1161,9 +1127,8 @@ function UserPoolTab({ theme }) {
             <option key={u.id} value={u.id}>{u.username} (id:{u.id})</option>
           ))}
         </select>
-        <button onClick={() => loadPool(selectedUser)} disabled={!selectedUser || loading}
-          style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                   padding:"6px 16px", fontWeight:700, fontSize:ts(11), cursor:"pointer", opacity:!selectedUser?0.5:1 }}>
+        <button className="pl-btn pl-btn--paper pl-btn--dense" onClick={() => loadPool(selectedUser)} disabled={!selectedUser || loading}
+          style={{ opacity:!selectedUser?0.5:1 }}>
           Load
         </button>
       </div>
@@ -1238,13 +1203,8 @@ function UserPoolTab({ theme }) {
             {/* Filter pills */}
             <div style={{ display:"flex", gap:6, marginBottom:12 }}>
               {["All","Correct","Wrong","NULL"].map(f => (
-                <button className="dbx-depth" key={f} onClick={() => setPoolFilter(f)}
-                  style={{
-                    padding:"3px 12px", border:`1px solid ${poolFilter===f ? ACCENT_TEXT : theme.border}`,
-                    background: poolFilter===f ? ACCENT : "transparent",
-                    color: poolFilter===f ? C.ON_ACCENT : theme.text,
-                    fontSize:ts(11), fontWeight:700, cursor:"pointer",
-                  }}>{f}</button>
+                <button className="pl-btn pl-btn--paper pl-btn--dense" aria-pressed={poolFilter===f} key={f} onClick={() => setPoolFilter(f)}
+                  >{f}</button>
               ))}
             </div>
 
@@ -1317,9 +1277,8 @@ function JobTraceTab({ theme, initialJobId }) {
           style={{ background:theme.surfaceHigh, border:`1px solid ${theme.border}`,
                    borderRadius:6, padding:"7px 12px", color:theme.text, fontSize:ts(12), width:360 }}
         />
-        <button onClick={trace} disabled={!jobId.trim() || loading}
-          style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                   padding:"7px 20px", fontWeight:700, fontSize:ts(12), cursor:"pointer" }}>
+        <button className="pl-btn pl-btn--paper pl-btn--dense" onClick={trace} disabled={!jobId.trim() || loading}
+          >
           {loading ? "Tracing…" : "Trace"}
         </button>
       </div>
@@ -1357,7 +1316,7 @@ function JobTraceTab({ theme, initialJobId }) {
                             color:theme.textMuted, marginBottom:10 }}>
                 Lifecycle {data.lifecycle.active ? "" : "· not on the board"}
               </div>
-              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(11) }}>
+              <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(11) }}>
                 <tbody>
                   {data.lifecycle.events.map((e, i) => (
                     <tr key={i} style={{ borderTop:`1px solid ${theme.border}` }}>
@@ -1370,7 +1329,7 @@ function JobTraceTab({ theme, initialJobId }) {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </div>
           )}
 
@@ -1563,10 +1522,8 @@ function QuerySimulatorTab({ theme }) {
             <option key={u.id} value={u.id}>{u.username} (id:{u.id})</option>
           ))}
         </select>
-        <button onClick={simulate} disabled={!selectedUser || loading}
-          style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                   padding:"6px 20px", fontWeight:700, fontSize:ts(12), cursor:"pointer",
-                   opacity:!selectedUser?0.5:1 }}>
+        <button className="pl-btn pl-btn--paper pl-btn--dense" onClick={simulate} disabled={!selectedUser || loading}
+          style={{ opacity:!selectedUser?0.5:1 }}>
           {loading ? "Simulating…" : "Simulate"}
         </button>
       </div>
@@ -1695,11 +1652,9 @@ function QuerySimulatorTab({ theme }) {
 
           {/* Raw SQL panel */}
           <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, overflow:"hidden", marginBottom:24 }}>
-            <button
+            <button className="pl-btn pl-btn--paper pl-btn--dense"
               onClick={() => setShowSql(!showSql)}
-              style={{ width:"100%", textAlign:"left", padding:"10px 14px",
-                       background:theme.surfaceHigh, border:"none", cursor:"pointer",
-                       color:theme.text, fontSize:ts(11), fontWeight:700 }}>
+              style={{ width:"100%", textAlign:"left" }}>
               {showSql ? "▾" : "▸"} Raw SQL Query
             </button>
             {showSql && (
@@ -1708,10 +1663,9 @@ function QuerySimulatorTab({ theme }) {
                               fontSize:ts(11), overflowX:"auto", margin:0, lineHeight:1.5 }}>
                   {data.rawSql}
                 </pre>
-                <button
+                <button className="pl-btn pl-btn--paper pl-btn--dense"
                   onClick={() => navigator.clipboard.writeText(data.rawSql)}
-                  style={{ marginTop:8, background:"transparent", color:theme.text, border:`1px solid ${theme.border}`,
-                           borderRadius:6, padding:"4px 14px", fontSize:ts(11), fontWeight:700, cursor:"pointer" }}>
+                  style={{ marginTop:8 }}>
                   Copy SQL
                 </button>
               </div>
@@ -1739,13 +1693,12 @@ function QuerySimulatorTab({ theme }) {
           }}
         />
         <div style={{ display:"flex", gap:8, marginBottom:12 }}>
-          <button onClick={runRawQuery} disabled={rawLoading}
-            style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                     padding:"6px 18px", fontWeight:700, fontSize:ts(11), cursor:"pointer" }}>
+          <button className="pl-btn pl-btn--paper pl-btn--dense" onClick={runRawQuery} disabled={rawLoading}
+            >
             {rawLoading ? "Running…" : "Run"}
           </button>
           {rawResults && (
-            <button onClick={() => {
+            <button className="pl-btn pl-btn--paper pl-btn--dense" onClick={() => {
               if (!rawResults.rows?.length) return;
               const cols = rawResults.columns;
               const csv = [cols.join(","), ...rawResults.rows.map(r => cols.map(c => {
@@ -1758,8 +1711,7 @@ function QuerySimulatorTab({ theme }) {
               Object.assign(document.createElement("a"), { href:url, download:"query_results.csv" }).click();
               URL.revokeObjectURL(url);
             }}
-              style={{ background:"transparent", color:ACCENT_TEXT, border:`1px solid ${ACCENT_TEXT}44`,
-                       borderRadius:6, padding:"6px 18px", fontWeight:700, fontSize:ts(11), cursor:"pointer" }}>
+              >
               Export CSV
             </button>
           )}
@@ -1774,7 +1726,7 @@ function QuerySimulatorTab({ theme }) {
             </div>
             {rawResults.rows?.length > 0 && (
               <div style={{ overflowX:"auto" }}>
-                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(10) }}>
+                <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(10) }}>
                   <thead>
                     <tr style={{ background:theme.surfaceHigh }}>
                       {rawResults.columns.map(c => (
@@ -1798,7 +1750,7 @@ function QuerySimulatorTab({ theme }) {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               </div>
             )}
           </div>
@@ -1846,14 +1798,9 @@ function TableBrowserTab({ theme }) {
         </div>
         <div style={{ maxHeight:"calc(100vh - 250px)", overflowY:"auto" }}>
           {tables.map(t => (
-            <button key={t.name}
+            <button className="pl-btn pl-btn--paper pl-btn--dense" aria-pressed={selected === t.name} key={t.name}
               onClick={() => { setSelected(t.name); setPage(1); }}
-              style={{
-                width:"100%", display:"flex", justifyContent:"space-between",
-                padding:"8px 12px", border:"none", borderTop:`1px solid ${theme.border}`,
-                background:selected === t.name ? ACCENT+"22" : "transparent",
-                color:theme.text, cursor:"pointer", textAlign:"left", fontSize:ts(12),
-              }}>
+              style={{ width:"100%", display:"flex", justifyContent:"space-between", textAlign:"left" }}>
               <span style={{ fontWeight:selected === t.name ? 800 : 500 }}>{t.name}</span>
               <span style={{ color:theme.textMuted }}>{fmt(t.rowCount)}</span>
             </button>
@@ -1870,16 +1817,12 @@ function TableBrowserTab({ theme }) {
             </div>}
           </div>
           <div style={{ flex:1 }}/>
-          <button disabled={!data || page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}
-            style={{ padding:"5px 12px", borderRadius:6, border:`1px solid ${theme.border}`,
-                     background:theme.surfaceHigh, color:theme.text, cursor:"pointer",
-                     opacity:!data || page <= 1 ? 0.5 : 1 }}>
+          <button className="pl-btn pl-btn--paper pl-btn--dense" disabled={!data || page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}
+            style={{ opacity:!data || page <= 1 ? 0.5 : 1 }}>
             Prev
           </button>
-          <button disabled={!data || page >= data.totalPages} onClick={() => setPage(p => p + 1)}
-            style={{ padding:"5px 12px", borderRadius:6, border:`1px solid ${theme.border}`,
-                     background:theme.surfaceHigh, color:theme.text, cursor:"pointer",
-                     opacity:!data || page >= data.totalPages ? 0.5 : 1 }}>
+          <button className="pl-btn pl-btn--paper pl-btn--dense" disabled={!data || page >= data.totalPages} onClick={() => setPage(p => p + 1)}
+            style={{ opacity:!data || page >= data.totalPages ? 0.5 : 1 }}>
             Next
           </button>
         </div>
@@ -1889,7 +1832,7 @@ function TableBrowserTab({ theme }) {
         {data && !loading && (
           <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, overflow:"auto",
                         maxHeight:"calc(100vh - 245px)" }}>
-            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(11) }}>
+            <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(11) }}>
               <thead>
                 <tr style={{ background:theme.surfaceHigh, position:"sticky", top:0 }}>
                   {cols.map(c => (
@@ -1912,7 +1855,7 @@ function TableBrowserTab({ theme }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </div>
         )}
       </div>
@@ -2004,23 +1947,21 @@ function JobReviewTab({ theme }) {
                    background:theme.surface, color:theme.text }}>
           {roleOptions.map(r => <option key={r || "all"} value={r}>{r || "all roles"}</option>)}
         </select>
-        <button onClick={load}
-          style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                   padding:"7px 14px", fontWeight:700, cursor:"pointer" }}>
+        <button className="pl-btn pl-btn--paper pl-btn--dense" onClick={load}
+          >
           Refresh
         </button>
         {status && <span style={{ fontSize:ts(12), color:theme.textMuted }}>{status}</span>}
         {lastChange && (
-          <button onClick={undoLast}
-            style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                     padding:"5px 10px", fontWeight:700, cursor:"pointer", fontSize:ts(11) }}>
+          <button className="pl-btn pl-btn--paper pl-btn--dense" onClick={undoLast}
+            >
             ↩ Undo last change
           </button>
         )}
       </div>
       <ErrBox msg={error} theme={theme}/>
       <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, overflow:"auto" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(11) }}>
+        <div className="pl-gazetteer pl-gazetteer--dense"><table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(11) }}>
           <thead>
             <tr style={{ background:theme.surfaceHigh }}>
               {["Job", "Current", "Users", "Suggested", "Assign", "Profile", ""].map(h => (
@@ -2071,18 +2012,15 @@ function JobReviewTab({ theme }) {
                     </select>
                   </td>
                   <td style={{ padding:"8px 10px", whiteSpace:"nowrap" }}>
-                    <button disabled={saving === job.job_id}
+                    <button className="pl-btn pl-btn--paper pl-btn--dense" disabled={saving === job.job_id}
                       onClick={() => reassign(job, job._nextRoleKey || job.suggestedRoleKey, job._nextProfileId ?? selectedId)}
-                      style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                               padding:"5px 10px", fontWeight:700, cursor:"pointer", opacity:saving === job.job_id ? 0.5 : 1 }}>
+                      style={{ opacity:saving === job.job_id ? 0.5 : 1 }}>
                       Save…
                     </button>
-                    <button disabled={saving === job.job_id}
+                    <button className="pl-btn pl-btn--paper pl-btn--dense" disabled={saving === job.job_id}
                       onClick={() => reassign(job, "unclassified", "")}
                       title="Removes the classification. Unclassified postings are shown on every board."
-                      style={{ marginLeft:6, background:"transparent", color:theme.textMuted,
-                               border:`1px solid ${theme.border}`, borderRadius:6,
-                               padding:"5px 10px", fontWeight:700, cursor:"pointer" }}>
+                      style={{ marginLeft:6 }}>
                       Unclassify
                     </button>
                   </td>
@@ -2090,7 +2028,7 @@ function JobReviewTab({ theme }) {
               );
             })}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   );
@@ -2123,9 +2061,10 @@ export default function DBInspector() {
 
   return (
     <div style={{
-      fontFamily:"'DM Sans',system-ui,sans-serif", fontSize:ts(13),
-      background:theme.bg, minHeight:"calc(100vh - 56px)", color:theme.text,
-      padding:"20px 24px",
+      // D197 #21 (47n): inside the admin plate root — its paper shows through, the plate's sans face
+      fontFamily:"var(--pl-sans)", fontSize:ts(13),
+      minHeight:"calc(100vh - 56px)", color:"var(--pl-ink)",
+      padding:"20px clamp(12px, 3vw, 24px)",
     }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
@@ -2147,32 +2086,14 @@ export default function DBInspector() {
             <option value={0}>off</option><option value={30}>every 30 s</option><option value={60}>every 60 s</option>
           </select>
         </label>
-        <button onClick={doRefresh}
-          style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                   padding:"5px 14px", fontWeight:700, fontSize:ts(11), cursor:"pointer" }}>
+        <button className="pl-btn pl-btn--paper pl-btn--dense" onClick={doRefresh}
+          >
           Refresh
         </button>
       </div>
 
-      {/* Tab bar */}
-      <div style={{
-        display:"flex", gap:0, borderBottom:`1px solid ${theme.border}`, marginBottom:24,
-      }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)}
-            style={{
-              background:"transparent", border:"none", cursor:"pointer",
-              padding:"10px 18px", fontSize:ts(12), fontWeight:800, letterSpacing:"0.05em",
-              textTransform:"uppercase", color: activeTab===t.id ? theme.text : theme.textMuted,
-              borderBottom: activeTab===t.id ? `2px solid ${ACCENT_TEXT}` : "2px solid transparent",
-              transition:"all 0.15s", position:"relative", top:1,
-            }}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab content */}
+      {/* D197 #21 (47n): the six views are the plate's binder tabs; the selected view is their panel */}
+      <BinderTabs tabs={TABS} selected={activeTab} onSelect={setActiveTab} label="Database inspector" idBase="dbi-tab">
       <div key={refreshKey}>
         {activeTab === "scrape" && <ScrapeMonitorTab theme={theme}/>}
         {/* D83 audit #22: the table browser is part of the schema page — one list of tables, not two. */}
@@ -2182,6 +2103,7 @@ export default function DBInspector() {
         {activeTab === "trace" && <JobTraceTab theme={theme} initialJobId={traceJobId}/>}
         {activeTab === "simulate" && <QuerySimulatorTab theme={theme}/>}
       </div>
+      </BinderTabs>
     </div>
   );
 }
