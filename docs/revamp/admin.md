@@ -132,6 +132,9 @@ guarded writes dashed-confirm). At 390 the table scrolls inside its box and the 
 - ⭐ **Agent's pick — owner may reverse (unclear home (a), the doc's recommendation):** Appearance's *the Admin pages' look*
   switch is struck — Admin is a plate page and follows the app's palette; a browser still holding an old Admin look is shown
   it once with *Follow the app*. The two user offers (Studio, Dusk) are unchanged.
-- LEFT: the panels' own inner controls (the `rm-btn` / `dbx-depth` buttons, the tables as `Gazetteer`, filters as
+- ✅ **47n built every item of the LEFT line below** — the inner controls: one kit `Btn` in all 20 panels, every admin table in
+  the dense Gazetteer, fields under `[data-plate-admin]`, Enrichment's drop target the dashed drawer (`5484d454`); the DB
+  inspector on plate pieces (`e59aed3b`). Kept as history:
+- ~~LEFT:~~ the panels' own inner controls (the `rm-btn` / `dbx-depth` buttons, the tables as `Gazetteer`, filters as
   `FilterChips`, switches, dialogs) — the frame and the kit only; (b) Enrichment's drop target, (c) a plate textarea,
   (d) the DB inspector (its own page; not restyled) stay as they were.

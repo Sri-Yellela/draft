@@ -172,5 +172,5 @@ pieces: **`FloatingPanel`** and **`ReopenTab`** (`client/src/plate/Panels.jsx`, 
   `resumePanel.js` (`.fc-bar`); the A93 guard now accepts a mirror of a module member.
 - The v1.7.0 zip rebuilt (550,269 bytes) — no version bump (`test/extensionSubmission.test.js` only needs the zip of the
   manifest's version to match the source).
-- LEFT: the Fill / ATS / Résumé / Copy sheet tabs' own drawing (they take the light palette, not the plate's pieces); the
-  skill squares behind *More*; Instrument Serif in the panel (the employer's page has no such face — Georgia draws).
+- ✅ 47n built the first two: the Fill / ATS / Résumé / Copy sheet views on a plate layer (`22dd6ca6`) and the skill squares
+  behind *More* (`048680ca`). **LEFT (only this):** Instrument Serif in the panel (the employer's page has no such face — Georgia draws).
