@@ -6,7 +6,7 @@ import { useTheme } from "../styles/theme.jsx";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { Z } from "../styles/zLayers.js";
 import {
-  groupByApplication, groupByCompany, splitByFault, resolutionPlan, PREREQUISITE_LABELS, solvableHere,
+  groupByApplication, groupByCompany, splitByFault, resolutionPlan, PREREQUISITE_LABELS, solvableHere, needsEmployerPortal,
 } from "../lib/applyObstacles.js";
 import {
   ApplicationRow, ApplicationObstacleCard, CompanyHeading, AttemptRow,
@@ -891,7 +891,7 @@ export function AutoApplyPanel({ user = null } = {}) {
           ...(heldQuestionsFor(node).length ? [] : [{ id: "answer", label: "Answer them", kind: "primary", onClick: () => openApplicationReview(r) }]),
           ...runAgain, ...yourself(row)];
         const packet = handoffPacketFor?.(r.primary?.row) || handoffPacketFor?.(r);
-        if (r.primary?.code === "human_check" && !packet && row.applyUrl && !r.postingGone) {
+        if (needsEmployerPortal(row) && !packet && row.applyUrl && !r.postingGone) {
           const [portalAction] = yourself(row);
           return [
             { ...portalAction, label: "Open employer portal", kind: "primary" },
@@ -932,6 +932,13 @@ export function AutoApplyPanel({ user = null } = {}) {
             onClick: () => window.dispatchEvent(new CustomEvent("draft:solve-check", { detail: { runJobId: r.id } })) },
           ...yourself(r)];
         const portal = portalFor(node);
+        if (needsEmployerPortal(r) && !portal && r.applyUrl && !r.postingGone) {
+          const [portalAction] = yourself(r);
+          return [
+            { ...portalAction, label: "Open employer portal", kind: "primary" },
+            { id: "open", label: "Review application", onClick: () => openApplicationReview({ ...r, rows: [r] }) },
+          ];
+        }
         return [{ id: "signin", label: "Sign in again", kind: "primary",
           onClick: portal ? () => openPortalReview(portal) : () => openApplicationReview({ jobId: r.jobId, rows: [r], company: r.company, title: r.title }) },
           ...yourself(r)];

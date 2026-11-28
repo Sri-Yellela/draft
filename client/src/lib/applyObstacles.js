@@ -296,6 +296,10 @@ export function solvableHere(row = {}) {
   return row?.status === "held_gate" && !!BY_REASON[row?.reasonCode]?.solvesHere && (!("fill" in row) || (row.fill?.filled || 0) > 0);
 }
 
+export function needsEmployerPortal(row) {
+  return row?.reasonCode === "human_check" || row?.reasonCode === "session_signed_out";
+}
+
 export function sectionFor(status) {
   if (IN_FLIGHT_STATUSES.has(status)) return SECTION.IN_FLIGHT;
   if (NEEDS_YOU_STATUSES.has(status)) return SECTION.NEEDS_YOU;

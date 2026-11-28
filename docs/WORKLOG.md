@@ -173,6 +173,12 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
+### ▶▶▶ cdx-02 PROGRESS (agent, 11-27) — staging and expired portal sessions
+
+- **OWNER DECISION.** Git commits carry technical notes in the worklog format. Use unsigned commits with no Codex attribution.
+- ✅ **cdx-01 ON STAGING.** Pushed `fe030dc5` to `origin/staging`. Railway reported SUCCESS and the public version endpoint answered with ready JSON. The isolated staging checkout passed 108 focused tests.
+- **TECH.** **Mechanism:** a signed-out worker attempt without a current portal packet could offer sign-in but only open application review. **Change:** offer the employer portal directly when its posting URL is available and keep scoped review alongside it. **Verified:** cdx-02 passed all 108 focused tests in the staging checkout. **Unknown:** the signed-in browser flow and any employer-authorised background submission path still need verification.
+
 ### ▶▶▶ cdx-01 PROGRESS (agent, 11-27) — auto-apply exceptions
 
 - **OWNER DECISION.** Start with candidate-authorised background applications where an employer or ATS supports automated submission. Collect sign-in and verification exceptions in Draft House. Use the existing worklog with the `cdx` notation.
