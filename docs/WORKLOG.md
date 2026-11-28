@@ -175,6 +175,9 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ### ▶▶▶ cdx-02 PROGRESS (agent, 11-27) — staging and expired portal sessions
 
+- ✅ **STAGING VERIFIED.** `057008ee` deployed successfully. `/api/version` returned HTTP 200 JSON with boot ready. The isolated Vite production build completed.
+- **BROWSER.** `node scripts/abPanelUi.mjs` reported the same 11 failures on `057008ee` and on the pre-change apply files from `44f87c3a` (AC2 review, AE3 employer header, AC4 calendar). The fixtures do not include the two worker-specific reasons. The signed-in staging flow still needs a dedicated fixture or test account.
+
 - **OWNER DECISION.** Git commits carry technical notes in the worklog format. Use unsigned commits with no Codex attribution.
 - ✅ **cdx-01 ON STAGING.** Pushed `fe030dc5` to `origin/staging`. Railway reported SUCCESS and the public version endpoint answered with ready JSON. The isolated staging checkout passed 108 focused tests.
 - **TECH.** **Mechanism:** a signed-out worker attempt without a current portal packet could offer sign-in but only open application review. **Change:** offer the employer portal directly when its posting URL is available and keep scoped review alongside it. **Verified:** cdx-02 passed all 108 focused tests in the staging checkout. **Unknown:** the signed-in browser flow and any employer-authorised background submission path still need verification.
