@@ -1,0 +1,454 @@
+{
+  "version": 1,
+  "about": "47o (owner 11-27, docs/ATLAS_WIKI_PLAN_47o.md, approved 'go ahead with the recommendations'): the hub entries, the senses of a word with several meanings, the merges and renames that make the Atlas one entry per meaning. Imported at boot by services/atlas/atlasCurated.js, idempotent; a curator's later edit in Admin wins. Definitions are draft's own plain words (no model, D190).",
+  "entries": [
+    {
+      "name": "CPU",
+      "kind": "concept",
+      "family": "systems",
+      "aliases": [
+        "central processing unit",
+        "CPUs"
+      ],
+      "definition": "The general-purpose processor that runs a computer's programs: a few fast cores, each following its own stream of instructions."
+    },
+    {
+      "name": "Monte Carlo method",
+      "kind": "concept",
+      "family": "quant",
+      "aliases": [
+        "Monte Carlo",
+        "Monte Carlo simulation",
+        "Monte Carlo simulations",
+        "Monte Carlo methods"
+      ],
+      "definition": "Estimating an answer by running many random trials and averaging the results. Used to price options, measure risk and simulate physical systems."
+    },
+    {
+      "name": "Statistics",
+      "kind": "concept",
+      "family": "data",
+      "aliases": [
+        "statistical analysis"
+      ],
+      "definition": "The science of collecting, summarising and drawing conclusions from data, including how sure a conclusion can be."
+    },
+    {
+      "name": "Parallel computing",
+      "kind": "concept",
+      "family": "systems",
+      "aliases": [
+        "parallel programming",
+        "parallel processing"
+      ],
+      "definition": "Splitting one job into parts that run at the same time on many cores, processors or machines."
+    },
+    {
+      "name": "Linear algebra",
+      "kind": "concept",
+      "family": "ml",
+      "aliases": [],
+      "definition": "The mathematics of vectors and matrices: the arithmetic behind graphics, machine learning and scientific computing."
+    },
+    {
+      "name": "Data analysis",
+      "kind": "concept",
+      "family": "data",
+      "aliases": [],
+      "definition": "Inspecting, cleaning and summarising data to answer a question or support a decision."
+    },
+    {
+      "name": "Computer architecture",
+      "kind": "concept",
+      "family": "systems",
+      "aliases": [
+        "computer organization",
+        "computer organisation"
+      ],
+      "definition": "How a computer's processor, memory and input and output are organised, and how they work together."
+    },
+    {
+      "name": "High-performance computing",
+      "kind": "concept",
+      "family": "infra",
+      "aliases": [
+        "HPC",
+        "high performance computing"
+      ],
+      "definition": "Running very large computations on clusters or supercomputers, with many processors working in parallel."
+    },
+    {
+      "name": "Kernel (operating system)",
+      "kind": "concept",
+      "family": "systems",
+      "aliases": [
+        "OS kernel",
+        "operating system kernel",
+        "operating-system kernel"
+      ],
+      "definition": "The core of an operating system: it manages memory, runs programs and talks to the hardware on their behalf.",
+      "sense": {
+        "word": "kernel",
+        "cues": [
+          "operating system",
+          "os",
+          "linux",
+          "unix",
+          "windows",
+          "syscall",
+          "syscalls",
+          "system call",
+          "system calls",
+          "boot",
+          "user space",
+          "kernel space",
+          "module",
+          "modules",
+          "interrupt",
+          "interrupts",
+          "file system",
+          "process",
+          "processes"
+        ],
+        "domains": [
+          "systems",
+          "it",
+          "security"
+        ]
+      }
+    },
+    {
+      "name": "Compute kernel",
+      "kind": "concept",
+      "family": "ml",
+      "aliases": [
+        "CUDA kernel",
+        "CUDA kernels",
+        "GPU kernel",
+        "GPU kernels",
+        "compute kernels"
+      ],
+      "definition": "A small function that a GPU or other accelerator runs at the same time on thousands of threads, one piece of data each.",
+      "sense": {
+        "word": "kernel",
+        "cues": [
+          "cuda",
+          "gpu",
+          "gpus",
+          "opencl",
+          "triton",
+          "threads",
+          "thread",
+          "warp",
+          "warps",
+          "shader",
+          "launch",
+          "launches",
+          "accelerator",
+          "tensor"
+        ],
+        "domains": [
+          "game_graphics",
+          "eng_electrical",
+          "quant"
+        ]
+      }
+    },
+    {
+      "name": "Kernel method",
+      "kind": "concept",
+      "family": "ml",
+      "aliases": [
+        "kernel methods",
+        "kernel trick",
+        "RBF kernel",
+        "Gaussian kernel",
+        "polynomial kernel"
+      ],
+      "definition": "In machine learning, a way of comparing data points that lets a simple model draw curved boundaries, as support vector machines do.",
+      "sense": {
+        "word": "kernel",
+        "cues": [
+          "svm",
+          "svms",
+          "support vector",
+          "rbf",
+          "gaussian",
+          "polynomial",
+          "trick",
+          "regression",
+          "classifier",
+          "density",
+          "smoothing"
+        ],
+        "domains": [
+          "research_science",
+          "science"
+        ]
+      }
+    }
+  ],
+  "senses": [
+    {
+      "slug": "go",
+      "word": "Go",
+      "cues": [
+        "golang",
+        "goroutine",
+        "goroutines",
+        "programming",
+        "language",
+        "languages",
+        "python",
+        "java",
+        "rust",
+        "c++",
+        "typescript",
+        "kotlin",
+        "javascript",
+        "microservices"
+      ]
+    },
+    {
+      "slug": "rust",
+      "word": "Rust",
+      "cues": [
+        "cargo",
+        "programming",
+        "language",
+        "languages",
+        "go",
+        "c++",
+        "memory safety",
+        "python",
+        "java",
+        "systems programming",
+        "webassembly"
+      ]
+    },
+    {
+      "slug": "spark",
+      "word": "Spark",
+      "cues": [
+        "apache",
+        "pyspark",
+        "hadoop",
+        "databricks",
+        "scala",
+        "hive",
+        "kafka",
+        "big data",
+        "etl",
+        "cluster",
+        "sql",
+        "python",
+        "dataframes"
+      ]
+    },
+    {
+      "slug": "r",
+      "word": "R",
+      "cues": [
+        "rstudio",
+        "statistics",
+        "statistical",
+        "python",
+        "sas",
+        "stata",
+        "spss",
+        "ggplot",
+        "tidyverse",
+        "programming",
+        "language",
+        "matlab"
+      ]
+    },
+    {
+      "slug": "lean",
+      "word": "Lean",
+      "cues": [
+        "manufacturing",
+        "six sigma",
+        "kaizen",
+        "waste",
+        "continuous improvement",
+        "toyota",
+        "5s",
+        "value stream",
+        "process improvement"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "slug": "data-visualisation",
+      "add": [
+        "data visualization",
+        "data viz"
+      ]
+    }
+  ],
+  "renames": [
+    {
+      "slug": "cloud-computing-aws-azure-google-cloud",
+      "name": "Cloud computing",
+      "family": "infra",
+      "redirectFrom": [
+        "cloud-computing"
+      ]
+    }
+  ],
+  "merges": [
+    {
+      "winner": "financial-models",
+      "loser": "financial-modelling"
+    },
+    {
+      "winner": "press-release",
+      "loser": "press-releases"
+    }
+  ],
+  "edges": [
+    {
+      "from": "cpu-core",
+      "type": "part_of",
+      "to": "cpu"
+    },
+    {
+      "from": "cpu-cache",
+      "type": "part_of",
+      "to": "cpu"
+    },
+    {
+      "from": "kernel-module",
+      "type": "part_of",
+      "to": "kernel-operating-system"
+    },
+    {
+      "from": "linux-kernel",
+      "type": "used_with",
+      "to": "kernel-operating-system"
+    },
+    {
+      "from": "compute-kernel",
+      "type": "used_with",
+      "to": "cuda"
+    },
+    {
+      "from": "compute-kernel",
+      "type": "used_with",
+      "to": "gpu"
+    },
+    {
+      "from": "gpu",
+      "type": "used_with",
+      "to": "parallel-computing"
+    },
+    {
+      "from": "cpu",
+      "type": "part_of",
+      "to": "computer-architecture"
+    },
+    {
+      "from": "high-performance-computing",
+      "type": "requires",
+      "to": "parallel-computing"
+    },
+    {
+      "from": "monte-carlo-method",
+      "type": "requires",
+      "to": "statistics"
+    }
+  ],
+  "familiesAbout": "47n audit: 12 families had no entry. Each slug below goes to that family when its family is unset or was set by a seed (registry or families.json, which said web and mobile sat under Backend only until their own families existed); a curator's family in Admin is never moved.",
+  "families": {
+    "frontend": [
+      "accessibility",
+      "dom",
+      "react",
+      "responsive-design",
+      "wcag"
+    ],
+    "mobile": [
+      "android-development",
+      "android-studio",
+      "ios-and-android",
+      "kotlin",
+      "xcode"
+    ],
+    "game_graphics": [
+      "opengl",
+      "rasterization-and-ray-tracing",
+      "shader",
+      "vulkan"
+    ],
+    "qa": [
+      "load-testing",
+      "playwright",
+      "selenium",
+      "test-automation",
+      "unit-test"
+    ],
+    "quant": [
+      "monte-carlo-method"
+    ],
+    "it": [
+      "servicenow"
+    ],
+    "security": [
+      "cryptographic-hash-sha-256",
+      "end-to-end-encryption",
+      "firewall-and-vpn",
+      "incident-response",
+      "intrusion-detection-ids-and-ips",
+      "penetration-testing",
+      "phishing",
+      "post-quantum-cryptography",
+      "public-key-cryptography-rsa-elliptic-curves",
+      "ransomware",
+      "rootkit",
+      "security-operations-center",
+      "siem",
+      "sql-injection-and-xss",
+      "stateful-firewall",
+      "symmetric-and-asymmetric-encryption",
+      "zero-trust"
+    ],
+    "robotics": [
+      "actuators",
+      "imu",
+      "lidar",
+      "ros-robot-operating-system",
+      "rtk-positioning"
+    ],
+    "architecture": [
+      "bim-360",
+      "construction-documents",
+      "revit"
+    ],
+    "geospatial": [
+      "a-gps",
+      "arcgis",
+      "gnss",
+      "gps"
+    ],
+    "bioinformatics": [
+      "crispr",
+      "ngs",
+      "rna-seq"
+    ],
+    "science": [
+      "assay-development",
+      "assays",
+      "cell-culture",
+      "cell-based-assays",
+      "chromatography",
+      "hplc",
+      "mammalian-cell-culture",
+      "mass-spectrometry",
+      "pcr",
+      "spectroscopy",
+      "titration"
+    ]
+  }
+}

@@ -37,6 +37,8 @@ import { requestBoardSearch } from "../lib/boardSearch.js";
 import { useAccountAvatar } from "../lib/accountAvatar.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import AskDraftThread from "./AskDraftThread.jsx";   // A199 (2): a held application's questions as a thread
+// 47o W2: a learning answer’s words link wiki-style
+import { AtlasProse } from "./AtlasTerm.jsx";
 // ⭐ D190 · the one engine (shared with the PDF tools' Tiny) + the one vocabulary + draft's handlers (no model for site data)
 import { createAssistant, TIER_LABEL } from "../../../shared/assistantEngine.js";
 import ASSISTANT_COMMANDS from "../../../content/assistant/commands-v1.json";
@@ -479,6 +481,9 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
     return { ...t, text: t.answer || t.text, undo: !!t.undoFn, confirm: !!(t.confirm && t.live), routeKind: kind,
       lessons: kind === "route" || kind === "bigger" ? [] : t.lessons };
   });
+  // ⭐ 47o W2: a T2 answer (from draft’s own data — a skill, a role, how draft works) links its words to the one entry for
+  // each, wiki-style. Never an application answer (usable): that text is the person’s, sent to an employer.
+  const renderText = (t) => (t.who === "draft" && t.tier === "T2" && !t.usable && !t.failed ? <AtlasProse text={t.text} onGo={(href) => navigate(href)}/> : null);
   const renderTurn = (t, i) => {
     if (t.routeKind === "route") {
       const st = routeSaves[i];
@@ -501,7 +506,7 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
           canSpeak={canSpeak} listening={voice.on} onSpeak={toggleVoice} voiceNote={voice.note || null}
           improve={status?.available ? { on: !!status.improveAtlas, onToggle: toggleImprove } : null}
           onClose={onClose} onUndo={(i) => undoTurn(i, turns[i])} onAnswerBack={(i, yes) => answerConfirm(i, yes)}
-          onDecide={(i, ok) => decide(i, turns[i].action, ok)} onUseAnswer={(i) => useAnswer(turns[i])} renderTurn={renderTurn}>
+          onDecide={(i, ok) => decide(i, turns[i].action, ok)} onUseAnswer={(i) => useAnswer(turns[i])} renderTurn={renderTurn} renderText={renderText}>
           {thread && (
             <AskDraftThread key={`${thread.jobId}:${thread.runKey ?? ""}`} thread={thread} onClose={() => setThread(null)}
               onSaved={() => { loadApplyRuns?.(); loadApplyPending?.(); window.dispatchEvent(new CustomEvent("draft:answers-saved", { detail: { jobId: thread.jobId } })); }} />

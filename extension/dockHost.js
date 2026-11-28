@@ -75,7 +75,21 @@ export function forgetAppearance() { APPEARANCE = { at: 0, value: null }; }
 // font is a courtesy: if it cannot be read the view renders the same words in the fallback face.
 // ⭐ T17: the pair is the ACCOUNT's appearance (themePair) — so the dock and every view on it follow all four themes.
 let LOGO = null;
+// ⭐ 47o (owner 11-27, "go ahead with the recommendations"): the panel's serif travels the same way — on an employer's page
+// the shadow root cannot use the package's @font-face, so Georgia drew instead of Instrument Serif (extension.md LEFT).
+let SERIF = null;
+async function fontBytes(file) {
+  try {
+    const res = await fetch(chrome.runtime.getURL(file));
+    if (!res.ok) return '';
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  } catch { return ''; }
+}
 export async function overlayTheme() {
+  if (SERIF === null) SERIF = await fontBytes('fonts/instrument-serif-latin-400-normal.woff2');
   if (LOGO === null) {
     LOGO = '';
     try {
@@ -92,7 +106,7 @@ export async function overlayTheme() {
   // ⭐ D197 #19 M5 (47m, agent's pick — owner may reverse): the dock is a PLATE on the page — paper in every scheme, as plate
   // pages are, until a dark plate exists (the theme-leak rule, docs/revamp/extension.md §5). So every view in it is handed
   // the account's LIGHT palette for both schemes, and the plate palette (C_PLATE) for the panel, the frame and the /d square.
-  return { light: pair.light, dark: pair.light, plate: C_PLATE, logoFont: LOGO || null };
+  return { light: pair.light, dark: pair.light, plate: C_PLATE, logoFont: LOGO || null, serifFont: SERIF || null };
 }
 
 // ── where the dock sits, per site ────────────────────────────────────────────────────────────────────────────────

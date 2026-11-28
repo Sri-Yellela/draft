@@ -41,7 +41,7 @@ export function renderJobPanel(model, theme, dockMeta) {
   // (`c`). An older service worker without the plate palette falls back to `c`.
   const p = theme?.plate || {};
   const P = (k, fb) => p[k] || c[fb] || '';
-  const SERIF = `'Instrument Serif', Georgia, 'Times New Roman', serif`;
+  const SERIF = `'rm-draft-serif', 'Instrument Serif', Georgia, 'Times New Roman', serif`;   // 47o: the dock loads rm-draft-serif
   const SANS = `'Inter Tight', 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif`;
   const MONO = `'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace`;
   const css = `

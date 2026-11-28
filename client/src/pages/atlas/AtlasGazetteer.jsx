@@ -13,12 +13,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import PlateRoot from "../../plate/PlateRoot.jsx";
 import RouteMap, { RouteLegend, ProjectRoute } from "../../plate/RouteMap.jsx";
-import { GoLink, GzCard, PlateChip, GzSquares, CrossRefText, LookUp, GzChip, ShowBrowse, DictRow, AzPage, PlateCards, RoleRows, StageBands,
+import { GoLink, GzCard, PlateChip, GzSquares, LookUp, GzChip, ShowBrowse, DictRow, AzPage, PlateCards, RoleRows, StageBands,
   InterviewRows, IndexRail, DueRow, Door, RouteRow, WordChip, EntryHead, WatchIt, WhereItRuns, WhyItWorks, PracticeLadder, Compass, ReadMore,
   EntryRoutes, EntrySide, RouteHead, StopsList, StopRow, RouteStamp, RouteFacts } from "../../plate/Gazetteer.jsx";
 import { entriesOf, showCounts, showFilter, searchEntries, matchedPart, byLetter, LETTERS, letterOf, regionCounts, stageCounts, roleRows,
   interviewRows, dueList, dueMinutes, routesOf, stopStates, routeProgress, mapWindow, routesThrough, crossings, readMine, writeMine, joinRoute,
-  leaveRoute, copyRoute, dropStop, myCopies, practiceLadder, crossRefs, neighbours, deckFor, flowFor, compassOf, entryHref, routeHref, SHOW,
+  leaveRoute, copyRoute, dropStop, myCopies, practiceLadder, neighbours, deckFor, flowFor, compassOf, entryHref, routeHref, SHOW,
   BROWSE, KIND_WORD, lessonsOf } from "./gazetteerModel.js";
 import { STAGES } from "./volumeModel.js";
 import { routesFor } from "./learnModel.js";
@@ -26,6 +26,9 @@ import { coursePieces, lessonState } from "./libraryModel.js";
 import { loadNode, resolveSearch, payLine, computedLine, orderedResources, WIKI_LICENCE } from "./atlasModel.js";
 import { localDay, MatchAnswer, OrderAnswer } from "./BankAnswers.jsx";
 import { Explain, BuildLink } from "./LearnChecks.jsx";
+// 47o: the one Atlas-text linker (wiki links)
+import { AtlasProse } from "../../components/AtlasTerm.jsx";
+import { familyCategory, familyName } from "../../../../shared/atlasFamilies.js";
 import EntryMore from "./EntryMore.jsx";   // 47m (D200 Rule 1): the old node page's panes   // 47m: one checkpoint box + one build link, the entry's and the circle's
 import { checkpointId, buildId } from "../../../../shared/learnStepState.js";
 import LearnView from "./LearnView.jsx";   // the circle (D203 (8): a route's overview view), until a plate ring is drawn
@@ -137,7 +140,7 @@ export function GazetteerIndexPage({ base, signedIn }) {
   const page = letters.get(letter) || [];
   const half = Math.ceil(page.length / 2);
   const row = (e) => <DictRow key={e.key} word={e.name} kind={e.kind === "place" || e.kind === "term" ? null : KIND_WORD[e.kind]} href={entryHref(base, e)} onGo={go} region={e.region} regionHref={regionHref(base, e)}
-    squares={e.squares} line={<CrossRefText parts={crossRefs(e.meaning, entries, e.key, 2).map((p) => (typeof p === "string" ? p : { text: p.text, href: entryHref(base, p.entry) }))} onGo={go}/>}
+    squares={e.squares} line={<AtlasProse text={e.meaning} self={e.slug || null} max={2} hrefOf={(s) => entryHref(base, { slug: s })} onGo={go}/>}
     meta={metaLine(e, routes)}/>;
   const sorted = [...have].sort();
   const li = sorted.indexOf(letter);
@@ -356,6 +359,7 @@ function checkpointText(content, stepId) {
  */
 export function GazetteerEntryPage({ base, signedIn, slug = null, lessonId = null }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const go = useGo();
   const d = useGazetteerData(signedIn, ["glossary", "course", "patterns", "circle", "pathways", "guides", "ideas", "content", "earned", "checks"]);
   const entries = useEntries(d);
@@ -369,7 +373,14 @@ export function GazetteerEntryPage({ base, signedIn, slug = null, lessonId = nul
     let live = true;
     if (!teachSlug) { setNode({ status: "none", node: null }); return undefined; }
     setNode({ status: "loading", node: null });
-    loadNode(teachSlug).then((n) => live && setNode({ status: n ? "done" : "missing", node: n })).catch((e) => live && setNode({ status: "error", node: null, error: e.message }));
+    loadNode(teachSlug).then(async (n) => {
+      if (!live) return;
+      // ⭐ 47o W5: a merged / renamed entry's old address — the address moves to the entry
+      if (n?.redirectedFrom && slug) { navigate(entryHref(base, { slug: n.slug }), { replace: true }); return; }
+      // ⭐ 47o W4 rule 5: no entry by that name, but a word with several meanings — its disambiguation page
+      if (!n && slug) { const w = await api(`/api/atlas/word/${encodeURIComponent(slug)}`).catch(() => null); if (live && w?.senses?.length) { setNode({ status: "word", node: null, word: w }); return; } }
+      if (live) setNode({ status: n ? "done" : "missing", node: n });
+    }).catch((e) => live && setNode({ status: "error", node: null, error: e.message }));
     return () => { live = false; };
   }, [teachSlug]);
   const n = node.node;
@@ -379,6 +390,7 @@ export function GazetteerEntryPage({ base, signedIn, slug = null, lessonId = nul
   useEffect(() => { if (entry) remember(entry); }, [entry?.key]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (location.hash === "#practice") setTimeout(() => document.getElementById("practice")?.scrollIntoView({ behavior: "smooth" }), 60); }, [location.hash, d.status]);
   if (d.status !== "ready" || (slug && node.status === "loading")) return <PlateRoot className="pl-at-page"><Message status={d.status === "ready" ? "loading" : d.status} onRetry={d.retry} what="entry"/></PlateRoot>;
+  if (slug && node.status === "word") return <WordPage base={base} word={node.word} go={go}/>;
   if ((slug && (node.status === "missing" || node.status === "error")) || (lessonId && !lesson0)) {
     return (
       <PlateRoot className="pl-at-page">
@@ -393,8 +405,9 @@ export function GazetteerEntryPage({ base, signedIn, slug = null, lessonId = nul
   const stageI = lesson?.stage ?? self.stage;
   const meaningText = n?.definition || (lesson ? lesson.goal : "") || entry?.meaning || "";
   const fromWiki = !n?.definition && !!n?.wikipedia?.extract && !lesson;
-  const toRef = (p) => (typeof p === "string" ? p : { text: p.text, href: entryHref(base, p.entry) });
-  const meaning = <CrossRefText parts={crossRefs(fromWiki ? n.wikipedia.extract.split(/(?<=\.)\s/)[0] : meaningText, entries, self.key).map(toRef)} onGo={go}/>;
+  // ⭐ 47o: the meaning’s words link wiki-style (the one linker); the entry’s family is the domain that picks a meaning
+  const domain = n?.family ? [n.family, familyCategory(n.family)].filter(Boolean) : ["computing"];
+  const meaning = <AtlasProse text={fromWiki ? n.wikipedia.extract.split(/(?<=\.)\s/)[0] : meaningText} self={n?.slug || slug} domain={domain} hrefOf={(s) => entryHref(base, { slug: s })} onGo={go}/>;
   const deck = deckFor(name, d.guides);
   const video = (lesson?.links || []).find((x) => x.kind === "Video" && x.url);
   const flow = flowFor(name, deck?.id, d.ideas?.ideas);
@@ -441,6 +454,7 @@ export function GazetteerEntryPage({ base, signedIn, slug = null, lessonId = nul
             <EntryHead kicker={kicker} word={name} also={also} meaning={meaning} squares={<GzSquares n={self.squares || 0} label={`${self.squares || 0} of 3 squares lit${lessonSt?.complete ? " — lit" : ""}`}/>}>
               {fromWiki ? <p className="pl-gz-foot" data-wiki-licence="">The meaning is the first line of Wikipedia’s article — {WIKI_LICENCE.line} · <a href={n.wikipedia.pageUrl || "https://en.wikipedia.org"} target="_blank" rel="noopener noreferrer">the article</a> · <a href={WIKI_LICENCE.url} target="_blank" rel="noopener noreferrer license">the licence</a></p> : null}
               {!meaningText && !fromWiki ? <p className="pl-gz-foot">draft’s own meaning for it has not been written yet.</p> : null}
+              {n?.otherMeanings ? <p className="pl-gz-foot" data-atlas-other-meanings={n.otherMeanings.slug}>“{n.otherMeanings.word}” has {n.otherMeanings.count} meanings. This is one of them. <GoLink href={entryHref(base, { slug: n.otherMeanings.slug })} onGo={go} className="pl-gz-xref">See them all</GoLink></p> : null}
               {n?.you ? <p className="pl-gz-foot" data-atlas-you={n.you.status}>You: {n.you.status === "have" ? "on your résumé" : n.you.status === "partial" ? "partly there" : "not on your résumé yet"}{n.you.missing?.length ? ` · missing ${n.you.missing.map((m) => m.name).join(", ")}` : ""}.</p> : null}
               <div className="pl-gz-head__acts">
                 {region ? <GoLink className="pl-btn" href={regionHref(base, { region, lessonId: lesson?.id, pattern: lesson?.pattern })} onGo={go}>Show on the map</GoLink> : null}
@@ -456,7 +470,7 @@ export function GazetteerEntryPage({ base, signedIn, slug = null, lessonId = nul
                   none="No explainer is drawn for it yet. Its Library sources are below."/>
                 <WhyItWorks title={checks.length ? "WHY IT WORKS · EXPLAIN IT BACK" : "WHY IT WORKS"} flow={flow?.flow}
                   line={lesson && !lesson.pattern ? `${lessonSt?.complete ? "LIT" : `${placeChecksLine(lesson, marks)}`} · A SQUARE LIGHTS ONLY WHEN YOU EXPLAIN IT IN YOUR OWN WORDS` : null}>
-                  {lesson?.pattern ? <>{lesson.idea ? <p className="pl-gz-q__why">{lesson.idea}</p> : null}{lesson.why ? <p className="pl-gz-q__why">{lesson.why}</p> : null}</> : null}
+                  {lesson?.pattern ? <>{lesson.idea ? <p className="pl-gz-q__why"><AtlasProse text={lesson.idea} self={n?.slug || slug} domain={domain} hrefOf={(s) => entryHref(base, { slug: s })} onGo={go}/></p> : null}{lesson.why ? <p className="pl-gz-q__why"><AtlasProse text={lesson.why} self={n?.slug || slug} domain={domain} hrefOf={(s) => entryHref(base, { slug: s })} onGo={go}/></p> : null}</> : null}
                   {!flow && !checks.length && !lesson?.pattern ? <p className="pl-gz-empty">{n?.wikipedia?.extract ? <span className="pl-gz-wiki">{n.wikipedia.extract}</span> : "How it works hasn’t been drawn for this one yet."}</p> : null}
                   {checks.length ? <ul className="pl-gz-checks">{checks.map((c, i) => { const id = checkpointId(lesson.id, i); return <Explain key={id} id={id} question={c} saved={marks[id] ? explanations[id] || { text: "" } : null} signedIn={signedIn} onExplain={writes.onExplain}/>; })}</ul> : null}
                   {lesson?.build && signedIn ? <BuildLink step={lesson.id} saved={d.earned?.builds?.[lesson.id]} onBuild={writes.onBuild}/> : null}
@@ -474,6 +488,7 @@ export function GazetteerEntryPage({ base, signedIn, slug = null, lessonId = nul
             <Compass word={name} up={compass.up} down={compass.down} side={compass.side} roles={compass.roles} link={linkLink}/>
             <EntryRoutes routes={through.map((t) => ({ id: t.route.id, name: t.route.name, at: t.at, of: t.of, href: routeHref(base, t.route.id) }))} onGo={go} drawn={drawn}
               empty="It isn’t on a route yet. Any entry can start one: open Routes and copy one that passes near it."/>
+            <LinkedFrom base={base} name={name} linked={n?.linkedFrom} go={go}/>
             <EntryMore base={base} node={n} onGo={go}/>
           </article>
         </div>
@@ -481,6 +496,43 @@ export function GazetteerEntryPage({ base, signedIn, slug = null, lessonId = nul
     </PlateRoot>
   );
 }
+/**
+ * ⭐ 47o W3 · "LINKED FROM" — the wiki's "what links here": the Atlas text that links to this entry, grouped by domain
+ * (GET /api/atlas/node → linkedFrom, rebuilt off the request thread), and its postings by the families that ask for it.
+ */
+function LinkedFrom({ base, name, linked, go }) {
+  if (!linked || (!linked.total && !linked.postings?.length)) return null;
+  const href = (i) => (i.kind === "lesson" ? `${base}/gazetteer/${encodeURIComponent(i.ref)}` : entryHref(base, { slug: i.ref }));
+  return (
+    <GzCard title={`LINKED FROM · ${linked.total} PAGE${linked.total === 1 ? "" : "S"} IN ${linked.domains} DOMAIN${linked.domains === 1 ? "" : "S"}`} right="EVERY LINK LEADS HERE" id="linked-from" data-atlas-linked-from={linked.total}>
+      {linked.groups.length ? <ul className="pl-gz-where">{linked.groups.map((g) => (
+        <li key={g.key} data-linked-domain={g.key}><b>{g.name}</b> · {g.items.map((i, k) => <span key={i.kind + i.ref}>{k ? ", " : ""}<GoLink href={href(i)} onGo={go} className="pl-gz-xref">{i.label}</GoLink></span>)}{g.count > g.items.length ? ` and ${g.count - g.items.length} more` : ""}</li>
+      ))}</ul> : null}
+      {linked.postings?.length ? <p className="pl-gz-foot" data-linked-postings="">In postings, {name} is asked for most by {linked.postings.slice(0, 4).map((p) => `${p.name} roles (${num(p.postings)})`).join(", ")}.</p> : null}
+    </GzCard>
+  );
+}
+
+/** ⭐ 47o W4 rule 5 · THE DISAMBIGUATION PAGE — /atlas/<word> for a word with several meanings: each meaning, its one line. */
+function WordPage({ base, word, go }) {
+  return (
+    <PlateRoot region="III" className="pl-at-page" data-atlas-word-page={word.slug}>
+      <div className="pl-gz-page">
+        <p className="pl-gz-kicker"><span className="pl-gz-k pl-gz-k--muted">THE GAZETTEER</span> One word, several meanings. Each meaning has its own entry.</p>
+        <article className="pl-gz-entry">
+          <EntryHead kicker={["GAZETTEER · WORD", `${word.senses.length} MEANINGS`]} word={word.word} also="may mean" meaning={null}/>
+          <GzCard title={`“${String(word.word).toUpperCase()}” MAY MEAN`} right="PICK THE ONE YOU MEANT">
+            <ul className="pl-gz-where" data-word-senses="">{word.senses.map((s) => (
+              <li key={s.slug}><GoLink href={entryHref(base, { slug: s.slug })} onGo={go} className="pl-gz-xref"><b>{s.name}</b></GoLink>{s.family ? ` · ${familyName(s.family) || s.family}` : ""}{s.meaning ? <> — {s.meaning}</> : null}</li>
+            ))}</ul>
+            <p className="pl-gz-foot">A plain “{word.word}” links here when its page doesn’t say which meaning it is.</p>
+          </GzCard>
+        </article>
+      </div>
+    </PlateRoot>
+  );
+}
+
 const placeChecksLine = (lesson, marks) => { const ids = [...(lesson.checks || []), ...(lesson.build ? [buildId(lesson.id)] : [])]; const done = ids.filter((id) => marks[id]).length; return `${done} OF ${ids.length} EXPLAINED`; };
 
 /** The side index's small look-up (the same suggestions). */
@@ -617,7 +669,7 @@ export function RoutePage({ base, signedIn, id, compete = null }) {
             <StopsList title={`THE STOPS · ${route.stops.length} ENTRIES IN ORDER`} stops={rows}/>
             {route.kind === "project" && route.build ? (
               <GzCard title="THE BUILD BRIEF · A PROJECT ROUTE ENDS IN A BUILD" right="IT COUNTS AS PROOF" data-route-build="">
-                <p className="pl-gz-q__why">{route.build.brief}</p>
+                <p className="pl-gz-q__why"><AtlasProse text={route.build.brief} domain={["computing"]} hrefOf={(s) => entryHref(base, { slug: s })} onGo={go}/></p>
                 {route.build.steps?.length ? <ol className="pl-gz-where">{route.build.steps.map((x, i) => <li key={i}>{typeof x === "string" ? x : x.title || x.text}</li>)}</ol> : null}
                 {route.build.show ? <p className="pl-gz-foot">Show it: {typeof route.build.show === "string" ? route.build.show : JSON.stringify(route.build.show)}</p> : null}
               </GzCard>

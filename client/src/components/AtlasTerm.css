@@ -45,3 +45,11 @@
 .atl-term__learn:hover, .atl-term__learn:focus-visible { text-decoration: underline; }
 .atl-term__res { margin-top: 10px; max-width: 260px; }   /* D119: holds the one ResourceTile */
 .atl-term__glyph { flex: none; }
+
+/* ⭐ 47o · Atlas text as a wiki (AtlasProse): the link shows at rest — a dotted underline in the text's own colour — so a
+   reader sees what leads on; a word with several meanings (it opens its disambiguation page) is dashed. */
+.atl-term.atl-term--wiki { text-decoration: underline dotted 1.5px; text-underline-offset: 3px; }
+.atl-term.atl-term--word { text-decoration: underline dashed 1px; text-underline-offset: 3px; }
+/* inside the plate (the Atlas pages): the plate's ink, clay on hover — the Gazetteer's cross-reference look */
+.plate .atl-term.atl-term--wiki, .plate .atl-term.atl-term--word { color: var(--pl-ink); text-decoration-color: currentColor; }
+.plate .atl-term.atl-term--wiki:hover, .plate .atl-term.atl-term--word:hover { color: var(--pl-clay); }

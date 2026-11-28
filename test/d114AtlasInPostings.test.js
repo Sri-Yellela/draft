@@ -167,7 +167,10 @@ test("D114 · d114NeverInDocuments — only the posting surfaces mount the links
     if (f.isDirectory()) walk(p); else if (/\.(jsx?|mjs)$/.test(f.name) && /^import [^\n]* from "[^"]*AtlasTerm\.jsx";$/m.test(read(p))) users.push(p.split(path.sep).join("/"));
   } };
   walk("client/src");
-  assert.deepEqual(users.sort(), ["client/src/components/JobCard.jsx", "client/src/components/PostingPanel.jsx", "client/src/panels/JobWorkspacePanel.jsx"]);
+  // ⛔ 47o (changed on purpose — owner 11-27, the Atlas as a wiki): the Atlas's own text links too (AtlasProse) — the
+  // Gazetteer, a lesson, a deck's brief, Ask draft's learning answers (never an application answer). Still never a document.
+  assert.deepEqual(users.sort(), ["client/src/components/AppNav.jsx", "client/src/components/JobCard.jsx", "client/src/components/PostingPanel.jsx",
+    "client/src/pages/atlas/AtlasGazetteer.jsx", "client/src/pages/atlas/LearnCircle.jsx", "client/src/pages/atlas/LibraryGuides.jsx", "client/src/panels/JobWorkspacePanel.jsx"]);
   for (const doc of ["client/src/components/CoverLetterModal.jsx", "services/pdfRender.js", "services/resumeRender.js"]) {
     if (fs.existsSync(doc)) assert.doesNotMatch(read(doc), /AtlasTerm|AtlasText|atlasTerms|linkSegments/, doc);
   }

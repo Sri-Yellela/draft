@@ -7503,4 +7503,32 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_atlas_question_routes_user ON atlas_question_routes(user_id, created_at);
       `,
     },
+    {
+      // ⭐ 47o (owner 11-27: the Atlas as a wiki, docs/ATLAS_WIKI_PLAN_47o.md W3 / W4 / W5) · ONE ENTRY PER MEANING, LINKED FROM
+      // EVERYWHERE. (1) Senses: a word with several meanings is several entries sharing `sense_of` (the word as written, e.g.
+      // "kernel"); `sense_cues` (JSON array) are the neighbouring words that pick this meaning, `sense_domains` (JSON array of
+      // family keys or categories) the pages whose domain picks it. (2) atlas_mentions: "Linked from" — which Atlas text (an
+      // entry's meaning, a lesson, a pattern, a deck, a route) links to which entry; rebuilt off the request thread when the
+      // terms or the content change. (3) atlas_redirects: a merged or renamed entry's old address keeps working. Only ADDS.
+      id: "284_atlas_wiki",
+      sql: `
+        ALTER TABLE atlas_nodes ADD COLUMN sense_of TEXT;
+        ALTER TABLE atlas_nodes ADD COLUMN sense_cues TEXT;
+        ALTER TABLE atlas_nodes ADD COLUMN sense_domains TEXT;
+        CREATE INDEX IF NOT EXISTS idx_atlas_nodes_sense ON atlas_nodes(sense_of);
+        CREATE TABLE IF NOT EXISTS atlas_mentions (
+          node_id      INTEGER NOT NULL REFERENCES atlas_nodes(id) ON DELETE CASCADE,
+          source_kind  TEXT    NOT NULL,
+          source_ref   TEXT    NOT NULL,
+          source_label TEXT    NOT NULL,
+          domain       TEXT,
+          PRIMARY KEY (node_id, source_kind, source_ref)
+        );
+        CREATE TABLE IF NOT EXISTS atlas_redirects (
+          from_slug  TEXT PRIMARY KEY,
+          to_slug    TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
   ];

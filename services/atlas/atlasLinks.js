@@ -68,6 +68,9 @@ function linkableNodes(db) {
   return cache;
 }
 
+/** ⭐ 47o · every published node with its forms (the one cache above) and the cache's key — read by atlasSenses.js. */
+export function linkableNodeList(db) { const c = linkableNodes(db); return { key: c.key, nodes: c.nodes }; }
+
 /**
  * The linkable Atlas nodes of ONE posting.
  * @param job { title?, company?, description, skills_json? } — `company` lets its boilerplate be left out

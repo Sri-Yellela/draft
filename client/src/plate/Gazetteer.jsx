@@ -41,11 +41,6 @@ export function GzSquares({ n = 0, label }) {
   );
 }
 
-/** A dotted cross-reference: the meaning's parts (string | { text, href }) with each entry name a link. */
-export function CrossRefText({ parts = [], onGo }) {
-  return <>{parts.map((p, i) => (typeof p === "string" ? <span key={i}>{p}</span> : <GoLink key={i} href={p.href} onGo={onGo} className="pl-gz-xref">{p.text}</GoLink>))}</>;
-}
-
 // ── LOOK ANYTHING UP ────────────────────────────────────────────────────────────────────────────────────────────────
 /**
  * The search with its grouped suggestions (ENTRIES, then ALSO MATCHES: an interview question, a route, ⇄ the market).

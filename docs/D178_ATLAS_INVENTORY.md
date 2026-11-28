@@ -51,7 +51,7 @@ D177; **"Fly my route to senior …"** → *Your map*'s track-board animation (�
 ## Reader-facing APIs (unchanged by the move; each keeps serving its new home)
 
 `GET /api/atlas/search` · `GET /api/atlas/resolve` · `GET /api/atlas/terms/:jobId` · `GET /api/atlas/peek/:slug` ·
-`GET /api/atlas/glossary` · `GET /api/atlas/run` · `PUT /api/atlas/prefs` (A155, 45o: weekdays only) · `GET /api/atlas/subcategory-roles` (D179 P6, 45l — listed 45o) · `GET /api/atlas/readiness` (D178-3) · `GET /api/atlas/readiness/compare` (D178-3, Idea E — no client caller since A228, 46r) · `GET /api/atlas/skill-map` (A228, 46r: Your map, the skill map) · `GET /api/atlas/me` · `GET /api/atlas/role-fit` ·
+`GET /api/atlas/glossary` · `GET /api/atlas/text-terms` (47o: the one Atlas-text linker's terms) · `GET /api/atlas/word/:word` (47o: a word's meanings — the disambiguation page) · `GET /api/atlas/run` · `PUT /api/atlas/prefs` (A155, 45o: weekdays only) · `GET /api/atlas/subcategory-roles` (D179 P6, 45l — listed 45o) · `GET /api/atlas/readiness` (D178-3) · `GET /api/atlas/readiness/compare` (D178-3, Idea E — no client caller since A228, 46r) · `GET /api/atlas/skill-map` (A228, 46r: Your map, the skill map) · `GET /api/atlas/me` · `GET /api/atlas/role-fit` ·
 `GET /api/atlas/tree/role/:key` · `GET /api/atlas/tree/family/:key` · `POST /api/atlas/link-event` ·
 `GET /api/atlas/node/:slug`
 

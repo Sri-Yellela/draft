@@ -23,7 +23,7 @@ export const BROWSE = Object.freeze([
   { id: "az", label: "A–Z" }, { id: "region", label: "Region" }, { id: "role", label: "Role" }, { id: "stage", label: "Stage" }, { id: "interview", label: "Interview" },
 ]);
 export const STAGE_BANDS = Object.freeze(["Lowlands", "Foothills", "Highlands", "Summit"]);
-export const KIND_WORD = Object.freeze({ role: "role", skill: "skill", tool: "tool", stack: "stack", concept: "concept", pattern: "pattern", place: "lesson", term: "term" });
+export const KIND_WORD = Object.freeze({ role: "role", skill: "skill", tool: "tool", stack: "stack", concept: "concept", pattern: "pattern", place: "lesson", term: "term", word: "word · several meanings" });
 const COURSE_ID = "silicon-to-software", PATTERN_ID = "coding-interview-patterns";
 /** ≈ minutes a due review takes (the board's "Review 4 · about 6 min"): agent's pick, 1.5 min a question. */
 export const MIN_PER_REVIEW = 1.5;
@@ -78,6 +78,10 @@ export function entriesOf({ glossary = null, course = null, patterns = null, mar
     const l = c.learn ? byId.get(c.learn.stepId) : null;
     const f = fromLesson(l);
     out.push({ key: `c:${c.name}`, kind: "concept", name: c.name, meaning: c.meaning || "", postings: null, learn: c.learn || null, ...f, due: f.lessonId ? dueOf(f.lessonId) : 0 });
+  }
+  // ⭐ 47o W6: a word with several meanings is one entry — "kernel · 3 meanings" — that opens its disambiguation page
+  for (const w of glossary?.words || []) {
+    out.push({ key: `w:${w.slug}`, kind: "word", name: w.word, meaning: `${w.meanings} meanings — pick the one you meant.`, slug: w.slug, region: null, stage: null, squares: 0, due: 0, postings: null, learn: null });
   }
   for (const l of lessons) {
     const sq = squaresFor(l, marks);
@@ -311,35 +315,8 @@ export function practiceLadder(questions = []) {
   return rungs;
 }
 
-/**
- * The meaning with its cross-references: every other entry's name found in the text (longest first, whole words, each once)
- * becomes a link. → [string | { text, entry }].
- */
-export function crossRefs(text = "", entries = [], selfKey = null, max = 6) {
-  const s = String(text || "");
-  if (!s) return [];
-  const names = entries.filter((e) => e.key !== selfKey && e.kind !== "place" && e.name.length >= 3 && e.name.length <= 40)
-    .sort((a, b) => b.name.length - a.name.length);
-  const marks = [];
-  const lower = s.toLowerCase();
-  for (const e of names) {
-    if (marks.length >= max) break;
-    const n = e.name.toLowerCase();
-    let i = lower.indexOf(n);
-    while (i >= 0) {
-      const before = i === 0 ? " " : lower.charAt(i - 1), after = lower.charAt(i + n.length) || " ";
-      const free = !marks.some((m) => i < m.end && i + n.length > m.start);
-      if (/[^a-z0-9]/.test(before) && /[^a-z0-9]/.test(after) && free) { marks.push({ start: i, end: i + n.length, entry: e }); break; }
-      i = lower.indexOf(n, i + 1);
-    }
-  }
-  marks.sort((a, b) => a.start - b.start);
-  const out = [];
-  let at = 0;
-  for (const m of marks) { if (m.start > at) out.push(s.slice(at, m.start)); out.push({ text: s.slice(m.start, m.end), entry: m.entry }); at = m.end; }
-  if (at < s.length) out.push(s.slice(at));
-  return out;
-}
+// ⭐ 47o: crossRefs (the Gazetteer's second linker) is gone — every Atlas text links through the one linker,
+// shared/atlasText.js, drawn by components/AtlasTerm.jsx AtlasProse.
 
 /** The neighbouring entries in the A–Z (the entry page's side index): up to `n` around this one, same letter first. */
 export function neighbours(entries = [], key, n = 7) {

@@ -9,11 +9,16 @@
 //
 // ⭐ D105 P5 · links in:
 //   GET  /api/atlas/resolve?terms=a,b,c   → { slugs: { term: slug } } — PUBLISHED nodes only, by term or confirmed alias;
+//                                           ⭐ 47o: a bare word with 2+ meanings ("kernel") → its disambiguation page's slug
 //                                           a term with no published page is absent, so no caller draws a dead link
 // ⭐ D114 · terms in the postings (public):
 //   GET  /api/atlas/terms/:jobId          → { terms: [{ slug, name, kind, forms: [{ text, exactCase }] }] } for ONE posting
 //   GET  /api/atlas/peek/:slug            → the popup: name, kind, meaning (+ fromWikipedia), postings, firstResource, you?
 //   POST /api/atlas/link-event            { event: "open" | "visit" } → 204; a per-day count, nothing else stored
+// ⭐ 47o · THE ATLAS AS A WIKI (public; docs/ATLAS_WIKI_PLAN_47o.md):
+//   GET  /api/atlas/text-terms            → { version, terms, senses } — the one Atlas-text linker's terms (shared/atlasText.js)
+//   GET  /api/atlas/word/:word            → a word's meanings — the disambiguation page (404 when it has fewer than two)
+//   GET  /api/atlas/node/:slug            → ⭐ 47o: a merged / renamed entry's old address answers with its entry (`redirectedFrom`)
 // ⭐ D167 · the Atlas's Glossary panel (public):
 //   GET  /api/atlas/glossary              → { terms: [{ slug, name, kind, meaning, fromWikipedia, wikipediaUrl, postings }], total }
 //                                           every PUBLISHED term; `meaning` is the popup's own (meaningOf — one source)
@@ -80,6 +85,8 @@ import { loadRegistry, registrySummary, lastLinkCheck, runRegisterLinkCheck } fr
 import { probeWikipedia, wikiMatchSummary } from "../services/atlas/atlasWikidata.js";
 import { wikiCandidates, pickWikiTitle, redirectPreview, acceptPicks } from "../services/atlas/atlasWikiFind.js";
 import { atlasTermsForPosting, peekNode, countLinkEvent, glossaryTerms } from "../services/atlas/atlasLinks.js";
+import { atlasTextData, wordPage, senseWordOf, redirectOf, otherMeaningsOf } from "../services/atlas/atlasSenses.js";   // 47o: the Atlas as a wiki
+import { linkedFrom } from "../services/atlas/atlasMentions.js";   // 47o W3: "Linked from"
 import { learnStepForNode, glossaryConcepts } from "../services/learn/learnLinks.js";
 import { servedLearnContent } from "../services/learn/learnContent.js";
 import { learnSourceSummary } from "../services/atlas/learnSources.js";
@@ -126,14 +133,20 @@ export function createAtlasRouter(db) {
   const router = Router();
   router.get("/search", (req, res) => {
     const q = String(req.query.q ?? "").slice(0, 80);
-    res.json({ q, results: q.trim() ? searchNodes(db, q, { publishedOnly: true }) : [] });
+    const results = q.trim() ? searchNodes(db, q, { publishedOnly: true }) : [];
+    // ⭐ 47o W6: a word with several meanings answers with its disambiguation page first ("Kernel · 3 meanings")
+    const word = q.trim() ? (() => { try { return wordPage(db, q.trim()); } catch { return null; } })() : null;
+    res.json({ q, results: word ? [{ slug: word.slug, kind: "word", name: word.word, via: null, meanings: word.senses.length }, ...results] : results });
   });
   // ⭐ P5: the skill tags' links. Comma-separated, at most RESOLVE_MAX_TERMS; the answer is cacheable for a short while.
   router.get("/resolve", (req, res) => {
     const raw = Array.isArray(req.query.terms) ? req.query.terms.join(",") : String(req.query.terms ?? "");
     const terms = raw.slice(0, 8000).split(",").map(t => t.trim().slice(0, 80)).filter(Boolean).slice(0, RESOLVE_MAX_TERMS);
     res.set("Cache-Control", "public, max-age=300");
-    res.json({ slugs: terms.length ? resolveTerms(db, terms) : {} });
+    const slugs = terms.length ? resolveTerms(db, terms) : {};
+    // ⭐ 47o W6: a bare word with 2+ meanings never resolves to one of them — it goes to the page that lists them
+    for (const t of terms) { try { const w = senseWordOf(db, t); if (w) slugs[t] = w; } catch { /* before migration 284 */ } }
+    res.json({ slugs });
   });
   // ⭐ D114 · Atlas terms in the postings (services/atlas/atlasLinks.js). ONE posting's linkable terms (its text is
   // matched where it is drawn, shared/atlasLinks.js); the popup's small read, fetched on the first hover only; and an
@@ -159,10 +172,29 @@ export function createAtlasRouter(db) {
   // ⭐ D167 · the Atlas's Glossary: every published term in plain words + its postings — the SAME meaning as the popup
   // (services/atlas/atlasLinks.js meaningOf), kept like the popup at most LIVE_CACHE_MS. The same for everyone.
   // ⭐ D178: the concept index joins it — a term the path teaches carries its lesson; the other concepts are rows of their own.
+  // ⭐ 47o W1: the one Atlas-text linker's terms — every surface links a word the same way. Public; versioned, so a page
+  // asks once (the answer moves only when an entry is published, renamed or given an alias).
+  router.get("/text-terms", (req, res) => {
+    const data = atlasTextData(db);
+    const tag = `"tt-${String(data.version).replace(/[^A-Za-z0-9.:_-]/g, "")}"`;
+    res.set("Cache-Control", "public, max-age=300");
+    res.set("ETag", tag);
+    if (req.headers["if-none-match"] === tag) return res.status(304).end();
+    res.json(data);
+  });
+  // ⭐ 47o W4 rule 5: a word's meanings — the disambiguation page (/atlas/<word>).
+  router.get("/word/:word", (req, res) => {
+    const page = wordPage(db, String(req.params.word).slice(0, 80));
+    if (!page) return res.status(404).json({ error: "not_found", message: "No word in the Atlas with several meanings by that name." });
+    res.set("Cache-Control", "public, max-age=300");
+    res.json(page);
+  });
   router.get("/glossary", (_req, res) => {
     const g = liveCached(db, "glossary", () => glossaryConcepts(glossaryTerms(db), servedLearnContent(db)));
     res.set("Cache-Control", `public, max-age=${LIVE_CACHE_MS / 1000}`);
-    res.json({ terms: g.terms, concepts: g.concepts, total: g.terms.length + g.concepts.length });
+    // ⭐ 47o W6: the words with several meanings — the Gazetteer lists each as one entry that opens its disambiguation page
+    const words = (() => { try { return atlasTextData(db).senses.filter(x => x.senses.length >= 2).map(x => ({ word: x.word, slug: x.slug, meanings: x.senses.length })); } catch { return []; } })();
+    res.json({ terms: g.terms, concepts: g.concepts, words, total: g.terms.length + g.concepts.length });
   });
   // ⭐ D172 (3) · Your run: the reader's points from proof, level, streak and today's quests. Signed in only; private.
   router.get("/run", (req, res) => {
@@ -246,9 +278,18 @@ export function createAtlasRouter(db) {
       const learn = (() => { try { return learnStepForNode(db, { name: node.name, term: db.prepare(`SELECT term FROM atlas_nodes WHERE slug = ?`).pluck().get(node.slug) }); } catch { return null; } })();
       // ⭐ D105 P12 · a role's page is the board's own data: skills with shares, levels, companies, the next level's rises.
       const board = node.kind === "role" ? (() => { try { return roleBoard(db, node.slug); } catch { return null; } })() : null;
-      return { node, extra: { ...(board ? { roleBoard: board } : {}), ...(sponsors?.length ? { sponsors } : {}), ...(learn ? { learn } : {}) } };
+      // ⭐ 47o: the entry's family (the domain that picks a meaning in its own text), the word's other meanings (the wiki's
+      // hatnote — owner 11-27: a link goes straight to the meaning the page picks, and that entry says the word has others),
+      // and "Linked from" (W3) — the Atlas text that links here, by domain, and its postings by the families that ask for it
+      const wiki = (() => { try { return { family: db.prepare(`SELECT family FROM atlas_nodes WHERE slug = ?`).pluck().get(node.slug) || null, otherMeanings: otherMeaningsOf(db, node.slug), linkedFrom: linkedFrom(db, node.slug) }; } catch { return {}; } })();
+      return { node, extra: { ...(board ? { roleBoard: board } : {}), ...(sponsors?.length ? { sponsors } : {}), ...(learn ? { learn } : {}), ...wiki } };
     });
-    if (!page) return res.status(404).json({ error: "not_found", message: "No published Atlas page by that name." });
+    if (!page) {
+      // ⭐ 47o W5: a merged or renamed entry's old address answers with its entry, saying so (the client moves the address)
+      const to = redirectOf(db, slug);
+      if (to && to !== slug) { const target = readNode(db, to, { publishedOnly: true }); if (target) return res.json({ ...target, redirectedFrom: slug }); }
+      return res.status(404).json({ error: "not_found", message: "No published Atlas page by that name.", ...(wordPage(db, slug) ? { word: slug } : {}) });
+    }
     const userId = req.user?.id ?? null;
     // ⭐ D119: each resource's stored picture (read now, outside the page cache — a pin or a takedown shows at once).
     const thumbs = (() => { try { return thumbIndex(db, (page.node.resources || []).map(r => r.url)); } catch { return {}; } })();

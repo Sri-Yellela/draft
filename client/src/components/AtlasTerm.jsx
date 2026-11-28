@@ -14,7 +14,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { linkSegments } from "../../../shared/atlasLinks.js";
-import { peekAtlas, atlasLinkEvent, atlasHref } from "../lib/atlasLinks.js";
+import { linkAtlasText } from "../../../shared/atlasText.js";
+import { peekAtlas, atlasLinkEvent, atlasHref, useAtlasTextData } from "../lib/atlasLinks.js";
 import ResourceTile from "./ResourceTile.jsx";
 import "./AtlasTerm.css";
 
@@ -81,7 +82,7 @@ function Popup({ slug, name, pos, onEnter, onLeave, id }) {
   );
 }
 
-export function AtlasTerm({ slug, name, children }) {
+export function AtlasTerm({ slug, name, children, className = "", href = null, onGo = null }) {
   const ref = useRef(null);
   const timer = useRef(null);
   const lastPointer = useRef("mouse");
@@ -108,7 +109,7 @@ export function AtlasTerm({ slug, name, children }) {
   useEffect(() => () => { clear(); if (closeOpen === close) closeOpen = null; }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <>
-      <a ref={ref} className="atl-term" href={atlasHref(slug)} data-atlas-term={slug}
+      <a ref={ref} className={`atl-term${className ? ` ${className}` : ""}`} href={href || atlasHref(slug)} data-atlas-term={slug}
         aria-describedby={pos ? id : undefined} aria-expanded={pos ? "true" : "false"}
         onPointerDown={(e) => { lastPointer.current = e.pointerType || "mouse"; }}
         onMouseEnter={() => { if (lastPointer.current !== "touch") later(open, OPEN_DELAY_MS); }}
@@ -119,12 +120,39 @@ export function AtlasTerm({ slug, name, children }) {
           // TOUCH: a tap opens (or closes) the popup — it never navigates; the popup's link does.
           if (lastPointer.current === "touch") { e.preventDefault(); if (pos) close(); else open(); return; }
           atlasLinkEvent("visit");
+          // ⭐ 47o: inside the app a page may move by its own router (the Gazetteer's onGo) — a plain click only
+          if (onGo && !e.defaultPrevented && e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) { e.preventDefault(); onGo(href || atlasHref(slug)); }
         }}>
         {children}
       </a>
       {pos && <Popup slug={slug} name={name} pos={pos} id={id} onEnter={clear} onLeave={() => later(close, CLOSE_DELAY_MS)} />}
     </>
   );
+}
+
+/**
+ * ⭐ 47o (owner 11-27, docs/ATLAS_WIKI_PLAN_47o.md W1 / W2) · ATLAS TEXT AS A WIKI — any Atlas prose (an entry's meaning, a
+ * lesson, a route, a deck, an answer) with its words linked by THE ONE LINKER (shared/atlasText.js): every link to a word
+ * opens the one entry for its meaning (the popup first, as in a posting); a word the page cannot settle opens its
+ * disambiguation page. `domain` = the page's [family, category] (the rule that picks a meaning); `self` = the page's own
+ * entry (never linked); `used` carries "already linked" across one page's blocks; `max` caps the links in this text;
+ * `hrefOf` / `onGo` keep a link inside the page's own router. The text is never changed. Visible at rest (a wiki link).
+ */
+export function AtlasProse({ text, domain = [], self = null, used, max, hrefOf = null, onGo = null, render = (s) => s }) {
+  const data = useAtlasTextData();
+  if (!text) return null;
+  if (!data) return render(text);
+  return linkAtlasText(text, data, { used, self, domain, max }).map((seg, i) => {
+    if (!seg.slug) return <span key={i}>{render(seg.text)}</span>;
+    const href = hrefOf ? hrefOf(seg.slug) : atlasHref(seg.slug);
+    if (seg.disambiguation) {
+      return <a key={i} className="atl-term atl-term--wiki atl-term--word" href={href} data-atlas-word={seg.slug}
+        title="This word has several meanings — see them"
+        onClick={(e) => { if (onGo && e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) { e.preventDefault(); onGo(href); } }}>{render(seg.text)}</a>;
+    }
+    const t = data.terms.find(x => x.slug === seg.slug) || (data.senses || []).flatMap(g => g.senses).find(x => x.slug === seg.slug);
+    return <AtlasTerm key={i} slug={seg.slug} name={t?.name || seg.text} className="atl-term--wiki" href={href} onGo={onGo}>{render(seg.text)}</AtlasTerm>;
+  });
 }
 
 /**

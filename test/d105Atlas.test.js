@@ -32,8 +32,8 @@ test("D105 · d105OneThesaurus — no Atlas alias table; an alias added in the A
   // 45o A155 (3dc0b800, migration 251) adds atlas_prefs (weekdays_only per person) and 45q D185-3 (f90068ed) adds
   // atlas_backlog (rising-skill content drafts); 45l D179 P6 (be7b2642, migration 241) adds atlas_taxonomy_roles (the
   // taxonomy subcategory -> role draft map) — none holds aliases (pin moved on purpose).
-  assert.deepEqual(tables.map(t => t.name).sort(), ["atlas_backlog", "atlas_changes", "atlas_edges", "atlas_link_counts", "atlas_live_state", "atlas_node_stats", "atlas_nodes",
-    "atlas_posting_dirty", "atlas_posting_match", "atlas_prefs", "atlas_question_routes" /* 47m, migration 283 */, "atlas_resources", "atlas_role_level_stats", "atlas_skill_holds", "atlas_taxonomy_roles", "atlas_wiki_cache"]);
+  assert.deepEqual(tables.map(t => t.name).sort(), ["atlas_backlog", "atlas_changes", "atlas_edges", "atlas_link_counts", "atlas_live_state", "atlas_mentions" /* 47o, migration 284: "Linked from" */, "atlas_node_stats", "atlas_nodes",
+    "atlas_posting_dirty", "atlas_posting_match", "atlas_prefs", "atlas_question_routes" /* 47m, migration 283 */, "atlas_redirects" /* 47o, migration 284: an old address → its entry, not an alias */, "atlas_resources", "atlas_role_level_stats", "atlas_skill_holds", "atlas_taxonomy_roles", "atlas_wiki_cache"]);
   assert.ok(tables.every(t => !/alias/i.test(t.sql)), "aliases live in skill_synonyms only");
   assert.ok(!EDGE_TYPES.includes("alias_of"));
   assert.throws(() => addEdge(db, 1, 2, "alias_of"), /aliases live in skill_synonyms/);

@@ -18,6 +18,8 @@
 //   C6  ENTRY FROM ANYWHERE — LearnView passes the #step-<id> it was opened with: that piece opens, never Step 1.
 // ⛔ C8: no checkbox, no "done" button, no "I explained it" — nothing a user can press says "complete".
 import { useMemo, useState } from "react";
+// 47o W2: the lesson's words link wiki-style
+import { AtlasProse } from "../../components/AtlasTerm.jsx";
 import DepthButton from "../../components/DepthButton.jsx";
 import ResourceTile, { ResourceGrid, useLearnThumbs } from "../../components/ResourceTile.jsx";
 import LearnWheel from "./LearnWheel.jsx";
@@ -136,7 +138,7 @@ export function PieceBody({ piece, pieces, states, marks = {}, explanations = {}
       {!compact && <>
         <p className="lrc__crumb" data-learn-where="">{whereLine(piece)} · <b>{pieceOf(piece, pieces.length)}</b></p>
         <h2 className="lrc__title">{piece.t}</h2>
-        {piece.g && <p className="lrc__goal">{piece.g}</p>}
+        {piece.g && <p className="lrc__goal"><AtlasProse text={piece.g} domain={["computing"]}/></p>}
       </>}
       <div className="lrc__prog" data-learn-bar={st.bar}>
         <div className="lrc__bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={st.bar} aria-label={`${piece.t}: ${st.bar} %`}>

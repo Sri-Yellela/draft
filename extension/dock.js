@@ -377,6 +377,18 @@
 
   const LOGO_FACE = 'rm-draft-logo';
   function loadLogo(theme) {
+    // ⭐ 47o: the panel's serif (Instrument Serif, the package's own file) under a private name, so the page's fonts are untouched
+    if (theme?.serifFont && typeof FontFace === 'function' && !globalThis.__draftDockSerif) {
+      try {
+        const sb = atob(theme.serifFont);
+        const sbytes = new Uint8Array(sb.length);
+        for (let i = 0; i < sb.length; i++) sbytes[i] = sb.charCodeAt(i);
+        const serif = new FontFace('rm-draft-serif', sbytes.buffer, { style: 'normal', weight: '400' });
+        document.fonts.add(serif);
+        serif.load().catch(() => {});
+        globalThis.__draftDockSerif = true;
+      } catch { /* Georgia carries the same words */ }
+    }
     if (!theme?.logoFont || typeof FontFace !== 'function' || globalThis.__draftDockLogo) return;
     try {
       const bin = atob(theme.logoFont);

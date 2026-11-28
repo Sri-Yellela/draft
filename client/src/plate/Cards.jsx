@@ -67,7 +67,7 @@ const ASK_TIER = { T1: "T1 • ACTION", T2: "T2 • FROM YOUR DATA", T3: "T3 •
  */
 export function AskDraftCard({ name = "Ask draft", sub = "draft’s helper — no AI for anything draft already holds", intro, turns = [], busy = false,
   value = "", onChange, onSend, placeholder, canSpeak = false, listening = false, onSpeak, voiceNote, improve = null,
-  onClose, onUndo, onAnswerBack, onDecide, onUseAnswer, children = null, bodyRef, face = null, renderTurn, ...s }) {
+  onClose, onUndo, onAnswerBack, onDecide, onUseAnswer, children = null, bodyRef, face = null, renderTurn, renderText, ...s }) {
   // ⭐ 47m (D197 #12 M5 — the live panel, components/AppNav.jsx AskDraftPanel, draws THIS card): `face` = Tiny's face before
   // the name (U2: kept, as a logo is kept); `renderTurn(t, i)` = a turn's own extra under its words (the answer's route card,
   // plate/RouteMap.jsx); the data-ask-* hooks the walks and probes read ride on the same elements as before.
@@ -92,7 +92,7 @@ export function AskDraftCard({ name = "Ask draft", sub = "draft’s helper — n
             <li key={i} className="pl-ask__turn" data-who={t.who} data-tier={t.tier || undefined} data-failed={t.failed ? "" : undefined}
               data-ask-turn={t.who} data-ask-tier={t.tier || undefined} data-ask-intent={t.intent || undefined}>
               {t.who === "draft" && (ASK_TIER[t.tier] || t.label) ? <span className="pl-label pl-ask__tier" data-tier={t.tier} data-ask-label={t.tier || ""}>{ASK_TIER[t.tier] || String(t.label).toUpperCase()}</span> : null}
-              <p className="pl-ask__text">{t.who === "you" ? <b>You: </b> : t.who === "question" ? <b>Question: </b> : null}{t.text}</p>
+              <p className="pl-ask__text">{t.who === "you" ? <b>You: </b> : t.who === "question" ? <b>Question: </b> : null}{(renderText && renderText(t, i)) || t.text}</p>
               {t.lessons?.length ? (
                 <ul className="pl-ask__links" aria-label="Lessons" data-ask-lessons="">
                   {t.lessons.map((l) => <li key={l.href}><a href={l.href} data-ask-lesson={l.slug}>{l.name}</a>{l.kind ? <span className="pl-label pl-muted"> {l.kind}</span> : null}</li>)}

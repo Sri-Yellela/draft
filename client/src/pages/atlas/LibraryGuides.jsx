@@ -6,6 +6,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../lib/api.js";
+// 47o W2: a deck's build brief links its words wiki-style
+import { AtlasProse } from "../../components/AtlasTerm.jsx";
 import DepthButton from "../../components/DepthButton.jsx";
 import { slideLabel } from "./libraryModel.js";
 import CardPile from "../../components/CardPile.jsx";   // 46u: draft's card for the slides
@@ -89,7 +91,7 @@ export function PathwaysPlan({ base, want = null }) {
                     {s.builds?.map(b => (
                       <details key={b.id} className="lib-plan__build" data-build={b.id}>
                         <summary><b>Build it:</b> {b.title}</summary>
-                        <p>{b.brief}</p>
+                        <p><AtlasProse text={b.brief} domain={["computing"]}/></p>
                         <ol>{b.steps.map((st, i) => <li key={i}>{st}</li>)}</ol>
                         <p className="atl__quiet"><b>To prove it:</b> {b.show} Add the link as proof on the skill in <Link className="atl__link" to={`${base}/your-skills`}>Your skills</Link> — it then counts as built.</p>
                         {b.decks.length > 0 && <p className="atl__quiet">Read first: {b.decks.map((d, i) => <span key={d}>{i ? " · " : ""}<Link className="atl__link" to={`${base}/library/${d}`}>{d}</Link></span>)}</p>}

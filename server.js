@@ -188,6 +188,8 @@ import { importLearnConcepts, publishLearnConcepts } from "./services/atlas/atla
 import { learnContent } from "./services/learn/learnContent.js";
 import { importLearnPatterns } from "./services/learn/learnLinks.js";
 import { seedAtlasFamilies } from "./services/atlas/atlasFamilies.js";
+import { importCurated } from "./services/atlas/atlasCurated.js";
+import { rebuildMentions } from "./services/atlas/atlasMentions.js";
 import { seedDraftedDefinitions, publishWaitingDrafts } from "./services/atlas/atlasDefinitions.js";
 import { seedBoardRoles } from "./services/atlas/atlasRoles.js";
 import { computeAtlasStats, computeAtlasStatsOffloaded } from "./services/atlas/atlasStats.js";
@@ -8200,6 +8202,34 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_atlas_question_routes_user ON atlas_question_routes(user_id, created_at);
       `,
     },
+    {
+      // ⭐ 47o (owner 11-27: the Atlas as a wiki, docs/ATLAS_WIKI_PLAN_47o.md W3 / W4 / W5) · ONE ENTRY PER MEANING, LINKED FROM
+      // EVERYWHERE. (1) Senses: a word with several meanings is several entries sharing `sense_of` (the word as written, e.g.
+      // "kernel"); `sense_cues` (JSON array) are the neighbouring words that pick this meaning, `sense_domains` (JSON array of
+      // family keys or categories) the pages whose domain picks it. (2) atlas_mentions: "Linked from" — which Atlas text (an
+      // entry's meaning, a lesson, a pattern, a deck, a route) links to which entry; rebuilt off the request thread when the
+      // terms or the content change. (3) atlas_redirects: a merged or renamed entry's old address keeps working. Only ADDS.
+      id: "284_atlas_wiki",
+      sql: `
+        ALTER TABLE atlas_nodes ADD COLUMN sense_of TEXT;
+        ALTER TABLE atlas_nodes ADD COLUMN sense_cues TEXT;
+        ALTER TABLE atlas_nodes ADD COLUMN sense_domains TEXT;
+        CREATE INDEX IF NOT EXISTS idx_atlas_nodes_sense ON atlas_nodes(sense_of);
+        CREATE TABLE IF NOT EXISTS atlas_mentions (
+          node_id      INTEGER NOT NULL REFERENCES atlas_nodes(id) ON DELETE CASCADE,
+          source_kind  TEXT    NOT NULL,
+          source_ref   TEXT    NOT NULL,
+          source_label TEXT    NOT NULL,
+          domain       TEXT,
+          PRIMARY KEY (node_id, source_kind, source_ref)
+        );
+        CREATE TABLE IF NOT EXISTS atlas_redirects (
+          from_slug  TEXT PRIMARY KEY,
+          to_slug    TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -12788,6 +12818,25 @@ try {
   if (w.published.length) console.log(`[atlas] ${w.published.length} waiting draft definition(s) published`);
   if (d.refused.length) console.warn(`[atlas] drafted definitions refused: ${d.refused.map(r => `${r.slug} (${r.reason})`).join("; ")}`);
 } catch (e) { console.warn("[atlas] drafted definitions:", e.message); }
+// ⭐ 47o (owner 11-27, the Atlas as a wiki — docs/ATLAS_WIKI_PLAN_47o.md W4 / W5): content/atlas/curated-wiki-v1.json — the hub
+// entries, a word's several meanings, merges (unpublished + alias + redirect), renames, typed edges. Idempotent and quiet: a
+// boot that finds it all in place writes nothing.
+try {
+  const c = importCurated(db);
+  if (c.created.length || c.published.length || c.senses || c.aliases || c.renamed.length || c.merged.length || c.edges || c.placed) {
+    console.log(`[atlas] curated: ${c.created.length} entr${c.created.length === 1 ? "y" : "ies"} added, ${c.published.length} published, ${c.senses} sense(s), ${c.aliases} alias(es), ${c.renamed.length} renamed, ${c.merged.length} merged, ${c.edges} edge(s), ${c.placed} placed in a family`);
+  }
+  if (c.refused.length) console.warn(`[atlas] curated: left out ${c.refused.join("; ")}`);
+} catch (e) { console.warn("[atlas] curated:", e.message); }
+// ⭐ 47o W3 · "Linked from" (atlas_mentions): rebuilt OFF the request thread — it yields between slices and writes once —
+// and only when its fingerprint moved (the linker's terms, the learn content, the meanings); first 60 s after boot (past
+// the switch-over), then every 30 minutes. A steady boot reads one row and does nothing.
+{
+  const mentions = () => rebuildMentions(db).then(r => { if (!r.skipped) console.log(`[atlas] linked-from: ${r.rows} link(s) from ${r.sources} text(s) in ${r.ms} ms`); })
+    .catch(e => console.warn("[atlas] linked-from:", e.message));
+  setTimeout(mentions, 60_000).unref();
+  setInterval(mentions, 30 * 60_000).unref();
+}
 // ⭐ D118 P1: the live counts need a baseline — one full pass. A database that has none (the first boot with migration
 // 199) gets it shortly after boot, not on the request path; until then the queue waits and pages read the last nightly.
 try {

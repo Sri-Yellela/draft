@@ -85,6 +85,25 @@ export function useAtlasTerms(jobId) {
   return terms;
 }
 
+// ⭐ 47o (docs/ATLAS_WIKI_PLAN_47o.md W1) · THE ONE ATLAS-TEXT LINKER'S TERMS (GET /api/atlas/text-terms) — asked once per page
+// load and shared by every block that links Atlas prose (components/AtlasTerm.jsx AtlasProse). null until it lands (the
+// text is drawn at once, the links join it); a failed read leaves the text plain and is asked again on the next mount.
+let textData = null;   // Promise<{ terms, senses } | null>
+export function loadAtlasTextData() {
+  if (!textData) {
+    textData = api("/api/atlas/text-terms").then(r => (r && Array.isArray(r.terms) ? r : null)).catch(() => null);
+    textData.then(d => { if (!d) textData = null; });
+  }
+  return textData;
+}
+export function useAtlasTextData() {
+  const [d, setD] = useState(null);
+  useEffect(() => { let live = true; loadAtlasTextData().then(x => { if (live) setD(x); }); return () => { live = false; }; }, []);
+  return d;
+}
+/** Test seam. */
+export function _resetAtlasTextData() { textData = null; }
+
 // ⭐ D118 P1: the popup's count moves with the board — a read is kept at most a minute (the server's cap), not the page's life.
 export const PEEK_KEEP_MS = 60_000;
 export function peekAtlas(slug, now = Date.now()) {
